@@ -1,177 +1,142 @@
-# Command & Conquer Generals: Zero Hour — macOS, iOS & iPadOS
+# GeneralsX
 
-<img width="500" height="281" alt="IMG_3457_500" src="https://github.com/user-attachments/assets/aeaf6692-36e6-40c8-b9f8-8066d014ec4b" />
+GeneralsX is a fork of the *Command & Conquer: Generals — Zero Hour* engine, from EA's 2003 source released under
+the GPL in 2025. It runs Zero Hour natively on Windows (x64), Linux (x86_64) and macOS (Apple silicon), and players on
+all three join the same match through a relay server. The iPhone/iPad build plays in the same matches but is still in
+testing and has no public download.
 
-**Zero Hour running natively on Apple Silicon Macs, iPhone, and iPad** — campaign,
-skirmish, and Generals Challenge, with touch controls built for RTS (tap-select,
-drag-box, long-press deselect, two-finger scroll, pinch zoom). No emulation: this
-is the real 2003 engine compiled for ARM64, rendering DirectX 8 →
-[DXVK](https://github.com/doitsujin/dxvk) → Vulkan →
-[MoltenVK](https://github.com/KhronosGroup/MoltenVK) → Metal.
+This repository holds the source of each published release as one snapshot commit, tagged with its version. The
+current tag, `v0.9.71`, is the source of the 0.9.71 release and was cut from development commit
+`bfeca14d0223e62b936141e1f22a2e37b1bd68c5`; [SOURCE.md](SOURCE.md) lists exactly what differs from that commit.
+Downloads and release notes: [wh1ter0se.dev/generals](https://wh1ter0se.dev/generals) and
+[wh1ter0se.dev/generals/changes](https://wh1ter0se.dev/generals/changes).
 
-Built on EA's GPL v3 source release, standing on a chain of community work —
-[TheSuperHackers](https://github.com/TheSuperHackers/GeneralsGameCode),
-[Fighter19's original Unix port](https://github.com/Fighter19/CnC_Generals_Zero_Hour), and
-[fbraz3/GeneralsX](https://github.com/fbraz3/GeneralsX) — this fork adds the iOS/iPadOS
-port and a set of engine fixes. See [Lineage & credits](#lineage--credits) for who built
-what. The original GeneralsX README lives on the `upstream-main` branch.
+**No game assets are included.** You need your own copy of Zero Hour
+([Steam](https://store.steampowered.com/app/2732960/) or the EA app).
 
-**No game assets are included or distributed.** You need your own copy
-([Steam](https://store.steampowered.com/app/2732960/), ~$5 on sale).
+## What it does
 
-## What this port actually involved
+| Feature | Where to look |
+|---|---|
+| One match across Windows, Linux and macOS (iPad in testing). Shipping presets: `win64`, `linux64-deploy`, `macos-vulkan`, `ios-vulkan`. `win64` is the only 64-bit Windows preset, and cross-play needs it: a 32-bit peer hashes different sizes into the network CRC. | [`CMakePresets.json`](CMakePresets.json) |
+| Online play through a relay server. The client reads the relay's address from a list signed with Ed25519 against pinned keys, so a relay can move without a game update. The relay server itself is not in this repository. | [`GXRelayList.cpp`](Core/GameEngine/Source/GameClient/GXRelayList.cpp), [`Transport.cpp`](Core/GameEngine/Source/GameNetwork/Transport.cpp) |
+| Up to 32 players and 2 observers: 34 lobby slots (`MAX_PLAYER = 33`), all of which may be human; the simulation's `MAX_PLAYER_COUNT` is 40, with 64-bit player masks. | [`NetworkDefs.h`](Core/GameEngine/Include/GameNetwork/NetworkDefs.h), [`GameCommon.h`](Core/GameEngine/Include/Common/GameCommon.h) |
+| The simulation runs at 60 ticks a second (EA's ran at 30). It is a build option, on in all four shipping presets; 30 Hz and 60 Hz builds refuse to join each other. | [`WWCommon.h`](Core/Libraries/Source/WWVegas/WWLib/WWCommon.h), [`cmake/config-build.cmake`](cmake/config-build.cmake) |
+| Build identity on join: engine, simulation source, data and ordinal ids must match or the join is refused with the reason; parse, asset and platform differences only warn. The source id is a digest of the simulation code taken at build time. | [`SimulationId.h`](Core/GameEngine/Include/Common/Diagnostic/SimulationId.h), [`simsourcedigest_watcher.cmake`](resources/gitinfo/simsourcedigest_watcher.cmake) |
+| The same simulation results on x64 and arm64: strict floating-point compiler flags (`-ffp-contract=off`, `/fp:precise` on MSVC) and one math kernel for the simulation. | [`cmake/compilers.cmake`](cmake/compilers.cmake), [`gamemath.h`](Core/Libraries/Source/WWVegas/WWMath/gamemath.h) |
+| Replays record graphics settings and a once-a-second log of frame rate and game speed, and store no network address. `GXReplayTelemetry = full \| perf \| off` in `Options.ini`. | [`GXReplayDiag.h`](GeneralsMD/Code/GameEngine/Include/GameClient/GXReplayDiag.h) |
+| Online lobby with chat, friends and private messages; sign-in with Discord or a GeneralsX account. Only the game client's side is here; the account and lobby services are not. | [`GXLobbyPresence.cpp`](Core/GameEngine/Source/GameClient/GXLobbyPresence.cpp), [`GXRelayAuth.h`](Core/GameEngine/Include/GameClient/GXRelayAuth.h) |
+| The 2003 Direct3D 8 renderer runs through DXVK to Vulkan, and MoltenVK to Metal on Apple. An optional new Vulkan renderer (`GXRenderer = native` in `Options.ini`; classic is the default) is in development. | [`GXRendererKey.h`](Core/GameEngine/Include/GameClient/GXRendererKey.h), [`GXRender/`](Core/GameEngineDevice/Source/W3DDevice/GameClient/GXRender) |
+| The GeneralsX Launcher (Rust, Tauri 2): finds your Zero Hour data, holds the game's options and key bindings, and updates the game. | [`scripts/launcher-rs/`](scripts/launcher-rs), [`design/launcher/`](design/launcher) |
+| Skirmish AI additions: a rule bank in the engine and generated AI scripts. | [`GXRules/`](GeneralsMD/Code/GameEngine/Source/GameLogic/AI/GXRules), [`scripts/tooling/`](scripts/tooling) |
 
-"Porting" undersells how weird this journey was, so here's the honest shape of it.
-The lineage below built the foundation: EA's source release, the community's
-modernization, Fighter19's original Unix port, GeneralsX's macOS/Linux work.
-What did *not* exist was any of this on iOS — and iOS is a hostile place for a
-2003 Windows RTS:
+## Where it comes from
 
-- **The engine assumes a writable filesystem wherever it lives.** iOS apps live in a
-  read-only, code-signed bundle. Every config write, cache, and save path had to be
-  rerouted — and the working directory bootstrapped from the bundle itself.
-- **The renderer speaks DirectX 8. The iPad speaks Metal.** In between: DXVK
-  translating D3D8→Vulkan, MoltenVK translating Vulkan→Metal — and DXVK had never
-  been built for iPhoneOS. That took a Meson cross-build and a patch to its Vulkan
-  loader, because iOS confines `dlopen` to the app bundle ([`Patches/dxvk-ios.patch`](Patches/dxvk-ios.patch)).
-- **iOS owns your process.** Open the app switcher and the OS seizes the Metal
-  drawable *without backgrounding you* — draw one more frame and you're dead on
-  resume. The whole render/sim loop learned to hold its breath.
-- **An RTS needs a mouse.** SDL3 (from the lineage below) delivers raw touch events;
-  the RTS semantics on top are new. Taps defer until the 2003 GUI has processed
-  hover (or menu buttons never highlight), a drag has to decide "selection box or
-  camera pan," long-press became right-click, and a cancelled touch must never
-  ghost-click a rally point.
-- **And then the bug hunts** — the best part. The minimap that rendered black
-  because a 2003 texture-format fallback silently dropped the alpha channel. The
-  EVA voice that went randomly mute because one zombie audio stream held a global
-  "don't talk over speech" flag while chirping forever. Every one chased to root
-  cause on a real device, fixed, and offered upstream.
+Most of this code is not ours, and the projects it comes from did the foundational work:
 
-**→ The war stories: [Porting Playbook §8 — the bug archaeology](docs/port/PORTING_PLAYBOOK.md#8-post-ship-bug-hunts-junejuly-2026--the-archaeology-section)**
-**→ The complete engineering log: [docs/port/PORTING_PLAYBOOK.md](docs/port/PORTING_PLAYBOOK.md)**
-**→ How to do this to another game: [docs/port/PORTING_PATTERNS.md](docs/port/PORTING_PATTERNS.md)**
+| Project | What it contributed |
+|---|---|
+| Westwood Pacific / EA Pacific, and [EA](https://github.com/electronicarts/CnC_Generals_Zero_Hour) | The game, and the GPL v3 source release of February 2025. |
+| [TheSuperHackers/GeneralsGameCode](https://github.com/TheSuperHackers/GeneralsGameCode) | The community mainline: build modernization from VC6 to modern toolchains, the shared `Core/` tree, a long list of fixes, and much of the cross-platform groundwork, including the FFmpeg video backend and the OpenAL audio device work by [feliwir](https://github.com/feliwir). GeneralsX's development history is a fork of theirs, and their later fixes are ported in. |
+| [Fighter19/CnC_Generals_Zero_Hour](https://github.com/Fighter19/CnC_Generals_Zero_Hour) | The original Unix / 64-bit port: SDL3 platform management, C++17 filesystem and threading, FreeType/Fontconfig text rendering, and the DXVK approach to rendering. |
+| [fbraz3/GeneralsX](https://github.com/fbraz3/GeneralsX) | The macOS and Linux port this line descends from. The name GeneralsX is theirs. |
+| [ammaarreshi/Generals-Mac-iOS-iPad](https://github.com/ammaarreshi/Generals-Mac-iOS-iPad) | The iOS/iPadOS port (arm64 cross-build, DXVK on iOS, touch controls, app lifecycle, packaging), and the project this fork was made from. The port's own account of that work: [docs/IOS_PORT.md](docs/IOS_PORT.md). |
+| [DXVK](https://github.com/doitsujin/dxvk), [MoltenVK](https://github.com/KhronosGroup/MoltenVK), [SDL](https://github.com/libsdl-org/SDL), [OpenAL Soft](https://github.com/kcat/openal-soft), [FFmpeg](https://ffmpeg.org), and the rest | Every third-party component and its licence: [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt). |
 
-Worth saying plainly: this was a **human + AI collaboration**. The engineering —
-the C++, the cross-builds, the device debugging — was done by
-[Claude Code](https://claude.com/claude-code) (Anthropic's Claude, Fable model),
-directed and playtested by a human who described symptoms like *"the minimap is
-black"* and *"I hear chirping"* and owned every decision. Neither half ships this
-alone: one of us can't write C++, and the other can't hear the chirping.
+### Lines of code by origin
 
-## Quick start — macOS
+Engine C/C++ in `v0.9.71` (`Core/`, `Generals/`, `GeneralsMD/`, `Dependencies/`), each line counted toward the
+earliest project that already has it:
 
-Prerequisites (one time):
+| Engine C/C++ | Lines | Share |
+|---|---:|---:|
+| EA's 2003 release | 1,408,541 | 71.0% |
+| TheSuperHackers | 216,105 | 10.9% |
+| Fighter19 / fbraz3 / ammaarreshi, not in upstream | 27,978 | 1.4% |
+| This fork | 331,804 | 16.7% |
+| **Total** | **1,984,428** | |
+
+Of this fork's lines, 45,529 are vendored third-party code, 29,676 are generated shader bytecode and 34,839 are
+tests; 221,760 are hand-written engine code. Method, the commits compared and the command to reproduce it:
+[docs/LINES_BY_ORIGIN.md](docs/LINES_BY_ORIGIN.md).
+
+## How it is built
+<!-- how-built -->
+
+GeneralsX is directed, reviewed and funded by its author, wh1ter0se, and tested on the author's own hardware. Much of
+the code is written with AI assistance; AI is a tool here, and a change ships on what it measures, not on who or what
+typed it. The gates:
+
+* **Four platforms.** A change merges only after it builds for Windows, Linux, macOS and iOS from the same commit.
+* **Cross-model review.** Every change is reviewed by a second, independent model before that build, and its
+  findings are fixed or ruled on before the change merges.
+* **Determinism.** A change that touches the simulation must play recorded replays and two-build matches to identical
+  per-frame CRCs; otherwise it is a declared simulation change, its source id moves, and older builds refuse to join
+  it.
+* **Performance.** A change aimed at speed is measured in A/B runs against the build before it, with the tick rate
+  reported over the whole run and every drop explained.
+
+The test harnesses and CI that run these gates are development tooling and are not part of this snapshot
+([SOURCE.md](SOURCE.md)).
+
+## Building
+
+The commands below are the short path; the platform guides have prerequisites and troubleshooting. Each build
+produces `GeneralsXZH` (`generalszh.exe` on Windows).
+
+**macOS (Apple silicon)** — prerequisites in [docs/BUILD/MACOS.md](docs/BUILD/MACOS.md) (Xcode command line tools,
+Homebrew `cmake ninja meson pkgconf`, the LunarG Vulkan SDK, vcpkg with `VCPKG_ROOT` set):
 
 ```sh
-# Toolchain
-xcode-select --install
-brew install cmake ninja meson pkgconf
-brew install --cask steamcmd
-
-# vcpkg (full clone — a shallow clone breaks manifest baselines)
-git clone https://github.com/microsoft/vcpkg ~/vcpkg && ~/vcpkg/bootstrap-vcpkg.sh
-export VCPKG_ROOT=~/vcpkg          # add to your shell profile
-
-# LunarG Vulkan SDK (NOT the Homebrew cask) — https://vulkan.lunarg.com/sdk/home
-export VULKAN_SDK=$HOME/VulkanSDK/<version>/macOS   # add to your shell profile
-```
-
-Clone, build, get assets, play:
-
-```sh
-git clone https://github.com/ammaarreshi/Generals-Mac-iOS-iPad.git GeneralsX
-cd GeneralsX
-./scripts/build/macos/build-macos-zh.sh     # checks deps, configures, builds
-./scripts/build/macos/deploy-macos-zh.sh    # creates ~/GeneralsX/GeneralsZH + run.sh
-./scripts/get-assets.sh <your_steam_username>   # fetches game data you own
+git submodule update --init --recursive references/fbraz3-dxvk
+./scripts/build/macos/build-macos-zh.sh            # configures the macos-vulkan preset and builds
+./scripts/build/macos/deploy-macos-zh.sh           # installs to ~/GeneralsX/GeneralsZH with a run.sh
+./scripts/get-assets.sh <your_steam_username>      # fetches the Zero Hour data you own (steamcmd)
 cd ~/GeneralsX/GeneralsZH && ./run.sh -win
 ```
 
-## Quick start — iPhone / iPad
+**iPhone / iPad** — [docs/BUILD/IOS.md](docs/BUILD/IOS.md).
 
-On top of the macOS prerequisites: full Xcode (signed into your Apple ID),
-`brew install xcodegen`, and a (free or paid) Apple Developer team.
+**Linux (x86_64)** — prerequisites in [docs/BUILD/LINUX.md](docs/BUILD/LINUX.md):
 
 ```sh
-cd GeneralsX
-git submodule update --init --recursive references/fbraz3-dxvk   # iOS DXVK is built from this + Patches/dxvk-ios.patch
-# --recursive is required: DXVK vendors Vulkan-Headers, SPIRV-Headers and the
-# mingw-directx headers as its own submodules. Without them the meson cross
-# configure fails with 'Missing Vulkan-Headers'.
-./scripts/build/ios/fetch-moltenvk.sh                # pinned MoltenVK.framework (checksummed)
-./scripts/build/ios/stage-fonts.sh                   # Liberation fonts, renamed as the game expects
-cmake --preset ios-vulkan
-cmake --build build/ios-vulkan --target z_generals
-GX_TEAM_ID=<your-team-id> GX_BUNDLE_ID=com.you.generalszh \
-    ./scripts/build/ios/package-ios-zh.sh --install  # assembles, signs, installs
+cmake --preset linux64-deploy
+cmake --build build/linux64-deploy --target z_generals
+./scripts/build/linux/deploy-linux-zh.sh            # installs to ~/GeneralsX/GeneralsZH
+./scripts/get-assets.sh <your_steam_username>
+./scripts/build/linux/run-linux-zh.sh
 ```
 
-Find your team id in Xcode → Settings → Accounts. Assets ship inside the app
-bundle (self-contained install); `--dev` skips the ~2.7 GB copy for fast code
-iteration.
+**Windows (x64)** — from an x64 Visual Studio developer prompt, with vcpkg:
 
-## Where things are
+```sh
+cmake --preset win64
+cmake --build --preset win64 --target z_generals   # RelWithDebInfo, the configuration that ships
+```
 
-| Path | What it is |
-|---|---|
-| [`docs/port/PORTING_PLAYBOOK.md`](docs/port/PORTING_PLAYBOOK.md) | The complete engineering log of this port: every failure mode, root cause, fix — start with [§8, the bug archaeology](docs/port/PORTING_PLAYBOOK.md#8-post-ship-bug-hunts-junejuly-2026--the-archaeology-section): the black minimap, the silent EVA lines, and the chirp |
-| `docs/port/PORTING_PATTERNS.md` | Generalized methodology for porting classic Windows games to Apple platforms |
-| `docs/port/RELEASE_CHECKLIST.md` | Gate for public release |
-| `scripts/get-assets.sh` | Steam asset fetcher (your own copy; app 2732960) |
-| `scripts/build/macos/`, `scripts/build/ios/` | Build, deploy, packaging pipelines |
-| `ios/` | XcodeGen signing-stub project + `ios/config/` (staged Options.ini, dxvk.conf) |
-| `Patches/dxvk-ios.patch` | DXVK changes the iOS d3d8/d3d9 dylibs are built from (applied via the local-fork build) |
+`scripts/build/windows/setup-run-win64.ps1` stages the build into its own folder and leaves your Steam install
+untouched; packaging and the installer are in `scripts/build/windows/`. The launcher is built with
+`scripts/build/launcher/package-launcher-{macos,linux,windows}.sh`.
 
-## Known issues
+A binary you build embeds this repository's commit id, not `bfeca14d02`, so it reports a different build id than
+the published 0.9.71 files.
 
-- Long sessions on iPad can be killed by iOS for memory (~3 GB+ resident); the app
-  exits to the home screen with no dialog. Session logs (current + previous) are in
-  the Files app under the game's folder. Under investigation.
-- Backgrounding mid-game can occasionally crash on iOS — the lifecycle pause covers
-  the common paths; a rare race remains. Save often.
+## Licence
 
-## What's next: Renegade 👀
+GPL-3.0-or-later, with the additional terms EA attached to its release of the original source: see
+[LICENSE.md](LICENSE.md). Third-party components and their licences: [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
+Each release tag here is the corresponding source of the binaries published with that version. The game's art,
+audio, maps and data belong to Electronic Arts and are not covered by this licence.
 
-Generals had a chain of giants to stand on. **Command & Conquer: Renegade** — EA's
-2002 FPS from the same GPL source release — has far less: no native macOS or iOS
-build of the W3D engine has ever shipped (Mac players today go through Wine-based
-compatibility layers). The [OpenW3D](https://github.com/w3dhub/OpenW3D) community
-project has real cross-platform groundwork — a DXVK wrapper scaffold and SDL3 build
-plumbing — with Mac/Linux on its roadmap, and that groundwork is exactly what we
-built on.
+## Reporting a problem
 
-Same methodology as this repo, much deeper water: OpenW3D's Win32 compat scaffold
-expanded by ~3,000 lines (the engine calls raw Windows APIs for file finding,
-keyboard state, COM), a case-sensitivity strategy for twenty thousand asset paths,
-the DXVK/MoltenVK renderer bring-up, the audio/video stack, and FPS touch controls.
-It's playable today — campaign, cinematics, mission scripts — on a Mac and an
-iPhone. For scale: this Generals port added ~2,200 lines on top of GeneralsX;
-Renegade needed ~6,700 on top of the Windows-only source.
+Open an issue at [github.com/wh1ter0se69/GeneralsX-source/issues](https://github.com/wh1ter0se69/GeneralsX-source/issues).
+A report that can be acted on includes:
 
-Repo drops soon, with the OpenW3D lineage credited the way this repo credits its
-chain. Same rules: GPL v3, bring your own copy, full engineering log.
+* the GeneralsX version and the version line shown on the main menu;
+* your platform, OS version and graphics card;
+* what you did, what you expected, and what happened instead;
+* for a problem in a match, the replay (replays store no network address) and whether it was LAN or online.
 
-## Lineage & credits
-
-This port is the newest link in a long chain, and the earlier links did foundational
-work that this repo inherits everywhere:
-
-- **Westwood / EA Pacific** — the game; **EA** — the GPL v3 source release
-- **[TheSuperHackers/GeneralsGameCode](https://github.com/TheSuperHackers/GeneralsGameCode)** —
-  the community mainline: build modernization, VC6→modern toolchain, and much of the
-  cross-platform groundwork, including the FFmpeg video backend authored by
-  **[feliwir](https://github.com/feliwir)** (of [OpenSAGE](https://github.com/OpenSAGE/OpenSAGE)),
-  who also authored the OpenAL audio device work this port's audio stack builds on
-- **[Fighter19/CnC_Generals_Zero_Hour](https://github.com/Fighter19/CnC_Generals_Zero_Hour)** —
-  the original Unix/64-bit port: SDL3 platform management, C++17
-  filesystem/threading, Freetype/Fontconfig text rendering, and the DXVK approach
-  this renderer path descends from
-- **[fbraz3/GeneralsX](https://github.com/fbraz3/GeneralsX)** — the macOS/Linux port
-  this fork builds on directly, integrating and extending the above
-- **This fork** — the iOS/iPadOS port (arm64-ios cross-build, DXVK-on-iOS, touch
-  controls, app lifecycle, packaging) and engine fixes, offered upstream
-- **DXVK, MoltenVK, SDL, OpenAL Soft, FFmpeg, Liberation Fonts** — the load-bearing walls
-
-Engine code **GPL v3** (EA's source release → the chain above → this fork). Game
-assets: not included, not licensed here.
+This repository is a snapshot per release, not where development happens, so a pull request cannot be merged here as
+it is. Changes that are taken are applied in development and appear in a later release and its source tag.
