@@ -118,8 +118,9 @@ cmake --build --preset win64 --target z_generals   # RelWithDebInfo, the configu
 untouched; packaging and the installer are in `scripts/build/windows/`. The launcher is built with
 `scripts/build/launcher/package-launcher-{macos,linux,windows}.sh`.
 
-A binary you build embeds this repository's commit id, not `bfeca14d02`, so it reports a different build id than
-the published 0.9.71 files.
+A game built from the `v0.9.71` tag cannot play with the published 0.9.71: publishing edited comments in files the
+simulation's source id is computed from, so the two refuse each other. [SOURCE.md](SOURCE.md) has the numbers and
+how to check that only comments differ; from the next release on, the tag is the tree the binaries were built from.
 
 ## Licence
 
