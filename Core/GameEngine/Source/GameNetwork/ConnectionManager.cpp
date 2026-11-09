@@ -2300,7 +2300,7 @@ void ConnectionManager::sendWrapperAck(Int hopSlot, const NetWrapperCommandMsg *
 // GeneralsX @bugfix Claude 01/10/2026 FIRST COPIES ONLY. A duplicate copy (a retransmission, or one the router relayed)
 // arrives AFTER the original, finds the frame already ready, and used to be sampled with that later time: a cushion near
 // zero. Network::timeForNewFrame slows the frame rate 10% whenever the minimum cushion drops under the run-ahead slack,
-// so duplicates pulled the whole lobby to ~55 fps: with frame data resent every 30 ms the m1-net-lab VPS lab ran at
+// so duplicates pulled the whole lobby to ~55 fps: with frame data resent every 30 ms a network lab ran at
 // 56 TPS with ZERO loss (cushion 0-2 frames vs 10-11, same latency). The cushion is how early the input ARRIVED; only the
 // copy that delivered it can say. Callers: sendRemoteCommand for a command FrameData had not seen, processFrameInfo for
 // a frame's first FRAMEINFO.

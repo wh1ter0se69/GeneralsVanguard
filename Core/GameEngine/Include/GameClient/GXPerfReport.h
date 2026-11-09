@@ -67,35 +67,35 @@
 // UNREGISTERED endpoint the same old relay does the safe thing instead: forward() finds no member,
 // counts stats.dropped and returns. Nothing reaches a player.
 //
-// THE COST OF THAT CHOICE, STATED PLAINLY - AND THE BOUND CORRECTED. The relay resolves a
-// registered member from the source endpoint; our datagram comes from a different source PORT, so
-// it has to carry who we are, and the relay binds it only as far as the source ADDRESS.
+// THE COST OF THAT CHOICE. The relay resolves a registered member from the source endpoint; our
+// datagram comes from a different source PORT, so it carries who we are, and the relay binds it to
+// that member's source ADDRESS. The payload is performance integers the console labels
+// client-asserted; the relay's own witness columns (silence, jitter, throughput) are measured at
+// the relay and cannot be touched from here.
 //
-// This paragraph used to say the exposure was "bounded to one NAT". It is not, and the correction
-// is the interesting half:
-//   - a peer behind the same public IP needs no spoofing and can file a report against its
-//     housemate, which is the case that was described;
-//   - but every peer in the match already knows every other peer's public address, because
-//     Transport exchanges P2P candidates. So anyone who can spoof a UDP source address - and
-//     nothing on this path challenges one - can file a report against any player in their own
-//     lobby. The candidate set is the match, not the household.
 //
-// WHAT IS AND IS NOT AT RISK. The payload is performance integers the panel already labels
-// client-asserted, and the relay's own witness columns (silence, jitter, throughput, its own event
-// loop) are measured at the relay and cannot be touched from here. Two things ARE at risk and are
-// written down so nobody has to rediscover them: the relay folds tk/pr/cu with `min` and im/fx with
-// `max`, so ONE forged datagram in a window owns that field without having to outnumber anything;
-// and the relay's rate limit is per MEMBER, so a forger running at the cap spends the victim's
-// allowance and SUPPRESSES that player's real reports rather than merely skewing them.
 //
-// THE FIX, NOT TAKEN HERE, AND WHY. A relay-minted nonce echoed in this datagram closes it - the id
-// is already relay-minted, so a second minted value is no new machinery at the relay. It is a WIRE
-// FORMAT change, and this feature's rollout story (see the digest note above) is that a client too
-// old to take part simply reports nothing and the panel says so. Requiring a nonce turns every
-// client that predates it into a permanently silent one, so it wants doing at a version boundary
-// rather than inside the change that found it. Until then the panel refuses to put a player's NAME
-// in a verdict unless every player in the room is reporting, which is what keeps a forged report
-// from turning into an accusation.
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
+//
 //
 // THIS FILE MUST NOT grow a dependency on anything under Common/, GameLogic/ or GameNetwork/ beyond
 // the headers it reads accessors from. That constraint is the whole reason it ships on its own.

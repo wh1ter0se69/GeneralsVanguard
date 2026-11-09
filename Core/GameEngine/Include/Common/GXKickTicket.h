@@ -20,7 +20,7 @@
 // running match, and the one decision every peer makes about it.
 //
 // A ticket is the panel's statement "the moderator <label> kicked the player at <vip> in <room> at <iat>",
-// signed with GX_KICK_NOTICE_SEED (a Pages secret; tools/admin/panel/lib/kickticket.js). Wire form:
+// signed with GX_KICK_NOTICE_SEED, the operator console's kick-notice key. Wire form:
 //
 //     M     = "gxkick1|<room>|<vip>|<n|a>|<@handle, or empty when a>|<iat unix seconds>"   (ASCII)
 //     bytes = M || Ed25519(M)   (the last 64 bytes are the signature)
@@ -51,11 +51,11 @@
  * no ticket verifies, no victim surrenders on a ticket and no line is drawn - the relay's backstop still
  * removes the player (GXKICK_UNPINNED in the [GXKICK] log says why).
  *
- * TO PIN IT (the owner, once): mint with the identity tool pointed at its OWN directory, so it is a
- * different key from the identity and manifest keys -
- *     GX_MANIFEST_KEY_DIR=~/.config/generalsx/kicknotice scripts/tooling/mint-identity-key.py
- * - put the printed seed (hex) in the panel's Pages secret GX_KICK_NOTICE_SEED and the password manager,
- * and paste the printed C array here. Generated, never typed. */
+ * A key of its own, different from the identity and manifest keys, minted with
+ * scripts/tooling/mint-identity-key.py; the private half is not in this repository. The C array
+ * below is the tool's output, generated, never typed.
+ *
+ */
 static const unsigned char GX_KICK_PUBKEY[32] = {
 	0xce, 0x30, 0x20, 0xb6, 0x6a, 0xc6, 0x95, 0x0c,
 	0xbe, 0x7f, 0xe9, 0x93, 0x60, 0x69, 0xc2, 0xf3,

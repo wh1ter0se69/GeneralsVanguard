@@ -53,7 +53,7 @@ thumbs.db
 #
 # GeneralsX @bugfix Claude 12/08/2026 The skills are tracked, for the same reason /CLAUDE.md is:
 # they are not user-specific, they hold the working protocol the sessions depend on, and sessions
-# run on the Mac, the Linux VPS and the Windows box. Ignored, a clone elsewhere has none of it.
+# run on Mac, Linux and Windows machines. Ignored, a clone elsewhere has none of it.
 #
 # THE THREE-LINE SHAPE IS LOAD-BEARING AND TOOK TWO WRONG ATTEMPTS.
 #   * Line 2 of this file is `.*`, which excludes the .claude DIRECTORY itself - so it is that
@@ -69,8 +69,8 @@ thumbs.db
 !/.claude/skills/**
 # GeneralsX @bugfix Claude 12/08/2026 The SKILLS are not user-specific and are tracked, for the
 # same reason /CLAUDE.md below is: they hold the working protocol - which resource a session may
-# claim, why a claim is proven both directions, how a handback is typed - and sessions run on the
-# Mac, the Linux VPS and the Windows box. Ignored, a clone elsewhere has none of it.
+# claim, why a claim is proven both directions, how a handback is typed - and sessions run on
+# Mac, Linux and Windows machines. Ignored, a clone elsewhere has none of it.
 #
 # It also hid them from the gate that exists to catch exactly this. `gx promote` warns about
 # untracked work because a file never `git add`ed is absent from the merge candidate - but an
@@ -82,7 +82,7 @@ thumbs.db
 # GeneralsX @bugfix Claude 30/07/2026 /CLAUDE.md is deliberately NOT ignored any more.
 # It was listed here as "user-specific", but this project's copy holds engineering rules the
 # work depends on - lockstep limits, atomic four-peer rebuilds, digest path lists, shell traps -
-# and sessions run on the Mac, the Linux VPS and the Windows box. Leaving it untracked means a
+# and sessions run on Mac, Linux and Windows machines. Leaving it untracked means a
 # clone on another machine has none of them, which is how a session there rebuilt against the
 # wrong assumptions. Personal preferences belong in the operator's own ~/.claude/CLAUDE.md.
 
@@ -141,7 +141,7 @@ ios/signing.local.env*
 # GeneralsX @bugfix Claude 29/07/2026 Operator-specific hosts, never committed.
 # GeneralsX @bugfix Claude 16/08/2026 Glob, for the same reason spelled out for the signing
 # identity twelve lines up - and this file had already grown the exact copy that comment predicts.
-# scripts/test/local.env.bak-before-win2 held VPS, WIN, WIN_HOST and RELAY_IP, was untracked but
+# a backup copy of scripts/test/local.env held host addresses, was untracked but
 # NOT ignored, and this repository is intended to go public. A bare name only covers the file
 # somebody remembered to name.
 scripts/test/local.env*

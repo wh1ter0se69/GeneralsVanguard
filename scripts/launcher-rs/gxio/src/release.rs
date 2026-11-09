@@ -146,7 +146,7 @@ pub fn strip_relay_framing(datagram: &str) -> Framed<'_> {
 ///
 /// The body is already unframed - the CDN serves the same bytes a relay puts after its tag - so
 /// the only job here is to refuse something that is obviously not a manifest BEFORE the signature
-/// check sees it. A Cloudflare error page handed to `verify` comes back as `SignatureMismatch`,
+/// check sees it. A CDN error page handed to `verify` comes back as `SignatureMismatch`,
 /// and "the CDN 404'd" reaching a player as "these bytes are not authentic" is the same
 /// misdirection as the `GXMANI -` case.
 pub fn http_document(body: &str) -> Framed<'_> {

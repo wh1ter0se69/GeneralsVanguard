@@ -294,7 +294,7 @@ GameClient::~GameClient()
 static void gxNoShroud( void );		// defined above update(); see the GX_NOSHROUD note there
 
 // GeneralsX @probe Claude 28/09/2026 GX_REMASTERED_PROBE (graphics P3-3, GXGraphicsSettings.h): lets a run with no
-// keyboard - a headless peer, the Linux VPS - prove GXGraphics.ini persists. =1 reads the value and logs it
+// keyboard - a headless peer, a Linux server - prove GXGraphics.ini persists. =1 reads the value and logs it
 // ([GXREMASTER]); =flip also flips it and writes the file, as the chord does. The value is render-only.
 static void gxRemasteredProbe( void )
 {

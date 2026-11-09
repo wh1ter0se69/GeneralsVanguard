@@ -128,7 +128,7 @@ char               s_assertionText[GX_ASSERTION_MAX + 1] = { 0 };
 // The second is lifecycle: friends are forever and an assertion expires in thirty days. Deleting
 // the login must not risk the friend list, and it does not if they are not the same file.
 //
-// GeneralsX @feature Claude 23/09/2026 BOT MODE. Set only by our harness and the standing host's start
+// GeneralsX @feature Claude 23/09/2026 BOT MODE. Set only by our harness and a headless host's start
 // script, never by a player's client. When set, this file IS the identity and ONLY a bot assertion is
 // accepted from it: a bot file dropped into a player's data dir does nothing (the player path verifies
 // under the identity key only), and Discord cannot write into a bot's run dir (GXLoginFlow::start

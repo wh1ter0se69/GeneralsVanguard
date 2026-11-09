@@ -37,8 +37,8 @@ fi
 #
 # THE PEER THE HARNESSES RUN IS NOT THE ONE THIS SCRIPT FINDS. Every cross-platform script
 # defaults to VPS_GAME=/root/gamedata (probe-headless-crc-ab.sh:33, xplat-4platform-play.sh:129
-# and four more), while the detection above prefers ${HOME}/GeneralsX/GeneralsZH. On the test
-# VPS that directory exists and holds exactly one .big, so the first branch takes it and the
+# and four more), while the detection above prefers ${HOME}/GeneralsX/GeneralsZH. On a test
+# host where that directory exists and holds exactly one .big, the first branch takes it and the
 # deploy reports success into a directory nothing ever launches - and the run silently measures
 # the peer that was already there. That has cost this project a full round of "the fix did not
 # land".
@@ -243,7 +243,7 @@ if [[ -f "${MP_INI_SRC}" ]]; then
     mkdir -p "${RUNTIME_DIR}/Data/INI" "${RUNTIME_DIR}/Data/English"
     # GeneralsX @bugfix Claude 24/08/2026 SKIP A COPY ONTO ITSELF, or the script exits 1 having
     # done every real thing correctly. On a build host where RUNTIME_DIR lives INSIDE
-    # PROJECT_ROOT - which is the VPS layout, /root/GeneralsX and /root/GeneralsX/GeneralsZH -
+    # PROJECT_ROOT - ~/GeneralsX and ~/GeneralsX/GeneralsZH, say -
     # source and destination are the same inode, cp refuses with "are the same file", and
     # `set -e` kills the script on its very last step. Every caller that gated on this exit code
     # then read a fully successful deploy as a failure. `-ef` compares device+inode, so it is

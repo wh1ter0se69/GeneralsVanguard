@@ -132,7 +132,7 @@ on|!GXUIHD.big|Sharper unit pips at 1440p and 4K (hand-drawn, original colours)
 # keep every name - 36 remapped to the new texture, 10 identical to the Community Patch's). NOT BUILT: a hand-placed binary like
 # !!GXCameoHD.big (4,202,415 B, sha256 4e74491e802d6a14...), so it must be on every packaging box before this line reaches a
 # packager - a listed optional archive that is missing fails packaging (lib-overlay.sh gx_overlay_stage_optional). Placed for
-# 0.9.59 on the Mini (~/GeneralsX/GeneralsXPatch), the VPS (/root/GeneralsXPatch) and the Windows run folder's GeneralsXPatch.
+# 0.9.59 in each packaging box's GeneralsXPatch folder.
 # MappedImages and textures are outside the SimID fingerprint: dataID does not move, assetID does (tier-2, warn only).
 # Default on and never flip it later (see the note above on flipped defaults).
 on|!!GXEmblemHD.big|HD faction emblems (upscaled, original colours)

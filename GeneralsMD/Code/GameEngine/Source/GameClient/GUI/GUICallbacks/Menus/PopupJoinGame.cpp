@@ -570,9 +570,9 @@ public:
 	/// relay room builds a NEW LANAPI and a new Transport - a browser join (relayJoinSelectedGame), a
 	/// Direct Connect join and SetUpOnlineLobbyLAN each `delete TheLAN` first - and a fresh Transport
 	/// starts with an empty m_relayIdentity. So a player who JOINED somebody else's game was an
-	/// unidentified member in that room for the whole game, and the relay keys every sanction on the
-	/// account (enforceModeration returns at once when `sub` is null): a BANNED account joined and
-	/// played, and RELAY_REQUIRE_IDENTITY=1 would have dropped every joiner in the field.
+	/// unidentified member in that room for the whole game - and a relay that requires sign-in drops
+	/// an unidentified member.
+	///
 	///
 	/// HERE, rather than at each of those call sites, because they are the callers that keep being
 	/// added - this is the one door they all go through (GXCreateLobbyLANAPI, then init()). The base

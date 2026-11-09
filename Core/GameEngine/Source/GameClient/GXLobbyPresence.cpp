@@ -59,8 +59,8 @@ namespace
 	const char GX_TAG_BYE[]   = "GXBYE";
 	const char GX_TAG_CHT[]   = "GXCHT";
 	const char GX_TAG_SAY[]   = "GXSAY";
-	// GeneralsX @bugfix Claude 18/09/2026 The signed identity. Its absence from this list was the
-	// moderation bypass - see GXLobbyPresence::setIdentity.
+	// GeneralsX @bugfix Claude 18/09/2026 The signed identity - see GXLobbyPresence::setIdentity.
+	//
 	const char GX_TAG_IDN[]   = "GXIDN";
 	// GeneralsX @bugfix Claude 19/09/2026 The relay's registration secret - see GXRelayAuth.h.
 	const char GX_TAG_AUTH[]  = "GXAUTH";
@@ -331,8 +331,8 @@ void GXLobbyPresence::openSocket( void )
 // NOT where the sign-in copy is cleared, deliberately. update() closes and reopens the socket to retry
 // an acquire that gave up (STATE_GAVE_UP), and that is the same presence asking again, not a teardown:
 // the identity is declared on entry to the Online screen, usually while we are still acquiring, and
-// clearing it here would leave a player who met a relay outage at that moment admitted UNIDENTIFIED -
-// which is the moderation bypass setIdentity closes. Teardown is leaveLobby() and the destructor.
+// clearing it here would leave a player who met an unreachable relay at that moment admitted without
+// the identity setIdentity declares. Teardown is leaveLobby() and the destructor.
 void GXLobbyPresence::closeSocket( void )
 {
 	if (m_sock != NULL)
@@ -1338,15 +1338,15 @@ void GXLobbyPresence::update( void )
 				// on the 30 s tag tick with the name and the platform. Found by cross-model review and
 				// then measured against relay.js.
 				//
-				// Any registration can CREATE the membership rather than refresh it: after a relay
-				// restart, after the membership lapsed, and - the case that matters - after the relay
-				// DROPPED it because the account is banned. The client never learns which, stays
-				// ADMITTED, and re-registers 5 s later as a fresh member with no identity. On the tag
-				// tick that member stayed unidentified for up to 25 s of every 30, and a banned
-				// account's line sent in that window was delivered to the room (measured: heard on a
-				// bare re-registration, refused when GXIDN follows it). Following every registration
-				// leaves no window at all for this client: the relay files the member and applies the
-				// ban in the same breath.
+				// Any registration can CREATE the membership rather than refresh it (after a relay
+				// restart, after the membership lapsed, or after the relay dropped it), and the client
+				// never learns which. Following every registration means the relay files the member
+				// with its account in the same breath, instead of up to 25 s of every 30 later.
+				//
+				//
+				//
+				//
+				//
 				//
 				// AFTER the registration, never before: the relay discards an identity from an endpoint
 				// it has not filed as a member, silently. And a no-op for anyone who never signed in.

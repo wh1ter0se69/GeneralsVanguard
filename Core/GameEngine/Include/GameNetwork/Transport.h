@@ -108,10 +108,10 @@ private:
 public:
 	// GeneralsX @feature Claude 06/08/2026 Lobby chat.
 	//
-	// The relay half of this already existed and had never been deployed: tools/relay/relay.js
-	// implements GXCHT/GXSAY, the running /opt/gxrelay/relay.js does not. The client half was
-	// never written at all, which is why the lobby chat box was disabled with a comment saying
-	// the relay carries no chat channel - true of the DEPLOYED relay, not of the repo one.
+	// One chat channel per relay room:
+	//
+	//
+	//
 	//
 	//   GXCHT <room> <text>                    client -> relay
 	//   GXSAY <room> <senderVirtualIP> <text>  relay -> every OTHER member of that room
@@ -330,14 +330,14 @@ public:
 	// where a game packet would be. The relay's forward() reads the header's destination and sends
 	// the datagram to that one member (`peer.id !== dstId` -> skip); it never parses the payload and
 	// never sees a tag it could fail to recognise. So this rides the same path the join handshake
-	// and the map transfer already use, and it works against the DEPLOYED relay with no redeploy.
+	// and the map transfer already use, and it works against every relay, old or new.
 	//
 	// A control tag would have been the wrong shape twice over. On a relay that knows the tag it is
 	// a BROADCAST primitive - GXCHT goes to every member of the room by construction - so a private
 	// message would need per-recipient relay state that does not exist. On a relay that does NOT
-	// know the tag it falls off the end of the dispatch chain into forward(), and whether that
-	// broadcasts it to all seven peers or drops it depends on which build the operator has
-	// installed. "Private message" and "depends which relay you are on" cannot both be true.
+	// know the tag, what becomes of it depends on that relay's version. "Private message" and
+	// "depends which relay you are on" cannot both be true.
+	//
 	//
 	// The payload is OPAQUE to this layer. Everything social - private messages, friend cards, who
 	// may say what to whom - lives in the lobby UI outside the digest, so adding a message kind
@@ -458,13 +458,13 @@ public:
 	//      straight from a peer is attributed correctly with no change to that logic.
 	//   2. IT IS DARK UNTIL THE RELAY SAYS OTHERWISE. See p2pActive(): the relay has to declare
 	//      the capability (GXCAPS, below) and keep declaring it. A relay that has never heard of
-	//      this - which is every relay deployed today - leaves the client sending exactly the
+	//      this leaves the client sending exactly the
 	//      datagrams it sends now, to exactly the same address. That is both the compatibility
 	//      story and the kill switch, and it is one mechanism rather than two.
 	//   3. THE CLIENT SENDS THE RELAY NOTHING NEW. Candidate exchange rides the existing GXR1
-	//      routing envelope, which every deployed relay already forwards verbatim without looking
-	//      at the payload. So there is no new client->relay control tag that an older relay could
-	//      fail to parse and BROADCAST onto the lockstep socket.
+	//      routing envelope, which every relay forwards verbatim without looking at the payload.
+	//      So there is no new client->relay control tag that an older relay could fail to parse.
+	//
 	Bool isPeerDirect( UnsignedInt peerVirtualIP ) const;	///< TRUE when that peer's traffic bypasses the relay.
 	Int getDirectPeerCount() const;							///< How many peers are currently direct. 0 = everything relayed.
 	Bool isDirectAllowed() const { return m_p2pAllowed; }	///< FALSE when the player set RelayOnly.
@@ -714,9 +714,9 @@ private:
 	// local host's own withdrawal is already fast-pathed by GXUNAD.
 	//
 	// NOT A LOWER POLL INTERVAL, deliberately. Tightening the poll would buy the same latency at a
-	// linear cost in relay egress, and the relay's reply budget is GLOBAL rather than per-sender -
-	// REPLY_BUDGET_PER_SEC = 1000 datagrams/s shared by every client on the port
-	// (tools/relay/relay.js:293, :2042-2055), clamped per burst by MAX_GAMES_PER_LIST = 32 (:286).
+	// linear cost in relay egress, and the relay rate-limits its lobby replies, one burst clamped by
+	// MAX_GAMES_PER_LIST = 32.
+	//
 	// This costs zero extra datagrams.
 	static const UnsignedInt GAMELIST_SETTLE_MS = 250;	///< quiet time that ends a sweep
 	UnsignedInt m_gameListLastReplyMs;				///< timeGetTime() of the last GXGAME, 0 = disarmed
@@ -765,11 +765,11 @@ private:
 	 * GeneralsX @bugfix Claude 08/08/2026 The relay's proof that we, and not somebody who typed our
 	 * virtual address into a datagram, hold this identity.
 	 *
-	 * THE HOLE THIS CLOSES IS ON THE RELAY, and the client half is only the other end of it. The
-	 * relay used to treat `GXRLY <room> <id>` from an unfamiliar endpoint as a NAT rebind and move
-	 * the member's endpoint to whoever asked last - so one datagram took a player's identity, and
-	 * every later "the source matches the registration" check then passed for the taker, because
-	 * the taker had become the registration. tools/relay/relay.js AUTH_TAG has the full argument.
+	 * The relay hands it to the member alone and moves an existing member to a new endpoint (a NAT
+	 * rebind) only for a registration that presents it, so naming an identity is not holding it.
+	 *
+	 *
+	 *
 	 *
 	 * 22 characters of base64url plus a NUL. Fixed, because the relay's SECRET_RE is a fixed length
 	 * and a shorter or longer word is refused rather than truncated.

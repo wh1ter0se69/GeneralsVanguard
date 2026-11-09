@@ -396,8 +396,8 @@ inline void gxMatchDrainOperatorLines()
 ///
 /// THE DEFECT. GXLobbyPresence::suspend() existed for exactly this and had no caller, so the lobby socket
 /// kept its shared-room membership through the whole match: every other lobby player's roster, and the
-/// admin panel, listed a player who was in a game as sitting in the main lobby too. Observed on the
-/// production relay's event record 25/09/2026: a player's gxlobby1 membership (8086) and its game room's
+/// admin console, listed a player who was in a game as sitting in the main lobby too. Observed
+/// 25/09/2026: a player's lobby membership (8086) and its game room's
 /// memberships (8086 and 8088) all live through the same match, with no release or timeout between.
 ///
 /// Edge-triggered by construction, not by a flag of ours: suspend() acts only on an ADMITTED, ACQUIRING or

@@ -499,9 +499,9 @@ foreach ($m in [regex]::Matches($s, '(?-i)(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])'
 # GeneralsX @bugfix Claude 13/08/2026 REFUSED RATHER THAN SHIPPED AS "unknown", and this is not
 # pedantry about a nice-to-have field. Every published name below is derived from $sha, so a build
 # that cannot state its commit produces "GeneralsX-win64-unknown.zip" - a key that TWO DIFFERENT
-# BUILDS would share. The second upload then sits behind the first one's edge entry, which is the
-# 09/08/2026 incident exactly (publish-bootstrap.sh:441-445) but permanent rather than four hours,
+# BUILDS would share. The second upload then sits behind the first one's edge entry - permanently,
 # because no later build can ever pick a different name either.
+#
 if ($sha -eq "unknown") {
     Remove-Item -Recurse -Force $stage
     throw ("no 40-character commit sha is embedded in $Run\generalszh.exe. Every artifact name and " +

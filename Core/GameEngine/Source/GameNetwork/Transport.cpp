@@ -79,9 +79,9 @@ static const char RELAY_WITHDRAW_TAG[] = "GXUNAD";
 //      labelled correctly without anybody rebuilding a client;
 //   3. failing that, "EU", because that is where the only relay is and a sensible row beats "[??]".
 //
-// THE RELAY HALF IS NOT IMPLEMENTED HERE. tools/relay/relay.js is owned by another agent; the
-// exact patch it needs is in the commit message. Until it lands, source 1 is simply silent and
-// every row reads [EU] via source 3 - which is the correct answer today.
+// A relay that does not send GXREGION leaves source 1 silent, and every row then reads [EU] via
+// source 3.
+//
 static const char RELAY_REGION_TAG[] = "GXREGION";
 static const char RELAY_REGION_DEFAULT[] = "EU";
 // GeneralsX @feature Matchmaking. Asks the relay to allocate our virtual address, so players do
@@ -121,14 +121,14 @@ static const char RELAY_PLAT_TAG[] = "GXPLAT";
 static const char RELAY_PING_TAG[] = "GXPING";
 // GeneralsX @feature Claude 17/08/2026 The lobby's display name, reported by each host.
 //
-// THE NAME IS "GXLNAM" AND ITS LENGTH IS LOAD-BEARING. An older relay hands any datagram it
-// cannot parse to forward(), which cannot read a routing header and would BROADCAST it to every
-// member of the room on the socket carrying lockstep traffic. Its guard against that matches the
-// full control-tag SHAPE, and the guard in the relay THIS client actually meets was verified to be
-// /^GX[A-Z]{3,4} / - four letters after "GX", not the six this repo's copy now allows. "GXLNAM" is
-// exactly four (L,N,A,M) and all capitals, so it is refused cleanly by both. "GXLOBBY" would have
-// been five and would have been broadcast; see the note by forward() in tools/relay/relay.js, where
-// the identical mistake was made once already with "GXUNADV".
+// THE NAME IS "GXLNAM" AND ITS LENGTH IS LOAD-BEARING. A relay that cannot parse a control tag
+// drops it cleanly only when the tag has the control-tag SHAPE, and older relays test that shape as
+// /^GX[A-Z]{3,4} / - at most four letters after "GX". "GXLNAM" is exactly four (L,N,A,M) and all
+// capitals, so every relay either parses it or drops it. "GXLOBBY" (five) would not have fitted.
+//
+//
+//
+//
 //
 // Six characters overall, like the tags above, so no tag is a byte-prefix of another under the
 // fixed-length memcmp dispatch. Nothing else in this set begins "GXL" but GXLIST, which differs at
@@ -139,8 +139,8 @@ static const char RELAY_LNAM_TAG[] = "GXLNAM";
 // value cannot be spelled as nothing - it has to be spelled as something.
 static const char RELAY_LNAM_CLEAR[] = "-";
 // GeneralsX @feature Claude 19/09/2026 A hosted lobby's seats, for the admin console. See
-// GXRelaySlotsWire.h for the format. FOUR capitals after "GX", like GXLNAM and for its reason: the relay
-// deployed today drops any /^GX[A-Z]{3,4} / tag it does not know rather than broadcasting it. Nothing else
+// GXRelaySlotsWire.h for the format. FOUR capitals after "GX", like GXLNAM and for its reason: an older
+// relay drops an unknown tag cleanly only when it matches /^GX[A-Z]{3,4} /. Nothing else
 // begins "GXSL"; GXSAY and GXSEEN differ at the fourth byte.
 static const char RELAY_SLOT_TAG[] = "GXSLOT";
 // GeneralsX @feature Claude 08/08/2026 Durable identity and presence. Five and six characters, and
@@ -150,9 +150,9 @@ static const char RELAY_SLOT_TAG[] = "GXSLOT";
 static const char RELAY_KEY_TAG[]  = "GXKEY";
 // GeneralsX @feature Claude 11/08/2026 The VERIFIED identity. Five characters, and no tag is a
 // byte-prefix of another under the fixed-length memcmp dispatch: nothing else in this set begins
-// "GXI". It also matches /^GX[A-Z]{3,4} /, which is what an OLDER relay's unknown-control guard
-// tests - a tag that missed that shape would be handed to forward(), which cannot parse a routing
-// header and would BROADCAST it to every member on the socket carrying lockstep traffic.
+// "GXI". It also matches /^GX[A-Z]{3,4} /, the control-tag shape an OLDER relay drops cleanly when
+// it does not know the tag.
+//
 static const char RELAY_IDN_TAG[]  = "GXIDN";
 // The sentinel that means "forget my identity" - /logout. A bare '-' cannot be mistaken for a
 // document: the shortest legal assertion is far longer and '-' fails every field check.
@@ -207,14 +207,14 @@ static const char RELAY_PEER_TAG[] = "GXPEER ";
 //     GXCAPS <flags> <a.b.c.d:port>        relay -> client, unprompted, riding each GXRLY
 //
 // It travels relay -> CLIENT and never the other way, and that direction is the entire
-// compatibility argument. The deployed /opt/gxrelay/relay.js has no unknown-control-tag guard in
-// forward(): a tag it does not recognise, from a registered member, falls through to the broadcast
-// branch and is re-sent verbatim to every other member of the room - on the socket that carries
-// lockstep traffic, up to seven times, counted as `headerless` which means the opposite. So this
-// change adds NO client -> relay tag at all. The relay volunteers this in answer to the
-// registration it already parses, an older relay simply never says it, and a client that never
-// hears it keeps every datagram on the relay forever. No redeploy is required for safety; one is
-// required for the feature, and redeploying drops every match in progress.
+// compatibility argument: this change adds NO client -> relay tag at all. The relay volunteers
+// this in answer to the registration it already parses, an older relay simply never says it, and
+// a client that never hears it keeps every datagram on the relay.
+//
+//
+//
+//
+//
 //
 // <flags> is a comma-separated token list so a later capability costs no new tag. "p2p" is the one
 // token this build looks for. Its ABSENCE, in a GXCAPS that is otherwise well formed, is an
@@ -234,11 +234,11 @@ static const char RELAY_CAP_P2P[] = "p2p";
 //     GXPKEY <room> <ourId> <peerId>:<key> ...             relay -> the member ALONE
 //
 // RELAY -> CLIENT ONLY, riding the registration the relay already parses, exactly like GXCAPS and
-// GXAUTH and for the identical reason: relay.js's forward() has no unknown-control-tag guard on
-// every build in the field, so a client -> relay tag an older relay cannot parse is not ignored,
-// it is BROADCAST verbatim to every other member of the room on the socket that carries lockstep
-// traffic. This change therefore adds no client -> relay tag at all. An older relay simply never
-// says 'p2pauth', never sends a GXPKEY, and every client stays exactly as it is today.
+// GXAUTH and for the identical reason: this change adds no client -> relay tag at all. An older
+// relay simply never says 'p2pauth', never sends a GXPKEY, and every client stays relayed.
+//
+//
+//
 //
 // "GXPKEY" is six characters and is a byte-prefix of nothing and prefixed by nothing in the tag
 // set - it differs from GXPING and GXPLAT at the third byte and from GXKEY at the third byte too,
@@ -1086,25 +1086,25 @@ void Transport::sendRelayRegistration()
 	// EVERY REGISTRATION and directly after it. It used to ride the 30 s tag tick below.
 	//
 	// Any registration can CREATE the membership rather than refresh it, and the client is never told
-	// which. After a relay restart (a redeploy), or once a retired binding it could reclaim is gone, the
-	// relay files this socket as a fresh member with no identity - and a member with no identity cannot
-	// be muted or banned (relay.js enforceModeration returns at once on a null sub). On the tag tick that
-	// window lasted up to 30 s, and a banned account's lines were delivered in it. Measured against
-	// relay.js: a keepalive alone after a restart re-admits the banned account and its line is heard;
-	// with GXIDN directly after the keepalive it is refused before anything it sends is delivered
-	// (tools/relay/test-moderation.js [GS-BAN]). A ban drop followed by a reclaim WITH the registration
-	// secret was already refused at registration, because the relay carries the account across a
-	// reclaim ([P1c]); this closes the paths where no reclaim happens.
+	// which: after a relay restart, or once a retired binding it could reclaim is gone, the relay files
+	// this socket as a fresh member with no identity. Declaring the identity with every registration
+	// means a fresh membership carries its account from its first keepalive, not up to 30 s later. (A
+	// reclaim WITH the registration secret already carries the account across.)
+	//
+	//
+	//
+	//
+	//
 	//
 	// AFTER the registration, never before: the relay silently discards an identity from an endpoint
 	// it has not filed as a member. And BEFORE the advertisement, so the relay's advert gate judges a
 	// fresh member with its account already on it.
 	//
 	// WHY THE 30 s ARGUMENT BELOW DOES NOT HOLD THIS TAG BACK. It protects the room from a relay too old
-	// to know a tag. A relay that does not know GXIDN either has the unknown-tag guard (d2a42e840,
-	// 07/08/2026) and DROPS it, or predates that guard and BROADCASTS it - and there a single broadcast
-	// already exposes the assertion to the room, so 30 s never made that case safe, only rarer. The
+	// to know a tag, and such a relay drops GXIDN (it has the control-tag shape). The
 	// lobby presence socket already sends GXIDN to the same relay port (8086) every 5 s. And only the
+	//
+	//
 	// LOBBY transport ever holds an identity: the in-match transport (8088), the one carrying lockstep
 	// traffic, holds none and owes no clear, so nothing here is ever written on it (see
 	// GXRelayIdentityWire.h). A no-op for a player who never signed in. Cost while signed in: one
@@ -1122,14 +1122,14 @@ void Transport::sendRelayRegistration()
 	// GeneralsX @feature Claude 07/08/2026 The OS tag and the relay RTT also need re-sending
 	// rather than announcing once, because the relay holds them on the member record and a relay
 	// restart forgets them - a peer that announced at join time would stay permanently untagged
-	// after a redeploy, which looks exactly like the feature being broken.
+	// after a relay restart, which looks exactly like the feature being broken.
 	//
-	// But NOT on the 5 s registration cadence. A relay that predates these tags does not merely
-	// ignore them: an unrecognised control datagram from a registered member falls off the end of
-	// its dispatch chain into forward(), which cannot parse a routing header and therefore
-	// BROADCASTS it to every other member of the room. At 5 s that is ~22 junk datagrams a second
-	// across a full lobby, on the socket that carries lockstep traffic. Every 30 s costs a sixth
-	// of that, and costs nothing in the normal case because both values are sticky on the relay.
+	// But NOT on the 5 s registration cadence: a relay that predates these tags has to discard each
+	// one, and every 30 s costs a sixth of that. It costs nothing in the normal case because both
+	// values are sticky on the relay.
+	//
+	//
+	//
 	static const UnsignedInt RELAY_TAG_INTERVAL = 30000;
 	if (m_lastRelayTagsMs == 0 || (m_lastRelayRegistration - m_lastRelayTagsMs) >= RELAY_TAG_INTERVAL)
 	{
@@ -3149,15 +3149,15 @@ Bool Transport::sendRelayPeerLine( UnsignedInt dstSlot, const char *text )
 // the payload could name its author, any member of the room could send a private message that
 // appeared to come from the host.
 //
-// GeneralsX @bugfix Claude 08/08/2026 A forged SOURCE address used to be conceded here as
-// undefendable - "the relay copies the datagram through without rewriting the header" - with the
-// consolation that a forger has to be a registered member of the room, so the impersonation surface
-// is "the seven people you are already in a lobby with". Both halves were wrong in the way that
-// matters. Being one of eight is exactly the position an impersonator wants: a private message that
-// appears to come from the host, or a friend card bound to somebody else's slot, is only interesting
-// between people who are already talking. And it WAS defendable, at the one place that knows the
-// truth - the relay authorises the sending endpoint and knows which id it registered, so it can
-// refuse a header that names a different one. tools/relay/relay.js forward() now does.
+// GeneralsX @bugfix Claude 08/08/2026 The header's SOURCE is checked at the one place that knows the
+// truth: the relay authorises the sending endpoint and knows which id it registered, and it refuses a
+// header that names a different one.
+//
+//
+//
+//
+//
+//
 //
 // Two things had to be true together for that to bind, and this file owns the second: a peer line is
 // accepted only when the datagram came FROM THE RELAY (see doRecv). Otherwise the forger skips the
@@ -4173,8 +4173,8 @@ Bool Transport::p2pHandleControl( const UnsignedByte *payload, Int len, Unsigned
 	// from the peer it claims to be from. Accepting it was the whole attack: a forged CAND put the
 	// attacker's own address into a peer's candidate list, and the check further down that a route
 	// must be an address "they published" then passed, because the attacker is who published it.
-	// After the relay-side source fix (tools/relay/relay.js forward()) a relayed CAND's header
-	// source is the endpoint the relay authorised, which is what makes this check worth anything.
+	// The relay refuses a header whose source is not the sender's registered id, so a relayed CAND's
+	// header source is the endpoint the relay authorised, which is what makes this check worth anything.
 	//
 	// A PROBE or a PROBEOK is the opposite: it must NOT have come from the relay, because a path
 	// through the relay is not a direct path and installing it as one would pin the pair to the
@@ -4668,8 +4668,8 @@ Bool Transport::captureRelayCaps( const UnsignedByte *msg, Int len )
 	//
 	// GeneralsX @bugfix Claude 08/08/2026 THE BARE "p2p" TOKEN NO LONGER ENABLES ANYTHING. It is
 	// still recognised, so that a relay offering the unauthenticated direct path says so once in the
-	// log rather than looking like a relay that is silent - an operator who has turned RELAY_P2P on
-	// and is wondering why nothing goes direct deserves to be told why.
+	// log rather than looking like a relay that is silent - whoever runs that relay and is wondering
+	// why nothing goes direct deserves to be told why.
 	Bool legacyOffer = FALSE;
 	Bool cap = FALSE;
 	const char *tok = flags;
@@ -5143,9 +5143,9 @@ void Transport::authRevokePeer( P2PPeer *peer, const char *why )
 		return;
 
 	// GeneralsX @bugfix Claude 23/09/2026 Release-visible, and bounded: the test above returns once
-	// the keys are gone, so this is one line per revocation. It was DEBUG_LOG, and on 2026-09-23 a
-	// relay snapshot dropped a live peer every 10 s while the only lines anyone could read were the
-	// partner's misleading "went quiet". Only while direct is live on this socket - elsewhere a key
+	// the keys are gone, so this is one line per revocation. It was DEBUG_LOG, which left a peer
+	// dropped by a key revocation with only its partner's misleading "went quiet" to read. Only while
+	// direct is live on this socket - elsewhere a key
 	// authenticates nothing, and a line there is noise.
 	if (m_p2pOn)
 	{

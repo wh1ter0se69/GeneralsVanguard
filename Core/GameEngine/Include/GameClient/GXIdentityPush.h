@@ -27,11 +27,11 @@
 //   (/login, /logout) and GXLobbyLANAPI::init (PopupJoinGame.cpp:595), which only the GeneralsMD lobby
 //   screens construct. Unbounded grep, no head, 20/09/2026.
 //
-//   A HEADLESS PEER NEVER OPENS A MENU. So a standing host with a perfectly valid, unexpired
-//   GXLogin.txt on disk and hasVerifiedIdentity() returning TRUE still sent no GXIDN, the relay held
-//   sub === null for it forever, and with RELAY_REQUIRE_IDENTITY=1 it is dropped IDENT_GRACE_MS after
-//   joining (relay.js:7781) - every time, silently, with the lobby simply going empty. Provisioning an
-//   account for the standing host without this fix changes nothing at all.
+//   A HEADLESS PEER NEVER OPENS A MENU. So a headless host with a perfectly valid, unexpired
+//   GXLogin.txt on disk and hasVerifiedIdentity() returning TRUE still sent no GXIDN, and a relay that
+//   requires sign-in drops an unidentified member IDENT_GRACE_MS after it joins (relay.js:7781) - every
+//   time, silently, with the lobby simply going empty.
+//
 //   (24/09/2026: that account is a BOT login handed over in GX_IDENTITY_FILE. A scripted peer no longer
 //   declares a GXLogin.txt at all - see the guard in gxDeclareIdentityIfChanged.)
 //
@@ -82,7 +82,7 @@
 // OptionPreferences::getRelayAddress() returns GX_BOOTSTRAP_RELAY when RelayAddress is absent or
 // blank (OptionPreferences.cpp:268-277); only the literal "none" or GENERALSX_NO_RELAY gives the
 // empty string initRelay refuses on. So on a default install the LAN screen IS relay-enabled and
-// this file DOES declare there - which is the whole point, since that is how the standing host is
+// this file DOES declare there - which is the whole point, since that is how a headless host is
 // reached. The first bullet is the offline/"none" case, not "the player picked NETWORK".
 // fix/lan-local-default is changing that default on its own branch; nothing here has to move when
 // it lands, because the predicate is isRelayEnabled() and not a screen name.
@@ -179,7 +179,7 @@ inline void gxDeclareIdentityIfChanged( void )
 
 	// isRelayEnabled(), NOT "is this the Online screen". The owner's rule is that anything using OUR
 	// networking needs an account, and NETWORK/Direct Connect becomes our networking the moment
-	// RelayAddress resolves (Transport.cpp:881) - which is exactly how the standing host runs and how
+	// RelayAddress resolves (Transport.cpp:881) - which is exactly how a headless host runs and how
 	// players reach it.
 	const Transport *transport = TheLAN != NULL ? TheLAN->getTransport() : NULL;
 	const Bool game     = transport != NULL && transport->isRelayEnabled();
@@ -206,11 +206,11 @@ inline void gxDeclareIdentityIfChanged( void )
 	// PROFILE'S OWN SIGN-IN (merge-candidate review, P1).
 	//
 	// Every -lanhost/-lanjoin peer runs HeadlessMatch, headless or rendered, and outside bot mode the
-	// loader reads GXLogin.txt from whatever user-data folder the peer was started in. The harnesses start
-	// scripted peers in the owner's REAL profile (xplat-4platform-play.sh's Mac peer at its default
-	// MANUAL=0, the Windows gxplay.cmd peer, ipad-peer.sh) and the VPS peer in a persistent one, so this
-	// presented HIS Discord account - an admin role included - to the production relay: a kick or ban aimed
-	// at a harness peer landed on him, and the rollups counted it as him. On integration no scripted peer
+	// loader reads GXLogin.txt from whatever user-data folder the peer was started in - so a scripted peer
+	// started in a player's real profile would present that player's account, roles included, and a kick
+	// or ban aimed at the scripted peer would land on them. On integration no scripted peer
+	//
+	//
 	// declared anything (PopupJoinGame.cpp, GXLobbyLANAPI::init: "HeadlessLANAPI must NOT pick this up").
 	//
 	// So a scripted peer declares ONLY what bot mode (GX_IDENTITY_FILE) verified, and never a moderator or

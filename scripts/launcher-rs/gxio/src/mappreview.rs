@@ -28,7 +28,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-/// gx-oauth, the identity Worker. Overridable at build time for a local `wrangler dev`.
+/// gx-oauth, the identity service. Overridable at build time for a local test server.
 pub const BASE_URL: &str = match option_env!("GX_MAPPREVIEW_URL") {
     Some(u) => u,
     None => "https://auth.wh1ter0se.dev",
@@ -150,7 +150,7 @@ pub fn parse_wanted(body: &str) -> Vec<String> {
     out
 }
 
-/// Only https, or plain http to this machine (a local `wrangler dev`).
+/// Only https, or plain http to this machine (a local test server).
 pub fn url_allowed(url: &str) -> bool {
     url.starts_with("https://") || url.starts_with("http://127.0.0.1:") || url.starts_with("http://localhost:")
 }

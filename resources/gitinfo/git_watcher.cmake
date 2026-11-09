@@ -129,14 +129,14 @@ function(GetGitState _working_dir)
         # Get whether or not the working tree is dirty.
         # GeneralsX @bugfix Claude 01/10/2026 TRACKED changes anywhere, UNTRACKED files only inside the build inputs. Plain
         # `status --porcelain` counted every untracked file, so a note, a replay folder or a backup tarball beside the tree
-        # stamped every binary "uncommitted" - measured on the VPS release mirror and on the MacBook tree, 01/10/2026 - and
+        # stamped every binary "uncommitted" - measured on two build trees, 01/10/2026 - and
         # since M1 4b a dirty build refuses every replay and records replays every other build refuses. An untracked file
         # INSIDE a build input (a stray .cpp under Core, an untracked vcpkg-configuration.json) is compiled or configures the
         # build, so it still counts (Codex m1det2-gitinfo-r1 P2). The list is verify-4platform.sh's BUILD_INPUTS, which says
         # why each entry is there; scripts/test/gitinfo-dirty-test.sh fails if the two drift, and pins every case here.
         # GeneralsX @bugfix Claude 02/10/2026 SUPERSEDES "TRACKED changes anywhere" above: tracked changes are scoped to what
         # is compiled too, in ONE status. "Tracked anywhere" stamped release builds over files no build reads: the 02/10 release verify's Windows leg failed because
-        # references/generals-online-launcher and references/jmarshall-win64-modern had every file staged deleted, and a VPS
+        # references/generals-online-launcher and references/jmarshall-win64-modern had every file staged deleted, and a
         # Linux tree stamped itself over a references/fbraz3-dxvk gitlink move it never compiles. The fork counts only where
         # cmake/dx8.cmake builds it (Apple, local fork), the macOS driver only on macOS (its flags reach the configure) -
         # exactly what verify-4platform.sh's gates check per leg. GX_GITINFO_* come from SetupGitMonitoring; a hand -P call

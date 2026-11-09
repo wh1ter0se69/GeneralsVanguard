@@ -848,7 +848,7 @@ UnicodeString GXLobbySaid( const UnicodeString &speaker, const UnicodeString &bo
 UnicodeString GXLobbyOperatorName( GXAssertRole role )
 {
 	// GeneralsX @bugfix Claude 20/09/2026 THE ROLE IS AN ARGUMENT, because it used to be the constant
-	// GX_ROLE_ADMIN and a moderator speaking through /api/say was drawn as "@Admin". The name and the
+	// GX_ROLE_ADMIN and a moderator's line was drawn as "@Admin". The name and the
 	// decoration move together on purpose: "<@Admin>" would be a third thing that is neither.
 	if (role == GX_ROLE_MOD)
 	{

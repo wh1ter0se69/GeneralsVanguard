@@ -83,7 +83,7 @@ const Real ATTACK_RANGE = 600.0f;		///< the nearest enemy this close is attacked
 const Real MAP_MARGIN = 50.0f;
 const Int MAX_BUILDERS = 3;				///< no more builders past this many: humans keep 2-3, and the Command Center's only
 										///< button is a builder, so without a cap the starting cash all went on builders and
-										///< no barracks - hence no unit to attack with - was ever afforded (VPS g1-on, 01/10)
+										///< no barracks - hence no unit to attack with - was ever afforded (g1-on run, 01/10)
 
 struct Config
 {

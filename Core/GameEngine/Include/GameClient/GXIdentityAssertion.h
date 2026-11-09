@@ -253,7 +253,7 @@ public:
 	// is a result that would not fit `cap` bytes with its NUL. `out` is written only on true.
 	static bool resolveBotPath(const char *env, const char *userDataDir, char *out, size_t cap);
 	// GeneralsX @bugfix Claude 23/09/2026 THE BOT RELOAD'S DECISION, pure so gxidtest drives it (review P2:
-	// it keeps the standing host's 24 h login alive across the re-mint, and a dead one passed every test).
+	// it keeps a headless host's 24 h login alive across the re-mint, and a dead one passed every test).
 	// botRecheckDue: the first call, then at most once per GX_BOT_RECHECK_S - a clock that stepped back
 	// re-arms - and records `now` in *checkedAt when due. NULL is never due.
 	// botReloadNeeded: the file's first line differs from the held line, or the held login has expired by

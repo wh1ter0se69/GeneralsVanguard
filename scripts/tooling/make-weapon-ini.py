@@ -6,8 +6,8 @@
 #   make-weapon-ini.py --root <game folder> [--root <game folder>]... [--search <dir>]... [--if-archive]
 #   make-weapon-ini.py --selftest
 #
-# --root is the ship-time step for a folder a peer runs from (a deploy's runtime folder, the VPS
-# harness peer's /root/gamedata, the Windows harness peer's C:\dev\gxdata): it writes
+# --root is the ship-time step for a folder a peer runs from (a deploy's runtime folder, a
+# harness peer's game-data folder): it writes
 # <root>/Data/INI/Weapon.ini, taking the archive from where that peer's engine mounts it, in the
 # engine's order (root_search): the --search dirs, then the primary asset root ($CNC_GENERALS_ZH_PATH
 # when it holds archives, else <root>), then the overlay ($GENERALSX_PATCH_PATH when set, else

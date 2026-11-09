@@ -442,7 +442,7 @@ fn without_save_name(text: &str) -> String {
         .collect()
 }
 
-/// Only https, or plain http to this machine (a local `wrangler dev` for the owner's test).
+/// Only https, or plain http to this machine (a local test server).
 pub fn url_allowed(url: &str) -> bool {
     url.starts_with("https://")
         || url.starts_with("http://127.0.0.1:")

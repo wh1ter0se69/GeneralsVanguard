@@ -158,12 +158,12 @@ extern UnicodeString GXLobbyDecorateName( const UnicodeString &name, GXAssertRol
 extern UnicodeString GXLobbySaid( const UnicodeString &speaker, const UnicodeString &body );
 
 /// "@Admin", or "<@Mod>" for GX_ROLE_MOD - the name an OPERATOR speaks under: a GXSAY the relay
-/// stamped with one of the admin socket's sender tokens (GameNetwork/GXRelaySay.h). The decoration is
+/// stamped with one of its operator sender tokens (GameNetwork/GXRelaySay.h). The decoration is
 /// what makes it unforgeable - '@' is refused in every path that assigns a player a name, so
 /// "[Admin]" is somebody's nickname and "@Admin" is only ever this. GeneralsX @feature Claude 19/09/2026
 ///
 /// GeneralsX @bugfix Claude 20/09/2026 IT TAKES THE ROLE. It used to be void and hard-coded to admin,
-/// which is how a moderator's /api/say came to render as the owner. No default argument: the two call
+/// which drew a moderator's line as an admin's. No default argument: the two call
 /// sites both know which voice they are drawing, and a default is how the constant got there.
 extern UnicodeString GXLobbyOperatorName( GXAssertRole role );
 

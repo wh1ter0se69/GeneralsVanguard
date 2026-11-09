@@ -4,11 +4,11 @@
 # Measured 2026-08-20: Ubuntu 24.04.4 LTS x86_64, 4 cores, 7.8 GiB RAM, 41 GB free. Only
 # build-essential and xvfb were installed; all eleven prerequisites resolve in the package index.
 #
-# THIS MAY BE THE RELAY HOST. scripts/test/local.env.example documents VPS as "linux peer, also the
-# relay host", relay-8peer.sh checks `systemctl is-active gxrelay` against it, and redeploying or
-# disturbing /opt/gxrelay/relay.js drops every match in progress. So: the caller must name the
-# build host explicitly, and if that host is the relay it must say so a second time. This is not a
-# script that gets to make that call.
+# THIS MAY BE A HOST THAT ALSO RUNS A RELAY. So: the caller must name the build host explicitly,
+# and if that host runs a relay it must say so a second time. This is not a script that gets to
+# make that call.
+#
+#
 #
 # THE GLIBC FLOOR IS A CONSEQUENCE, NOT AN OVERSIGHT. An AppImage inherits the glibc of the machine
 # that built it. This box is glibc 2.39, so the AppImage requires Ubuntu 24.04 or newer and will

@@ -27,13 +27,13 @@
 //
 //   10.42.0.3    a player; the last octet is the room slot
 //   0.0.0.0      a relay notice: a name change, a mute or throttle refusal, an expired sign-in
-//   0.0.0.0|a    an ADMIN, speaking through the admin socket's `say` (relay.js adminExecute)
-//   0.0.0.0|m    a MODERATOR, through the same socket and the same verb
+//   0.0.0.0|a    an ADMIN, speaking through the relay's operator console
+//   0.0.0.0|m    a MODERATOR, through the same console
 //
-// GeneralsX @bugfix Claude 20/09/2026 THE MODERATOR TOKEN EXISTS BECAUSE IT DID NOT. /api/say is open
-// to a moderator (gxGate(..., 'm', ...)) and the relay had one operator token, so a moderator's line
-// arrived here as 0.0.0.0|a and this file promoted it to "@Admin" - the distinction the whole enum
-// below draws, defeated on the wire, and a moderator able to appear to speak as the owner.
+// GeneralsX @bugfix Claude 20/09/2026 Two tokens, so a moderator's line is never drawn as "@Admin" -
+// the distinction the whole enum below draws.
+//
+//
 //
 // THE MARKERS ARE ADDITIVE. A client built before either parses the sender with strtoul/atoi after
 // the last '.', which stops at the '|' and reads 0 - so it draws BOTH as the grey relay notice it has
@@ -61,8 +61,8 @@ enum GXSayVoice
 {
 	GX_SAY_VOICE_PLAYER = 0,	///< a room slot - [Name] in the speaker's colour
 	GX_SAY_VOICE_RELAY,			///< sender 0 - the grey notice line
-	GX_SAY_VOICE_OPERATOR,		///< the admin socket, as an ADMIN - @Admin in the admin colour
-	GX_SAY_VOICE_MODERATOR		///< the admin socket, as a MODERATOR - <@Mod> in the moderator colour
+	GX_SAY_VOICE_OPERATOR,		///< the operator console, as an ADMIN - @Admin in the admin colour
+	GX_SAY_VOICE_MODERATOR		///< the operator console, as a MODERATOR - <@Mod> in the moderator colour
 };
 
 inline bool gxSaySenderIsOperator( const char *token )

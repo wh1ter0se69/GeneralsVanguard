@@ -199,7 +199,7 @@ static Bool gxLobbyTakeChat( char *outText, Int outSize, UnsignedInt *outSenderI
 // The relay accepts neither shape. A name with a space arrives as four tokens and dies at
 // relay.js:1400 (`parts.length !== 3`); a 22-character or punctuation-bearing name survives both
 // client paths and dies at relay.js:1406 (NICK_RE, {1,20}). BOTH BRANCHES MATTER: they log
-// byte-identically on the deployed relay, so a fix that only removed spaces would leave a residue
+// byte-identically on the relay, so a fix that only removed spaces would leave a residue
 // that reads as "the fix did not work" (S9.7, S13).
 //
 // The refusal is silent, and the consequence is not: the relay stamps every chat line with the
@@ -380,15 +380,15 @@ static time_t gameListRefreshTime = 0;
 //
 // GeneralsX @info Claude 17/08/2026 Two corrections, because both would send the next tuner wrong.
 //
-// THE BUDGET IS NOT PER-SENDER. This used to read "the relay's own per-sender reply budget is the
-// backstop if this is ever tuned lower". There is no per-sender budget and there deliberately never
-// will be: REPLY_BUDGET_PER_SEC (tools/relay/relay.js:293, default 1000 datagrams/s) is ONE counter
-// for the whole listening port, shared by every client, and relay.js:2042-2045 records the reasoning
-// - "a per-source counter would itself be an unbounded table keyed by an address the sender chose,
-// which is the bug it exists to prevent". So the cost of tuning this down is not paid by the tuner,
-// it is paid by everyone on that relay: B browsers against G games spend B*G/interval of a shared
-// 1000/s, with one burst clamped to MAX_GAMES_PER_LIST = 32 (relay.js:286). Halving the interval
-// doubles that draw against a ceiling that chat, GXWHO and GXMEMB also spend from.
+// THE RELAY'S LOBBY REPLIES ARE RATE-LIMITED, so the cost of tuning this down is not paid by the
+// tuner alone: B browsers against G games ask for B*G/interval replies, one burst clamped to
+// MAX_GAMES_PER_LIST = 32. Halving the interval doubles that draw.
+//
+//
+//
+//
+//
+//
 //
 // THIS INTERVAL WAS NEVER THE DOMINANT LATENCY TERM, so tuning it was the wrong lever anyway. The
 // browser's staleness was mostly the transport publishing the PREVIOUS sweep - replies sat complete
@@ -818,7 +818,7 @@ static void relayClaimPersistedNickname()
 //     that name next, which is the precise failure GXPlayerIdentity.h warns about.
 //
 // ONE MORE THING THAT IS NOT A LIMITATION. A card exchange, a private message and the presence poll
-// all work against the CURRENTLY DEPLOYED relay or degrade to nothing, never to a leak. See
+// all work against every relay or degrade to nothing, never to a leak. See
 // relaySendPeerLine for why a private message is not a relay control tag.
 // ==============================================================================================
 
@@ -1034,7 +1034,7 @@ static void relayClearSocialSession()
 // relayClearSocialSession() used to be called unconditionally from WOLLobbyMenuInit, and that
 // function runs every time this screen is entered - including the extremely common return trip
 // CREATE GAME -> BACK, or joining a game and leaving it. Every pending "they asked to swap codes"
-// went with it. Reproduced 10/08/2026 against the live relay with scripts/test/gxpeer-probe.py:
+// went with it. Reproduced 10/08/2026 against a relay with a scripted peer:
 // the requester was still in the room and still holding its slot, the chat box still showed
 // "Persist wants to swap friend codes with you. /friend accept P3 to agree" - and /friend listed
 // nothing pending while /friend accept P3 answered "Nobody by that name has asked to swap codes
@@ -1584,13 +1584,13 @@ static Bool relaySlotIsFriend( UnsignedInt slot, Bool *outByName = nullptr )
 //     every member of the room by construction, and a private message would need per-recipient
 //     relay state that does not exist. "Private" would have to be enforced by the recipients
 //     agreeing not to display it, which is not privacy, it is etiquette.
-//   * On a relay that does NOT know the tag, the datagram falls off the end of the dispatch chain
-//     into forward(). Whether that DROPS it or BROADCASTS IT TO ALL SEVEN PEERS depends on which
-//     build the operator has installed - the guard that drops it was added on 07/08/2026. So a
-//     private message would be private or public depending on a relay the sender cannot inspect.
-//     Measured 08/08/2026 against the deployed /opt/gxrelay/relay.js: that guard IS present, and
-//     GXKEY/GXSEEN/GXHERE are NOT. Deployed relays are not all the same relay, and the ones that
-//     matter are the ones you cannot check.
+//   * On a relay that does NOT know the tag, what becomes of the datagram depends on that relay's
+//     version. So a private message would be private or public depending on a relay the sender
+//     cannot inspect.
+//
+//
+//
+//
 //
 // A relay-header unicast has neither problem. It is an ordinary relayed datagram - the 12-byte GXR1
 // header with a single destination - and forward() delivers it to that one member without ever
@@ -1691,10 +1691,10 @@ static void relaySocialSay( const UnicodeString &line, Color color )
 // entire product of declaring an id, and it is worth having: it is the difference between a friends
 // list that is a text file and one that tells you whether to bother waiting.
 //
-// DEGRADES TO NOTHING, NEVER TO A LEAK, on a relay that does not know the tags. Measured 08/08/2026
-// against the deployed /opt/gxrelay/relay.js: it has no GXKEY, GXSEEN or GXHERE, and it DOES have
-// forward()'s unknown-control-tag guard - so both requests are dropped and counted, one log line per
-// rate-limit window. The friends panel then reports presence as unknown rather than as offline,
+// DEGRADES TO NOTHING, NEVER TO A LEAK, on a relay that does not know the tags: both requests have
+// the control-tag shape, so such a relay drops them. The friends panel then reports presence as
+// unknown rather than as offline,
+//
 // which is the honest answer and is why relayPresenceFor has three return values instead of two.
 
 /// Declare our durable id to the relay. Cheap and idempotent: Transport remembers it and re-sends
@@ -1705,10 +1705,10 @@ static void relayDeclareIdentity()
 	// return early.
 	//
 	// The shared-lobby socket is a SECOND member on the relay - its own endpoint, its own member
-	// record - and it was never given the identity, so its `sub` was permanently null. Every sanction
-	// the relay applies keys on `sub` (enforceModeration returns at once when it is null), so a muted
-	// or banned account was silenced on its game socket and went on talking in the shared lobby: the
-	// bypass docs/WORKDIR/SHARED_LOBBY_ROOM_DESIGN.md:358-363 predicted before either socket existed.
+	// record - so it declares the signed-in identity too: the relay applies a player's account
+	// settings per member.
+	//
+	//
 	//
 	// ABOVE THE relayTransport() GUARD DELIBERATELY. The presence socket is orthogonal to the game
 	// transport by design, and a transport that is not relaying must not be able to suppress the
@@ -1881,8 +1881,8 @@ static void relayPollPresence()
 /// Presence of one id: 1 online, 0 offline, -1 not known.
 ///
 /// THREE VALUES, DELIBERATELY. Folding "I have not been told" into "offline" is how a relay that
-/// does not speak GXSEEN turns into a friends list that confidently reports everybody as away -
-/// and the deployed relay is exactly that relay today.
+/// does not speak GXSEEN turns into a friends list that confidently reports everybody as away.
+///
 static Int relayPresenceFor( const char *id )
 {
 	if (s_presenceKnownCount <= 0 || id == nullptr || id[0] == '\0')
@@ -2352,8 +2352,8 @@ static void relayPrintFriends()
 		{
 			// GeneralsX @feature Claude 08/08/2026 Presence, from GXHERE. THREE states, not two: a
 			// relay that does not speak GXSEEN must not make every friend read as offline, because
-			// that is indistinguishable from them actually being away and it is what the deployed
-			// relay would do today.
+			// that is indistinguishable from them actually being away.
+			//
 			switch (relayPresenceFor(id))
 			{
 				case 1:
@@ -4017,15 +4017,15 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 	{
 		// GeneralsX @feature Matchmaking. Turn off the controls that have nothing behind them.
 		//
-		// GeneralsX @feature Claude 06/08/2026 Lobby chat now HAS something behind it. The note
-		// that used to sit here said "the relay carries no chat channel at all" - true of the
-		// DEPLOYED relay and not of tools/relay/relay.js, which has implemented GXCHT/GXSAY since
-		// 31/07 and was never shipped. The client half is now written too, so the entry is live.
+		// GeneralsX @feature Claude 06/08/2026 Lobby chat now HAS something behind it: the relay
+		// carries GXCHT/GXSAY, so the entry is live. Lines are length-capped and control-byte
+		// stripped on both ends.
 		//
-		// The moderation concern the old note raised is real and is NOT solved by this: chat on a
-		// public relay is unauthenticated, and anyone who knows the room can talk. What exists
-		// today is a length cap and control-byte stripping on both ends. Muting and reporting need
-		// identity, and identity needs the account work that is not started.
+		//
+		//
+		//
+		//
+		//
 		//
 		// Buddies are GameSpy profiles. There are no accounts on the relay, so there is nothing a
 		// buddy list could be a list OF, and GameSpyOpenOverlay(GSOVERLAY_BUDDY) dereferences the
@@ -4086,12 +4086,12 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 				//
 				// This printed the raw host - an IP in practice - at the top of the lobby, where it
 				// is visible in every screenshot, stream and bug report anyone posts. It tells the
-				// player nothing they can act on (they cannot choose a different one from here) and
-				// it hands the address to anyone who wants to flood the room or the socket.
+				// player nothing they can act on (they cannot choose a different one from here).
 				//
-				// This repository is deliberately free of operator addresses - CLAUDE.md says real
-				// hosts live only in untracked local.env, and the repo was re-rooted because
-				// addresses in old commits cannot be removed. Rendering one into the UI walks
+				// This repository is deliberately free of server addresses. Rendering one into the UI walks
+				//
+				//
+				//
 				// straight around that.
 				//
 				// A name, not an address. When the signed relay list lands (autoship Layer 1) this
@@ -4931,7 +4931,7 @@ static void relayDrainPeerLines()
 /// blank when it is opened.
 ///
 /// THE POLL IS SLOW ON PURPOSE. It is one datagram, but on a relay that does not speak GXSEEN it is
-/// one datagram that gets dropped and rate-limit-logged, and the deployed relay is that relay. 30 s
+/// one datagram that gets dropped and rate-limit-logged. 30 s
 /// matches the cadence Transport already uses for its own identity tags, for the same reason.
 static void relayUpdatePresence()
 {
@@ -4982,9 +4982,9 @@ static void relayUpdatePresence()
 /// DNS lookup and its retries (5 x 400 ms), exactly as this screen's own entry does in an outage.
 ///
 /// GeneralsX @bugfix Claude 23/09/2026 ...AND DOUBLED ON EVERY UNANSWERED ONE, to 5 min (Claude r6). Silence is
-/// the whole signal, and a relay outage - or a flood draining relay.js's shared REPLY_BUDGET_PER_SEC, which
-/// anyone can send - is silence too: at a flat 30 s that was a 2 s freeze of this screen every 30 s for as
-/// long as it lasted. An answer resets it. What a forged trigger can buy is bounded besides: an answered
+/// the whole signal, and an unreachable relay is silence too: at a flat 30 s that was a 2 s freeze of this
+/// screen every 30 s for as long as it lasted. An answer resets it. What a forged trigger can buy is
+/// bounded besides: an answered
 /// re-entry is a NEW id, never the signed-out one, so it is never stranded again - one id change per sign-out.
 static void relayReacquireIfStranded()
 {
@@ -5871,7 +5871,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 
 	// GeneralsX @feature Claude 06/08/2026 GX_UI: why are this screen's buttons dead?
 	//
-	// Measured over ssh: on WOLCustomLobby every synthetic click is a no-op - Refresh, Join and
+	// Measured with a UI driver: on WOLCustomLobby every synthetic click is a no-op - Refresh, Join and
 	// Back all did nothing across 60+ seconds - while the identical click mechanism works on
 	// MainMenu. The click is landing (the driver re-asserts foreground and would abort if it
 	// could not), so the input is being swallowed above the button handlers. The four gates that

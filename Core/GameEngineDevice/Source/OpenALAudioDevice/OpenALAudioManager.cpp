@@ -2940,7 +2940,7 @@ Real OpenALAudioManager::getFileLengthMS(AsciiString strToLoad) const
 // not hold the file, and that depended on this peer alone: a filename-only request carries the lowest priority, so
 // under pressure it may evict only idle entries (freeEnoughSpaceForSample), and what is resident is what THIS peer
 // played - positional sounds are culled by the local shroud and camera. With no ALC context (no output device: the
-// Linux standing host has no sound card; or AudioOn off) alGenBuffers left the buffer 0 and every load was refused, so
+// headless Linux host has no sound card; or AudioOn off) alGenBuffers left the buffer 0 and every load was refused, so
 // every length was 0 there. Same decoder, same chunks, same sum and formula as OpenALAudioFileCache::decodeAudio, so a
 // warm-cache answer is unchanged bit for bit (GX_AUDIOLEN_CHECK proves it per file); no device, context or cache
 // state is read. A file that is missing or does not decode is 0 on every peer alike.

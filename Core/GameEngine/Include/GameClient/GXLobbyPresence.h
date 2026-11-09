@@ -28,7 +28,7 @@
 // game, because joining moves them into the host's room.
 //
 // WHY A SECOND SOCKET RATHER THAN JUST SHARING A ROOM. The obvious fix - enter a shared room while
-// browsing and move to your own room when you press Host - was measured against the live relay and
+// browsing and move to your own room when you press Host - was measured against the relay and
 // rejected (docs/WORKDIR/SHARED_LOBBY_ROOM_DESIGN.md §2, Option C):
 //
 //   * One endpoint is in exactly one room, forced by the wire format: a relayed game packet carries
@@ -36,7 +36,7 @@
 //     sender's endpoint. Browsing and hosting therefore cannot share one socket.
 //   * Every browse -> host -> back cycle would be a room change, and a departed member keeps its
 //     slot for minutes. The shared room becomes unusable within a handful of transitions - exactly
-//     the churn observed on the live relay on 14/08/2026.
+//     the churn observed in testing.
 //   * A host would get no lobby chat at all, and the host is the person you most want to talk to
 //     while you decide whether to join.
 //
@@ -208,13 +208,13 @@ public:
 	/// matches Transport::sendRelayIdentity - so a LAN player, an offline player and anyone without
 	/// an account go on sending nothing at all. Kept across a re-acquire like the nickname.
 	///
-	/// WITHOUT THIS, MUTE AND BAN DID NOT APPLY TO LOBBY CHAT. The relay attaches every sanction to
-	/// the verified account: chat() gates on `sender.muted`, `muted` is only ever set inside
-	/// enforceModeration(), and enforceModeration() returns at once when the member's `sub` is null.
-	/// `sub` is set in exactly one place, the GXIDN handler. This socket is a SECOND member - its own
-	/// endpoint, so its own member record - and it never identified, so its `sub` was permanently null
-	/// and a muted or banned account went on talking here while its game socket was silenced.
-	/// docs/WORKDIR/SHARED_LOBBY_ROOM_DESIGN.md:358-363 predicted exactly this before the class existed.
+	/// This socket is a SECOND member - its own endpoint, so its own member record - so it declares the
+	/// identity itself rather than relying on the game socket's.
+	///
+	///
+	///
+	///
+	///
 	///
 	/// ASSERTED BY THE CLIENT AND VERIFIED BY THE RELAY, never inferred from the source address, the
 	/// nickname or the self-minted durable id. Two players behind one household NAT share a public

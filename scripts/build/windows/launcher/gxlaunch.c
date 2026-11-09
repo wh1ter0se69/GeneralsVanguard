@@ -165,7 +165,7 @@ static const unsigned char *const GX_MANIFEST_KEYS[3] = { GX_MANIFEST_PUBKEY, GX
  * origin inside a document signed by the release key would give that key authority over identity
  * too, which is exactly the coupling GXIdentityAssertion.cpp refuses at the pin.
  *
- * GX_OAUTH_BASE in the environment overrides it, for testing against a local `wrangler dev`. It is
+ * GX_OAUTH_BASE in the environment overrides it, for testing against a local test server. It is
  * LOGGED whenever it is in use, because a test that silently spoke to production and still
  * reported success has already happened once on this project. */
 #define GX_OAUTH_BASE_URL	"https://oauth.wh1ter0se.dev"
@@ -1922,7 +1922,7 @@ static int publish_ini_key(const wchar_t *path, const char *key, const char *val
  * with /W4 /WX (.github/workflows/build-launcher.yml:93 - the local build-launcher.cmd uses
  * /W4 alone, which is why the warning looked harmless), so an unreferenced static is a BUILD
  * FAILURE in CI, not warning noise. The override belongs with a caller: the engine owns the
- * loopback login now, so reinstate it there if a local `wrangler dev` target is ever needed
+ * loopback login now, so reinstate it there if a local test server is ever needed
  * from the launcher again. GX_OAUTH_BASE_URL is left defined and unused on purpose - a macro
  * costs nothing and documents the production endpoint. */
 

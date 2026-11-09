@@ -57,7 +57,7 @@ const size_t SIG_TEXT_LEN = 86;
 
 // THE TRUST ANCHOR, AND IT IS NOT SET YET.
 //
-// Phase 3b (the Cloudflare Worker at oauth.wh1ter0se.dev) has not run, so there is no key to pin.
+// Phase 3b (the sign-in service) has not run, so there is no key to pin.
 // All zeroes is the "unset" sentinel and keyIsPinned() checks for it EXPLICITLY.
 //
 // It would in fact fail anyway - the all-zero encoding decodes to a point of order 4, and
@@ -75,16 +75,16 @@ const size_t SIG_TEXT_LEN = 86;
  * scripts/tooling/mint-identity-key.py, which emits it via gx-manifest.py pubkey --c-array.
  * base64url: RDybn5Cr2920FQPaqlW49q0v1fY4U-oFqzl3VbJAuq4
  *
- * Minted 11/08/2026 for the Cloudflare Worker in tools/oauth/. The private half exists in exactly
- * two places and neither is this repository: the Worker's wrangler secret storage, and the
- * operator's password manager. Wrangler secrets are write-only once installed, so without the
- * second copy a lost account would mean re-pinning and shipping all four platforms before anyone
- * could log in again.
+ * Minted 11/08/2026 for the sign-in service. The private half is not in this repository.
  *
  * IT IS NOT GX_MANIFEST_PUBKEY, and the difference is the point. That key answers "which binary
  * should you download"; this one answers "who is this player". Verified distinct by inspection at
- * mint time, and the two live in different directories under ~/.config/generalsx precisely so that
- * a wrong GX_MANIFEST_KEY_DIR cannot sign a release with the login key. */
+ * mint time.
+ *
+ *
+ *
+ *
+ */
 const unsigned char GX_IDENTITY_PUBKEY[32] = {
 	0x44, 0x3c, 0x9b, 0x9f, 0x90, 0xab, 0xdb, 0xdd,
 	0xb4, 0x15, 0x03, 0xda, 0xaa, 0x55, 0xb8, 0xf6,

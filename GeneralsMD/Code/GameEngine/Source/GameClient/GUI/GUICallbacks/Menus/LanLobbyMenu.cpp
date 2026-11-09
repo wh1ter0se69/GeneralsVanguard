@@ -657,18 +657,18 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	//
 	// The owner's rule: "Online needs sign in anything else not needed but anything that uses our
 	// networking needs to be signed in." Online already refuses without an account (GXOnlineGate.h:79).
-	// This screen is the hole: NETWORK becomes our networking the moment RelayAddress resolves
-	// (Transport.cpp:881), which is exactly how the standing host runs and how every player reaches
-	// it - and nothing here ever said so. Under RELAY_REQUIRE_IDENTITY the relay drops an
+	// This screen is the gap: NETWORK becomes our networking the moment RelayAddress resolves
+	// (Transport.cpp:881) - and nothing here ever said so. A relay that requires sign-in drops an
 	// unidentified member 15 s after it joins (relay.js:7781), and a player who was never told would
+	//
 	// report "the game list is empty", not "I should log in".
 	//
 	// A NOTICE, NOT A REFUSAL, and that distinction is load-bearing in three ways:
 	//   1. The relay decides. A client-side admission check is a check a patched client skips
 	//      (Transport.cpp:2385), so refusing here would buy no security and cost the honest player.
-	//   2. RELAY_REQUIRE_IDENTITY is OFF in production today and this change ships before it is
-	//      flipped. A refusal would lock signed-out players out of a relay that still admits them -
-	//      a regression on its own schedule - and would not undo itself on rollback.
+	//   2. Whether signed-out players are admitted is the relay's setting, not the client's. A refusal
+	//      here would lock them out of a relay that admits them, and would not undo itself on rollback.
+	//
 	//   3. A GENUINELY LOCAL game on this screen needs no account and never will
 	//      (GXIdentityAssertion.h:41), and isRelayEnabled() is false for it, so this says nothing.
 	//
