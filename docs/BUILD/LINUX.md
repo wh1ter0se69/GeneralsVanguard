@@ -8,11 +8,11 @@ This guide provides step-by-step instructions for building GeneralsX on Linux 64
 
 ```bash
 # Clone repository
-git clone https://github.com/fbraz3/GeneralsX.git
-cd GeneralsX
+git clone https://github.com/wh1ter0se69/GeneralsX-source.git
+cd GeneralsX-source
 
 # Build Zero Hour (GeneralsXZH) with Docker
-./scripts/docker-build-linux-zh.sh linux64-deploy
+./scripts/build/linux/docker-build-linux-zh.sh linux64-deploy
 
 # Binary location: build/linux64-deploy/GeneralsMD/GeneralsXZH
 ```
@@ -124,16 +124,14 @@ sudo pacman -S mesa glu alsa-lib libpulse pipewire
 
 ```bash
 # 1. Configure build (creates CMake cache inside Docker)
-./scripts/docker-configure-linux.sh linux64-deploy
+./scripts/build/linux/docker-configure-linux.sh linux64-deploy
 
 # 2. Build Zero Hour
-./scripts/docker-build-linux-zh.sh linux64-deploy
+./scripts/build/linux/docker-build-linux-zh.sh linux64-deploy
 
 # 3. Build Generals (optional)
-./scripts/docker-build-linux-generals.sh linux64-deploy
+./scripts/build/linux/docker-build-linux-generals.sh linux64-deploy
 
-# 4. Smoke test (optional)
-./scripts/docker-smoke-test-zh.sh linux64-deploy
 ```
 
 **Available Presets**:
@@ -144,8 +142,8 @@ sudo pacman -S mesa glu alsa-lib libpulse pipewire
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/fbraz3/GeneralsX.git
-cd GeneralsX
+git clone https://github.com/wh1ter0se69/GeneralsX-source.git
+cd GeneralsX-source
 ```
 
 ### 2. Configure Build (Native)
@@ -160,11 +158,11 @@ cmake --preset linux64-deploy
 
 ```bash
 # Primary: Zero Hour (GeneralsXZH)
-./scripts/docker-build-linux-zh.sh linux64-deploy
+./scripts/build/linux/docker-build-linux-zh.sh linux64-deploy
 # Output: build/linux64-deploy/GeneralsMD/GeneralsXZH
 
 # Secondary: Generals (GeneralsX)
-./scripts/docker-build-linux-generals.sh linux64-deploy
+./scripts/build/linux/docker-build-linux-generals.sh linux64-deploy
 # Output: build/linux64-deploy/Generals/GeneralsX
 ```
 
@@ -219,7 +217,7 @@ cmake --build build/linux64-deploy --target z_generals -j 4
 rm -rf build/linux64-deploy
 
 # Docker: Reconfigure
-./scripts/docker-configure-linux.sh linux64-deploy
+./scripts/build/linux/docker-configure-linux.sh linux64-deploy
 
 # Native: Reconfigure
 cmake --preset linux64-deploy
@@ -263,8 +261,8 @@ sudo pacman -S gcc
 rm -rf build/linux64-deploy
 
 # Docker:
-./scripts/docker-configure-linux.sh linux64-deploy
-./scripts/docker-build-linux-zh.sh linux64-deploy
+./scripts/build/linux/docker-configure-linux.sh linux64-deploy
+./scripts/build/linux/docker-build-linux-zh.sh linux64-deploy
 
 # Native:
 cmake --preset linux64-deploy
@@ -348,15 +346,12 @@ The Linux port **Phase 1 (Graphics) is COMPLETE** ✅
 
 ## Additional Resources
 
-- **Development Diary**: See [../DEV_BLOG/README.md](../DEV_BLOG/README.md)
-- **Phase Documentation**: See [../WORKDIR/phases/](../WORKDIR/phases/)
-- **Docker Scripts**: See [../../scripts/README_DOCKER_SCRIPTS.md](../../scripts/README_DOCKER_SCRIPTS.md)
-- **Reference Repos**: See [../../references/fighter19-dxvk-port/](../../references/fighter19-dxvk-port/)
-- **DXVK Architecture**: See [../WORKDIR/support/](../WORKDIR/support/)
+- **Docker scripts**: [`scripts/build/linux/`](../../scripts/build/linux/)
+- **iOS/iPadOS and macOS**: [IOS.md](IOS.md), [MACOS.md](MACOS.md)
 
 ## Support
 
-For Linux build-specific issues, check [Issues](https://github.com/fbraz3/GeneralsX/issues) or open a new one with the `linux` label.
+For Linux build issues, open an issue at [wh1ter0se69/GeneralsX-source](https://github.com/wh1ter0se69/GeneralsX-source/issues) and say it is the Linux build.
 
 ---
 **Last updated**: February 18, 2026

@@ -71,8 +71,9 @@ Required files from the retail install:
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/fbraz3/GeneralsX.git
-cd GeneralsX
+git clone https://github.com/wh1ter0se69/GeneralsX-source.git
+cd GeneralsX-source
+git submodule update --init --recursive references/fbraz3-dxvk
 ```
 
 ### Configure and Build
@@ -262,7 +263,3 @@ new `libMoltenVK.dylib` to the runtime dir.
 | `cmake/dx8.cmake` | DXVK ExternalProject build (pinned fork commit) |
 | `cmake/dxvk-macos-patches.py` | Deprecated legacy helper (not used by current build flow) |
 | `CMakePresets.json` (`macos-vulkan`) | Build preset (arm64, MoltenVK, SDL3, OpenAL, ffmpeg) |
-
----
-
-*See the [Dev Blog](../../DEV_BLOG/) for detailed session-by-session technical notes.*
