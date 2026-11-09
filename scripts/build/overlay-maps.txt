@@ -1,0 +1,17 @@
+# Maps GeneralsX ships to every desktop client, one per line:   <Name>|<sha256 of <Name>.map>
+#
+# GeneralsX @feature Claude 30/09/2026 The source of each is scripts/test/maps/<Name>/ (<Name>.map, <Name>.tga).
+# The packagers stage them as loose files in GeneralsXPatch/ShippedMaps/<Name>/ (inside the OPTIONAL tier -
+# never `required`: maps are outside dataID) and the launcher copies them into <userdata>/Maps
+# (gxio/src/shippedmaps.rs). The packagers REFUSE a map whose .map does not hash to the value here, so a
+# regenerated map cannot ship by accident: change the hash in the same commit that changes the map, and
+# remember that a new .map under the same name splits players who hold the old one (map CRC).
+CraterRingZHv1|48b402cddcbc0485b6f6098efdccf6478b41b3859b28f9ee41fa3e944b3755ee
+CraterRingZHv3|8920f86e74a566427522bc7b79b4058dbef5cef00bd9636f2aef33b18dfc1b46
+TwinRidgesZHv1|390717c56b54b6cc25faf973bd98ed850206d973075f8220bd8211b77e252f55
+TwinRidgesZHv2|bda0262e2e09e558a0ba369c7144e1885db98c38aa688751cf9655c031db7dc5
+# The three 32-start maps below need the 32-seat engine (16-bit pathfinder zones, MAX_SLOTS 34; 0.9.70 on): every older build
+# wraps their zone ids, so they ship from 0.9.70 and never to an older client (C. release-0970, lead C80 07/11/2026).
+Crown32ZHv1|2d33a097debcbd57f9243fbbfa22ba39d7d87902b14574f12328bfe939bc619b
+CrownFlat32ZHv1|45fedf40067075fcece9a2683fe127ffa895827661f72b3436e55ec042f1cd9f
+LastStand32ZHv1|7a9dccecb67af824df148b30119785af194bb545efe18fd0b9d8b708209572a1

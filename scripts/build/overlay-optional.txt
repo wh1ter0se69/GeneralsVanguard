@@ -1,0 +1,144 @@
+# Overlay archives that SHIP but do not decide compatibility.
+#
+# GeneralsX @feature Claude 12/08/2026
+#
+# Format, one per line:   <on|off>|<filename>|<label shown in the launcher>
+# '#' comments and blank lines ignored. Labels may contain spaces; the '|' is the separator
+# precisely so they can.
+#
+# WHY THIS IS A SEPARATE FILE FROM overlay-archives.txt, and why the split is not cosmetic.
+# Everything in overlay-archives.txt MUST be present on every peer or the join is refused. Nothing
+# in THIS file may ever be. Each entry here has been measured to contain ZERO files the SimID
+# fingerprint reads, so a player who turns one off still computes the same dataID as one who
+# leaves it on, and the two can play together. That is the whole reason a toggle is safe at all:
+# an option that silently made you unable to join your friends would be worse than no option.
+#
+# THE BAR FOR ADDING A LINE HERE. Run it through scripts/test/probe-dataid.sh with and without the
+# archive. If dataID moves by so much as a digit, it does not belong in this file - it belongs in
+# overlay-archives.txt as a mandatory download, or nowhere.
+#
+# MEASURED 2026-08-12 (entry counts from scripts/tooling/make-big.py --list, fingerprint verdict
+# from the SIMID allow-list in SimulationId.cpp):
+#
+#   340_ControlBarProZH.big           54 entries, 52.6 MB, 20.7 MB zipped, 0 fingerprinted
+#   340_ControlBarPro-Fix1440ZH.big   60 entries,  5.6 MB,  117 KB zipped, 0 fingerprinted
+#   340_ControlBarPro1440ZH.big       22 entries,   50 KB,  3.4 KB zipped, 0 fingerprinted
+#   !HotkeysLeikezeZH.big              1 entry,   937 KB,  186 KB zipped, 0 fingerprinted
+#
+# HOW "OFF" IS SPELLED ON DISK: the file ships as <name>.big.off and is renamed to <name>.big to
+# enable it. Not a subdirectory - loadPatchOverlay passes searchSubdirectories=TRUE, so a
+# GeneralsXPatch/disabled/ folder would be scanned and mounted anyway. The rename works because
+# SearchStringMatches requires the pattern and the name to terminate together
+# (ArchiveFile.cpp:71-80), so "*.big" does not match "x.big.off". Measured end to end: renaming an
+# archive off dropped it from the mount list, left the others mounted, moved dataID to the
+# expected value, and renaming it back restored the original exactly.
+#
+# NOTHING PRUNES, AND ON THIS LIST THAT MAKES *FLIPPING A DEFAULT* THE DANGEROUS EDIT.
+#
+# overlay-archives.txt already records that no mechanism deletes an archive from an install that
+# has one - the launcher's place_file only ever MoveFileExW's a staged name over the same name
+# (gxlaunch.c:1804-1829), and migrate-patch-overlay.sh iterates current entries. On the mandatory
+# list that splits the fleet on dataID. Here it cannot: every entry is measured dataID-neutral, so
+# a stale copy costs a chat line about differing archives, never a refused join. Three cases,
+# because they are NOT equally safe and the middle one is a trap:
+#
+#  * CHANGING an archive, same filename - FINE, and it is the case that matters most. New bytes
+#    land over the old ones on Windows, iOS replaces the whole bundle, and Linux and Windows and
+#    iOS all REGENERATE the generated entries from the current recipe every time they package or
+#    deploy. A generated archive therefore cannot go stale on a peer that redeploys, which a
+#    downloaded one can.
+#
+#  * FLIPPING a default from on to off - DOES NOT DISABLE ANYTHING, and it silently breaks the
+#    checkbox. The payload then stages "<name>.big.off", which is a NEW filename, so the existing
+#    "<name>.big" is neither renamed nor removed and the engine keeps mounting it. Worse, the
+#    launcher's toggle only moves a file when exactly one of the pair exists
+#    (OptionsForm.cs:645-646) and reports the state as File.Exists(on) (:492) - so with both on
+#    disk the box reads ticked, ticking and unticking do nothing, and the UI snaps it back. Do not
+#    flip a default in a release until the launcher deletes the counterpart on apply.
+#
+#  * REMOVING a line - leaves the archive mounted on every install that has it, forever, and also
+#    removes it from the launcher's optional.txt so there is no longer a switch to turn it off
+#    with. Harmless for content, permanent for the file. Same sweep obligation as the other list.
+#
+# Adding a line, as ever, has none of these problems.
+
+# THE ONE THAT IS NOT HERE. !HotkeysLeikezeIndicatorsZH.big cannot be optional and it is worth
+# knowing why before anyone tries to move it: it carries Data\INI\CommandButton.ini, which IS
+# fingerprinted, and that file retargets 33 buttons to image names (SAMOAB2, SNNukeLaunch2, ...)
+# defined ONLY inside that same archive. Ship the INI without the textures and those buttons
+# resolve to the engine's missing-texture fallback - magenta. It is all-or-nothing, fleet-wide,
+# so it lives in overlay-archives.txt.
+
+on|340_ControlBarProZH.big|ControlBar Pro
+on|340_ControlBarPro-Fix1440ZH.big|ControlBar Pro - 1440 fixes
+on|340_ControlBarPro1440ZH.big|ControlBar Pro - 1440 layout
+# THE LEIKEZE HOTKEY ARCHIVE IS GONE, and the reasoning that kept it is recorded here because it
+# was correct when written and stopped being correct three days later.
+#
+# It was defaulted ON on 17/08/2026 to make two halves of one feature agree: a mandatory archive
+# painted the hotkey letters into the cameo textures, and !HotkeysLeikezeZH.big carried the
+# Data\English\generals.csf whose '&' marker both bound the key and drew the glyph. With it off,
+# 'the art says one key and the game listens for another'.
+#
+# BOTH HALVES OF THAT ARE NOW FALSE:
+#   * the painted-letter archive stopped shipping in 42f6be320 - it was drawing a SECOND letter
+#     under the engine-drawn one, and !!GXCameoHD.big covers those cameos now;
+#   * HotKeyManager::getCommandButtonHotKey (HotKey.h:103-112, 20/08/2026) made the mismatch
+#     structurally impossible - it is the ONE accessor resolving a command button's key, the
+#     binding and the drawn glyph both go through it, and the user's keybind file takes
+#     precedence over the retail '&' marker.
+#
+# So the archive supplied a retail fallback that the keybind file overrides. Removing it costs no
+# behaviour and saves every friend the download. dataID-neutral either way, measured twice:
+# the 12/08 leave-one-out (data=FA018128 with it in or out) and again three ways in 42f6be320.
+# GeneralsX @info Claude 15/09/2026 !GXUI.big STAYS HERE, and an attempt to make it
+# unconditional on 15/09/2026 is why this note exists.
+#
+# It is this project's own UI rather than a community preference, so "always on, no switch" is a
+# reasonable thing to want. Moving it to overlay-archives.txt does NOT deliver that, for two
+# reasons the generator enforces directly (build-overlay-generated.py:198-212):
+#
+#   * that list's bar is "removing it moves dataID", and a GENERATED archive there would refuse
+#     every peer that had not run the generator - a worse failure than the one it fixes;
+#   * and this file is the STAGING MANIFEST, not merely the toggle list. Every packaging script
+#     iterates it, so an archive absent from here is built and then silently dropped.
+#
+# Making it genuinely unswitchable therefore needs a third state in this file's format - something
+# like `always|` beside `on|` and `off|` - plus the launcher parser and its toggle UI. That is a
+# feature, not a list edit. Until then it ships to everyone by defaulting on, which is the same
+# outcome for anyone who does not go looking for the switch.
+# GeneralsX @feature Claude 17/08/2026 The FIRST entry here that is BUILT rather than downloaded.
+#
+# !GXUI.big carries this project's own .wnd layout overrides - today one file,
+# Window\Menus\PopupHostGame.wnd with the Confirm Password field, generated from retail bytes by
+# scripts/tooling/build-overlay-generated.py.
+#
+# WHICH PACKAGERS RUN THAT GENERATOR: as of 15/09/2026, Windows, macOS and Linux. The original
+# version of this note claimed "the iOS, Linux and Windows packagers now run" it, and that was
+# wrong - only package-windows-share.ps1 did, which is why a Linux bundle on 14/09 stopped with
+# !GXUI.big missing and the archive had to be copied to the host by hand. macOS and Linux invoke
+# it now; iOS still does not, and it produces no CDN artifact either.
+on|!GXUI.big|GeneralsX UI layouts (adds the Confirm Password field to Host Game)
+# GeneralsX @feature Claude 03/10/2026 !GXUIHD.big: hand-drawn 7x16 / 10x24 occupancy pips for renders 1440p and taller
+# (owner, 03/10/2026). BUILT, like !GXUI.big, but from nothing: scripts/build/make-gxuihd-archive.py draws the art in its
+# own grids, so no install is read and every box writes the same bytes. Two members, Art\Textures\GXUIHD_Pips.tga and
+# Data\INI\MappedImages\TextureSize_512\GXUIHD.ini - MappedImages and textures are outside the SimID fingerprint, so
+# dataID does not move (re-measured for this archive in ui/HANDBACK_ui-sharpness-2.md). Off, or absent on an older
+# install, the engine draws the retail 5x12 at every resolution (GXImageVariant.h falls back), so the switch is safe.
+# All four packagers run the generator now - iOS too (package-ios-zh.sh:477); the !GXUI.big note above predates that.
+on|!GXUIHD.big|Sharper unit pips at 1440p and 4K (hand-drawn, original colours)
+# GeneralsX @feature Claude 06/10/2026 !!GXEmblemHD.big: the faction emblems upscaled with the original colours (ui/emblem-upscale,
+# two members: Art\Textures\GXEmblemHD_001.tga and Data\INI\MappedImages\TextureSize_512\SCGenChallengeSelect512.INI, whose 46 blocks
+# keep every name - 36 remapped to the new texture, 10 identical to the Community Patch's). NOT BUILT: a hand-placed binary like
+# !!GXCameoHD.big (4,202,415 B, sha256 4e74491e802d6a14...), so it must be on every packaging box before this line reaches a
+# packager - a listed optional archive that is missing fails packaging (lib-overlay.sh gx_overlay_stage_optional). Placed for
+# 0.9.59 on the Mini (~/GeneralsX/GeneralsXPatch), the VPS (/root/GeneralsXPatch) and the Windows run folder's GeneralsXPatch.
+# MappedImages and textures are outside the SimID fingerprint: dataID does not move, assetID does (tier-2, warn only).
+# Default on and never flip it later (see the note above on flipped defaults).
+on|!!GXEmblemHD.big|HD faction emblems (upscaled, original colours)
+# GeneralsX @feature Claude 08/10/2026 !GXUISide.big: the control bar's side buttons (Options, Idle Worker, Chat, Beacon, the General's
+# star button) and the General's experience ladder in the player HUD's navy-and-steel look (owner, 08/10/2026: "rebranded with our
+# new stuff for GeneralsX UI"). Built like !GXUIHD.big, from nothing, by scripts/build/make-gxsidebar-archive.py. It REDEFINES 137 existing
+# MappedImage names (retail SA*/SN*/SU*, Control Bar Pro <Faction>Pro*/ObserverPro*, GenExpBar*) and adds none; MappedImages and textures are
+# outside the SimID fingerprint (probe-dataid.sh with and without it: see the handback), so turning it off changes nothing for joining.
+on|!GXUISide.big|GeneralsX look for the side buttons and the General's ladder

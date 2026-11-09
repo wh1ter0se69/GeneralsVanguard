@@ -1,0 +1,107 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wh1ter0se69 <62149665+wh1ter0se69@users.noreply.github.com>
+Date: Fri, 2 Oct 2026 17:18:47 +0300
+Subject: [PATCH 2/3] GeneralsX FF: cache InverseView and the view-space lights
+ across world-only uploads
+
+Every fixed-function VS upload recomputed transpose(inverse(View)) and, for every enabled light, D3D9Light(light,
+View) - two Matrix4*Vector4, a normalize and two cosf - although a draw that only sets its own world matrix (nearly
+every object and static shadow-volume draw) changes neither. Keep them in m_ffViewCache, keyed on the bits of View
+and of each enabled D3DLIGHT9 (memcmp), and rebuild only what changed.
+
+Keyed by comparison, not by dirty flags, so no setter, state block or Reset path can leave it stale. The cached
+values are the same out-of-line functions (inverse, transpose, Matrix4::operator*, the D3D9Light constructor) of
+bitwise-equal inputs, so the uploaded bytes are the same as before.
+
+Claude-Session: https://claude.ai/code/session_01YLkLUnAQgjdzMvcL22pmru
+---
+ src/d3d9/d3d9_device.cpp | 26 ++++++++++++++++++++++++--
+ src/d3d9/d3d9_device.h   | 12 ++++++++++++
+ src/d3d9/d3d9_state.h    |  2 ++
+ 3 files changed, 38 insertions(+), 2 deletions(-)
+
+diff --git a/src/d3d9/d3d9_device.cpp b/src/d3d9/d3d9_device.cpp
+index 483797cc..e4ba8506 100644
+--- a/src/d3d9/d3d9_device.cpp
++++ b/src/d3d9/d3d9_device.cpp
+@@ -7913,10 +7913,22 @@ namespace dxvk {
+       auto WorldView    = m_state.transforms[GetTransformIndex(D3DTS_VIEW)] * m_state.transforms[GetTransformIndex(D3DTS_WORLD)];
+       auto NormalMatrix = inverse(WorldView);
+ 
++      // GeneralsX FF: InverseView and the view-space lights depend only on View and the lights, not on World. Rebuild
++      // them only when those inputs' bits change (m_ffViewCache); same functions of the same bits, so the same bytes.
++      const Matrix4& view = m_state.transforms[GetTransformIndex(D3DTS_VIEW)];
++      D3D9FFViewCache& vc = m_ffViewCache;
++
++      if (!vc.valid || std::memcmp(&vc.view, &view, sizeof(Matrix4)) != 0) {
++        vc.valid       = true;
++        vc.view        = view;
++        vc.inverseView = transpose(inverse(view));
++        vc.lightCount  = 0;
++      }
++
+       D3D9FixedFunctionVS* data = reinterpret_cast<D3D9FixedFunctionVS*>(mapPtr);
+       data->WorldView    = WorldView;
+       data->NormalMatrix = NormalMatrix;
+-      data->InverseView  = transpose(inverse(m_state.transforms[GetTransformIndex(D3DTS_VIEW)]));
++      data->InverseView  = vc.inverseView;
+       data->Projection   = m_state.transforms[GetTransformIndex(D3DTS_PROJECTION)];
+ 
+       for (uint32_t i = 0; i < data->TexcoordMatrices.size(); i++)
+@@ -7932,9 +7944,19 @@ namespace dxvk {
+         if (idx == std::numeric_limits<uint32_t>::max())
+           continue;
+ 
+-        data->Lights[lightIdx++] = D3D9Light(m_state.lights[idx].value(), m_state.transforms[GetTransformIndex(D3DTS_VIEW)]);
++        const D3DLIGHT9& light = m_state.lights[idx].value();
++
++        if (lightIdx >= vc.lightCount || std::memcmp(&vc.lightSrc[lightIdx], &light, sizeof(D3DLIGHT9)) != 0) {
++          vc.lightSrc[lightIdx] = light;
++          vc.lights[lightIdx]   = D3D9Light(light, view);
++        }
++
++        data->Lights[lightIdx] = vc.lights[lightIdx];
++        lightIdx++;
+       }
+ 
++      vc.lightCount = std::max(vc.lightCount, lightIdx);
++
+       data->Material = m_state.material;
+       data->TweenFactor = bit::cast<float>(m_state.renderStates[D3DRS_TWEENFACTOR]);
+     }
+diff --git a/src/d3d9/d3d9_device.h b/src/d3d9/d3d9_device.h
+index 1a020e67..62101e20 100644
+--- a/src/d3d9/d3d9_device.h
++++ b/src/d3d9/d3d9_device.h
+@@ -1587,6 +1587,18 @@ namespace dxvk {
+ 
+     D3D9ViewportInfo                m_viewportInfo;
+ 
++    // GeneralsX FF: the view-dependent part of D3D9FixedFunctionVS (InverseView and the view-space lights), keyed on
++    // the BITS of View and of each enabled D3DLIGHT9, so a draw that only changes the world matrix reuses it. Keyed by
++    // comparison rather than by dirty flags, so no setter, state block or Reset path can leave it stale.
++    struct D3D9FFViewCache {
++      bool                                          valid      = false;
++      Matrix4                                       view;
++      Matrix4                                       inverseView;
++      uint32_t                                      lightCount = 0;  // slots [0, lightCount) were built from `view`
++      std::array<D3DLIGHT9, caps::MaxEnabledLights> lightSrc   = {};
++      std::array<D3D9Light, caps::MaxEnabledLights> lights;
++    }                               m_ffViewCache;
++
+     DxvkCsChunkPool                 m_csChunkPool;
+     DxvkCsThread                    m_csThread;
+     DxvkCsChunkRef                  m_csChunk;
+diff --git a/src/d3d9/d3d9_state.h b/src/d3d9/d3d9_state.h
+index 21cc5933..d2f82c68 100644
+--- a/src/d3d9/d3d9_state.h
++++ b/src/d3d9/d3d9_state.h
+@@ -81,6 +81,8 @@ namespace dxvk {
+   };
+ 
+   struct D3D9Light {
++    D3D9Light() = default;  // GeneralsX FF: storage for D3D9DeviceEx's view cache
++
+     D3D9Light(const D3DLIGHT9& light, Matrix4 viewMtx)
+       : Diffuse      ( Vector4(light.Diffuse.r,  light.Diffuse.g,  light.Diffuse.b,  light.Diffuse.a) )
+       , Specular     ( Vector4(light.Specular.r, light.Specular.g, light.Specular.b, light.Specular.a) )

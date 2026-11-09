@@ -1,0 +1,766 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeneralsX launcher — Options — Network</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="./OptionsNetwork.css">
+<!-- Held hidden until what it loads is on it (gx-settle.js): the first frame is the final one. -->
+<script src="./gx-settle.js" onerror="window.gxSettle={wait:function(p){return p},whenShown:function(f){f()},picture:function(){},held:function(){return false}}"></script>
+<style id="gx-ground">
+/* The artboards are a fixed 1280x720 box. The launcher window's content area is taller than
+   that, and anything the box does not cover falls through to the webview's own default
+   background - which is WHITE. That is the strip along the bottom edge on macOS.
+   Paint the page ground behind the artboard so the uncovered area matches the design instead
+   of flashing white. Layout is untouched: this sits BEHIND the box, it does not resize it. */
+html, body { margin: 0; }
+/* THE BACKDROP LIVES ON THE VIEWPORT, NOT THE ARTBOARD. The artboard is a fixed
+   1280x720 composition that the fit script scales, so a backdrop painted on IT ends at
+   its scaled edge and every letterboxed band fell through to the flat page ground -
+   which is a different colour from the gradient, and read as the window being split in
+   two. Here it is one continuous ground behind everything, so there is no seam to find
+   at any window size. */
+body {
+  background: var(--gx-backdrop-2);
+  background-attachment: fixed;
+}
+/* Tells the platform to draw its own widgets - scrollbars, dropdowns, spinners - in their dark
+   variant. Without it Windows draws a WHITE scrollbar track with arrow buttons down the side of
+   a black launcher, which is what the operator saw. */
+html { color-scheme: dark; }
+/* An app, not a document: text does not highlight when a click drags a pixel. Anything meant to
+   be copied (the network-test paste line, file paths) opts back in with .gx-selectable. */
+body { -webkit-user-select: none; user-select: none; cursor: default; }
+.gx-selectable, .gx-selectable * { -webkit-user-select: text; user-select: text; cursor: text; }
+
+/* The scrollbar itself, so it matches the design rather than merely being dark. Uses the same
+   surface stack as the panels: track disappears into the page, thumb is one step up from a
+   card border, and it lightens on hover like every other control here. WebKit and Chromium
+   both honour these, which covers macOS, Windows and Linux webviews. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #2E2E33;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #3D3D45; background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* No stepper arrows: the design has none anywhere else. */
+::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+/* The standard property, for engines that prefer it over the WebKit ones. */
+* { scrollbar-width: thin; scrollbar-color: #2E2E33 transparent; }
+body { min-height: 100vh; }
+</style>
+</head>
+<body class="gx-screen gx-s-optionsnetwork">
+<div style="width: 1280px; height: 720px; background: transparent; color: var(--gx-ink); display: flex; overflow: hidden;">
+
+  <div style="width: 208px; flex-shrink: 0; background: var(--gx-ground); border-right: 1px solid var(--gx-line); display: flex; flex-direction: column;">
+    <div style="height: 40px;"></div>
+    <div style="padding: 4px 18px 0 18px;">
+      <div style="display: flex; align-items: baseline; gap: 6px;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; letter-spacing: 0.8px; line-height: 1.12;">GENERALS</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; color: var(--gx-accent); line-height: 1.12; text-shadow: 0 0 16px var(--gx-accent-a45);">X</div>
+      </div>
+      <div style="width: 52px; height: 2px; background: linear-gradient(90deg, var(--gx-accent), var(--gx-accent-a15)); margin-top: 9px;"></div>
+    </div>
+    <div class="grouphead" style="padding-top: 20px;">Settings</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg><span>General</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span>Graphics</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>HUD</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>Keybinds</span></div>
+    <div class="grouphead">If something is wrong</div>
+    <div class="item sel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Network test</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>Diagnostics</span></div>
+    <div style="flex-grow: 1;"></div>
+    <div style="height: 1px; background: var(--gx-line);"></div>
+    <div class="item" style="height: 44px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>About</span></div>
+    <div style="padding: 14px 16px 16px 16px;">
+      <div class="gx-save" style="height: 44px; display: flex; align-items: center; justify-content: center; font-size: var(--gx-fs-125); font-weight: 700; letter-spacing: 0.8px;">BACK</div>
+      <div style="padding-top: 8px; text-align: center; font-size: var(--gx-fs-110); color: var(--gx-ink-faint);">Changes save automatically.</div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0; padding: 40px 34px 20px 34px; box-sizing: border-box; gap: 14px;">
+
+    <div class="gx-rise" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;">
+      <div style="min-width: 0;">
+        <div data-gx-noroute style="font-size: var(--gx-fs-230); font-weight: 700; letter-spacing: -0.2px;">Network test</div>
+        <div style="font-size: var(--gx-fs-125); color: var(--gx-ink-dim); margin-top: 3px; line-height: 1.5; max-width: 66ch;">
+          Nothing to configure. The launcher finds the relay itself, checks who signed the list, and picks the closest. This page is for when a join fails anyway.
+        </div>
+      </div>
+      <div class="run" role="button" tabindex="0" style="flex-shrink: 0;">RUN THE TEST</div>
+    </div>
+
+    <div class="gx-rise verdict" style="animation-delay: 50ms;">
+      <div class="vt">Your router is dropping the relay's replies. Everything else is fine.</div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line); animation-delay: 100ms;">
+          <div class="chk">
+            <span class="gl" style="color: var(--gx-good-hi);">&#10003;</span>
+            <span class="cn">Game version</span>
+            <span class="cv dim"><span class="hash">d64b81cd9</span>, <span class="good">current</span></span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: var(--gx-good-hi);">&#10003;</span>
+            <span class="cn">Required game data</span>
+            <span class="cv dim"><span class="good">all 14</span> archives present</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: var(--gx-good-hi);">&#10003;</span>
+            <span class="cn">Debug mode</span>
+            <span class="cv dim"><span class="good">off</span>, as it must be to join</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: var(--gx-good-hi);">&#10003;</span>
+            <span class="cn">Download host DNS</span>
+            <span class="cv dim"><span class="host">dl.wh1ter0se.dev</span> in <span class="ms good">12 ms</span></span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: var(--gx-good-hi);">&#10003;</span>
+            <span class="cn">Download host, HTTPS</span>
+            <span class="cv dim">reachable in <span class="ms good">41 ms</span>, 1.4 MB/s</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: var(--gx-good-hi);">&#10003;</span>
+            <span class="cn">Relay DNS</span>
+            <span class="cv dim"><span class="host">relay.wh1ter0se.dev</span> in <span class="ms fair">146 ms</span>, slower than usual</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: var(--gx-bad);">&#10007;</span>
+            <span class="cn">Relay round trip, UDP</span>
+            <span class="cv">no answer on <span class="ms">8086</span> after <span class="poor">three tries</span>, <span class="ms poor">1200 ms</span> each. A firewall or router is dropping UDP, which is the single most common reason a join fails.</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: var(--gx-ink-faint);">&#8722;</span>
+            <span class="cn">Relay build agreement</span>
+            <span class="cv dim">not checked, the relay never answered</span>
+          </div>
+    </div>
+
+    <div style="flex-grow: 1;"></div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 8px; animation-delay: 150ms;">
+      <div style="display: flex; gap: 16px; font-size: var(--gx-fs-110); color: var(--gx-ink-faint); padding-bottom: 2px;">
+        <span>Timings use the same bands as the in&#8209;game ping:</span>
+        <span><span class="good">&#9632;</span> under 80 ms</span>
+        <span><span class="fair">&#9632;</span> to 180 ms</span>
+        <span><span class="poor">&#9632;</span> over 180 ms</span>
+      </div>
+      <div style="font-size: var(--gx-fs-115); color: var(--gx-ink-dim);">Paste this when you ask for help. It is enough to diagnose without follow-up questions, and it names nothing about you.</div>
+      <div class="copy gx-selectable">gx net d64b81cd9 4E775DE5 | dns ok | https 41ms | relay TIMEOUT x3 | agree - | eu</div>
+      <div><span class="ghost" role="button" tabindex="0">COPY</span></div>
+    </div>
+
+  </div>
+</div>
+<!-- gx-nav-wired -->
+<script>
+// Navigation. The screens were converted from artboards as standalone pages, so nothing linked
+// to anything - every button was inert. This wires the real routes by the visible label, which
+// is stable because the labels ARE the design.
+(function () {
+  var ROUTES = {
+    'general': 'OptionsGeneral.html',
+    'graphics': 'Options.html',
+    'hud': 'OptionsHud.html',
+    'keybinds': 'OptionsKeys.html',
+    'network test': 'OptionsNetwork.html',
+    'diagnostics': 'OptionsDiag.html',
+    'about': 'OptionsAbout.html',
+    'options': 'OptionsGeneral.html',
+    'changelogs': 'Changelogs.html',
+    'all releases': 'Changelogs.html',
+    'save & go back': 'MainWeb.html',
+    'go back': 'MainWeb.html',
+    'back': 'MainWeb.html'
+  };
+  function labelOf(el) {
+    return (el.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+  document.addEventListener('click', function (ev) {
+    var el = ev.target;
+    for (var i = 0; el && i < 6; i++, el = el.parentElement) {
+      if (el.hasAttribute && el.hasAttribute('data-cmd')) { return; }   // keybind tiles own their clicks
+      // Static headings can collide with a route label - this page's own title IS "Network
+      // test" - and a heading that reloads the screen when clicked reads as a broken button.
+      if (el.hasAttribute && el.hasAttribute('data-gx-noroute')) { return; }
+      var dest = ROUTES[labelOf(el)];
+      if (dest) { ev.preventDefault(); window.location.href = dest; return; }
+    }
+  });
+})();
+</script>
+
+<!-- gx-netdiag-wired -->
+<script>
+// The real network test, from gxio::netdiag through cmd_netdiag.
+//
+// STATIC PREVIEW OUTSIDE THE LAUNCHER: window.__TAURI__ is absent, this returns at once, and the
+// artboard's own sample rows stay on screen. The file still opens standalone in a browser.
+//
+// NOTHING HERE INVENTS A VALUE. Every glyph, sentence and token is what the Rust side measured; if
+// a check could not answer, the sentence it produced says so. There is no default row and no
+// placeholder number - a confident wrong reading on this page would send somebody hunting a fault
+// that is not there.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }
+  var invoke = T.core.invoke;
+
+  // The four states the Rust side reports, and how each one reads. Colour carries the STATUS here,
+  // unlike the timings inside a row, where it carries a measurement.
+  var GLYPH = {
+    pass:    { ch: '✓', color: 'var(--gx-good-hi)'  },
+    warn:    { ch: '!',      color: 'var(--gx-warn)'     },
+    fail:    { ch: '✗', color: 'var(--gx-bad)'      },
+    pending: { ch: '−', color: 'var(--gx-ink-faint)' }
+  };
+  var VERDICT_SKIN = {
+    fail:    { edge: 'var(--gx-bad)',      bg: 'var(--gx-bad-bg)'      },
+    warn:    { edge: 'var(--gx-warn)',     bg: 'var(--gx-warn-bg)'     },
+    pass:    { edge: 'var(--gx-good-hi)',  bg: 'var(--gx-good-bg)'     },
+    pending: { edge: 'var(--gx-accent)',   bg: 'var(--gx-accent-bg)'   }
+  };
+
+  // The artboard's own elements, found by the structure it already has rather than by ids it does
+  // not carry. Anything missing simply is not painted, so a future artboard revision degrades to a
+  // page with fewer live fields instead of a page of script errors.
+  var verdictBox = document.querySelector('.verdict');
+  var verdictText = document.querySelector('.verdict .vt');
+  var rowsBox = document.querySelector('.chk') ? document.querySelector('.chk').parentElement : null;
+  var copyBox = document.querySelector('.copy');
+  var runBtn = document.querySelector('.run');
+  var runLabel = runBtn ? runBtn.textContent : 'RUN THE TEST';
+
+  // BAKED SAMPLES NEVER SURVIVE FIRST PAINT INSIDE THE LAUNCHER. The artboard ships a complete
+  // sample run - verdict, rows, paste line - and until now a failed invoke left all of it on
+  // screen as fact, sending somebody hunting a router fault the test never found. Blank it NOW,
+  // before any invoke resolves: a slow or failed backend shows an honest em dash and an error
+  // line, never plausible fake data. Standalone in a browser this block returned above and the
+  // artboard stays fully intact - that is the design-review mode.
+  if (verdictText) { verdictText.textContent = 'Running the network test…'; }
+  if (verdictBox) {
+    verdictBox.style.borderLeftColor = VERDICT_SKIN.pending.edge;
+    verdictBox.style.background = VERDICT_SKIN.pending.bg;
+  }
+  if (rowsBox) { rowsBox.textContent = ''; }
+  if (copyBox) { copyBox.textContent = '—'; }
+
+  // The error line, in the footer stack just above the paste line - created only when there is
+  // something to say, same shape as MainWeb's say(). One place words appear, and a page that
+  // could not load or run never looks like one that did.
+  var noteEl = null;
+  function say(text) {
+    if (!text) { if (noteEl) { noteEl.remove(); noteEl = null; } return; }
+    if (!noteEl && copyBox && copyBox.parentNode) {
+      noteEl = document.createElement('div');
+      noteEl.style.cssText = 'font-size: var(--gx-fs-115); color: var(--gx-bad-ink); line-height: 1.5;';
+      copyBox.parentNode.insertBefore(noteEl, copyBox);
+    }
+    if (noteEl) { noteEl.textContent = text; }
+  }
+  function failed(sentence, e) {
+    if (verdictText) { verdictText.textContent = sentence; }
+    if (verdictBox) {
+      verdictBox.style.borderLeftColor = VERDICT_SKIN.fail.edge;
+      verdictBox.style.background = VERDICT_SKIN.fail.bg;
+    }
+    say(String(e));
+    console.error(sentence, e);
+  }
+
+  function worst(rows) {
+    var order = ['fail', 'pending', 'warn', 'pass'];
+    for (var i = 0; i < order.length; i++) {
+      for (var j = 0; j < rows.length; j++) { if (rows[j].status === order[i]) { return order[i]; } }
+    }
+    return 'pending';
+  }
+
+  // The legend at the foot of the page promises the in-game ping bands - green under 80 ms,
+  // yellow to 180 ms, red beyond (drawNetworkLatency's own bands) - so a measured timing that
+  // arrives uncoloured breaks the page's one stated rule: colour carries the MEASUREMENT inside
+  // a row, while status stays on the glyph.
+  function bandClass(ms) { return ms < 80 ? 'good' : ms <= 180 ? 'fair' : 'poor'; }
+
+  // Splits "reachable in 41 ms, 1.4 MB/s" around its timing tokens and wraps each in the band
+  // class the number falls in. Text nodes and textContent only, never innerHTML - same reason
+  // as rowEl below: a sentence can carry a hostname straight out of the player's Options.ini.
+  function valueWithBands(target, text) {
+    var re = /(\d+(?:\.\d+)?)\s*ms\b/g;
+    var last = 0, m;
+    while ((m = re.exec(text)) !== null) {
+      if (m.index > last) { target.appendChild(document.createTextNode(text.slice(last, m.index))); }
+      var span = document.createElement('span');
+      span.className = 'ms ' + bandClass(parseFloat(m[1]));
+      span.textContent = m[0];
+      target.appendChild(span);
+      last = m.index + m[0].length;
+    }
+    if (last < text.length) { target.appendChild(document.createTextNode(text.slice(last))); }
+  }
+
+  // Built with createElement and textContent, never innerHTML. One of these sentences can carry a
+  // hostname straight out of the player's own Options.ini, and a launcher that pasted that into
+  // markup would be one edited settings file away from executing it.
+  function rowEl(row) {
+    var el = document.createElement('div');
+    el.className = 'chk';
+
+    var g = GLYPH[row.status] || GLYPH.pending;
+    var gl = document.createElement('span');
+    gl.className = 'gl';
+    gl.style.color = g.color;
+    gl.textContent = g.ch;
+
+    var cn = document.createElement('span');
+    cn.className = 'cn';
+    cn.textContent = row.name;
+
+    // Dimming the passes is what makes the one failing row findable without the page shouting.
+    var cv = document.createElement('span');
+    cv.className = row.status === 'pass' ? 'cv dim' : 'cv';
+    valueWithBands(cv, String(row.value == null ? '' : row.value));
+
+    el.appendChild(gl);
+    el.appendChild(cn);
+    el.appendChild(cv);
+    return el;
+  }
+
+  function paint(snap) {
+    if (!snap || !snap.rows || !snap.rows.length) { return; }
+
+    // A whole real snapshot supersedes any earlier failure - clear the error line.
+    say('');
+
+    if (verdictText) { verdictText.textContent = snap.verdict; }
+    if (verdictBox) {
+      var skin = VERDICT_SKIN[worst(snap.rows)] || VERDICT_SKIN.pending;
+      verdictBox.style.borderLeftColor = skin.edge;
+      verdictBox.style.background = skin.bg;
+    }
+
+    if (rowsBox) {
+      var frag = document.createDocumentFragment();
+      snap.rows.forEach(function (r) { frag.appendChild(rowEl(r)); });
+      rowsBox.textContent = '';
+      rowsBox.appendChild(frag);
+      // THE LIST SCROLLS RATHER THAN PUSHING THE PAGE. The artboard is a fixed 720px with
+      // overflow:hidden, so a run whose sentences are longer than the design allowed for would
+      // silently CLIP the copy line - the one row a person asking for help actually needs. Rust
+      // already caps the longest of those sentences; this is the second line of defence, and it
+      // degrades to a scroll instead of to an invisible footer.
+      rowsBox.style.minHeight = '0';
+      rowsBox.style.overflowY = 'auto';
+    }
+
+    if (copyBox) { copyBox.textContent = snap.copyLine; }
+
+    if (runBtn) {
+      runBtn.textContent = snap.running ? 'RUNNING…' : runLabel;
+      runBtn.style.opacity = snap.running ? '0.6' : '';
+      runBtn.style.pointerEvents = snap.running ? 'none' : '';
+    }
+    running = !!snap.running;
+  }
+
+  var running = false;
+  var poll = null;
+
+  // BOTH CHANNELS, AND THEY CANNOT DISAGREE. The event is the fast path; the poll is what makes the
+  // screen correct after a navigation or a listener registered a moment late, which miss events
+  // that are never re-sent. Each payload is the WHOLE snapshot, so applying both is idempotent.
+  function pump() {
+    return invoke('netdiag_snapshot').then(function (s) {
+      paint(s);
+      if (!s.running && poll) { clearInterval(poll); poll = null; }
+    }).catch(function (e) {
+      failed('The launcher could not read the test’s results.', e);
+    });
+  }
+
+  function watch() {
+    if (poll) { return; }
+    poll = setInterval(pump, 400);
+  }
+
+  if (T.event && T.event.listen) {
+    T.event.listen('gx-netdiag', function (ev) { paint(ev.payload); }).catch(function (e) {
+      console.error('netdiag listen failed, polling only:', e);
+    });
+  }
+
+  // THE ONE DOOR TO THE NETWORK ON THIS PAGE. `netdiag_start` is invoked here and nowhere else, so
+  // its call sites can be counted - the same shape SetupMac and the changelog screens were given
+  // when they leaked (`networkRefresh`), and the same reason.
+  // On open the page is held (gx-settle.js) until this run's first snapshot is painted; a press later is not held.
+  function start() {
+    return window.gxSettle.wait(invoke('netdiag_start').then(function () { watch(); return pump(); })
+      .catch(function (e) {
+        // The RUN button stays live - `running` was never set - so pressing it retries. What the last run found is
+        // shown first, then why this one did not start (paint() clears the error line, so it has to go first).
+        return pump().then(function () { failed('The network test could not start.', e); });
+      }));
+  }
+
+  // N1 IS RETIRED HERE, AND RETIRED IS NOT THE SAME WORD AS FIXED - so it is worth writing down
+  // which one this is. The finding was that `netdiag_start` fired on page load in BOTH policy
+  // states, and that a player who chose "never check for updates" had said do not contact anything
+  // on your own. Round 5 gated this on `settings_automatic_network_allowed`. Round 6 deletes the
+  // policy that gate read, so there is no longer any way for a player to say it: the sentence
+  // "you asked the launcher never to contact anything on its own" cannot be true of anybody, and
+  // the gate had nothing left to ask. The gate is removed rather than left standing answering
+  // `true` forever, because a gate that can only ever say yes is a comment pretending to be code.
+  //
+  // WHAT THIS PAGE DOES IS UNCHANGED FROM BEFORE ROUND 5, AND IT IS STILL DEFENSIBLE ON ITS OWN
+  // TERMS: `netdiag_start` does DNS, TCP and UDP work against the relay, and this is the screen
+  // somebody opens when they cannot join a game. Running the test they came for is the answer.
+  //
+  // ONE DOOR STILL. `netdiag_start` is reached from `start()` and nowhere else, so a fourth leak
+  // of the class N1 belonged to stays countable even with nothing to count against.
+  //
+  // OPENED, THE PAGE SHOWS THIS RUN AND NOTHING BEFORE IT (owner, 27/10/2026: no frame that is about to change). A
+  // snapshot read before the start is the PREVIOUS run's, which the start then wipes back to "checking…" - so the page
+  // used to paint an old verdict and its rows, then snap. It is now held (gx-settle.js) until this run's first snapshot
+  // is painted; the rows then settle one by one, which is the test running, not the page loading.
+  start();
+
+  // The RUN control calls the same helper. A test the player presses and a test the page runs on
+  // arrival are now the same event with the same permission behind it - which is none.
+  if (runBtn) {
+    runBtn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      if (!running) { start(); }
+    }, true);
+  }
+
+  // COPY lives in the gx-input-wired block below: it needs no Tauri, so it works in the
+  // standalone browser review too, and this block's paint() only ever changes the line's text.
+})();
+</script>
+
+<!-- gx-input-wired -->
+<script>
+// Keyboard access and the COPY control. Deliberately OUTSIDE the Tauri guard: neither needs the
+// backend, and the standalone browser review should tab and copy like the shipped launcher.
+(function () {
+  var runBtn = document.querySelector('.run');
+  var copyBtn = document.querySelector('.ghost');
+  var copyBox = document.querySelector('.copy');
+
+  // The controls are divs, so Enter and Space must be taught by hand: activate exactly like a
+  // click, and swallow Space so the page does not scroll instead.
+  function keyable(el) {
+    if (!el) { return; }
+    el.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+        ev.preventDefault();
+        el.click();
+      }
+    });
+  }
+  keyable(runBtn);
+  keyable(copyBtn);
+
+  // Clipboard, most capable path first. navigator.clipboard is not guaranteed inside a webview;
+  // execCommand('copy') on a temporary textarea still works from inside a click handler in the
+  // ones that lack it. If both refuse, select the line so a manual copy is one keypress - a COPY
+  // button that silently does nothing is worse than one that admits it.
+  function execCopy(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    // Off-screen but focusable, and selection re-enabled - the page ground turns it off.
+    ta.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;' +
+      '-webkit-user-select:text;user-select:text;';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    ta.setSelectionRange(0, text.length);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    if (copyBtn) { copyBtn.focus(); }
+    return ok;
+  }
+
+  function selectLine() {
+    try {
+      var range = document.createRange();
+      range.selectNodeContents(copyBox);
+      var sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    } catch (e) { /* nothing left to try, and the line is on screen either way */ }
+  }
+
+  if (copyBtn && copyBox) {
+    copyBtn.addEventListener('click', function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      var text = copyBox.textContent;
+      function said(msg) {
+        copyBtn.textContent = msg;
+        setTimeout(function () { copyBtn.textContent = 'COPY'; }, 1600);
+      }
+      function fallback() {
+        if (execCopy(text)) { said('COPIED'); return; }
+        selectLine(); said('SELECTED — COPY BY HAND');
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () { said('COPIED'); }).catch(fallback);
+      } else {
+        fallback();
+      }
+    }, true);
+  }
+})();
+</script>
+
+<!-- gx-chrome-wired -->
+<script>
+// The app's own title row, on the platforms that want one.
+//
+// Windows and Linux get it: their OS title bar is a wide painted strip in the user's accent
+// colour, sitting above a dark launcher looking like a different application. macOS keeps its
+// native traffic lights - they are the platform idiom and a drawn set would sit opposite them.
+// Rust decides (window_custom_chrome); this file never guesses from the user agent.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }   // standalone in a browser: leave the page alone
+  var invoke = T.core.invoke;
+
+  var SVG = 'http://www.w3.org/2000/svg';
+  function icon(paths) {
+    var s = document.createElementNS(SVG, 'svg');
+    s.setAttribute('width', '14'); s.setAttribute('height', '14');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '1.9');
+    s.setAttribute('stroke-linecap', 'round');
+    paths.forEach(function (d) {
+      var p = document.createElementNS(SVG, 'path'); p.setAttribute('d', d); s.appendChild(p);
+    });
+    return s;
+  }
+
+  function build(maximized) {
+    // The focus ring for the three buttons below. It cannot be an inline style - :focus-visible
+    // is a selector - and this bar is built in script with no stylesheet of its own, so the rule
+    // is injected once. Same 2px accent outline at offset 1px every other control on every screen
+    // paints, because two focus rings in one window is two vocabularies.
+    if (!document.getElementById('gx-chrome-focus')) {
+      var fs = document.createElement('style');
+      fs.id = 'gx-chrome-focus';
+      fs.textContent = '#gx-chrome [role="button"]:focus-visible{outline:2px solid var(--gx-accent);'
+        + 'outline-offset:1px;}';
+      document.head.appendChild(fs);
+    }
+
+    var bar = document.createElement('div');
+    bar.id = 'gx-chrome';
+    bar.setAttribute('data-tauri-drag-region', '');
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:40px;display:flex;' +
+      'align-items:center;justify-content:flex-end;gap:2px;padding:0 6px;z-index:9999;' +
+      '-webkit-app-region:drag;user-select:none;';
+
+    function btn(paths, title, onClick, danger) {
+      var b = document.createElement('div');
+      b.title = title;
+      b.setAttribute('role', 'button');
+      // MINIMISE / MAXIMISE / CLOSE ARE CONTROLS (round 6c). They carried the role and nothing
+      // else: no tab stop, no name a screen reader is obliged to read, and no key that works.
+      // On Windows and Linux this bar REPLACES the OS title bar - so without these three lines a
+      // keyboard-only player on those platforms cannot close the launcher from inside it.
+      //
+      // aria-label RATHER THAN title ALONE: `title` is the last fallback in the accessible-name
+      // computation and several screen readers are configured never to reach it. Both are kept in
+      // sync wherever the maximise button relabels itself.
+      b.setAttribute('tabindex', '0');
+      b.setAttribute('aria-label', title);
+      b.style.cssText = 'width:40px;height:26px;display:flex;align-items:center;' +
+        'justify-content:center;color:#96999E;border-radius:3px;cursor:default;' +
+        '-webkit-app-region:no-drag;transition:background .12s,color .12s;';
+      b.appendChild(icon(paths));
+      b.addEventListener('mouseenter', function () {
+        b.style.background = danger ? '#E86A6A' : '#232327';
+        b.style.color = danger ? '#ECEEF0' : '#ECEEF0';
+      });
+      b.addEventListener('mouseleave', function () {
+        b.style.background = 'transparent'; b.style.color = '#96999E';
+      });
+      b.addEventListener('click', function (e) { e.stopPropagation(); onClick(b); });
+      // ENTER AND SPACE. An element wearing role="button" is activated by neither key on its own;
+      // only a real <button> gets that from the platform, and this bar cannot be one - it is a
+      // drag region with `-webkit-app-region` children, and a <button> inside a drag region is
+      // swallowed by the region on Windows.
+      b.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault(); e.stopPropagation(); onClick(b);
+        }
+      });
+      return b;
+    }
+
+    var MAX_ON  = ['M8 3H5a2 2 0 0 0-2 2v3', 'M21 8V5a2 2 0 0 0-2-2h-3',
+                   'M3 16v3a2 2 0 0 0 2 2h3', 'M16 21h3a2 2 0 0 0 2-2v-3'];
+    var MAX_OFF = ['M8 3v3a2 2 0 0 1-2 2H3', 'M21 8h-3a2 2 0 0 1-2-2V3',
+                   'M3 16h3a2 2 0 0 1 2 2v3', 'M16 21v-3a2 2 0 0 1 2-2h3'];
+
+    // Every invoke carries a .catch: a rejected window op with no handler is silent, and a
+    // button that sometimes does nothing with no explanation reads as a broken launcher.
+    bar.appendChild(btn(['M5 12h14'], 'Minimise', function () {
+      invoke('window_minimize').catch(function (e) { console.error('minimize:', e); });
+    }));
+
+    var maxBtn = btn(maximized ? MAX_OFF : MAX_ON, 'Maximise', function (b) {
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var old = b.querySelector('svg');
+        if (old) { b.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), old); }
+        b.title = isMax ? 'Restore' : 'Maximise';
+        b.setAttribute('aria-label', b.title);
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+    bar.appendChild(maxBtn);
+
+    bar.appendChild(btn(['M18 6 6 18', 'm6 6 12 12'], 'Close', function () {
+      invoke('window_close').catch(function (e) { console.error('close:', e); });
+    }, true));
+
+
+    document.body.appendChild(bar);
+
+    // DOUBLE-CLICK THE TITLE ROW TO MAXIMISE. Every OS does this and the drag region swallowed
+    // it, so the app's own title bar behaved worse than the one it replaced.
+    bar.addEventListener('dblclick', function (e) {
+      if (e.target.closest && e.target.closest('[role="button"]')) { return; }
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var b = maxBtn.querySelector('svg');
+        if (b) { maxBtn.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), b); }
+        maxBtn.title = isMax ? 'Restore' : 'Maximise';
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+
+    // RESIZE GRIPS. set_decorations(false) removed the OS frame, and with it the resize borders -
+    // the window could be maximised but never dragged to a size. These eight invisible strips put
+    // them back, handing the drag to the OS (window_start_resize) rather than tracking the mouse
+    // here. 6px reads as a border and is still easy to hit; the corners are 12px because corners
+    // are aimed at rather than swept into. They sit UNDER the chrome bar's z-index so the buttons
+    // always win, and each one stops the click reaching the label router.
+    var GRIPS = [
+      ['north',      'top:0;left:12px;right:12px;height:6px;',        'ns-resize'],
+      ['south',      'bottom:0;left:12px;right:12px;height:6px;',     'ns-resize'],
+      ['west',       'left:0;top:12px;bottom:12px;width:6px;',        'ew-resize'],
+      ['east',       'right:0;top:12px;bottom:12px;width:6px;',       'ew-resize'],
+      ['north-west', 'top:0;left:0;width:12px;height:12px;',          'nwse-resize'],
+      ['north-east', 'top:0;right:0;width:12px;height:12px;',         'nesw-resize'],
+      ['south-west', 'bottom:0;left:0;width:12px;height:12px;',       'nesw-resize'],
+      ['south-east', 'bottom:0;right:0;width:12px;height:12px;',      'nwse-resize']
+    ];
+    GRIPS.forEach(function (g) {
+      var el = document.createElement('div');
+      el.setAttribute('data-gx-noroute', '');
+      el.style.cssText = 'position:fixed;z-index:9998;-webkit-app-region:no-drag;' +
+                         g[1] + 'cursor:' + g[2] + ';';
+      el.addEventListener('mousedown', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        invoke('window_start_resize', { direction: g[0] })
+          .catch(function (e) { console.error('resize:', e); });
+      });
+      document.body.appendChild(el);
+    });
+  }
+
+  // F11 EVERYWHERE, including macOS, where the window keeps its own decorations and this block
+  // otherwise does nothing. Fullscreen is not maximised: it gives the whole display to the
+  // artboard, which the fit script then scales into. Escape leaves, because a player who cannot
+  // see a title bar needs a way out that does not require finding one.
+  var isFull = false;
+  function toggleFullscreen() {
+    invoke('window_fullscreen_toggle')
+      .then(function (v) { isFull = !!v; })
+      .catch(function (e) { console.error('fullscreen:', e); });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); return; }
+    if (e.key === 'Escape' && isFull) { e.preventDefault(); toggleFullscreen(); }
+  });
+
+  // Held for this too (gx-settle.js): on Windows the minimise / maximise / close buttons are part of the first frame,
+  // not a pop-in. The fit block placed the artboard before the bar existed; below 1:1 it must sit under the bar, so
+  // it is fitted again now rather than at the player's first resize.
+  window.gxSettle.wait(invoke('window_custom_chrome').then(function (wants) {
+    if (wants) { build(false); window.dispatchEvent(new Event('resize')); }
+  }).catch(function (e) { console.error('window_custom_chrome failed:', e); }));
+})();
+</script>
+
+<!-- gx-fit-wired -->
+<script>
+// Fit the artboard to the window.
+//
+// Every screen's root is a fixed 1280x720 box, because that is what the design IS - a fixed
+// composition, not a responsive layout. Maximising therefore did nothing: the box stayed its
+// size in the corner and the rest of the window was empty ground.
+//
+// Scaling it is the honest fix. Reflowing eleven screens into a responsive layout would be a
+// redesign, would need the designer, and would not obviously be better - the artboards are laid
+// out to be read at one set of proportions. So: scale by the smaller of the two ratios, keep the
+// aspect, and centre what is left over.
+//
+// Runs standalone in a browser too - it needs no Tauri - so the screens still review correctly
+// at any window size.
+(function () {
+  var root = null;
+  function findRoot() {
+    var kids = document.body ? document.body.children : [];
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      if (el.id === 'gx-chrome') { continue; }          // the title row is window-scale, not art-scale
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') { continue; }
+      var w = parseFloat(el.style.width), h = parseFloat(el.style.height);
+      if (w >= 1000 && h >= 600) { return el; }
+    }
+    return null;
+  }
+  function fit() {
+    if (!root) { root = findRoot(); }
+    if (!root) { return; }
+    var w = parseFloat(root.style.width)  || 1280;
+    var h = parseFloat(root.style.height) || 720;
+    var iw = window.innerWidth, ih = window.innerHeight;
+    var s = Math.min(iw / w, ih / h);
+    var ty = (ih - h * s) / 2;
+    // The injected title row (#gx-chrome) is window-scale and 40px tall. At s >= 1 the
+    // artboard's own 40px top spacer scales to >= 40px, so the bar overlays empty ground.
+    // Below s = 1 the spacer shrinks under the bar and the bar starts stealing clicks from
+    // real content — so refit into the strip BELOW the bar instead.
+    if (s < 1 && document.getElementById('gx-chrome')) {
+      var avail = Math.max(ih - 40, 40);
+      s = Math.min(iw / w, avail / h);
+      ty = 40 + (avail - h * s) / 2;
+    }
+    root.style.transformOrigin = 'top left';
+    root.style.transform = 'translate(' + ((iw - w * s) / 2) + 'px,' + ty + 'px) scale(' + s + ')';
+  }
+  document.documentElement.style.overflow = 'hidden';
+  if (document.body) { document.body.style.overflow = 'hidden'; }
+  window.addEventListener('resize', fit);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fit);
+  } else {
+    fit();
+  }
+  fit();
+})();
+</script>
+</body>
+</html>

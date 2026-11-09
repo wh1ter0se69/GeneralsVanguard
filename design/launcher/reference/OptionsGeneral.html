@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>reference — OptionsGeneral</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+    body { margin: 0; font-family: "Barlow", "Segoe UI", system-ui, sans-serif; }
+    a { color: #3B8EEA; text-decoration: none; } a:hover { color: #6AA9F0; }
+    :root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-press: cubic-bezier(0.4, 0, 0.2, 1); }
+    @keyframes gx-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .gx-rise { animation: gx-rise 520ms var(--ease-out) both; }
+
+    .item { height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 18px 0 15px;
+      color: #96999E; font-size: 13px; cursor: pointer; border-left: 3px solid transparent;
+      transition: background 160ms var(--ease-out), color 160ms var(--ease-out); }
+    .item svg { flex-shrink: 0; }
+    .item.sel { background: #26262B; color: #ECEEF0; font-weight: 600; border-left-color: #3B8EEA; }
+    .grouphead { font-size: 9.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+      color: #6F7378; padding: 15px 18px 6px 18px; }
+    .gx-save { cursor: pointer; border: 2px solid #3B8EEA; background: #1D2A38; color: #ECEEF0;
+      box-shadow: 0 0 0 1px rgba(59,142,234,0.16), 0 8px 24px rgba(59,142,234,0.14); }
+
+    .run { height: 46px; padding: 0 26px; display: inline-flex; align-items: center; justify-content: center;
+      border: 2px solid #3B8EEA; background: #1D2A38; color: #ECEEF0; cursor: pointer;
+      font-size: 14px; font-weight: 700; letter-spacing: 1.1px;
+      box-shadow: 0 0 0 1px rgba(59,142,234,0.16), 0 8px 22px rgba(59,142,234,0.14);
+      transition: background 200ms var(--ease-out), transform 140ms var(--ease-press); }
+    .run:active { transform: scale(0.985); }
+
+    /* THE VERDICT SITS ABOVE THE EVIDENCE. A reader who takes one thing off this page should
+       take the sentence, not a dot. Kept from NetworkPage.cs, where it is already argued. */
+    .verdict { border-left: 3px solid #E86A6A; background: #241618; padding: 13px 16px; }
+    .vt { font-size: 15px; font-weight: 600; color: #ECEEF0; line-height: 1.45; }
+
+    .chk { display: grid; grid-template-columns: 22px 190px 1fr; gap: 10px; align-items: baseline;
+      padding: 7px 12px; background: #1B1B1E; }
+    .gl { font-size: 13px; text-align: center; }
+    .cn { font-size: 12.5px; font-weight: 600; color: #ECEEF0; }
+    .cv { font-size: 12px; color: #ECEEF0; line-height: 1.5; }
+    /* Dimming the passes is what makes the one failing row findable without the page shouting. */
+    .cv.dim { color: #7E8288; }
+    /* Colour carries a MEASUREMENT, never a status. The bands are the engine's own ping bands
+       (drawNetworkLatency: green at or under 80 ms, yellow to 180, red beyond), so the launcher
+       and the in-game readout say the same thing about the same number. Prose stays dim, which is
+       what keeps the one failing row findable. */
+    .ms   { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .good { color: #5FC98D; }
+    .fair { color: #EABE3B; }
+    .poor { color: #E86A6A; }
+    .host { color: #8FB4DE; }
+    .hash { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; color: #A9ACB1; }
+
+    .copy { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; color: #C3C6CA;
+      background: #1B1B1E; border: 1px solid #2E2E33; padding: 9px 12px; overflow-x: auto; white-space: nowrap; }
+    .ghost { height: 34px; padding: 0 16px; display: inline-flex; align-items: center; cursor: pointer;
+      border: 1px solid #2E2E33; background: #1B1B1E; color: #96999E; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.5px; transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out); }
+
+
+    .toggle { box-sizing: border-box; width: 42px; height: 23px; border-radius: 12px; flex-shrink: 0; cursor: pointer;
+      display: flex; align-items: center; padding: 0 3px; transition: background 220ms var(--ease-out); }
+    .toggle .knob { width: 17px; height: 17px; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      transition: transform 260ms var(--ease-out), background 220ms var(--ease-out); }
+    .toggle.on { background: #3B8EEA; box-shadow: 0 0 0 1px rgba(59,142,234,0.35); }
+    .toggle.on .knob { background: #10161D; transform: translateX(19px); }
+    .toggle.off { background: #2E2E33; }
+    .toggle.off .knob { background: #8A8D92; transform: translateX(0); }
+    .drow { background: #1B1B1E; padding: 14px 16px; display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 20px; }
+    .dn { font-size: 13px; color: #ECEEF0; }
+    .dd { font-size: 11.5px; color: #96999E; line-height: 1.5; margin-top: 3px; max-width: 70ch; }
+    .warn { display: flex; gap: 10px; align-items: flex-start; border-left: 3px solid #EABE3B;
+      background: #241F12; padding: 11px 14px; }
+    .ghost2 { height: 32px; padding: 0 14px; display: inline-flex; align-items: center; cursor: pointer;
+      border: 1px solid #2E2E33; background: #1B1B1E; color: #96999E; font-size: 11.5px; font-weight: 600; }
+    .path { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; color: #A9ACB1; }
+
+
+    .opt { background: #1B1B1E; padding: 12px 15px; display: flex; align-items: flex-start;
+      justify-content: space-between; gap: 18px; }
+    .on { font-size: 12.5px; color: #ECEEF0; }
+    .od { font-size: 11px; color: #7E8288; line-height: 1.5; margin-top: 2px; }
+    .oa { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 10px; color: #5C6066; margin-top: 3px; }
+
+    @media (hover: hover) and (pointer: fine) {
+      .item:not(.sel):hover { background: #202024; color: #C3C6CA; }
+      .run:hover { background: #223449; }
+      .ghost:hover, .ghost2:hover { color: #ECEEF0; border-color: #3D3D45; }
+      .drow:hover, .opt:hover { background: #1E1E22; }
+      .chk:hover { background: #1E1E22; }
+    }
+    @media (prefers-reduced-motion: reduce) { .gx-rise { animation: none; opacity: 1; transform: none; } .run:active { transform: none; } }
+  </style>
+</head><body>
+<div style="width: 1280px; height: 720px; background: #141416; color: #ECEEF0; display: flex; overflow: hidden;">
+
+  <div style="width: 208px; flex-shrink: 0; background: #1B1B1E; border-right: 1px solid #2E2E33; display: flex; flex-direction: column;">
+    <div style="height: 40px;"></div>
+    <div style="padding: 4px 18px 0 18px;">
+      <div style="display: flex; align-items: baseline; gap: 6px;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.8px; line-height: 1.12;">GENERALS</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; color: #3B8EEA; line-height: 1.12; text-shadow: 0 0 16px rgba(59,142,234,0.45);">X</div>
+      </div>
+      <div style="width: 52px; height: 2px; background: linear-gradient(90deg, #3B8EEA, rgba(59,142,234,0.15)); margin-top: 9px;"></div>
+    </div>
+    <div class="grouphead" style="padding-top: 20px;">Settings</div>
+    <div class="item sel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg><span>General</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span>Graphics</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>HUD</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>Keybinds</span></div>
+    <div class="grouphead">If something is wrong</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Network test</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>Diagnostics</span></div>
+    <div style="flex-grow: 1;"></div>
+    <div style="height: 1px; background: #2E2E33;"></div>
+    <div class="item" style="height: 44px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>About</span></div>
+    <div style="padding: 14px 16px 16px 16px;">
+      <div class="gx-save" style="height: 44px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; letter-spacing: 0.8px;">SAVE &amp; GO BACK</div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0; padding: 40px 34px 20px 34px; box-sizing: border-box; gap: 15px;">
+
+    <div class="gx-rise">
+      <div style="font-size: 23px; font-weight: 700; letter-spacing: -0.2px;">General</div>
+      <div style="font-size: 12.5px; color: #96999E; margin-top: 3px;">Where it lives, which extra archives are switched on, and whether your replays are kept.</div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #2E2E33; background: #2E2E33; animation-delay: 50ms;">
+      <div class="drow" style="align-items: center;">
+        <div style="min-width: 0;">
+          <div class="dn">Installed to</div>
+          <div class="path" style="margin-top: 4px;">C:\Users\User\AppData\Local\Programs\GeneralsX</div>
+        </div>
+        <span class="ghost2">SHOW</span>
+      </div>
+      <div class="drow" style="align-items: center;">
+        <div style="min-width: 0;">
+          <div class="dn">Zero Hour data</div>
+          <div class="path" style="margin-top: 4px;">D:\SteamLibrary\steamapps\common\Command &amp; Conquer Generals Zero Hour</div>
+          <div class="dd" style="margin-top: 5px;">Found automatically. GeneralsX never writes into it.</div>
+        </div>
+        <span class="ghost2">CHANGE</span>
+      </div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 9px; animation-delay: 90ms;">
+      <div style="font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: #96999E;">Required to play with anyone else</div>
+      <div class="opt" style="border: 1px solid #3E4A38; background: #171C16;">
+        <div style="min-width: 0;">
+          <div class="on" style="display: flex; align-items: center; gap: 9px;">
+            Community patch, core INI
+            <span style="font-size: 9.5px; letter-spacing: 1px; font-weight: 700; color: #9BD8A6; border: 1px solid #3E9B4E; background: #14291A; padding: 2px 7px;">REQUIRED</span>
+          </div>
+          <div class="od" style="color: #96999E;">The balance and bugfix set every lobby runs. Switch it off and you cannot join anyone, including friends.</div>
+          <div class="oa">500_900_CommunityPatch_CoreINI.big</div>
+        </div>
+        <div class="toggle on" style="margin-top: 3px;"><div class="knob"></div></div>
+      </div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 9px; min-height: 0; animation-delay: 100ms;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between;">
+        <div style="font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: #96999E;">Optional, and safe to change</div>
+        <span style="font-size: 11px; color: #6F7378;">Applied immediately. No save needed.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #2E2E33; background: #2E2E33;">
+        <div class="opt">
+          <div style="min-width: 0;">
+            <div class="on">ControlBar Pro</div>
+            <div class="od">A wider command bar with more visible slots.</div>
+            <div class="oa">340_ControlBarProZH.big</div>
+          </div>
+          <div class="toggle on" style="margin-top: 3px;"><div class="knob"></div></div>
+        </div>
+        <div class="opt">
+          <div style="min-width: 0;">
+            <div class="on">ControlBar Pro, 1440 fixes</div>
+            <div class="od">Corrects its alignment at 1440p and above.</div>
+            <div class="oa">340_ControlBarPro-Fix1440ZH.big</div>
+          </div>
+          <div class="toggle on" style="margin-top: 3px;"><div class="knob"></div></div>
+        </div>
+        <div class="opt">
+          <div style="min-width: 0;">
+            <div class="on">Hotkey indicators</div>
+            <div class="od">Draws each build button's key on its cameo. Follows whatever you set on the Keybinds page.</div>
+            <div class="oa">drawn by the engine, no archive</div>
+          </div>
+          <div class="toggle on" style="margin-top: 3px;"><div class="knob"></div></div>
+        </div>
+
+      </div>
+      <div style="font-size: 11.5px; color: #6F7378; line-height: 1.5; max-width: 84ch;">
+        All of these change your <span style="color: #96999E;">data ID</span>, so everyone in a match needs the same set. The About page shows yours.
+      </div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 9px; animation-delay: 130ms;">
+      <div style="font-size: 10.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: #96999E;">Replays</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #2E2E33; background: #2E2E33;">
+        <div class="drow" style="align-items: center;">
+          <div style="min-width: 0;">
+            <div class="dn">Keep every replay</div>
+            <div class="dd">The game records every match to the same file, so each new match overwrites the last one. This keeps a dated copy of every finished match in the ArchivedReplays folder.</div>
+          </div>
+          <div class="toggle on"><div class="knob"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1;"></div>
+
+    <div class="gx-rise" style="border-top: 1px solid #2E2E33; padding-top: 13px; display: flex; gap: 11px; align-items: flex-start; animation-delay: 150ms;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#6F7378" stroke-width="1.9" stroke-linecap="round" style="flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      <div style="font-size: 11.5px; color: #6F7378; line-height: 1.55; max-width: 86ch;">
+        Three switches used to sit at the top of this page and none of them did anything. Shortcuts are made by the installer, not here, and the launcher always closes when the game starts. They are gone rather than left looking functional.
+      </div>
+    </div>
+
+  </div>
+</div>
+</body></html>

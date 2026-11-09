@@ -1,0 +1,693 @@
+# simdigest_exclusions.txt - what the SimID digest may REACH without digesting it, each entry with its reason.
+# GeneralsX @feature Claude 03/10/2026 det-codex-fixes, the boundary rule lead C11 asked for.
+#
+# scripts/build/simid-closure.py walks every digested object of a build - inlined code, calls and globals, overrides
+# of digested virtuals - and requires each file it reaches to be digested (resources/gitinfo/simsourcedigest_watcher.cmake)
+# or matched here. Anything else is a GAP: digest it, or add it here WITH the reason the simulation does not read it.
+# An entry nothing reaches any more is reported stale; drop it.
+#
+#   <glob>          a file with no GX-SIMID regions (fnmatch; '*' also crosses '/'). Never exempts a region file.
+#   sym:<glob>      a function reached OUTSIDE the regions of a region file: 'Class::fn' for a call, 'FileStem::fn'
+#                   for code inlined from a header line. Functions on SIMDIGEST_REGION_FUNCTIONS need no entry.
+#   class:<glob>    a subclass, declared outside the digest, of a class with virtuals in a whole-digested header.
+#   base:<glob>     every such subclass of that base.
+#   @<text>         the reason for the entries below it, until the next @ line; '<entry><TAB><reason>' overrides it.
+#
+# Not a boundary question, so on no list: NameKey ORDINALS. Every name interned earlier shifts a key minted later, GUI names
+# included (ControlBar::init, window layouts); only the science range is bracketed into the identity (GameEngine::init). An
+# ordinal that travels the wire raw - a map-added upgrade in MSG_QUEUE/CANCEL_UPGRADE - is the open code item 4c (Codex
+# det-codex-r17): its fix is a stable wire id or a bracketed range, not digesting every layout that interns a name.
+
+@Third-party code. Its version is pinned by vcpkg.json / vcpkg-lock.json and cmake/*.cmake, which the digest's BUILD list hashes.
+build/*/vcpkg_installed/*
+build/*/_deps/*
+
+@Windows, gadgets, menus, load screens and the shell. The simulation drives them - show, hide, announce - and reads nothing back.
+Core/GameEngine/Source/GameClient/GUI/*
+GeneralsMD/Code/GameEngine/Source/GameClient/GUI/*
+Core/GameEngine/Include/GameClient/Gadget*.h
+*/GameEngineDevice/Source/W3DDevice/GameClient/GUI/*	the W3D window draw and input callbacks the function lexicon names: windows and gadgets.
+Core/GameEngine/Include/GameClient/WindowLayout.h
+*/GameEngine/Include/GameClient/Shell.h
+*/GameEngine/Include/GameClient/InGameUI.h
+*/GameEngine/Source/GameClient/Eva.cpp
+Core/GameEngine/Source/GameClient/Display.cpp	the HUD and frame counter. Its average fps sets the NETWORK frame rate (pacing), never a simulation value.
+Core/GameEngine/*/GameClient/GameText*
+Core/GameEngine/*/GameClient/GlobalLanguage*
+Core/GameEngine/*/GameClient/LanguageFilter*
+Core/GameEngine/*/GameClient/Credits*
+Core/GameEngine/*/GameClient/Color.*
+Core/GameEngine/*/GameClient/System/Anim2D*
+Core/GameEngine/*/GameClient/Image.*
+Core/GameEngine/*/GameClient/System/Image.*
+Core/GameEngine/*/GameClient/Mouse.*
+Core/GameEngine/*/GameClient/Input/*
+Core/GameEngine/*/GameClient/VideoPlayer*
+Core/GameEngine/*/GameClient/DrawGroupInfo*
+
+@Input translators. They turn input into ORDERS; orders travel the wire and every peer simulates the same ones.
+Core/GameEngine/Source/GameClient/MessageStream/*
+GeneralsMD/Code/GameEngine/Source/GameClient/GXSpectatorHud.inl	the GeneralsX spectator and player HUD, included at the end of InGameUI.cpp outside its regions: its translator (base:GameMessageTranslator) only keeps or eats the local viewer's own raw keys and mouse for the HUD and appends no message (except the env-gated GX_SPECHUD_SHOW test clicks, raw mouse messages as Mouse::createStreamMessages makes them); a spectator's battlefield click only remembers the id of the object under it (never the selection) and draws it; its OrderGate translator (base:GameMessageTranslator) only DROPS a spectator's own selection orders (MSG_CREATE_SELECTED_GROUP, _NO_SOUND, MSG_DESTROY_SELECTED_GROUP, MSG_REMOVE_FROM_SELECTED_GROUP) before they are sent, so every peer executes the same smaller stream; player mode also resizes the retail radar window and skips the control bar's background art (display state only), and the rest draws what the game already holds.
+GeneralsMD/Code/GameEngine/Source/GameClient/GXVoteKickHud.inl	the vote-kick banner, included at the end of InGameUI.cpp outside its regions: its translator (base:GameMessageTranslator) only eats clicks on the banner and appends this player's own MSG_GX_VOTEKICK_START/_CAST, orders the simulation judges itself (Common/GXVoteKick.h, digested); the rest draws the vote state the simulation already holds.
+GeneralsMD/Code/GameEngine/Source/GameClient/GXReplayStrip.inl	the replay seek strip, included at the end of InGameUI.cpp outside its regions: its translator (base:GameMessageTranslator) acts only while the strip is drawn, which is only in replay playback (playbackUp: recorder in playback mode and isInReplayGame), only eats the local viewer's raw left-mouse messages over the strip and appends no message (except the env-gated test driver GX_REPLAY_STRIP_INPUT, which appends raw left-mouse messages for that same translator, as Mouse::createStreamMessages does); its clicks pause, change the pace (FramePacer scale and fast forward, m_TiVOFastMode) or restart the LOCAL replay (gxRestartReplay), never a live network match; a seek race also switches sound effects off and back (AudioManager::setOn - what a player with effects off gets, no simulation state reads a handle) and answers W3DDisplay::draw's gxReplayRaceActive (draws only)
+
+@Effects and the camera. The simulation spawns or moves them (FX lists, particles, rays, decals, missile visuals, shadows, view and its limits); a particle position it reads back is only moved again.
+Core/GameEngine/*/GameClient/FXList.*
+Core/GameEngine/*/GameClient/ParticleSys.*
+Core/GameEngine/*/GameClient/System/ParticleSys.*
+Core/GameEngine/*/GameClient/RadiusDecal.*
+Core/GameEngine/*/GameClient/View.*
+Core/GameEngine/*/GameClient/GXHostCamera.*
+Core/GameEngine/*/GameClient/Snow.*
+Core/GameEngine/*/GameClient/Water.*	water LOOK settings (transparency, sky); the water grid the simulation reads is W3DWater.cpp's regions.
+*/GameEngine/Include/GameClient/Shadow.h
+Core/GameEngine/Include/GameClient/Module/AnimatedParticleSysBoneClientUpdate.h
+Core/GameEngine/Include/GameClient/Module/BeaconClientUpdate.h
+Core/GameEngine/Include/GameClient/Module/SwayClientUpdate.h
+Core/GameEngine/Source/GameClient/Drawable/Update/*
+
+@Lobby, identity and local files. They decide who joins, sign host orders, and where saves and settings live; every peer verifies a signed order with the digested GXAdminOrder/GXEd25519, and the host's game setup crosses the wire with the map CRC-checked.
+Core/GameEngine/*/GameClient/ClientInstance*
+Core/GameEngine/*/GameClient/GXKick.*
+Core/GameEngine/*/GameClient/GXPerfReport.*
+Core/GameEngine/*/GameClient/GXLobbyPresence.*
+Core/GameEngine/*/GameClient/GXRelayList.*	which relay the lobby dials (the signed relay list, S1-3); OptionPreferences::getRelayAddress asks it, the simulation never does.
+Core/GameEngine/*/GameClient/GXIdentityPush.*
+Core/GameEngine/*/GameClient/GXRelayAuth.*
+Core/GameEngine/*/GameClient/GXPlayerIdentity.*
+Core/GameEngine/*/GameClient/GXAdminKey.*
+Core/GameEngine/*/GameClient/GXReplaceFile.*
+Core/GameEngine/*/GameClient/GXUserDataDir.*
+*/GameEngine/*/GameClient/CampaignManager.*	single-player campaign bookkeeping; a network match has no campaign.
+*/GameEngine/*/GameClient/System/CampaignManager.*	single-player campaign bookkeeping; a network match has no campaign.
+Core/Libraries/Source/WWVegas/WWDownload/*	patch download for the old WOL lobby.
+
+@Device pictures: terrain textures and tracks, props, trees, roads, bibs, waypoints, radar, the drawn shroud, lights, mirrors, scenes, status circles, debug icons, the web browser and in-game UI. The logic shroud is PartitionManager's; these only draw.
+Core/GameEngineDevice/*/W3DDevice/GameClient/TerrainTex.*
+Core/GameEngineDevice/*/W3DDevice/GameClient/TileData.*
+Core/GameEngineDevice/*/W3DDevice/GameClient/W3DPropBuffer.*
+Core/GameEngineDevice/*/W3DDevice/GameClient/W3DTreeBuffer.*
+Core/GameEngineDevice/*/W3DDevice/GameClient/W3DTerrainTracks.*
+Core/GameEngineDevice/*/W3DDevice/GameClient/W3DShaderManager.*
+Core/GameEngineDevice/*/W3DDevice/GameClient/Water/W3DWaterTracks.*
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DDynamicLight.*
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DScene.*
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DShadow.*
+*/GameEngineDevice/*/W3DDevice/GameClient/Shadow/*
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DBibBuffer.*
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DRoadBuffer.*
+*/GameEngineDevice/*/W3DDevice/GameClient/W3dWaypointBuffer.*
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DShroud.*
+
+@Draw modules other than W3DModelDraw and its subclasses. ModuleFactory builds them, but none overrides a getter the simulation calls (getPristineBonePositionsForConditionState, getProjectileLaunchOffset, getBarrelCount, getLaserTemplateWidth, getCurrentBonePositions, isVisible).
+Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DDebrisDraw.h
+Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DDefaultDraw.h
+Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DProjectileStreamDraw.h
+Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DPropDraw.h
+Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DRopeDraw.h
+Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DTracerDraw.h
+Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DTreeDraw.h
+Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DDebrisDraw.cpp
+Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DDefaultDraw.cpp
+Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DProjectileStreamDraw.cpp
+Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DPropDraw.cpp
+Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DRopeDraw.cpp
+Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DTracerDraw.cpp
+Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DTreeDraw.cpp
+
+@Audio playback. The simulation reads audio state only through the SPEECH/AUDIO/MUSIC script conditions: ScriptEngine::isSpeechComplete/isAudioComplete latch AudioManager::getAudioLengthMS (digested), which picks a random variant from the logic seed and sums getFileLengthMS; MUSIC_TRACK_HAS_COMPLETED is OpenALAudioManager::hasMusicTrackCompleted, a constant FALSE. Since fix/speech-length-determinism getFileLengthMS decodes the file itself - no play cache, device or ALC context is read - so a length is a pure function of the file's bytes and the decoder. The decoder (AudioDecoder.cpp, dr_wav/dr_mp3) is not digested: Core/GameEngineDevice/CMakeLists.txt pins DR on every platform with no knob and records the gap; a per-language speech file (AudioEventRTS::adjustForLocalization) still gives a per-language length (TheSuperHackers #2320). The GameLogic isCurrentlyPlaying users only choose whether to add or remove a sound. Determinism-1 still classifies the three conditions client-local, keeping a script's bookkeeping out of the CRC but not its actions - a script acting on one is a tracked code item, not a boundary one.
+Core/Libraries/Source/WWVegas/WWAudio/MilesStub.h	the Miles audio API stub. The only names digested code takes from it are __cdecl and __stdcall: calling-convention keywords, empty on these targets - no value at all (det-codex-6 constants audit).
+Core/Libraries/Source/WWVegas/WWAudio/*
+
+@WW3D2 render state reached from the digested loaders - materials, shaders, textures, cameras, lights, DX8 buffers, decals, culling, scenes, fonts, collision casts, snap points. Pixels, not bone poses or bridge vertices; the pose, mesh and model-content code is digested. Named one by one, so a NEW reach into WW3D2 shows up as a gap.
+*/WWVegas/WW3D2/aabtree.cpp
+*/WWVegas/WW3D2/aabtree.h
+*/WWVegas/WW3D2/aabtreebuilder.cpp
+*/WWVegas/WW3D2/aabtreebuilder.h
+*/WWVegas/WW3D2/animatedsoundmgr.cpp
+*/WWVegas/WW3D2/assetstatus.cpp
+*/WWVegas/WW3D2/bwrender.cpp
+*/WWVegas/WW3D2/camera.cpp
+*/WWVegas/WW3D2/camera.h
+*/WWVegas/WW3D2/colorspace.h
+*/WWVegas/WW3D2/coltest.cpp
+*/WWVegas/WW3D2/coltest.h
+*/WWVegas/WW3D2/decalmsh.cpp
+*/WWVegas/WW3D2/decalsys.h
+*/WWVegas/WW3D2/dx8caps.h
+*/WWVegas/WW3D2/dx8indexbuffer.cpp
+*/WWVegas/WW3D2/dx8indexbuffer.h
+*/WWVegas/WW3D2/dx8polygonrenderer.h
+*/WWVegas/WW3D2/dx8renderer.cpp
+*/WWVegas/WW3D2/dx8renderer.h
+*/WWVegas/WW3D2/dx8vertexbuffer.cpp
+*/WWVegas/WW3D2/dx8vertexbuffer.h
+*/WWVegas/WW3D2/dx8wrapper.cpp
+*/WWVegas/WW3D2/dx8wrapper.h
+*/WWVegas/WW3D2/font3d.cpp
+*/WWVegas/WW3D2/intersec.h
+*/WWVegas/WW3D2/inttest.h
+*/WWVegas/WW3D2/light.cpp
+*/WWVegas/WW3D2/light.h
+*/WWVegas/WW3D2/lightenvironment.cpp
+*/WWVegas/WW3D2/lightenvironment.h
+*/WWVegas/WW3D2/matinfo.cpp
+*/WWVegas/WW3D2/matinfo.h
+*/WWVegas/WW3D2/matpass.cpp
+*/WWVegas/WW3D2/matpass.h
+*/WWVegas/WW3D2/meshmatdesc.cpp
+*/WWVegas/WW3D2/meshmatdesc.h
+*/WWVegas/WW3D2/meshbuild.h	the mesh builder's material-pass and texture-stage counts (MAX_PASSES, MAX_STAGES): material state, like meshmatdesc. Digested headers only name MeshBuilderClass (mesh.h: a forward declaration, a friend, an Init overload taking a builder); the closure reaches none of its code - meshbuild.cpp is neither a gap nor excluded.
+*/WWVegas/WW3D2/metalmap.cpp
+*/WWVegas/WW3D2/part_buf.cpp
+*/WWVegas/WW3D2/part_buf.h
+*/WWVegas/WW3D2/predlod.cpp
+*/WWVegas/WW3D2/predlod.h
+*/WWVegas/WW3D2/prim_anim.h
+*/WWVegas/WW3D2/projector.h
+*/WWVegas/WW3D2/proxy.h
+*/WWVegas/WW3D2/render2dsentence.cpp
+*/WWVegas/WW3D2/render2dsentence.h
+*/WWVegas/WW3D2/rinfo.cpp
+*/WWVegas/WW3D2/shader.cpp
+*/WWVegas/WW3D2/shader.h
+*/WWVegas/WW3D2/snappts.cpp
+*/WWVegas/WW3D2/snapPts.h
+*/WWVegas/WW3D2/sortingrenderer.cpp
+*/WWVegas/WW3D2/surfaceclass.cpp
+*/WWVegas/WW3D2/surfaceclass.h
+*/WWVegas/WW3D2/texture.cpp
+*/WWVegas/WW3D2/texture.h
+*/WWVegas/WW3D2/texturefilter.cpp
+*/WWVegas/WW3D2/texturefilter.h
+*/WWVegas/WW3D2/textureloader.cpp
+*/WWVegas/WW3D2/vertmaterial.cpp
+*/WWVegas/WW3D2/vertmaterial.h
+*/WWVegas/WW3D2/visrasterizer.cpp
+*/WWVegas/WW3D2/visrasterizer.h
+*/WWVegas/WW3D2/w3d_util.cpp
+*/WWVegas/WW3D2/w3dexclusionlist.cpp
+*/WWVegas/WW3D2/ww3dformat.cpp
+*/WWVegas/WW3D2/ww3dformat.h
+
+@OS services in CompatLib other than string_compat: time, threads, sockets, modules, file enumeration, memory, message boxes. They schedule, pace and locate; they compute no simulation value.
+Generals/Code/CompatLib/Include/file_compat.h
+Generals/Code/CompatLib/Include/memory_compat.h
+Generals/Code/CompatLib/Include/socket_compat.h
+Generals/Code/CompatLib/Include/threads_compat.h
+GeneralsMD/Code/CompatLib/Source/module_compat.cpp
+GeneralsMD/Code/CompatLib/Source/thread_compat.cpp
+GeneralsMD/Code/CompatLib/Source/time_compat.cpp
+GeneralsMD/Code/CompatLib/Source/wnd_compat.cpp
+Generals/Code/CompatLib/Include/wnd_compat.h
+Generals/Code/CompatLib/Include/time_compat.h
+Core/Libraries/Source/WWVegas/WWDebug/wwmemlog.cpp	memory-use logging.
+
+@The application shell: process entry, the OS event loop and window. The factories in it that pick simulation implementations are regions on SIMDIGEST_REGION_FUNCTIONS.
+GeneralsMD/Code/Main/*
+
+# ---- code in REGION files, outside their regions (sym:), and subclasses (class:, base:) ----
+
+@Drawable output, AUDITED one by one (r12): none of these writes a member that non-constructor region code reads - captions, tints, flashes, fades, stealth look, emoticons, terrain decals, ambient sounds, shadows, hidden/selectable/indicator flags, sub-objects, animation timing, list links. (setInstanceScale failed that audit - getScale feeds bone validation - and is a region.) New Drawable functions get no blanket entry: each is audited and named.
+sym:Drawable::setAnimationCompletionTime
+sym:Drawable::setAnimationLoopDuration
+sym:Drawable::setCaptionText
+sym:Drawable::setCustomSoundAmbientInfo
+sym:Drawable::setCustomSoundAmbientOff
+sym:Drawable::setDrawableHidden
+sym:Drawable::setEffectiveOpacity
+sym:Drawable::setEmoticon
+sym:Drawable::setFullyObscuredByShroud
+sym:Drawable::setIndicatorColor
+sym:Drawable::setPosition
+sym:Drawable::setSelectable
+sym:Drawable::setShadowsEnabled
+sym:Drawable::setStealthLook
+sym:Drawable::setTerrainDecal
+sym:Drawable::setTerrainDecalFadeTarget
+sym:Drawable::setTerrainDecalSize
+sym:Drawable::clearCaptionText
+sym:Drawable::colorFlash
+sym:Drawable::colorTint
+sym:Drawable::fadeIn
+sym:Drawable::fadeOut
+sym:Drawable::flashAsSelected
+sym:Drawable::enableAmbientSound
+sym:Drawable::enableAmbientSoundFromScript
+sym:Drawable::imitateStealthLook
+sym:Drawable::showSubObject
+sym:Drawable::updateSubObjects
+sym:Drawable::updateDrawable
+sym:Drawable::updateDrawableClipStatus
+sym:Drawable::draw
+sym:Drawable::handleWeaponFireFX
+sym:Drawable::killStaticImages
+sym:Drawable::changedTeam
+sym:Drawable::notifyDrawableDependencyCleared
+sym:Drawable::reactToGeometryChange
+sym:Drawable::onLevelStart
+sym:Drawable::mangleCustomAudioName
+sym:Drawable::saturateRGB
+sym:Drawable::getBaseSoundAmbientInfo
+sym:Drawable::getInterpolationOffset	the render-interpolation offset: picture only.
+sym:Drawable::getDrawnBase	the drawn (interpolated) base: picture only.
+sym:Drawable::getCurrentClientBonePositions	the particle cannon's VISUAL beam origin, its FX and particles and its save block - not its crc(), not the damage radius.
+sym:Drawable::getCurrentWorldspaceClientBonePositions	LaserUpdate's drawn beam start: picture only.
+
+@W3DModelDraw outside its regions: drawing, hiding sub-objects, the shroud flag, the drawn transform, destructors, a debug rubble sweep, and the drawable's save/CRC snapshot - a save's client block; the logic CRC walks Objects and the partition manager, never drawables.
+sym:W3DModelDraw::adjustTransformMtx
+sym:W3DModelDraw::doDrawModule
+sym:W3DModelDraw::doHideShowSubObjs
+sym:W3DModelDraw::setHidden
+sym:W3DModelDraw::setFullyObscuredByShroud
+sym:W3DModelDraw::crc
+sym:W3DModelDraw::xfer
+sym:W3DModelDraw::loadPostProcess
+sym:W3DModelDraw::~W3DModelDraw
+sym:W3DModelDrawModuleData::~W3DModelDrawModuleData
+sym:gxRubbleSweep
+sym:W3DLaserDraw::W3DLaserDraw	the laser draw module's construction: render state. Its width getter is a region.
+
+@The control bar outside its regions, AUDITED (r12): none writes a member that region code reads - shortcuts, science purchase, communicator, the observed player, flash, radar glow and schemes. The command buttons and sets the simulation reads are regions, their INI entry points included.
+sym:ControlBar::hideCommunicator
+sym:ControlBar::hidePurchaseScience
+sym:ControlBar::hideSpecialPowerShortcut
+sym:ControlBar::initSpecialPowershortcutBar
+sym:ControlBar::markUIDirty
+sym:ControlBar::onPlayerRankChanged
+sym:ControlBar::onPlayerSciencePurchasePointsChanged
+sym:ControlBar::setControlBarSchemeByPlayer
+sym:ControlBar::setControlBarSchemeByPlayerTemplate
+sym:ControlBar::triggerRadarAttackGlow
+
+@Terrain and water rendering outside their regions: scorch marks, LOD and full-buffer refreshes after the logic moves the terrain, the oversize view, the water object's own init, load, per-frame update and sky box. The heights, cliffs, line of sight and the water grid the simulation reads are regions.
+sym:BaseHeightMapRenderObjClass::addStaticScorch
+sym:BaseHeightMapRenderObjClass::scheduleFullUpdate
+sym:BaseHeightMapRenderObjClass::terrainHeightChanged
+sym:oversizeTheTerrain
+sym:WaterRenderObjClass::load
+sym:WaterRenderObjClass::update
+sym:WaterRenderObjClass::updateMapOverrides
+Core/GameEngine/Include/GameClient/GXWaterClear.h	clearer water's pure arithmetic (a look option, default off): values for TheWaterTransparency's last render override, which the simulation never reads. Its per-frame test poll is called at the top of WaterRenderObjClass::update, BEFORE the regioned grid block; inlined, the closure sees it from that block.
+Core/GameEngineDevice/Source/W3DDevice/GameClient/Water/GXWaterClearGlue.inl	clearer water's engine glue: writes only TheWaterTransparency's last override and the terrain's shoreline tiles and depth LUT, all read by render code alone. Reached through gxWaterClearPoll, inlined at the top of WaterRenderObjClass::update before its regioned block.
+sym:doSkyBoxSet
+
+@The client loop and render statics: the GameClient's per-frame step and headless update, fake drawables for the shell, a render time scale, a drawable-change counter for caches; WW3D's texture reduction, device resolution and sort list.
+sym:GameClient::step
+sym:GameClient::updateFakeDrawables
+sym:GameClient::updateHeadless
+sym:gxRenderTimeScale
+sym:WW3D::Get_Texture_Reduction
+sym:WW3D::Get_Device_Resolution
+sym:WW3D::Add_To_Static_Sort_List
+
+@Infrastructure bases: an override of these is allocation, reference counting, a container node, a subsystem's init/reset/update lifecycle, or a client snapshot's save block - never simulation behaviour. The subclass's own file is judged by its path entry.
+base:MemoryPoolObject
+base:RefCountClass
+base:MultiListObjectClass
+base:HashableClass
+base:HashTableIteratorClass
+base:DynamicVectorClass
+base:VectorClass
+base:ShareBufferClass
+base:SubsystemInterface
+base:Snapshot
+
+@Client-side subclasses of digested interfaces, each covered above by its path entry or reason.
+base:GameMessageTranslator	input translators make orders, which travel the wire.
+base:AudioManager	audio playback, see the audio entry.
+base:ClientUpdateModule	client update modules move the picture; LaserUpdate, the one the simulation reads, lives in GameLogic and is digested.
+base:DrawModule	see the draw-module entry.
+base:ModuleData	the module data of those draw modules.
+base:Radar	the radar picture.
+base:WebBrowser	the embedded browser.
+base:DownloadManager	patch downloads.
+base:UserPreferences	login preferences.
+base:LANAPI	the LAN lobby.
+base:XferSave	a save-file reader for missile visuals.
+base:InputStream	the tree buffer's file stream: tree pictures.
+base:CullableClass	render culling.
+base:MeshGeometryClass	DynamicMeshModel: meshes the engine builds in code.
+base:DefinitionClass	audio definitions.
+base:SaveLoadSubSystemClass	audio save/load.
+base:DynamicAudioEventInfo	audio events.
+base:SeismicSimulationFilterBase	the terrain's visual seismic deformation.
+class:GXLaserAnchors	a member-pointer accessor for the DRAWN laser ends; it overrides nothing.
+class:CameraClass	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:LightClass	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:Line3DClass	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:SegmentedLineClass	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:StreakLineClass	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:DynamicMeshClass	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:ParticleBufferClass	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:TerrainTracksRenderObjClass	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:MirrorRenderObjClass	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:W3DDebugIcons	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:W3DStatusCircle	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:DebugHintObject	render objects the engine builds in code - no model contains them, so no bone or name lookup reaches them.
+class:SDL3GameEngine	the application shell; its factories that pick simulation implementations are regions on SIMDIGEST_REGION_FUNCTIONS.
+class:GXEngineAccumulator	a frame-time accumulator for the display's fps.
+
+@Same-file helpers that region code calls (r12, checked once the tool walked calls within an object), each output: debug logging switches and state descriptions; the DRAWN model's animation continuity, recoil, headlights, muzzle flashes, client particles and render-object teardown before a rebuild (pristine bones are re-validated on the new object at an explicit frame); terrain, water and bridge render buffers, scorch marks, shorelines and alpha tables; drawable ambient sound and static images; allocation; the compiler's noexcept terminate helper.
+sym:gxDrawDbgEnabled
+sym:gxStateDesc
+sym:gxFlatDesc
+sym:gxMapDiag
+sym:isAnimationComplete
+sym:W3DModelDraw::adjustAnimation
+sym:W3DModelDraw::getCurrentAnimFraction
+sym:W3DModelDraw::rebuildWeaponRecoilInfo
+sym:W3DModelDraw::nukeCurrentRender
+sym:W3DModelDraw::hideAllHeadlights
+sym:W3DModelDraw::hideAllMuzzleFlashes
+sym:W3DModelDraw::stopClientParticleSystems
+sym:BaseHeightMapRenderObjClass::allocateScorchBuffers
+sym:BaseHeightMapRenderObjClass::clearAllScorches
+sym:BaseHeightMapRenderObjClass::initDestAlphaLUT
+sym:BaseHeightMapRenderObjClass::updateShorelineTiles
+sym:HeightMapRenderObjClass::freeIndexVertexBuffers
+sym:WaterRenderObjClass::generateIndexBuffer
+sym:WaterRenderObjClass::generateVertexBuffer
+sym:W3DBridgeBuffer::allocateBridgeBuffers
+sym:Drawable::startAmbientSound	audio: setID (a region) only forwards the drawable id to the ambient sound.
+sym:Drawable::stopAmbientSound
+sym:Drawable::initStaticImages
+sym:*clang_call_terminate
+
+@Callees of code regioned in r13: the water object's texture and setting loads and device resources, the render clock it seeds texture animation from (the grid integration in its update block steps on logic frames, not this clock), and the drawable's visual physics transform (tilt, pitch, bob) friend_bindToObject allocates - all picture.
+sym:WaterRenderObjClass::loadSetting
+sym:WaterRenderObjClass::ReAcquireResources
+sym:gxRenderNowMs
+
+@Virtuals reached through vtable slots of digested objects (r14), each output. W3DModelDraw's client-only queries (named clientOnly_*), the DRAWN pose (current bone positions - read by the simulation only for the particle cannon's visual beam, see Drawable::getCurrentClientBonePositions), visibility for sway, animation timing, selection and indicator colour, projectile clip status, shadows, terrain decals, sub-objects, client particle bones, asset preload, the drawn transform, and the module data's save snapshot.
+sym:W3DModelDraw::clientOnly_*
+sym:W3DModelDraw::getCurrentBonePositions
+sym:W3DModelDraw::getCurrentWorldspaceClientBonePositions
+sym:W3DModelDraw::isVisible
+sym:W3DModelDraw::replaceIndicatorColor
+sym:W3DModelDraw::setAnimationLoopDuration
+sym:W3DModelDraw::setAnimationCompletionTime
+sym:W3DModelDraw::setAnimationFrame
+sym:W3DModelDraw::setPauseAnimation
+sym:W3DModelDraw::setSelectable
+sym:W3DModelDraw::updateProjectileClipStatus
+sym:W3DModelDraw::allocateShadows
+sym:W3DModelDraw::releaseShadows
+sym:W3DModelDraw::handleWeaponFireFX
+sym:W3DModelDraw::preloadAssets
+sym:W3DModelDraw::reactToTransformChange
+sym:W3DModelDraw::setShadowsEnabled
+sym:W3DModelDraw::setTerrainDecal
+sym:W3DModelDraw::setTerrainDecalOpacity
+sym:W3DModelDraw::setTerrainDecalSize
+sym:W3DModelDraw::showSubObject
+sym:W3DModelDraw::updateBonesForClientParticleSystems
+sym:W3DModelDraw::updateSubObjects
+sym:W3DModelDrawModuleData::crc
+sym:W3DModelDrawModuleData::xfer
+sym:W3DModelDrawModuleData::loadPostProcess
+
+@The GameClient's own virtuals reached through its vtable (r14): shadows, selection groups, the context command under the cursor, drawing, ray effects, region iteration for selection, the client half of map load and unload, the client frame counter, asset preload, and its save snapshot. destroyDrawable, which edits the lookup table the simulation reads, is a region; the list roots are regions.
+sym:GameClient::allocateShadows
+sym:GameClient::releaseShadows
+sym:GameClient::assignSelectedDrawablesToGroup
+sym:GameClient::selectDrawablesInGroup
+sym:GameClient::evaluateContextCommand
+sym:GameClient::draw
+sym:GameClient::getRayEffectData
+sym:GameClient::removeFromRayEffects
+sym:GameClient::iterateDrawablesInRegion
+sym:GameClient::loadMap
+sym:GameClient::unloadMap
+sym:GameClient::setFrame
+sym:GameClient::preloadAssets
+sym:GameClient::crc
+sym:GameClient::xfer
+sym:GameClient::loadPostProcess
+sym:BaseHeightMapRenderObjClass::Cast_Ray	the terrain render object's RenderObjClass interface - picking rays, bounds, cloning, scene notification - and its save snapshot; line of sight and heights are regions.
+sym:BaseHeightMapRenderObjClass::Class_ID	the terrain render object's RenderObjClass interface; line of sight and heights are regions.
+sym:BaseHeightMapRenderObjClass::Clone	the terrain render object's RenderObjClass interface; line of sight and heights are regions.
+sym:BaseHeightMapRenderObjClass::Get_Obj_Space_Bounding_*	the terrain render object's RenderObjClass interface; line of sight and heights are regions.
+sym:BaseHeightMapRenderObjClass::Notify_Added	the terrain render object's RenderObjClass interface; line of sight and heights are regions.
+sym:BaseHeightMapRenderObjClass::crc	the terrain render object's save snapshot.
+sym:BaseHeightMapRenderObjClass::xfer	the terrain render object's save snapshot.
+sym:BaseHeightMapRenderObjClass::loadPostProcess	the terrain render object's save snapshot.
+sym:Drawable::calcPhysicsXform	the drawable's visual physics transform (tilt, pitch, bob): picture.
+sym:Drawable::getTransformMatrix	the drawable's transform for FX at fire (Weapon.cpp): output.
+*/W3DDevice/GameClient/W3DAssetManagerExposed.cpp	texture reload for a debug script action: render.
+Core/GameEngine/Include/GameClient/Display.h	the display's own virtuals (size, bit depth, windowed, views, cinematic text, min-spec test): the screen. Its average fps sets only the network frame rate.
+
+# ---- det-codex-3: the vtable slots of region files (r15). Each class's virtuals the simulation might call through its
+# ---- vtable; the ones that create, reset or step what it reads became regions (W3DTerrainVisual init/reset, the
+# ---- terrain render object's reset/freeMapResources/adjustTerrainLOD, GameClient reset/setTimeOfDay and parts of
+# ---- init/update, ControlBar's override removal, the game-client factory; W3DGameClient is digested whole).
+
+@Save-game snapshots of client objects: crc, xfer and loadPostProcess. A network match is never restored from a save: every load route (PopupSaveLoad, DebugMenu, -loadsave, the autoload) goes through gateSaveLoad, which refuses a LAN or online save, and a loaded save starts without a network; a save made during a match (only the env-gated GX_TEST_SAVE_AT_FRAME hook - DebugMenu refuses through refuseNetworkMatchSave and PopupSaveLoad through isInMultiplayerGame) only writes. The logic CRC (GameLogic::getCRC: objects, partition manager, module factory, players, AI, script engine; the deep CRC's SNAPSHOT_DEEPCRC_LOGICONLY blocks) includes none of these. W3DTerrainVisual::xfer restores the logic height map on load: save-game load only, by the same rule.
+sym:Drawable::crc
+sym:Drawable::xfer
+sym:Drawable::loadPostProcess
+sym:TintEnvelope::crc
+sym:TintEnvelope::xfer
+sym:TintEnvelope::loadPostProcess
+sym:W3DLaserDraw::crc
+sym:W3DLaserDraw::xfer
+sym:W3DLaserDraw::loadPostProcess
+sym:W3DTerrainVisual::crc
+sym:W3DTerrainVisual::xfer
+sym:W3DTerrainVisual::loadPostProcess
+sym:W3DTerrainVisual::isXferEnabled
+sym:WaterRenderObjClass::crc
+sym:WaterRenderObjClass::xfer
+sym:WaterRenderObjClass::loadPostProcess
+
+@Destruction: these run when the object dies (a drawable from the regioned destroyDrawable, after it left the lookup table and list; the terrain and water objects, display, client and engine at shutdown; the ControlBar with the in-game UI at shutdown) and free what the dying object owned. Nothing reads a destroyed object.
+sym:Drawable::~Drawable
+sym:DrawableIconInfo::~DrawableIconInfo
+sym:DrawableLocoInfo::~DrawableLocoInfo
+sym:DynamicAudioEventInfoStatic::~DynamicAudioEventInfoStatic
+sym:W3DLaserDraw::~W3DLaserDraw
+sym:W3DLaserDrawModuleData::~W3DLaserDrawModuleData
+sym:BaseHeightMapRenderObjClass::~BaseHeightMapRenderObjClass
+sym:HeightMapRenderObjClass::~HeightMapRenderObjClass
+sym:W3DTerrainVisual::~W3DTerrainVisual
+sym:WaterRenderObjClass::~WaterRenderObjClass
+sym:GameClient::~GameClient
+sym:ControlBar::~ControlBar
+sym:CommandButton::~CommandButton	an empty body.
+sym:CommandSet::~CommandSet	an empty body.
+
+@The drawable's picture-side virtuals: the transform change and animation frame go to the draw modules (W3DModelDraw's reactToTransformChange and setAnimationFrame, named above, move the drawn pose; the pristine bones the simulation reads are taken in the pristine pose) and to the view-region change counter.
+sym:Drawable::reactToTransformChange
+sym:Drawable::setAnimationFrame
+
+@The laser beam's drawing: segments, textures and fades from the module data; it writes no module-data field, and the width the simulation reads is the regioned getLaserTemplateWidth over that data.
+sym:W3DLaserDraw::doDrawModule
+
+@The water object's RenderObjClass interface: culling bounds, class id, clone and Render. Render reads the vertex-water grid to draw it and writes none of it (the grid's integration is the regioned update block).
+sym:WaterRenderObjClass::Class_ID
+sym:WaterRenderObjClass::Clone
+sym:WaterRenderObjClass::Get_Obj_Space_Bounding_Box
+sym:WaterRenderObjClass::Get_Obj_Space_Bounding_Sphere
+sym:WaterRenderObjClass::Render
+
+@The terrain render object's drawing: per-frame and partial vertex-buffer updates, Render, lighting refresh, the drawn window (origin, draw size, oversize), extra blend tiles, and the device-lost release and reacquire. The height, cliff and line-of-sight queries the simulation calls read only m_map and m_maxHeight; the drawn window never feeds them, ReleaseResources keeps m_map (saved and restored around freeMapResources) and ReAcquireResources re-runs the regioned initHeightData on the map already bound, which recomputes the same values.
+sym:BaseHeightMapRenderObjClass::On_Frame_Update
+sym:BaseHeightMapRenderObjClass::ReAcquireResources
+sym:BaseHeightMapRenderObjClass::ReleaseResources
+sym:BaseHeightMapRenderObjClass::staticLightingChanged
+sym:BaseHeightMapRenderObjClass::updateCenter
+sym:HeightMapRenderObjClass::On_Frame_Update
+sym:HeightMapRenderObjClass::ReAcquireResources
+sym:HeightMapRenderObjClass::ReleaseResources
+sym:HeightMapRenderObjClass::staticLightingChanged
+sym:HeightMapRenderObjClass::updateCenter
+sym:HeightMapRenderObjClass::Render
+sym:HeightMapRenderObjClass::doPartialUpdate
+sym:HeightMapRenderObjClass::updateBlock
+sym:HeightMapRenderObjClass::oversizeTerrain
+sym:HeightMapRenderObjClass::setTerrainDrawSize
+Core/GameEngineDevice/Include/W3DDevice/GameClient/HeightMap.h	the terrain render object's declaration; its inline code is the extra blend tile count: drawing. Its FLIP_TRIANGLES only lets WorldHeightMap::getAlphaUVData hand the blend triangle flip to its callers, the terrain and shadow renderers (det-codex-6 constants audit).
+
+@The terrain visual's picture-side virtuals: building bibs and their highlight, props, the trees and props a construction site removes, shoreline and track detail, sky box textures, the drawn terrain's colour (radar) and a ray against the drawn terrain mesh (picking). The heights, tiles, water grid and bridge check the simulation reads are regions.
+sym:W3DTerrainVisual::addFactionBib
+sym:W3DTerrainVisual::addFactionBibDrawable
+sym:W3DTerrainVisual::removeFactionBib
+sym:W3DTerrainVisual::removeFactionBibDrawable
+sym:W3DTerrainVisual::removeAllBibs
+sym:W3DTerrainVisual::removeBibHighlighting
+sym:W3DTerrainVisual::addProp
+sym:W3DTerrainVisual::removeTreesAndPropsForConstruction
+sym:W3DTerrainVisual::setShoreLineDetail
+sym:W3DTerrainVisual::setTerrainTracksDetail
+sym:W3DTerrainVisual::replaceSkyboxTextures
+sym:W3DTerrainVisual::getTerrainColorAt
+sym:W3DTerrainVisual::intersectTerrain
+
+@The control bar's GUI lifecycle outside its regions: init builds the scheme manager, windows, layouts and images (its command INI loads are a region), update animates the bar (and returns at once on a headless peer), reset clears the GUI - shortcuts, memos, hotkeys, rally drawable, radar glow, observer view, tooltips, animations, context (its removal of map-overridden command sets and buttons is a region). cacheButtonImage resolves a button's cameo Image: it writes m_buttonImage and clears m_buttonImageName, which nothing in the simulation reads.
+sym:ControlBar::init
+sym:ControlBar::update
+sym:ControlBar::reset
+sym:CommandButton::cacheButtonImage
+
+@The game client's init and update outside their regions. init creates fonts, the keyboard and mouse, images and 2D animations, the message translators (input becomes orders, which travel the wire), header templates, the window manager, IME, shell, hotkeys, ray effects, video player, language filter, campaign manager, Eva, snow, the intro and debug buttons, and env-gated probes (GX_NOSHROUD stops drawn culling, and the digested W3DGhostObject skips its snapshot under it; a test run only); the display, in-game UI, challenge filter and terrain visual it creates are regions. update steps the GUI, chat and kick pumps, test and gym drivers (which append orders), video, particles, the missile visuals and the display; its ghost-object and shroud-status refresh and the terrain visual update are regions.
+sym:GameClient::init
+sym:GameClient::update
+
+@The display's virtuals: device, window, scene and lights set up by init (the asset manager it creates is a region), drawing - frame, lines, rects, images, video, letterbox, clip region, light pulses, gamma, display modes, screenshots, movie capture, pipeline warm-up, batch hooks, draw-call and fps counters (the average fps sets only the network's frame-rate negotiation, never a simulation value) - the drawn shroud (the logic shroud is PartitionManager's), the time-of-day lights, the view step - draw also steps the scripted camera moves, whose completion feeds CAMERA_MOVEMENT_FINISHED; a headless peer answers that condition from ViewDummy (always TRUE), so peers of the SAME version already disagree on it mid-move and no digest makes them agree - a script acting on it is a tracked code item, not a boundary one - and reset (it empties the scene). The asset preload, purge and release calls only change WHEN a model's W3D file is read through the digested asset manager and file systems, never what is read. draw may switch the terrain LOD; the switch goes through the regioned adjustTerrainLOD, which binds the same height map to the new terrain object.
+sym:W3DDisplay::clearShroud
+sym:W3DDisplay::createLightPulse
+sym:W3DDisplay::createVideoBuffer
+sym:W3DDisplay::doSmartAssetPurgeAndPreload
+sym:W3DDisplay::draw
+sym:W3DDisplay::drawFillRect
+sym:W3DDisplay::drawImage
+sym:W3DDisplay::drawLine
+sym:W3DDisplay::drawOpenRect
+sym:W3DDisplay::drawRectClock
+sym:W3DDisplay::drawRemainingRectClock
+sym:W3DDisplay::drawScaledVideoBuffer
+sym:W3DDisplay::drawVideoBuffer
+sym:W3DDisplay::enableLetterBox
+sym:W3DDisplay::getAverageFPS
+sym:W3DDisplay::getCurrentFPS
+sym:W3DDisplay::getDisplayModeCount
+sym:W3DDisplay::getDisplayModeDescription
+sym:W3DDisplay::getLastFrameDrawCalls
+sym:W3DDisplay::getViewportRect
+sym:W3DDisplay::getWindowSize
+sym:W3DDisplay::init
+sym:W3DDisplay::isLetterBoxFading
+sym:W3DDisplay::isLetterBoxed
+sym:W3DDisplay::onBeginBatch
+sym:W3DDisplay::onEndBatch
+sym:W3DDisplay::onFlush
+sym:W3DDisplay::preloadModelAssets
+sym:W3DDisplay::preloadTextureAssets
+sym:W3DDisplay::reset
+sym:W3DDisplay::setBorderShroudLevel
+sym:W3DDisplay::setClipRegion
+sym:W3DDisplay::setDisplayMode
+sym:W3DDisplay::setGamma
+sym:W3DDisplay::setHeight
+sym:W3DDisplay::setShroudLevel
+sym:W3DDisplay::setTimeOfDay
+sym:W3DDisplay::setWidth
+sym:W3DDisplay::step
+sym:W3DDisplay::takeScreenShot
+sym:W3DDisplay::toggleLetterBox
+sym:W3DDisplay::toggleMovieCapture
+sym:W3DDisplay::warmPipelines
+sym:W3DDisplay::~W3DDisplay
+*/GameEngineDevice/Include/W3DDevice/GameClient/W3DDisplay.h	the display's declaration; its inline code is the clip-region accessors: drawing.
+
+@The application shell's virtuals: init (the lobby presence socket and the SDL window binding, then the digested GameEngine::init), update (OS events - input becomes orders - the LAN lobby, presence and identity pumps and the iOS render suspend, then the digested GameEngine::update), execute, reset, focus, the display refresh rate (the default render-fps cap: timing, not a simulation value), and the factories for audio, radar, particles and the web browser (each a picture or sound; see their base entries). The factories that pick simulation implementations are regions.
+sym:SDL3GameEngine::createAudioManager
+sym:SDL3GameEngine::createParticleSystemManager
+sym:SDL3GameEngine::createRadar
+sym:SDL3GameEngine::createWebBrowser
+sym:SDL3GameEngine::execute
+sym:SDL3GameEngine::getDisplayRefreshRate
+sym:SDL3GameEngine::init
+sym:SDL3GameEngine::isActive
+sym:SDL3GameEngine::reset
+sym:SDL3GameEngine::serviceWindowsOS
+sym:SDL3GameEngine::setIsActive
+sym:SDL3GameEngine::update
+sym:SDL3GameEngine::~SDL3GameEngine
+*/GameEngineDevice/Include/SDL3GameEngine.h	the shell's declaration; its inline code is the SDL window accessor.
+
+@Callees of the det-codex-3 regions, each output: scorch-buffer teardown (freeMapResources), the sky box texture swap a reset undoes, the water's lighting (time of day), the frame a drawable was last drawn clear (the regioned shroud refresh uses it only to keep drawing a just-fogged object for two seconds through setFullyObscuredByShroud).
+sym:BaseHeightMapRenderObjClass::freeScorchBuffers
+sym:WaterRenderObjClass::replaceSkyboxTexture
+sym:WaterRenderObjClass::setTimeOfDay
+*/GameEngineDevice/Include/W3DDevice/GameClient/W3DInGameUI.h	the in-game UI's W3D half: move, attack and placement hints, selection drawing; its init and reset forwarders into InGameUI are GX-SIMID regions of W3DInGameUI.cpp.
+
+@The in-game UI (det-codex-5, Codex r22): selection, hints, messages, named timers, world animations, superweapon timers, the idle-worker button and its INI block, and its W3D half's drawing. Its one simulation duty is the control bar's lifetime - create and init at its init, reset at its reset, recreate at a shell resolution change, delete at shutdown - and those statements are GX-SIMID regions of InGameUI.cpp, as are W3DInGameUI's init and reset forwarders; the command dictionaries themselves are filled and emptied only by ControlBar.cpp's regions.
+sym:InGameUI::*
+sym:W3DInGameUI::*
+sym:FloatingTextData::*
+@The render-split deferral closures (render-split steps 1 and 3; GeneralsX 0.9.60 r10 closure gap, D · render-split-4): the std::function machinery (__func<...>::operator(), __clone, destroy) of the lambdas these InGameUI methods hand to GXRenderSplit::defer when they are called inside the logic tick. Each closure holds copies (this, gxDetachedCopy strings, ids, a colour, a position, the superweapon state taken on the simulation side) and, when the tick ends, either calls the InGameUI method it came from again (exempt by sym:InGameUI::*) or writes InGameUI display state directly (the superweapon list and its m_hiddenByScript, m_superweaponHiddenByScript, the skill-banner slots and their display strings, s_gxSuperweaponCall - a file static only addSuperweapon reads). The simulation reads none of it back: the InGameUI calls digested code makes that return a value are the selection, input-enabled and client-quiet queries (getFirstSelectedDrawable, getAllSelectedDrawables, getSelectCount, getFrameSelectionChanged, getInputEnabled, isClientQuiet), and no closure writes those. One entry per reviewed closure on purpose: each names the method's exact signature and its one lambda ($_0, clang's name for it; "[*]" is a literal "*"), so a NEW lambda - in another InGameUI method, or a second one ($_1) in one of these - comes back as a gap and must be reviewed (Codex r10b P2: the first spelling, "<method>(*", also matched any later lambda of the method). libc++ names (the closure tool reads macOS builds).
+sym:std::__1::__function::__func<InGameUI::addFloatingText(UnicodeString const&, Coord3D const[*], int)::$_0, *
+sym:std::__1::__function::__func<InGameUI::addMessageText(UnicodeString const&, RGBColor const[*])::$_0, *
+sym:std::__1::__function::__func<InGameUI::addNamedTimer(AsciiString const&, UnicodeString const&, bool)::$_0, *
+sym:std::__1::__function::__func<InGameUI::removeNamedTimer(AsciiString const&)::$_0, *
+sym:std::__1::__function::__func<InGameUI::showNamedTimerDisplay(bool)::$_0, *
+sym:std::__1::__function::__func<InGameUI::addSuperweapon(int, AsciiString const&, ObjectID, SpecialPowerTemplate const[*])::$_0, *
+sym:std::__1::__function::__func<InGameUI::removeSuperweapon(int, AsciiString const&, ObjectID, SpecialPowerTemplate const[*])::$_0, *
+sym:std::__1::__function::__func<InGameUI::showObjectSuperweaponDisplayByScript(Object const[*])::$_0, *
+sym:std::__1::__function::__func<InGameUI::hideObjectSuperweaponDisplayByScript(Object const[*])::$_0, *
+sym:std::__1::__function::__func<InGameUI::setSuperweaponDisplayEnabledByScript(bool)::$_0, *
+sym:std::__1::__function::__func<InGameUI::pushReplayBanner(Player[*], UnicodeString const&, ObjectID, ScienceType, unsigned int)::$_0, *
+sym:SuperweaponInfo::*
+sym:IdleWorkerSystem
+sym:INI::parseInGameUIDefinition
+sym:ControlBar::ControlBar	the control bar's constructor, now called from the in-game UI's regions: its command-dictionary roots are a GX-SIMID statement region (det-codex-4); the rest zeroes UI state that init and reset fill.
+
+@The render-split step 6 deferral closures (GeneralsX 0.9.62, C · split-step6): the std::function machinery (__func<...>::operator(), __clone, destroy) of the lambdas BaseHeightMapRenderObjClass::addScorch and W3DDisplay::createLightPulse hand to GXRenderSplit::defer when the logic tick calls them (an FX list's TerrainScorch or LightPulse nugget; W3DGameClient::addScorch for the Firestorm, neutron missile and particle cannon modules). Each closure holds copies of the call's arguments - a location, radius and scorch type; a position, colour, two radii and two frame counts - and when the tick ends calls the same method again through TheTerrainRenderObject or TheDisplay (both methods exempt above), which then writes what only the draw reads: the terrain's scorch list, a scene light. The simulation reads none of it back. One entry per reviewed closure ($_0, clang's name for it; "[*]" is a literal "*"), so a new lambda in either method comes back as a gap. libc++ names (the closure tool reads macOS builds).
+sym:std::__1::__function::__func<BaseHeightMapRenderObjClass::addScorch(Vector3, float, Scorches)::$_0, *
+sym:std::__1::__function::__func<W3DDisplay::createLightPulse(Coord3D const[*], RGBColor const[*], float, float, unsigned int, unsigned int)::$_0, *
+
+@The map cache (det-codex-5, Codex r22): the map lists, previews, the lobby's default and official maps, the slot capacity and the transfer decision - the lobby offers a map and its CRC, every peer checks that CRC before the match. Which file the simulation opens is the regions: the scan hands the path it walked to addMap, addMap records it, getPathOnDisk returns it.
+sym:MapCache::*
+sym:getDefaultMap
+sym:getDefaultOfficialMap
+sym:isOfficialMap
+sym:isValidMap
+sym:WouldMapTransfer
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DDisplayStringManager.*	text strings on screen (W3DGameClient's factory).
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DGameFont.*	screen fonts (W3DGameClient's factory).
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DStatusCircle.*	the team-colour status circle drawn for the local player (W3DGameClient::setTeamColor).
+*/GameEngineDevice/*/W3DDevice/GameClient/W3DSnow.*	falling snow (W3DGameClient's factory).
+Core/GameEngineDevice/*/W3DDevice/GameClient/W3DView.*	the tactical view: camera, culling and picking. Since step B (GeneralsX 08/10/2026) nothing the simulation reads comes from it: CAMERA_MOVEMENT_FINISHED and the camera freeze are TheScriptedCamera's (GameLogic/ScriptedCamera.cpp, digested), fed by the script actions and stepped by GameLogic::update on every peer, -headless and ReplaySimulation included. The view runs its own ScriptedCameraTimeline (Common/ScriptedCameraClock.h, digested) for its pose and answers only its own draw loop and the replay camera; scripted-camera-clock-test.sh pins that scripts and GameEngine::isTimeFrozen never ask it.
+*/GameEngineDevice/*/SDL3Device/GameClient/SDL3Keyboard.*	the keyboard: input becomes orders, which travel the wire.
+*/GameEngineDevice/*/SDL3Device/GameClient/SDL3Mouse.*	the mouse: input becomes orders, which travel the wire.
+*/GameEngineDevice/*/VideoDevice/*	movie playback (W3DGameClient's factory).
+sym:BaseHeightMapRenderObjClass::addScorch	scorch marks the simulation asks the client to draw (W3DGameClient::addScorch).
+sym:BaseHeightMapRenderObjClass::unitMoved	trees and grass a moving unit knocks over: the drawn tree buffer (W3DGameClient::notifyTerrainObjectMoved).
+sym:BaseHeightMapRenderObjClass::setTextureLOD	texture resolution (W3DGameClient::setTextureLOD).
+sym:WW3D::Set_Texture_Reduction	texture resolution (W3DGameClient::setTextureLOD).
+sym:W3DDisplay::W3DDisplay	the display's construction: null pointers and defaults; the asset manager is created by init's region.
+Core/GameEngineDevice/*/W3DDevice/GameClient/W3DSmudge.*	heat-haze smudges the terrain visual creates: drawing.
+Core/GameEngine/*/RayEffect.*	ray effects: the drawn start and end of laser and ray drawables (W3DGameClient::createRayEffectByTemplate).
+*/GameEngine/*/GameClient/MissileVisual.*	the superweapon missiles' drawn flight and nuke shockwave: it reads the missiles' logic state and writes only drawn transforms, particles and its own records (GameClient::reset clears those).
+Core/GameEngineDevice/*/W3DDevice/GameClient/FlatHeightMap.*	the flat, low-LOD terrain render object. The switch to it, its map binding and the TheTerrainRenderObject pointer are the regioned adjustTerrainLOD and base initHeightData; its own overrides draw terrain tiles and call the regioned base reset, freeMapResources and adjustTerrainLOD, and it overrides none of the height, cliff or line-of-sight queries, which are non-virtual base functions over m_map. Its doPartialUpdate re-sets m_map only to the map the base passes it, its own (flushTerrainHeightChanges).
+
+@The terrain render object's own drawing helpers, seen by the override pass since BaseHeightMap.h is digested whole: vertex-buffer tiles, their culling, origin arithmetic and updates, dynamic and static lighting of the vertices, the terrain and extra blend passes. updateVB re-sets m_map only to the map its caller passes - the one the regioned initHeightData just bound, or m_map itself.
+sym:HeightMapRenderObjClass::getVertexBufferTile
+sym:HeightMapRenderObjClass::getVertexBufferBackup
+sym:HeightMapRenderObjClass::isVBTileCulled
+sym:HeightMapRenderObjClass::doTheDynamicLight
+sym:HeightMapRenderObjClass::renderTerrainPass
+sym:HeightMapRenderObjClass::renderExtraBlendTiles
+sym:HeightMapRenderObjClass::getXWithOrigin
+sym:HeightMapRenderObjClass::getYWithOrigin
+sym:HeightMapRenderObjClass::updateVB
+sym:HeightMapRenderObjClass::updateVBForLight
+sym:HeightMapRenderObjClass::updateVBForLightOptimized
+
+@Constants digested code uses from headers it does not digest (det-codex-5, Codex r22: simid-closure.py's constants pass). Vendored third-party API headers: DXVK's native Windows and Direct3D 8 declarations, whose values ARE the Windows and D3D8 ABI they mirror (FALSE and S_OK are 0, SUCCEEDED / FAILED test the HRESULT sign bit, MAKE_HRESULT packs its fields, D3DFMT_* are D3D8's format codes): a DXVK version that changed one would break every D3D8 program. The submodule's gitlink pins them but is NOT hashed - the ABI is the reason, not the pin, so a render-only DXVK bump stays client-only (det-codex-6 constants audit).
+references/*
+@Debug and build plumbing: asserts and debug output (a release build compiles them to nothing), the force-link hack, memory-category tags and profiling scopes - bookkeeping the simulation never reads.
+Core/Libraries/Source/WWVegas/WWDebug/wwdebug.h
+Core/Libraries/Source/WWVegas/WWDebug/wwhack.h
+Core/Libraries/Source/WWVegas/WWDebug/wwmemlog.h
+Core/Libraries/Source/WWVegas/WWDebug/wwprofile.h
+@Render-only ids the digested model code passes through: special render passes (shadow, visibility), scene registration lists, texture mapper kinds, vertex formats of render buffers, the shader library's loader registration.
+Core/Libraries/Source/WWVegas/WW3D2/dx8fvf.h
+Core/Libraries/Source/WWVegas/WW3D2/shdlib.h
+*/Libraries/Source/WWVegas/WW3D2/rinfo.h
+*/Libraries/Source/WWVegas/WW3D2/scene.h
+*/Libraries/Source/WWVegas/WW3D2/mapper.h
+@Client ids digested code names, whose values only client code acts on - the simulation reads nothing back: the announcer's messages it asks for (Eva.cpp is excluded), the view filters scripts switch on (black-and-white, motion blur), window status bits and mouse-coordinate packing, the screen-edge scroll preference, the in-game chat target, key bindings, key codes and the DirectInput version (keys become orders, which travel the wire).
+*/GameEngine/Include/GameClient/Eva.h
+Core/GameEngine/Include/GameClient/CommandXlat.h
+Core/GameEngine/Include/GameClient/GameWindow.h	window status bits GUI code tests (WIN_STATUS_*), and HILONGTOSHORT / LOLONGTOSHORT, which split a packed mouse position for the lobby tooltips (GameSpy/LobbyUtils.cpp): window and lobby UI - the simulation reads nothing back (det-codex-6 constants audit).
+Core/GameEngine/Include/GameClient/LookAtXlat.h
+Core/GameEngine/Include/GameClient/MetaEvent.h
+*/GameEngine/Include/GameClient/GUICallbacks.h
+*/GameEngine/Include/GameClient/KeyDefs.h
+@COM declaration shims for the DirectX headers (det-codex-6, closure run10 at 342efd4c3): GUID / IID types, IsEqualGUID, DECLARE_INTERFACE / STDMETHOD and the _IUNKNOWN_DEFINED guard that keeps DXVK's unknwn.h from declaring IUnknown twice - digested windows_compat.h defines that same empty guard itself, which is the only use the closure finds. Interface declarations for D3D8 and DXVK; nothing the simulation computes with.
+Generals*/Code/CompatLib/Include/com_compat.h
+
+@The replay diagnostics block. RecorderClass::startRecording and stopRecording call into it; it reads settings and clocks and hands the recorder comment records, which go to the file only and which every reader deletes unread (Recorder.cpp appendNextCommand). The simulation reads nothing it produces. GX_DIAG_TYPE is the value of MSG_BEGIN_NETWORK_MESSAGES, and a static_assert in the digested Recorder.cpp holds it there.
+GeneralsMD/Code/GameEngine/*/GameClient/GXReplayDiag*

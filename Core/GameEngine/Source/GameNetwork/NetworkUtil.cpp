@@ -1,0 +1,359 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2025 Electronic Arts Inc.
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+////////////////////////////////////////////////////////////////////////////////
+//																																						//
+//  (c) 2001-2003 Electronic Arts Inc.																				//
+//																																						//
+////////////////////////////////////////////////////////////////////////////////
+
+
+#include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+
+#include "GameNetwork/networkutil.h"
+
+// TheSuperHackers @tweak Mauller 26/08/2025 reduce the minimum runahead from 10
+// This lets network games run at latencies down to 133ms when the network conditions allow
+// GeneralsX @fix Claude 05/08/2026 These are FRAME COUNTS standing in for WALL-CLOCK windows, so at
+// GX_LOGIC_60HZ a fixed count means half the real time. Expressed against the tick rate they hold
+// their meaning at either rate, and every one of them evaluates to its original value at 30 Hz:
+//
+//   MIN_LOGIC_FRAMES  5 frames  = 1/6 s   - the stall floor. Left ABSOLUTE: it is the worst-case
+//                                           rate the router will negotiate down to. CORRECTED
+//                                           23/09/2026 - the arithmetic here was inverted: 5 ticks/s
+//                                           is 1/6 of nominal game speed at 30 Hz but 1/12 at 60 Hz,
+//                                           so leaving it absolute is what deepens the worst case;
+//                                           (5 * LOGICFRAMES_PER_SECOND) / 30 == 10 would keep
+//                                           retail's 1/6. Unchanged pending an owner call - see
+//                                           docs/WORKDIR/LOGIC_60HZ_TIMERS_2026-09-23.md.
+//   MAX_FRAMES_AHEAD  128 frames = 4.27 s - the frame-data ring. Scaled, because FRAME_DATA_LENGTH
+//                                           and FRAMES_TO_KEEP derive from it and FRAMES_TO_KEEP is
+//                                           the tolerance for a briefly-late peer (2.17 s). Halving
+//                                           that at 60 Hz would make late-peer drops twice as
+//                                           likely for no reason other than the unit change.
+//   MIN_RUNAHEAD      4 frames            - left ABSOLUTE. It is a floor on buffer DEPTH in frames,
+//                                           not a duration, and 4 is already the minimum that keeps
+//                                           the pipeline non-empty.
+//
+// NOTE the memory consequence of scaling MAX_FRAMES_AHEAD: FRAME_DATA_LENGTH doubles at 60 Hz, and
+// so does the m_pendingLatencies allocation in FrameMetrics. The `frame % MAX_FRAMES_AHEAD` indexing
+// in FrameMetrics.cpp stays correct because it reads the same symbol.
+Int MIN_LOGIC_FRAMES = 5;
+Int MAX_FRAMES_AHEAD = (128 * LOGICFRAMES_PER_SECOND) / 30;
+Int MIN_RUNAHEAD = 4;
+Int FRAME_DATA_LENGTH = (MAX_FRAMES_AHEAD+1)*2;
+Int FRAMES_TO_KEEP = (MAX_FRAMES_AHEAD/2) + 1;
+
+// GeneralsX @feature Claude 06/08/2026 [GXNET] counters - see networkutil.h for why they are here.
+UnsignedInt TheGxNetRetries   = 0;
+UnsignedInt TheGxNetSendFails = 0;
+UnsignedInt TheGxNetSendDrops = 0;
+UnsignedInt TheGxNetRecvDrops = 0;
+
+#ifdef DEBUG_LOGGING
+
+void dumpBufferToLog(const void *vBuf, Int len, const char *fname, Int line)
+{
+	DEBUG_LOG(("======= dumpBufferToLog() %d bytes =======", len));
+	DEBUG_LOG(("Source: %s:%d", fname, line));
+	const char *buf = (const char *)vBuf;
+	Int numLines = len / 8;
+	if ((len % 8) != 0)
+	{
+		++numLines;
+	}
+	for (Int dumpindex = 0; dumpindex < numLines; ++dumpindex)
+	{
+		Int offset = dumpindex*8;
+		DEBUG_LOG_RAW(("\t%5.5d\t", offset));
+		Int dumpindex2;
+		Int numBytesThisLine = min(8, len - offset);
+		for (dumpindex2 = 0; dumpindex2 < numBytesThisLine; ++dumpindex2)
+		{
+			Int c = (buf[offset + dumpindex2] & 0xff);
+			DEBUG_LOG_RAW(("%02X ", c));
+		}
+		for (; dumpindex2 < 8; ++dumpindex2)
+		{
+			DEBUG_LOG_RAW(("   "));
+		}
+		DEBUG_LOG_RAW((" | "));
+		for (dumpindex2 = 0; dumpindex2 < numBytesThisLine; ++dumpindex2)
+		{
+			char c = buf[offset + dumpindex2];
+			DEBUG_LOG_RAW(("%c", (isprint(c)?c:'.')));
+		}
+		DEBUG_LOG_RAW(("\n"));
+	}
+	DEBUG_LOG(("End of packet dump"));
+}
+
+#endif // DEBUG_LOGGING
+
+/**
+ * ResolveIP turns a string ("games2.westwood.com", or "192.168.0.1") into
+ * a 32-bit unsigned integer.
+ */
+UnsignedInt ResolveIP(AsciiString host)
+{
+  struct hostent *hostStruct;
+  struct in_addr *hostNode;
+
+  if (host.isEmpty())
+  {
+	  DEBUG_LOG(("ResolveIP(): Can't resolve null"));
+	  return 0;
+  }
+
+  // String such as "127.0.0.1"
+  if (isdigit(host.getCharAt(0)))
+  {
+    return ( ntohl(inet_addr(host.str())) );
+  }
+
+  // String such as "localhost"
+  hostStruct = gethostbyname(host.str());
+  if (hostStruct == nullptr)
+  {
+	  DEBUG_LOG(("ResolveIP(): Can't resolve %s", host.str()));
+	  return 0;
+  }
+  hostNode = (struct in_addr *) hostStruct->h_addr;
+  return ( ntohl(hostNode->s_addr) );
+}
+
+/**
+ * Returns the next network command ID.
+ */
+static UnsignedShort s_commandID = 0;
+UnsignedShort GenerateNextCommandID()
+{
+	return s_commandID++;
+}
+
+/**
+ * Returns true if this type of command requires a unique command ID.
+ */
+Bool DoesCommandRequireACommandID(NetCommandType type) {
+	if ((type == NETCOMMANDTYPE_GAMECOMMAND) ||
+			(type == NETCOMMANDTYPE_FRAMEINFO) ||
+			(type == NETCOMMANDTYPE_PLAYERLEAVE) ||
+			(type == NETCOMMANDTYPE_DESTROYPLAYER) ||
+			(type == NETCOMMANDTYPE_RUNAHEADMETRICS) ||
+			(type == NETCOMMANDTYPE_RUNAHEAD) ||
+			(type == NETCOMMANDTYPE_CHAT) ||
+			(type == NETCOMMANDTYPE_DISCONNECTVOTE) ||
+			(type == NETCOMMANDTYPE_LOADCOMPLETE) ||
+			(type == NETCOMMANDTYPE_TIMEOUTSTART) ||
+			(type == NETCOMMANDTYPE_WRAPPER) ||
+			(type == NETCOMMANDTYPE_FILE) ||
+			(type == NETCOMMANDTYPE_FILEANNOUNCE) ||
+			(type == NETCOMMANDTYPE_FILEPROGRESS) ||
+			(type == NETCOMMANDTYPE_DISCONNECTPLAYER) ||
+			(type == NETCOMMANDTYPE_DISCONNECTFRAME) ||
+			(type == NETCOMMANDTYPE_DISCONNECTSCREENOFF) ||
+			(type == NETCOMMANDTYPE_FRAMERESENDREQUEST))
+	{
+		return TRUE;
+	}
+	return FALSE;
+}
+
+/**
+ * Returns true if this type of network command requires an ack.
+ */
+Bool CommandRequiresAck(NetCommandMsg *msg) {
+	if ((msg->getNetCommandType() == NETCOMMANDTYPE_GAMECOMMAND) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_FRAMEINFO) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_PLAYERLEAVE) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_DESTROYPLAYER) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_RUNAHEADMETRICS) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_RUNAHEAD) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_CHAT) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTVOTE) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTPLAYER) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_LOADCOMPLETE) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_TIMEOUTSTART) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_WRAPPER) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_FILE) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_FILEANNOUNCE) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_FILEPROGRESS) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTPLAYER) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTFRAME) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTSCREENOFF) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_FRAMERESENDREQUEST))
+	{
+		return TRUE;
+	}
+	return FALSE;
+}
+
+Bool IsCommandSynchronized(NetCommandType type) {
+	if ((type == NETCOMMANDTYPE_GAMECOMMAND) ||
+			(type == NETCOMMANDTYPE_FRAMEINFO) ||
+			(type == NETCOMMANDTYPE_PLAYERLEAVE) ||
+			(type == NETCOMMANDTYPE_DESTROYPLAYER) ||
+			(type == NETCOMMANDTYPE_RUNAHEAD))
+	{
+		return TRUE;
+	}
+	return FALSE;
+}
+
+/**
+ * Returns true if this type of network command requires the ack to be sent directly to the player
+ * rather than going through the packet router.  This should really only be used by commands
+ * used on the disconnect screen.
+ */
+Bool CommandRequiresDirectSend(NetCommandMsg *msg) {
+	if ((msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTVOTE) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTPLAYER) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_LOADCOMPLETE) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_TIMEOUTSTART) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_FILE) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_FILEANNOUNCE) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_FILEPROGRESS) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTFRAME) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTSCREENOFF) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_FRAMERESENDREQUEST) ||
+			(msg->getNetCommandType() == NETCOMMANDTYPE_WRAPPERACK)) {	// GeneralsX @security Claude 06/10/2026 connection-scoped
+		return TRUE;
+	}
+	return FALSE;
+}
+
+// GeneralsX @security Claude 17/08/2026 See the contract in networkutil.h.
+//
+// Written as a plain range test over one code unit at a time rather than anything locale aware,
+// because this is compiled for Windows (16-bit wchar_t) and for macOS/Linux/iPadOS (32-bit), and
+// the two must agree exactly on what a peer is allowed to say. Anything outside the BMP is dropped
+// rather than replaced: the wire form is 16-bit (see NetPacketStructs.h) so it could not have
+// survived the trip anyway, and a substitute glyph would only invite a second round of guessing.
+Bool GXSanitizeChatText(UnicodeString &text)
+{
+	if (text.isEmpty())
+	{
+		return FALSE;
+	}
+
+	WideChar clean[GX_NET_CHAT_MAX_CHARS + 1];
+	Int out = 0;
+
+	for (const WideChar *src = text.str(); *src != 0 && out < GX_NET_CHAT_MAX_CHARS; ++src)
+	{
+		// wchar_t is signed on the POSIX platforms, so widen through an unsigned type before
+		// comparing - a negative unit must land above every allowed range, not below it.
+		const UnsignedInt cp = (UnsignedInt)(unsigned long)*src;
+
+		if (cp < 0x20U)                        continue; // C0 controls, including CR, LF and TAB
+		if (cp == 0x7FU)                       continue; // DEL
+		if (cp >= 0x80U   && cp <= 0x9FU)      continue; // C1 controls
+		if (cp >= 0xD800U && cp <= 0xDFFFU)    continue; // lone surrogates
+		if (cp >= 0x200BU && cp <= 0x200FU)    continue; // zero width, LRM, RLM
+		if (cp == 0x2028U || cp == 0x2029U)    continue; // line / paragraph separators
+		if (cp >= 0x202AU && cp <= 0x202EU)    continue; // bidi embedding and override
+		if (cp >= 0x2066U && cp <= 0x2069U)    continue; // bidi isolates
+		if (cp == 0xFEFFU)                     continue; // BOM / zero width no-break space
+		if (cp >= 0xFFFEU)                     continue; // non-characters and anything above the BMP
+
+		clean[out++] = *src;
+	}
+
+	clean[out] = 0;
+
+	if (out == 0)
+	{
+		text.clear();
+		return FALSE;
+	}
+
+	text.set(clean);
+	return TRUE;
+}
+
+const char* GetNetCommandTypeAsString(NetCommandType type) {
+
+	switch (type) {
+	case NETCOMMANDTYPE_ACKBOTH:
+		return "NETCOMMANDTYPE_ACKBOTH";
+	case NETCOMMANDTYPE_ACKSTAGE1:
+		return "NETCOMMANDTYPE_ACKSTAGE1";
+	case NETCOMMANDTYPE_ACKSTAGE2:
+		return "NETCOMMANDTYPE_ACKSTAGE2";
+	case NETCOMMANDTYPE_FRAMEINFO:
+		return "NETCOMMANDTYPE_FRAMEINFO";
+	case NETCOMMANDTYPE_GAMECOMMAND:
+		return "NETCOMMANDTYPE_GAMECOMMAND";
+	case NETCOMMANDTYPE_PLAYERLEAVE:
+		return "NETCOMMANDTYPE_PLAYERLEAVE";
+	case NETCOMMANDTYPE_RUNAHEADMETRICS:
+		return "NETCOMMANDTYPE_RUNAHEADMETRICS";
+	case NETCOMMANDTYPE_RUNAHEAD:
+		return "NETCOMMANDTYPE_RUNAHEAD";
+	case NETCOMMANDTYPE_LATENCYREPORT:
+		return "NETCOMMANDTYPE_LATENCYREPORT";
+	case NETCOMMANDTYPE_WRAPPERACK:
+		return "NETCOMMANDTYPE_WRAPPERACK";
+	case NETCOMMANDTYPE_DESTROYPLAYER:
+		return "NETCOMMANDTYPE_DESTROYPLAYER";
+	case NETCOMMANDTYPE_KEEPALIVE:
+		return "NETCOMMANDTYPE_KEEPALIVE";
+	case NETCOMMANDTYPE_DISCONNECTCHAT:
+		return "NETCOMMANDTYPE_DISCONNECTCHAT";
+	case NETCOMMANDTYPE_CHAT:
+		return "NETCOMMANDTYPE_CHAT";
+	case NETCOMMANDTYPE_MANGLERQUERY:
+		return "NETCOMMANDTYPE_MANGLERQUERY";
+	case NETCOMMANDTYPE_MANGLERRESPONSE:
+		return "NETCOMMANDTYPE_MANGLERRESPONSE";
+	case NETCOMMANDTYPE_PROGRESS:
+		return "NETCOMMANDTYPE_PROGRESS";
+	case NETCOMMANDTYPE_LOADCOMPLETE:
+		return "NETCOMMANDTYPE_LOADCOMPLETE";
+	case NETCOMMANDTYPE_TIMEOUTSTART:
+		return "NETCOMMANDTYPE_TIMEOUTSTART";
+	case NETCOMMANDTYPE_WRAPPER:
+		return "NETCOMMANDTYPE_WRAPPER";
+	case NETCOMMANDTYPE_FILE:
+		return "NETCOMMANDTYPE_FILE";
+	case NETCOMMANDTYPE_FILEANNOUNCE:
+		return "NETCOMMANDTYPE_FILEANNOUNCE";
+	case NETCOMMANDTYPE_FILEPROGRESS:
+		return "NETCOMMANDTYPE_FILEPROGRESS";
+	case NETCOMMANDTYPE_DISCONNECTKEEPALIVE:
+		return "NETCOMMANDTYPE_DISCONNECTKEEPALIVE";
+	case NETCOMMANDTYPE_DISCONNECTPLAYER:
+		return "NETCOMMANDTYPE_DISCONNECTPLAYER";
+	case NETCOMMANDTYPE_PACKETROUTERQUERY:
+		return "NETCOMMANDTYPE_PACKETROUTERQUERY";
+	case NETCOMMANDTYPE_PACKETROUTERACK:
+		return "NETCOMMANDTYPE_PACKETROUTERACK";
+	case NETCOMMANDTYPE_DISCONNECTVOTE:
+		return "NETCOMMANDTYPE_DISCONNECTVOTE";
+	case NETCOMMANDTYPE_DISCONNECTFRAME:
+		return "NETCOMMANDTYPE_DISCONNECTFRAME";
+	case NETCOMMANDTYPE_DISCONNECTSCREENOFF:
+		return "NETCOMMANDTYPE_DISCONNECTSCREENOFF";
+	case NETCOMMANDTYPE_FRAMERESENDREQUEST:
+		return "NETCOMMANDTYPE_FRAMERESENDREQUEST";
+	default:
+		DEBUG_CRASH(("Unknown NetCommandType in GetNetCommandTypeAsString"));
+		return "UNKNOWN";
+	}
+
+}

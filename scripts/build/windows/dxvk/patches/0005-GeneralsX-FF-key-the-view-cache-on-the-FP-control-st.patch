@@ -1,0 +1,87 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wh1ter0se69 <62149665+wh1ter0se69@users.noreply.github.com>
+Date: Sat, 3 Oct 2026 00:10:27 +0300
+Subject: [PATCH 3/3] GeneralsX FF: key the view cache on the FP control state
+ too (Codex r1 + r2 + r3 P2)
+
+The cached InverseView and lights are functions of View, the lights AND the floating-point control state they were
+computed under. An app on D3DCREATE_FPU_PRESERVE may change it between uploads, and stock code then recomputes
+under the new state:
+- rounding mode (r1): e.g. InverseView[0][0] 0x3eaaaaab vs 0x3eaaaaaa for View=diag(3,1,1,1) under round-down;
+- flush-to-zero / denormals-are-zero (r2): a subnormal light position stays subnormal in the cache, stock gives 0;
+- on MinGW fegetround() folds the x87 and SSE rounding fields together (r2), so it cannot be the key.
+Key on the control registers themselves (gxFPControl: ARM64 FPCR; x86 MXCSR control bits + the x87 control word, read on its own on MSVC x86 via __control87_2 - Codex r3),
+never the sticky status flags. A standalone check flips rounding and FZ/FTZ+DAZ and sees the key move, and sees it
+not move after arithmetic, on arm64 and x86_64. GeneralsX itself runs one fixed FP mode, so this is a no-op for the
+game; it makes the bit-identity claim hold for the inputs the key was missing.
+
+Claude-Session: https://claude.ai/code/session_01YLkLUnAQgjdzMvcL22pmru
+---
+ src/d3d9/d3d9_device.cpp | 33 ++++++++++++++++++++++++++++++++-
+ src/d3d9/d3d9_device.h   |  1 +
+ 2 files changed, 33 insertions(+), 1 deletion(-)
+
+diff --git a/src/d3d9/d3d9_device.cpp b/src/d3d9/d3d9_device.cpp
+index e4ba8506..47bef7fe 100644
+--- a/src/d3d9/d3d9_device.cpp
++++ b/src/d3d9/d3d9_device.cpp
+@@ -31,6 +31,32 @@
+ #pragma fenv_access (on)
+ #endif
+ 
++// GeneralsX FF: the floating-point CONTROL state the cached values were computed under (rounding, flush-to-zero /
++// denormals-are-zero, x87 precision) - never the sticky status flags, which change on every operation.
++#if defined(__aarch64__) || defined(_M_ARM64)
++  #if defined(_MSC_VER) && !defined(__clang__)
++    #include <intrin.h>
++    static inline uint64_t gxFPControl() { return uint64_t(_ReadStatusReg(ARM64_FPCR)); }
++  #else
++    static inline uint64_t gxFPControl() { uint64_t v; __asm__ volatile("mrs %0, fpcr" : "=r"(v)); return v; }
++  #endif
++#elif defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
++  #include <xmmintrin.h>
++  #if defined(_MSC_VER) && !defined(__clang__)
++    #include <float.h>
++    #if defined(_M_IX86)	// _control87 merges the x87 and SSE fields on x86 (Codex r3): read the x87 word on its own
++      static inline uint64_t gxFPControl() { unsigned int x87 = 0, sse = 0; __control87_2(0, 0, &x87, &sse); return (uint64_t(x87) << 32) | (_mm_getcsr() & ~0x3Fu); }
++    #else
++      static inline uint64_t gxFPControl() { return (uint64_t(_control87(0, 0)) << 32) | (_mm_getcsr() & ~0x3Fu); }
++    #endif
++  #else
++    static inline uint64_t gxFPControl() { uint16_t cw; __asm__ volatile("fnstcw %0" : "=m"(cw)); return (uint64_t(cw) << 32) | (_mm_getcsr() & ~0x3Fu); }
++  #endif
++#else
++  #include <cfenv>
++  static inline uint64_t gxFPControl() { return uint64_t(std::fegetround()); }
++#endif
++
+ namespace dxvk {
+ 
+   D3D9DeviceEx::D3D9DeviceEx(
+@@ -7918,8 +7944,13 @@ namespace dxvk {
+       const Matrix4& view = m_state.transforms[GetTransformIndex(D3DTS_VIEW)];
+       D3D9FFViewCache& vc = m_ffViewCache;
+ 
+-      if (!vc.valid || std::memcmp(&vc.view, &view, sizeof(Matrix4)) != 0) {
++      // The FP control state is an input too (Codex r1/r2): an app on D3DCREATE_FPU_PRESERVE may change rounding or
++      // flush-to-zero between uploads, and stock code would recompute under the new state.
++      const uint64_t fpControl = gxFPControl();
++
++      if (!vc.valid || vc.fpControl != fpControl || std::memcmp(&vc.view, &view, sizeof(Matrix4)) != 0) {
+         vc.valid       = true;
++        vc.fpControl   = fpControl;
+         vc.view        = view;
+         vc.inverseView = transpose(inverse(view));
+         vc.lightCount  = 0;
+diff --git a/src/d3d9/d3d9_device.h b/src/d3d9/d3d9_device.h
+index 62101e20..7182ee12 100644
+--- a/src/d3d9/d3d9_device.h
++++ b/src/d3d9/d3d9_device.h
+@@ -1592,6 +1592,7 @@ namespace dxvk {
+     // comparison rather than by dirty flags, so no setter, state block or Reset path can leave it stale.
+     struct D3D9FFViewCache {
+       bool                                          valid      = false;
++      uint64_t                                      fpControl  = 0;  // gxFPControl() the cached values were computed under
+       Matrix4                                       view;
+       Matrix4                                       inverseView;
+       uint32_t                                      lightCount = 0;  // slots [0, lightCount) were built from `view`

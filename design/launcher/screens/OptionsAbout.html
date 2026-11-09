@@ -1,0 +1,613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeneralsX launcher — Options — About</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="./OptionsAbout.css">
+<!-- Held hidden until what it loads is on it (gx-settle.js): the first frame is the final one. -->
+<script src="./gx-settle.js" onerror="window.gxSettle={wait:function(p){return p},whenShown:function(f){f()},picture:function(){},held:function(){return false}}"></script>
+<style id="gx-ground">
+/* The artboards are a fixed 1280x720 box. The launcher window's content area is taller than
+   that, and anything the box does not cover falls through to the webview's own default
+   background - which is WHITE. That is the strip along the bottom edge on macOS.
+   Paint the page ground behind the artboard so the uncovered area matches the design instead
+   of flashing white. Layout is untouched: this sits BEHIND the box, it does not resize it. */
+html, body { margin: 0; }
+/* THE BACKDROP LIVES ON THE VIEWPORT, NOT THE ARTBOARD. The artboard is a fixed
+   1280x720 composition that the fit script scales, so a backdrop painted on IT ends at
+   its scaled edge and every letterboxed band fell through to the flat page ground -
+   which is a different colour from the gradient, and read as the window being split in
+   two. Here it is one continuous ground behind everything, so there is no seam to find
+   at any window size. */
+body {
+  background: var(--gx-backdrop-2);
+  background-attachment: fixed;
+}
+/* Tells the platform to draw its own widgets - scrollbars, dropdowns, spinners - in their dark
+   variant. Without it Windows draws a WHITE scrollbar track with arrow buttons down the side of
+   a black launcher, which is what the operator saw. */
+html { color-scheme: dark; }
+/* An app, not a document: text does not highlight when a click drags a pixel. Anything meant to
+   be copied (the network-test paste line, file paths) opts back in with .gx-selectable. */
+body { -webkit-user-select: none; user-select: none; cursor: default; }
+.gx-selectable, .gx-selectable * { -webkit-user-select: text; user-select: text; cursor: text; }
+
+/* The scrollbar itself, so it matches the design rather than merely being dark. Uses the same
+   surface stack as the panels: track disappears into the page, thumb is one step up from a
+   card border, and it lightens on hover like every other control here. WebKit and Chromium
+   both honour these, which covers macOS, Windows and Linux webviews. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #2E2E33;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #3D3D45; background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* No stepper arrows: the design has none anywhere else. */
+::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+/* The standard property, for engines that prefer it over the WebKit ones. */
+* { scrollbar-width: thin; scrollbar-color: #2E2E33 transparent; }
+body { min-height: 100vh; }
+</style>
+</head>
+<body class="gx-screen gx-s-optionsabout">
+<div style="width: 1280px; height: 720px; background: transparent; color: var(--gx-ink); display: flex; overflow: hidden;">
+
+  <div style="width: 208px; flex-shrink: 0; background: var(--gx-ground); border-right: 1px solid var(--gx-line); display: flex; flex-direction: column;">
+    <div style="height: 40px;"></div>
+    <div style="padding: 4px 18px 0 18px;">
+      <div style="display: flex; align-items: baseline; gap: 6px;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; letter-spacing: 0.8px; line-height: 1.12;">GENERALS</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; color: var(--gx-accent); line-height: 1.12; text-shadow: 0 0 16px var(--gx-accent-a45);">X</div>
+      </div>
+      <div style="width: 52px; height: 2px; background: linear-gradient(90deg, var(--gx-accent), var(--gx-accent-a15)); margin-top: 9px;"></div>
+    </div>
+    <div class="grouphead" style="padding-top: 20px;">Settings</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg><span>General</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span>Graphics</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>HUD</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>Keybinds</span></div>
+    <div class="grouphead">If something is wrong</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Network test</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>Diagnostics</span></div>
+    <div style="flex-grow: 1;"></div>
+    <div style="height: 1px; background: var(--gx-line);"></div>
+    <div class="item sel" style="height: 44px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>About</span></div>
+    <div style="padding: 14px 16px 16px 16px;">
+      <div class="gx-save" style="height: 44px; display: flex; align-items: center; justify-content: center; font-size: var(--gx-fs-125); font-weight: 700; letter-spacing: 0.8px;">BACK</div>
+      <div style="padding-top: 8px; text-align: center; font-size: var(--gx-fs-110); color: var(--gx-ink-faint);">Changes save automatically.</div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0; padding: 40px 34px 16px 34px; box-sizing: border-box; gap: 12px;">
+
+    <div class="gx-rise">
+      <!-- data-gx-noroute: this heading's text is also the sidebar route label 'About'. Without
+           the marker the label router treats the page title as a navigation button. -->
+      <div data-gx-noroute style="font-size: var(--gx-fs-230); font-weight: 700; letter-spacing: -0.2px;">About</div>
+      <div style="font-size: var(--gx-fs-125); color: var(--gx-ink-dim); margin-top: 3px;">What you are running, and who it is built on.</div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 8px; animation-delay: 50ms;">
+      <div class="sech">Who can you play with</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+          <div class="idr">
+            <span class="idk">Build</span>
+            <span class="idv gx-selectable">d64b81cd9</span>
+            <span class="idd">The engine you are running.</span>
+          </div>
+          <div class="idr">
+            <span class="idk">Simulation digest</span>
+            <span class="idv gx-selectable">4E775DE5</span>
+            <span class="idd">Peers must match this exactly, or they refuse each other.</span>
+          </div>
+          <div class="idr">
+            <span class="idk">Engine ID</span>
+            <span class="idv gx-selectable">0x2A17</span>
+            <span class="idd">Encodes the build's own configuration. A debug build cannot join a release one.</span>
+          </div>
+          <div class="idr">
+            <span class="idk">Data ID</span>
+            <span class="idv gx-selectable">9C41B0E2</span>
+            <span class="idd">Your archives. A different mod or a loose INI changes it.</span>
+          </div>
+      </div>
+      <div style="font-size: var(--gx-fs-110); color: var(--gx-ink-faint); line-height: 1.5;">
+        A join that is refused always comes down to one of these four differing. Showing them here means a player can read the mismatch out instead of guessing at their network.
+      </div>
+    </div>
+
+    <!-- Where the fork came from. Added at the owner's request on 2026-08-21: the page credited
+         the engine mainline but never named the project this fork was actually taken from, and an
+         attribution page that omits its own starting point is the one omission that matters. His
+         wording was "we did take fbraz3/GeneralsX, but the crossplatform, determinism, and most of
+         the game logic was updated and we are so different from both TSH and original GeneralsX" -
+         so the block has to say both halves, the debt and the divergence, and neither may be
+         phrased as a boast.
+         Prose rather than another .cr card because the claim is about THIS project, not about an
+         upstream we vendor: it has no SHIPPED/READ badge and no file count, and a card without
+         either would read as a fourth upstream.
+         Both repository names go through the same data-gx-url handler as the cards below, so they
+         open in the player's browser through open_external (https only, see gxio::game::open_url)
+         and the webview never leaves the app. The anchors deliberately carry NO href: an href is
+         what would navigate this page away if the handler ever failed to fire, and there is no
+         route back from a GitHub page rendered inside the launcher. The scoped `a` rule in
+         OptionsAbout.css already gives them the accent colour and its hover, and .crlink adds the
+         pointer and underline the card links use, so the affordance is identical to theirs. -->
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 8px; animation-delay: 110ms;">
+      <div class="sech">Where this started</div>
+      <div style="font-size: var(--gx-fs-115); color: var(--gx-ink-dim); line-height: 1.45;">
+        This fork started from <a class="crlink" data-gx-url="https://github.com/fbraz3/GeneralsX">fbraz3/GeneralsX</a>, which itself builds on <a class="crlink" data-gx-url="https://github.com/TheSuperHackers/GeneralsGameCode">TheSuperHackers/GeneralsGameCode</a>. The cross-platform layer, the determinism work and most of the game logic have been rewritten since, so what you are running is now substantially different from both of them. The groundwork those two projects did is still underneath all of it.
+      </div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 8px; min-height: 0; flex-grow: 1; animation-delay: 150ms;">
+      <div class="sech">Built on</div>
+      <!-- Two columns for the two upstreams that carry a licence obligation. The other five
+           cards and the lines-of-code panel were removed at the owner's request on 2026-08-21:
+           they were self-measurement, not attribution. dr_libs is public domain and DXVK is
+           zlib, neither of which requires acknowledgement, and the three "READ"/"IDEA" entries
+           took no code at all. Every upstream is still credited in the repository README. -->
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; align-items: stretch; overflow-y: auto; min-height: 0; flex: 1 1 auto;">
+          <div class="cr">
+            <div class="crh"><span class="crn">The engine</span><span class="rel ship">SHIPPED</span></div>
+            <div class="crr"><span class="crlink" data-gx-url="https://github.com/TheSuperHackers/GeneralsGameCode">TheSuperHackers/GeneralsGameCode</span></div>
+            <div class="crd">3,125 of its files we have never touched. We changed 620 of them, adding about 52,600 lines, concentrated in networking and the lobby.</div>
+
+          </div>
+          <div class="cr">
+            <div class="crh"><span class="crn">GenHotkeys</span><span class="rel read">READ</span></div>
+            <div class="crr"><span class="crlink" data-gx-url="https://github.com/MahBoiDeveloper/GenHotkeys">MahBoiDeveloper/GenHotkeys</span> &middot; GPL-3.0</div>
+            <div class="crd">The shape of the Keybinds page. No code taken.</div>
+            <div class="crp">mah_boi, lead &middot; nikitvs &middot; TitoWWN, icons &middot; DESolatorTrooper</div>
+          </div>
+      </div>
+    </div>
+
+    <div id="gx-about-note" class="gx-selectable" style="display: none; font-size: var(--gx-fs-115); color: var(--gx-bad-ink); line-height: 1.5;"></div>
+    <div class="gx-rise" style="border-top: 1px solid var(--gx-line); padding-top: 12px; font-size: var(--gx-fs-115); color: var(--gx-ink-faint); animation-delay: 190ms;">
+      GeneralsX is GPL-3.0. Command &amp; Conquer: Generals and Zero Hour are the property of Electronic Arts. You must own the game.
+    </div>
+
+  </div>
+</div>
+<!-- gx-nav-wired -->
+<script>
+// Navigation. The screens were converted from artboards as standalone pages, so nothing linked
+// to anything - every button was inert. This wires the real routes by the visible label, which
+// is stable because the labels ARE the design.
+(function () {
+  var ROUTES = {
+    'general': 'OptionsGeneral.html',
+    'graphics': 'Options.html',
+    'hud': 'OptionsHud.html',
+    'keybinds': 'OptionsKeys.html',
+    'network test': 'OptionsNetwork.html',
+    'diagnostics': 'OptionsDiag.html',
+    'about': 'OptionsAbout.html',
+    'options': 'OptionsGeneral.html',
+    'changelogs': 'Changelogs.html',
+    'all releases': 'Changelogs.html',
+    'save & go back': 'MainWeb.html',
+    'go back': 'MainWeb.html',
+    'back': 'MainWeb.html'
+  };
+  function labelOf(el) {
+    return (el.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+  document.addEventListener('click', function (ev) {
+    var el = ev.target;
+    for (var i = 0; el && i < 6; i++, el = el.parentElement) {
+      if (el.hasAttribute && el.hasAttribute('data-cmd')) { return; }   // keybind tiles own their clicks
+      // Static headings whose text happens to BE a route label (this page's title is 'About')
+      // opt out with data-gx-noroute: a title is not a button.
+      if (el.hasAttribute && el.hasAttribute('data-gx-noroute')) { return; }
+      var dest = ROUTES[labelOf(el)];
+      if (dest) { ev.preventDefault(); window.location.href = dest; return; }
+    }
+  });
+})();
+</script>
+<script>
+// The four identity rows, measured. Outside the launcher window.__TAURI__ is absent and this file
+// still opens standalone in a browser with the artboard's sample values intact - that is the
+// design-review mode and a packaging gate.
+//
+// WHY THE ARTBOARD'S NUMBERS COULD NOT STAY. Its Build (d64b81cd9) is real - it is a commit this
+// project actually published - but its Data ID 9C41B0E2 and Engine ID 0x2A17 match nothing this
+// engine produces, and engineID is THIRTY-TWO bits, not the sixteen shown. Two of the four were
+// placeholders. On this Mac the live values are engine=96AEA2D4 source=636066A4 data=B913936B.
+//
+// These three are the tier-1 join gates, and they are exactly the values a player pastes when
+// asking why a join was refused. A wrong one here does not read as a cosmetic slip - it sends
+// somebody hunting a fault that is not there. So inside the launcher the samples are blanked to
+// an em dash BEFORE the invoke resolves: a slow or failed about_info shows an honest dash plus
+// an error line, never a plausible fake. There is deliberately no fallback that guesses.
+//
+// The attribution cards below the table (the per-upstream
+// file counts) are repo measurements taken when the page was written. Nothing in a launcher can
+// re-derive them - there is no checkout on a player's machine - so they are left exactly as the
+// artboard has them.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }
+
+  // The element that OWNS the text, not one of the ancestors that merely contain it.
+  //
+  // A LEAF IS REQUIRED, NOT PREFERRED. An ancestor whose only content is this text has the same
+  // textContent, and writing textContent onto an ancestor DELETES ITS CHILDREN. That happened on
+  // the sibling MainUpdate screen and it removed a status dot silently, because the text it
+  // replaced still read correctly. Only an element with no element children is ever a candidate.
+  function findByText(tag, starts) {
+    var all = document.querySelectorAll(tag);
+    for (var i = 0; i < all.length; i++) {
+      if (all[i].children.length) { continue; }
+      if ((all[i].textContent || '').trim().indexOf(starts) === 0) { return all[i]; }
+    }
+    return null;
+  }
+
+  function rowByLabel(label) {
+    var rows = document.querySelectorAll('.idr');
+    for (var i = 0; i < rows.length; i++) {
+      var k = rows[i].querySelector('.idk');
+      if (k && k.textContent.trim().toLowerCase() === label) { return rows[i]; }
+    }
+    return null;
+  }
+
+  // textContent, never innerHTML: every string below either came off a network or out of a log
+  // file, and neither is markup.
+  function setRow(label, value, note) {
+    var row = rowByLabel(label);
+    if (!row) { return; }
+    var v = row.querySelector('.idv');
+    var d = row.querySelector('.idd');
+    if (v) {
+      v.textContent = value ? value : '—';
+      v.style.opacity = value ? '' : '0.45';
+    }
+    if (d && note) { d.textContent = note; }
+  }
+
+  // Blank the artboard samples NOW - before any invoke resolves. From this line on the page can
+  // only ever show the engine's own printed value or a dash; the fabricated hashes are gone even
+  // if about_info never comes back.
+  setRow('build', '');
+  setRow('simulation digest', '');
+  setRow('engine id', '');
+  setRow('data id', '');
+
+  // Held until the identity is painted (gx-settle.js): the dashes are never seen unless the read fails.
+  window.gxSettle.wait(T.core.invoke('about_info').then(function (a) {
+    // Each replacement is kept to the line count the artboard's own copy occupies, so the fixed
+    // composition does not reflow under the reader.
+    setRow('build',
+      a.engine_commit || '',
+      a.engine_commit
+        ? ('The engine you are running.' + (a.engine_packaged ? ' Packaged ' + a.engine_packaged + '.' : ''))
+        : 'No BUILD.txt here, so this is a development copy.');
+
+    // The description names the log, so a value on this page can be TRACED rather than trusted.
+    setRow('simulation digest', a.source_id,
+      a.source_id
+        ? 'Read from ' + a.sim_from + '. Peers must match this exactly.'
+        : 'Read from the engine the first time you run the game.');
+
+    setRow('engine id', a.engine_id,
+      "Encodes the build's own configuration. A debug build cannot join a release one.");
+
+    setRow('data id', a.data_id,
+      'Your archives. A different mod or a loose INI changes it.');
+
+    // This launcher's own identity, which the artboard had nowhere for. The commit is the one
+    // build.rs compiled in and --gx-selftest reports, so it is the packaging gate's own number.
+    // It rides the subtitle line as its own separated span: appending it into the sentence's
+    // textContent collapsed the spacing and the identity ran straight into the prose. The span
+    // is selectable - the launcher commit is another value players paste when asking for help.
+    var subtitle = findByText('div', 'What you are running');
+    if (subtitle) {
+      var idSpan = document.createElement('span');
+      idSpan.className = 'gx-selectable';
+      idSpan.style.cssText = 'margin-left: 12px; padding-left: 12px;' +
+        ' border-left: 1px solid var(--gx-line-strong); font-variant-numeric: tabular-nums;';
+      idSpan.textContent = 'Launcher ' + a.launcher_version + ' · ' + a.launcher_commit +
+        ' · ' + a.platform + ' (' + a.arch + ')';
+      subtitle.appendChild(idSpan);
+    }
+  }).catch(function (e) {
+    // The dashes stay - they are the honest answer - and the failure is said out loud in the
+    // page's note slot. About is never allowed to LOOK loaded when it is not.
+    console.error('about_info failed:', e);
+    var note = document.getElementById('gx-about-note');
+    if (note) {
+      note.style.display = 'block';
+      note.textContent = 'Could not read this install’s identity: ' + String(e);
+    }
+  }));
+})();
+</script>
+<!-- gx-links-wired -->
+<script>
+// The upstream repository names. The artboard drew them in the accent colour, which reads as
+// "click me", and nothing was wired behind them - a dead link on an attribution page shortchanges
+// the people it is there to credit. Each URL below was taken from this repository's own record of
+// its upstreams (.gitmodules, README.md, the vendored headers), never guessed from a name; the
+// two entries with no repository to point at (Leikeze, the Generals Online "reference" note)
+// carry no data-gx-url and are styled as plain text instead.
+//
+// Inside the launcher the click goes through open_external, which enforces https and opens the
+// system browser - the webview itself must never navigate off this page. Standalone in a browser
+// (design review) it opens a new tab, so the affordance is honest in both modes.
+(function () {
+  document.addEventListener('click', function (ev) {
+    var el = ev.target;
+    for (var i = 0; el && i < 6; i++, el = el.parentElement) {
+      if (!el.getAttribute) { continue; }
+      var url = el.getAttribute('data-gx-url');
+      if (!url) { continue; }
+      ev.preventDefault();
+      ev.stopPropagation();               // the label router must not also act on this click
+      var T = window.__TAURI__;
+      if (T && T.core && T.core.invoke) {
+        T.core.invoke('open_external', { url: url }).catch(function (e) {
+          console.error('open_external failed:', e);
+          var note = document.getElementById('gx-about-note');
+          if (note) {
+            note.style.display = 'block';
+            note.textContent = 'Could not open ' + url + ': ' + String(e);
+          }
+        });
+      } else {
+        window.open(url, '_blank', 'noopener');
+      }
+      return;
+    }
+  }, true);  // capture: handled before the label router's own document listener can see it
+})();
+</script>
+
+<!-- gx-chrome-wired -->
+<script>
+// The app's own title row, on the platforms that want one.
+//
+// Windows and Linux get it: their OS title bar is a wide painted strip in the user's accent
+// colour, sitting above a dark launcher looking like a different application. macOS keeps its
+// native traffic lights - they are the platform idiom and a drawn set would sit opposite them.
+// Rust decides (window_custom_chrome); this file never guesses from the user agent.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }   // standalone in a browser: leave the page alone
+  var invoke = T.core.invoke;
+
+  var SVG = 'http://www.w3.org/2000/svg';
+  function icon(paths) {
+    var s = document.createElementNS(SVG, 'svg');
+    s.setAttribute('width', '14'); s.setAttribute('height', '14');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '1.9');
+    s.setAttribute('stroke-linecap', 'round');
+    paths.forEach(function (d) {
+      var p = document.createElementNS(SVG, 'path'); p.setAttribute('d', d); s.appendChild(p);
+    });
+    return s;
+  }
+
+  function build(maximized) {
+    // The focus ring for the three buttons below. It cannot be an inline style - :focus-visible
+    // is a selector - and this bar is built in script with no stylesheet of its own, so the rule
+    // is injected once. Same 2px accent outline at offset 1px every other control on every screen
+    // paints, because two focus rings in one window is two vocabularies.
+    if (!document.getElementById('gx-chrome-focus')) {
+      var fs = document.createElement('style');
+      fs.id = 'gx-chrome-focus';
+      fs.textContent = '#gx-chrome [role="button"]:focus-visible{outline:2px solid var(--gx-accent);'
+        + 'outline-offset:1px;}';
+      document.head.appendChild(fs);
+    }
+
+    var bar = document.createElement('div');
+    bar.id = 'gx-chrome';
+    bar.setAttribute('data-tauri-drag-region', '');
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:40px;display:flex;' +
+      'align-items:center;justify-content:flex-end;gap:2px;padding:0 6px;z-index:9999;' +
+      '-webkit-app-region:drag;user-select:none;';
+
+    function btn(paths, title, onClick, danger) {
+      var b = document.createElement('div');
+      b.title = title;
+      b.setAttribute('role', 'button');
+      // MINIMISE / MAXIMISE / CLOSE ARE CONTROLS (round 6c). They carried the role and nothing
+      // else: no tab stop, no name a screen reader is obliged to read, and no key that works.
+      // On Windows and Linux this bar REPLACES the OS title bar - so without these three lines a
+      // keyboard-only player on those platforms cannot close the launcher from inside it.
+      //
+      // aria-label RATHER THAN title ALONE: `title` is the last fallback in the accessible-name
+      // computation and several screen readers are configured never to reach it. Both are kept in
+      // sync wherever the maximise button relabels itself.
+      b.setAttribute('tabindex', '0');
+      b.setAttribute('aria-label', title);
+      b.style.cssText = 'width:40px;height:26px;display:flex;align-items:center;' +
+        'justify-content:center;color:#96999E;border-radius:3px;cursor:default;' +
+        '-webkit-app-region:no-drag;transition:background .12s,color .12s;';
+      b.appendChild(icon(paths));
+      b.addEventListener('mouseenter', function () {
+        b.style.background = danger ? '#E86A6A' : '#232327';
+        b.style.color = danger ? '#ECEEF0' : '#ECEEF0';
+      });
+      b.addEventListener('mouseleave', function () {
+        b.style.background = 'transparent'; b.style.color = '#96999E';
+      });
+      b.addEventListener('click', function (e) { e.stopPropagation(); onClick(b); });
+      // ENTER AND SPACE. An element wearing role="button" is activated by neither key on its own;
+      // only a real <button> gets that from the platform, and this bar cannot be one - it is a
+      // drag region with `-webkit-app-region` children, and a <button> inside a drag region is
+      // swallowed by the region on Windows.
+      b.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault(); e.stopPropagation(); onClick(b);
+        }
+      });
+      return b;
+    }
+
+    var MAX_ON  = ['M8 3H5a2 2 0 0 0-2 2v3', 'M21 8V5a2 2 0 0 0-2-2h-3',
+                   'M3 16v3a2 2 0 0 0 2 2h3', 'M16 21h3a2 2 0 0 0 2-2v-3'];
+    var MAX_OFF = ['M8 3v3a2 2 0 0 1-2 2H3', 'M21 8h-3a2 2 0 0 1-2-2V3',
+                   'M3 16h3a2 2 0 0 1 2 2v3', 'M16 21v-3a2 2 0 0 1 2-2h3'];
+
+    // Every invoke carries a .catch: a rejected window op with no handler is silent, and a
+    // button that sometimes does nothing with no explanation reads as a broken launcher.
+    bar.appendChild(btn(['M5 12h14'], 'Minimise', function () {
+      invoke('window_minimize').catch(function (e) { console.error('minimize:', e); });
+    }));
+
+    var maxBtn = btn(maximized ? MAX_OFF : MAX_ON, 'Maximise', function (b) {
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var old = b.querySelector('svg');
+        if (old) { b.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), old); }
+        b.title = isMax ? 'Restore' : 'Maximise';
+        b.setAttribute('aria-label', b.title);
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+    bar.appendChild(maxBtn);
+
+    bar.appendChild(btn(['M18 6 6 18', 'm6 6 12 12'], 'Close', function () {
+      invoke('window_close').catch(function (e) { console.error('close:', e); });
+    }, true));
+
+
+    document.body.appendChild(bar);
+
+    // DOUBLE-CLICK THE TITLE ROW TO MAXIMISE. Every OS does this and the drag region swallowed
+    // it, so the app's own title bar behaved worse than the one it replaced.
+    bar.addEventListener('dblclick', function (e) {
+      if (e.target.closest && e.target.closest('[role="button"]')) { return; }
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var b = maxBtn.querySelector('svg');
+        if (b) { maxBtn.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), b); }
+        maxBtn.title = isMax ? 'Restore' : 'Maximise';
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+
+    // RESIZE GRIPS. set_decorations(false) removed the OS frame, and with it the resize borders -
+    // the window could be maximised but never dragged to a size. These eight invisible strips put
+    // them back, handing the drag to the OS (window_start_resize) rather than tracking the mouse
+    // here. 6px reads as a border and is still easy to hit; the corners are 12px because corners
+    // are aimed at rather than swept into. They sit UNDER the chrome bar's z-index so the buttons
+    // always win, and each one stops the click reaching the label router.
+    var GRIPS = [
+      ['north',      'top:0;left:12px;right:12px;height:6px;',        'ns-resize'],
+      ['south',      'bottom:0;left:12px;right:12px;height:6px;',     'ns-resize'],
+      ['west',       'left:0;top:12px;bottom:12px;width:6px;',        'ew-resize'],
+      ['east',       'right:0;top:12px;bottom:12px;width:6px;',       'ew-resize'],
+      ['north-west', 'top:0;left:0;width:12px;height:12px;',          'nwse-resize'],
+      ['north-east', 'top:0;right:0;width:12px;height:12px;',         'nesw-resize'],
+      ['south-west', 'bottom:0;left:0;width:12px;height:12px;',       'nesw-resize'],
+      ['south-east', 'bottom:0;right:0;width:12px;height:12px;',      'nwse-resize']
+    ];
+    GRIPS.forEach(function (g) {
+      var el = document.createElement('div');
+      el.setAttribute('data-gx-noroute', '');
+      el.style.cssText = 'position:fixed;z-index:9998;-webkit-app-region:no-drag;' +
+                         g[1] + 'cursor:' + g[2] + ';';
+      el.addEventListener('mousedown', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        invoke('window_start_resize', { direction: g[0] })
+          .catch(function (e) { console.error('resize:', e); });
+      });
+      document.body.appendChild(el);
+    });
+  }
+
+  // F11 EVERYWHERE, including macOS, where the window keeps its own decorations and this block
+  // otherwise does nothing. Fullscreen is not maximised: it gives the whole display to the
+  // artboard, which the fit script then scales into. Escape leaves, because a player who cannot
+  // see a title bar needs a way out that does not require finding one.
+  var isFull = false;
+  function toggleFullscreen() {
+    invoke('window_fullscreen_toggle')
+      .then(function (v) { isFull = !!v; })
+      .catch(function (e) { console.error('fullscreen:', e); });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); return; }
+    if (e.key === 'Escape' && isFull) { e.preventDefault(); toggleFullscreen(); }
+  });
+
+  // Held for this too (gx-settle.js): on Windows the minimise / maximise / close buttons are part of the first frame,
+  // not a pop-in. The fit block placed the artboard before the bar existed; below 1:1 it must sit under the bar, so
+  // it is fitted again now rather than at the player's first resize.
+  window.gxSettle.wait(invoke('window_custom_chrome').then(function (wants) {
+    if (wants) { build(false); window.dispatchEvent(new Event('resize')); }
+  }).catch(function (e) { console.error('window_custom_chrome failed:', e); }));
+})();
+</script>
+
+<!-- gx-fit-wired -->
+<script>
+// Fit the artboard to the window.
+//
+// Every screen's root is a fixed 1280x720 box, because that is what the design IS - a fixed
+// composition, not a responsive layout. Maximising therefore did nothing: the box stayed its
+// size in the corner and the rest of the window was empty ground.
+//
+// Scaling it is the honest fix. Reflowing eleven screens into a responsive layout would be a
+// redesign, would need the designer, and would not obviously be better - the artboards are laid
+// out to be read at one set of proportions. So: scale by the smaller of the two ratios, keep the
+// aspect, and centre what is left over.
+//
+// Runs standalone in a browser too - it needs no Tauri - so the screens still review correctly
+// at any window size.
+(function () {
+  var root = null;
+  function findRoot() {
+    var kids = document.body ? document.body.children : [];
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      if (el.id === 'gx-chrome') { continue; }          // the title row is window-scale, not art-scale
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') { continue; }
+      var w = parseFloat(el.style.width), h = parseFloat(el.style.height);
+      if (w >= 1000 && h >= 600) { return el; }
+    }
+    return null;
+  }
+  function fit() {
+    if (!root) { root = findRoot(); }
+    if (!root) { return; }
+    var w = parseFloat(root.style.width)  || 1280;
+    var h = parseFloat(root.style.height) || 720;
+    var iw = window.innerWidth, ih = window.innerHeight;
+    var s = Math.min(iw / w, ih / h);
+    var ty = (ih - h * s) / 2;
+    // The injected title row (#gx-chrome) is window-scale and 40px tall. At s >= 1 the
+    // artboard's own 40px top spacer scales to >= 40px, so the bar overlays empty ground.
+    // Below s = 1 the spacer shrinks under the bar and the bar starts stealing clicks from
+    // real content — so refit into the strip BELOW the bar instead.
+    if (s < 1 && document.getElementById('gx-chrome')) {
+      var avail = Math.max(ih - 40, 40);
+      s = Math.min(iw / w, avail / h);
+      ty = 40 + (avail - h * s) / 2;
+    }
+    root.style.transformOrigin = 'top left';
+    root.style.transform = 'translate(' + ((iw - w * s) / 2) + 'px,' + ty + 'px) scale(' + s + ')';
+  }
+  document.documentElement.style.overflow = 'hidden';
+  if (document.body) { document.body.style.overflow = 'hidden'; }
+  window.addEventListener('resize', fit);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fit);
+  } else {
+    fit();
+  }
+  fit();
+})();
+</script>
+</body>
+</html>

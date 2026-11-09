@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeneralsX launcher — screens</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="./tokens.css">
+<style>
+  body{margin:0;background:var(--gx-backdrop-2);color:var(--gx-ink);
+       font-family:var(--gx-font-ui);padding:36px 44px 60px}
+  h1{font-size:var(--gx-fs-230);font-weight:var(--gx-fw-bold);
+     letter-spacing:var(--gx-ls-tight);margin:0 0 6px}
+  p.sub{color:var(--gx-ink-dim);font-size:var(--gx-fs-125);max-width:78ch;
+        margin:0 0 4px;line-height:1.6}
+  p.sub a{color:var(--gx-accent)} p.sub a:hover{color:var(--gx-accent-hi)}
+  h2{font-size:var(--gx-fs-eyebrow);letter-spacing:var(--gx-ls-caps);
+     text-transform:uppercase;color:var(--gx-ink-dim);font-weight:var(--gx-fw-medium);
+     margin:34px 0 12px}
+  ul{list-style:none;padding:0;margin:0;display:grid;
+     grid-template-columns:repeat(auto-fill,minmax(268px,1fr));gap:2px}
+  a.card{display:block;background:var(--gx-surface-2);border:1px solid var(--gx-line);
+         padding:14px 16px;text-decoration:none;color:inherit;
+         transition:background 140ms var(--gx-ease-out),border-color 140ms var(--gx-ease-out)}
+  a.card:hover{background:var(--gx-surface-4);border-color:var(--gx-accent-edge)}
+  a.card b{display:block;font-size:var(--gx-fs-130);font-weight:var(--gx-fw-medium)}
+  a.card span{display:block;color:var(--gx-ink-faint);font-size:var(--gx-fs-110);
+              font-family:var(--gx-font-mono);margin-top:3px}
+</style>
+</head>
+<body>
+<h1>Launcher screens</h1>
+<p class="sub">Eleven screens, converted from the artboards in <code>design/*.dc.html</code> and
+scoped so they cannot cross-wire. Static HTML and CSS — no framework, no build step, no IPC —
+so each opens standalone in a browser. The <a href="./verify.html">fidelity check</a> compares
+every one against its artboard property by property.</p>
+<p class="sub">The two <b>Set up</b> screens below are the exception and are not in that check:
+they were written by hand, because there is no artboard for them. They follow the same structure,
+the same tokens and the same three injected script blocks.</p>
+<p class="sub"><code>StatusStates</code>, <code>Sidebar</code> and <code>BottomBar</code> are not
+here on purpose: they are component sheets showing variants side by side, not screens.
+<code>Main.dc.html</code> is the superseded WinForms first draft.</p>
+
+<h2>Home</h2>
+<ul>
+  <li><a class="card" href="./screens/MainWeb.html"><b>Home</b><span>MainWeb</span></a></li>
+  <li><a class="card" href="./screens/MainUpdate.html"><b>Home — update available</b><span>MainUpdate</span></a></li>
+</ul>
+
+<h2>Options</h2>
+<ul>
+  <li><a class="card" href="./screens/OptionsGeneral.html"><b>General</b><span>OptionsGeneral</span></a></li>
+  <li><a class="card" href="./screens/Options.html"><b>Graphics</b><span>Options</span></a></li>
+  <li><a class="card" href="./screens/OptionsHud.html"><b>HUD</b><span>OptionsHud</span></a></li>
+  <li><a class="card" href="./screens/OptionsKeys.html"><b>Keys</b><span>OptionsKeys</span></a></li>
+  <li><a class="card" href="./screens/OptionsNetwork.html"><b>Network</b><span>OptionsNetwork</span></a></li>
+  <li><a class="card" href="./screens/OptionsDiag.html"><b>Diagnostics</b><span>OptionsDiag</span></a></li>
+  <li><a class="card" href="./screens/OptionsAbout.html"><b>About</b><span>OptionsAbout</span></a></li>
+</ul>
+
+<h2>First run — one platform each, never both</h2>
+<ul>
+  <li><a class="card" href="./screens/SetupMac.html"><b>Set up on macOS</b><span>SetupMac</span></a></li>
+  <li><a class="card" href="./screens/SetupLinux.html"><b>Set up on Linux</b><span>SetupLinux</span></a></li>
+</ul>
+<p class="sub">Each of these is shown only on the platform it names, decided at runtime from
+<code>about_info().platform</code> — never from the user agent, because one set of files ships
+everywhere. Windows has neither, on purpose: its installer already knows where the retail data is.
+Opened standalone here they show their sample content, which is what the Tauri guard in every
+screen is for.</p>
+
+<h2>Changelogs</h2>
+<ul>
+  <li><a class="card" href="./screens/Changelogs.html"><b>Changelogs</b><span>Changelogs</span></a></li>
+  <li><a class="card" href="./screens/ChangelogsEmpty.html"><b>Changelogs — empty</b><span>ChangelogsEmpty</span></a></li>
+</ul>
+</body>
+</html>

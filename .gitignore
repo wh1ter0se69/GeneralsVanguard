@@ -1,0 +1,183 @@
+# Ignore everything starting with dot, except specific files.
+.*
+!.editorconfig
+!.gitignore
+!.gitattributes
+!.github
+!.devin
+!.gitmodules
+
+*.user
+*.ncb
+/build*
+nbproject/
+project/
+doxygen/
+*.a
+*.o
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+*.so*
+CPackConfig.cmake
+CPackSourceConfig.cmake
+*.spec
+*.ncb
+*.sdf
+*.suo
+*.sln
+*.vcxproj*
+*.vcproj
+.cproject
+.project
+*~
+!*.exe
+*.lastbuildstate
+*.unsuccessfulbuild
+*.tlog
+*.idb
+*.cd
+*.tmp
+*.bak
+thumbs.db
+/CMakeUserPresets.json
+/.cache
+.clang-format
+/Dependencies/MaxSDK/maxsdk
+/tmp/
+
+## AI assistant config (user-specific), EXCEPT the skills
+#
+# GeneralsX @bugfix Claude 12/08/2026 The skills are tracked, for the same reason /CLAUDE.md is:
+# they are not user-specific, they hold the working protocol the sessions depend on, and sessions
+# run on the Mac, the Linux VPS and the Windows box. Ignored, a clone elsewhere has none of it.
+#
+# THE THREE-LINE SHAPE IS LOAD-BEARING AND TOOK TWO WRONG ATTEMPTS.
+#   * Line 2 of this file is `.*`, which excludes the .claude DIRECTORY itself - so it is that
+#     rule, not the `/.claude/` one, that was actually hiding these. Re-include the directory
+#     first or nothing beneath it is reachable.
+#   * Git NEVER DESCENDS into an excluded directory, so a `!` re-include under one can never
+#     fire. The contents must be excluded (`/.claude/*`), not the directory.
+# Written either of the wrong ways, the exception is silently dead: `git add` reports "paths are
+# ignored", adds nothing, and a commit still lands carrying only this file.
+!/.claude/
+/.claude/*
+!/.claude/skills/
+!/.claude/skills/**
+# GeneralsX @bugfix Claude 12/08/2026 The SKILLS are not user-specific and are tracked, for the
+# same reason /CLAUDE.md below is: they hold the working protocol - which resource a session may
+# claim, why a claim is proven both directions, how a handback is typed - and sessions run on the
+# Mac, the Linux VPS and the Windows box. Ignored, a clone elsewhere has none of it.
+#
+# It also hid them from the gate that exists to catch exactly this. `gx promote` warns about
+# untracked work because a file never `git add`ed is absent from the merge candidate - but an
+# IGNORED file is invisible to `git status` too, so both new skills sat on disk while the gate
+# reported "nothing uncommitted-and-new" and passed. A path that matters must be trackable, or
+# no amount of checking will see it.
+!/.claude/skills/
+!/.claude/skills/**
+# GeneralsX @bugfix Claude 30/07/2026 /CLAUDE.md is deliberately NOT ignored any more.
+# It was listed here as "user-specific", but this project's copy holds engineering rules the
+# work depends on - lockstep limits, atomic four-peer rebuilds, digest path lists, shell traps -
+# and sessions run on the Mac, the Linux VPS and the Windows box. Leaving it untracked means a
+# clone on another machine has none of them, which is how a session there rebuilt against the
+# wrong assumptions. Personal preferences belong in the operator's own ~/.claude/CLAUDE.md.
+
+## IntelliJ, CLion, etc.
+/.idea
+
+# IntelliJ-style CMake bits
+cmake-build-*/
+
+## Ninja
+.ninja_deps
+.ninja_log
+build.ninja
+
+## Python
+__pycache__/
+*.pyc
+
+## Build Logs (generated during development)
+/logs/
+GeneralsMD/logs/
+Generals/logs/
+
+# vcpkg artifacts (generated dependencies)
+/vcpkg_installed/
+
+# External reference repositories (large, don't commit)
+# references/
+
+# Release bundles
+GeneralsX-macos-*.zip
+GeneralsXZH-macos-*.zip
+GeneralsX-linux-*.tar.gz
+GeneralsXZH-linux-*.tar.gz
+# GeneralsX @build Claude 27/07/2026 iOS packages are build output, not source - the signed
+# GeneralsXZH-ios.ipa carries the full game assets and runs to 2 GB.
+*.ipa
+
+# flatpak build files (exclude staging/build dirs but track scripts and manifests)
+.flatpak-builder/
+flatpak/staging/
+flatpak/*.flatpak
+
+#tmp and log files on root folder
+logs_*.zip
+*.log
+# iOS shell-app build products (XcodeGen regenerates the project from ios/project.yml)
+ios/build/
+ios/GeneralsXZH.xcodeproj/
+
+# Local iOS signing identity (per-machine, never shared)
+# Glob, not the bare name: a hand-made copy like signing.local.env.bak was NOT covered by the
+# exact match and showed up as untracked, one `git add -A` away from publishing the identity.
+ios/signing.local.env*
+
+# GeneralsX @bugfix Claude 29/07/2026 Operator-specific hosts, never committed.
+# GeneralsX @bugfix Claude 16/08/2026 Glob, for the same reason spelled out for the signing
+# identity twelve lines up - and this file had already grown the exact copy that comment predicts.
+# scripts/test/local.env.bak-before-win2 held VPS, WIN, WIN_HOST and RELAY_IP, was untracked but
+# NOT ignored, and this repository is intended to go public. A bare name only covers the file
+# somebody remembered to name.
+scripts/test/local.env*
+# ...but the template is the file that tells a newcomer which names to set, so it is exempt. It
+# survives today only because it is already tracked and git does not apply ignore rules to tracked
+# paths; that is luck, not intent, and it would disappear from a fresh clone the moment anyone
+# untracked it. Say so explicitly instead.
+!scripts/test/local.env.example
+build/macos-vulkan/.verified-ref
+.publish-deny
+ios/project.yml.bak*
+dist/launcher/
+# Cargo build output for the Tauri launcher. Not ignored until 23/08/2026, which meant the first
+# `cargo test -p gxio` in a fresh worktree left ~1 GB of untracked build artefacts one `git add -A`
+# away from the index - the same failure mode the local.env note twenty lines up describes.
+scripts/launcher-rs/target/
+
+# GeneralsX @tooling Claude 20/09/2026 The admin panel's map previews. scripts/tooling/map-previews.py
+# extracts these from a local game install as a DEPLOY step (see tools/admin/panel/README.md); they
+# are EA's artwork and this repository is intended to go public, so they are never committed. A fresh
+# clone has none, and the panel draws its letter tile instead - which is also what a custom map does.
+tools/admin/panel/public/maps/
+
+# GeneralsX 23/09/2026 sign-ins and bot keys are bearer credentials - never commit one
+GXLogin*.txt
+*.gxbot
+*.key
+
+# Generated from the Community Patch archive by scripts/tooling/make-weapon-ini.py; never commit it.
+# (A deploy whose runtime folder is this checkout's GeneralsZH/ writes it here.)
+GeneralsZH/Data/INI/Weapon.ini
+GeneralsZH/Data/INI/ObjectCreationList.ini
+GeneralsZH/Data/INI/ParticleSystem.ini
+GeneralsZH/Data/INI/Object/Shared/Weapon/SupW_AuroraFuelAirBomb.ini
+GeneralsZH/Data/INI/Object/Shared/Weapon/SupW_AuroraFuelAirGas.ini
+
+# GeneralsX @tooling Claude 03/10/2026 The admin panel's IPv4 -> country table. scripts/tooling/geoip-country.py builds it
+# at DEPLOY time from DB-IP's monthly file, pinned by URL and sha256; regenerated, never committed.
+tools/admin/panel/public/geo/

@@ -1,0 +1,8 @@
+; GeneralsX @feature B · dlss-fg-1 14/10/2026 Windows exports of VK_LAYER_GX_queue_census (TEST-ONLY): the loader's entry points are
+; declared by vulkan.h / vk_layer.h without dllexport, so they are exported here (MSVC C2375 otherwise).
+EXPORTS
+    vkNegotiateLoaderLayerInterfaceVersion
+    vkGetInstanceProcAddr
+    vkGetDeviceProcAddr
+    gxCensusTestHoldNext
+    gxCensusFlush

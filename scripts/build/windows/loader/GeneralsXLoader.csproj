@@ -1,0 +1,139 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    GeneralsX Loader - the thing a friend actually double-clicks.
+
+    GeneralsX @feature Claude 08/08/2026
+
+    SELF-CONTAINED ON PURPOSE. A friend must not be told to install a .NET runtime before they can
+    install a game; the whole point of this program is that it is the only thing they have to run.
+    That costs about 70 MB in the zip and buys a support conversation that never happens.
+
+    WinForms rather than WPF: this is five controls and a progress bar. WPF would add XAML, a
+    designer and a larger trimming surface for no user-visible difference.
+
+    PublishSingleFile with IncludeNativeLibrariesForSelfExtract so the result is ONE file. A folder
+    of 200 DLLs beside the exe reads as malware to a normal person, and they are right to hesitate.
+
+    NOT trimmed: WinForms uses reflection all over its data binding, and a trimmed WinForms app
+    fails at runtime in ways that do not show up at build time. This is not a place to save 20 MB.
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+
+    <AssemblyName>GeneralsXLauncher</AssemblyName>
+    <RootNamespace>GeneralsX.Loader</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>GeneralsX Launcher</Product>
+    <Company>GeneralsX</Company>
+    <Description>GeneralsX Launcher - installs and updates GeneralsX without touching your Zero Hour installation.</Description>
+
+    <!--
+      Lets this project be BUILT from macOS/Linux (CI, or a dev box with no Windows). It only
+      downloads the Windows targeting packs; the produced exe is identical either way. Without it
+      the SDK refuses with NETSDK1100 on any non-Windows host, which would make the CI job below
+      Windows-only for no reason.
+    -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>true</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <PublishTrimmed>false</PublishTrimmed>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <!--
+      asInvoker, and it is not decoration. Windows' installer-detection heuristic elevates a
+      legacy-looking executable, and an unsigned program asking for administrator is exactly the
+      shape people are right to refuse. Everything this program writes lives under the user's own
+      %LOCALAPPDATA% and Documents. There is nothing here to elevate for.
+    -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+
+    <!--
+      The game's own icon, copied from GeneralsMD/Code/Main/Generals.ico. Copied rather than
+      referenced across the repo: this project is built standalone on a Windows box and by CI, and a
+      ../../../.. path into the engine tree breaks the moment either is built from a different root.
+      It is 15 KB and it is the difference between a friend seeing a recognisable C&C icon in their
+      downloads folder and seeing a generic blank exe they are right to be suspicious of.
+    -->
+    <ApplicationIcon>GeneralsX.ico</ApplicationIcon>
+
+    <!-- The single-file host has no place to put a .pdb a friend would ever read. -->
+    <DebugType>none</DebugType>
+    <!--
+      GeneralsX @refactor Claude 19/08/2026 THIS PROJECT NOW HAS NO THIRD-PARTY UI DEPENDENCY.
+      MetroModernUI was the only one, and the NU1701 justification that stood here - it ships .NET
+      Framework 4.x assemblies consumed through the compatibility shim - went with it. Two warnings
+      per build disappear as a side effect.
+
+      It was removed for MetroCheckBox, which cannot be made DPI-correct: a 12px hardcoded tick box
+      and a label font built in PIXEL units inside OnPaint, where Control.Font and ScaleControl
+      cannot reach it. The rest of what the library still contributed was unwanted - see the note in
+      LauncherForm's constructor.
+    -->
+    <NoWarn>$(NoWarn)</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      One real frame of the game, behind the HUD previews on the Options > HUD page. See
+      HudGround.cs for where it came from and why it is 33 KB rather than a screenshot fetched
+      from the CDN like the ones in Previews.cs.
+
+      EMBEDDED, NOT FETCHED, AND THAT IS THE OPPOSITE OF WHAT Previews.cs ARGUES FOR - on purpose.
+      Those previews are per-option data that changes when an archive changes, so shipping them in
+      the exe would make correcting one screenshot cost every player the whole runtime tier. This
+      one is not data: it is the backdrop the size arithmetic is judged against, it never changes
+      when an archive does, and a preview of "is this text legible over terrain" that says
+      "unavailable offline" has failed at the only question it exists to answer.
+
+      LogicalName is set rather than inherited so the lookup in HudGround.cs does not depend on the
+      SDK's RootNamespace-plus-filename rule staying what it is.
+    -->
+    <EmbeddedResource Include="HudGround.jpg" LogicalName="GeneralsX.Loader.HudGround.jpg" />
+  </ItemGroup>
+  <!--
+    THE PREVIEW ART, INSIDE THE EXE.
+
+    GeneralsX @feature Claude 17/08/2026
+
+    Previews used to be fetched, and the argument for that was good: a picture is data, and this
+    project's founding rule is that data must not need a client release. It was still the wrong
+    trade. Fetched art is absent exactly when somebody is looking at the options screen without a
+    connection, and "Preview unavailable offline" was the ONLY sentence five of five preview boxes
+    ever displayed. The network path survives as a strictly additive upgrade - it can fill in art
+    for an option this build has none for, so a preview for a NEWLY shipped archive is still a
+    publish rather than a release - but the picture a player sees by default now ships with the
+    program and cannot go missing.
+
+    WHAT IT COSTS, measured rather than estimated: the one screenshot is 348,076 bytes. The launcher
+    rides the ~63.5 MB runtime payload tier, so that is about half a percent of a tier every player
+    already downloads, and EnableCompressionInSingleFile is on. A JPEG does not compress further, so
+    treat 340 KB as the real number. If this directory ever approaches a few megabytes the answer is
+    NOT to go back to fetching - it is to keep one base per aspect ratio and transparent layers for
+    the rest, which is what the layer format is for: a layer is the changed region, not a frame.
+
+    LogicalName IS SET EXPLICITLY and must stay that way. MSBuild's default resource naming mangles
+    a filename into an identifier-ish form, and these names begin with '!' and contain several dots
+    because they are named after overlay archives. A resource whose name is not the one the code
+    asks for is not a build error - it is a picture that silently never appears.
+  -->
+  <ItemGroup>
+    <EmbeddedResource Include="previews\**\*.png;previews\**\*.jpg;previews\**\*.txt">
+      <LogicalName>gxpreview/%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

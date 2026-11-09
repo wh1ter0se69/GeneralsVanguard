@@ -1,0 +1,47 @@
+[package]
+name = "gxio"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# `engine.rs::install_engine` takes a `&gxcore::Artifact` (the manifest row selector already lives
+# in gxlauncher, but the DOWNLOAD-VERIFY-INSTALL pipeline that consumes one row belongs in gxio,
+# beside every other file this launcher fetches). `update.rs::verify_staged` also lives here now,
+# lifted from gxlauncher, and needs `gxcore::ArtifactHasher` to hash a staged download.
+gxcore = { path = "../gxcore" }
+
+# `release::game_data_dir` has to resolve the Windows user-data root the way the ENGINE resolves
+# it - SHGetKnownFolderPath(FOLDERID_Documents), then GeneralsX\GeneralsZH - because
+# `%USERPROFILE%\Documents` is simply the wrong directory on any machine with OneDrive Known Folder
+# Move or Group Policy folder redirection, and a launcher writing Options.ini there is a setting
+# that silently does nothing. Win32_System_Registry: the engine's one-time migration still COPIES
+# FROM `<Documents>\<UserDataLeafName, else the default leaf>` (WinMain.cpp), so the launcher's
+# reads of that legacy folder resolve the same leaf (`release::windows_user_data_leaf`); GeneralsX's
+# own folder no longer depends on it.
+#
+# ALREADY IN THE LOCK at this exact version as tauri's own transitive dependency (via dirs-sys,
+# muda and softbuffer - `cargo tree --target x86_64-pc-windows-msvc -p gxlauncher -i
+# windows-sys@0.61.2`), so this adds no crate to the lock and no code to the binary; the same
+# situation as gxlauncher's tauri-runtime and core-graphics entries. Features are additive, so
+# naming these cannot shrink what another crate asked for.
+#
+# Windows-only on purpose: gxio has no other external dependency, and the other three platforms
+# resolve their user-data root from the environment alone.
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-sys = { version = "0.61", features = [
+    "Win32_Foundation",
+    # EnumDisplaySettingsW, for options::display_refresh_hz - the max-FPS default the Graphics screen shows.
+    "Win32_Graphics_Gdi",
+    "Win32_System_Com",
+    "Win32_System_Registry",
+    # ProcessIdToSessionId, for game::engine_pids - only the launcher's own session's games count.
+    "Win32_System_RemoteDesktop",
+    "Win32_UI_Shell",
+] }
+
+# TEST-ONLY (lead C33, 12/10/2026). ciguard's second gate parses .github/workflows/launcher-rs.yml with a real YAML parser,
+# because Codex ci-r4..r8 kept finding blind spots in a line scanner alone. serde_yaml is deprecated upstream (archived 2024)
+# and pulls unsafe-libyaml; licences MIT OR Apache-2.0 and MIT. A dev-dependency, so no shipped binary links it
+# (`cargo tree -e normal -i serde_yaml` finds nothing). Never move it to [dependencies].
+[dev-dependencies]
+serde_yaml = "=0.9.34"

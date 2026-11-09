@@ -1,0 +1,1291 @@
+<!doctype html>
+<html lang="en" data-gx-gate="pending">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeneralsX launcher &mdash; Set up on Linux</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="./SetupLinux.css">
+<!-- Held hidden until what it loads is on it (gx-settle.js): the first frame is the final one. -->
+<script src="./gx-settle.js" onerror="window.gxSettle={wait:function(p){return p},whenShown:function(f){f()},picture:function(){},held:function(){return false}}"></script>
+<style id="gx-ground">
+/* The artboards are a fixed 1280x720 box. The launcher window's content area is taller than
+   that, and anything the box does not cover falls through to the webview's own default
+   background - which is WHITE. That is the strip along the bottom edge on macOS.
+   Paint the page ground behind the artboard so the uncovered area matches the design instead
+   of flashing white. Layout is untouched: this sits BEHIND the box, it does not resize it. */
+html, body { margin: 0; }
+/* THE BACKDROP LIVES ON THE VIEWPORT, NOT THE ARTBOARD. The artboard is a fixed
+   1280x720 composition that the fit script scales, so a backdrop painted on IT ends at
+   its scaled edge and every letterboxed band fell through to the flat page ground -
+   which is a different colour from the gradient, and read as the window being split in
+   two. Here it is one continuous ground behind everything, so there is no seam to find
+   at any window size. */
+body {
+  background: radial-gradient(1100px 520px at 18% -12%, var(--gx-glow) 0%, var(--gx-glow-fade) 62%),
+      linear-gradient(180deg, var(--gx-backdrop-1) 0%, var(--gx-backdrop-2) 46%, var(--gx-backdrop-3) 100%);
+  background-attachment: fixed;
+}
+/* Tells the platform to draw its own widgets - scrollbars, dropdowns, spinners - in their dark
+   variant. Without it Windows draws a WHITE scrollbar track with arrow buttons down the side of
+   a black launcher, which is what the operator saw. */
+html { color-scheme: dark; }
+/* An app, not a document: text does not highlight when a click drags a pixel. Anything meant to
+   be copied (the network-test paste line, file paths) opts back in with .gx-selectable. */
+body { -webkit-user-select: none; user-select: none; cursor: default; }
+.gx-selectable, .gx-selectable * { -webkit-user-select: text; user-select: text; cursor: text; }
+
+/* The scrollbar itself, so it matches the design rather than merely being dark. Uses the same
+   surface stack as the panels: track disappears into the page, thumb is one step up from a
+   card border, and it lightens on hover like every other control here. WebKit and Chromium
+   both honour these, which covers macOS, Windows and Linux webviews. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #2E2E33;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #3D3D45; background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* No stepper arrows: the design has none anywhere else. */
+::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+/* The standard property, for engines that prefer it over the WebKit ones. */
+* { scrollbar-width: thin; scrollbar-color: #2E2E33 transparent; }
+body { min-height: 100vh; }
+</style>
+<style id="gx-gate">
+/* THE PLATFORM GATE, ON THE DOCUMENT ELEMENT. The attribute is in the markup, so this screen
+   starts hidden and is revealed only once something has said which platform this is - a page that
+   cannot learn the platform must show nothing rather than the wrong thing. The gate script below
+   removes it on a match, and removes it immediately when there is no Tauri at all, which is how
+   this file still opens standalone in a browser for design review.
+
+   visibility, not display: the fit script measures the inline width and height of this box and the
+   chrome injector appends beside it, and neither should have to care that the page is mid-gate. */
+html[data-gx-gate] #gx-art { visibility: hidden; }
+</style>
+</head>
+<body class="gx-screen gx-s-setuplinux">
+<div id="gx-art" style="width: 1280px; height: 720px; background: transparent;
+    color: var(--gx-ink); display: flex; flex-direction: column; position: relative; overflow: hidden;">
+
+  <div style="position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--gx-accent-a28) 22%, var(--gx-accent-a28) 78%, transparent);"></div>
+
+  <div style="height: 40px; flex-shrink: 0;"></div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; padding: 6px 44px 0 44px; min-height: 0;">
+
+    <div class="gx-rise" data-gx-noroute>
+      <div style="display: flex; align-items: baseline; gap: 12px;">
+        <div style="font-family: var(--gx-font-display); font-size: var(--gx-fs-520); font-weight: 700; letter-spacing: 1.5px; line-height: 1.12;">GENERALS</div>
+        <div style="font-family: var(--gx-font-display); font-size: var(--gx-fs-520); font-weight: 700; color: var(--gx-accent); line-height: 1.12; text-shadow: 0 0 26px var(--gx-accent-a50);">X</div>
+      </div>
+      <div style="width: 104px; height: 3px; background: linear-gradient(90deg, var(--gx-accent), var(--gx-accent-a15)); margin-top: 13px;"></div>
+      <div style="font-size: var(--gx-fs-135); color: var(--gx-ink-dim); margin-top: 11px; letter-spacing: 0.15px;">First run — point GeneralsX at your copy of Zero Hour</div>
+    </div>
+
+    <div style="display: flex; gap: 18px; margin-top: 24px; min-height: 0; flex-grow: 1;">
+
+      <!-- THIS COLUMN SCROLLS. Its height is not ours to choose: the engine step prints whatever
+           sentence the launcher gives it, and the honest one when no download is published runs to
+           four lines. Measured on this page with the engine absent: the note card below ended 705px
+           down a 720px artboard, i.e. underneath the bottom bar, clipped away with no scrollbar and
+           nothing to indicate a paragraph was missing. flex:1 1 auto with min-height:0 is what lets
+           it shrink inside the row; the cards keep flex-shrink:0 so they scroll rather than squash. -->
+      <div class="gx-rise" style="width: 322px; flex-shrink: 0; display: flex; flex-direction: column; gap: 10px; animation-delay: 50ms; min-height: 0; overflow-y: auto; padding-right: 4px;">
+        <div data-gx-noroute style="flex-shrink: 0; font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600;">What will happen</div>
+
+        <div class="gx-card" style="flex-shrink: 0; padding: 9px 16px; display: flex; flex-direction: column;">
+          <div class="gx-step" id="gx-step-data">
+            <div class="gx-dot"></div>
+            <div style="min-width: 0;">
+              <div style="font-size: var(--gx-fs-130); font-weight: 600;">Use your Zero Hour data</div>
+              <div class="gx-detail gx-selectable" style="font-size: var(--gx-fs-115); color: var(--gx-ink-dim); line-height: 1.5; margin-top: 3px; word-break: break-all;">Nothing chosen yet.</div>
+            </div>
+          </div>
+          <div class="gx-step" id="gx-step-engine">
+            <div class="gx-dot"></div>
+            <div style="min-width: 0;">
+              <div style="font-size: var(--gx-fs-130); font-weight: 600;">Use the GeneralsX AppImage</div>
+              <div class="gx-detail gx-selectable" style="font-size: var(--gx-fs-115); color: var(--gx-ink-dim); line-height: 1.5; margin-top: 3px; word-break: break-all;">Checking&hellip;</div>
+            </div>
+          </div>
+          <div class="gx-step" id="gx-step-patch">
+            <div class="gx-dot"></div>
+            <div style="min-width: 0;">
+              <div style="font-size: var(--gx-fs-130); font-weight: 600;">Community patch</div>
+              <div class="gx-detail" style="font-size: var(--gx-fs-115); color: var(--gx-ink-dim); line-height: 1.5; margin-top: 3px;">Checking&hellip;</div>
+            </div>
+          </div>
+          <div class="gx-step" id="gx-step-play">
+            <div class="gx-dot"></div>
+            <div style="min-width: 0;">
+              <div style="font-size: var(--gx-fs-130); font-weight: 600;">Start the game</div>
+              <div class="gx-detail" style="font-size: var(--gx-fs-115); color: var(--gx-ink-dim); line-height: 1.5; margin-top: 3px;">One press, once the two above are settled.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="gx-card" style="flex-shrink: 0; padding: 12px 15px; display: flex; gap: 9px; align-items: flex-start;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gx-accent)" stroke-width="1.9" stroke-linecap="round" style="flex-shrink: 0; margin-top: 3px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          <div style="font-size: var(--gx-fs-115); color: var(--gx-ink-dim); line-height: 1.55; text-wrap: pretty;">GeneralsX reads your Zero Hour folder and leaves it alone. One thing to know before you point it somewhere unusual: the multiplayer files every peer must agree on are installed into ~/GeneralsX/GeneralsZH, not into whatever folder you choose here, so a folder without them can still be refused a join with DATA_DIFFERS.</div>
+        </div>
+      </div>
+
+      <div class="gx-rise" style="flex-grow: 1; display: flex; flex-direction: column; gap: 10px; min-width: 0; animation-delay: 100ms;">
+        <div id="gx-cands-head" style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+          <div data-gx-noroute style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600;">Where your game is</div>
+          <div id="gx-looked" style="font-size: var(--gx-fs-115); color: var(--gx-ink-faint); font-variant-numeric: tabular-nums;">&mdash;</div>
+        </div>
+
+
+        <!-- THE "I HAVE NO ZERO HOUR DATA" PANEL.
+             Shown only when the scan came back with nothing usable, which is the state a machine
+             that has never had the game is in. Measured on a fresh MacBook, 26/08/2026: the owner
+             unzipped the engine, opened run.sh, got a text editor and stopped. This screen offered
+             him one thing, a folder picker aimed at a folder that was not there.
+
+             LEFT VISIBLE IN THE MARKUP on purpose, exactly like the sample candidate row below it:
+             the script hides it before the first paint, and these files still open standalone in a
+             browser for design review, where a display:none panel cannot be reviewed at all.
+
+             flex: 0 1 auto with min-height: 0 lets it give room back once the step list is live,
+             at which point #gx-fsteps is the thing that scrolls. -->
+        <div id="gx-nodata" class="gx-card" style="flex: 0 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 14px 16px 15px 16px;">
+          <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 14px;">
+            <div data-gx-noroute style="font-size: var(--gx-fs-150); font-weight: 700; letter-spacing: 0.1px;">No Zero Hour files on this computer</div>
+            <!-- tabindex="0" IS LOAD-BEARING ON THE PLATFORM THIS SHIPS TO, and a bare <button> does not
+                 get it for free. macOS leaves AppleKeyboardUIMode unset by default and WebKit then gives a
+                 tab stop only to text-entry fields and to elements carrying an EXPLICIT tabindex - the tag
+                 is irrelevant. MEASURED in real WebKit 26.0: 14 Tab presses over this screen produced 7
+                 stops, every one of them INPUT#gx-acct, IDENTICAL before and after these controls became
+                 real <button>s. Chromium tabs to buttons regardless, which is why a browser measurement
+                 missed it twice. Do not remove these attributes because "it is already a button". -->
+            <button type="button" tabindex="0" id="gx-elsewhere" class="gx-lesser" data-gx-noroute>I already have it somewhere</button>
+          </div>
+          <div data-gx-noroute style="font-size: var(--gx-fs-115); color: var(--gx-ink-dim); line-height: 1.55; margin-top: 5px; text-wrap: pretty;">GeneralsX is the engine, not the game. It needs the retail Zero Hour files and there is no Linux installer that produces them, so if you own the game on Steam the launcher can fetch your own copy with Valve's downloader.</div>
+
+          <div id="gx-acctrow" data-gx-noroute style="display: flex; align-items: flex-end; gap: 12px; margin-top: 13px;">
+            <div id="gx-acctfield" style="flex: 1 1 auto; min-width: 0;">
+              <label for="gx-acct" data-gx-noroute style="display: block; font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600;">Steam account name</label>
+              <input id="gx-acct" class="gx-acct" data-gx-noroute type="text" style="margin-top: 6px;" maxlength="64"
+                     placeholder="the short name you sign in with"
+                     autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            </div>
+            <button type="button" tabindex="0" id="gx-dl" class="gx-play" data-gx-noroute style="width: 212px; height: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 2px solid var(--gx-accent); background: var(--gx-accent-deep); color: var(--gx-ink); font-size: var(--gx-fs-130); font-weight: 700; letter-spacing: 1.1px;">DOWNLOAD FROM STEAM</button>
+          </div>
+          <div id="gx-accthint" data-gx-noroute style="font-size: var(--gx-fs-110); color: var(--gx-ink-faint); line-height: 1.5; margin-top: 6px;">Not your email address, and never your password. Steam asks for that in the terminal window it opens, so the launcher never sees it.</div>
+
+          <!-- THE LIVE STEP LIST. Built once and updated in place, never rebuilt: a row that is
+               replaced every poll cannot transition, and the dot colour and the bar under the
+               running step ARE the state change. Hidden until there is something to report, which
+               is what keeps the resting panel short enough to sit above the folder list. -->
+          <div id="gx-fsteps" style="display: none; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow-y: auto; margin-top: 11px; border-top: 1px solid var(--gx-line); padding-top: 8px;"></div>
+          <div id="gx-fcmd" class="gx-selectable" style="display: none; font-family: var(--gx-font-mono); font-size: var(--gx-fs-100); color: var(--gx-ink-faint); line-height: 1.45; margin-top: 8px; word-break: break-all;"></div>
+          <div id="gx-ferr" class="gx-selectable" style="display: none; font-size: var(--gx-fs-115); color: var(--gx-bad-ink); line-height: 1.5; margin-top: 9px; white-space: pre-wrap;"></div>
+        </div>
+        <div id="gx-cands-card" class="gx-card" style="padding: 8px; display: flex; flex-direction: column; flex-grow: 1; min-height: 0;">
+          <!-- THE LIST SCROLLS. The number of folders on somebody's disk is not ours to choose, the
+               window is a fixed 1280x720 with overflow:hidden, and a screen that silently clipped
+               the copy the player actually owns would be worse than one that found nothing.
+               flex:1 1 auto with min-height:0 is what lets this box shrink inside the card. -->
+          <div id="gx-cands" style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 4px;">
+            <div class="gx-cand" data-gx-noroute>
+              <div class="gx-badge">Steam</div>
+              <div style="min-width: 0;">
+                <div class="gx-selectable" style="font-size: var(--gx-fs-120); word-break: break-all; line-height: 1.5;">/home/you/GeneralsX/GeneralsZH</div>
+                <div style="font-size: var(--gx-fs-110); color: var(--gx-ink-dim); margin-top: 2px;">the standard data folder</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 24px 44px 40px 44px; flex-shrink: 0;">
+    <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+      <button type="button" tabindex="0" id="gx-pick" class="gx-util gx-util--folder gx-rise" data-gx-noroute style="animation-delay: 150ms;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+        <span>Choose a folder&hellip;</span>
+      </button>
+      <button type="button" tabindex="0" class="gx-util gx-rise" style="animation-delay: 210ms;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        <span>Back</span>
+      </button>
+    </div>
+    <div style="display: flex; align-items: center; justify-content: flex-end; gap: 18px; flex: 1; min-width: 0;">
+      <div id="gx-msg" style="font-size: var(--gx-fs-120); line-height: 1.5; color: var(--gx-ink-dim); text-align: right; max-width: 62ch;"></div>
+      <button type="button" tabindex="0" id="gx-go" class="gx-play gx-rise" data-gx-noroute aria-disabled="true" style="animation-delay: 270ms; width: 236px; height: 56px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 2px solid var(--gx-accent); background: var(--gx-accent-deep); color: var(--gx-ink); font-size: var(--gx-fs-165); font-weight: 700; letter-spacing: 1.4px;">SET UP &amp; PLAY</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- gx-gate-wired -->
+<script>
+// THE PLATFORM GATE. Runs before anything else on this page and decides whether this document is
+// allowed to be on screen at all.
+//
+// It reads the token through IPC rather than sniffing the user agent, and that is not a style
+// preference: one set of frontend files ships to Windows, macOS and Linux, so the only thing that
+// knows which build this is, is the build. `gxio::release::platform_token()` is cfg-selected at
+// compile time inside the binary and reaches here through `about_info`.
+//
+// WHY about_info OF THE THREE COMMANDS THAT CARRY IT. `release_check` goes to the network, so a
+// slow link would hold a gate that must be instant. `netdiag_facts` sweeps crash dumps, measures
+// free space and resolves hosts - a heavy diagnostic pass to answer one question. `about_info`
+// reads this binary's own stamps and nothing else, and the token there means exactly what this
+// gate needs it to mean: the platform this executable was compiled for. It also returns a Result,
+// so a `.catch` is mandatory to write - and that catch is the fail-closed branch.
+//
+// EVERY FAILURE ROUTES AWAY. Wrong platform, a rejected command, an older binary that does not
+// have `about_info` at all: all of them leave, because showing a Mac player Steam-on-Windows paths
+// is worse than showing them nothing. `replace`, not `href`, so Back cannot land here again.
+(function () {
+  var EXPECT = 'linux';   // this document's platform, and the only one it may be shown on
+  function reveal() { document.documentElement.removeAttribute('data-gx-gate'); }
+  function leave() { window.location.replace('MainWeb.html'); }
+
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { reveal(); return; }   // standalone in a browser: design review
+  // The platform gate shows the artboard; the page-wide hold (gx-settle.js) then keeps it hidden until the setup state
+  // below is painted too - the gate alone used to show "Checking…" and a lit SET UP & PLAY that then went dim.
+  window.gxSettle.wait(T.core.invoke('about_info').then(function (a) {
+    if (a && a.platform === EXPECT) { reveal(); return; }
+    leave();
+  }).catch(leave));
+})();
+</script>
+
+<!-- gx-setup-wired -->
+<script>
+// The setup page itself.
+(function () {
+  var T = window.__TAURI__; if (!T || !T.core || !T.core.invoke) { return; } var invoke = T.core.invoke;
+
+  var PAGE = 'SetupLinux.html';   // what setup_state must name for this document to act
+
+  // PRESSING BACK MUST GO BACK. MainWeb offers this screen automatically on the first run of the
+  // launcher and decides that with a one-shot flag, so being here at all has to set it - otherwise
+  // a visit that arrived some other way leaves the flag clear, Back lands on MainWeb with the data
+  // still missing, and MainWeb sends the player straight back here. Measured: that round trip is
+  // indistinguishable from a Back button that does nothing.
+  try { window.sessionStorage.setItem('gx-setup-offered', '1'); } catch (e) { /* no storage, no loop */ }
+
+  var candBox = document.getElementById('gx-cands');
+  var lookedEl = document.getElementById('gx-looked');
+  var msgEl = document.getElementById('gx-msg');
+  var goEl = document.getElementById('gx-go');
+  var pickEl = document.getElementById('gx-pick');
+
+  // The fetch branch's own elements. See the block at the bottom of this script.
+  var noDataEl = document.getElementById('gx-nodata');
+  var headEl = document.getElementById('gx-cands-head');
+  var cardEl = document.getElementById('gx-cands-card');
+  var elseEl = document.getElementById('gx-elsewhere');
+  var acctEl = document.getElementById('gx-acct');
+  var acctRowEl = document.getElementById('gx-acctrow');
+  var acctFieldEl = document.getElementById('gx-acctfield');
+  var acctHintEl = document.getElementById('gx-accthint');
+  var dlEl = document.getElementById('gx-dl');
+  var fstepsEl = document.getElementById('gx-fsteps');
+  var fcmdEl = document.getElementById('gx-fcmd');
+  var ferrEl = document.getElementById('gx-ferr');
+
+  // Down before the first frame, for the same reason the sample folder row below is: the markup
+  // carries this panel visible so the page can be reviewed standalone, and a player must never see
+  // "no Zero Hour files" flash on a machine that has them.
+  noDataEl.style.display = 'none';
+
+  // Blank the sample row NOW, before any invoke resolves. The markup carries one so the page can
+  // be reviewed standalone; leaving it up for even one frame would show a player a path that is
+  // not on their computer.
+  while (candBox.firstChild) { candBox.removeChild(candBox.firstChild); }
+  candBox.appendChild(note('Looking for your Zero Hour data\u2026'));
+
+  var state = null;      // the last SetupDto
+  var sel = null;        // the path the player has selected, or null
+  var busy = false;
+  var extra = [];        // folders chosen in the file picker this visit, which are in no scan
+
+  function note(text) {
+    var d = document.createElement('div');
+    d.style.cssText = 'padding: 14px 12px; font-size: var(--gx-fs-125); color: var(--gx-ink-dim); line-height: 1.6; text-wrap: pretty;';
+    d.textContent = text;
+    return d;
+  }
+
+  function say(text, tone) {
+    msgEl.textContent = text || '';
+    msgEl.style.color = tone === 'bad' ? 'var(--gx-bad-ink)'
+                      : tone === 'warn' ? 'var(--gx-warn-ink)'
+                      : tone === 'good' ? 'var(--gx-good-ink)'
+                      : 'var(--gx-ink-dim)';
+  }
+
+  var SOURCE_LABEL = {
+    env: 'Env',
+    chosen: 'Chosen',
+    install: 'Install',
+    standard: 'GeneralsX',
+    steam: 'Steam',
+    bottle: 'Prefix',
+    copy: 'Copy',
+    manual: 'Picked'
+  };
+
+  function setStep(id, tone, detail) {
+    var el = document.getElementById(id);
+    if (!el) { return; }
+    var dot = el.querySelector('.gx-dot');
+    var d = el.querySelector('.gx-detail');
+    if (dot) {
+      dot.style.background = tone === 'good' ? 'var(--gx-good)'
+                           : tone === 'warn' ? 'var(--gx-warn)'
+                           : tone === 'bad' ? 'var(--gx-bad)'
+                           : 'var(--gx-ink-faint)';
+    }
+    if (d) { d.textContent = detail; }
+  }
+
+  function row(c) {
+    var el = document.createElement('div');
+    el.className = 'gx-cand' + (c.valid ? '' : ' gx-dead') + (c.path === sel ? ' gx-on' : '');
+    el.setAttribute('data-gx-noroute', '');
+
+    // A ROW THAT COMMITS A CHOICE IS A CONTROL (round 6c). It is the only place on this screen
+    // where the answer to "which of these folders is yours" is given, so a keyboard-only player
+    // who could not reach it could not answer the question at all.
+    //
+    // role="button" RATHER THAN A REAL <button>, and this is the one place on this screen that
+    // deviation is taken: the row's content is two block-level <div>s - the badge, and a body
+    // holding the path over the reason - which is flow content, and a <button>'s content model
+    // admits phrasing content only. Everything a <button> would have given for free is therefore
+    // supplied by hand below: the tab stop, both activation keys, and the ring (SetupLinux.css).
+    //
+    // ONLY A USABLE ROW GETS ONE. `.gx-dead` has no click handler either, and a tab stop that
+    // does nothing when pressed is worse than no tab stop - it is a control that lies.
+    if (c.valid) {
+      el.setAttribute('role', 'button');
+      el.setAttribute('tabindex', '0');
+      el.setAttribute('aria-pressed', c.path === sel ? 'true' : 'false');
+      // The warning rides in the name too: aria-label REPLACES the row's own text for a screen
+      // reader, so a warning painted only below would never be heard.
+      el.setAttribute('aria-label', 'Use ' + c.path + ' \u2014 ' + c.how + (c.warning ? '. ' + c.warning : ''));
+    }
+
+    var badge = document.createElement('div');
+    badge.className = 'gx-badge';
+    badge.textContent = SOURCE_LABEL[c.source] || c.source;
+
+    var body = document.createElement('div');
+    body.style.cssText = 'min-width: 0;';
+
+    var p = document.createElement('div');
+    p.className = 'gx-selectable';
+    p.style.cssText = 'font-size: var(--gx-fs-120); word-break: break-all; line-height: 1.5;';
+    p.textContent = c.path;
+
+    var why = document.createElement('div');
+    why.style.cssText = 'font-size: var(--gx-fs-110); margin-top: 2px; line-height: 1.5;';
+    // WHY IT CANNOT BE USED, not merely that it cannot. A folder that is there and holds no
+    // INIZH.big is almost always the original Generals rather than the expansion, and saying so is
+    // the difference between a dead row and a fixable mistake.
+    //
+    // THE VALIDATOR'S SENTENCES, on every row and not only a picked one - see the same branch in
+    // SetupMac.html. A scanned row is where an env var or an old choice pointing at a development
+    // tree shows up, and where the user-data folder has to be named as the settings folder.
+    if (c.valid) {
+      why.style.color = c.warning ? 'var(--gx-warn-ink)' : 'var(--gx-ink-dim)';
+      why.textContent = c.warning ? c.how + ' \u2014 ' + c.warning : c.how;
+    } else if (!c.exists) {
+      why.style.color = 'var(--gx-ink-faint)';
+      why.textContent = c.how + ' \u2014 that folder is not there.';
+    } else {
+      why.style.color = 'var(--gx-warn-ink)';
+      why.textContent = c.how + ' \u2014 ' + (c.refusal || 'no INIZH.big, so this is not Zero Hour. '
+                      + 'A folder holding only the original Generals looks like this.');
+    }
+
+    body.appendChild(p);
+    body.appendChild(why);
+    el.appendChild(badge);
+    el.appendChild(body);
+
+    if (c.valid) {
+      var take = function (ev) {
+        ev.stopPropagation();
+        if (busy) { return; }
+        sel = c.path;
+        say('');
+        paint(state);
+      };
+      el.addEventListener('click', take);
+      // ENTER AND SPACE, BOTH. `role="button"` buys the announcement and none of the behaviour:
+      // a real <button> is activated by either key by the platform, an element merely wearing the
+      // role is activated by neither. preventDefault on Space is what stops the list scrolling
+      // underneath the press.
+      el.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ' || ev.key === 'Spacebar') {
+          ev.preventDefault();
+          take(ev);
+        }
+      });
+    }
+    return el;
+  }
+
+  function allRows() {
+    var rows = (state && state.candidates) ? state.candidates.slice() : [];
+    // Anything picked in the file chooser this visit is in no scan, so it is carried here.
+    for (var i = 0; i < extra.length; i++) {
+      var dup = false;
+      for (var j = 0; j < rows.length; j++) { if (rows[j].path === extra[i].path) { dup = true; } }
+      if (!dup) { rows.unshift(extra[i]); }
+    }
+    // Usable first. Within that, the order the scan produced, which is best-guess-first.
+    var good = [], bad = [];
+    for (var k = 0; k < rows.length; k++) { (rows[k].valid ? good : bad).push(rows[k]); }
+    return good.concat(bad);
+  }
+
+  function paint(s) {
+    if (!s) { return; }
+    state = s;
+
+    // THE SECOND HALF OF THE GATE. The first half compared the platform token; this compares what
+    // the launcher says this platform's setup screen IS against what this document is. A build
+    // that named a different screen, or none, must not be driven from here.
+    if (s.page !== PAGE) { window.location.replace('MainWeb.html'); return; }
+
+    var rows = allRows();
+    var usable = [];
+    for (var i = 0; i < rows.length; i++) { if (rows[i].valid) { usable.push(rows[i]); } }
+
+    // Default the selection once, and only to something that would actually work: what the player
+    // chose before, else what discovery already resolved, else the best usable row.
+    if (sel === null) {
+      var want = s.chosen || s.resolved;
+      for (var w = 0; w < usable.length; w++) { if (usable[w].path === want) { sel = want; } }
+      if (sel === null && usable.length) { sel = usable[0].path; }
+    }
+
+    lookedEl.textContent = s.lookedIn === 1 ? 'Looked in 1 place' : 'Looked in ' + s.lookedIn + ' places';
+
+    while (candBox.firstChild) { candBox.removeChild(candBox.firstChild); }
+    if (!rows.length) {
+      candBox.appendChild(note('No Zero Hour data was found. The launcher looked in the folders GeneralsX installs to. If your copy is somewhere else — a Steam library, a Wine prefix, a folder you copied over — choose the folder that holds INIZH.big.'));
+    } else {
+      for (var r = 0; r < rows.length; r++) { candBox.appendChild(row(rows[r])); }
+    }
+
+    // Step 1 - the data.
+    if (sel) {
+      setStep('gx-step-data', 'good', sel);
+    } else {
+      setStep('gx-step-data', 'bad', 'None found. Download it from Steam, or choose the folder that holds INIZH.big.');
+    }
+
+    // Step 2 - the engine. `enginePayload.available` is FALSE on this platform by construction
+    // since 10/09/2026, not by luck: `cmd_setup::describe_engine_payload` refuses the payload
+    // outright wherever `engine_install_dir()` refuses, and hands back that refusal plus the
+    // published artifact's name as the reason. Before that, a published Linux row made this line
+    // paint "Will download GeneralsXZH-linux-x86_64-<sha>.tar.gz." on a page carrying no engine
+    // control at all - see cmd_setup's `the_linux_setup_page_has_no_engine_control_to_route_to`,
+    // which asserts this file has none and would fail if this comment named the element - and no
+    // code anywhere that could fetch it. The soft dead end the round-3 verifiers found. The 'bad'
+    // arm below is therefore the one Linux takes, and it now carries an instruction, not a shrug.
+    if (s.engine) {
+      setStep('gx-step-engine', 'good', s.engine);
+    } else if (s.enginePayload.available) {
+      setStep('gx-step-engine', 'warn', 'Will download ' + s.enginePayload.name + '.');
+    } else {
+      setStep('gx-step-engine', 'bad', s.enginePayload.reason);
+    }
+
+    // Step 3 - the overlay. Unknown is never painted as ready.
+    if (!s.engine) {
+      setStep('gx-step-patch', 'dim', 'Ships with GeneralsX, so this settles itself once it is installed.');
+    } else if (s.overlayVerdict === 'ready') {
+      setStep('gx-step-patch', 'good', 'Every archive a lobby needs is here.');
+    } else if (s.overlayVerdict === 'incomplete') {
+      setStep('gx-step-patch', 'bad', 'Something a lobby needs is missing. Joins will be refused with DATA_DIFFERS.');
+    } else {
+      setStep('gx-step-patch', 'warn', 'Cannot be checked on this install - it ships no required.txt.');
+    }
+
+    // Step 4 - the launch.
+    var ready = !!(sel && s.engine);
+    if (ready) {
+      setStep('gx-step-play', 'good', s.engineCommit
+        ? 'Starts build ' + s.engineCommit + '.'
+        : 'Ready to start.');
+    } else {
+      setStep('gx-step-play', 'dim', 'One press, once the two above are settled.');
+    }
+
+    // THE "I HAVE NO ZERO HOUR DATA" BRANCH. Nothing usable anywhere is not a harder version of
+    // "which of these is yours", it is a different question, so it gets the panel and the folder
+    // list gets out of its way.
+    var none = usable.length === 0;
+    noDataEl.style.display = none ? 'flex' : 'none';
+    // The list goes when it would add nothing the panel has not said, and while a fetch is running,
+    // when the steps are the thing worth the room.
+    var hideList = none && (fetchStarted || rows.length === 0);
+    headEl.style.display = hideList ? 'none' : 'flex';
+    cardEl.style.display = hideList ? 'none' : 'flex';
+    if (none) {
+      if (!planAsked) { planAsked = true; loadFetchPlan(); }
+    } else {
+      stopPolling();
+    }
+
+    goEl.className = 'gx-play gx-rise' + (ready && !busy ? '' : ' gx-off');
+    // `.gx-off` is a LOOK. A screen reader reads the role and the state, never the colour, so the
+    // same fact has to be said twice or the button that cannot work announces itself as one that
+    // can. aria-disabled rather than the `disabled` attribute: a disabled control leaves the tab
+    // order entirely, and a player who cannot find the confirm at all cannot be told why it is
+    // not ready yet. The press is refused by the handler's own guard either way.
+    goEl.setAttribute('aria-disabled', (ready && !busy) ? 'false' : 'true');
+    if (!ready && !busy) {
+      // Silence when the panel is up: it is a whole card of explanation, and a second sentence in
+      // the corner repeating it is noise. The engine's own absence still gets said.
+      say(!sel ? (none ? '' : 'Choose the folder that holds your Zero Hour data.')
+               : s.enginePayload.reason, 'warn');
+    }
+  }
+
+  goEl.addEventListener('click', function (ev) {
+    ev.stopPropagation();
+    if (busy || !state || !sel || !state.engine) { return; }
+    busy = true;
+    goEl.className = 'gx-play gx-rise gx-off';
+    goEl.setAttribute('aria-disabled', 'true');
+    say('Setting up\u2026');
+    // ONE CONFIRM, THEN RUN. Recording the folder and starting the game are two commands because
+    // they are two different failures - a folder that cannot be recorded must not look like a game
+    // that would not start - but the player presses once.
+    invoke('setup_choose', { path: sel }).then(function (s) {
+      paint(s);
+      say('Starting\u2026');
+      return invoke('game_play');
+    }).then(function () {
+      say('Starting\u2026');
+    }).catch(function (e) {
+      busy = false;
+      say(String(e), 'bad');
+      paint(state);
+    });
+  });
+
+  // Named, because there are two ways to it now: the utility button in the bottom bar, and the
+  // lesser of the two answers inside the fetch panel. One code path, so they cannot diverge.
+  function choosePick(ev) {
+    ev.stopPropagation();
+    if (busy) { return; }
+    busy = true;
+    say('Waiting for the folder chooser\u2026');
+    invoke('setup_pick').then(function (c) {
+      busy = false;
+      if (!c) { say(''); return; }              // cancelled, which is not a failure
+      extra.unshift(c);
+      if (c.valid) { sel = c.path; }
+      say('');
+      // AFTER paint(), NOT BEFORE - see the same branch in SetupMac.html. On this page paint()
+      // writes this line on every pass until an engine is installed, so said first it was always
+      // replaced unread.
+      paint(state);
+      if (!c.valid) {
+        // The validator's own reason, never one composed here: only it can tell the user-data
+        // folder apart from a folder that is merely wrong.
+        say(c.refusal || 'That folder cannot be used as your Zero Hour data.', 'bad');
+      } else if (c.warning) {
+        // ACCEPTED, AND STILL WORTH A SENTENCE: loose Window/, Art/ or Maps/ that the engine loads
+        // instead of the archives (gxio::game::loose_asset_overrides).
+        say(c.warning, 'warn');
+      }
+    }).catch(function (e) {
+      busy = false;
+      say(String(e), 'bad');
+    });
+  }
+  pickEl.addEventListener('click', choosePick);
+  elseEl.addEventListener('click', choosePick);
+
+  // ---------------------------------------------------------------------------------------------
+  // THE "I HAVE NO ZERO HOUR DATA" BRANCH
+  //
+  // WHAT DRIVES THE STEP LIST. Every state below is read off something the launcher can see on
+  // disk - is SteamCMD installed, does the destination folder exist, how many bytes are in it, is
+  // INIZH.big there yet - and never off a timer. The terminal is the player's own process and not
+  // our child, so there is no exit code to wait on and nothing to guess with. See cmd_setup.rs.
+  //
+  // THERE IS NO PASSWORD FIELD ON THIS PAGE AND THERE WILL NOT BE ONE. The account name is not a
+  // secret and steamcmd needs it on the command line; the password and the Steam Guard code are
+  // asked for by Valve's own binary, in a terminal window the player can see. An application that
+  // asks for a Steam password in its own window is shaped exactly like the phishing that steals
+  // Steam accounts, and teaching a player that this one is safe to type it into teaches them the
+  // habit that loses the account somewhere else. gxio::steam's module header has the rest.
+  // ---------------------------------------------------------------------------------------------
+
+  var fetchPlan = null;      // the last plan or progress reply, in one shape
+  var fetchSteps = [];       // the ordered labels, from Rust, never written here
+  var fetchRows = [];        // one live row per step, built once and updated in place
+  var thisRunStartedIt = false;   // set when WE opened the terminal this run
+  var fetchStarted = false;  // a fetch is running, or one was found already part-way
+  var fetchSettled = false;  // the data arrived and the page has moved on
+  var installing = false;    // the launcher is fetching SteamCMD right now
+  var planAsked = false;
+  var pollTimer = null;
+  var errIsPoll = false;     // so a passing poll clears its own complaint and nothing else
+
+  function fetchErr(text, fromPoll) {
+    errIsPoll = !!fromPoll;
+    ferrEl.textContent = text || '';
+    ferrEl.style.display = text ? 'block' : 'none';
+  }
+
+  function bytesWord(n) {
+    if (n >= 1073741824) { return (n / 1073741824).toFixed(2) + ' GB'; }
+    if (n >= 1048576) { return Math.round(n / 1048576) + ' MB'; }
+    return Math.max(0, Math.round(n / 1024)) + ' KB';
+  }
+
+  // The four steps after the terminal exist on every path, so anything before them is the optional
+  // SteamCMD install. Same arithmetic setup_steam_start uses to report which step it reached, and
+  // gxio::steam's own test pins the ready plan at four - so this cannot drift without a red test.
+  function idxTerminal() { return fetchSteps.length - 4; }
+  function idxDownload() { return fetchSteps.length - 3; }
+
+  // ---- gx-steam-completion (pure) ----
+  // NOTHING IN THIS BLOCK TOUCHES THE DOM OR THE PAGE'S VARIABLES, and it must stay that way.
+  // scripts/test/launcher-steam-completion-test.js lifts it out of the document verbatim and drives
+  // it in node, which is the only way to pose the interrupted-download case without a real 3 GB
+  // fetch. The same test requires this block to be character-for-character identical in
+  // SetupMac.html and SetupLinux.html, because this project has already fixed one of a near-
+  // identical pair and left the other broken.
+  //
+  // THE DOWNLOAD IS FINISHED WHEN STEAM SAYS IT IS, NOT WHEN ONE FILE EXISTS (cross-model review,
+  // 09/09/2026). `dataPresent` is gxio::steam::data_present: a regular INIZH.big of at least
+  // MIN_MARKER_BYTES, which is 1 MiB - a floor set deliberately far below retail's 18.7 MB because
+  // its job is to reject a zero-length or half-written file, NOT to prove that a 3 GB depot arrived.
+  // This page used to read it as completion, and the consequence was concrete: an interrupted fetch
+  // holding 2 MiB of INIZH.big and none of the other archives turned the download step green, took
+  // the "Steam checks the files" step green behind it, stopped the polling, auto-selected the folder
+  // and enabled Play - while steamcmd was still downloading or validating.
+  //
+  // `fetchFinished` is steam::fetch_complete: StateFlags == 4, StateFullyInstalled, read out of
+  // Steam's own appmanifest, and pinned by steam_agrees_it_is_done_only_when_stateflags_is_four.
+  // BOTH are required. Steam agreeing is the completion signal; the marker file is the thing the
+  // engine actually loads, and a manifest that says "installed" with no INIZH.big beside it is a
+  // folder that will not start a game.
+  function fetchComplete(p) {
+    return !!(p && p.fetchFinished && p.dataPresent);
+  }
+
+  // SteamCMD signed in here and Steam does not call it finished: a fetch to RESUME, whether it
+  // stopped a second ago or a week ago. True WITH a partial INIZH.big already on disk, which is
+  // exactly the state the old `!p.dataPresent` reading was blind to.
+  function fetchIncomplete(p) {
+    return !!(p && p.fetchTouched) && !fetchComplete(p);
+  }
+
+  // ctx: { steps, installing, fetchStarted, fetchSettled, thisRunStartedIt } - the page's own flags,
+  // passed in rather than closed over so this stays drivable from a test.
+  function stepStatesFor(p, ctx) {
+    var s = [];
+    var done = fetchComplete(p);
+    if (ctx.steps > 4) {
+      s.push(p.steamcmdPresent ? 'done' : (ctx.installing ? 'run' : 'wait'));
+    }
+    // Signed in. NOT "the folder exists" - the destination is also the standard ENGINE folder, so
+    // on a machine that installed GeneralsX it is already there and already has bytes in it. What
+    // only steamcmd makes is its own app manifest, and it makes it once the sign-in has gone
+    // through. See fetch_touched in cmd_setup.rs. Nothing here is inferred from elapsed time.
+    s.push(p.fetchTouched ? 'done' : (ctx.fetchStarted ? 'run' : 'wait'));
+    s.push(done ? 'done' : (p.fetchTouched ? 'run' : 'wait'));
+    s.push(done ? 'done' : 'wait');
+    s.push(ctx.fetchSettled ? 'done' : (done ? 'run' : 'wait'));
+    return s;
+  }
+
+  // Is the step panel worth the room? A part-way fetch found on load counts, which is why
+  // fetchTouched is here on its own and not folded into completion.
+  function fetchPanelLive(p, ctx) {
+    return !!(ctx.fetchStarted || ctx.installing || p.fetchTouched || fetchComplete(p));
+  }
+
+  // THE BOX COMES BACK WHEN A FETCH DIED (cross-model review, 26/08/2026). It used to hide on
+  // fetchStarted alone, and fetchStarted is set by fetchTouched - which only means SteamCMD signed
+  // in here at some point, not that it is still running. So a download interrupted by a closed lid,
+  // a killed terminal or a reboot came back to a page with no way to type an account and no way to
+  // start again. Steam's own StateFlags tells the difference: touched-but-not-finished, with
+  // nothing of ours running, is a fetch to RESUME rather than one to watch.
+  function fetchStalled(p, ctx) {
+    return fetchIncomplete(p) && !ctx.installing && !ctx.thisRunStartedIt;
+  }
+  // ---- end gx-steam-completion ----
+
+  // The page's live flags in the shape the pure block above takes. One place, so the four callers
+  // cannot disagree about what "this run started it" means.
+  function fetchCtx() {
+    return {
+      steps: fetchSteps.length,
+      installing: installing,
+      fetchStarted: fetchStarted,
+      fetchSettled: fetchSettled,
+      thisRunStartedIt: thisRunStartedIt
+    };
+  }
+
+  function stepStates(p) { return stepStatesFor(p, fetchCtx()); }
+
+  // What each step says while it is in that state. Nothing here claims more than the launcher
+  // watched happen: the check step never reports a result it did not see, it reports where the
+  // result is printed.
+  function stepDetail(i, st, p) {
+    var n = fetchSteps.length;
+    if (n > 4 && i === 0) {
+      return st === 'done' ? 'It is on this computer.'
+           : st === 'run' ? 'Fetching it from Valve, about 5 MB.' : '';
+    }
+    if (i === idxTerminal()) {
+      return st === 'done' ? 'Signed in.'
+           : st === 'run' ? 'The terminal is open. Type your password and any Steam Guard code THERE, never here.'
+           : '';
+    }
+    if (i === idxDownload()) {
+      // NOT "INIZH.big is in the folder". That file being there was the old completion test, and
+      // it is present long before the download is done - see fetchComplete above. This line is now
+      // only ever reached with Steam's StateFlags == 4, so it says whose word it is.
+      return st === 'done' ? 'Finished. Steam reports this install complete.'
+           : st === 'run' ? bytesWord(p.bytes) + ' of about ' + bytesWord(p.approxTotalBytes)
+                            + ' in the folder'
+           : '';
+    }
+    if (i === n - 2) {
+      return st === 'done' ? 'Steam checked them as it went. The terminal has its report.'
+           : 'Steam does this inside the same command, as it downloads.';
+    }
+    return st === 'done' ? 'Done. Zero Hour is set up.'
+         : st === 'run' ? 'Reading ' + p.dest : '';
+  }
+
+  function buildSteps() {
+    while (fstepsEl.firstChild) { fstepsEl.removeChild(fstepsEl.firstChild); }
+    fetchRows = [];
+    for (var i = 0; i < fetchSteps.length; i++) {
+      var row = document.createElement('div');
+      row.className = 'gx-fstep';
+      row.setAttribute('data-gx-noroute', '');
+
+      var dot = document.createElement('div');
+      dot.className = 'gx-dot';
+
+      var body = document.createElement('div');
+      body.style.cssText = 'min-width: 0; flex: 1 1 auto;';
+
+      var title = document.createElement('div');
+      title.style.cssText = 'font-size: var(--gx-fs-120); font-weight: 600;';
+      title.textContent = fetchSteps[i];
+
+      var detail = document.createElement('div');
+      detail.style.cssText = 'font-size: var(--gx-fs-110); color: var(--gx-ink-dim); line-height: 1.5; margin-top: 2px;';
+
+      body.appendChild(title);
+      body.appendChild(detail);
+
+      // NO SPINNER-ONLY STATES. The one step with a real figure behind it gets a real bar; the
+      // others say in words what they are waiting for.
+      var bar = null, fill = null;
+      if (i === idxDownload()) {
+        bar = document.createElement('div');
+        bar.className = 'gx-bar';
+        bar.style.display = 'none';
+        fill = document.createElement('i');
+        bar.appendChild(fill);
+        body.appendChild(bar);
+      }
+
+      row.appendChild(dot);
+      row.appendChild(body);
+      fstepsEl.appendChild(row);
+      fetchRows.push({ dot: dot, title: title, detail: detail, bar: bar, fill: fill });
+    }
+  }
+
+  var DOT_INK = { wait: 'var(--gx-ink-faint)', run: 'var(--gx-accent)', done: 'var(--gx-good)' };
+
+  function paintFetch() {
+    if (!fetchPlan) { return; }
+    var p = fetchPlan;
+
+    // Once a fetch is running the account has been given, so the box goes and what is actually
+    // running takes its place. The button stays: a terminal closed by accident needs re-opening.
+    var c = fetchCtx();
+    var live = fetchPanelLive(p, c);
+    // NO LONGER `&& !p.dataPresent` (cross-model review, 09/09/2026). An interrupted fetch usually
+    // HAS written a partial INIZH.big, so that clause hid the resume path in the commonest case of
+    // the thing it was added for. fetchStalled asks Steam instead.
+    var stalled = fetchStalled(p, c);
+    var hideAccount = fetchStarted && !stalled;
+    acctFieldEl.style.display = hideAccount ? 'none' : 'block';
+    acctHintEl.style.display = hideAccount ? 'none' : 'block';
+    acctRowEl.style.justifyContent = hideAccount ? 'flex-end' : '';
+    if (stalled) {
+      dlEl.textContent = 'RESUME THE DOWNLOAD';
+    }
+
+    fstepsEl.style.display = live ? 'flex' : 'none';
+    if (!live) { return; }
+    if (fetchRows.length !== fetchSteps.length) { buildSteps(); }
+
+    var states = stepStates(p);
+    for (var i = 0; i < fetchRows.length; i++) {
+      var r = fetchRows[i], st = states[i];
+      r.dot.style.background = DOT_INK[st] || DOT_INK.wait;
+      r.title.style.color = st === 'wait' ? 'var(--gx-ink-dim)' : 'var(--gx-ink)';
+      r.detail.textContent = stepDetail(i, st, p);
+      r.detail.style.display = r.detail.textContent ? 'block' : 'none';
+      if (r.bar) {
+        r.bar.style.display = st === 'run' ? 'block' : 'none';
+        // Clamped at 1 because the total is Steam's and this one is ours: the plan says "about
+        // 3 GB" and a real depot is entitled to be bigger. A bar that overshot its own track would
+        // be a worse lie than one that sits full while the last file lands.
+        var frac = p.approxTotalBytes ? p.bytes / p.approxTotalBytes : 0;
+        r.fill.style.transform = 'scaleX(' + Math.max(0, Math.min(1, frac)) + ')';
+      }
+    }
+  }
+
+  function startPolling() {
+    if (pollTimer !== null) { return; }
+    // Two seconds. One poll is a bounded walk of one folder (cmd_setup.rs) and the thing being
+    // watched takes tens of minutes, so anything faster spends disk for nothing.
+    pollTimer = window.setInterval(pollFetch, 2000);
+    pollFetch();
+  }
+
+  function stopPolling() {
+    if (pollTimer !== null) { window.clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  var pollInFlight = false;   // a walk of a 3 GB tree can outlast the interval; see below
+
+  function pollFetch() {
+    // ONE AT A TIME (cross-model review, 26/08/2026). The interval fired regardless of whether the
+    // previous progress call had returned, and that call walks the destination tree. On a slow
+    // disk, a network volume or a very large folder the walks overlap, and each new one makes the
+    // last slower - which is the shape of a page that gets steadily less responsive the longer a
+    // download runs. Skipping a tick costs nothing: the next one is two seconds away.
+    if (pollInFlight) { return; }
+    pollInFlight = true;
+    invoke('setup_steam_progress').then(function (p) {
+      // The labels are not in the progress reply and must survive it.
+      p.steps = fetchSteps;
+      fetchPlan = p;
+      if (errIsPoll) { fetchErr(''); }
+      paintFetch();
+      // STEAM'S SIGNAL, NOT OURS. This used to be `p.dataPresent`, which stopped the polling and
+      // announced the game ready as soon as 1 MiB of INIZH.big existed. See fetchComplete.
+      if (fetchComplete(p)) { finishFetch(); }
+    }).catch(function (e) {
+      // One unreadable poll is not a failed download, so this says so and keeps polling.
+      fetchErr('Could not read the download folder just now: ' + String(e), true);
+    }).then(function () {
+      // CLEARED ON BOTH PATHS. A guard that is set on entry and only cleared on success stops
+      // polling permanently the first time a poll rejects - which is a worse failure than the
+      // overlapping walks it was added to prevent. This runs after resolve AND after reject.
+      pollInFlight = false;
+    });
+  }
+
+  function loadFetchPlan() {
+    window.gxSettle.wait(invoke('setup_steam_plan').then(function (p) {
+      fetchPlan = p;
+      fetchSteps = p.steps || [];
+      buildSteps();
+      // A FETCH LEFT PART-WAY. The launcher may have been closed while steamcmd was still running,
+      // or steamcmd may be running right now in a terminal this session never opened. SteamCMD's
+      // own app manifest in the destination, with Steam's StateFlags not yet at 4, is exactly that
+      // - WHETHER OR NOT a partial INIZH.big is already beside it. That last clause is the fix:
+      // an interrupted 3 GB fetch nearly always HAS written some of INIZH.big, and this used to
+      // read that as finished. Going on reporting it is more use than starting again from nothing.
+      if (fetchIncomplete(p)) { fetchStarted = true; }
+      // Only Steam's own StateFlags ends this. A folder with a partial INIZH.big in it is a fetch
+      // to go on reporting, not a game to select and enable Play on.
+      if (fetchComplete(p)) { finishFetch(); return; }
+      paintFetch();
+      if (fetchStarted) { startPolling(); }
+    }).catch(function (e) {
+      fetchErr('The launcher could not work out how to fetch Zero Hour: ' + String(e));
+    }));
+  }
+
+  function beginFetch(ev) {
+    if (ev) { ev.stopPropagation(); }
+    if (busy || installing || fetchSettled) { return; }
+    fetchErr('');
+    acctEl.classList.remove('gx-wrong');
+    installing = true;
+    dlEl.className = 'gx-play gx-off';
+    dlEl.setAttribute('aria-disabled', 'true');
+    // The button says what it is doing rather than going blank and spinning. Installing SteamCMD
+    // is a download of its own and can take a moment on a slow link.
+    dlEl.textContent = (fetchPlan && fetchPlan.steamcmdPresent) ? 'OPENING TERMINAL\u2026'
+                                                               : 'INSTALLING STEAMCMD\u2026';
+    paintFetch();
+    invoke('setup_steam_start', { account: acctEl.value || '' }).then(function (r) {
+      installing = false;
+      fetchStarted = true;
+      thisRunStartedIt = true;
+      // The authoritative list for this run, snapshotted before SteamCMD was installed - see the
+      // DTO's own note on why the page must not re-fetch the plan mid-run.
+      fetchSteps = r.steps || fetchSteps;
+      buildSteps();
+      dlEl.className = 'gx-play';
+      dlEl.setAttribute('aria-disabled', 'false');
+      dlEl.textContent = 'OPEN THE TERMINAL AGAIN';
+      fcmdEl.textContent = r.command;
+      fcmdEl.style.display = 'block';
+      paintFetch();
+      startPolling();
+      paint(state);
+    }).catch(function (e) {
+      installing = false;
+      dlEl.className = 'gx-play';
+      dlEl.setAttribute('aria-disabled', 'false');
+      dlEl.textContent = fetchStarted ? 'OPEN THE TERMINAL AGAIN' : 'DOWNLOAD FROM STEAM';
+      fetchErr(String(e));
+      // The one refusal that has a field to point at. The phrase is the launcher's own and a test
+      // in cmd_setup.rs pins both refusals to it, so this is not sniffing somebody else's wording.
+      if (String(e).toLowerCase().indexOf('account name') >= 0) {
+        acctEl.classList.add('gx-wrong');
+        acctEl.focus();
+      }
+      paintFetch();
+    });
+  }
+
+  function finishFetch() {
+    if (fetchSettled) { return; }
+    fetchSettled = true;
+    stopPolling();
+    paintFetch();
+    // CONTINUE INTO THE FLOW THIS PAGE ALREADY HAS rather than inventing a second one. The
+    // destination is the standard data folder, so it comes back from the scan as an ordinary
+    // candidate row; all that is needed is to select it and repaint. Held for (gx-settle.js) when this runs on open, from
+    // a fetch that had already finished (Codex lfp-r3): the selection and Play are repainted before the page is seen.
+    window.gxSettle.wait(invoke('setup_state').then(function (s) {
+      var want = fetchPlan ? fetchPlan.dest : null;
+      for (var i = 0; want && i < (s.candidates || []).length; i++) {
+        if (s.candidates[i].path === want && s.candidates[i].valid) { sel = want; }
+      }
+      paint(s);
+      say('Zero Hour is ready.', 'good');
+    }).catch(function (e) {
+      fetchErr('The download finished but the launcher could not re-read the folder: ' + String(e));
+    }));
+  }
+
+  dlEl.addEventListener('click', beginFetch);
+  acctEl.addEventListener('keydown', function (ev) {
+    if (ev.key === 'Enter') { ev.preventDefault(); beginFetch(null); }
+  });
+  // A refused name stops looking refused the moment it is being corrected.
+  acctEl.addEventListener('input', function () {
+    acctEl.classList.remove('gx-wrong');
+    if (!errIsPoll) { fetchErr(''); }
+  });
+
+
+  // Held until painted (gx-settle.js): the steps never show "Checking…" and SET UP & PLAY never shows lit, then dim.
+  window.gxSettle.wait(invoke('setup_state').then(paint).catch(function (e) {
+    while (candBox.firstChild) { candBox.removeChild(candBox.firstChild); }
+    candBox.appendChild(note('The launcher could not look for your game: ' + String(e)));
+    say(String(e), 'bad');
+  }));
+})();
+</script>
+
+<!-- gx-nav-wired -->
+<script>
+// Navigation. The screens were converted from artboards as standalone pages, so nothing linked
+// to anything - every button was inert. This wires the real routes by the visible label, which
+// is stable because the labels ARE the design.
+(function () {
+  var ROUTES = {
+    'general': 'OptionsGeneral.html',
+    'graphics': 'Options.html',
+    'hud': 'OptionsHud.html',
+    'keybinds': 'OptionsKeys.html',
+    'network test': 'OptionsNetwork.html',
+    'diagnostics': 'OptionsDiag.html',
+    'about': 'OptionsAbout.html',
+    'options': 'OptionsGeneral.html',
+    'changelogs': 'Changelogs.html',
+    'all releases': 'Changelogs.html',
+    'save & go back': 'MainWeb.html',
+    'back': 'MainWeb.html',
+    'go back': 'MainWeb.html'
+  };
+  function labelOf(el) {
+    return (el.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+  document.addEventListener('click', function (ev) {
+    var el = ev.target;
+    for (var i = 0; el && i < 6; i++, el = el.parentElement) {
+      if (el.hasAttribute && el.hasAttribute('data-cmd')) { return; }   // keybind tiles own their clicks
+      // Static text whose words happen to match a route label. Without this a page heading is a
+      // link, which is how clicking "Diagnostics" on the Diagnostics page reloaded it.
+      if (el.hasAttribute && el.hasAttribute('data-gx-noroute')) { return; }
+      var dest = ROUTES[labelOf(el)];
+      if (dest) { ev.preventDefault(); window.location.href = dest; return; }
+    }
+  });
+})();
+</script>
+
+<!-- gx-chrome-wired -->
+<script>
+// The app's own title row, on the platforms that want one.
+//
+// Windows and Linux get it: their OS title bar is a wide painted strip in the user's accent
+// colour, sitting above a dark launcher looking like a different application. macOS keeps its
+// native traffic lights - they are the platform idiom and a drawn set would sit opposite them.
+// Rust decides (window_custom_chrome); this file never guesses from the user agent.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }   // standalone in a browser: leave the page alone
+  var invoke = T.core.invoke;
+
+  var SVG = 'http://www.w3.org/2000/svg';
+  function icon(paths) {
+    var s = document.createElementNS(SVG, 'svg');
+    s.setAttribute('width', '14'); s.setAttribute('height', '14');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '1.9');
+    s.setAttribute('stroke-linecap', 'round');
+    paths.forEach(function (d) {
+      var p = document.createElementNS(SVG, 'path'); p.setAttribute('d', d); s.appendChild(p);
+    });
+    return s;
+  }
+
+  function build(maximized) {
+    // The focus ring for the three buttons below. It cannot be an inline style - :focus-visible
+    // is a selector - and this bar is built in script with no stylesheet of its own, so the rule
+    // is injected once. Same 2px accent outline at offset 1px every other control on every screen
+    // paints, because two focus rings in one window is two vocabularies.
+    if (!document.getElementById('gx-chrome-focus')) {
+      var fs = document.createElement('style');
+      fs.id = 'gx-chrome-focus';
+      fs.textContent = '#gx-chrome [role="button"]:focus-visible{outline:2px solid var(--gx-accent);'
+        + 'outline-offset:1px;}';
+      document.head.appendChild(fs);
+    }
+
+    var bar = document.createElement('div');
+    bar.id = 'gx-chrome';
+    bar.setAttribute('data-tauri-drag-region', '');
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:40px;display:flex;' +
+      'align-items:center;justify-content:flex-end;gap:2px;padding:0 6px;z-index:9999;' +
+      '-webkit-app-region:drag;user-select:none;';
+
+    function btn(paths, title, onClick, danger) {
+      var b = document.createElement('div');
+      b.title = title;
+      b.setAttribute('role', 'button');
+      // MINIMISE / MAXIMISE / CLOSE ARE CONTROLS (round 6c). They carried the role and nothing
+      // else: no tab stop, no name a screen reader is obliged to read, and no key that works.
+      // On Windows and Linux this bar REPLACES the OS title bar - so without these three lines a
+      // keyboard-only player on those platforms cannot close the launcher from inside it.
+      //
+      // aria-label RATHER THAN title ALONE: `title` is the last fallback in the accessible-name
+      // computation and several screen readers are configured never to reach it. Both are kept in
+      // sync wherever the maximise button relabels itself.
+      b.setAttribute('tabindex', '0');
+      b.setAttribute('aria-label', title);
+      b.style.cssText = 'width:40px;height:26px;display:flex;align-items:center;' +
+        'justify-content:center;color:#96999E;border-radius:3px;cursor:default;' +
+        '-webkit-app-region:no-drag;transition:background .12s,color .12s;';
+      b.appendChild(icon(paths));
+      b.addEventListener('mouseenter', function () {
+        b.style.background = danger ? '#E86A6A' : '#232327';
+        b.style.color = danger ? '#ECEEF0' : '#ECEEF0';
+      });
+      b.addEventListener('mouseleave', function () {
+        b.style.background = 'transparent'; b.style.color = '#96999E';
+      });
+      b.addEventListener('click', function (e) { e.stopPropagation(); onClick(b); });
+      // ENTER AND SPACE. An element wearing role="button" is activated by neither key on its own;
+      // only a real <button> gets that from the platform, and this bar cannot be one - it is a
+      // drag region with `-webkit-app-region` children, and a <button> inside a drag region is
+      // swallowed by the region on Windows.
+      b.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault(); e.stopPropagation(); onClick(b);
+        }
+      });
+      return b;
+    }
+
+    var MAX_ON  = ['M8 3H5a2 2 0 0 0-2 2v3', 'M21 8V5a2 2 0 0 0-2-2h-3',
+                   'M3 16v3a2 2 0 0 0 2 2h3', 'M16 21h3a2 2 0 0 0 2-2v-3'];
+    var MAX_OFF = ['M8 3v3a2 2 0 0 1-2 2H3', 'M21 8h-3a2 2 0 0 1-2-2V3',
+                   'M3 16h3a2 2 0 0 1 2 2v3', 'M16 21v-3a2 2 0 0 1 2-2h3'];
+
+    // Every invoke carries a .catch: a rejected window op with no handler is silent, and a
+    // button that sometimes does nothing with no explanation reads as a broken launcher.
+    bar.appendChild(btn(['M5 12h14'], 'Minimise', function () {
+      invoke('window_minimize').catch(function (e) { console.error('minimize:', e); });
+    }));
+
+    var maxBtn = btn(maximized ? MAX_OFF : MAX_ON, 'Maximise', function (b) {
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var old = b.querySelector('svg');
+        if (old) { b.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), old); }
+        b.title = isMax ? 'Restore' : 'Maximise';
+        b.setAttribute('aria-label', b.title);
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+    bar.appendChild(maxBtn);
+
+    bar.appendChild(btn(['M18 6 6 18', 'm6 6 12 12'], 'Close', function () {
+      invoke('window_close').catch(function (e) { console.error('close:', e); });
+    }, true));
+
+
+    document.body.appendChild(bar);
+
+    // DOUBLE-CLICK THE TITLE ROW TO MAXIMISE. Every OS does this and the drag region swallowed
+    // it, so the app's own title bar behaved worse than the one it replaced.
+    bar.addEventListener('dblclick', function (e) {
+      if (e.target.closest && e.target.closest('[role="button"]')) { return; }
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var b = maxBtn.querySelector('svg');
+        if (b) { maxBtn.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), b); }
+        maxBtn.title = isMax ? 'Restore' : 'Maximise';
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+
+    // RESIZE GRIPS. set_decorations(false) removed the OS frame, and with it the resize borders -
+    // the window could be maximised but never dragged to a size. These eight invisible strips put
+    // them back, handing the drag to the OS (window_start_resize) rather than tracking the mouse
+    // here. 6px reads as a border and is still easy to hit; the corners are 12px because corners
+    // are aimed at rather than swept into. They sit UNDER the chrome bar's z-index so the buttons
+    // always win, and each one stops the click reaching the label router.
+    var GRIPS = [
+      ['north',      'top:0;left:12px;right:12px;height:6px;',        'ns-resize'],
+      ['south',      'bottom:0;left:12px;right:12px;height:6px;',     'ns-resize'],
+      ['west',       'left:0;top:12px;bottom:12px;width:6px;',        'ew-resize'],
+      ['east',       'right:0;top:12px;bottom:12px;width:6px;',       'ew-resize'],
+      ['north-west', 'top:0;left:0;width:12px;height:12px;',          'nwse-resize'],
+      ['north-east', 'top:0;right:0;width:12px;height:12px;',         'nesw-resize'],
+      ['south-west', 'bottom:0;left:0;width:12px;height:12px;',       'nesw-resize'],
+      ['south-east', 'bottom:0;right:0;width:12px;height:12px;',      'nwse-resize']
+    ];
+    GRIPS.forEach(function (g) {
+      var el = document.createElement('div');
+      el.setAttribute('data-gx-noroute', '');
+      el.style.cssText = 'position:fixed;z-index:9998;-webkit-app-region:no-drag;' +
+                         g[1] + 'cursor:' + g[2] + ';';
+      el.addEventListener('mousedown', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        invoke('window_start_resize', { direction: g[0] })
+          .catch(function (e) { console.error('resize:', e); });
+      });
+      document.body.appendChild(el);
+    });
+  }
+
+  // F11 EVERYWHERE, including macOS, where the window keeps its own decorations and this block
+  // otherwise does nothing. Fullscreen is not maximised: it gives the whole display to the
+  // artboard, which the fit script then scales into. Escape leaves, because a player who cannot
+  // see a title bar needs a way out that does not require finding one.
+  var isFull = false;
+  function toggleFullscreen() {
+    invoke('window_fullscreen_toggle')
+      .then(function (v) { isFull = !!v; })
+      .catch(function (e) { console.error('fullscreen:', e); });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); return; }
+    if (e.key === 'Escape' && isFull) { e.preventDefault(); toggleFullscreen(); }
+  });
+
+  // Held for this too (gx-settle.js): on Windows the minimise / maximise / close buttons are part of the first frame,
+  // not a pop-in. The fit block placed the artboard before the bar existed; below 1:1 it must sit under the bar, so
+  // it is fitted again now rather than at the player's first resize.
+  window.gxSettle.wait(invoke('window_custom_chrome').then(function (wants) {
+    if (wants) { build(false); window.dispatchEvent(new Event('resize')); }
+  }).catch(function (e) { console.error('window_custom_chrome failed:', e); }));
+})();
+</script>
+
+<!-- gx-fit-wired -->
+<script>
+// Fit the artboard to the window.
+//
+// Every screen's root is a fixed 1280x720 box, because that is what the design IS - a fixed
+// composition, not a responsive layout. Maximising therefore did nothing: the box stayed its
+// size in the corner and the rest of the window was empty ground.
+//
+// Scaling it is the honest fix. Reflowing eleven screens into a responsive layout would be a
+// redesign, would need the designer, and would not obviously be better - the artboards are laid
+// out to be read at one set of proportions. So: scale by the smaller of the two ratios, keep the
+// aspect, and centre what is left over.
+//
+// Runs standalone in a browser too - it needs no Tauri - so the screens still review correctly
+// at any window size.
+(function () {
+  var root = null;
+  function findRoot() {
+    var kids = document.body ? document.body.children : [];
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      if (el.id === 'gx-chrome') { continue; }          // the title row is window-scale, not art-scale
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') { continue; }
+      var w = parseFloat(el.style.width), h = parseFloat(el.style.height);
+      if (w >= 1000 && h >= 600) { return el; }
+    }
+    return null;
+  }
+  function fit() {
+    if (!root) { root = findRoot(); }
+    if (!root) { return; }
+    var w = parseFloat(root.style.width)  || 1280;
+    var h = parseFloat(root.style.height) || 720;
+    var iw = window.innerWidth, ih = window.innerHeight;
+    var s = Math.min(iw / w, ih / h);
+    var ty = (ih - h * s) / 2;
+    // The injected title row (#gx-chrome) is window-scale and 40px tall. At s >= 1 the
+    // artboard's own 40px top spacer scales to >= 40px, so the bar overlays empty ground.
+    // Below s = 1 the spacer shrinks under the bar and the bar starts stealing clicks from
+    // real content — so refit into the strip BELOW the bar instead.
+    if (s < 1 && document.getElementById('gx-chrome')) {
+      var avail = Math.max(ih - 40, 40);
+      s = Math.min(iw / w, avail / h);
+      ty = 40 + (avail - h * s) / 2;
+    }
+    root.style.transformOrigin = 'top left';
+    root.style.transform = 'translate(' + ((iw - w * s) / 2) + 'px,' + ty + 'px) scale(' + s + ')';
+  }
+  document.documentElement.style.overflow = 'hidden';
+  if (document.body) { document.body.style.overflow = 'hidden'; }
+  window.addEventListener('resize', fit);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fit);
+  } else {
+    fit();
+  }
+  fit();
+})();
+</script>
+
+</body>
+</html>

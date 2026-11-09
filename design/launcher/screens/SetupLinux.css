@@ -1,0 +1,224 @@
+/* Set up on Linux — hand-written, not converted from an artboard: this screen has none. The
+   structure, the token use and the three injected script blocks follow the eleven converted
+   screens exactly, and every rule is scoped under .gx-s-setuplinux for the same reason
+   theirs are — sixty-eight selectors are shared between screens and ten of them genuinely
+   conflict, so nothing here is global. */
+
+.gx-s-setuplinux { margin: 0; font-family: var(--gx-font-ui); }
+.gx-s-setuplinux a { color: var(--gx-accent); text-decoration: none; }
+.gx-s-setuplinux a:hover { color: var(--gx-accent-hi); }
+
+@keyframes gx-rise--setuplinux { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes gx-sweep--setuplinux { from { transform: translateX(-130%); } to { transform: translateX(420%); } }
+
+.gx-s-setuplinux .gx-rise { animation: gx-rise--setuplinux 520ms var(--gx-ease-out) both; }
+
+.gx-s-setuplinux .gx-card {
+      background: linear-gradient(180deg, var(--gx-surface) 0%, var(--gx-ground) 100%);
+      border: 1px solid var(--gx-line);
+      box-shadow: 0 1px 0 var(--gx-white-a03) inset, 0 8px 24px var(--gx-shadow-a35);
+      transition: border-color 200ms var(--gx-ease-out);
+    }
+
+.gx-s-setuplinux .gx-util {
+      cursor: pointer; display: flex; align-items: center; gap: 10px;
+      height: 56px; padding: 0 20px; font-size: var(--gx-fs-135); font-weight: 500;
+      background: linear-gradient(180deg, var(--gx-line-3) 0%, var(--gx-surface-3) 100%);
+      border: 1px solid var(--gx-line-5); color: var(--gx-ink);
+      box-shadow: 0 1px 0 var(--gx-white-a07) inset, 0 3px 12px var(--gx-shadow-a40);
+      transition: background 180ms var(--gx-ease-out), border-color 180ms var(--gx-ease-out),
+                  color 180ms var(--gx-ease-out), transform 140ms var(--gx-ease-press),
+                  box-shadow 180ms var(--gx-ease-out);
+    }
+.gx-s-setuplinux .gx-util:active { transform: scale(0.97); }
+.gx-s-setuplinux .gx-util svg { flex-shrink: 0; transition: transform 320ms var(--gx-ease-out); }
+.gx-s-setuplinux .gx-util--folder:hover svg { transform: translateY(-1.5px); }
+
+.gx-s-setuplinux .gx-play {
+      position: relative; overflow: hidden; cursor: pointer;
+      box-shadow: 0 0 0 1px var(--gx-accent-a15), 0 10px 30px var(--gx-accent-a16);
+      transition: box-shadow 200ms var(--gx-ease-out), transform 140ms var(--gx-ease-press),
+                  background 200ms var(--gx-ease-out), opacity 200ms var(--gx-ease-out);
+    }
+.gx-s-setuplinux .gx-play::after {
+      content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 26%;
+      background: linear-gradient(100deg, transparent, var(--gx-white-a13), transparent);
+      transform: translateX(-130%);
+    }
+.gx-s-setuplinux .gx-play:active { transform: scale(0.985); }
+/* A button that cannot work must not look like one that can. Set by the script, never in the
+   markup: the artboard state of this page is "we have not asked yet", and painting the confirm
+   as dead before the answer arrives would be the page guessing.
+
+   NOT EXPRESSED AS OPACITY, and that is not a taste call - it is a cascade fact this page was
+   measured getting wrong. .gx-rise animates opacity to 1 with fill-mode `both`, and a running or
+   filled CSS animation outranks every normal declaration including an inline style, so
+   `opacity: 0.45` here painted at 1 and the dead button looked live. Every property below is one
+   no animation on this element touches. */
+.gx-s-setuplinux .gx-play.gx-off {
+      cursor: default; box-shadow: none;
+      border-color: var(--gx-line-5) !important;
+      background: var(--gx-surface) !important;
+      color: var(--gx-ink-faint) !important;
+    }
+.gx-s-setuplinux .gx-play.gx-off::after { display: none; }
+
+/* One candidate folder. The whole row is the target, because a 12px radio is a hard thing to hit
+   and there is nothing else in the row to click. */
+.gx-s-setuplinux .gx-cand {
+      display: flex; gap: 11px; align-items: flex-start; padding: 10px 12px; cursor: pointer;
+      border: 1px solid transparent; background: transparent;
+      transition: background 160ms var(--gx-ease-out), border-color 160ms var(--gx-ease-out);
+    }
+.gx-s-setuplinux .gx-cand.gx-on { background: var(--gx-accent-bg); border-color: var(--gx-accent-edge); }
+/* A folder that is not Zero Hour is still shown — it is almost always plain Generals, which is a
+   specific, fixable mistake — but it is not selectable and must not look it. */
+.gx-s-setuplinux .gx-cand.gx-dead { cursor: default; opacity: 0.62; }
+
+.gx-s-setuplinux .gx-badge {
+      flex-shrink: 0; font-size: var(--gx-fs-95); letter-spacing: var(--gx-ls-caps);
+      text-transform: uppercase; font-weight: 600; color: var(--gx-ink-dim);
+      border: 1px solid var(--gx-line); padding: 2px 7px; margin-top: 2px; min-width: 74px;
+      text-align: center;
+    }
+
+.gx-s-setuplinux .gx-step { display: flex; gap: 11px; align-items: flex-start; padding: 7px 0; }
+.gx-s-setuplinux .gx-dot {
+      width: 7px; height: 7px; border-radius: var(--gx-radius-dot); flex-shrink: 0;
+      margin-top: 6px; background: var(--gx-ink-faint);
+      transition: background 200ms var(--gx-ease-out);
+    }
+
+/* ---------------------------------------------------------------------------------------------
+   THE "I HAVE NO ZERO HOUR" BRANCH. Everything above dresses the question "which of these folders
+   is yours". The rules below dress the answer for the player who has none, measured on a fresh
+   MacBook on 26/08/2026: they got as far as an unzipped folder and a text editor, and stopped.
+
+   Nothing new is introduced here. Same tokens, same square corners, same two easings, same 140ms
+   press. The one shape that did not already exist on this screen is a text box, and it is built
+   out of the surface stack the cards already use.
+   --------------------------------------------------------------------------------------------- */
+
+/* ---------------------------------------------------------------------------------------------
+   EVERY CONTROL THAT COMMITS ANYTHING IS A REAL <button> (round 6c).
+
+   Measured on the macOS twin of this screen in the RUNNING launcher: 38 accessibility elements,
+   five of them actionable - the setup panel's two radios and the three window-chrome buttons the
+   OS draws. A search for role AXButton returned only AXCloseButton / AXFullScreenButton /
+   AXMinimizeButton. SET UP & PLAY, DOWNLOAD FROM STEAM, "Choose a folder..." and "I already have
+   it somewhere" were bare <div>s here too - same markup, same omission - so they are fixed here
+   in the same round rather than left for the defect to be rediscovered on Linux.
+
+   It is an omission and not house style: OptionsNetwork.html:94 and :155 in this same design
+   system already use role="button" tabindex="0".
+
+   A REAL <button> WHEREVER THE CONTENT MODEL ALLOWS ONE, because the tab stop, the accessible
+   name, Enter AND Space activation and the disabled semantics are then the platform's rather than
+   ours. The one exception on this screen is the candidate row, which holds block-level children;
+   the reasoning is beside the code that builds it in SetupLinux.html.
+
+   THE RESET IS A TYPE SELECTOR ON PURPOSE, so it cannot outrank anything. `button` is 0-0-1, so
+   every existing `.gx-util` / `.gx-play` / `.gx-lesser` rule below still wins, and so does every
+   inline style already on these elements. All it does is take the UA's own button styling off,
+   and the UA sheet loses to any author rule.
+
+   THAT THE TAG CHANGE MOVES NOTHING IS A MEASUREMENT, NOT AN ARGUMENT, and the box-sizing line
+   below is what it cost: the same elements were measured in a real browser over http before and
+   after, at 1280x760 and 1024x640, and the first attempt was FOUR PIXELS narrower and two shorter
+   on SET UP & PLAY. Whatever is added here gets measured the same way.
+   --------------------------------------------------------------------------------------------- */
+.gx-s-setuplinux button {
+      appearance: none; -webkit-appearance: none;
+      /* MEASURED, NOT ASSUMED, and it is the one declaration here that is not cosmetic. Chromium's
+         UA sheet gives `button` `box-sizing: border-box`, and every one of these controls sizes
+         itself with a `width`/`height` plus a border - so without this the divs' 240x60 SET UP &
+         PLAY became a 236x56 button and the whole bottom bar lost 4px. Caught by measuring the
+         same elements before and after in the same browser; the tag change is meant to move
+         nothing at all. */
+      box-sizing: content-box;
+      margin: 0; padding: 0; border: 0; background: none; color: inherit;
+      font: inherit; text-align: inherit; text-transform: inherit; cursor: default;
+    }
+/* The ring is on :focus-visible only, so a mouse press does not paint one, and it is the ring the
+   macOS screen's setup panel already paints - one focus vocabulary across the launcher. */
+.gx-s-setuplinux button:focus { outline: none; }
+.gx-s-setuplinux button:focus-visible,
+.gx-s-setuplinux .gx-cand[role="button"]:focus-visible {
+      outline: 2px solid var(--gx-accent); outline-offset: 1px;
+    }
+
+/* The lesser of the two ways out. It has to be findable and it has to read as the second choice,
+   so it gets no fill and no box: one rank down in ink, one hairline under it, and it lightens on
+   hover the way every other control here does. */
+.gx-s-setuplinux .gx-lesser {
+      cursor: pointer; font-size: var(--gx-fs-120); color: var(--gx-ink-dim);
+      border-bottom: 1px solid var(--gx-line-5); padding-bottom: 3px; white-space: nowrap;
+      transition: color 160ms var(--gx-ease-out), border-color 160ms var(--gx-ease-out),
+                  transform 140ms var(--gx-ease-press);
+    }
+.gx-s-setuplinux .gx-lesser:active { transform: scale(0.97); }
+
+/* The account box. A real <input> rather than the contenteditable span the number screens use:
+   there is no existing box on this page for one to drift from, and a field somebody types a name
+   into wants a placeholder, select-all and an IME to work.
+   IT IS type="text" AND IT WILL NEVER BE ANYTHING ELSE. See cmd_setup.rs, and gxio::steam's
+   module header for why. */
+.gx-s-setuplinux .gx-acct {
+      width: 100%; box-sizing: border-box; height: 34px; padding: 0 10px;
+      font-family: var(--gx-font-ui); font-size: var(--gx-fs-125); font-weight: 500;
+      color: var(--gx-ink); background: var(--gx-ground);
+      border: 1px solid var(--gx-line); outline: none;
+      -webkit-user-select: text; user-select: text; cursor: text;
+      transition: border-color 160ms var(--gx-ease-out), background 160ms var(--gx-ease-out);
+    }
+.gx-s-setuplinux .gx-acct::placeholder { color: var(--gx-ink-faint); }
+.gx-s-setuplinux .gx-acct:focus { border-color: var(--gx-accent); background: var(--gx-surface); }
+/* Set by the script when the launcher itself refused the name, cleared on the next keystroke. */
+.gx-s-setuplinux .gx-acct.gx-wrong { border-color: var(--gx-bad); }
+
+/* One live step. Same dot vocabulary as .gx-step above, tighter: there are up to five of them
+   inside a card that also carries the buttons and the box. */
+.gx-s-setuplinux .gx-fstep { display: flex; gap: 10px; align-items: flex-start; padding: 3px 0; }
+.gx-s-setuplinux .gx-fstep .gx-dot { margin-top: 5px; }
+
+/* The bar under whichever step is running. NO SPINNER-ONLY STATES ON THIS SCREEN: a step that is
+   working says what it is doing and how far it has got.
+   SCALED, NOT WIDTHED. Animating width is animating layout, and this sits inside a card that is
+   already tight; transform: scaleX composites and cannot reflow its neighbours. */
+.gx-s-setuplinux .gx-bar { height: 3px; max-width: 340px; background: var(--gx-line); margin-top: 6px; overflow: hidden; }
+.gx-s-setuplinux .gx-bar > i {
+      display: block; height: 100%; background: var(--gx-accent);
+      transform-origin: left center; transform: scaleX(0);
+      transition: transform 180ms var(--gx-ease-out);
+    }
+
+@media (hover: hover) and (pointer: fine) {
+  .gx-s-setuplinux .gx-card:hover { border-color: var(--gx-line-strong); }
+  .gx-s-setuplinux .gx-util:hover {
+    background: linear-gradient(180deg, var(--gx-line-4) 0%, var(--gx-line-2) 100%);
+    border-color: var(--gx-line-6); color: var(--gx-ink); transform: translateY(-1px);
+    box-shadow: 0 1px 0 var(--gx-white-a09) inset, 0 7px 20px var(--gx-shadow-a50);
+  }
+  .gx-s-setuplinux .gx-play:not(.gx-off):hover {
+    background: var(--gx-accent-edge); transform: translateY(-1px);
+    box-shadow: 0 0 0 1px var(--gx-accent-a40), 0 14px 38px var(--gx-accent-a30);
+  }
+  .gx-s-setuplinux .gx-play:not(.gx-off):hover::after { animation: gx-sweep--setuplinux 900ms var(--gx-ease-out) 1; }
+  .gx-s-setuplinux .gx-cand:not(.gx-dead):not(.gx-on):hover { background: var(--gx-surface-2); }
+  .gx-s-setuplinux .gx-lesser:hover { color: var(--gx-ink); border-color: var(--gx-ink-dim); }
+  /* :not(:focus) because this rule comes later in the file and would otherwise take the accent
+     border off a box that is both focused and under the pointer. */
+  .gx-s-setuplinux .gx-acct:not(:focus):hover { border-color: var(--gx-line-6); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gx-s-setuplinux .gx-rise { animation: none; opacity: 1; transform: none; }
+  .gx-s-setuplinux .gx-util svg, .gx-s-setuplinux .gx-util--folder:hover svg { transition: none; transform: none; }
+  .gx-s-setuplinux .gx-util, .gx-s-setuplinux .gx-play { transition-property: background, border-color, color, box-shadow, opacity; }
+  .gx-s-setuplinux .gx-util:hover, .gx-s-setuplinux .gx-play:hover, .gx-s-setuplinux .gx-util:active, .gx-s-setuplinux .gx-play:active { transform: none; }
+  .gx-s-setuplinux .gx-play:not(.gx-off):hover::after { animation: none; }
+  .gx-s-setuplinux .gx-lesser { transition-property: color, border-color; }
+  .gx-s-setuplinux .gx-lesser:active { transform: none; }
+  .gx-s-setuplinux .gx-acct { transition: none; }
+  .gx-s-setuplinux .gx-bar > i { transition: none; }
+}

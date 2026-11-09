@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>reference — OptionsHud</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+    body { margin: 0; font-family: "Barlow", "Segoe UI", system-ui, sans-serif; }
+    a { color: #3B8EEA; text-decoration: none; }
+    a:hover { color: #6AA9F0; }
+    :root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-press: cubic-bezier(0.4, 0, 0.2, 1); }
+
+    @keyframes gx-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .gx-rise { animation: gx-rise 520ms var(--ease-out) both; }
+
+    .item { height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 18px 0 15px;
+      color: #96999E; font-size: 13px; cursor: pointer; border-left: 3px solid transparent;
+      transition: background 160ms var(--ease-out), color 160ms var(--ease-out); }
+    .item svg { flex-shrink: 0; }
+    .item.sel { background: #26262B; color: #ECEEF0; font-weight: 600; border-left-color: #3B8EEA; }
+    .grouphead { font-size: 9.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+      color: #6F7378; padding: 15px 18px 6px 18px; }
+
+    .ctl { background: linear-gradient(180deg, #2C2C33 0%, #232329 100%);
+      border: 1px solid #3E3E47; color: #ECEEF0;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.07) inset, 0 2px 8px rgba(0,0,0,0.35);
+      display: flex; align-items: center; cursor: pointer;
+      transition: background 180ms var(--ease-out), border-color 180ms var(--ease-out),
+                  transform 140ms var(--ease-press); }
+    .ctl:active { transform: scale(0.98); }
+    .spin { display: flex; align-items: center; justify-content: center; width: 20px; height: 14px;
+      color: #96999E; transition: color 140ms var(--ease-out), background 140ms var(--ease-out); }
+
+    .toggle { box-sizing: border-box; width: 40px; height: 22px; border-radius: 11px; flex-shrink: 0; cursor: pointer;
+      display: flex; align-items: center; padding: 0 3px;
+      transition: background 220ms var(--ease-out); }
+    .toggle .knob { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+      transition: transform 260ms var(--ease-out), background 220ms var(--ease-out); }
+    .toggle.on { background: #3B8EEA; box-shadow: 0 0 0 1px rgba(59,142,234,0.35); }
+    .toggle.on .knob { background: #10161D; transform: translateX(18px); }
+    .toggle.off { background: #2E2E33; }
+    .toggle.off .knob { background: #8A8D92; transform: translateX(0); }
+
+    .row { background: #1B1B1E; padding: 9px 14px; display: flex; align-items: center;
+      justify-content: space-between; gap: 14px; transition: background 160ms var(--ease-out); }
+
+    .cap { display: flex; align-items: center; cursor: pointer; justify-content: flex-end; min-width: 108px; }
+    .capbox {
+      min-width: 76px; text-align: center; padding: 5px 10px; font-size: 11.5px; font-weight: 600;
+      background: linear-gradient(180deg, #2C2C33 0%, #232329 100%);
+      border: 1px solid #3E3E47; color: #ECEEF0;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.07) inset;
+      transition: border-color 160ms var(--ease-out), background 160ms var(--ease-out), color 160ms var(--ease-out);
+    }
+    .capbox.listening { border-color: #3B8EEA; color: #9CC6F4; background: #16232F; box-shadow: 0 0 0 1px rgba(59,142,234,0.35); }
+    .capbox.unbound   { color: #6F7378; font-weight: 500; }
+    .capbox.bad       { border-color: #E86A6A; color: #F0A0A0; background: #2C1717; }
+    .caperr  { font-size: 10.5px; color: #E86A6A; line-height: 1.4; }
+    .capwarn { font-size: 10.5px; color: #EABE3B; line-height: 1.4; }
+    @media (hover: hover) and (pointer: fine) { .cap:hover .capbox { border-color: #4E4E59; } }
+
+    .key { font-family: "Barlow", sans-serif; font-size: 11.5px; font-weight: 600;
+      background: linear-gradient(180deg, #34343B 0%, #2A2A31 100%); border: 1px solid #45454F;
+      border-bottom-width: 2px; padding: 3px 9px; color: #ECEEF0;
+      box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset; }
+
+    .gx-save { cursor: pointer; border: 2px solid #3B8EEA; background: #1D2A38; color: #ECEEF0;
+      box-shadow: 0 0 0 1px rgba(59,142,234,0.16), 0 8px 24px rgba(59,142,234,0.14);
+      transition: background 200ms var(--ease-out), transform 140ms var(--ease-press); }
+    .gx-save:active { transform: scale(0.985); }
+
+    /* THE PREVIEW IS A TRUE 1920x1080 SURFACE, SCALED AS ONE UNIT.
+       Drawing the HUD at 1:1 px inside a small box makes every size a lie: 13pt is small against a
+       real screen and huge against a 500px mockup. So the inner surface is the real thing at real
+       coordinates and .stage scales it, which means every number below is the value the engine
+       actually uses. */
+    .screen { background: url(../../hudground.jpg) center / cover no-repeat, #6E4526;
+      border: 1px solid #2E2E33; position: relative; overflow: hidden; }
+    .stage { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+      transform-origin: top left; transform: scale(0.30625); }
+
+    .readout { position: absolute; font-family: Arial, "Liberation Sans", Helvetica, sans-serif;
+      color: #E8EFD8; text-shadow: 0 2px 3px rgba(0,0,0,0.9); white-space: nowrap; }
+
+    /* Player info list: bottom-CENTRE, 8 columns, Tahoma BOLD, 130/255 black panel.
+       InGameUI.cpp:1559-1575 (0.5/0.995, label rgb(125,124,122), value rgb(253,251,251)).
+       NOTHING WRAPS - the engine lays this out to fit, it never breaks a cell over two lines. */
+    .pil { position: absolute; left: 50%; transform: translateX(-50%); bottom: 6px;
+      background: rgba(0,0,0,0.51); padding: 10px 18px 12px;
+      font-family: Tahoma, "DejaVu Sans", Verdana, sans-serif; font-weight: bold;
+      border-collapse: collapse; }
+    .pil th, .pil td { white-space: nowrap; padding: 2px 18px; text-align: right; font-size: 26px; }
+    .pil th { color: #7D7C7A; }
+    .pil td { color: inherit; text-shadow: 0 2px 2px #000; }
+    .pil th.n, .pil td.n { text-align: left; padding-left: 6px; }
+
+    /* Intelligence feed: left edge, 32% down, player-coloured, own black panel. Replay only.
+       InGameUI.cpp:2820-2905. */
+    .intel { position: absolute; left: 14px; top: 32%; background: rgba(0,0,0,0.51);
+      padding: 8px 14px; display: flex; flex-direction: column; gap: 4px;
+      font-family: Arial, "Liberation Sans", Helvetica, sans-serif; font-size: 26px; }
+    .intel div { text-shadow: 0 2px 2px #000; white-space: nowrap; }
+
+    @media (hover: hover) and (pointer: fine) {
+      .item:not(.sel):hover { background: #202024; color: #C3C6CA; }
+      .ctl:hover { background: linear-gradient(180deg, #35353D 0%, #2A2A31 100%); border-color: #4E4E59; }
+      .spin:hover { color: #ECEEF0; background: rgba(255,255,255,0.06); }
+      .row:hover { background: #1E1E22; }
+      .gx-save:hover { background: #223449; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .gx-rise { animation: none; opacity: 1; transform: none; }
+      .ctl:active, .gx-save:active { transform: none; }
+      .toggle .knob { transition: none; }
+    }
+  </style>
+</head><body>
+<div style="width: 1280px; height: 720px; background: #141416; color: #ECEEF0; display: flex; overflow: hidden;">
+
+  <div style="width: 208px; flex-shrink: 0; background: #1B1B1E; border-right: 1px solid #2E2E33; display: flex; flex-direction: column;">
+    <div style="height: 40px;"></div>
+    <div style="padding: 4px 18px 0 18px;">
+      <div style="display: flex; align-items: baseline; gap: 6px;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.8px; line-height: 1.12;">GENERALS</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; color: #3B8EEA; line-height: 1.12; text-shadow: 0 0 16px rgba(59,142,234,0.45);">X</div>
+      </div>
+      <div style="width: 52px; height: 2px; background: linear-gradient(90deg, #3B8EEA, rgba(59,142,234,0.15)); margin-top: 9px;"></div>
+    </div>
+
+    <div class="grouphead" style="padding-top: 20px;">Settings</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg><span>General</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span>Graphics</span></div>
+    <div class="item sel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>HUD</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>Keybinds</span></div>
+
+    <div class="grouphead">If something is wrong</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Network test</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>Diagnostics</span></div>
+
+    <div style="flex-grow: 1;"></div>
+    <div style="height: 1px; background: #2E2E33;"></div>
+    <div class="item" style="height: 44px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>About</span></div>
+    <div style="padding: 14px 16px 16px 16px;">
+      <div class="gx-save" style="height: 44px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; letter-spacing: 0.8px;">SAVE &amp; GO BACK</div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+    <div style="height: 40px;"></div>
+
+    <div class="gx-rise" style="padding: 4px 34px 0 34px;">
+      <div style="font-size: 23px; font-weight: 700; letter-spacing: -0.2px;">HUD</div>
+      <div style="font-size: 12.5px; color: #96999E; margin-top: 3px;">The readouts drawn over the battlefield. Applied the next time the game starts.</div>
+    </div>
+
+    <div style="flex-grow: 1; padding: 18px 34px 26px 34px; display: flex; gap: 20px; min-height: 0;">
+
+      <div class="gx-rise" style="width: 396px; flex-shrink: 0; display: flex; flex-direction: column; gap: 9px; animation-delay: 60ms;">
+        <div style="font-size: 10.5px; letter-spacing: 1.5px; color: #96999E; text-transform: uppercase; font-weight: 600;">Readouts, and how big</div>
+
+        <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #2E2E33; background: #2E2E33;">
+
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: 12.5px;">Ping / latency</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: 12px; font-variant-numeric: tabular-nums;">14</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: 12.5px;">Match timer</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: 12px; font-variant-numeric: tabular-nums;">18</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <div style="display: flex; flex-direction: column; gap: 1px;">
+                <span style="font-size: 12.5px;">Player list</span>
+                <span style="font-size: 10px; color: #EABE3B; letter-spacing: 0.4px;">Replays and observers</span>
+              </div>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: 12px; font-variant-numeric: tabular-nums;">13</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: 12.5px;">Frame rate</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: 12px; font-variant-numeric: tabular-nums;">12</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle off" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: 12.5px; color: #96999E;">System clock</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px; opacity: 0.4;">
+              <span style="font-size: 12px; font-variant-numeric: tabular-nums;">12</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: 12.5px;">In-game messages</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: 12px; font-variant-numeric: tabular-nums;">15</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #2E2E33; background: #2E2E33; margin-top: 6px;">
+          <div class="row">
+            <span style="font-size: 12.5px;">Show income per minute</span>
+            <div class="toggle on"><div class="knob"></div></div>
+          </div>
+          <div class="row" style="align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <span style="font-size: 12.5px;">Hide the game HUD</span>
+              <span style="font-size: 10.5px; color: #96999E; line-height: 1.45;">The command bar, build cameos, money, minimap and radar</span>
+              
+            </div>
+            <div class="cap">
+              <span class="capbox">F10</span>
+            </div>
+          </div>
+          <div class="row" style="align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <span style="font-size: 12.5px;">Hide the spectator HUD</span>
+              <span style="font-size: 10.5px; color: #96999E; line-height: 1.45;">Only the readouts above. Independent, so you can hide either alone</span>
+              
+            </div>
+            <div class="cap">
+              <span class="capbox">F11</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gx-rise" style="flex-grow: 1; display: flex; flex-direction: column; gap: 9px; min-width: 0; animation-delay: 120ms;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div style="font-size: 10.5px; letter-spacing: 1.5px; color: #96999E; text-transform: uppercase; font-weight: 600;">Where they sit, and how big they look</div>
+          <span style="font-size: 11.5px; color: #3B8EEA;">Reset</span>
+        </div>
+
+        <div class="screen" style="width: 588px; height: 331px; flex-shrink: 0;">
+          <div class="stage">
+
+            <!-- TOP-LEFT CLUSTER, in the order the engine stacks it.
+                 ping is "38ms", colour-banded green/yellow/red.
+                 the fps line is a TRIPLE: fps yellow (255,255,0), [limit] grey (119,119,119),
+                 tps banded on the same thresholds as ping.
+                 then the message list, alternating MessageColor1 white / MessageColor2 grey. -->
+            <div style="position: absolute; left: 16px; top: 12px; display: flex; flex-direction: column; gap: 2px;">
+              <!-- ONE ROW. InGameUI.cpp:4553-4569 threads a single hudOffsetX through
+                   drawNetworkLatency, drawNetworkResends, drawRenderFps, drawLogicRate and
+                   drawSystemTime, and each one ADVANCES x (":7125  x += width + kHudGapPx").
+                   They sit side by side, never stacked. kHudGapPx is 6 (:1109), and there is NO
+                   gap between the fps number and its [limit] - :7300 advances by the width alone. -->
+              <div style="font-family: Arial, 'Liberation Sans', Helvetica, sans-serif; font-size: 26px; text-shadow: 0 2px 3px rgba(0,0,0,0.9); white-space: nowrap; display: flex; align-items: baseline;"><span style="color: #00FF00;">38ms</span><span style="width: 6px;"></span><span style="color: #FFFF00;">59</span><span style="color: #777777;">[60]</span><span style="width: 6px;"></span><span style="color: #00FF00;">60tps</span></div>
+              <div style="height: 8px;"></div>
+              <div style="font-family: Arial, 'Liberation Sans', Helvetica, sans-serif; font-size: 28px; color: #FFFFFF; text-shadow: 0 2px 3px rgba(0,0,0,0.9); white-space: nowrap;">Unit under attack</div>
+              <div style="font-family: Arial, 'Liberation Sans', Helvetica, sans-serif; font-size: 28px; color: #B4B4B4; text-shadow: 0 2px 3px rgba(0,0,0,0.9); white-space: nowrap;">Upgrade Complete: AP Bullets</div>
+              <div style="font-family: Arial, 'Liberation Sans', Helvetica, sans-serif; font-size: 28px; color: #FFFFFF; text-shadow: 0 2px 3px rgba(0,0,0,0.9); white-space: nowrap;">User-PC has been Defeated</div>
+            </div>
+
+            <div class="readout" style="right: 16px; top: 12px; font-size: 34px; color: #FFFFFF;">00:12:45<span style="color: #B4B4B4;">.17</span></div>
+
+            <div style="position: absolute; left: 14px; top: calc(32% - 34px); font-size: 20px; letter-spacing: 1px; color: #EABE3B; font-family: Arial, sans-serif;">REPLAYS AND OBSERVERS ONLY</div>
+            <div class="intel">
+              <div style="color: #598DFF;">BiG SiZe completed MOAB</div>
+              <div style="color: #FF5959;">[OoE]Marakar completed Nuclear Tanks</div>
+              <div style="color: #59C159;">[OoE]ExCaL^ completed Anthrax Beta</div>
+            </div>
+
+            <table class="pil">
+              <tr><th class="n">(T) Player</th><th>Army</th><th>Cash</th><th>Cash/m</th><th>(R) XP</th><th>SP</th><th>K/D</th><th>Power</th></tr>
+              <tr style="color: #598DFF;"><td class="n">(1) BiG SiZe</td><td>USA</td><td>4,210</td><td>+820</td><td>(3) 5140</td><td>2</td><td>4.7</td><td>ON (35)</td></tr>
+              <tr style="color: #FF5959;"><td class="n">(2) [OoE]Marakar</td><td>Nuke</td><td>3,880</td><td>+640</td><td>(2) 3020</td><td>1</td><td>1.3</td><td>OFF</td></tr>
+              <tr style="color: #59C159;"><td class="n">(2) [OoE]ExCaL^</td><td>Toxin</td><td>2,105</td><td>+410</td><td>(1) 1180</td><td>0</td><td>0.3</td><td>-</td></tr>
+            </table>
+
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 1px; border: 1px solid #2E2E33; background: #2E2E33;">
+          <div class="row" style="flex: 1; padding: 10px 13px;">
+            <span style="font-size: 12px; color: #96999E;">Across</span>
+            <div class="ctl" style="width: 70px; height: 29px; justify-content: space-between; padding: 0 3px 0 10px;">
+              <span style="font-size: 12px; font-variant-numeric: tabular-nums;">14</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <div class="row" style="flex: 1; padding: 10px 13px;">
+            <span style="font-size: 12px; color: #96999E;">Down</span>
+            <div class="ctl" style="width: 70px; height: 29px; justify-content: space-between; padding: 0 3px 0 10px;">
+              <span style="font-size: 12px; font-variant-numeric: tabular-nums;">12</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: 11.5px; color: #96999E; line-height: 1.5;">Moves the ping and frame rate only. The match timer is anchored <span style="color: #ECEEF0;">right</span>, the player list <span style="color: #ECEEF0;">bottom-centre</span>, and the intelligence feed <span style="color: #ECEEF0;">32% down the left</span>. Each keeps its own anchor.</div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</body></html>

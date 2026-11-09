@@ -1,0 +1,37 @@
+[package]
+name = "gxlauncher"
+version = "0.9.71"
+edition = "2021"
+description = "GeneralsX launcher"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+# The ResizeDirection enum that Window::start_resize_dragging takes. `tauri` does not re-export
+# it, and the launcher needs it because an undecorated window has no OS resize borders - see
+# cmd_window::window_start_resize. Already in the lock as tauri's own dependency, so this pulls
+# in no new code; the "2.11" floor keeps it the SAME crate instance as tauri's, which a mismatched
+# major would silently not be.
+#
+# DO NOT "TIDY" THIS AWAY as an unused-looking direct dependency. Removing it removes the only
+# path to that enum, and the window loses its resize grab entirely on Windows and Linux - which
+# presents as "resizing does not resize" and looks nothing like a dependency change.
+tauri-runtime = "2.11"
+gxcore = { path = "../gxcore" }
+gxio = { path = "../gxio" }
+serde = { version = "1", features = ["derive"] }
+# --gx-selftest emits one line of JSON that a packaging gate parses. Hand-rolling that line would
+# put an escaping bug between a real failure and the message describing it.
+serde_json = "1"
+
+# CGDisplayCopyAllDisplayModes, for the resolution picker. ALREADY IN THE LOCK as tauri's own
+# transitive dependency (core-graphics 0.25.0), so taking it directly adds no code to the binary -
+# the same situation as tauri-runtime above. macOS only: the other platforms have no equivalent
+# here yet and `window_display_modes` answers with an empty list there, which the page is written
+# to fall back from.
+[target.'cfg(target_os = "macos")'.dependencies]
+core-graphics = "0.25"
+# The CFArray the display-mode call hands back. Also already in the lock as tauri's own dependency.
+core-foundation = "0.10"

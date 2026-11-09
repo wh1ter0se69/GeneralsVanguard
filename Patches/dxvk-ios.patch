@@ -1,0 +1,84 @@
+diff --git a/src/vulkan/vulkan_loader.cpp b/src/vulkan/vulkan_loader.cpp
+index 518efcb1..735d3038 100644
+--- a/src/vulkan/vulkan_loader.cpp
++++ b/src/vulkan/vulkan_loader.cpp
+@@ -1,5 +1,12 @@
+ #include <tuple>
+ 
++// GeneralsX @bugfix Claude 19/08/2026 TARGET_OS_IPHONE is only defined once this is included.
++// Without it the iOS branch below is invisible to the preprocessor and iOS silently compiles the
++// macOS library list, which omits the bundle-relative MoltenVK path iOS cannot start without.
++#ifdef __APPLE__
++#include <TargetConditionals.h>
++#endif
++
+ #include "vulkan_loader.h"
+ 
+ #include "../util/log/log.h"
+@@ -15,9 +22,33 @@ namespace dxvk::vk {
+       "winevulkan.dll",
+       "vulkan-1.dll",
+     }};
++#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
++    // iOS: there is no Vulkan loader on the platform - MoltenVK IS the implementation, and it is
++    // embedded in the app bundle's Frameworks directory where a bare-name dlopen cannot see it.
++    static const std::array<const char*, 5> dllNames = {{
++      "@executable_path/Frameworks/MoltenVK.framework/MoltenVK",
++      "@executable_path/Frameworks/libMoltenVK.dylib",
++      "libvulkan.dylib",
++      "libvulkan.1.dylib",
++      "libMoltenVK.dylib",
++    }};
+ #elif defined(__APPLE__)
+-    // macOS: try the Vulkan loader (from Vulkan SDK) and MoltenVK directly.
+-    // LoadLibraryA() maps to dlopen() on non-Windows DXVK native builds.
++    // macOS: prefer the Vulkan LOADER, and never name MoltenVK by a path.
++    //
++    // GeneralsX @bugfix Claude 19/08/2026 THE @executable_path ENTRIES ARE NOT HARMLESS HERE, which
++    // is what the previous version of this comment claimed. When dlopen fails on a path, dyld
++    // retries the LEAF NAME against DYLD_LIBRARY_PATH - and the macOS bundle's run.sh puts
++    // Contents/Resources/lib on that path, which contains libMoltenVK.dylib. So the "iOS-only"
++    // entry resolved, and DXVK bound vkGetInstanceProcAddr straight to MoltenVK while SDL3 had
++    // already created the surface through libvulkan. Two Vulkan implementations in one process:
++    //
++    //   info:  Vulkan: Found vkGetInstanceProcAddr in @executable_path/Frameworks/libMoltenVK.dylib
++    //   [Vulkan Loader] ERROR: vkGetInstanceProcAddr: Invalid instance
++    //   zsh: abort
++    //
++    // Measured on a MacBook Pro 14" M1 Pro. The loader must come first and stay first: it is what
++    // SDL_Vulkan_LoadLibrary picks up, and the instance has to come from the same place as the
++    // entry points that will be used on it.
+     static const std::array<const char*, 3> dllNames = {{
+       "libvulkan.dylib",
+       "libvulkan.1.dylib",
+diff --git a/src/wsi/sdl3/wsi_platform_sdl3_funcs.h b/src/wsi/sdl3/wsi_platform_sdl3_funcs.h
+index 624c2193..feb5f61a 100644
+--- a/src/wsi/sdl3/wsi_platform_sdl3_funcs.h
++++ b/src/wsi/sdl3/wsi_platform_sdl3_funcs.h
+@@ -9,6 +9,7 @@ SDL_PROC(bool, SDL_GetClosestFullscreenDisplayMode, (SDL_DisplayID, int, int, fl
+ SDL_PROC(SDL_DisplayID, SDL_GetDisplayForWindow, (SDL_Window*))
+ SDL_PROC(SDL_WindowFlags, SDL_GetWindowFlags, (SDL_Window *))
+ SDL_PROC(bool, SDL_GetWindowSize, (SDL_Window*, int*, int*))
++SDL_PROC(bool, SDL_GetWindowSizeInPixels, (SDL_Window*, int*, int*))
+ SDL_PROC(bool, SDL_SetWindowSize, (SDL_Window*, int, int))
+ SDL_PROC(bool, SDL_SetWindowPosition, (SDL_Window*, int, int))
+ SDL_PROC(bool, SDL_SetWindowFullscreen, (SDL_Window*, bool))
+diff --git a/src/wsi/sdl3/wsi_window_sdl3.cpp b/src/wsi/sdl3/wsi_window_sdl3.cpp
+index 10fca478..be0828f5 100644
+--- a/src/wsi/sdl3/wsi_window_sdl3.cpp
++++ b/src/wsi/sdl3/wsi_window_sdl3.cpp
+@@ -22,8 +22,12 @@ namespace dxvk::wsi {
+     int w = 0;
+     int h = 0;
+ 
+-    if (!SDL_GetWindowSize(window, &w, &h))
+-      Logger::err(str::format("SDL3 WSI: SDL_GetWindowSize: ", SDL_GetError()));
++    // Pixels, not points: on high-DPI displays (iOS high-pixel-density windows)
++    // the Metal layer's drawable is scale-factor larger than the logical window.
++    // Sizing the swapchain in points leaves it rendering into a corner of the
++    // surface. Identical to points wherever no scale factor applies.
++    if (!SDL_GetWindowSizeInPixels(window, &w, &h))
++      Logger::err(str::format("SDL3 WSI: SDL_GetWindowSizeInPixels: ", SDL_GetError()));
+ 
+     if (pWidth)
+       *pWidth = uint32_t(w);

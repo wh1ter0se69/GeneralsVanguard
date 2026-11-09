@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Artboard → screen fidelity check</title>
+<style>
+  body{margin:0;background:#111;color:#ddd;font:13px/1.5 ui-monospace,monospace;padding:16px}
+  h1{font-size:15px;margin:0 0 4px}
+  p.sub{color:#888;margin:0 0 14px;max-width:80ch}
+  iframe{width:1280px;height:720px;border:0;position:absolute;left:-99999px;top:0}
+  table{border-collapse:collapse;margin-top:10px;font-size:12px}
+  td,th{border:1px solid #333;padding:3px 9px;text-align:left}
+  .ok{color:#5fc98d}.bad{color:#e86a6a}
+  pre{white-space:pre-wrap;color:#e86a6a;font-size:11px;margin:2px 0 0}
+</style>
+</head>
+<body>
+<h1>Artboard → screen fidelity check</h1>
+<p class="sub">Loads each generated <em>reference</em> — the artboard with only its design-canvas wrappers
+and bindings resolved, every literal untouched — and its converted screen side by side, walks both element trees in document order, and compares the computed value of every property
+the conversion could have changed. The conversion is mechanical, so this is what proves the token
+table is <em>correct</em> and not merely consistent. Any row that is not 0 is a real regression.</p>
+<div id="out">running…</div>
+<div id="frames"></div>
+<script>
+const SCREENS = ["MainWeb","MainUpdate","OptionsGeneral","Options","OptionsHud","OptionsKeys",
+                 "OptionsNetwork","OptionsDiag","OptionsAbout","Changelogs","ChangelogsEmpty"];
+const PROPS = ["color","background-color","background-image","font-family","font-size",
+  "font-weight","letter-spacing","line-height","text-transform","opacity","box-shadow",
+  "border-top-color","border-right-color","border-bottom-color","border-left-color",
+  "border-top-width","border-right-width","border-bottom-width","border-left-width",
+  "border-radius","padding-top","padding-right","padding-bottom","padding-left",
+  "margin-top","margin-left","gap","width","height"];
+
+function load(src){
+  return new Promise(res=>{
+    const f=document.createElement("iframe");
+    f.src=src; f.onload=()=>res(f);
+    document.getElementById("frames").appendChild(f);
+  });
+}
+// The artboard wraps content in <x-dc><helmet>…</helmet> …content… </x-dc>.
+// The converted page has exactly that content as <body>'s children.
+function rootOf(doc){ return doc.body; }
+function walk(root, skipHelmet){
+  const out=[];
+  (function rec(n){
+    for(const c of n.children){
+      const t=c.tagName.toLowerCase();
+      if(skipHelmet && t==="helmet") continue;
+      if(t==="script"||t==="style"||t==="link") continue;
+      // <sc-if> is a design-canvas conditional. On the artboard side it is inert
+      // (support.js is not in the repo) so its subtree renders unconditionally;
+      // the converted screen resolves the condition and, in the initial state,
+      // correctly omits it. Skipping the element AND its subtree is what lets the
+      // remaining 270 elements of OptionsHud still be compared instead of the
+      // whole screen being written off on an element-count mismatch.
+      if(t.startsWith("sc-")) continue;
+      out.push(c); rec(c);
+    }
+  })(root);
+  return out;
+}
+(async ()=>{
+  const rows=[]; let grandDiff=0, grandCmp=0;
+  for(const name of SCREENS){
+    const a=await load("./reference/"+name+".html");
+    const b=await load("./screens/"+name+".html");
+    // give webfonts a moment so font-size/family resolve identically in both
+    await (a.contentDocument.fonts?a.contentDocument.fonts.ready:Promise.resolve());
+    await (b.contentDocument.fonts?b.contentDocument.fonts.ready:Promise.resolve());
+    const ea=walk(rootOf(a.contentDocument), false);
+    const eb=walk(rootOf(b.contentDocument), false);
+    let diffs=[], cmp=0;
+    if(ea.length!==eb.length){
+      diffs.push("ELEMENT COUNT "+ea.length+" vs "+eb.length);
+    } else {
+      for(let i=0;i<ea.length;i++){
+        const ca=a.contentWindow.getComputedStyle(ea[i]);
+        const cb=b.contentWindow.getComputedStyle(eb[i]);
+        for(const p of PROPS){
+          cmp++;
+          const va=ca.getPropertyValue(p), vb=cb.getPropertyValue(p);
+          if(va!==vb && diffs.length<12)
+            diffs.push("#"+i+" <"+ea[i].tagName.toLowerCase()+"> "+p+": “"+va+"” vs “"+vb+"”");
+          else if(va!==vb) diffs.push("");
+        }
+      }
+    }
+    const real=diffs.filter(d=>d!=="").length + (diffs.length-diffs.filter(d=>d!=="").length);
+    grandDiff+=real; grandCmp+=cmp;
+    rows.push({name, els:ea.length, cmp, diffs});
+    a.remove(); b.remove();
+  }
+  let html="<table><tr><th>screen</th><th>elements</th><th>properties compared</th><th>differences</th></tr>";
+  for(const r of rows){
+    const n=r.diffs.length;
+    html+="<tr><td>"+r.name+"</td><td>"+r.els+"</td><td>"+r.cmp+"</td><td class='"+(n?"bad":"ok")+"'>"+n+"</td></tr>";
+    if(n) html+="<tr><td colspan=4><pre>"+r.diffs.filter(Boolean).join("\n")+"</pre></td></tr>";
+  }
+  html+="</table><p class='"+(grandDiff?"bad":"ok")+"'>TOTAL: "+grandCmp+" computed properties compared, "+grandDiff+" differences.</p>";
+  document.getElementById("out").innerHTML=html;
+  window.__RESULT__={compared:grandCmp,diffs:grandDiff,
+                    rows:rows.map(r=>({name:r.name,els:r.els,n:r.diffs.length,sample:r.diffs.filter(Boolean).slice(0,6)}))};
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,1436 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeneralsX launcher — Options — General</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="./OptionsGeneral.css">
+<!-- Held hidden until what it loads is on it (gx-settle.js): the first frame is the final one. -->
+<script src="./gx-settle.js" onerror="window.gxSettle={wait:function(p){return p},whenShown:function(f){f()},picture:function(){},held:function(){return false}}"></script>
+<style id="gx-ground">
+/* The artboards are a fixed 1280x720 box. The launcher window's content area is taller than
+   that, and anything the box does not cover falls through to the webview's own default
+   background - which is WHITE. That is the strip along the bottom edge on macOS.
+   Paint the page ground behind the artboard so the uncovered area matches the design instead
+   of flashing white. Layout is untouched: this sits BEHIND the box, it does not resize it. */
+html, body { margin: 0; }
+/* THE BACKDROP LIVES ON THE VIEWPORT, NOT THE ARTBOARD. The artboard is a fixed
+   1280x720 composition that the fit script scales, so a backdrop painted on IT ends at
+   its scaled edge and every letterboxed band fell through to the flat page ground -
+   which is a different colour from the gradient, and read as the window being split in
+   two. Here it is one continuous ground behind everything, so there is no seam to find
+   at any window size. */
+body {
+  background: var(--gx-backdrop-2);
+  background-attachment: fixed;
+}
+/* Tells the platform to draw its own widgets - scrollbars, dropdowns, spinners - in their dark
+   variant. Without it Windows draws a WHITE scrollbar track with arrow buttons down the side of
+   a black launcher, which is what the operator saw. */
+html { color-scheme: dark; }
+/* An app, not a document: text does not highlight when a click drags a pixel. Anything meant to
+   be copied (the network-test paste line, file paths) opts back in with .gx-selectable. */
+body { -webkit-user-select: none; user-select: none; cursor: default; }
+.gx-selectable, .gx-selectable * { -webkit-user-select: text; user-select: text; cursor: text; }
+
+/* The scrollbar itself, so it matches the design rather than merely being dark. Uses the same
+   surface stack as the panels: track disappears into the page, thumb is one step up from a
+   card border, and it lightens on hover like every other control here. WebKit and Chromium
+   both honour these, which covers macOS, Windows and Linux webviews. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #2E2E33;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #3D3D45; background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* No stepper arrows: the design has none anywhere else. */
+::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+/* The standard property, for engines that prefer it over the WebKit ones. */
+* { scrollbar-width: thin; scrollbar-color: #2E2E33 transparent; }
+body { min-height: 100vh; }
+</style>
+</head>
+<body class="gx-screen gx-s-optionsgeneral">
+<div style="width: 1280px; height: 720px; background: transparent; color: var(--gx-ink); display: flex; overflow: hidden;">
+
+  <div style="width: 208px; flex-shrink: 0; background: var(--gx-ground); border-right: 1px solid var(--gx-line); display: flex; flex-direction: column;">
+    <div style="height: 40px;"></div>
+    <div style="padding: 4px 18px 0 18px;">
+      <div style="display: flex; align-items: baseline; gap: 6px;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; letter-spacing: 0.8px; line-height: 1.12;">GENERALS</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; color: var(--gx-accent); line-height: 1.12; text-shadow: 0 0 16px var(--gx-accent-a45);">X</div>
+      </div>
+      <div style="width: 52px; height: 2px; background: linear-gradient(90deg, var(--gx-accent), var(--gx-accent-a15)); margin-top: 9px;"></div>
+    </div>
+    <div class="grouphead" style="padding-top: 20px;">Settings</div>
+    <div class="item sel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg><span>General</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span>Graphics</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>HUD</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>Keybinds</span></div>
+    <div class="grouphead">If something is wrong</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Network test</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>Diagnostics</span></div>
+    <div style="flex-grow: 1;"></div>
+    <div style="height: 1px; background: var(--gx-line);"></div>
+    <div class="item" style="height: 44px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>About</span></div>
+    <div style="padding: 14px 16px 16px 16px;">
+      <div class="gx-save" style="height: 44px; display: flex; align-items: center; justify-content: center; font-size: var(--gx-fs-125); font-weight: 700; letter-spacing: 0.8px;">BACK</div>
+      <div style="padding-top: 8px; text-align: center; font-size: var(--gx-fs-110); color: var(--gx-ink-faint);">Changes save automatically.</div>
+    </div>
+  </div>
+
+  <!-- overflow-y: auto and min-height: 0 added with the Updates section below: this column's
+       content is no longer a fixed height the page's own flex-grow spacer could always absorb,
+       for the same reason SetupMac.html's left column already scrolls (see that file) - a
+       section whose length is not ours to choose must scroll inside a fixed 720px artboard
+       rather than being silently clipped by the outer box's overflow: hidden.
+
+       THE PRIMARY ACTION IS NOT IN THIS COLUMN, so making it scroll cannot carry it away. Raised
+       as a risk by the whole-branch review and MEASURED in a real browser, at both window sizes
+       tauri.conf.json declares, rather than argued from the markup.
+
+       THE MEASUREMENTS THAT USED TO BE RECORDED HERE WERE ABOUT THE UPDATE-POLICY FIELDSET,
+       AND IT IS GONE (round 6). They said the fieldset was 248px tall with 112px visible - two of five
+       options - before it was rebuilt as a chip row, and 33.5px fully visible after. The owner
+       then deleted the control entirely: "auto updates should be automatic", and when asked how
+       far, "check and install silently". Nothing on this page now depends on those numbers, and
+       leaving a measurement of a control that no longer exists is how the next reader is sent to
+       look for it. The reason this column scrolls at all still stands: the overlay list is as long
+       as the player's own archives.
+
+       BACK lives in the 208px nav column to the left, which is flex-shrink: 0 and does
+       not scroll at either size (scrollHeight == clientHeight == 720 both times). The only bottom
+       bar inside THIS column is the informational note about the three removed switches, which is
+       the right thing for the overflow to land on. -->
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0; padding: 40px 34px 20px 34px; box-sizing: border-box; gap: 15px; overflow-y: auto; min-height: 0;">
+
+    <div class="gx-rise">
+      <div data-gx-noroute style="font-size: var(--gx-fs-230); font-weight: 700; letter-spacing: -0.2px;">General</div>
+      <div style="font-size: var(--gx-fs-125); color: var(--gx-ink-dim); margin-top: 3px;">Where it lives, which extra archives are switched on, and whether your replays are kept.</div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line); animation-delay: 50ms;">
+      <div class="drow" style="align-items: center;">
+        <div style="min-width: 0;">
+          <div class="dn">Installed to</div>
+          <div class="path gx-selectable" style="margin-top: 4px;">C:\Users\User\AppData\Local\Programs\GeneralsX</div>
+        </div>
+        <span class="ghost2">SHOW</span>
+      </div>
+      <div class="drow" style="align-items: center;">
+        <div style="min-width: 0;">
+          <div class="dn">Zero Hour data</div>
+          <div class="path gx-selectable" style="margin-top: 4px;">D:\SteamLibrary\steamapps\common\Command &amp; Conquer Generals Zero Hour</div>
+          <div class="dd" style="margin-top: 5px;">Found automatically. GeneralsX never writes into it.</div>
+          <!-- The live caption is decided in the gx-options-wired block from s.data.writtenInto: a
+               folder the player CHOSE is written into (the wrapper installs the loose multiplayer
+               data there), a folder merely discovered is not. Do not hard-code either sentence. -->
+        </div>
+        <span class="ghost2">CHANGE</span>
+      </div>
+      <!-- GeneralsX @feature Claude 23/09/2026 The engine's own user-data folder, and a way in.
+           The owner asked for an "Open data folder" control in every launcher. On macOS the folder is
+           under ~/Library, which Finder hides, so without this a player has no route to their maps,
+           replays or settings. The sample path is the Windows one, like the two rows above it. The
+           live path, and whether OPEN is enabled, come from netdiag_facts in the gx-options-wired
+           block. -->
+      <div class="drow" style="align-items: center;">
+        <div style="min-width: 0;">
+          <div class="dn">Your data</div>
+          <div class="path gx-selectable" style="margin-top: 4px;">C:\Users\User\Documents\GeneralsX\GeneralsZH</div>
+          <div class="dd" style="margin-top: 5px;">Your maps, replays, settings and player identity. Put downloaded maps in its Maps folder.</div>
+        </div>
+        <span class="ghost2" role="button" tabindex="0" aria-label="Open your data folder">OPEN</span>
+      </div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 9px; animation-delay: 90ms;">
+      <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--gx-ink-dim);">Required to play with anyone else</div>
+      <div class="opt" style="border: 1px solid #3E4A38; background: #171C16;">
+        <div style="min-width: 0;">
+          <div class="on" style="display: flex; align-items: center; gap: 9px;">
+            Community patch, core INI
+            <span style="font-size: var(--gx-fs-95); letter-spacing: 1px; font-weight: 700; color: var(--gx-good-ink); border: 1px solid var(--gx-good); background: var(--gx-good-bg); padding: 2px 7px;">REQUIRED</span>
+          </div>
+          <div class="od" style="color: var(--gx-ink-dim);">The balance and bugfix set every lobby runs. Switch it off and you cannot join anyone, including friends.</div>
+          <div class="oa gx-selectable">500_900_CommunityPatch_CoreINI.big</div>
+        </div>
+        <div class="toggle on" style="margin-top: 3px;"><div class="knob"></div></div>
+      </div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 9px; min-height: 0; animation-delay: 100ms;">
+      <div style="display: flex; align-items: baseline; justify-content: space-between;">
+        <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--gx-ink-dim);">Optional, and safe to change</div>
+        <span style="font-size: var(--gx-fs-110); color: var(--gx-ink-faint);">Applied immediately. No save needed.</span>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+        <div class="opt">
+          <div style="min-width: 0;">
+            <div class="on">ControlBar Pro</div>
+            <div class="od">A wider command bar with more visible slots.</div>
+            <div class="oa gx-selectable">340_ControlBarProZH.big</div>
+          </div>
+          <div class="toggle on" style="margin-top: 3px;"><div class="knob"></div></div>
+        </div>
+        <div class="opt">
+          <div style="min-width: 0;">
+            <div class="on">ControlBar Pro, 1440 fixes</div>
+            <div class="od">Corrects its alignment at 1440p and above.</div>
+            <div class="oa gx-selectable">340_ControlBarPro-Fix1440ZH.big</div>
+          </div>
+          <div class="toggle on" style="margin-top: 3px;"><div class="knob"></div></div>
+        </div>
+        <div class="opt">
+          <div style="min-width: 0;">
+            <div class="on">Hotkey indicators</div>
+            <div class="od">Draws each build button's key on its cameo. Follows whatever you set on the Keybinds page.</div>
+            <div class="oa">drawn by the engine, no archive</div>
+          </div>
+          <div class="toggle on" style="margin-top: 3px;"><div class="knob"></div></div>
+        </div>
+
+      </div>
+      <div style="font-size: var(--gx-fs-115); color: var(--gx-ink-faint); line-height: 1.5; max-width: 84ch;">
+        All of these change your <span style="color: var(--gx-ink-dim);">data ID</span>, so everyone in a match needs the same set. The About page shows yours.
+      </div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 9px; animation-delay: 130ms;">
+      <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--gx-ink-dim);">Replays</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+        <div class="drow" style="align-items: center;">
+          <div style="min-width: 0;">
+            <div class="dn">Keep every replay</div>
+            <div class="dd">The game records every match to the same file, so each new match overwrites the last one. This keeps a dated copy of every finished match in the ArchivedReplays folder.</div>
+          </div>
+          <div class="toggle on"><div class="knob"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 9px; animation-delay: 150ms;">
+      <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--gx-ink-dim);">LAN games</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+        <div class="drow" style="align-items: center;">
+          <div style="min-width: 0;">
+            <div class="dn">Use my VPN for LAN</div>
+            <div class="dd">For Tailscale and similar VPNs: the game uses your VPN address and friends join you by IP (Direct Connect). Off, it uses your real network.</div>
+          </div>
+          <div class="toggle off"><div class="knob"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 9px; animation-delay: 170ms;">
+      <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; color: var(--gx-ink-dim);">Games against AI</div>
+      <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+        <div class="drow" style="align-items: center;">
+          <div style="min-width: 0;">
+            <div class="dn">AI colours</div>
+            <div class="dd">With four or more AI, all on Hard, they share three colours so a big game reads as three groups. Replaces colours picked in the lobby. Games with another person keep all 32.</div>
+          </div>
+          <div id="gx-aicolours" data-gx-noroute role="radiogroup" aria-label="AI colours" class="seg">
+            <div class="segopt on" role="radio" tabindex="0" aria-checked="true" data-ai="all">All 32 colours</div>
+            <div class="segopt" role="radio" tabindex="-1" aria-checked="false" data-ai="three">AI in 3 colours</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1;"></div>
+
+    <div class="gx-rise" style="border-top: 1px solid var(--gx-line); padding-top: 13px; display: flex; gap: 11px; align-items: flex-start; animation-delay: 150ms;">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--gx-ink-faint)" stroke-width="1.9" stroke-linecap="round" style="flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      <div style="font-size: var(--gx-fs-115); color: var(--gx-ink-faint); line-height: 1.55; max-width: 86ch;">
+        Three switches used to sit at the top of this page and none of them did anything. Shortcuts are made by the installer, not here, and the launcher always closes when the game starts. They are gone rather than left looking functional.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="./gx-savekey.js"></script>
+<script>
+// The General page, against the real install: the two paths this launcher actually uses, and the
+// community-patch archives actually on disk.
+//
+// Static preview outside the launcher: window.__TAURI__ is absent, this returns immediately, and
+// the artboard's sample paths and sample rows stay exactly as designed. Everything below therefore
+// runs only where the real answers are knowable.
+//
+// THE RULE THIS FILE IS WRITTEN AROUND: never print a value we have not confirmed. The artboard's
+// "C:\Users\User\..." is sample content and is correct as sample content; leaving it on screen
+// inside the app, where the truth is one call away, would be a launcher confidently naming a folder
+// that does not exist on this machine. So every slot is either a real answer or an honest "not
+// found" - never the sample.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }
+  var invoke = T.core.invoke;
+
+  // ---- small DOM helpers ---------------------------------------------------------------------
+
+  function norm(el) { return (el.textContent || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+
+  function findByText(sel, text) {
+    var all = document.querySelectorAll(sel);
+    for (var i = 0; i < all.length; i++) { if (norm(all[i]) === text) { return all[i]; } }
+    return null;
+  }
+
+  // Set the label of a node whose first child is a bare text node followed by markup - the
+  // REQUIRED row is shaped that way (label text, then the pill <span>), so textContent would
+  // destroy the pill.
+  function setLeadText(el, text) {
+    if (!el) { return; }
+    for (var i = 0; i < el.childNodes.length; i++) {
+      if (el.childNodes[i].nodeType === 3) { el.childNodes[i].nodeValue = text; return; }
+    }
+    el.insertBefore(document.createTextNode(text), el.firstChild);
+  }
+
+  function setIn(row, cls, text) {
+    var el = row.querySelector(cls);
+    if (el) { el.textContent = text || ''; el.style.display = text ? '' : 'none'; }
+  }
+
+  // ---- the two paths -------------------------------------------------------------------------
+
+  function pathRow(label) {
+    var dn = findByText('.drow .dn', label);
+    return dn ? dn.closest('.drow') : null;
+  }
+
+  // A folder change is in flight. OUTSIDE paintPaths on purpose: that function re-binds
+  // `change.onclick` on every repaint, and a guard declared inside it would be a fresh `false` each
+  // time - so the repaint that follows a successful choice would re-arm the button while the
+  // chooser from a double press was still open.
+  var changing = false;
+
+  function paintPaths(s) {
+    // THE LOOSE-OVERRIDE WARNING, ON EVERY VISIT, for each row whose folder the engine loads loose
+    // files from. It comes from game_status, not from the pick reply: that one arrives once, so a
+    // development tree chosen earlier - or named by CNC_GENERALS_ZH_PATH - was diagnosed only until
+    // the player navigated away (Codex r3 of feat/launcher-pick-data-folder, finding 1). The words
+    // are cmd_setup::loose_override_warning's; the page's own .warn treatment carries them, and a
+    // row with nothing to say gets its warning taken away rather than left from an earlier paint.
+    function paintOverride(row, text) {
+      var ow = row.querySelector('[data-gx-override]');
+      if (!text) { if (ow) { ow.remove(); } return; }
+      if (!ow) {
+        ow = document.createElement('div');
+        ow.className = 'warn';
+        ow.setAttribute('data-gx-override', '1');
+        ow.style.marginTop = '7px';
+        var at = row.querySelector('.path');
+        (at ? at.parentNode : row).appendChild(ow);
+      }
+      ow.textContent = text;
+    }
+
+    var install = pathRow('installed to');
+    if (install) {
+      var p = install.querySelector('.path');
+      if (p) {
+        p.textContent = s.install.path || 'Not found on this computer.';
+        p.style.color = s.install.path ? '' : 'var(--gx-bad-ink)';
+      }
+      var show = install.querySelector('.ghost2');
+      if (show) {
+        if (s.install.path) {
+          show.onclick = function (ev) {
+            ev.stopPropagation();
+            invoke('game_reveal', { path: s.install.path }).catch(function (e) { sayError(e); });
+          };
+        } else {
+          show.style.opacity = '0.4';
+          show.style.cursor = 'default';
+        }
+      }
+      // Non-null on Windows only, where this folder is the engine's working directory and is
+      // searched for loose files BEFORE the data folder (cmd_game::install_path_info).
+      paintOverride(install, s.install.warning);
+    }
+
+    var data = pathRow('zero hour data');
+    if (data) {
+      var dp = data.querySelector('.path');
+      if (dp) {
+        dp.textContent = s.data.path || 'Not found - no folder containing INIZH.big.';
+        dp.style.color = s.data.path ? '' : 'var(--gx-bad-ink)';
+      }
+      // The caption says HOW it was found, because "Found automatically" is a claim and the
+      // artboard makes it unconditionally. When it came from an environment override or from the
+      // installer's own script, saying so is what lets somebody debug a wrong answer.
+      var dd = data.querySelector('.dd');
+      if (dd) {
+        // GeneralsX @bugfix Claude 25/08/2026 The second half used to be the constant sentence
+        // "GeneralsX never writes into it." That was true of a folder we merely found and FALSE of
+        // one the player chose: the wrapper cds into the asset root and installs
+        // Data/INI/Multiplayer.ini and Data/English/Generals.csf there, because dataID is
+        // cwd-relative. The backend now reports which case this is (writtenInto), so the caption
+        // can stop asserting the same thing about both.
+        dd.textContent = !s.data.path
+          ? 'GeneralsX could not find your Zero Hour data.'
+          : s.data.writtenInto
+            ? ('Found from ' + s.data.how + '. GeneralsX installs its multiplayer data here.')
+            : ('Found from ' + s.data.how + '. GeneralsX never writes into it.');
+      }
+      paintOverride(data, s.data.warning);
+      var change = data.querySelector('.ghost2');
+      if (change) {
+        // WIRED TO THE FIRST-RUN SCREEN'S OWN TWO COMMANDS, not to a second implementation of
+        // them. `setup_pick` opens the system chooser (gxio::game::pick_data_folder - osascript on
+        // macOS, zenity or kdialog on Linux) and `setup_choose` is the ONE validator: it refuses
+        // anything that is not an existing folder holding a non-empty INIZH.big, and its sentence
+        // is the one the player reads. A check here would be a second answer that could drift from
+        // the one that decides what the engine actually starts from.
+        //
+        // THIS USED TO BE A NOTE SAYING IT WAS NOT IN THE BUILD, and it sent the player to
+        // CNC_GENERALS_ZH_PATH. Reported 22/09/2026: somebody had already pointed the launcher at
+        // a development tree and had no way back from inside the launcher.
+        change.onclick = function (ev) {
+          ev.stopPropagation();
+          if (changing) { return; }
+          changing = true;
+          note('Waiting for the folder chooser…');
+          invoke('setup_pick').then(function (c) {
+            if (!c) { changing = false; note(''); return null; }   // cancelled, which is not a failure
+            return invoke('setup_choose', { path: c.path }).then(function () {
+              return invoke('game_status').then(function (fresh) {
+                changing = false;
+                paintPaths(fresh);
+                // SAY WHETHER IT TOOK EFFECT RATHER THAN ASSUMING IT DID. `data_candidates` ranks
+                // CNC_GENERALS_ZH_PATH ABOVE the recorded folder, so the very players this button
+                // was added for - the ones who followed the old note and exported it - would
+                // otherwise choose a folder, be told nothing, and go on running from the old one.
+                // PLAY IS PROMISED ONLY WHEN `playable` SAYS IT CAN START. Settings is reachable with
+                // GeneralsX itself missing, and MainWeb disables PLAY on that same field; the
+                // Installed-to row above already paints why.
+                var said = fresh.data.path === c.path
+                  ? 'Zero Hour data is now ' + c.path + '.' + (fresh.playable
+                    ? ' Press PLAY and GeneralsX starts from there; the launcher does not need restarting.'
+                    : '')
+                  : 'That folder was saved, but CNC_GENERALS_ZH_PATH is set and outranks it, so ' +
+                    'GeneralsX still starts from ' + (fresh.data.path || 'nowhere') + '. Unset ' +
+                    'that variable and open the launcher again.';
+                // THE WARNING LEADS, because it is the part that is easy to miss and the part that
+                // explains a game which starts and then looks wrong. `setup_choose` ACCEPTED this
+                // folder - loose overrides are somebody's choice often enough that refusing them
+                // would block a legitimate setup - so this is said, not enforced. The words are
+                // cmd_setup::loose_override_warning's; this page composes none of its own.
+                // NOT SAID TWICE: when the chosen folder is the one in force, paintPaths above has
+                // already put this same sentence on the row, from fresh.data.warning.
+                note(c.warning && c.warning !== fresh.data.warning ? c.warning + ' ' + said : said);
+              });
+            });
+          }).catch(function (e) {
+            changing = false;
+            sayError(e);
+          });
+        };
+        // A KEYBOARD CAN REACH IT, the way the OPEN button below is reached: the chip is a <span>,
+        // so it needs a tab stop, a role that announces it, and Enter/Space wired by hand
+        // (Codex r1 of feat/launcher-pick-data-folder-r2, finding 2). Properties rather than
+        // listeners, so the repaint that re-runs this block cannot bind the key twice. The key
+        // raises a real click() rather than calling the handler, so it also passes through the
+        // capture-phase listener below that releases a standing error - a key press is as much
+        // "the player acted again" as a mouse press is.
+        change.setAttribute('role', 'button');
+        change.setAttribute('tabindex', '0');
+        change.setAttribute('aria-label', 'Change the Zero Hour data folder');
+        change.onkeydown = function (ev) {
+          if (ev.key !== 'Enter' && ev.key !== ' ') { return; }
+          ev.preventDefault();
+          change.click();
+        };
+      }
+    }
+  }
+
+  // ---- your data: the engine's own user-data folder -------------------------------------------
+  //
+  // The folder the ENGINE reads and writes: Options.ini, the player's own maps, replays and the
+  // GeneralsX identity. It is resolved by gxio::release::game_data_dir, the resolver every other
+  // file this launcher writes goes through. On macOS it lives under ~/Library, which Finder hides.
+  //
+  // OPEN NAMES A ROLE, NEVER A PATH: netdiag_reveal('userdata') resolves the folder itself, as the
+  // Diagnostics page's SHOW buttons do. The folder does not exist until the game has started once.
+  // In that case the path says so and OPEN stays disabled. Opening some other folder instead would
+  // be a button that did something other than what it says.
+  function setOpenEnabled(btn, on) {
+    if (!btn) { return; }
+    btn.style.opacity = on ? '' : '0.4';
+    btn.style.cursor = on ? '' : 'default';
+    btn.style.pointerEvents = on ? '' : 'none';
+    btn.setAttribute('tabindex', on ? '0' : '-1');
+    btn.setAttribute('aria-disabled', on ? 'false' : 'true');
+  }
+
+  function paintUserData(d) {
+    var row = pathRow('your data');
+    if (!row) { return; }
+    var ud = d && d.userData;
+    var there = !!(ud && ud.path && ud.exists);
+    var p = row.querySelector('.path');
+    if (p) {
+      p.textContent = !ud || !ud.path ? 'Not found on this computer.'
+        : there ? ud.path : ud.path + '  (created the first time the game starts)';
+      p.style.color = there ? '' : 'var(--gx-ink-faint)';
+    }
+    var open = row.querySelector('.ghost2');
+    setOpenEnabled(open, there);
+    if (!open || !there || open.getAttribute('data-gx-open')) { return; }
+    open.setAttribute('data-gx-open', '1');
+    function reveal(ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      invoke('netdiag_reveal', { what: 'userdata' }).catch(function (e) { sayError(e); });
+    }
+    open.addEventListener('click', reveal);
+    // It wears role="button", which brings the announcement and none of the behaviour: Enter and
+    // Space are wired by hand.
+    open.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter' || ev.key === ' ') { reveal(ev); }
+    });
+  }
+
+  // ---- a place to say what happened -----------------------------------------------------------
+  //
+  // Reuses the page's own .warn treatment rather than inventing a style. Created only when there is
+  // something to say, so a healthy install looks exactly like the artboard.
+  //
+  // TWO CHANNELS, ONE SLOT. The audit found a routine repaint erasing a real error: paintOverlay
+  // ends every pass with note(...), and when its message list was empty that call cleared whatever
+  // an earlier failure had just put there. So failures go through sayError() and OUTLIVE routine
+  // repaints: note() refuses to touch the slot while an error is standing, and the error is
+  // released only by the next USER action - the capture-phase click listener below, capture so it
+  // still runs when a row handler stops propagation. The click that releases one error can of
+  // course raise the next: release happens in capture, before any handler's invoke can reject.
+
+  var warnEl = null;
+  var errStanding = false;
+  function paintNote(text, isError) {
+    if (!text) { if (warnEl) { warnEl.remove(); warnEl = null; } return; }
+    if (!warnEl) {
+      warnEl = document.createElement('div');
+      warnEl.className = 'warn';
+      warnEl.style.marginTop = '9px';
+      var host = document.querySelector('.gx-rise:last-of-type') || document.body;
+      var optSec = sectionFor('optional, and safe to change');
+      (optSec || host).appendChild(warnEl);
+    }
+    warnEl.textContent = text;
+    warnEl.style.borderLeftColor = isError ? 'var(--gx-bad)' : '';
+    warnEl.style.background = isError ? 'var(--gx-bad-bg)' : '';
+  }
+  // Routine and status messages: never allowed to overwrite or erase a standing error.
+  function note(text) {
+    if (errStanding) { return; }
+    paintNote(text, false);
+  }
+  // Failures: painted in the bad treatment and kept until the player acts again.
+  function sayError(text) {
+    errStanding = true;
+    paintNote(String(text), true);
+  }
+  // Ctrl+S / Cmd+S. Every switch here is written the moment it is flipped, and a refused write
+  // puts the switch back to what is on disk, so there is never anything waiting. Said, not silent.
+  if (window.gxSaveKey) {
+    window.gxSaveKey(function () {
+      window.gxSaveNote('Nothing to save: every switch on this page is written the moment you flip it.');
+    });
+  }
+  document.addEventListener('click', function (ev) {
+    errStanding = false;
+    // ...and disarm any REMOVE the player armed and then walked away from. Capture phase, like the
+    // error release, and for the same reason: the row handler calls stopImmediatePropagation, so a
+    // click on a DIFFERENT row never reaches a bubble-phase listener here. An armed delete left
+    // standing across an unrelated click is a delete waiting for an accident.
+    var armed = document.querySelectorAll('[data-gx-armed="1"]');
+    for (var i = 0; i < armed.length; i++) {
+      if (armed[i].contains(ev.target)) { continue; }   // the confirming click itself
+      armed[i].removeAttribute('data-gx-armed');
+      armed[i].textContent = 'REMOVE';
+      armed[i].style.color = '';
+      armed[i].style.borderColor = '';
+    }
+  }, true);
+
+  // ---- the archive sections --------------------------------------------------------------------
+
+  function sectionFor(headingText) {
+    var heads = document.querySelectorAll('.gx-rise div');
+    for (var i = 0; i < heads.length; i++) {
+      if (norm(heads[i]) === headingText) { return heads[i].closest('.gx-rise'); }
+    }
+    return null;
+  }
+
+  // Descriptions the payload does not carry. The archive LABELS come from optional.txt / the
+  // required set - those are the payload's own words and are used verbatim. These sentences are
+  // the shipping copy from the Windows loader's GeneralPage.cs, kept in one place so the two
+  // launchers describe the same archive the same way. An archive not listed here gets no
+  // description rather than an invented one.
+  // THE CREDIT IS PART OF THE DESCRIPTION, not a separate line, because these rows are already
+  // tight and a row that names its author is more use to a player than one that does not. Nobody
+  // downloading 34 MB of somebody else's work should have to go looking for whose it is.
+  var BLURB = {
+    '500_900_CommunityPatch_CoreINI.big':
+      'The balance and bugfix set every lobby runs. Switch it off and you cannot join anyone, ' +
+      'including friends. By TheSuperHackers.',
+    // !HotkeysLeikezeIndicatorsZH.big USED TO HAVE A LINE HERE reading "No longer used. The
+    // high-resolution cameo set replaces it, and the engine draws the hotkey letters itself. Safe
+    // to delete." - beside a greyed toggle and no way to delete it (owner, 23/08/2026: "remove the
+    // Leikeze stuff too from the launcher as its no longer used instead of just saying its no longer
+    // used"). It is gone because the row now carries a REMOVE that works. A description is for an
+    // archive the player is deciding about; this one they are only deciding whether to keep, and
+    // the row's own "not one this build knows about" already says everything that decides it.
+    '!!GXCameoHD.big':
+      'High-resolution build-button art, and the command-button data that points at it. Hotkey ' +
+      'assignments by Leikeze.',
+    // without it the row fell back to the lock reason, which says a missing archive refuses every join: this
+    // pack does not move dataID (overlay-archives.txt's dated exception) (Codex batch-0964 r3e P3)
+    '!!GXPropsHD.big':
+      'High-resolution textures for props, vehicles and trees. Every install ships it, but it never ' +
+      'decides who you can join.',
+    '!!GXModelsHD.big':
+      'Smoother 3D models: round wheels, domes and pillars, sandbag walls with real bags. Every install ' +
+      'ships it, but it never decides who you can join.',
+    '340_ControlBarProZH.big': 'A wider command bar with more visible slots. By -ExiLe`.',
+    '340_ControlBarPro-Fix1440ZH.big': 'Corrects its alignment at 1440p and above. By -ExiLe`.',
+    '340_ControlBarPro1440ZH.big': 'The 1440p command-bar layout. By -ExiLe`.'
+  };
+
+  function buildRow(tpl, row) {
+    var el = tpl.cloneNode(true);
+    el.setAttribute('data-gx-archive', row.name);
+    setLeadText(el.querySelector('.on'), row.label + ' ');
+    // The archive's own description first, and the lock reason only when there is none. Printing
+    // the reason on every row put the SAME two-line sentence on all three required rows - which is
+    // poor copy, and cost so much height that the optional list below had none left. The REQUIRED
+    // pill already says the row cannot be switched.
+    setIn(el, '.od', BLURB[row.name] || row.lockedBecause || '');
+    setIn(el, '.oa', row.name);
+    var t = el.querySelector('.toggle');
+    if (t) {
+      t.className = 'toggle ' + (row.enabled ? 'on' : 'off');
+      // The template may be a blanked sample row (the honest-first-paint pass dims its toggle),
+      // so clear that dimming before deciding afresh whether THIS row is toggleable.
+      t.style.opacity = ''; t.style.cursor = '';
+      if (!row.toggleable) { t.style.opacity = '0.45'; t.style.cursor = 'default'; }
+    }
+    if (row.unexpected) {
+      // NO ROW REACHES HERE ANY MORE. `overlay_view` stopped producing unexpected rows on
+      // 26/08/2026 (owner, on the `!HotkeysLeikezeIndicatorsZH.big` row: "dont delete the file just
+      // delete that row"), so this branch is kept only so an OLDER Rust side paired with this
+      // frontend still renders something sane instead of a bare row.
+      //
+      // The REMOVE button that used to be built here is gone. It called `delete_unmanaged`, which
+      // deletes the archive from disk - a destructive action on a file the launcher does not own,
+      // sitting in a screen whose every other control is a toggle. The warn stripe stays: if a row
+      // ever does arrive from an old backend, it should still read as "not from this build".
+      el.style.borderLeft = '3px solid var(--gx-warn)';
+      if (t) { t.style.opacity = '0.45'; t.style.cursor = 'default'; }
+    }
+    return el;
+  }
+
+  // THE ARTBOARD IS A FIXED 1280x720 WITH overflow:hidden, AND IT WAS DRAWN WITH FOUR ROWS.
+  // A real payload ships as many as it ships - nine here - and the natural height of this column
+  // then exceeds the page by about 460px. Left alone, the extra rows render straight through the
+  // footer paragraph and off the bottom of the window.
+  //
+  // ONE SCROLL REGION, NOT THREE. The obvious fix - make each list its own scroll box - was
+  // measured and is wrong: both boxes are flex items in an over-full column, so the browser
+  // shrinks them in proportion to their content and the player gets two nested scrollers showing
+  // one row each. Scrolling the COLUMN instead lets every row keep its natural height and gives
+  // the player a single thing to scroll.
+  //
+  // WHY THIS IS A FUNCTION AND NOT THE TAIL OF paintOverlay, which is where it used to live: as
+  // the tail of paintOverlay it ran only once game_overlay had RESOLVED. While that request was
+  // still in flight, and forever after it had failed, the column was an ordinary over-full flex
+  // box - and the page has since grown a "Keep every replay" row that is not part of the archive
+  // list at all. Measured in a browser with game_overlay stubbed, before this was pulled out:
+  //     optional section box 119.8px, its own children spanning 235.8px pending / 294.8px rejected
+  //     the "Hotkey indicators" row overlapping "Keep every replay" by 50.7px
+  //     a hit-test at the centre of the hotkey toggle landing on DIV.drow - the replay row lying
+  //     on top of it - so the switch could not be clicked at all
+  // Those are precisely the two states in which the rest of this page has to keep working, because
+  // the archive list is the part that is broken. So the layout is established BEFORE the request is
+  // made and does not depend on its answer. Idempotent: paintOverlay calls it again once it has
+  // rebuilt the rows.
+  //
+  // Still inside this IIFE, so a standalone artboard - no window.__TAURI__, returned at the top -
+  // keeps the exact fixed geometry it was designed with.
+  function applyScrollingLayout() {
+    var optSec = sectionFor('optional, and safe to change');
+    var col = optSec ? optSec.parentNode : null;
+    if (!col) { return; }
+    col.style.overflowY = 'auto';
+    col.style.minHeight = '0';
+    for (var s = 0; s < col.children.length; s++) {
+      var c = col.children[s];
+      // THIS IS THE LINE THAT FIXES THE OVERLAP, and it is not obvious. The artboard gives the
+      // optional section `min-height: 0`, so as a flex item with the default `shrink: 1` in an
+      // over-full column it is squashed to 47px while its rows - `overflow: visible` - keep their
+      // natural size and paint straight through the footer paragraph below. Measured: section box
+      // 47px, its own children spanning 534px. Scrolling the column only helps once its children
+      // are allowed to keep the height they asked for.
+      c.style.flexShrink = '0';
+      // The artboard ends the column with an empty flex-grow:1 spacer that pushes the footer to the
+      // bottom. In a scrolling column there is no leftover for it to occupy, and leaving it growable
+      // only makes the scroll height harder to reason about.
+      if (c.tagName === 'DIV' && !c.className && c.children.length === 0 && c.style.flexGrow === '1') {
+        c.style.flexGrow = '0';
+      }
+    }
+  }
+
+  function paintOverlay(v) {
+    var reqSec = sectionFor('required to play with anyone else');
+    var optSec = sectionFor('optional, and safe to change');
+
+    var reqTpl = reqSec ? reqSec.querySelector('.opt') : null;
+    var optWrap = optSec ? (optSec.querySelector('.opt') || {}).parentNode : null;
+    var optTpl = optWrap ? optWrap.querySelector('.opt') : null;
+    if (!reqTpl || !optWrap || !optTpl) { return; }
+
+    reqTpl = reqTpl.cloneNode(true);
+    optTpl = optTpl.cloneNode(true);
+
+    // The hotkey-indicator switch is NOT an archive - it writes ShowHotKeyIndicators into the
+    // engine's own keybind file. Lifted out before the archive rows are rebuilt and put back
+    // afterwards, so it survives with its own wiring.
+    var indicator = null;
+    var opts = optWrap.querySelectorAll('.opt');
+    for (var i = 0; i < opts.length; i++) {
+      var oa = opts[i].querySelector('.oa');
+      if (oa && oa.textContent.indexOf('no archive') >= 0) { indicator = opts[i]; }
+    }
+
+    var required = [], optional = [];
+    for (var j = 0; j < v.rows.length; j++) {
+      (v.rows[j].required ? required : optional).push(v.rows[j]);
+    }
+
+    // --- required ---
+    //
+    // Rows go into a wrapper of their own rather than straight into the section, so the LIST can
+    // scroll while its heading stays put - the artboard has one required row and a real payload has
+    // as many as it ships.
+    var oldReq = reqSec.querySelectorAll('.opt, [data-gx-reqwrap]');
+    for (var k = 0; k < oldReq.length; k++) { oldReq[k].remove(); }
+    var reqWrap = document.createElement('div');
+    reqWrap.setAttribute('data-gx-reqwrap', '1');
+    reqWrap.style.cssText = 'display:flex; flex-direction:column; gap:9px;';
+    reqSec.appendChild(reqWrap);
+
+    if (required.length === 0) {
+      var empty = document.createElement('div');
+      empty.className = 'od';
+      empty.textContent = v.requiredListPresent
+        ? 'This build names no required archives.'
+        : 'This install did not ship the list of archives every lobby needs, so none can be shown.';
+      reqWrap.appendChild(empty);
+    }
+    var GX_TEXTURE_ONLY = ['!!GXPropsHD.big', '!!GXModelsHD.big'];	// = gxio game::ALWAYS_ON_ARCHIVES
+    required.forEach(function (r) {
+      var el = buildRow(reqTpl, r);
+      // A required archive that is MISSING is the one thing on this page worth shouting about:
+      // every join is refused, and the message the other player sees blames data, not this.
+      if (!r.enabled && GX_TEXTURE_ONLY.indexOf(r.name) >= 0) {
+        // the always-on HD texture pack (overlay-archives.txt's dated exception): mandatory to ship, but it does not move
+        // dataID, so a missing copy costs the look, never a join (Codex batch-0964 r3d P3)
+        el.style.borderColor = 'var(--gx-warn)';
+        setIn(el, '.od', 'MISSING - HD art only. Joins still work; the game just looks plainer. Press Play to download it again.');
+      } else if (!r.enabled) {
+        el.style.borderColor = 'var(--gx-bad)';
+        setIn(el, '.od', 'MISSING from this install. Until it is restored, every join is refused - including by friends.');
+      }
+      reqWrap.appendChild(el);
+    });
+
+    // --- optional ---
+    var oldOpt = optWrap.querySelectorAll('.opt');
+    for (var m = 0; m < oldOpt.length; m++) { oldOpt[m].remove(); }
+    optional.forEach(function (r) { optWrap.appendChild(buildRow(optTpl, r)); });
+    if (indicator) { optWrap.appendChild(indicator); wireIndicator(indicator); }
+
+    // Re-run, now that the row count is the real one. Establishing the layout is not this
+    // function's job any more - applyScrollingLayout() already ran before game_overlay was asked,
+    // so the page was correct while this answer was still in flight - but a repaint can add
+    // children to the column, and settling them costs one idempotent pass.
+    applyScrollingLayout();
+
+    // --- the footer sentence -------------------------------------------------------------------
+    //
+    // A DELIBERATE CORRECTION, and the same one the Windows loader makes. The artboard footers this
+    // section with "All of these change your data ID". That is false for the optional archives and
+    // printing it is worse than saying nothing, because it tells a player that ticking ControlBar
+    // Pro will stop their friends joining. Measured on one install, both arms:
+    //     with 340_ControlBarPro*.big x3   data=2505C0C6
+    //     without them                     data=2505C0C6
+    // Only assetID moved, and assetID is a warning, not one of the four fields a join is refused
+    // over. Rewritten here rather than in the artboard so the design source stays owned by design.
+    var foot = optSec ? optSec.querySelector('div[style*="max-width: 84ch"]') : null;
+    if (foot) { foot.textContent = 'Only the required set above affects who you can play with.'; }
+
+    var msgs = (v.notes || []).slice();
+    if (v.refused) { msgs.unshift(v.refused); }
+    note(msgs.join('  '));
+  }
+
+  // ---- toggling --------------------------------------------------------------------------------
+
+  document.addEventListener('click', function (ev) {
+    var row = ev.target.closest && ev.target.closest('[data-gx-archive]');
+    if (!row) { return; }
+    // stopImmediatePropagation, not stopPropagation. The nav router is bound to `document` too, and
+    // stopPropagation only stops the event climbing PAST this node - every other listener already
+    // registered on document still runs. This script block is emitted before the router's, so it
+    // registers first and this is what actually keeps a row label out of the route table.
+    ev.stopImmediatePropagation();
+
+    // THE REMOVE FLOW WAS DELETED HERE on 26/08/2026 (owner: "dont delete the file just delete
+    // that row"). It armed on one click and called `game_overlay_delete` on the next, which removes
+    // the archive from disk.
+    //
+    // Removed rather than left unreachable. `overlay_view` no longer emits unexpected rows and the
+    // button that carried `data-gx-remove` is no longer built, so nothing could reach this - but a
+    // live code path that deletes a player's file, kept only because it is currently unreachable, is
+    // one refactor away from being reachable again. The Rust side keeps `delete_unmanaged`: it is
+    // guarded, tested, and the right thing to call if a screen ever manages foreign archives.
+
+    var t = row.querySelector('.toggle');
+    if (!t || t.style.cursor === 'default') { return; }
+    var name = row.getAttribute('data-gx-archive');
+    var wanted = !t.classList.contains('on');
+    // Repainted from the DISK, not from the click: a running game can hold an archive open, and a
+    // switch that claims a change the filesystem refused is how somebody ends up certain they
+    // turned something off.
+    invoke('game_overlay_set', { name: name, enable: wanted })
+      .then(paintOverlay)
+      // The rejection sentence (a running Zero Hour refuses every save, in words) lands in the
+      // page's error slot right under these rows, and it stays until the player acts again.
+      .catch(function (e) { sayError(e); });
+  });
+
+  // ---- the hotkey-indicator switch --------------------------------------------------------------
+  //
+  // Reuses the keybinds commands rather than carrying a second copy of that state: this switch and
+  // the Keybinds page write the same key in the same file, and two readers of one file drift.
+  //
+  // Two audit findings lived here. (4) The switch ate clicks silently while keybinds_load was
+  // pending or failed - it is now drawn disabled until the load resolves, and a failed load says
+  // on the row itself why it cannot be changed. (5) The save wrote back the map snapshot taken at
+  // page load, clobbering any binding changed on the Keybinds page since - the file is now
+  // re-read immediately before every save and the toggle is merged into THAT map.
+
+  function wireIndicator(row) {
+    // paintOverlay lifts this same node out of the list and re-adopts it, then calls this again -
+    // wire once, or the second pass would re-dim a live switch and double the load.
+    if (row.hasAttribute('data-gx-indwired')) { return; }
+    row.setAttribute('data-gx-indwired', '1');
+    var t = row.querySelector('.toggle');
+    if (!t) { return; }
+    var keys = null;
+    var loadFailed = null;
+    var whyEl = null;
+
+    function disable() { t.style.opacity = '0.35'; t.style.cursor = 'default'; }
+    function enable()  { t.style.opacity = ''; t.style.cursor = ''; }
+    function showWhy(text) {
+      if (!text) { if (whyEl) { whyEl.remove(); whyEl = null; } return; }
+      if (!whyEl) {
+        whyEl = document.createElement('div');
+        whyEl.className = 'od';
+        whyEl.style.color = 'var(--gx-bad-ink)';
+        (row.firstElementChild || row).appendChild(whyEl);
+      }
+      whyEl.textContent = text;
+    }
+
+    // Disabled until the truth arrives: the artboard's "on" is a sample, not a state.
+    t.className = 'toggle off';
+    disable();
+
+    window.gxSettle.wait(invoke('keybinds_load').then(function (k) {
+      keys = k; loadFailed = null;
+      showWhy('');
+      enable();
+      t.className = 'toggle ' + (k.showIndicators ? 'on' : 'off');
+    }).catch(function (e) {
+      loadFailed = String(e);
+      showWhy('Cannot be changed: the keybind file could not be read. ' + loadFailed);
+    }));
+
+    row.onclick = function (ev) {
+      ev.stopPropagation();
+      if (!keys) {
+        // Pending or failed - the switch is drawn disabled, and a failed load repeats its reason
+        // in the page's error slot so a click is never silently eaten.
+        if (loadFailed) { sayError('Hotkey indicators cannot be changed: ' + loadFailed); }
+        return;
+      }
+      if (t.style.cursor === 'default') { return; }   // a save is already in flight
+      var want = !t.classList.contains('on');
+      disable();
+      invoke('keybinds_load')
+        .then(function (fresh) {
+          keys = fresh;
+          return invoke('keybinds_save', { showIndicators: want, map: fresh.map });
+        })
+        .then(function () {
+          keys.showIndicators = want;
+          enable();
+          t.className = 'toggle ' + (want ? 'on' : 'off');
+        })
+        .catch(function (e) {
+          // Nothing was written (a running Zero Hour rejects every save with a sentence - that
+          // sentence lands below). The switch goes back to showing what is actually on disk.
+          enable();
+          t.className = 'toggle ' + (keys && keys.showIndicators ? 'on' : 'off');
+          sayError(e);
+        });
+    };
+  }
+
+  // ---- the replay-archiving switch ---------------------------------------------------------------
+  //
+  // `ArchiveReplays` in Options.ini, through options_load / options_save_replays.
+  //
+  // WHY THIS ROW EXISTS AT ALL. The engine writes every recording to the SAME replay file, so each
+  // match overwrites the last one, and the only thing that saves a replay is this key. It defaulted
+  // to off inside the engine and had no control anywhere - the owner lost a replay to it. The
+  // launcher now seeds `yes` into an Options.ini that has never carried the key
+  // (gxio::options::ensure_archive_replays_default, called from main.rs), and this switch is how
+  // anybody sees or changes that afterwards.
+  //
+  // Same shape as the hotkey-indicator switch above, for the same reasons: drawn disabled until the
+  // real value arrives, so the artboard's baked "on" is never mistaken for a state; a failed load
+  // says on the row why it cannot be changed; and a save that is refused - a running Zero Hour
+  // rewrites Options.ini when it exits and would revert us - puts the switch back to what is
+  // actually on disk rather than leaving it showing a change that did not happen.
+
+  function wireArchiveReplays() {
+    var dn = findByText('.drow .dn', 'keep every replay');
+    var row = dn ? dn.closest('.drow') : null;
+    if (!row) { return; }
+    var t = row.querySelector('.toggle');
+    if (!t) { return; }
+    var known = null;           // null until options_load answers
+    var loadFailed = null;
+    var whyEl = null;
+
+    function disable() { t.style.opacity = '0.35'; t.style.cursor = 'default'; }
+    function enable()  { t.style.opacity = ''; t.style.cursor = ''; }
+    function showWhy(text) {
+      if (!text) { if (whyEl) { whyEl.remove(); whyEl = null; } return; }
+      if (!whyEl) {
+        whyEl = document.createElement('div');
+        whyEl.className = 'dd';
+        whyEl.style.color = 'var(--gx-bad-ink)';
+        (row.firstElementChild || row).appendChild(whyEl);
+      }
+      whyEl.textContent = text;
+    }
+
+    // The artboard's "on" is sample content. Off and disabled until the file has been read.
+    t.className = 'toggle off';
+    disable();
+
+    window.gxSettle.wait(invoke('options_load').then(function (s) {
+      // ABSENT IS PAINTED AS ON, because that is what the GAME does with an absent key
+      // (getArchiveReplaysEnabled returns TRUE as of 21/09/2026) - not as the value the launcher
+      // would seed. The backend substitutes ARCHIVE_REPLAYS_ENGINE_DEFAULT, so this line follows
+      // the engine automatically and only the reasoning above had to change.
+      known = (s.archiveReplays === true);
+      loadFailed = null;
+      showWhy('');
+      enable();
+      t.className = 'toggle ' + (known ? 'on' : 'off');
+    }).catch(function (e) {
+      loadFailed = String(e);
+      showWhy('Cannot be changed: Options.ini could not be read. ' + loadFailed);
+    }));
+
+    row.onclick = function (ev) {
+      ev.stopPropagation();
+      if (known === null) {
+        if (loadFailed) { sayError('Replay archiving cannot be changed: ' + loadFailed); }
+        return;
+      }
+      if (t.style.cursor === 'default') { return; }   // a save is already in flight
+      var want = !t.classList.contains('on');
+      disable();
+      invoke('options_save_replays', { archive: want })
+        .then(function () {
+          known = want;
+          enable();
+          t.className = 'toggle ' + (want ? 'on' : 'off');
+        })
+        .catch(function (e) {
+          // Nothing was written. Show what is on disk, and let the reason stand in the page's
+          // error slot until the next click.
+          enable();
+          t.className = 'toggle ' + (known ? 'on' : 'off');
+          sayError(e);
+        });
+    };
+  }
+
+  // ---- "Use my VPN for LAN" ----------------------------------------------------------------------
+  //
+  // `UseVPNForLAN` in Options.ini, through options_load (useVpnForLan) / options_save_lan_vpn.
+  // Default OFF: the engine then never advertises a VPN or tailnet address as its LAN address, and
+  // ignores a saved IPAddress that is one. Same honest-state rules as the replay switch above:
+  // disabled until the file is read, and a refused save shows what is really on disk.
+  // This page is the switch on EVERY desktop platform, Windows included: the Tauri launcher is the
+  // shipped Windows launcher since 24/09/2026 (setup-run-win64.ps1 refuses a C# exe via
+  // launcher-kind.ps1), so the retired scripts/build/windows/loader (C#) is deliberately not given it.
+  function wireLanVpn() {
+    var dn = findByText('.drow .dn', 'use my vpn for lan');
+    var row = dn ? dn.closest('.drow') : null;
+    var t = row ? row.querySelector('.toggle') : null;
+    if (!t) { return; }
+    var known = null;
+    var loadFailed = null;
+    function busy(b) { t.style.opacity = b ? '0.35' : ''; t.style.cursor = b ? 'default' : ''; }
+    t.className = 'toggle off';
+    busy(true);
+    window.gxSettle.wait(invoke('options_load').then(function (s) {
+      known = (s.useVpnForLan === true);
+      busy(false);
+      t.className = 'toggle ' + (known ? 'on' : 'off');
+    }).catch(function (e) { loadFailed = String(e); }));
+    row.onclick = function (ev) {
+      ev.stopPropagation();
+      if (known === null) {
+        if (loadFailed) { sayError('"Use my VPN for LAN" cannot be changed: ' + loadFailed); }
+        return;
+      }
+      if (t.style.cursor === 'default') { return; }   // a save is already in flight
+      var want = !known;
+      busy(true);
+      invoke('options_save_lan_vpn', { useVpn: want })
+        .then(function () { known = want; })
+        .catch(function (e) { sayError(e); })
+        .then(function () { busy(false); t.className = 'toggle ' + (known ? 'on' : 'off'); });
+    };
+  }
+
+  // ---- "AI colours" ------------------------------------------------------------------------------
+  //
+  // `GXAIColours` in Options.ini, through options_load (aiColoursThree) / options_save_ai_colours. Default all 32:
+  // an absent key is today's game. Same honest-state rules as the switches above. One keyboard stop, arrows between the
+  // two choices, as a radio group does.
+  function wireAiColours() {
+    var bar = document.getElementById('gx-aicolours');
+    if (!bar) { return; }
+    var known = null;
+    var loadFailed = null;
+    var saving = false;
+    function show(three) {
+      Array.prototype.forEach.call(bar.children, function (b) {
+        var on = (b.getAttribute('data-ai') === 'three') === three;
+        b.classList.toggle('on', on);
+        b.setAttribute('aria-checked', on ? 'true' : 'false');
+        b.setAttribute('tabindex', on ? '0' : '-1');
+      });
+    }
+    function busy(b) { bar.classList.toggle('gx-wait', b); bar.setAttribute('aria-disabled', b ? 'true' : 'false'); }
+    show(false);
+    busy(true);
+    window.gxSettle.wait(invoke('options_load').then(function (s) {
+      known = (s.aiColoursThree === true);
+      busy(false);
+      show(known);
+    }).catch(function (e) { loadFailed = String(e); }));
+    function choose(three) {
+      if (known === null) {
+        if (loadFailed) { sayError('"AI colours" cannot be changed: ' + loadFailed); }
+        return;
+      }
+      if (saving || three === known) { return; }
+      saving = true;
+      show(three);
+      busy(true);
+      invoke('options_save_ai_colours', { three: three })
+        .then(function () { known = three; })
+        .catch(function (e) { sayError(e); })
+        .then(function () { saving = false; busy(false); show(known); });
+    }
+    bar.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      var b = ev.target.closest && ev.target.closest('[data-ai]');
+      if (b) { choose(b.getAttribute('data-ai') === 'three'); }
+    });
+    bar.addEventListener('keydown', function (ev) {
+      var b = ev.target.closest && ev.target.closest('[data-ai]');
+      if (!b) { return; }
+      var three = b.getAttribute('data-ai') === 'three';
+      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); choose(three); }
+      if (ev.key === 'ArrowLeft' || ev.key === 'ArrowRight' || ev.key === 'ArrowUp' || ev.key === 'ArrowDown') {
+        ev.preventDefault();
+        choose(!three);
+        var next = bar.querySelector('[data-ai="' + (three ? 'all' : 'three') + '"]');
+        if (next) { next.focus(); }
+      }
+    });
+  }
+
+  // ---- honest first paint -----------------------------------------------------------------------
+  //
+  // Inside the launcher the artboard's baked samples are blanked NOW, synchronously, before any
+  // invoke can resolve: a slow or failed read must show an honest em dash plus an error line,
+  // never a plausible Windows path or a toggle state the artboard invented. Standalone in a
+  // browser this whole IIFE never runs, so the artboard stays fully intact for design review.
+  //
+  // The sample .opt rows are NOT removed: paintOverlay clones them as its row templates. Their
+  // text is blanked and their toggles dimmed instead - buildRow overwrites every one of those
+  // fields (and resets the dimming) on each clone.
+  (function blankSamples() {
+    ['installed to', 'zero hour data'].forEach(function (label) {
+      var row = pathRow(label);
+      if (!row) { return; }
+      var p = row.querySelector('.path');
+      if (p) { p.textContent = '—'; }
+      var dd = row.querySelector('.dd');
+      if (dd) { dd.textContent = ''; }   // "Found automatically" is a claim game_status has not yet made
+    });
+    // Your data: the path is blanked and OPEN parked until netdiag_facts says where it is. The
+    // caption stays, because it describes what the folder holds rather than claiming where it is.
+    var ud = pathRow('your data');
+    if (ud) {
+      var up = ud.querySelector('.path');
+      if (up) { up.textContent = '—'; }
+      setOpenEnabled(ud.querySelector('.ghost2'), false);
+    }
+    var opts = document.querySelectorAll('.opt');
+    for (var i = 0; i < opts.length; i++) {
+      var oa = opts[i].querySelector('.oa');
+      // The hotkey-indicator row is design copy, not sample data; wireIndicator owns its state
+      // (and finds the row by this very .oa text, so it must survive).
+      if (oa && oa.textContent.indexOf('no archive') >= 0) { continue; }
+      setLeadText(opts[i].querySelector('.on'), '— ');
+      setIn(opts[i], '.od', '');
+      setIn(opts[i], '.oa', '—');
+      var t = opts[i].querySelector('.toggle');
+      if (t) { t.className = 'toggle off'; t.style.opacity = '0.35'; t.style.cursor = 'default'; }
+    }
+  })();
+
+  // The indicator switch is wired at load, not only from paintOverlay: if game_overlay never
+  // resolves, the switch must still stop showing the artboard's sample state - and audit item 4
+  // wants it visibly disabled while keybinds_load is pending, which starts here.
+  (function () {
+    var opts = document.querySelectorAll('.opt');
+    for (var i = 0; i < opts.length; i++) {
+      var oa = opts[i].querySelector('.oa');
+      if (oa && oa.textContent.indexOf('no archive') >= 0) { wireIndicator(opts[i]); return; }
+    }
+  })();
+
+  wireArchiveReplays();
+  wireAiColours();
+  wireLanVpn();
+
+  // The scrolling layout is established NOW, synchronously, for the same reason the samples are
+  // blanked now and the indicator switch is wired now: the page has to be correct before any of the
+  // three requests below has answered, and it has to stay correct if one of them never does.
+  applyScrollingLayout();
+
+  // ---- go ---------------------------------------------------------------------------------------
+
+  // Held until all three have painted (gx-settle.js): the sample paths and archive rows are never seen.
+  window.gxSettle.wait(invoke('game_status').then(paintPaths).catch(function (e) { sayError(e); }));
+  window.gxSettle.wait(invoke('game_overlay').then(paintOverlay).catch(function (e) { sayError(e); }));
+  window.gxSettle.wait(invoke('netdiag_facts').then(paintUserData).catch(function (e) { sayError(e); }));
+})();
+</script>
+
+
+<!-- gx-nav-wired -->
+<script>
+// Navigation. The screens were converted from artboards as standalone pages, so nothing linked
+// to anything - every button was inert. This wires the real routes by the visible label, which
+// is stable because the labels ARE the design.
+(function () {
+  var ROUTES = {
+    'general': 'OptionsGeneral.html',
+    'graphics': 'Options.html',
+    'hud': 'OptionsHud.html',
+    'keybinds': 'OptionsKeys.html',
+    'network test': 'OptionsNetwork.html',
+    'diagnostics': 'OptionsDiag.html',
+    'about': 'OptionsAbout.html',
+    'options': 'OptionsGeneral.html',
+    'changelogs': 'Changelogs.html',
+    'all releases': 'Changelogs.html',
+    'save & go back': 'MainWeb.html',
+    'go back': 'MainWeb.html',
+    'back': 'MainWeb.html'
+  };
+  function labelOf(el) {
+    return (el.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+  document.addEventListener('click', function (ev) {
+    var el = ev.target;
+    for (var i = 0; el && i < 6; i++, el = el.parentElement) {
+      if (el.hasAttribute && el.hasAttribute('data-cmd')) { return; }   // keybind tiles own their clicks
+      // Static headings whose text collides with a route label (this page is TITLED "General",
+      // which is also the sidebar route) opt out rather than navigating to themselves.
+      if (el.hasAttribute && el.hasAttribute('data-gx-noroute')) { return; }
+      var dest = ROUTES[labelOf(el)];
+      if (dest) { ev.preventDefault(); window.location.href = dest; return; }
+    }
+  });
+})();
+</script>
+
+<!-- gx-chrome-wired -->
+<script>
+// The app's own title row, on the platforms that want one.
+//
+// Windows and Linux get it: their OS title bar is a wide painted strip in the user's accent
+// colour, sitting above a dark launcher looking like a different application. macOS keeps its
+// native traffic lights - they are the platform idiom and a drawn set would sit opposite them.
+// Rust decides (window_custom_chrome); this file never guesses from the user agent.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }   // standalone in a browser: leave the page alone
+  var invoke = T.core.invoke;
+
+  var SVG = 'http://www.w3.org/2000/svg';
+  function icon(paths) {
+    var s = document.createElementNS(SVG, 'svg');
+    s.setAttribute('width', '14'); s.setAttribute('height', '14');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '1.9');
+    s.setAttribute('stroke-linecap', 'round');
+    paths.forEach(function (d) {
+      var p = document.createElementNS(SVG, 'path'); p.setAttribute('d', d); s.appendChild(p);
+    });
+    return s;
+  }
+
+  function build(maximized) {
+    // The focus ring for the three buttons below. It cannot be an inline style - :focus-visible
+    // is a selector - and this bar is built in script with no stylesheet of its own, so the rule
+    // is injected once. Same 2px accent outline at offset 1px every other control on every screen
+    // paints, because two focus rings in one window is two vocabularies.
+    if (!document.getElementById('gx-chrome-focus')) {
+      var fs = document.createElement('style');
+      fs.id = 'gx-chrome-focus';
+      fs.textContent = '#gx-chrome [role="button"]:focus-visible{outline:2px solid var(--gx-accent);'
+        + 'outline-offset:1px;}';
+      document.head.appendChild(fs);
+    }
+
+    var bar = document.createElement('div');
+    bar.id = 'gx-chrome';
+    bar.setAttribute('data-tauri-drag-region', '');
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:40px;display:flex;' +
+      'align-items:center;justify-content:flex-end;gap:2px;padding:0 6px;z-index:9999;' +
+      '-webkit-app-region:drag;user-select:none;';
+
+    function btn(paths, title, onClick, danger) {
+      var b = document.createElement('div');
+      b.title = title;
+      b.setAttribute('role', 'button');
+      // MINIMISE / MAXIMISE / CLOSE ARE CONTROLS (round 6c). They carried the role and nothing
+      // else: no tab stop, no name a screen reader is obliged to read, and no key that works.
+      // On Windows and Linux this bar REPLACES the OS title bar - so without these three lines a
+      // keyboard-only player on those platforms cannot close the launcher from inside it.
+      //
+      // aria-label RATHER THAN title ALONE: `title` is the last fallback in the accessible-name
+      // computation and several screen readers are configured never to reach it. Both are kept in
+      // sync wherever the maximise button relabels itself.
+      b.setAttribute('tabindex', '0');
+      b.setAttribute('aria-label', title);
+      b.style.cssText = 'width:40px;height:26px;display:flex;align-items:center;' +
+        'justify-content:center;color:#96999E;border-radius:3px;cursor:default;' +
+        '-webkit-app-region:no-drag;transition:background .12s,color .12s;';
+      b.appendChild(icon(paths));
+      b.addEventListener('mouseenter', function () {
+        b.style.background = danger ? '#E86A6A' : '#232327';
+        b.style.color = danger ? '#ECEEF0' : '#ECEEF0';
+      });
+      b.addEventListener('mouseleave', function () {
+        b.style.background = 'transparent'; b.style.color = '#96999E';
+      });
+      b.addEventListener('click', function (e) { e.stopPropagation(); onClick(b); });
+      // ENTER AND SPACE. An element wearing role="button" is activated by neither key on its own;
+      // only a real <button> gets that from the platform, and this bar cannot be one - it is a
+      // drag region with `-webkit-app-region` children, and a <button> inside a drag region is
+      // swallowed by the region on Windows.
+      b.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault(); e.stopPropagation(); onClick(b);
+        }
+      });
+      return b;
+    }
+
+    var MAX_ON  = ['M8 3H5a2 2 0 0 0-2 2v3', 'M21 8V5a2 2 0 0 0-2-2h-3',
+                   'M3 16v3a2 2 0 0 0 2 2h3', 'M16 21h3a2 2 0 0 0 2-2v-3'];
+    var MAX_OFF = ['M8 3v3a2 2 0 0 1-2 2H3', 'M21 8h-3a2 2 0 0 1-2-2V3',
+                   'M3 16h3a2 2 0 0 1 2 2v3', 'M16 21v-3a2 2 0 0 1 2-2h3'];
+
+    // Every invoke carries a .catch: a rejected window op with no handler is silent, and a
+    // button that sometimes does nothing with no explanation reads as a broken launcher.
+    bar.appendChild(btn(['M5 12h14'], 'Minimise', function () {
+      invoke('window_minimize').catch(function (e) { console.error('minimize:', e); });
+    }));
+
+    var maxBtn = btn(maximized ? MAX_OFF : MAX_ON, 'Maximise', function (b) {
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var old = b.querySelector('svg');
+        if (old) { b.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), old); }
+        b.title = isMax ? 'Restore' : 'Maximise';
+        b.setAttribute('aria-label', b.title);
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+    bar.appendChild(maxBtn);
+
+    bar.appendChild(btn(['M18 6 6 18', 'm6 6 12 12'], 'Close', function () {
+      invoke('window_close').catch(function (e) { console.error('close:', e); });
+    }, true));
+
+
+    document.body.appendChild(bar);
+
+    // DOUBLE-CLICK THE TITLE ROW TO MAXIMISE. Every OS does this and the drag region swallowed
+    // it, so the app's own title bar behaved worse than the one it replaced.
+    bar.addEventListener('dblclick', function (e) {
+      if (e.target.closest && e.target.closest('[role="button"]')) { return; }
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var b = maxBtn.querySelector('svg');
+        if (b) { maxBtn.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), b); }
+        maxBtn.title = isMax ? 'Restore' : 'Maximise';
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+
+    // RESIZE GRIPS. set_decorations(false) removed the OS frame, and with it the resize borders -
+    // the window could be maximised but never dragged to a size. These eight invisible strips put
+    // them back, handing the drag to the OS (window_start_resize) rather than tracking the mouse
+    // here. 6px reads as a border and is still easy to hit; the corners are 12px because corners
+    // are aimed at rather than swept into. They sit UNDER the chrome bar's z-index so the buttons
+    // always win, and each one stops the click reaching the label router.
+    var GRIPS = [
+      ['north',      'top:0;left:12px;right:12px;height:6px;',        'ns-resize'],
+      ['south',      'bottom:0;left:12px;right:12px;height:6px;',     'ns-resize'],
+      ['west',       'left:0;top:12px;bottom:12px;width:6px;',        'ew-resize'],
+      ['east',       'right:0;top:12px;bottom:12px;width:6px;',       'ew-resize'],
+      ['north-west', 'top:0;left:0;width:12px;height:12px;',          'nwse-resize'],
+      ['north-east', 'top:0;right:0;width:12px;height:12px;',         'nesw-resize'],
+      ['south-west', 'bottom:0;left:0;width:12px;height:12px;',       'nesw-resize'],
+      ['south-east', 'bottom:0;right:0;width:12px;height:12px;',      'nwse-resize']
+    ];
+    GRIPS.forEach(function (g) {
+      var el = document.createElement('div');
+      el.setAttribute('data-gx-noroute', '');
+      el.style.cssText = 'position:fixed;z-index:9998;-webkit-app-region:no-drag;' +
+                         g[1] + 'cursor:' + g[2] + ';';
+      el.addEventListener('mousedown', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        invoke('window_start_resize', { direction: g[0] })
+          .catch(function (e) { console.error('resize:', e); });
+      });
+      document.body.appendChild(el);
+    });
+  }
+
+  // F11 EVERYWHERE, including macOS, where the window keeps its own decorations and this block
+  // otherwise does nothing. Fullscreen is not maximised: it gives the whole display to the
+  // artboard, which the fit script then scales into. Escape leaves, because a player who cannot
+  // see a title bar needs a way out that does not require finding one.
+  var isFull = false;
+  function toggleFullscreen() {
+    invoke('window_fullscreen_toggle')
+      .then(function (v) { isFull = !!v; })
+      .catch(function (e) { console.error('fullscreen:', e); });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); return; }
+    if (e.key === 'Escape' && isFull) { e.preventDefault(); toggleFullscreen(); }
+  });
+
+  // Held for this too (gx-settle.js): on Windows the minimise / maximise / close buttons are part of the first frame,
+  // not a pop-in. The fit block placed the artboard before the bar existed; below 1:1 it must sit under the bar, so
+  // it is fitted again now rather than at the player's first resize.
+  window.gxSettle.wait(invoke('window_custom_chrome').then(function (wants) {
+    if (wants) { build(false); window.dispatchEvent(new Event('resize')); }
+  }).catch(function (e) { console.error('window_custom_chrome failed:', e); }));
+})();
+</script>
+
+<!-- gx-fit-wired -->
+<script>
+// Fit the artboard to the window.
+//
+// Every screen's root is a fixed 1280x720 box, because that is what the design IS - a fixed
+// composition, not a responsive layout. Maximising therefore did nothing: the box stayed its
+// size in the corner and the rest of the window was empty ground.
+//
+// Scaling it is the honest fix. Reflowing eleven screens into a responsive layout would be a
+// redesign, would need the designer, and would not obviously be better - the artboards are laid
+// out to be read at one set of proportions. So: scale by the smaller of the two ratios, keep the
+// aspect, and centre what is left over.
+//
+// Runs standalone in a browser too - it needs no Tauri - so the screens still review correctly
+// at any window size.
+(function () {
+  var root = null;
+  function findRoot() {
+    var kids = document.body ? document.body.children : [];
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      if (el.id === 'gx-chrome') { continue; }          // the title row is window-scale, not art-scale
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') { continue; }
+      var w = parseFloat(el.style.width), h = parseFloat(el.style.height);
+      if (w >= 1000 && h >= 600) { return el; }
+    }
+    return null;
+  }
+  function fit() {
+    if (!root) { root = findRoot(); }
+    if (!root) { return; }
+    var w = parseFloat(root.style.width)  || 1280;
+    var h = parseFloat(root.style.height) || 720;
+    var iw = window.innerWidth, ih = window.innerHeight;
+    var s = Math.min(iw / w, ih / h);
+    var ty = (ih - h * s) / 2;
+    // The injected title row (#gx-chrome) is window-scale and 40px tall. At s >= 1 the
+    // artboard's own 40px top spacer scales to >= 40px, so the bar overlays empty ground.
+    // Below s = 1 the spacer shrinks under the bar and the bar starts stealing clicks from
+    // real content — so refit into the strip BELOW the bar instead.
+    if (s < 1 && document.getElementById('gx-chrome')) {
+      var avail = Math.max(ih - 40, 40);
+      s = Math.min(iw / w, avail / h);
+      ty = 40 + (avail - h * s) / 2;
+    }
+    root.style.transformOrigin = 'top left';
+    root.style.transform = 'translate(' + ((iw - w * s) / 2) + 'px,' + ty + 'px) scale(' + s + ')';
+  }
+  document.documentElement.style.overflow = 'hidden';
+  if (document.body) { document.body.style.overflow = 'hidden'; }
+  window.addEventListener('resize', fit);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fit);
+  } else {
+    fit();
+  }
+  fit();
+})();
+</script>
+</body>
+</html>

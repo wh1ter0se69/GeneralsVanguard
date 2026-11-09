@@ -1,0 +1,44 @@
+Third-party source ADAPTED into the fixed-function ubershader (WS-D week 2, C · rw2-D, 11/10/2026). Approved by the lead
+(E · MOTHER C32, 11/10/2026 ~00:45Z): adapt DXVK v3.0's FF GLSL, keep the zlib notice in each file, mark our changes,
+record tag/commit/path/sha256 here, glslang dev-only, committed SPIR-V headers regenerable by regen.sh (--check verifies).
+
+DXVK - Vulkan-based implementation of D3D8/9/10/11 (zlib/libpng licence)
+  repo     https://github.com/doitsujin/dxvk
+  tag      v3.0  (commit 97fe0c66f89d3c8977578e1b500907306d4af536, "[meta] Release 3.0", 2026-06-25)
+  licence  LICENSE  sha256 a5cb1a6ded7d2d7e92d550ba28edd21be2d1d4044662b399887351023e30ce64  (zlib/libpng; copyright
+           (c) 2017 Philip Rebohle, (c) 2019 Joshua Ashton, (c) 2019 Robin Kertels, (c) 2023 Jeffrey Ellison) - the
+           notice is reproduced in gx_ff_common.glsl
+  files    src/d3d9/shaders/d3d9_fixed_function_common.glsl  sha256 0eaa31466a7999911b57910728f15911ff09d1b951867e57433f80cddbeb107c
+             -> gx_ff_common.glsl
+           src/d3d9/shaders/d3d9_fixed_function_vert.vert    sha256 1eb0e212600e2d4fcde42ca1553f56cbd00b6438de6176e7d90a6d8d261bbef4
+             -> gx_ff.vert
+           src/d3d9/shaders/d3d9_fixed_function_frag.glsl    sha256 e16c04d047a8b3d6d8a945585e07258ab0dabd961f8b314449a82a9ac245ebbd
+             -> gx_ff.frag.glsl (+ the entry files gx_ff.frag, gx_ff_flat.frag, gx_ff_mutant.frag)
+  altered  yes - every change is marked "GX:" in the files; summary: FF key in a push-constant block of 32 named words (incl.
+           DXVK's FF VS key), std140 uniform blocks at set 0 bindings 0/1, eight 2D combined samplers at set 1, no scalar
+           layout / demote / descriptor indexing, vertex blend + tween + user clip planes + cube/3D samplers removed (GxPackFF
+           refuses them; depth-compare removed - D3D8 FF never samples a depth texture), a shadowed variable in sampleTexture
+           fixed, an unbound stage texture reads (0,0,0,1) like DXVK 2.6 (the classic path) instead of 3.0's 1, GX_FF_MUTANT
+           test-only arm. GxPackFF also keeps DXVK 2.6's stage-cut rule (colour args only) instead of 3.0's, and the VS transforms
+           in two steps ((v x WorldView) x Projection) like 2.6 instead of 3.0's premultiplied WorldViewProj.
+  CPU side GxFFState.cpp adapts DXVK 3.0's d3d9_device.cpp / d3d9_state.h FF packing (same licence; noted in that file).
+  variants no SPIR-V rewriting: each key word is `gxSpecialised ? spec constant : push word` in the GLSL (our own form);
+           DXVK 3.0 instead lowers its spec-data buffer in DxvkSpirvShader::lowerSpecDataBufferToConstants
+           (src/dxvk/dxvk_shader_spirv.cpp sha256 579db3187076eb13cb6be05eb8c7682b2c584dbda9fb36de375d8ae584fd51b8) - read, not used.
+
+Read in full before adapting (C · rw2-D): shader source only, no host code, nothing fetched at build time. Fetched once into a
+scratch directory with a sparse, blob-less clone of the tag (git fetch --depth 1 origin refs/tags/v3.0).
+
+Generated headers: gx_ff.vert.h, gx_ff.frag.h, gx_ff_flat.frag.h, gx_ff_mutant.frag.h (test only) - by regen.sh with
+glslang 16.5.0 (Homebrew glslangValidator "Glslang Version: 11:16.5.0"), each spirv-val clean (Vulkan 1.3).
+
+WS-E (rw2-E, 11/10/2026): gx_cs_ps.frag is gx_ff.frag.glsl (via #include) plus a program switch for the game's ps.1.1 shaders; fog and the alpha
+test are DXVK's own post-PS stages from that file. gx_cs_trees.vert is a hand port of Trees.vso whose output interface is gx_ff.vert's. Both
+fall under the same DXVK zlib notice (the FF fragment code is included, not copied). Semantics cross-checked against references/fbraz3-dxvk
+src/dxso/dxso_compiler.cpp (PS 1.x constants clamp [-1,1] :1721, a float->a0 mov floors for vs<=1.1 :1855, oD0/oD1 saturate for SM<3 :3445).
+No new third-party code. Regenerate with ./regen.sh (the .mut. headers are the golden's TEST-ONLY fail arms).
+
+B · a2c-1 (20/10/2026, A108): gx_ff.frag.glsl gains a GX_LOOK_A2C block (alpha-to-coverage ramp, our own code - the formula follows B. Golus's
+public write-up "Anti-aliased Alpha Test: The Esoteric Alpha To Coverage", 2017; no code copied). regen.sh compiles gx_ff.frag, gx_ff_flat.frag and
+gx_cs_ps.frag with it into *.a2c.frag.h and, with GX_LOOK_SHADOWMAP too, *.sm.a2c.frag.h. Without the define every existing header is
+byte-identical (regen.sh --check); the device loads the new family only with GXAlphaToCoverage on and a multisampled creation.

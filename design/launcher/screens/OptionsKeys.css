@@ -1,0 +1,100 @@
+/* Options — Keys — generated from design/OptionsKeys.dc.html by scripts/design/convert-artboards.py.
+   Every rule is scoped under .gx-s-optionskeys: ten of the sixty-eight selectors shared
+   between artboards genuinely conflict, so nothing here is global. */
+
+.gx-s-optionskeys { margin: 0; font-family: var(--gx-font-ui); }
+.gx-s-optionskeys a { color: var(--gx-accent); text-decoration: none; }
+.gx-s-optionskeys a:hover { color: var(--gx-accent-hi); }
+
+    @keyframes gx-rise--optionskeys { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.gx-s-optionskeys .gx-rise { animation: gx-rise--optionskeys 520ms var(--gx-ease-out) both; }
+.gx-s-optionskeys .cam { width:60px; height:48px; flex-shrink:0; background-image:url(../../cameos.jpg); background-size:360px 144px; background-repeat:no-repeat; }
+.gx-s-optionskeys .cam.c-GLAArmsDealer { background-position:-0px -0px; }
+.gx-s-optionskeys .cam.c-GLABarracks { background-position:-60px -0px; }
+.gx-s-optionskeys .cam.c-GLABlackMarket { background-position:-120px -0px; }
+.gx-s-optionskeys .cam.c-GLACommandCenter { background-position:-180px -0px; }
+.gx-s-optionskeys .cam.c-GLAPalace { background-position:-240px -0px; }
+.gx-s-optionskeys .cam.c-GLAStingerSite { background-position:-300px -0px; }
+.gx-s-optionskeys .cam.c-GLASupplyStash { background-position:-0px -48px; }
+.gx-s-optionskeys .cam.c-GLATankMarauder { background-position:-60px -48px; }
+.gx-s-optionskeys .cam.c-GLATankScorpion { background-position:-120px -48px; }
+.gx-s-optionskeys .cam.c-GLATunnelNetwork { background-position:-180px -48px; }
+.gx-s-optionskeys .cam.c-GLAVehicleBombTruck { background-position:-240px -48px; }
+.gx-s-optionskeys .cam.c-GLAVehicleCombatBike { background-position:-300px -48px; }
+.gx-s-optionskeys .cam.c-GLAVehicleRadarVan { background-position:-0px -96px; }
+.gx-s-optionskeys .cam.c-GLAVehicleRocketBuggy { background-position:-60px -96px; }
+.gx-s-optionskeys .cam.c-GLAVehicleScudLauncher { background-position:-120px -96px; }
+.gx-s-optionskeys .cam.c-GLAVehicleTechnical { background-position:-180px -96px; }
+.gx-s-optionskeys .camsm { width:40px; height:32px; flex-shrink:0; background-image:url(../../cameos.jpg); background-size:240px 96px; background-repeat:no-repeat; }
+.gx-s-optionskeys .camsm.c-GLAArmsDealer { background-position:-0px -0px; }
+.gx-s-optionskeys .camsm.c-GLABarracks { background-position:-40px -0px; }
+.gx-s-optionskeys .camsm.c-GLABlackMarket { background-position:-80px -0px; }
+.gx-s-optionskeys .camsm.c-GLACommandCenter { background-position:-120px -0px; }
+.gx-s-optionskeys .camsm.c-GLAPalace { background-position:-160px -0px; }
+.gx-s-optionskeys .camsm.c-GLAStingerSite { background-position:-200px -0px; }
+.gx-s-optionskeys .camsm.c-GLASupplyStash { background-position:-0px -32px; }
+.gx-s-optionskeys .camsm.c-GLATankMarauder { background-position:-40px -32px; }
+.gx-s-optionskeys .camsm.c-GLATankScorpion { background-position:-80px -32px; }
+.gx-s-optionskeys .camsm.c-GLATunnelNetwork { background-position:-120px -32px; }
+.gx-s-optionskeys .camsm.c-GLAVehicleBombTruck { background-position:-160px -32px; }
+.gx-s-optionskeys .camsm.c-GLAVehicleCombatBike { background-position:-200px -32px; }
+.gx-s-optionskeys .camsm.c-GLAVehicleRadarVan { background-position:-0px -64px; }
+.gx-s-optionskeys .camsm.c-GLAVehicleRocketBuggy { background-position:-40px -64px; }
+.gx-s-optionskeys .camsm.c-GLAVehicleScudLauncher { background-position:-80px -64px; }
+.gx-s-optionskeys .camsm.c-GLAVehicleTechnical { background-position:-120px -64px; }
+.gx-s-optionskeys .item { height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 18px 0 15px;
+      color: var(--gx-ink-dim); font-size: var(--gx-fs-130); cursor: pointer; border-left: 3px solid transparent;
+      transition: background 160ms var(--gx-ease-out), color 160ms var(--gx-ease-out); }
+.gx-s-optionskeys .item svg { flex-shrink: 0; }
+.gx-s-optionskeys .item.sel { background: var(--gx-surface-4); color: var(--gx-ink); font-weight: 600; border-left-color: var(--gx-accent); }
+.gx-s-optionskeys .grouphead { font-size: var(--gx-fs-95); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+      color: var(--gx-ink-faint); padding: 15px 18px 6px 18px; }
+.gx-s-optionskeys .gx-save { cursor: pointer; border: 2px solid var(--gx-accent); background: var(--gx-accent-bg); color: var(--gx-ink);
+      box-shadow: 0 0 0 1px var(--gx-accent-a16), 0 8px 24px var(--gx-accent-a14); }
+.gx-s-optionskeys /* Faction colour is the ONE place in this UI where colour states a fact about the game
+       rather than a hierarchy, .gx-s-optionskeys so it is allowed to leave the launcher palette. */
+    .fac { padding: 7px 20px; font-size: var(--gx-fs-120); font-weight: 700; letter-spacing: 1px; cursor: pointer;
+      border: 1px solid var(--gx-line); background: var(--gx-ground); color: var(--gx-ink-faint);
+      transition: color 160ms var(--gx-ease-out), border-color 160ms var(--gx-ease-out), background 160ms var(--gx-ease-out); }
+.gx-s-optionskeys .fac.on.usa { border-color: #3B6BEA; background: #16203A; color: #A8BEF2; }
+.gx-s-optionskeys .fac.on.china { border-color: #C8483F; background: #33161A; color: #F0A9A2; }
+.gx-s-optionskeys .fac.on.gla { border-color: var(--gx-good); background: var(--gx-good-bg); color: var(--gx-good-ink); }
+.gx-s-optionskeys .sub { padding: 5px 13px; font-size: var(--gx-fs-110); font-weight: 600; letter-spacing: 0.6px; cursor: pointer;
+      border: 1px solid var(--gx-line); background: var(--gx-ground); color: var(--gx-ink-dim); }
+.gx-s-optionskeys .sub.on { border-color: var(--gx-good); background: var(--gx-good-bg); color: var(--gx-good-ink); }
+.gx-s-optionskeys .st { display: flex; align-items: center; gap: 10px; padding: 5px 9px; cursor: pointer;
+      border-left: 3px solid transparent; transition: background 160ms var(--gx-ease-out); }
+.gx-s-optionskeys .st.sel { background: var(--gx-surface-4); border-left-color: var(--gx-good); }
+.gx-s-optionskeys .stn { font-size: var(--gx-fs-120); color: var(--gx-ink-4); }
+.gx-s-optionskeys .st.sel .stn { color: var(--gx-ink); font-weight: 600; }
+.gx-s-optionskeys /* The palette is a GRID because the game's command bar is a grid. What you set here is
+       laid out the way you will see it in the match, .gx-s-optionskeys which a list cannot show. */
+    .pal { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.gx-s-optionskeys .tile { position: relative; border: 1px solid var(--gx-line); background: #16161A; padding: 8px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;
+      transition: border-color 160ms var(--gx-ease-out), background 160ms var(--gx-ease-out), transform 140ms var(--gx-ease-press); }
+.gx-s-optionskeys .tile:active { transform: scale(0.98); }
+.gx-s-optionskeys .tile.clash { border-color: var(--gx-bad); background: var(--gx-bad-bg); }
+.gx-s-optionskeys .tn { font-size: var(--gx-fs-110); color: var(--gx-ink-3); text-align: center; line-height: 1.25; }
+.gx-s-optionskeys .lt { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center; font-size: var(--gx-fs-120); font-weight: 700;
+      border: 1px solid var(--gx-good); background: rgba(20,41,26,0.92); color: var(--gx-good-ink); }
+.gx-s-optionskeys .lt.clash { border-color: var(--gx-bad); background: rgba(44,23,23,0.94); color: var(--gx-bad-ink); }
+.gx-s-optionskeys .kk { width: 27px; height: 24px; display: inline-flex; align-items: center; justify-content: center;
+      font-size: var(--gx-fs-105); font-weight: 600; border: 1px solid var(--gx-line); background: var(--gx-ground); color: var(--gx-ink-faint); }
+.gx-s-optionskeys .kk.on { border-color: var(--gx-good); background: var(--gx-good-bg); color: var(--gx-good-ink); }
+.gx-s-optionskeys .kk.bad { border-color: var(--gx-bad); background: var(--gx-bad-edge); color: var(--gx-bad-ink); }
+.gx-s-optionskeys .baked { display: flex; gap: 10px; align-items: flex-start; border-left: 3px solid var(--gx-warn);
+      background: var(--gx-warn-bg); padding: 10px 13px; }
+.gx-s-optionskeys .lt.drift { border-color: var(--gx-warn); background: rgba(42,36,19,0.94); color: var(--gx-warn-ink); }
+
+
+    @media (hover: hover) and (pointer: fine) {
+      .item:not(.sel):hover { background: var(--gx-surface-2); color: var(--gx-ink-3); }
+      .st:not(.sel):hover { background: var(--gx-surface-2); }
+      .tile:not(.clash):hover { border-color: var(--gx-good); background: #1A1F1B; }
+      .fac:not(.on):hover, .sub:not(.on):hover { color: var(--gx-ink-3); border-color: var(--gx-line-strong); }
+      .gx-save:hover { background: var(--gx-accent-edge); }
+    }
+
+    @media (prefers-reduced-motion: reduce) { .gx-rise { animation: none; opacity: 1; transform: none; } .tile:active { transform: none; } }

@@ -1,0 +1,67 @@
+; Source for Generals.csf. Rebuild with:
+;   python3 tools/csf-build.py GeneralsZH/Data/English/Generals.csf.txt GeneralsZH/Data/English/Generals.csf
+;
+; This is an OVERLAY on the retail string table, not a replacement: the engine loads this file
+; as the primary table and the copy inside EnglishZH.big as a fallback for every label absent
+; here (GameText.cpp:383-396). Only labels retail does not carry belong in this file.
+;
+; A .csf is not in dataID - see the header of tools/csf-build.py - so this file cannot refuse a
+; join. A peer that is missing it renders MISSING:'<label>' where other peers render text, so it
+; still has to reach all four platforms; it just does not have to reach them in the same round
+; as Data\INI\Multiplayer.ini, which does move dataID.
+
+; --- the four appended player colours --------------------------------------------------------
+; These name the four MultiplayerColor blocks appended to Data\INI\Multiplayer.ini. Retail
+; carries Color:Gold .. Color:Pink for the first eight; without these labels the added colours
+; render as MISSING:'Color:Salmon' in the lobby's colour combo box.
+;
+; THE NAMES ARE PART OF THE FIX, not decoration. A player calls a colour out loud in chat, so
+; two entries that share a name-region are indistinguishable in play however far apart they
+; measure. The set this replaces had FIVE red-family names - Red, Maroon, Coral, Blush, Rose -
+; and the owner reported exactly that: "two reds, and a pink/salmon that reads as a third red".
+; These four sit in four different name regions, and each is a word people already use for a
+; colour rather than a shade qualifier:
+;
+;   Salmon  a light warm pink-red, 25.7 deg of hue from retail Red and 47.6 from retail Pink
+;   Aqua    a bright green-cyan, the one hue region retail leaves free between Green and SkyBlue
+;   Rose    a deep pink-red, between Red and Pink, apart from both on the drawn models
+;   Sky     a pale blue, lighter than Blue and bluer than SkyBlue
+; Set A, 11/10/2026: these three replace Bronze, Forest and Teal, which looked distinct as swatches but not in
+; the game (docs/WORKDIR/LOBBY_COLOURS_RENDERED.md). Same indices, same day and night values.
+; Set R1, 16/10/2026 (owner pick): indices 8-11 are now Turquoise, Mint, Raspberry and Black; the names above Salmon/Aqua/Rose/Sky
+; describe the earlier sets. Turquoise = bright blue-green, Mint = pale green, Raspberry = deep pink-red, Black = near-black.
+Color:Turquoise = Turquoise
+Color:Mint = Mint
+Color:Raspberry = Raspberry
+Color:Black = Black
+; 07/11/2026: indices 12-31 for 32-player matches (Multiplayer.ini says why).
+Color:Silver = Silver
+Color:Slate = Slate
+Color:Azure = Azure
+Color:Olive = Olive
+Color:Brown = Brown
+Color:Salmon = Salmon
+Color:Charcoal = Charcoal
+Color:Blush = Blush
+Color:Moss = Moss
+Color:Fuchsia = Fuchsia
+Color:Bronze = Bronze
+Color:Amethyst = Amethyst
+Color:Khaki = Khaki
+Color:Mustard = Mustard
+Color:Rust = Rust
+Color:Fern = Fern
+Color:Sky = Sky
+Color:Plum = Plum
+Color:Ash = Ash
+Color:Mauve = Mauve
+
+; --- teams 5, 6 and 7 --------------------------------------------------------------------------
+; PopulateTeamComboBox builds numTeams = MAX_SLOTS/2 team entries (GUIUtil.cpp:300,315-322).
+; MAX_SLOTS went 8 -> 12 -> 14 (MAX_PLAYER 13, NetworkDefs.h), so that is now 7, while retail's table
+; stops at Team:4 - hence MISSING:'Team:5'..'Team:7' in the lobby. Retail's values are the bare digits
+; ("Team:1" = "1", Team:0 = "None", Team:AI = "CPU"), so these match that, not "Team 5".
+; scripts/test/csf-teams-test.py fails when any Team:1..MAX_SLOTS/2 is missing here.
+Team:5 = 5
+Team:6 = 6
+Team:7 = 7

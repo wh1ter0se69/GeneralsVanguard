@@ -1,0 +1,39 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: wh1ter0se69 <62149665+wh1ter0se69@users.noreply.github.com>
+Date: Sat, 3 Oct 2026 09:36:51 +0300
+Subject: [PATCH] GeneralsX FF: gxFPControl picks its reader by util_bit.h
+ DXVK_ARCH_* - ARM64EC takes the AArch64 FPCR read (Codex dxvk-ffc-lead-r5 P2)
+
+clang for ARM64EC defines __x86_64__ / _M_X64 as well as _M_ARM64EC, so the old test chose the x87 fnstcw reader
+and the TU failed to compile there. util_bit.h already sorts the architectures (DXVK_ARCH_ARM64 includes ARM64EC);
+the reader now follows it. e2k (DXVK_ARCH_X86 without x87) keeps the portable fegetround fallback it had before.
+Apple arm64, x86_64 and Windows x86/x64 select the same reader as before.
+
+Claude-Session: https://claude.ai/code/session_014rW4Luc2TiDKbAHdi7N5zA
+---
+ src/d3d9/d3d9_device.cpp | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/d3d9/d3d9_device.cpp b/src/d3d9/d3d9_device.cpp
+index 47bef7fe5041..66f98d95f0ae 100644
+--- a/src/d3d9/d3d9_device.cpp
++++ b/src/d3d9/d3d9_device.cpp
+@@ -33,14 +33,16 @@
+ 
+ // GeneralsX FF: the floating-point CONTROL state the cached values were computed under (rounding, flush-to-zero /
+ // denormals-are-zero, x87 precision) - never the sticky status flags, which change on every operation.
+-#if defined(__aarch64__) || defined(_M_ARM64)
++// The architecture is util_bit.h's (included above): clang ARM64EC defines __x86_64__ / _M_X64 too, and its x87 asm
++// does not assemble there, so ARM64EC must take the AArch64 reader (Codex dxvk-ffc-lead-r5 P2).
++#if defined(DXVK_ARCH_ARM64)
+   #if defined(_MSC_VER) && !defined(__clang__)
+     #include <intrin.h>
+     static inline uint64_t gxFPControl() { return uint64_t(_ReadStatusReg(ARM64_FPCR)); }
+   #else
+     static inline uint64_t gxFPControl() { uint64_t v; __asm__ volatile("mrs %0, fpcr" : "=r"(v)); return v; }
+   #endif
+-#elif defined(__x86_64__) || defined(__i386__) || defined(_M_X64) || defined(_M_IX86)
++#elif defined(DXVK_ARCH_X86) && !defined(__e2k__)
+   #include <xmmintrin.h>
+   #if defined(_MSC_VER) && !defined(__clang__)
+     #include <float.h>

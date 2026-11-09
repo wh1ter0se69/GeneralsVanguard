@@ -1,0 +1,698 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeneralsX launcher — Changelogs</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="./Changelogs.css">
+<!-- Held hidden until what it loads is on it (gx-settle.js): the first frame is the final one. -->
+<script src="./gx-settle.js" onerror="window.gxSettle={wait:function(p){return p},whenShown:function(f){f()},picture:function(){},held:function(){return false}}"></script>
+<style id="gx-ground">
+/* The artboards are a fixed 1280x720 box. The launcher window's content area is taller than
+   that, and anything the box does not cover falls through to the webview's own default
+   background - which is WHITE. That is the strip along the bottom edge on macOS.
+   Paint the page ground behind the artboard so the uncovered area matches the design instead
+   of flashing white. Layout is untouched: this sits BEHIND the box, it does not resize it. */
+html, body { margin: 0; }
+/* THE BACKDROP LIVES ON THE VIEWPORT, NOT THE ARTBOARD. The artboard is a fixed
+   1280x720 composition that the fit script scales, so a backdrop painted on IT ends at
+   its scaled edge and every letterboxed band fell through to the flat page ground -
+   which is a different colour from the gradient, and read as the window being split in
+   two. Here it is one continuous ground behind everything, so there is no seam to find
+   at any window size. */
+body {
+  background: var(--gx-backdrop-2);
+  background-attachment: fixed;
+}
+/* Tells the platform to draw its own widgets - scrollbars, dropdowns, spinners - in their dark
+   variant. Without it Windows draws a WHITE scrollbar track with arrow buttons down the side of
+   a black launcher, which is what the operator saw. */
+html { color-scheme: dark; }
+/* An app, not a document: text does not highlight when a click drags a pixel. Anything meant to
+   be copied (the network-test paste line, file paths) opts back in with .gx-selectable. */
+body { -webkit-user-select: none; user-select: none; cursor: default; }
+.gx-selectable, .gx-selectable * { -webkit-user-select: text; user-select: text; cursor: text; }
+
+/* The scrollbar itself, so it matches the design rather than merely being dark. Uses the same
+   surface stack as the panels: track disappears into the page, thumb is one step up from a
+   card border, and it lightens on hover like every other control here. WebKit and Chromium
+   both honour these, which covers macOS, Windows and Linux webviews. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #2E2E33;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #3D3D45; background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* No stepper arrows: the design has none anywhere else. */
+::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+/* The standard property, for engines that prefer it over the WebKit ones. */
+* { scrollbar-width: thin; scrollbar-color: #2E2E33 transparent; }
+body { min-height: 100vh; }
+</style>
+</head>
+<body class="gx-screen gx-s-changelogs">
+<div style="width: 1280px; height: 720px; background: transparent; color: var(--gx-ink); display: flex; overflow: hidden;">
+
+  <!-- SideWidth is clamp(width * 28 / 100, 240, 380). At 1280 that is 358. -->
+  <div style="width: 358px; flex-shrink: 0; background: var(--gx-ground); border-right: 1px solid var(--gx-line); display: flex; flex-direction: column; box-sizing: border-box;">
+    <div style="height: 40px; flex-shrink: 0;"></div>
+    <div style="padding: 4px 18px 0 18px; flex-shrink: 0;">
+      <div style="display: flex; align-items: baseline; gap: 6px;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; letter-spacing: 0.8px; line-height: 1.12;">GENERALS</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; color: var(--gx-accent); line-height: 1.12; text-shadow: 0 0 16px var(--gx-accent-a45);">X</div>
+      </div>
+      <div style="width: 52px; height: 2px; background: linear-gradient(90deg, var(--gx-accent), var(--gx-accent-a15)); margin-top: 9px;"></div>
+    </div>
+
+    <div class="grouphead" style="padding-top: 20px; flex-shrink: 0;">Releases</div>
+
+    <!-- The list scrolls; the selection stripe lives INSIDE it, so it is clipped by the list's own
+         rectangle rather than painting over GO BACK once there are enough releases to scroll. -->
+    <div style="flex-grow: 1; min-height: 0; overflow: hidden; padding: 0 16px; display: flex; flex-direction: column; gap: 1px;
+                -webkit-mask-image: linear-gradient(180deg, var(--gx-black) 0, var(--gx-black) calc(100% - 34px), transparent 100%);
+                mask-image: linear-gradient(180deg, var(--gx-black) 0, var(--gx-black) calc(100% - 34px), transparent 100%);">
+      <div class="rel sel">
+        <div class="rs">2026-08-19 14:32</div>
+        <div style="display: flex; align-items: flex-start; gap: 8px; min-width: 0;">
+          <div class="rt">Retina Macs drew into a corner</div>
+          <span class="badge" style="margin-top: 1px;">INSTALLED</span>
+        </div>
+      </div>
+      <div class="rel">
+        <div class="rs">2026-08-18 19:04</div>
+        <div class="rt">The frame counter was flattering itself</div>
+      </div>
+      <div class="rel">
+        <div class="rs">2026-08-17 17:02</div>
+        <div class="rt">A wrong password and a silent host looked the same</div>
+      </div>
+      <div class="rel">
+        <div class="rs">2026-08-16 23:44</div>
+        <div class="rt">Your volumes came back wrong after a mute</div>
+      </div>
+      <div class="rel">
+        <div class="rs">2026-08-15 22:11</div>
+        <div class="rt">A fresh install could not reach the lobby at all</div>
+      </div>
+      <div class="rel">
+        <div class="rs">2026-08-14 23:59</div>
+        <div class="rt">Twelve players, and the three places the widening missed</div>
+      </div>
+      <div class="rel">
+        <div class="rs">2026-08-13 23:31</div>
+        <div class="rt">This screen had no way back</div>
+      </div>
+      <div class="rel">
+        <div class="rs">2026-08-12 21:18</div>
+        <div class="rt">Four platforms in one match, and the byte that capped it</div>
+      </div>
+    </div>
+
+    <div style="padding: 14px 16px 16px 16px; flex-shrink: 0;">
+      <div class="gx-save" style="height: 52px; display: flex; align-items: center; justify-content: center; font-size: var(--gx-fs-130); font-weight: 700; letter-spacing: 0.9px;">GO BACK</div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0; padding: 40px 34px 20px 34px; box-sizing: border-box; gap: 4px;">
+
+    <div class="gx-rise" style="display: flex; align-items: baseline; gap: 14px;">
+      <!-- data-gx-noroute: this heading's text is a release title off the network. A release
+           named exactly like a nav label ('Back', 'About', ...) must stay a heading, not a link. -->
+      <div data-gx-noroute style="font-size: var(--gx-fs-230); font-weight: 700; letter-spacing: -0.2px; text-wrap: balance;">Retina Macs drew into a corner</div>
+      <span class="badge" style="align-self: center;">INSTALLED</span>
+    </div>
+
+    <!-- The clock time is DERIVED FROM THE ORDINAL, which is the publish epoch. The date field is
+         ten characters and cannot be widened, so seconds here and minutes in the list cost nothing
+         on the wire: old and new launchers read byte-identical bytes. -->
+    <div class="stamp gx-rise gx-selectable" style="animation-delay: 40ms;">2026-08-19 14:32:07&nbsp; &nbsp; &nbsp; build d64b81cd9</div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; margin: 12px -9px 0 -9px; min-height: 0; overflow-y: auto; flex: 0 1 auto; animation-delay: 70ms;">
+      <div class="note">
+        <div class="b"></div>
+        <div class="t">The macOS graphics layer asked the window its size in points and was handed a buffer measured in pixels, so the whole game drew into a quarter of the window.</div>
+      </div>
+      <div class="note">
+        <div class="b"></div>
+        <div class="t">The host&rsquo;s own row in the diplomacy panel showed a dash instead of a latency, for everybody.</div>
+      </div>
+      <div class="note">
+        <div class="b"></div>
+        <div class="t">Zero Hour and the base game now share one unit contract for render size, so a fix to one can no longer leave the other behind.</div>
+      </div>
+      <div class="note">
+        <div class="b"></div>
+        <div class="t">The iOS Vulkan entries were being opened on macOS too, where they abort the game rather than being ignored.</div>
+      </div>
+      <div class="note">
+        <div class="b"></div>
+        <div class="t">All four platforms rebuilt together, so no peer refuses another.</div>
+      </div>
+      <div class="note dim">
+        <div class="b"></div>
+        <div class="t">Setup used to download 113 MB and then let the launcher fetch the same 118 MB again. It does not any more.</div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1;"></div>
+
+    <!-- Why there is nothing to click here. The signed manifest is the only thing that can cause a
+         byte to be installed; this document only describes. Saying so is the honest reason the page
+         has no download button, rather than leaving the reader to wonder where one went. -->
+    <div class="gx-rise" style="border-top: 1px solid var(--gx-line); padding-top: 11px; display: flex; align-items: baseline; justify-content: space-between; gap: 20px; animation-delay: 140ms;">
+      <div style="font-size: var(--gx-fs-105); color: var(--gx-ink-faint); line-height: 1.55;">Release notes are fetched from the update server and only describe. Nothing on this page installs anything &mdash; that is the signed manifest&rsquo;s job alone.</div>
+      <a href="#" style="font-size: var(--gx-fs-115); flex-shrink: 0;">Open on the web</a>
+    </div>
+
+  </div>
+</div>
+<!-- gx-nav-wired -->
+<script>
+// Navigation. The screens were converted from artboards as standalone pages, so nothing linked
+// to anything - every button was inert. This wires the real routes by the visible label, which
+// is stable because the labels ARE the design.
+(function () {
+  var ROUTES = {
+    'general': 'OptionsGeneral.html',
+    'graphics': 'Options.html',
+    'hud': 'OptionsHud.html',
+    'keybinds': 'OptionsKeys.html',
+    'network test': 'OptionsNetwork.html',
+    'diagnostics': 'OptionsDiag.html',
+    'about': 'OptionsAbout.html',
+    'options': 'OptionsGeneral.html',
+    'changelogs': 'Changelogs.html',
+    'all releases': 'Changelogs.html',
+    'save & go back': 'MainWeb.html',
+    'back': 'MainWeb.html',
+    'go back': 'MainWeb.html'
+  };
+  function labelOf(el) {
+    return (el.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+  document.addEventListener('click', function (ev) {
+    var el = ev.target;
+    for (var i = 0; el && i < 6; i++, el = el.parentElement) {
+      if (el.hasAttribute && el.hasAttribute('data-cmd')) { return; }   // keybind tiles own their clicks
+      if (el.hasAttribute && el.hasAttribute('data-gx-noroute')) { return; }   // static headings are not nav
+      var dest = ROUTES[labelOf(el)];
+      if (dest) { ev.preventDefault(); window.location.href = dest; return; }
+    }
+  });
+})();
+</script>
+<script>
+// The real release notes, from gxchangelog.txt via gxio. Outside the launcher window.__TAURI__ is
+// absent and the artboard's eight sample releases stay on screen, so this file still opens
+// standalone in a browser.
+//
+// OFFLINE IS A NORMAL STATE, NOT AN ERROR. A missing, unreachable, oversized or malformed document
+// means "no changelog available" and nothing else - it never blocks Play, never blocks the window
+// and never becomes a dialog (Changelog.cs:28-30). With no entries this page hands over to
+// ChangelogsEmpty.html, which is that state drawn properly, rather than showing an empty list or a
+// spinner that never stops.
+//
+// THE CACHE IS PAINTED FIRST AND THE NETWORK SECOND. The first frame is never waiting on a CDN,
+// and a machine that is briefly offline still sees the last document it saw.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }
+  var invoke = T.core.invoke;
+
+  // The one place words appear when something fails: the footer row, between the manifest
+  // sentence and the web link — the same pattern as MainWeb's say(). Created only when there
+  // is something to say, so the artboard's footer is untouched until then.
+  var msgEl = null;
+  var webLink = null;
+  document.querySelectorAll('a').forEach(function (a) {
+    if ((a.textContent || '').trim() === 'Open on the web') { webLink = a; }
+  });
+  function say(text, tone) {
+    if (!text) { if (msgEl) { msgEl.remove(); msgEl = null; } return; }
+    if (!msgEl && webLink && webLink.parentNode) {
+      msgEl = document.createElement('div');
+      msgEl.style.cssText = 'flex: 1; text-align: right; font-size: var(--gx-fs-110);' +
+                            ' line-height: 1.5; max-width: 52ch; margin-left: auto;';
+      webLink.parentNode.insertBefore(msgEl, webLink);
+    }
+    if (!msgEl) { return; }
+    msgEl.textContent = text;
+    msgEl.style.color = tone === 'bad' ? 'var(--gx-bad-ink)'
+                      : tone === 'warn' ? 'var(--gx-warn-ink)'
+                      : 'var(--gx-ink-dim)';
+  }
+
+  if (webLink) {
+    webLink.addEventListener('click', function (ev) {
+      // This opens the raw signed changelog document itself — there is no website changelog
+      // page yet. When a proper one exists, this URL is the only line that changes.
+      ev.preventDefault();
+      ev.stopPropagation();
+      invoke('open_external', { url: 'https://dl.wh1ter0se.dev/gxchangelog.txt' })
+        .catch(function (e) { say(String(e), 'bad'); });
+    });
+  }
+
+  var list = document.querySelector('.rel') && document.querySelector('.rel').parentElement;
+  var rowTemplate = document.querySelector('.rel');
+  if (!list || !rowTemplate) { return; }
+  rowTemplate = rowTemplate.cloneNode(true);
+
+  // The detail heading is the .gx-rise block that carries the badge, and its first child div is
+  // the title. Located by structure rather than by index so a layout change cannot silently move
+  // the release title onto some other element.
+  var detailHead = null;
+  document.querySelectorAll('.gx-rise').forEach(function (el) {
+    if (!detailHead && el.querySelector(':scope > .badge')) { detailHead = el; }
+  });
+  var detailTitle = detailHead ? detailHead.querySelector(':scope > div') : null;
+  var detailBadge = detailHead ? detailHead.querySelector(':scope > .badge') : null;
+  var stamp = document.querySelector('.stamp');
+  var noteHost = document.querySelector('.note') && document.querySelector('.note').parentElement;
+  var noteTemplate = document.querySelector('.note') ? document.querySelector('.note').cloneNode(true) : null;
+  if (!noteHost || !noteTemplate) { return; }
+  noteTemplate.className = 'note';
+
+  // Blank the artboard's sample releases NOW — before any invoke resolves — exactly as
+  // MainWeb's gx-release-wired block does. Inside the launcher a baked sample must never
+  // survive first paint: a slow or failed read shows an honest placeholder, not a plausible
+  // fake release with a fake build hash. Standalone in a browser this whole IIFE has already
+  // returned and the artboard stays fully intact — that is the design-review mode.
+  list.textContent = '';
+  if (detailTitle) { detailTitle.textContent = 'Loading the changelog…'; }
+  if (detailBadge) { detailBadge.style.display = 'none'; }
+  if (stamp) { stamp.textContent = '—'; }
+  noteHost.textContent = '';
+
+  // The clock time is DERIVED FROM THE ORDINAL, which is the publish epoch - the document's own
+  // date field is ten characters and carries no time. Formatted HERE rather than in Rust because
+  // the webview knows the player's timezone and locale and the launcher process does not.
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function stampOf(ordinal, withSeconds) {
+    if (!ordinal) { return ''; }
+    var d = new Date(ordinal * 1000);
+    var s = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) +
+            ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    return withSeconds ? s + ':' + pad(d.getSeconds()) : s;
+  }
+
+  var entries = [];
+  var selected = 0;
+  // HOW THE MARK WAS EARNED (changelog_state's installed_exact, decided in the launcher -
+  // cmd_release.rs, changelog_dto). INSTALLED only when an update record's ORDINAL marked the
+  // entry - the one piece of evidence that names a release. A commit, from BUILD.txt, the
+  // launcher's own install or the engine binary, says SAME COMMIT: the published changelog repeats
+  // commits, and after a launcher-only release the engine's commit sits in the older entry.
+  var installedFrom = '';
+  var installedExact = false;
+  function paintBadge(badge, e) {
+    if (!badge) { return; }
+    badge.style.display = e.installed ? '' : 'none';
+    badge.textContent = installedExact ? 'INSTALLED' : 'SAME COMMIT';
+    if (installedExact) {
+      badge.removeAttribute('title');
+    } else if (installedFrom === 'binary') {
+      badge.title = 'Your engine was built from this release\'s commit. Nothing on this computer shows it is this release\'s own build.';
+    } else {
+      badge.title = 'This install was built from this release\'s commit. Nothing on this computer records which release it came from.';
+    }
+  }
+
+  function paintDetail() {
+    var e = entries[selected];
+    if (!e) { return; }
+    if (detailTitle) { detailTitle.textContent = e.title; }
+    paintBadge(detailBadge, e);
+    if (stamp) {
+      // Two non-breaking spaces of gap, as the artboard sets it.
+      stamp.textContent = stampOf(e.ordinal, true) + '      build ' + e.commit;
+    }
+
+    noteHost.textContent = '';
+    if (!e.notes.length) {
+      var none = noteTemplate.cloneNode(true);
+      none.className = 'note dim';
+      none.querySelector('.t').textContent =
+        'Killed some bugs. This release shipped without written notes.';
+      noteHost.appendChild(none);
+      return;
+    }
+    for (var i = 0; i < e.notes.length; i++) {
+      var n = noteTemplate.cloneNode(true);
+      // textContent, never innerHTML. The notes come off a network, and Changelog.cs already
+      // strips the control and bidi characters that could misrepresent a line - but the rule that
+      // makes that sufficient is that nothing downstream ever treats the text as markup.
+      n.querySelector('.t').textContent = e.notes[i];
+      noteHost.appendChild(n);
+    }
+  }
+
+  function paintList() {
+    // THE LIST HAS TO SCROLL ONCE THE DATA IS REAL, and with the artboard's eight samples it
+    // never had to. Measured in a browser at 1300x760 against the live document: 22 releases at
+    // 66px each is 1473px of rows in a 512px box whose converted style is `overflow: hidden`, so
+    // SEVEN are reachable and the other fifteen cannot be got at by any means. The artboard's own
+    // comment says "The list scrolls" and its bottom mask is the fade that says there is more
+    // below, so the intent was never in doubt - the conversion just had nothing tall enough to
+    // reveal it. Set here rather than in the CSS because this file's brief is to append a script.
+    list.style.overflowY = 'auto';
+
+    list.textContent = '';
+    entries.forEach(function (e, i) {
+      var row = rowTemplate.cloneNode(true);
+      row.className = 'rel' + (i === selected ? ' sel' : '');
+      row.querySelector('.rs').textContent = stampOf(e.ordinal, false);
+      row.querySelector('.rt').textContent = e.title;
+      paintBadge(row.querySelector('.badge'), e);
+      row.addEventListener('click', function (ev) {
+        // This row owns its click; the label router must not read "2026-08-19 ..." as a route.
+        ev.stopPropagation();
+        selected = i;
+        paintList();
+        paintDetail();
+        noteHost.scrollTop = 0;   // the notes area scrolls: a new release starts at its top
+      });
+      list.appendChild(row);
+      // The installed release can be a long way down a 22-entry list. Bring it into view rather
+      // than leaving the reader looking at a list with no visible selection.
+      if (i === selected && list.scrollHeight > list.clientHeight) {
+        row.scrollIntoView({ block: 'nearest' });
+      }
+    });
+  }
+
+  function apply(state) {
+    var next = (state && state.entries) || [];
+    // An empty answer never replaces a painted one. changelog_check falls back to the cache
+    // itself, so an empty result means there is genuinely nothing - and wiping a good list on the
+    // way to saying so would be a flicker with no information in it.
+    if (!next.length) { return false; }
+    // THE CHECK REPAINT MUST NOT CLOBBER THE READER'S ROW. The network refresh lands a moment
+    // after the cache paints, exactly when somebody is already reading a release - so carry the
+    // selection across: match the selected release into the new document by ordinal (the publish
+    // epoch, unique per release) or commit. If it survived, keep it; if it is genuinely gone,
+    // fall back to the newest. Only the very first paint defaults to the installed release.
+    var prev = entries[selected] || null;
+    entries = next;
+    installedFrom = (state && state.installed_from) || '';
+    installedExact = !!(state && state.installed_exact);
+    selected = -1;
+    if (prev) {
+      for (var i = 0; i < entries.length; i++) {
+        if ((prev.ordinal && entries[i].ordinal === prev.ordinal) ||
+            (prev.commit && entries[i].commit === prev.commit)) { selected = i; break; }
+      }
+      if (selected < 0) { selected = 0; }   // the selected release vanished: newest
+    } else {
+      selected = 0;
+      for (var j = 0; j < entries.length; j++) {
+        if (entries[j].installed) { selected = j; break; }
+      }
+    }
+    paintList();
+    paintDetail();
+    return true;
+  }
+
+  // THE NETWORK HALF, AND NOTHING STANDS IN FRONT OF IT (round 6). For one round it asked
+  // `settings_update_check_due`, which read a stored update policy. The chooser behind that policy
+  // is deleted, so opening this page refreshes the changelog, every time.
+  //
+  // ONE DOOR STILL, which is the half of the old arrangement worth keeping: `changelog_check` is
+  // reached from this helper and nowhere else, so a future reader can count the call sites.
+  function networkRefresh(had) {
+    return invoke('changelog_check').then(function (n) {
+      var got = apply(n);
+      if (!had && !got) { window.location.replace('ChangelogsEmpty.html'); return true; }
+    }).catch(function (e) {
+      if (!had) { window.location.replace('ChangelogsEmpty.html'); return true; }
+      // The cache is still on screen and offline is a normal state - but a refresh that
+      // failed has to say so, rather than letting a stale document pose as current.
+      say('Could not refresh the changelog: ' + String(e), 'dim');
+    });
+  }
+
+  // HELD (gx-settle.js) until the cache is painted - or, with nothing cached, until the publisher has answered: that
+  // answer decides between this page and the empty one, and "Loading the changelog…" must not be shown on the way.
+  // With a cache on screen the refresh is not waited for: it only ever adds a newer release, and keeps the selection.
+  window.gxSettle.wait(invoke('changelog_state')
+    .then(function (s) {
+      var had = apply(s);
+      // The cache may be a release behind, so a refresh always follows the paint. A failure
+      // inside it leaves whatever the cache painted, which is the whole point of painting first.
+      var net = networkRefresh(had);
+      // A hand-over to the empty page keeps the hold (never settles): this page must not be revealed on its way out.
+      return had ? undefined : net.then(function (left) { if (left) { return new Promise(function () {}); } });
+    })
+    .catch(function (e) {
+      console.error('changelog_state failed:', e);
+      window.location.replace('ChangelogsEmpty.html');
+      return new Promise(function () {});
+    }));
+})();
+</script>
+
+<!-- gx-chrome-wired -->
+<script>
+// The app's own title row, on the platforms that want one.
+//
+// Windows and Linux get it: their OS title bar is a wide painted strip in the user's accent
+// colour, sitting above a dark launcher looking like a different application. macOS keeps its
+// native traffic lights - they are the platform idiom and a drawn set would sit opposite them.
+// Rust decides (window_custom_chrome); this file never guesses from the user agent.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }   // standalone in a browser: leave the page alone
+  var invoke = T.core.invoke;
+
+  var SVG = 'http://www.w3.org/2000/svg';
+  function icon(paths) {
+    var s = document.createElementNS(SVG, 'svg');
+    s.setAttribute('width', '14'); s.setAttribute('height', '14');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '1.9');
+    s.setAttribute('stroke-linecap', 'round');
+    paths.forEach(function (d) {
+      var p = document.createElementNS(SVG, 'path'); p.setAttribute('d', d); s.appendChild(p);
+    });
+    return s;
+  }
+
+  function build(maximized) {
+    // The focus ring for the three buttons below. It cannot be an inline style - :focus-visible
+    // is a selector - and this bar is built in script with no stylesheet of its own, so the rule
+    // is injected once. Same 2px accent outline at offset 1px every other control on every screen
+    // paints, because two focus rings in one window is two vocabularies.
+    if (!document.getElementById('gx-chrome-focus')) {
+      var fs = document.createElement('style');
+      fs.id = 'gx-chrome-focus';
+      fs.textContent = '#gx-chrome [role="button"]:focus-visible{outline:2px solid var(--gx-accent);'
+        + 'outline-offset:1px;}';
+      document.head.appendChild(fs);
+    }
+
+    var bar = document.createElement('div');
+    bar.id = 'gx-chrome';
+    bar.setAttribute('data-tauri-drag-region', '');
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:40px;display:flex;' +
+      'align-items:center;justify-content:flex-end;gap:2px;padding:0 6px;z-index:9999;' +
+      '-webkit-app-region:drag;user-select:none;';
+
+    function btn(paths, title, onClick, danger) {
+      var b = document.createElement('div');
+      b.title = title;
+      b.setAttribute('role', 'button');
+      // MINIMISE / MAXIMISE / CLOSE ARE CONTROLS (round 6c). They carried the role and nothing
+      // else: no tab stop, no name a screen reader is obliged to read, and no key that works.
+      // On Windows and Linux this bar REPLACES the OS title bar - so without these three lines a
+      // keyboard-only player on those platforms cannot close the launcher from inside it.
+      //
+      // aria-label RATHER THAN title ALONE: `title` is the last fallback in the accessible-name
+      // computation and several screen readers are configured never to reach it. Both are kept in
+      // sync wherever the maximise button relabels itself.
+      b.setAttribute('tabindex', '0');
+      b.setAttribute('aria-label', title);
+      b.style.cssText = 'width:40px;height:26px;display:flex;align-items:center;' +
+        'justify-content:center;color:#96999E;border-radius:3px;cursor:default;' +
+        '-webkit-app-region:no-drag;transition:background .12s,color .12s;';
+      b.appendChild(icon(paths));
+      b.addEventListener('mouseenter', function () {
+        b.style.background = danger ? '#E86A6A' : '#232327';
+        b.style.color = danger ? '#ECEEF0' : '#ECEEF0';
+      });
+      b.addEventListener('mouseleave', function () {
+        b.style.background = 'transparent'; b.style.color = '#96999E';
+      });
+      b.addEventListener('click', function (e) { e.stopPropagation(); onClick(b); });
+      // ENTER AND SPACE. An element wearing role="button" is activated by neither key on its own;
+      // only a real <button> gets that from the platform, and this bar cannot be one - it is a
+      // drag region with `-webkit-app-region` children, and a <button> inside a drag region is
+      // swallowed by the region on Windows.
+      b.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault(); e.stopPropagation(); onClick(b);
+        }
+      });
+      return b;
+    }
+
+    var MAX_ON  = ['M8 3H5a2 2 0 0 0-2 2v3', 'M21 8V5a2 2 0 0 0-2-2h-3',
+                   'M3 16v3a2 2 0 0 0 2 2h3', 'M16 21h3a2 2 0 0 0 2-2v-3'];
+    var MAX_OFF = ['M8 3v3a2 2 0 0 1-2 2H3', 'M21 8h-3a2 2 0 0 1-2-2V3',
+                   'M3 16h3a2 2 0 0 1 2 2v3', 'M16 21v-3a2 2 0 0 1 2-2h3'];
+
+    // Every invoke carries a .catch: a rejected window op with no handler is silent, and a
+    // button that sometimes does nothing with no explanation reads as a broken launcher.
+    bar.appendChild(btn(['M5 12h14'], 'Minimise', function () {
+      invoke('window_minimize').catch(function (e) { console.error('minimize:', e); });
+    }));
+
+    var maxBtn = btn(maximized ? MAX_OFF : MAX_ON, 'Maximise', function (b) {
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var old = b.querySelector('svg');
+        if (old) { b.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), old); }
+        b.title = isMax ? 'Restore' : 'Maximise';
+        b.setAttribute('aria-label', b.title);
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+    bar.appendChild(maxBtn);
+
+    bar.appendChild(btn(['M18 6 6 18', 'm6 6 12 12'], 'Close', function () {
+      invoke('window_close').catch(function (e) { console.error('close:', e); });
+    }, true));
+
+
+    document.body.appendChild(bar);
+
+    // DOUBLE-CLICK THE TITLE ROW TO MAXIMISE. Every OS does this and the drag region swallowed
+    // it, so the app's own title bar behaved worse than the one it replaced.
+    bar.addEventListener('dblclick', function (e) {
+      if (e.target.closest && e.target.closest('[role="button"]')) { return; }
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var b = maxBtn.querySelector('svg');
+        if (b) { maxBtn.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), b); }
+        maxBtn.title = isMax ? 'Restore' : 'Maximise';
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+
+    // RESIZE GRIPS. set_decorations(false) removed the OS frame, and with it the resize borders -
+    // the window could be maximised but never dragged to a size. These eight invisible strips put
+    // them back, handing the drag to the OS (window_start_resize) rather than tracking the mouse
+    // here. 6px reads as a border and is still easy to hit; the corners are 12px because corners
+    // are aimed at rather than swept into. They sit UNDER the chrome bar's z-index so the buttons
+    // always win, and each one stops the click reaching the label router.
+    var GRIPS = [
+      ['north',      'top:0;left:12px;right:12px;height:6px;',        'ns-resize'],
+      ['south',      'bottom:0;left:12px;right:12px;height:6px;',     'ns-resize'],
+      ['west',       'left:0;top:12px;bottom:12px;width:6px;',        'ew-resize'],
+      ['east',       'right:0;top:12px;bottom:12px;width:6px;',       'ew-resize'],
+      ['north-west', 'top:0;left:0;width:12px;height:12px;',          'nwse-resize'],
+      ['north-east', 'top:0;right:0;width:12px;height:12px;',         'nesw-resize'],
+      ['south-west', 'bottom:0;left:0;width:12px;height:12px;',       'nesw-resize'],
+      ['south-east', 'bottom:0;right:0;width:12px;height:12px;',      'nwse-resize']
+    ];
+    GRIPS.forEach(function (g) {
+      var el = document.createElement('div');
+      el.setAttribute('data-gx-noroute', '');
+      el.style.cssText = 'position:fixed;z-index:9998;-webkit-app-region:no-drag;' +
+                         g[1] + 'cursor:' + g[2] + ';';
+      el.addEventListener('mousedown', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        invoke('window_start_resize', { direction: g[0] })
+          .catch(function (e) { console.error('resize:', e); });
+      });
+      document.body.appendChild(el);
+    });
+  }
+
+  // F11 EVERYWHERE, including macOS, where the window keeps its own decorations and this block
+  // otherwise does nothing. Fullscreen is not maximised: it gives the whole display to the
+  // artboard, which the fit script then scales into. Escape leaves, because a player who cannot
+  // see a title bar needs a way out that does not require finding one.
+  var isFull = false;
+  function toggleFullscreen() {
+    invoke('window_fullscreen_toggle')
+      .then(function (v) { isFull = !!v; })
+      .catch(function (e) { console.error('fullscreen:', e); });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); return; }
+    if (e.key === 'Escape' && isFull) { e.preventDefault(); toggleFullscreen(); }
+  });
+
+  // Held for this too (gx-settle.js): on Windows the minimise / maximise / close buttons are part of the first frame,
+  // not a pop-in. The fit block placed the artboard before the bar existed; below 1:1 it must sit under the bar, so
+  // it is fitted again now rather than at the player's first resize.
+  window.gxSettle.wait(invoke('window_custom_chrome').then(function (wants) {
+    if (wants) { build(false); window.dispatchEvent(new Event('resize')); }
+  }).catch(function (e) { console.error('window_custom_chrome failed:', e); }));
+})();
+</script>
+
+<!-- gx-fit-wired -->
+<script>
+// Fit the artboard to the window.
+//
+// Every screen's root is a fixed 1280x720 box, because that is what the design IS - a fixed
+// composition, not a responsive layout. Maximising therefore did nothing: the box stayed its
+// size in the corner and the rest of the window was empty ground.
+//
+// Scaling it is the honest fix. Reflowing eleven screens into a responsive layout would be a
+// redesign, would need the designer, and would not obviously be better - the artboards are laid
+// out to be read at one set of proportions. So: scale by the smaller of the two ratios, keep the
+// aspect, and centre what is left over.
+//
+// Runs standalone in a browser too - it needs no Tauri - so the screens still review correctly
+// at any window size.
+(function () {
+  var root = null;
+  function findRoot() {
+    var kids = document.body ? document.body.children : [];
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      if (el.id === 'gx-chrome') { continue; }          // the title row is window-scale, not art-scale
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') { continue; }
+      var w = parseFloat(el.style.width), h = parseFloat(el.style.height);
+      if (w >= 1000 && h >= 600) { return el; }
+    }
+    return null;
+  }
+  function fit() {
+    if (!root) { root = findRoot(); }
+    if (!root) { return; }
+    var w = parseFloat(root.style.width)  || 1280;
+    var h = parseFloat(root.style.height) || 720;
+    var iw = window.innerWidth, ih = window.innerHeight;
+    var s = Math.min(iw / w, ih / h);
+    var ty = (ih - h * s) / 2;
+    // The injected title row (#gx-chrome) is window-scale and 40px tall. At s >= 1 the
+    // artboard's own 40px top spacer scales to >= 40px, so the bar overlays empty ground.
+    // Below s = 1 the spacer shrinks under the bar and the bar starts stealing clicks from
+    // real content — so refit into the strip BELOW the bar instead.
+    if (s < 1 && document.getElementById('gx-chrome')) {
+      var avail = Math.max(ih - 40, 40);
+      s = Math.min(iw / w, avail / h);
+      ty = 40 + (avail - h * s) / 2;
+    }
+    root.style.transformOrigin = 'top left';
+    root.style.transform = 'translate(' + ((iw - w * s) / 2) + 'px,' + ty + 'px) scale(' + s + ')';
+  }
+  document.documentElement.style.overflow = 'hidden';
+  if (document.body) { document.body.style.overflow = 'hidden'; }
+  window.addEventListener('resize', fit);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fit);
+  } else {
+    fit();
+  }
+  fit();
+})();
+</script>
+</body>
+</html>

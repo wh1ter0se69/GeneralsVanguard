@@ -1,0 +1,47 @@
+Vendored third-party code for the GeneralsX native renderer (GXRender). Approved by the lead (C31, 10/10/2026): pinned
+release tags from the official repositories, LICENSE files kept, no network fetch at build time. Both are MIT, which is
+GPL-3.0-compatible. Files are byte-identical copies of the release archives; never edit them here - re-vendor instead.
+
+volk - Vulkan meta-loader
+  repo     https://github.com/zeux/volk
+  tag      vulkan-sdk-1.4.357.0  (commit 776893306c5d3b22b6185b5d4a258b81d94572bf, 2026-07-18)
+  archive  https://github.com/zeux/volk/archive/refs/tags/vulkan-sdk-1.4.357.0.tar.gz
+           sha256 6400c7b23e24d17e4f04bac49b55b06c4e87677d33398e90344743ec73560ca6
+  files    volk/volk.c      sha256 e3401bab5e1d69b4e09fb95143490cda40740a3d3906c4e99f388071c7809602
+           volk/volk.h      sha256 036348b6f0dd7310c5e3bc04417be9ee56271c9997bd5eca49946ed52eca0e76
+           volk/LICENSE.md  sha256 04a0693a84f19e53d281ca98bbb0c86ca77251ab13769c6168e6684feb9a1436
+  note     VkCtx never calls volkInitialize(): it resolves vkGetInstanceProcAddr itself (the caller's - SDL3's in the game -
+           or the DXVK fork's per-platform search list) and hands it to volkInitializeCustom(), so the renderer and the
+           window surface always come from the same Vulkan library.
+
+VulkanMemoryAllocator (VMA)
+  repo     https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
+  tag      v3.4.0  (commit 3aa921224c154a0d2c43912bc88e1c42ce1f7607, released 2026-06-04)
+  archive  https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator/archive/refs/tags/v3.4.0.tar.gz
+           sha256 822aa850c6ce77346ae96a8a1d351d52e77e85929f35363849a0a4e638e0a2a1
+  files    vma/vk_mem_alloc.h  sha256 8487b7995ad3b263eb73bc5b9a77d71aa69b6bef5d58a715c02d2663afd81f1a
+           vma/LICENSE.txt     sha256 52df2c03d6cfc9ffec13c9d3626c530fc9ce0cbe41d5ea3d10cd46edeb1aeb38
+
+Checks done before vendoring (E · rw1-B, 10/10/2026): licences read (MIT, both); the sources grepped for process/network
+calls (system/popen/exec/socket/connect/curl/fork: none; volk's only dynamic loading is its own volkInitialize search list,
+which VkCtx does not call). The exposure-scan skill could not run on this MacBook (bumblebee/Go not installed) and its
+catalogs cover package ecosystems (npm/PyPI/Go/gems/extensions), not vendored C sources.
+
+DXVK v3.0 fixed-function GLSL (zlib/libpng) - ADAPTED, not vendored byte-identical
+  where    Pipeline/shaders/gx_ff_common.glsl, gx_ff.vert, gx_ff.frag.glsl (+ GxFFState.cpp's CPU-side packing)
+  source   https://github.com/doitsujin/dxvk tag v3.0, commit 97fe0c66f89d3c8977578e1b500907306d4af536 (2026-06-25)
+  record   Pipeline/shaders/SOURCE.txt (per-file paths + sha256, licence text, what was altered)
+  approved lead E · MOTHER C32, 11/10/2026 (C · rw2-D's NOTE_lead-dxvk3-ff-glsl.md); zlib is GPL-3.0-compatible
+
+DXVK 2.6 CPU vector/matrix arithmetic (zlib/libpng) - ADAPTED, not vendored byte-identical (C · rw3-P, 11/10/2026)
+  where    Pipeline/GxDxvkMath.h (used by GxFFState.cpp GxPackFF: WorldView, its inverse, the view-space lights)
+  source   the GeneralsX DXVK 2.6 fork (references/fbraz3-dxvk = the classic path players run), commit
+           954c5c692622ac9bf631c5cee72559cc6a268ceb
+           src/util/util_matrix.cpp  sha256 c4825953a4be7962d748ce938fcd0f73d402e1785aaf89eae1f4a25bedadc344
+           src/util/util_matrix.h    sha256 d9392c404c35f3706e9c1ce9c5904c112746c58d4e346d91c48c124dfe122008
+           src/util/util_vector.h    sha256 60e30d25262f0f3c7eaf159e4f701f9460582efbad50d5efef773a832bf20fdf
+  altered  float only, header-only, namespace GXRender::dxm, only Matrix4 * Matrix4 / * Vector4 / * float, transpose, inverse,
+           dot / length / normalize; floating-point contraction pinned per compiler to what DXVK's shipped builds do (the file's
+           header: macOS arm64 per-statement, OBSERVED equal instruction mix to RI-A's libdxvk_d3d9 by objdump)
+  approved lead E · MOTHER C32, 11/10/2026 (relayed by C · render-integration-3; recorded in rw2-D/LEAD-TO_dxvk3-ff-glsl.md);
+           zlib is GPL-3.0-compatible; THIRD_PARTY_NOTICES at first ship

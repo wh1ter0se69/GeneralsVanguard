@@ -1,0 +1,25 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2026 TheSuperHackers
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+#include "simsourcedigest.h"
+
+// Keeping the values in a .cpp rather than a header means only this one tiny
+// translation unit recompiles when the digest moves. configure_file leaves the
+// output byte-identical and its mtime untouched when the digest has not changed,
+// so an unchanged tree causes no rebuild at all.
+const unsigned int SimSourceDigestZeroHour = 0x@SIM_SOURCE_DIGEST_ZEROHOUR@u;
+const unsigned int SimSourceDigestGenerals = 0x@SIM_SOURCE_DIGEST_GENERALS@u;

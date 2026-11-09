@@ -1,0 +1,19 @@
+# Every version of the loose pair GeneralsX has ever shipped: sha256, two spaces, the path
+# relative to a game folder. run.sh removes a file from a game folder ONLY when its sha256 AND
+# path match a line here. Add a line whenever either file changes; bundle-macos-zh.sh refuses to
+# package a pair whose hash is missing. Never remove a line: an old install may still hold it.
+# Data/INI/Weapon.ini is deliberately NOT here (25/09/2026): no build ever installed it into a game
+# folder, so a copy found in one is somebody else's and is never removed. Its bytes are pinned by
+# make-weapon-ini.py and re-derived by verify-bundle-overlay.sh instead.
+6842fc291ee46b862d6ca2196a4ef775e684c04ba07df781144949b9337c704b  Data/INI/Multiplayer.ini
+64fd5a8e1b8674cec904e39360fb4af3f8348669ac1196e30b5b8161cb274a0f  Data/INI/Multiplayer.ini
+fd540c2ca1f4d0067ad7b0b12bca8670c1a7a4f586da7880dadc2789aed68db1  Data/English/Generals.csf
+b01732b049daf41048b37b116d3b8801fe9ab940b62c9dfb342be36e9f859a33  Data/English/Generals.csf
+a0e6c258fcb7c285373883b435c0231ad705d2f74d0534659db36613297e9951  Data/English/Generals.csf
+aea51b080238192c69cd44d079ac9f7b20262f929e626d4663eb821ec45b9e81  Data/INI/Multiplayer.ini
+ce0cda8d84266ffcee163cf42b684286d75a9781f90e12d16499a526bbb3fe21  Data/English/Generals.csf
+d14c4a0266285c04cf52bce046e677faa228bef38f964fbdf58f30388b2505e3  Data/INI/Multiplayer.ini
+01160344b7c8489f7f5d2d38083cf5db281d773a50f6b2b95e6275c2ec0beebf  Data/English/Generals.csf
+8939f60a603633504774bb6d4a48d59d061c64b46254c5a21c83020e37528ee2  Data/English/Generals.csf
+45e6865ca2b654f5048c185779f94f4af57123fc07eed62b9f1a2cec21b7f4ae  Data/INI/Multiplayer.ini
+a340746256064273f0e128ac47419152ee11715a18bb432830014166b146a6d1  Data/English/Generals.csf

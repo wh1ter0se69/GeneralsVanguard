@@ -1,0 +1,69 @@
+/* Changelogs — generated from design/Changelogs.dc.html by scripts/design/convert-artboards.py.
+   Every rule is scoped under .gx-s-changelogs: ten of the sixty-eight selectors shared
+   between artboards genuinely conflict, so nothing here is global. */
+
+.gx-s-changelogs { margin: 0; font-family: var(--gx-font-ui); }
+.gx-s-changelogs a { color: var(--gx-accent); text-decoration: none; }
+.gx-s-changelogs a:hover { color: var(--gx-accent-hi); }
+
+    @keyframes gx-rise--changelogs { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.gx-s-changelogs .gx-rise { animation: gx-rise--changelogs 520ms var(--gx-ease-out) both; }
+.gx-s-changelogs .grouphead { font-size: var(--gx-fs-95); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+      color: var(--gx-ink-faint); padding: 15px 18px 6px 18px; }
+.gx-s-changelogs /* The stamp first so the list stays scannable by date, .gx-s-changelogs the title under it, .gx-s-changelogs the whole row one
+       hit target -- ChangelogPanel's own arrangement.
+       THE ROW GROWS FROM 52 TO 60 AND THE TITLE GETS TWO LINES. At the 358px this sidebar is
+       clamped to, .gx-s-changelogs one line ellipsises most real titles: "Twelve players, .gx-s-changelogs and the three places the
+       widening missed" needs about 330px and has 301. Clipping titles is the exact fault that was
+       fixed on 2026-08-17 (rows were built 32px wider than the list that held them), .gx-s-changelogs and a
+       one-line row reintroduces it from the other direction -- the row is too SHORT rather than
+       too wide, .gx-s-changelogs but the reader loses the same words.
+       66 = 14 padding + a 14px stamp + a 3px gap + two 16.25px title lines, .gx-s-changelogs with a pixel spare.
+       Measured, .gx-s-changelogs not guessed: at 60 the second line was four pixels short and clipped again. */
+    .rel { height: 66px; flex-shrink: 0; box-sizing: border-box; padding: 7px 12px 7px 13px; cursor: pointer;
+      display: flex; flex-direction: column; justify-content: center; gap: 3px;
+      border-left: 3px solid transparent; background: var(--gx-ground);
+      transition: background 160ms var(--gx-ease-out); }
+.gx-s-changelogs .rel .rs { font-size: var(--gx-fs-105); color: var(--gx-ink-faint); font-variant-numeric: tabular-nums;
+      font-family: var(--gx-font-mono); letter-spacing: -0.2px; }
+.gx-s-changelogs .rel .rt { font-size: var(--gx-fs-125); color: var(--gx-ink-dim); line-height: 1.3; display: -webkit-box;
+      -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gx-s-changelogs .rel.sel { background: var(--gx-surface-4); border-left-color: var(--gx-accent); }
+.gx-s-changelogs .rel.sel .rt { color: var(--gx-ink); font-weight: 600; }
+.gx-s-changelogs .rel.sel .rs { color: var(--gx-ink-dim); }
+.gx-s-changelogs /* WHICH RELEASE YOU ARE RUNNING IS DERIVED, .gx-s-changelogs NOT TRANSPORTED. The launcher already holds the
+       installed commit - it is on the home screen - so matching it against ChangelogEntry.Commit
+       costs no document change. Changelog.cs:191 pins the date field at exactly ten characters and
+       splits the release header on spaces, .gx-s-changelogs so ANY new field would make every already-installed
+       launcher reject the whole document and report no changelog at all. */
+    .badge { font-size: var(--gx-fs-85); letter-spacing: 1.1px; font-weight: 700; padding: 2px 6px;
+      border: 1px solid var(--gx-good); background: var(--gx-good-bg); color: var(--gx-good-ink); flex-shrink: 0; }
+.gx-s-changelogs .gx-save { cursor: pointer; border: 2px solid var(--gx-accent); background: var(--gx-accent-bg); color: var(--gx-ink);
+      box-shadow: 0 0 0 1px var(--gx-accent-a16), 0 8px 24px var(--gx-accent-a14);
+      transition: background 200ms var(--gx-ease-out), transform 140ms var(--gx-ease-press); }
+.gx-s-changelogs .gx-save:active { transform: scale(0.985); }
+.gx-s-changelogs /* A note is a PARAGRAPH, .gx-s-changelogs not a line. Fixed on 2026-08-13 after every commit body's ~95-column
+       hard wrap came out as one bullet per wrapped line - fragments cut mid-sentence, .gx-s-changelogs each with its
+       own bullet. Nothing here may reintroduce a per-line bullet. */
+    .note { display: flex; gap: 11px; padding: 7px 9px; transition: background 160ms var(--gx-ease-out); }
+.gx-s-changelogs .note .b { flex-shrink: 0; width: 2px; background: var(--gx-accent); opacity: 0.5; }
+.gx-s-changelogs .note .t { font-size: var(--gx-fs-125); color: var(--gx-ink-2); line-height: 1.6; text-wrap: pretty; }
+.gx-s-changelogs .note.dim .b { background: var(--gx-line-dim); opacity: 1; }
+.gx-s-changelogs .note.dim .t { color: var(--gx-ink-dim-2); }
+.gx-s-changelogs .note.caution .b { background: var(--gx-warn); opacity: 1; }
+.gx-s-changelogs .note.caution .t { color: var(--gx-warn-ink); }
+.gx-s-changelogs .stamp { font-family: var(--gx-font-mono); font-size: var(--gx-fs-115);
+      color: var(--gx-ink-dim-2); font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+
+
+    @media (hover: hover) and (pointer: fine) {
+      .rel:not(.sel):hover { background: var(--gx-surface-2); }
+      .rel:not(.sel):hover .rt { color: var(--gx-ink-3); }
+      .note:hover { background: var(--gx-ground); }
+      .gx-save:hover { background: var(--gx-accent-edge); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .gx-rise { animation: none; opacity: 1; transform: none; }
+      .gx-save:active { transform: none; }
+    }

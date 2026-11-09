@@ -1,0 +1,1031 @@
+{
+ "components": [
+  {
+   "id": "ea-generals",
+   "name": "Command & Conquer Generals / Zero Hour source (Electronic Arts), TheSuperHackers, Fighter19 port and GeneralsX",
+   "version": "this release",
+   "license": "GPL-3.0-or-later with EA's additional terms",
+   "url": "see LICENSE.md",
+   "copyright": [
+    "Copyright 2025 Electronic Arts Inc.",
+    "Copyright TheSuperHackers and contributors",
+    "Copyright GeneralsX contributors"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "the game executable; full text in LICENSE.md",
+   "texts": [
+    "common-GPL-3.txt"
+   ],
+   "files": [
+    "generalszh.exe",
+    "GeneralsXZH",
+    "libsage_patch*",
+    "GeneralsXLauncher.exe",
+    "GeneralsXUpdate.exe",
+    "generals-x-launcher",
+    "GeneralsX"
+   ],
+   "note": "Your copy of LICENSE.md (GPL-3 plus EA's additional terms) travels next to this file and governs the program itself."
+  },
+  {
+   "id": "lzo",
+   "name": "LZO",
+   "version": "1.x (in-tree, Core/Libraries/Source/WWVegas/WWLib/lzo*)",
+   "license": "GPL-2.0-or-later",
+   "url": "http://www.oberhumer.com/opensource/lzo/",
+   "copyright": [
+    "Copyright (C) 1996 Markus Franz Xaver Johannes Oberhumer"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable",
+   "texts": [
+    "common-GPL-2.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "lzhl",
+   "name": "LZHL (LZH-Light)",
+   "version": "1.0",
+   "license": "permissive (custom, below)",
+   "url": "https://github.com/TheSuperHackers/lzhl-1.0",
+   "copyright": [
+    "Copyright (C) Sergey Ignatchenko 1998"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable",
+   "texts": [],
+   "files": [],
+   "note": "This software is provided \"as is\" without express or implied warranty. Permission to use, copy, modify, distribute and sell this software for any purpose is hereby granted without fee, subject to the following restrictions: 1. this notice may not be removed or altered; 2. altered source versions must be plainly marked as such, and must not be misrepresented as being the original software."
+  },
+  {
+   "id": "gamespy",
+   "name": "GameSpy SDK (TheSuperHackers GamespySDK)",
+   "version": "git 07e3d15",
+   "license": "BSD-3-Clause",
+   "url": "https://github.com/TheSuperHackers/GamespySDK",
+   "copyright": [
+    "Copyright (c) 2011, IGN Entertainment, Inc."
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "libgamespy shared library / compiled into the executable",
+   "texts": [
+    "gamespy.txt"
+   ],
+   "files": [
+    "libgamespy*"
+   ],
+   "note": ""
+  },
+  {
+   "id": "vma",
+   "name": "Vulkan Memory Allocator",
+   "version": "3.4.0",
+   "license": "MIT",
+   "url": "https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator",
+   "copyright": [
+    "Copyright (c) 2017-2026 Advanced Micro Devices, Inc."
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable",
+   "texts": [
+    "vma.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "volk",
+   "name": "volk",
+   "version": "1.4.357 header",
+   "license": "MIT",
+   "url": "https://github.com/zeux/volk",
+   "copyright": [
+    "Copyright (c) 2018-2026 Arseny Kapoulkine"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable",
+   "texts": [
+    "volk.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "fidelityfx-fsr1",
+   "name": "AMD FidelityFX Super Resolution 1 (FSR 1) shader headers",
+   "version": "1.0.2 (ffx_a.h, ffx_fsr1.h)",
+   "license": "MIT",
+   "url": "https://github.com/GPUOpen-Effects/FidelityFX-FSR",
+   "copyright": [
+    "Copyright (c) 2021 Advanced Micro Devices, Inc. All rights reserved.",
+    "Copyright (c) 2014 Michal Drobot (for concepts used in \"FLOAT APPROXIMATIONS\")"
+   ],
+   "platforms": [
+    "macos",
+    "windows"
+   ],
+   "where": "compiled into the executable (the native renderer's FSR 1 upscale shaders, as embedded SPIR-V)",
+   "texts": [
+    "fidelityfx-fsr1.txt"
+   ],
+   "files": [],
+   "note": "Header-only shader source (GXRender/Device/shaders/third_party/ffx, provenance in shaders/SOURCE.txt), built into SPIR-V the executable embeds, so no payload file of its own: no listing or payload check can see it, which is why this entry is written by hand. Only builds with the native renderer (GX_RENDER_NATIVE, macOS and Windows x64) carry it."
+  },
+  {
+   "id": "stb",
+   "name": "stb single-file libraries",
+   "version": "2024-07-29 (vcpkg)",
+   "license": "MIT OR Unlicense (public domain)",
+   "url": "https://github.com/nothings/stb",
+   "copyright": [
+    "Sean Barrett and contributors"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable",
+   "texts": [
+    "vcpkg-stb.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "fast-float",
+   "name": "fast_float",
+   "version": "8.0.2 (vcpkg)",
+   "license": "Apache-2.0 OR MIT OR BSL-1.0",
+   "url": "https://github.com/fastfloat/fast_float",
+   "copyright": [
+    "Copyright (c) the fast_float authors (licence text names no holder; see upstream)"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable (header-only)",
+   "texts": [
+    "vcpkg-fast-float.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "glm",
+   "name": "GLM",
+   "version": "1.0.1 (vcpkg)",
+   "license": "MIT (or Happy Bunny License)",
+   "url": "https://github.com/g-truc/glm",
+   "copyright": [
+    "Copyright (c) 2005 - G-Truc Creation"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable (header-only)",
+   "texts": [
+    "vcpkg-glm.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "gli",
+   "name": "GLI",
+   "version": "2021-07-06 (vcpkg)",
+   "license": "MIT (or Happy Bunny License)",
+   "url": "https://github.com/g-truc/gli",
+   "copyright": [
+    "Copyright (c) 2010 - 2020 G-Truc Creation"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable (header-only)",
+   "texts": [
+    "vcpkg-gli.txt"
+   ],
+   "files": [],
+   "note": "Flatpak builds fetch GLI from the upstream master branch (flatpak/com.fbraz3.GeneralsXZH.yml), not the pinned vcpkg revision named here; the notice text is GLI's MIT licence, whose terms do not vary between those revisions."
+  },
+  {
+   "id": "zlib",
+   "name": "zlib",
+   "version": "1.3.1 (vcpkg); Windows zlib1.dll",
+   "license": "Zlib",
+   "url": "https://zlib.net/",
+   "copyright": [
+    "Copyright (C) Jean-loup Gailly and Mark Adler"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable; zlib1.dll on Windows",
+   "texts": [
+    "vcpkg-zlib.txt"
+   ],
+   "files": [
+    "zlib1.dll",
+    "libz.so*",
+    "libz.1.dylib"
+   ],
+   "note": ""
+  },
+  {
+   "id": "libpng",
+   "name": "libpng",
+   "version": "1.6.46 (vcpkg, static); 1.6.58 (macOS lib/)",
+   "license": "libpng-2.0",
+   "url": "http://www.libpng.org/pub/png/libpng.html",
+   "copyright": [
+    "Copyright (c) 1995-2025 The PNG Reference Library Authors"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "compiled into the executable; libpng16.16.dylib on macOS",
+   "texts": [
+    "vcpkg-libpng.txt",
+    "libpng-brew.txt"
+   ],
+   "files": [
+    "libpng16*"
+   ],
+   "note": "",
+   "brew": [
+    "libpng",
+    "1.6.58"
+   ]
+  },
+  {
+   "id": "freetype",
+   "name": "FreeType",
+   "version": "2.13.3 (vcpkg)",
+   "license": "FTL OR GPL-2.0-or-later",
+   "url": "https://freetype.org/",
+   "copyright": [
+    "Copyright David Turner, Robert Wilhelm, Werner Lemberg and the FreeType Project authors"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux"
+   ],
+   "where": "compiled into the executable",
+   "texts": [
+    "vcpkg-freetype.txt"
+   ],
+   "files": [],
+   "note": "This program is GPL-3.0-or-later; FreeType is used under its GPL-2.0-or-later option (compatible with GPL-3 via 'or later')."
+  },
+  {
+   "id": "fontconfig",
+   "name": "Fontconfig",
+   "version": "2.15.0 (vcpkg); config files in macOS fontconfig/",
+   "license": "MIT-style (HPND-sell-variant)",
+   "url": "https://www.freedesktop.org/wiki/Software/fontconfig/",
+   "copyright": [
+    "Copyright 2000-2024 Keith Packard and contributors"
+   ],
+   "platforms": [
+    "macos",
+    "linux"
+   ],
+   "where": "compiled into the executable; fontconfig/ configuration files in the macOS app",
+   "texts": [
+    "vcpkg-fontconfig.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "expat",
+   "name": "Expat",
+   "version": "2.7.1 (vcpkg)",
+   "license": "MIT",
+   "url": "https://libexpat.github.io/",
+   "copyright": [
+    "Copyright (c) 1998-2000 Thai Open Source Software Center Ltd and Clark Cooper",
+    "Copyright (c) 2001-2025 Expat maintainers"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux"
+   ],
+   "where": "compiled into the executable",
+   "texts": [
+    "vcpkg-expat.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "curl",
+   "name": "curl / libcurl",
+   "version": "8.13.0 (vcpkg)",
+   "license": "curl",
+   "url": "https://curl.se/",
+   "copyright": [
+    "Copyright (c) 1996 - 2025, Daniel Stenberg, <daniel@haxx.se>, and many contributors"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux"
+   ],
+   "where": "compiled into the executable",
+   "texts": [
+    "vcpkg-curl.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "brotli",
+   "name": "Brotli",
+   "version": "1.1.0 (vcpkg)",
+   "license": "MIT",
+   "url": "https://github.com/google/brotli",
+   "copyright": [
+    "Copyright (c) 2009, 2010, 2013-2016 by the Brotli Authors"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux"
+   ],
+   "where": "compiled into the executable",
+   "texts": [
+    "vcpkg-brotli.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "bzip2",
+   "name": "bzip2",
+   "version": "1.0.8 (vcpkg)",
+   "license": "bzip2-1.0.6 (BSD-style)",
+   "url": "https://sourceware.org/bzip2/",
+   "copyright": [
+    "Copyright (C) 1996-2019 Julian R Seward"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux"
+   ],
+   "where": "compiled into the executable",
+   "texts": [
+    "vcpkg-bzip2.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "openal-soft",
+   "name": "OpenAL Soft",
+   "version": "1.24.3 (vcpkg); libopenal 1.24.2 shipped dylib/so; OpenAL32.dll on Windows",
+   "license": "LGPL-2.0-or-later (BSD-3-Clause for pffft)",
+   "url": "https://openal-soft.org/",
+   "copyright": [
+    "Copyright (C) 1999-2007 by authors (see upstream CREDITS); pffft: Copyright (c) 2013 Julien Pommier"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "libopenal shared library (dynamically linked, user-replaceable); OpenAL32.dll on Windows",
+   "texts": [
+    "openal-soft-COPYING.txt",
+    "openal-soft-pffft.txt"
+   ],
+   "files": [
+    "libopenal*",
+    "OpenAL32.dll"
+   ],
+   "note": "LGPL: the library is shipped as a separate shared library so it can be replaced by a modified build; its complete source is the upstream release named above, and the whole program is itself GPL-3 with source available."
+  },
+  {
+   "id": "ffmpeg-gpl",
+   "name": "FFmpeg (macOS: Homebrew build with --enable-gpl --enable-version3)",
+   "version": "9.0.1",
+   "license": "GPL-3.0-or-later (libavcodec reports 'GPL version 3 or later')",
+   "url": "https://ffmpeg.org/",
+   "copyright": [
+    "Copyright (c) the FFmpeg developers"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libav*.dylib, libsw*.dylib in the macOS app",
+   "texts": [
+    "ffmpeg-LICENSE.txt",
+    "ffmpeg-GPLv3.txt"
+   ],
+   "files": [
+    "libavcodec*",
+    "libavformat*",
+    "libavutil*",
+    "libswresample*",
+    "libswscale*"
+   ],
+   "note": "The GPL-enabled build pulls in libx264 and libx265. Compatible with this program's GPL-3.0. Corresponding source: https://ffmpeg.org/releases/ffmpeg-9.0.1.tar.xz",
+   "brew": [
+    "ffmpeg",
+    "9.0.1"
+   ]
+  },
+  {
+   "id": "ffmpeg-lgpl-ios",
+   "name": "FFmpeg (iOS: vcpkg build, LGPL, statically linked)",
+   "version": "8.1.1",
+   "license": "LGPL-2.1-or-later",
+   "url": "https://ffmpeg.org/",
+   "copyright": [
+    "Copyright (c) the FFmpeg developers"
+   ],
+   "platforms": [
+    "ios"
+   ],
+   "where": "compiled into the iOS executable",
+   "texts": [
+    "vcpkg-ffmpeg-ios.txt",
+    "common-LGPL-2.1.txt"
+   ],
+   "files": [],
+   "note": "Statically linked; the program as a whole is GPL-3 and its complete source is available, which carries the LGPL relinking right (see the incompatibility notes in the release handback)."
+  },
+  {
+   "id": "x264",
+   "name": "x264",
+   "version": "r3222",
+   "license": "GPL-2.0-or-later",
+   "url": "https://www.videolan.org/developers/x264.html",
+   "copyright": [
+    "Copyright (C) 2003-2025 x264 project"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libx264.165.dylib",
+   "texts": [
+    "x264.txt"
+   ],
+   "files": [
+    "libx264*"
+   ],
+   "note": "",
+   "brew": [
+    "x264",
+    "r3222"
+   ]
+  },
+  {
+   "id": "x265",
+   "name": "x265",
+   "version": "4.3",
+   "license": "GPL-2.0-or-later (x265 also offers a commercial licence; used here under the GPL)",
+   "url": "https://www.x265.org/",
+   "copyright": [
+    "Copyright (C) 2013-2020 MulticoreWare, Inc"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libx265.217.dylib",
+   "texts": [
+    "x265.txt"
+   ],
+   "files": [
+    "libx265*"
+   ],
+   "note": "x265's source headers grant GPL version 2 'or (at your option) any later version', which is compatible with this program's GPL-3.0.",
+   "brew": [
+    "x265",
+    "4.3"
+   ]
+  },
+  {
+   "id": "lame",
+   "name": "LAME",
+   "version": "4.0 (libmp3lame 3.100 API)",
+   "license": "LGPL-2.0-or-later",
+   "url": "https://lame.sourceforge.io/",
+   "copyright": [
+    "Copyright (c) 1999-2011 The LAME Project"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libmp3lame.0.dylib",
+   "texts": [
+    "lame.txt"
+   ],
+   "files": [
+    "libmp3lame*"
+   ],
+   "note": "",
+   "brew": [
+    "lame",
+    "4.0"
+   ]
+  },
+  {
+   "id": "dav1d",
+   "name": "dav1d",
+   "version": "1.5.4",
+   "license": "BSD-2-Clause",
+   "url": "https://code.videolan.org/videolan/dav1d",
+   "copyright": [
+    "Copyright \u00a9 2018-2025, VideoLAN and dav1d authors"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libdav1d.7.dylib",
+   "texts": [
+    "dav1d.txt"
+   ],
+   "files": [
+    "libdav1d*"
+   ],
+   "note": "",
+   "brew": [
+    "dav1d",
+    "1.5.4"
+   ]
+  },
+  {
+   "id": "svt-av1",
+   "name": "SVT-AV1",
+   "version": "4.2.0",
+   "license": "BSD-3-Clause-Clear plus the AOMedia patent licence",
+   "url": "https://gitlab.com/AOMediaCodec/SVT-AV1",
+   "copyright": [
+    "Copyright (c) 2019 Alliance for Open Media (see the licence text)"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libSvtAv1Enc.4.dylib",
+   "texts": [
+    "svt-av1.txt",
+    "svt-av1-bsd2.txt"
+   ],
+   "files": [
+    "libSvtAv1Enc*"
+   ],
+   "note": "",
+   "brew": [
+    "svt-av1",
+    "4.2.0"
+   ]
+  },
+  {
+   "id": "libvpx",
+   "name": "libvpx",
+   "version": "1.17.0",
+   "license": "BSD-3-Clause",
+   "url": "https://www.webmproject.org/code/",
+   "copyright": [
+    "Copyright (c) 2010, The WebM Project authors"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libvpx.12.dylib",
+   "texts": [
+    "libvpx.txt"
+   ],
+   "files": [
+    "libvpx*"
+   ],
+   "note": "",
+   "brew": [
+    "libvpx",
+    "1.17.0"
+   ]
+  },
+  {
+   "id": "opus",
+   "name": "Opus",
+   "version": "1.6.1",
+   "license": "BSD-3-Clause",
+   "url": "https://opus-codec.org/",
+   "copyright": [
+    "Copyright 2001-2023 Xiph.Org, Skype Limited, Octasic, Jean-Marc Valin, Timothy B. Terriberry, CSIRO, Gregory Maxwell, Mark Borgerding, Erik de Castro Lopo, Microsoft Corporation, Broadcom Corporation"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libopus.0.dylib",
+   "texts": [
+    "opus.txt"
+   ],
+   "files": [
+    "libopus*"
+   ],
+   "note": "",
+   "brew": [
+    "opus",
+    "1.6.1"
+   ]
+  },
+  {
+   "id": "mpg123",
+   "name": "mpg123",
+   "version": "1.33.7",
+   "license": "LGPL-2.1-only",
+   "url": "https://www.mpg123.de/",
+   "copyright": [
+    "Copyright 1995-2025 by Michael Hipp, Thomas Orgis and others"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libmpg123.0.dylib",
+   "texts": [
+    "mpg123.txt"
+   ],
+   "files": [
+    "libmpg123*"
+   ],
+   "note": "",
+   "brew": [
+    "mpg123",
+    "1.33.7"
+   ]
+  },
+  {
+   "id": "openssl",
+   "name": "OpenSSL",
+   "version": "3.6.x",
+   "license": "Apache-2.0",
+   "url": "https://www.openssl.org/",
+   "copyright": [
+    "Copyright The OpenSSL Project Authors"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libssl.3.dylib, lib/libcrypto.3.dylib",
+   "texts": [
+    "openssl.txt"
+   ],
+   "files": [
+    "libssl*",
+    "libcrypto*"
+   ],
+   "note": "OpenSSL 3 is Apache-2.0, which is compatible with GPL-3.0.",
+   "brew": [
+    "openssl@3",
+    "3.6."
+   ]
+  },
+  {
+   "id": "xz",
+   "name": "XZ Utils (liblzma)",
+   "version": "5.8.4",
+   "license": "0BSD / public domain",
+   "url": "https://tukaani.org/xz/",
+   "copyright": [
+    "Copyright (C) The XZ Utils authors and contributors"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/liblzma.5.dylib",
+   "texts": [
+    "xz.txt"
+   ],
+   "files": [
+    "liblzma*"
+   ],
+   "note": "",
+   "brew": [
+    "xz",
+    "5.8.4"
+   ]
+  },
+  {
+   "id": "sdl3",
+   "name": "SDL (Simple DirectMedia Layer)",
+   "version": "3.4.x",
+   "license": "Zlib",
+   "url": "https://libsdl.org/",
+   "copyright": [
+    "Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux"
+   ],
+   "where": "libSDL3 shared library",
+   "texts": [
+    "sdl3.txt"
+   ],
+   "files": [
+    "libSDL3.*",
+    "libSDL3.dylib"
+   ],
+   "note": ""
+  },
+  {
+   "id": "sdl3-image",
+   "name": "SDL_image",
+   "version": "3.4.x (bundles stb_image)",
+   "license": "Zlib",
+   "url": "https://libsdl.org/projects/SDL_image/",
+   "copyright": [
+    "Copyright (C) 1997-2026 Sam Lantinga <slouken@libsdl.org>"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux"
+   ],
+   "where": "libSDL3_image shared library",
+   "texts": [
+    "sdl3-image.txt"
+   ],
+   "files": [
+    "libSDL3_image*"
+   ],
+   "note": ""
+  },
+  {
+   "id": "vulkan-loader",
+   "name": "Vulkan Loader",
+   "version": "1.4.357.0",
+   "license": "Apache-2.0",
+   "url": "https://github.com/KhronosGroup/Vulkan-Loader",
+   "copyright": [
+    "Copyright (c) The Khronos Group Inc., Valve Corporation, LunarG, Inc. and contributors"
+   ],
+   "platforms": [
+    "macos"
+   ],
+   "where": "lib/libvulkan.1.dylib",
+   "texts": [
+    "vulkan-loader.txt"
+   ],
+   "files": [
+    "libvulkan*"
+   ],
+   "note": "Staged from either Homebrew or the LunarG Vulkan SDK ($VULKAN_SDK_ROOT in bundle-macos-zh.sh); the packager does not verify which version it copied."
+  },
+  {
+   "id": "moltenvk",
+   "name": "MoltenVK (includes SPIRV-Cross, SPIRV-Tools, glslang, Vulkan-Headers)",
+   "version": "1.4.2",
+   "license": "Apache-2.0",
+   "url": "https://github.com/KhronosGroup/MoltenVK",
+   "copyright": [
+    "Copyright (c) 2015-2025 The Brenwill Workshop Ltd. and contributors"
+   ],
+   "platforms": [
+    "macos",
+    "ios"
+   ],
+   "where": "lib/libMoltenVK.dylib; Frameworks/MoltenVK.framework",
+   "texts": [
+    "moltenvk.txt"
+   ],
+   "files": [
+    "libMoltenVK*",
+    "MoltenVK"
+   ],
+   "note": "Apache-2.0 \u00a74(d): MoltenVK ships no separate NOTICE file in the release used here (checked: Homebrew molten-vk 1.4.2 carries only LICENSE). Staged from either Homebrew or the LunarG Vulkan SDK ($VULKAN_SDK_ROOT in bundle-macos-zh.sh); the packager does not verify which version it copied."
+  },
+  {
+   "id": "dxvk",
+   "name": "DXVK (GeneralsX fork of doitsujin/dxvk with d3d8)",
+   "version": "2.6 (libdxvk_d3d8.so.0.20600)",
+   "license": "Zlib",
+   "url": "https://github.com/doitsujin/dxvk",
+   "copyright": [
+    "Copyright (c) 2017 Philip Rebohle",
+    "Copyright (c) 2019 Joshua Ashton",
+    "Copyright (c) 2019 Robin Kertels"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "libdxvk_d3d8/d3d9 shared libraries; d3d8.dll and d3d9.dll on Windows",
+   "texts": [
+    "dxvk.txt"
+   ],
+   "files": [
+    "libdxvk_d3d*",
+    "d3d8.dll",
+    "d3d9.dll"
+   ],
+   "note": "The native renderer (builds with GX_RENDER_NATIVE: macOS and Windows x64) also compiles ADAPTED DXVK source into the executable: DXVK 3.0's fixed-function GLSL and DXVK 2.6's CPU matrix arithmetic, altered as recorded in GXRender/third_party/SOURCE.txt and GXRender/Pipeline/shaders/SOURCE.txt."
+  },
+  {
+   "id": "libdisplay-info",
+   "name": "libdisplay-info (DXVK subproject)",
+   "version": "bundled with DXVK",
+   "license": "MIT",
+   "url": "https://gitlab.freedesktop.org/emersion/libdisplay-info",
+   "copyright": [
+    "Copyright \u00a9 2019-2022 Simon Ser"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "inside DXVK",
+   "texts": [
+    "libdisplay-info.txt"
+   ],
+   "files": [],
+   "note": ""
+  },
+  {
+   "id": "font-barlow",
+   "name": "Barlow and Barlow Condensed (launcher UI fonts)",
+   "version": "Google Fonts woff2",
+   "license": "OFL-1.1",
+   "url": "https://github.com/jpt/barlow",
+   "copyright": [
+    "Copyright 2017 The Barlow Project Authors (https://github.com/jpt/barlow)"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "launcher UI (design/launcher/fonts)",
+   "texts": [
+    "ofl-1.1.txt"
+   ],
+   "files": [
+    "7cHpv4kjgoGqM7E_A8s5ynghnQci.woff2",
+    "7cHpv4kjgoGqM7E_Ass5ynghnQci.woff2",
+    "7cHpv4kjgoGqM7E_DMs5ynghnQ.woff2",
+    "7cHqv4kjgoGqM7E30-8s51ostz0rdg.woff2",
+    "7cHqv4kjgoGqM7E30-8s6Fostz0rdom9.woff2",
+    "7cHqv4kjgoGqM7E30-8s6Vostz0rdom9.woff2",
+    "7cHqv4kjgoGqM7E3_-gs51ostz0rdg.woff2",
+    "7cHqv4kjgoGqM7E3_-gs6Fostz0rdom9.woff2",
+    "7cHqv4kjgoGqM7E3_-gs6Vostz0rdom9.woff2",
+    "7cHqv4kjgoGqM7E3t-4s51ostz0rdg.woff2",
+    "7cHqv4kjgoGqM7E3t-4s6Fostz0rdom9.woff2",
+    "7cHqv4kjgoGqM7E3t-4s6Vostz0rdom9.woff2",
+    "HTxwL3I-JCGChYJ8VI-L6OO_au7B46r2z3bWuYMBYro.woff2",
+    "HTxwL3I-JCGChYJ8VI-L6OO_au7B46r2z3jWuYMBYrp0xg.woff2",
+    "HTxwL3I-JCGChYJ8VI-L6OO_au7B46r2z3nWuYMBYrp0xg.woff2",
+    "HTxwL3I-JCGChYJ8VI-L6OO_au7B4873z3bWuYMBYro.woff2",
+    "HTxwL3I-JCGChYJ8VI-L6OO_au7B4873z3jWuYMBYrp0xg.woff2",
+    "HTxwL3I-JCGChYJ8VI-L6OO_au7B4873z3nWuYMBYrp0xg.woff2"
+   ],
+   "note": ""
+  },
+  {
+   "id": "font-jetbrains-mono",
+   "name": "JetBrains Mono (launcher UI font)",
+   "version": "Google Fonts woff2",
+   "license": "OFL-1.1",
+   "url": "https://github.com/JetBrains/JetBrainsMono",
+   "copyright": [
+    "Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)"
+   ],
+   "platforms": [
+    "macos",
+    "ios",
+    "linux",
+    "windows"
+   ],
+   "where": "launcher UI (design/launcher/fonts)",
+   "texts": [
+    "ofl-1.1.txt"
+   ],
+   "files": [
+    "tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx3cwgknk-6nFg.woff2",
+    "tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx7cwgknk-6nFg.woff2",
+    "tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxDcwgknk-4.woff2",
+    "tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxPcwgknk-6nFg.woff2",
+    "tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPxTcwgknk-6nFg.woff2",
+    "tDbv2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKwBNntkaToggR7BYRbKPx_cwgknk-6nFg.woff2"
+   ],
+   "note": ""
+  },
+  {
+   "id": "font-liberation",
+   "name": "Liberation Fonts (iOS app: arial/arialbold/couriernew/timesnewroman .ttf, renamed Sans/Sans Bold/Mono/Serif Regular)",
+   "version": "2.1.5",
+   "license": "OFL-1.1",
+   "url": "https://github.com/liberationfonts/liberation-fonts",
+   "copyright": [
+    "Digitized data copyright (c) 2010 Google Corporation with Reserved Font Arimo, Tinos and Cousine.",
+    "Copyright (c) 2012 Red Hat, Inc. with Reserved Font Name Liberation."
+   ],
+   "platforms": [
+    "ios"
+   ],
+   "where": "iOS app GameData/fonts (scripts/build/ios/stage-fonts.sh)",
+   "texts": [
+    "liberation-fonts-2.1.5.txt"
+   ],
+   "files": [
+    "arial.ttf",
+    "arialbold.ttf",
+    "couriernew.ttf",
+    "timesnewroman.ttf",
+    "Liberation*.ttf"
+   ],
+   "note": "The fonts are renamed copies of the unmodified Liberation fonts; the Reserved Font Name restriction applies to modified versions, and these are not modified."
+  },
+  {
+   "id": "appimage-runtime",
+   "name": "AppImage type2 runtime (statically linked: squashfuse, libfuse, zstd, musl libc, zlib)",
+   "version": "as embedded by appimagetool (the runtime prints its own version: ./X.AppImage --appimage-version)",
+   "license": "MIT (runtime, musl); BSD-2-Clause (squashfuse); LGPL-2.1 (libfuse); BSD-3-Clause (zstd); Zlib",
+   "url": "https://github.com/AppImage/type2-runtime",
+   "copyright": [
+    "Copyright (c) 2004-23 probonopd (AppImage type2-runtime)",
+    "Copyright (c) Dave Vasilevsky (squashfuse)",
+    "Copyright (c) Meta Platforms, Inc. and affiliates (zstd)",
+    "Copyright \u00a9 2005-2020 Rich Felker, et al. (musl)",
+    "Copyright 1995-2026 Mark Adler (zlib inflate in the runtime)"
+   ],
+   "platforms": [
+    "linux"
+   ],
+   "where": "the executable header of every AppImage (game and launcher), prepended by appimagetool outside the AppDir",
+   "texts": [
+    "appimage-type2-runtime.txt",
+    "squashfuse.txt",
+    "zstd.txt",
+    "musl.txt",
+    "common-LGPL-2.1.txt",
+    "vcpkg-zlib.txt"
+   ],
+   "files": [
+    "*.AppImage"
+   ],
+   "note": "The runtime's own --help names libfuse (LGPL-2.1), libzstd, squashfuse and musl; libfuse is statically linked into the runtime, which the user can extract around (--appimage-extract) and replace; source: the runtime repository above and the libfuse repository https://github.com/libfuse/libfuse."
+  }
+ ]
+}

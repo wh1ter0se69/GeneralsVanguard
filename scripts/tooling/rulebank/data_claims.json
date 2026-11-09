@@ -1,0 +1,5767 @@
+{
+ "rules": {
+  "ARMY.CHINA_AIRFIELD_SCALE": {
+   "groups": [
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX ARMY.CHINA_AIRFIELD_SCALE"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Air Field 2 - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Air Field 3 - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Air Field 4 - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Air Field 5 - H"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "ARMY.CHINA_ASSAULT_HELIX": {
+   "groups": [
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX ARMY.CHINA_ASSAULT_HELIX"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Attack Enemy Base Center"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Assault Helix Cond - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Assault Helix Start - H"
+    ]
+   ],
+   "teams": [
+    "GX Assault Helix"
+   ],
+   "unused": []
+  },
+  "ARMY.CHINA_CRAWLER_DECOY": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [],
+   "teams": [
+    "China H 2ND Wave Tanks. 3",
+    "China H 3RD Wave Tanks C. 3",
+    "China H 3RD Wave Tanks F. 3"
+   ],
+   "unused": []
+  },
+  "ARMY.CHINA_GENERAL_MIX": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishChinaNukeGeneral",
+    "SkirmishChinaTankGeneral"
+   ],
+   "scripts": [],
+   "teams": [
+    "China H 2ND Wave Tanks. 2",
+    "China H 2ND Wave Tanks. 3",
+    "China H 3RD Wave Tanks C. 2",
+    "China H 3RD Wave Tanks C. 3",
+    "China H 3RD Wave Tanks F. 2",
+    "China H 3RD Wave Tanks F. 3",
+    "China H 3RD Wave Tanks. 3",
+    "China H 4TH Wave Tanks B. 2",
+    "China H 4TH Wave Tanks B. 3",
+    "China H 4TH Wave Tanks F. 2",
+    "China H 4TH Wave Tanks F. 3",
+    "China H 5TH Wave Tanks B. 3",
+    "China H 5TH Wave Tanks C. 3",
+    "China H 5TH Wave Tanks F. 2",
+    "China H 5TH Wave Tanks F. 3"
+   ],
+   "unused": [
+    "battlemaster_share_pm",
+    "subliminal_gate"
+   ]
+  },
+  "ARMY.CHINA_MIG_STRIKE_GATE": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [],
+   "teams": [
+    "China H 3RD Wave Air. 1",
+    "China H 4TH Wave Air B. 1"
+   ],
+   "unused": []
+  },
+  "ARMY.CHINA_VANILLA_MIX": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishChina",
+     "China War Factory 2 - H"
+    ]
+   ],
+   "teams": [
+    "China H 1ST Wave Rush",
+    "China H 2ND Wave Tanks",
+    "China H 3RD Wave Tanks C",
+    "China H 3RD Wave Tanks F",
+    "China H 4TH Wave Tanks B",
+    "China H 4TH Wave Tanks F",
+    "China H 5TH Wave Tanks C",
+    "China H 5TH Wave Tanks F"
+   ],
+   "unused": [
+    "variety_units"
+   ]
+  },
+  "ARMY.GLA_BUS_BARRACKS": {
+   "groups": [
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX ARMY.GLA_BUS_BARRACKS"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Barracks 2 - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Barracks 3 - H"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "ARMY.GLA_DEMO_BIKES": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [],
+   "teams": [
+    "GLA H 2ND Wave Tanks. 1",
+    "GLA H 3RD Wave Tanks C. 1",
+    "GLA H 3RD Wave Tanks F. 1"
+   ],
+   "unused": [
+    "trap_n"
+   ]
+  },
+  "ARMY.GLA_EARLY_QUAD_MASS": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [],
+   "teams": [
+    "GLA H 1ST Wave Supply Hunters. 2",
+    "GLA H 1W Guard Combat Zone. 2"
+   ],
+   "unused": [
+    "early_quad_t_max"
+   ]
+  },
+  "ARMY.GLA_TOXIN_ECON": {
+   "groups": [
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX ARMY.GLA_TOXIN_ECON"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GLA Mob Barracks 2 - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GLA Mob Barracks 3 - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GLA Mob Barracks 4 - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GLA Toxin Mob Early - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GLA Toxin Palace Early - H"
+    ]
+   ],
+   "teams": [
+    "GLA H 5TH Wave Mob C. 3"
+   ],
+   "unused": [
+    "max_black_markets"
+   ]
+  },
+  "ARMY.MIG_PAIRS": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [],
+   "teams": [
+    "China H 3RD Wave Air",
+    "China H 3W Guard Combat Zone",
+    "China H 4TH Wave Air B",
+    "China H 4W Guard Combat Zone",
+    "China H 5W Guard Combat Zone"
+   ],
+   "unused": []
+  },
+  "ARMY.USA_HUMVEE_MD": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [],
+   "teams": [
+    "USA H 1ST Wave Rush",
+    "USA H 2ND Wave Fast Attack",
+    "USA H 2ND Wave Tanks",
+    "USA H 2W Comanche Guards. 1",
+    "USA H 3RD Wave Tanks C",
+    "USA H 3RD Wave Tanks F",
+    "USA H 3W Comanche Guards. 1",
+    "USA H 4W Comanche Guards. 1"
+   ],
+   "unused": []
+  },
+  "COUNTER.CHINA_VS_CHINA": {
+   "groups": [
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX COUNTER.CHINA_VS_CHINA"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Matchup"
+    ]
+   ],
+   "matchup": "China",
+   "priority_sets": [],
+   "scope": [
+    "SkirmishChinaNukeGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX CVC Launch C"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX CVC Launch C Formed"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX CVC Launch D"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX CVC Launch D Formed"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX CVC Launch E"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX CVC Launch E Formed"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX CVC Mix B"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX CVC Mix C"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX CVC Mix D"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX MU Off China H 2ND Wave Tanks. 2"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX MU Off China H 3RD Wave Tanks C. 2"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX MU Off China H 3RD Wave Tanks F. 2"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX MU Off China H 4TH Wave Tanks B. 2"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX MU Off China H 4TH Wave Tanks F. 2"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Matchup USA"
+    ]
+   ],
+   "teams": [
+    "China H 2ND Wave Tanks. 2",
+    "China H 3RD Wave Tanks C. 2",
+    "China H 3RD Wave Tanks F. 2",
+    "China H 4TH Wave Tanks B. 2",
+    "China H 4TH Wave Tanks F. 2",
+    "GX CVC China H 2ND Wave Tanks. 2",
+    "GX CVC China H 3RD Wave Tanks C. 2",
+    "GX CVC China H 3RD Wave Tanks F. 2",
+    "GX CVC China H 4TH Wave Tanks B. 2",
+    "GX CVC China H 4TH Wave Tanks F. 2"
+   ],
+   "unused": [
+    "ecm_n",
+    "migs_vs_emperor",
+    "nukemig_upgrade"
+   ]
+  },
+  "COUNTER.CHINA_VS_GLA": {
+   "groups": [
+    [
+     "SkirmishChina",
+     "GX COUNTER.CHINA_VS_GLA"
+    ],
+    [
+     "SkirmishChina",
+     "GX Matchup"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX COUNTER.CHINA_VS_GLA"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Matchup"
+    ]
+   ],
+   "matchup": "GLA",
+   "priority_sets": [],
+   "scope": [
+    "SkirmishChina",
+    "SkirmishChinaTankGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishChina",
+     "China GX CVG Launch B"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG Launch B Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG Launch C"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG Launch C Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG Launch D"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG Launch D Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG Launch E"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG Launch E Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG Launch Now"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG Launch Now Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG On A"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG On B"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG On C"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG On D"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVG On E"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 1ST Wave Rush"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 1ST Wave Rush. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 4TH Wave Tanks B2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 4TH Wave Tanks F2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks B2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks C2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks F2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishChina",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishChina",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch B"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch B Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch C"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch C Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch D"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch D Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch E"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch E Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch Now"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG Launch Now Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG On A"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG On B"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG On C"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG On D"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVG On E"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 1ST Wave Rush"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 1ST Wave Rush. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 4TH Wave Tanks B2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 4TH Wave Tanks F2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks B2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks C2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks F2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Matchup USA"
+    ]
+   ],
+   "teams": [
+    "China H 1ST Wave Rush",
+    "China H 1ST Wave Rush. 3",
+    "China H 2ND Wave Tanks",
+    "China H 2ND Wave Tanks. 3",
+    "China H 3RD Wave Tanks C",
+    "China H 3RD Wave Tanks C. 3",
+    "China H 3RD Wave Tanks F",
+    "China H 3RD Wave Tanks F. 3",
+    "China H 3RD Wave Tanks. 3",
+    "China H 4TH Wave Tanks B2. 3",
+    "China H 4TH Wave Tanks F2. 3",
+    "China H 5TH Wave Tanks B. 3",
+    "China H 5TH Wave Tanks B2. 3",
+    "China H 5TH Wave Tanks C2. 3",
+    "China H 5TH Wave Tanks F. 3",
+    "China H 5TH Wave Tanks F2. 3",
+    "GX CVG China H 1ST Wave Rush",
+    "GX CVG China H 1ST Wave Rush. 3",
+    "GX CVG China H 2ND Wave Tanks",
+    "GX CVG China H 2ND Wave Tanks. 3",
+    "GX CVG China H 3RD Wave Tanks C",
+    "GX CVG China H 3RD Wave Tanks C. 3",
+    "GX CVG China H 3RD Wave Tanks F",
+    "GX CVG China H 3RD Wave Tanks F. 3",
+    "GX CVG China H 3RD Wave Tanks. 3",
+    "GX CVG China H 4TH Wave Tanks B2. 3",
+    "GX CVG China H 4TH Wave Tanks F2. 3",
+    "GX CVG China H 5TH Wave Tanks B. 3",
+    "GX CVG China H 5TH Wave Tanks B2. 3",
+    "GX CVG China H 5TH Wave Tanks C2. 3",
+    "GX CVG China H 5TH Wave Tanks F. 3",
+    "GX CVG China H 5TH Wave Tanks F2. 3"
+   ],
+   "unused": [
+    "helix_count",
+    "mig_team"
+   ]
+  },
+  "COUNTER.CHINA_VS_USA": {
+   "groups": [
+    [
+     "SkirmishChina",
+     "GX COUNTER.CHINA_VS_USA"
+    ],
+    [
+     "SkirmishChina",
+     "GX Matchup"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX COUNTER.CHINA_VS_USA"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Matchup"
+    ]
+   ],
+   "matchup": "USA",
+   "priority_sets": [],
+   "scope": [
+    "SkirmishChina",
+    "SkirmishChinaTankGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishChina",
+     "China GX CVU Launch B"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU Launch B Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU Launch C"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU Launch C Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU Launch D"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU Launch D Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU Launch E"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU Launch E Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU Launch Now"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU Launch Now Formed"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU On A"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU On B"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU On C"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU On D"
+    ],
+    [
+     "SkirmishChina",
+     "China GX CVU On E"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 1ST Wave Rush"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 1ST Wave Rush. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 3RD Wave Tanks. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 4TH Wave Tanks B2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 4TH Wave Tanks F2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks B2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks C2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX MU Off China H 5TH Wave Tanks F2. 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishChina",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishChina",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch B"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch B Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch C"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch C Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch D"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch D Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch E"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch E Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch Now"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU Launch Now Formed"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU On A"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU On B"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU On C"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU On D"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX CVU On E"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 1ST Wave Rush"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 1ST Wave Rush. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 3RD Wave Tanks. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 4TH Wave Tanks B2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 4TH Wave Tanks F2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks B2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks C2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX MU Off China H 5TH Wave Tanks F2. 3"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Matchup USA"
+    ]
+   ],
+   "teams": [
+    "China H 1ST Wave Rush",
+    "China H 1ST Wave Rush. 3",
+    "China H 2ND Wave Tanks",
+    "China H 2ND Wave Tanks. 3",
+    "China H 3RD Wave Tanks C",
+    "China H 3RD Wave Tanks C. 3",
+    "China H 3RD Wave Tanks F",
+    "China H 3RD Wave Tanks F. 3",
+    "China H 3RD Wave Tanks. 3",
+    "China H 4TH Wave Tanks B2. 3",
+    "China H 4TH Wave Tanks F2. 3",
+    "China H 5TH Wave Tanks B. 3",
+    "China H 5TH Wave Tanks B2. 3",
+    "China H 5TH Wave Tanks C2. 3",
+    "China H 5TH Wave Tanks F. 3",
+    "China H 5TH Wave Tanks F2. 3",
+    "GX CVU China H 1ST Wave Rush",
+    "GX CVU China H 1ST Wave Rush. 3",
+    "GX CVU China H 2ND Wave Tanks",
+    "GX CVU China H 2ND Wave Tanks. 3",
+    "GX CVU China H 3RD Wave Tanks C",
+    "GX CVU China H 3RD Wave Tanks C. 3",
+    "GX CVU China H 3RD Wave Tanks F",
+    "GX CVU China H 3RD Wave Tanks F. 3",
+    "GX CVU China H 3RD Wave Tanks. 3",
+    "GX CVU China H 4TH Wave Tanks B2. 3",
+    "GX CVU China H 4TH Wave Tanks F2. 3",
+    "GX CVU China H 5TH Wave Tanks B. 3",
+    "GX CVU China H 5TH Wave Tanks B2. 3",
+    "GX CVU China H 5TH Wave Tanks C2. 3",
+    "GX CVU China H 5TH Wave Tanks F. 3",
+    "GX CVU China H 5TH Wave Tanks F2. 3"
+   ],
+   "unused": [
+    "helix_vs_usa",
+    "migs_wave",
+    "napalm_esc_vs_usa",
+    "usa_gat_share"
+   ]
+  },
+  "COUNTER.GLA_UNIT_BY_ENEMY": {
+   "groups": [
+    [
+     "SkirmishGLA",
+     "GX COUNTER.GLA_UNIT_BY_ENEMY"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Matchup"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX COUNTER.GLA_UNIT_BY_ENEMY"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX COUNTER.GLA_UNIT_BY_ENEMY"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup"
+    ]
+   ],
+   "matchup": "China",
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLA",
+    "SkirmishGLADemolitionGeneral",
+    "SkirmishGLAToxinGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishGLA",
+     "GLA GX GUB I B"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB I C"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB I D"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB I E"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Launch C"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Launch C Formed"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Launch D"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Launch D Formed"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Launch E"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Launch E Formed"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Launch Now"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Launch Now Formed"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Q B"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Q C"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Q D"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB Q E"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB S B"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB S C"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB S D"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GUB S E"
+    ],
+    [
+     "SkirmishGLA",
+     "GX GUB Gen ChinaInfantryGeneral"
+    ],
+    [
+     "SkirmishGLA",
+     "GX GUB Gen ChinaNukeGeneral"
+    ],
+    [
+     "SkirmishGLA",
+     "GX GUB Gen ChinaTankGeneral"
+    ],
+    [
+     "SkirmishGLA",
+     "GX GUB Gen Done"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 2ND Wave Tanks. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 4. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 4. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB I B"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB I C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB I D"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB I E"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Launch C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Launch C Formed"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Launch D"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Launch D Formed"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Launch E"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Launch E Formed"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Launch Now"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Launch Now Formed"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Q B"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Q C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Q D"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB Q E"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB S B"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB S C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB S D"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GUB S E"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX GUB Gen ChinaInfantryGeneral"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX GUB Gen ChinaNukeGeneral"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX GUB Gen ChinaTankGeneral"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX GUB Gen Done"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 4. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 4. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB I B"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB I C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB I D"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB I E"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Launch C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Launch C Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Launch D"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Launch D Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Launch E"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Launch E Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Launch Now"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Launch Now Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Q B"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Q C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Q D"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB Q E"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB S B"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB S C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB S D"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GUB S E"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GUB Gen ChinaInfantryGeneral"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GUB Gen ChinaNukeGeneral"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GUB Gen ChinaTankGeneral"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GUB Gen Done"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 4. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 4. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup USA"
+    ]
+   ],
+   "teams": [
+    "GLA H 2ND Wave Tanks",
+    "GLA H 2ND Wave Tanks. 1",
+    "GLA H 2ND Wave Tanks. 3",
+    "GLA H 3RD Wave Tanks C",
+    "GLA H 3RD Wave Tanks C. 1",
+    "GLA H 3RD Wave Tanks C. 3",
+    "GLA H 3RD Wave Tanks F",
+    "GLA H 3RD Wave Tanks F. 1",
+    "GLA H 3RD Wave Tanks F. 3",
+    "GLA H 4TH Wave Tanks B",
+    "GLA H 4TH Wave Tanks B 2. 1",
+    "GLA H 4TH Wave Tanks B 2. 3",
+    "GLA H 4TH Wave Tanks B 3. 1",
+    "GLA H 4TH Wave Tanks B 3. 3",
+    "GLA H 4TH Wave Tanks B. 1",
+    "GLA H 4TH Wave Tanks B. 3",
+    "GLA H 4TH Wave Tanks F",
+    "GLA H 4TH Wave Tanks F 2. 1",
+    "GLA H 4TH Wave Tanks F 2. 3",
+    "GLA H 4TH Wave Tanks F 3. 1",
+    "GLA H 4TH Wave Tanks F 3. 3",
+    "GLA H 4TH Wave Tanks F. 1",
+    "GLA H 4TH Wave Tanks F. 3",
+    "GLA H 5TH Wave Tanks C",
+    "GLA H 5TH Wave Tanks C 2. 1",
+    "GLA H 5TH Wave Tanks C 2. 3",
+    "GLA H 5TH Wave Tanks C 3. 1",
+    "GLA H 5TH Wave Tanks C 3. 3",
+    "GLA H 5TH Wave Tanks C 4. 3",
+    "GLA H 5TH Wave Tanks C. 1",
+    "GLA H 5TH Wave Tanks C. 3",
+    "GLA H 5TH Wave Tanks F",
+    "GLA H 5TH Wave Tanks F 2. 1",
+    "GLA H 5TH Wave Tanks F 2. 3",
+    "GLA H 5TH Wave Tanks F 3. 1",
+    "GLA H 5TH Wave Tanks F 3. 3",
+    "GLA H 5TH Wave Tanks F 4. 3",
+    "GLA H 5TH Wave Tanks F. 1",
+    "GLA H 5TH Wave Tanks F. 3",
+    "GX GUBI GLA H 2ND Wave Tanks",
+    "GX GUBI GLA H 2ND Wave Tanks. 1",
+    "GX GUBI GLA H 2ND Wave Tanks. 3",
+    "GX GUBI GLA H 3RD Wave Tanks C",
+    "GX GUBI GLA H 3RD Wave Tanks C. 1",
+    "GX GUBI GLA H 3RD Wave Tanks C. 3",
+    "GX GUBI GLA H 3RD Wave Tanks F",
+    "GX GUBI GLA H 3RD Wave Tanks F. 1",
+    "GX GUBI GLA H 3RD Wave Tanks F. 3",
+    "GX GUBI GLA H 4TH Wave Tanks B",
+    "GX GUBI GLA H 4TH Wave Tanks B 2. 1",
+    "GX GUBI GLA H 4TH Wave Tanks B 2. 3",
+    "GX GUBI GLA H 4TH Wave Tanks B 3. 1",
+    "GX GUBI GLA H 4TH Wave Tanks B 3. 3",
+    "GX GUBI GLA H 4TH Wave Tanks B. 1",
+    "GX GUBI GLA H 4TH Wave Tanks B. 3",
+    "GX GUBI GLA H 4TH Wave Tanks F",
+    "GX GUBI GLA H 4TH Wave Tanks F 2. 1",
+    "GX GUBI GLA H 4TH Wave Tanks F 2. 3",
+    "GX GUBI GLA H 4TH Wave Tanks F 3. 1",
+    "GX GUBI GLA H 4TH Wave Tanks F 3. 3",
+    "GX GUBI GLA H 4TH Wave Tanks F. 1",
+    "GX GUBI GLA H 4TH Wave Tanks F. 3",
+    "GX GUBI GLA H 5TH Wave Tanks C",
+    "GX GUBI GLA H 5TH Wave Tanks C 2. 1",
+    "GX GUBI GLA H 5TH Wave Tanks C 2. 3",
+    "GX GUBI GLA H 5TH Wave Tanks C 3. 1",
+    "GX GUBI GLA H 5TH Wave Tanks C 3. 3",
+    "GX GUBI GLA H 5TH Wave Tanks C 4. 3",
+    "GX GUBI GLA H 5TH Wave Tanks C. 1",
+    "GX GUBI GLA H 5TH Wave Tanks C. 3",
+    "GX GUBI GLA H 5TH Wave Tanks F",
+    "GX GUBI GLA H 5TH Wave Tanks F 2. 1",
+    "GX GUBI GLA H 5TH Wave Tanks F 2. 3",
+    "GX GUBI GLA H 5TH Wave Tanks F 3. 1",
+    "GX GUBI GLA H 5TH Wave Tanks F 3. 3",
+    "GX GUBI GLA H 5TH Wave Tanks F 4. 3",
+    "GX GUBI GLA H 5TH Wave Tanks F. 1",
+    "GX GUBI GLA H 5TH Wave Tanks F. 3",
+    "GX GUBQ GLA H 2ND Wave Tanks",
+    "GX GUBQ GLA H 2ND Wave Tanks. 1",
+    "GX GUBQ GLA H 2ND Wave Tanks. 3",
+    "GX GUBQ GLA H 3RD Wave Tanks C",
+    "GX GUBQ GLA H 3RD Wave Tanks C. 1",
+    "GX GUBQ GLA H 3RD Wave Tanks C. 3",
+    "GX GUBQ GLA H 3RD Wave Tanks F",
+    "GX GUBQ GLA H 3RD Wave Tanks F. 1",
+    "GX GUBQ GLA H 3RD Wave Tanks F. 3",
+    "GX GUBQ GLA H 4TH Wave Tanks B",
+    "GX GUBQ GLA H 4TH Wave Tanks B 2. 1",
+    "GX GUBQ GLA H 4TH Wave Tanks B 2. 3",
+    "GX GUBQ GLA H 4TH Wave Tanks B 3. 1",
+    "GX GUBQ GLA H 4TH Wave Tanks B 3. 3",
+    "GX GUBQ GLA H 4TH Wave Tanks B. 1",
+    "GX GUBQ GLA H 4TH Wave Tanks B. 3",
+    "GX GUBQ GLA H 4TH Wave Tanks F",
+    "GX GUBQ GLA H 4TH Wave Tanks F 2. 1",
+    "GX GUBQ GLA H 4TH Wave Tanks F 2. 3",
+    "GX GUBQ GLA H 4TH Wave Tanks F 3. 1",
+    "GX GUBQ GLA H 4TH Wave Tanks F 3. 3",
+    "GX GUBQ GLA H 4TH Wave Tanks F. 1",
+    "GX GUBQ GLA H 4TH Wave Tanks F. 3",
+    "GX GUBQ GLA H 5TH Wave Tanks C",
+    "GX GUBQ GLA H 5TH Wave Tanks C 2. 1",
+    "GX GUBQ GLA H 5TH Wave Tanks C 2. 3",
+    "GX GUBQ GLA H 5TH Wave Tanks C 3. 1",
+    "GX GUBQ GLA H 5TH Wave Tanks C 3. 3",
+    "GX GUBQ GLA H 5TH Wave Tanks C 4. 3",
+    "GX GUBQ GLA H 5TH Wave Tanks C. 1",
+    "GX GUBQ GLA H 5TH Wave Tanks C. 3",
+    "GX GUBQ GLA H 5TH Wave Tanks F",
+    "GX GUBQ GLA H 5TH Wave Tanks F 2. 1",
+    "GX GUBQ GLA H 5TH Wave Tanks F 2. 3",
+    "GX GUBQ GLA H 5TH Wave Tanks F 3. 1",
+    "GX GUBQ GLA H 5TH Wave Tanks F 3. 3",
+    "GX GUBQ GLA H 5TH Wave Tanks F 4. 3",
+    "GX GUBQ GLA H 5TH Wave Tanks F. 1",
+    "GX GUBQ GLA H 5TH Wave Tanks F. 3",
+    "GX GUBS GLA H 2ND Wave Tanks",
+    "GX GUBS GLA H 2ND Wave Tanks. 1",
+    "GX GUBS GLA H 2ND Wave Tanks. 3",
+    "GX GUBS GLA H 3RD Wave Tanks C",
+    "GX GUBS GLA H 3RD Wave Tanks C. 1",
+    "GX GUBS GLA H 3RD Wave Tanks C. 3",
+    "GX GUBS GLA H 3RD Wave Tanks F",
+    "GX GUBS GLA H 3RD Wave Tanks F. 1",
+    "GX GUBS GLA H 3RD Wave Tanks F. 3",
+    "GX GUBS GLA H 4TH Wave Tanks B",
+    "GX GUBS GLA H 4TH Wave Tanks B 2. 1",
+    "GX GUBS GLA H 4TH Wave Tanks B 2. 3",
+    "GX GUBS GLA H 4TH Wave Tanks B 3. 1",
+    "GX GUBS GLA H 4TH Wave Tanks B 3. 3",
+    "GX GUBS GLA H 4TH Wave Tanks B. 1",
+    "GX GUBS GLA H 4TH Wave Tanks B. 3",
+    "GX GUBS GLA H 4TH Wave Tanks F",
+    "GX GUBS GLA H 4TH Wave Tanks F 2. 1",
+    "GX GUBS GLA H 4TH Wave Tanks F 2. 3",
+    "GX GUBS GLA H 4TH Wave Tanks F 3. 1",
+    "GX GUBS GLA H 4TH Wave Tanks F 3. 3",
+    "GX GUBS GLA H 4TH Wave Tanks F. 1",
+    "GX GUBS GLA H 4TH Wave Tanks F. 3",
+    "GX GUBS GLA H 5TH Wave Tanks C",
+    "GX GUBS GLA H 5TH Wave Tanks C 2. 1",
+    "GX GUBS GLA H 5TH Wave Tanks C 2. 3",
+    "GX GUBS GLA H 5TH Wave Tanks C 3. 1",
+    "GX GUBS GLA H 5TH Wave Tanks C 3. 3",
+    "GX GUBS GLA H 5TH Wave Tanks C 4. 3",
+    "GX GUBS GLA H 5TH Wave Tanks C. 1",
+    "GX GUBS GLA H 5TH Wave Tanks C. 3",
+    "GX GUBS GLA H 5TH Wave Tanks F",
+    "GX GUBS GLA H 5TH Wave Tanks F 2. 1",
+    "GX GUBS GLA H 5TH Wave Tanks F 2. 3",
+    "GX GUBS GLA H 5TH Wave Tanks F 3. 1",
+    "GX GUBS GLA H 5TH Wave Tanks F 3. 3",
+    "GX GUBS GLA H 5TH Wave Tanks F 4. 3",
+    "GX GUBS GLA H 5TH Wave Tanks F. 1",
+    "GX GUBS GLA H 5TH Wave Tanks F. 3"
+   ],
+   "unused": [
+    "tech_vs_usa_pm"
+   ]
+  },
+  "COUNTER.GLA_VS_CHINA": {
+   "groups": [
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX COUNTER.GLA_VS_CHINA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup"
+    ]
+   ],
+   "matchup": "China",
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLAToxinGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Inf B"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Inf C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Inf D"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Inf E"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Kell"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Launch C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Launch C Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Launch D"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Launch D Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Launch E"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Launch E Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Launch Now"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Launch Now Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Scud Inf B"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Scud Inf C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Scud Inf D"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVC Scud Inf E"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GVC Gen ChinaInfantryGeneral"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GVC Gen ChinaTankGeneral"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GVC Gen Done"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Artillery B. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Artillery F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Artillery B. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Artillery F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 4. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 4. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup USA"
+    ]
+   ],
+   "teams": [
+    "GLA H 2ND Wave Tanks. 3",
+    "GLA H 3RD Wave Tanks C. 3",
+    "GLA H 3RD Wave Tanks F. 3",
+    "GLA H 4TH Wave Artillery B. 3",
+    "GLA H 4TH Wave Artillery F. 3",
+    "GLA H 4TH Wave Tanks B 2. 3",
+    "GLA H 4TH Wave Tanks B 3. 3",
+    "GLA H 4TH Wave Tanks B. 3",
+    "GLA H 4TH Wave Tanks F 2. 3",
+    "GLA H 4TH Wave Tanks F 3. 3",
+    "GLA H 4TH Wave Tanks F. 3",
+    "GLA H 5TH Wave Artillery B. 3",
+    "GLA H 5TH Wave Artillery F. 3",
+    "GLA H 5TH Wave Tanks C 2. 3",
+    "GLA H 5TH Wave Tanks C 3. 3",
+    "GLA H 5TH Wave Tanks C 4. 3",
+    "GLA H 5TH Wave Tanks C. 3",
+    "GLA H 5TH Wave Tanks F 2. 3",
+    "GLA H 5TH Wave Tanks F 3. 3",
+    "GLA H 5TH Wave Tanks F 4. 3",
+    "GLA H 5TH Wave Tanks F. 3",
+    "GX GVC GLA H 2ND Wave Tanks. 3",
+    "GX GVC GLA H 3RD Wave Tanks C. 3",
+    "GX GVC GLA H 3RD Wave Tanks F. 3",
+    "GX GVC GLA H 4TH Wave Artillery B. 3",
+    "GX GVC GLA H 4TH Wave Artillery F. 3",
+    "GX GVC GLA H 4TH Wave Tanks B 2. 3",
+    "GX GVC GLA H 4TH Wave Tanks B 3. 3",
+    "GX GVC GLA H 4TH Wave Tanks B. 3",
+    "GX GVC GLA H 4TH Wave Tanks F 2. 3",
+    "GX GVC GLA H 4TH Wave Tanks F 3. 3",
+    "GX GVC GLA H 4TH Wave Tanks F. 3",
+    "GX GVC GLA H 5TH Wave Artillery B. 3",
+    "GX GVC GLA H 5TH Wave Artillery F. 3",
+    "GX GVC GLA H 5TH Wave Tanks C 2. 3",
+    "GX GVC GLA H 5TH Wave Tanks C 3. 3",
+    "GX GVC GLA H 5TH Wave Tanks C 4. 3",
+    "GX GVC GLA H 5TH Wave Tanks C. 3",
+    "GX GVC GLA H 5TH Wave Tanks F 2. 3",
+    "GX GVC GLA H 5TH Wave Tanks F 3. 3",
+    "GX GVC GLA H 5TH Wave Tanks F 4. 3",
+    "GX GVC GLA H 5TH Wave Tanks F. 3",
+    "GX GVCK GLA H 4TH Wave Kell. 3"
+   ],
+   "unused": []
+  },
+  "COUNTER.GLA_VS_GLA": {
+   "groups": [
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX COUNTER.GLA_VS_GLA"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Matchup"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX COUNTER.GLA_VS_GLA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup"
+    ]
+   ],
+   "matchup": "GLA",
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLAToxinGeneral",
+    "SkirmishGLAStealthGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX GGL Buggies"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX GGL Launch Now Formed"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX GGL Mobs"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX GGL Gen Done"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX GGL Gen GLAToxinGeneral"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GGL Launch Rush"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GGL Launch Rush Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GGL Rush"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GGL Gen Done"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX GGL Gen GLAStealthGeneral"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 1ST Wave Rush. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup USA"
+    ]
+   ],
+   "teams": [
+    "GLA H 1ST Wave Rush. 3",
+    "GX GGL Buggies",
+    "GX GGL GLA H 1ST Wave Rush. 3",
+    "GX GGL Mobs"
+   ],
+   "unused": [
+    "bus_count",
+    "rpg_per_tunnel",
+    "switch_to_buggy_t"
+   ]
+  },
+  "COUNTER.GLA_VS_USA": {
+   "groups": [
+    [
+     "SkirmishGLA",
+     "GX COUNTER.GLA_VS_USA"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Matchup"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX COUNTER.GLA_VS_USA"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX COUNTER.GLA_VS_USA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup"
+    ]
+   ],
+   "matchup": "USA",
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLA",
+    "SkirmishGLADemolitionGeneral",
+    "SkirmishGLAToxinGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Buggy B"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Buggy C"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Buggy D"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Buggy E"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Launch C"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Launch C Formed"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Launch D"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Launch D Formed"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Launch E"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Launch E Formed"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Launch Now"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX GVU Launch Now Formed"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 2ND Wave Tanks. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 4TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C 4. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F 4. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLA",
+     "GX MU Off GLA H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Buggy B"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Buggy C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Buggy D"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Buggy E"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Launch C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Launch C Formed"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Launch D"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Launch D Formed"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Launch E"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Launch E Formed"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Launch Now"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX GVU Launch Now Formed"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 4. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 4. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Buggy B"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Buggy C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Buggy D"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Buggy E"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Launch C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Launch C Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Launch D"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Launch D Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Launch E"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Launch E Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Launch Now"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX GVU Launch Now Formed"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 2ND Wave Tanks. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 3RD Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks B. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 4TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C 4. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks C. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 2. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 3. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F 4. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F. 1"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX MU Off GLA H 5TH Wave Tanks F. 3"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Matchup USA"
+    ]
+   ],
+   "teams": [
+    "GLA H 2ND Wave Tanks",
+    "GLA H 2ND Wave Tanks. 1",
+    "GLA H 2ND Wave Tanks. 3",
+    "GLA H 3RD Wave Tanks C",
+    "GLA H 3RD Wave Tanks C. 1",
+    "GLA H 3RD Wave Tanks C. 3",
+    "GLA H 3RD Wave Tanks F",
+    "GLA H 3RD Wave Tanks F. 1",
+    "GLA H 3RD Wave Tanks F. 3",
+    "GLA H 4TH Wave Tanks B",
+    "GLA H 4TH Wave Tanks B 2. 1",
+    "GLA H 4TH Wave Tanks B 2. 3",
+    "GLA H 4TH Wave Tanks B 3. 1",
+    "GLA H 4TH Wave Tanks B 3. 3",
+    "GLA H 4TH Wave Tanks B. 1",
+    "GLA H 4TH Wave Tanks B. 3",
+    "GLA H 4TH Wave Tanks F",
+    "GLA H 4TH Wave Tanks F 2. 1",
+    "GLA H 4TH Wave Tanks F 2. 3",
+    "GLA H 4TH Wave Tanks F 3. 1",
+    "GLA H 4TH Wave Tanks F 3. 3",
+    "GLA H 4TH Wave Tanks F. 1",
+    "GLA H 4TH Wave Tanks F. 3",
+    "GLA H 5TH Wave Tanks C",
+    "GLA H 5TH Wave Tanks C 2. 1",
+    "GLA H 5TH Wave Tanks C 2. 3",
+    "GLA H 5TH Wave Tanks C 3. 1",
+    "GLA H 5TH Wave Tanks C 3. 3",
+    "GLA H 5TH Wave Tanks C 4. 3",
+    "GLA H 5TH Wave Tanks C. 1",
+    "GLA H 5TH Wave Tanks C. 3",
+    "GLA H 5TH Wave Tanks F",
+    "GLA H 5TH Wave Tanks F 2. 1",
+    "GLA H 5TH Wave Tanks F 2. 3",
+    "GLA H 5TH Wave Tanks F 3. 1",
+    "GLA H 5TH Wave Tanks F 3. 3",
+    "GLA H 5TH Wave Tanks F 4. 3",
+    "GLA H 5TH Wave Tanks F. 1",
+    "GLA H 5TH Wave Tanks F. 3",
+    "GX GVU GLA H 2ND Wave Tanks",
+    "GX GVU GLA H 2ND Wave Tanks. 1",
+    "GX GVU GLA H 2ND Wave Tanks. 3",
+    "GX GVU GLA H 3RD Wave Tanks C",
+    "GX GVU GLA H 3RD Wave Tanks C. 1",
+    "GX GVU GLA H 3RD Wave Tanks C. 3",
+    "GX GVU GLA H 3RD Wave Tanks F",
+    "GX GVU GLA H 3RD Wave Tanks F. 1",
+    "GX GVU GLA H 3RD Wave Tanks F. 3",
+    "GX GVU GLA H 4TH Wave Tanks B",
+    "GX GVU GLA H 4TH Wave Tanks B 2. 1",
+    "GX GVU GLA H 4TH Wave Tanks B 2. 3",
+    "GX GVU GLA H 4TH Wave Tanks B 3. 1",
+    "GX GVU GLA H 4TH Wave Tanks B 3. 3",
+    "GX GVU GLA H 4TH Wave Tanks B. 1",
+    "GX GVU GLA H 4TH Wave Tanks B. 3",
+    "GX GVU GLA H 4TH Wave Tanks F",
+    "GX GVU GLA H 4TH Wave Tanks F 2. 1",
+    "GX GVU GLA H 4TH Wave Tanks F 2. 3",
+    "GX GVU GLA H 4TH Wave Tanks F 3. 1",
+    "GX GVU GLA H 4TH Wave Tanks F 3. 3",
+    "GX GVU GLA H 4TH Wave Tanks F. 1",
+    "GX GVU GLA H 4TH Wave Tanks F. 3",
+    "GX GVU GLA H 5TH Wave Tanks C",
+    "GX GVU GLA H 5TH Wave Tanks C 2. 1",
+    "GX GVU GLA H 5TH Wave Tanks C 2. 3",
+    "GX GVU GLA H 5TH Wave Tanks C 3. 1",
+    "GX GVU GLA H 5TH Wave Tanks C 3. 3",
+    "GX GVU GLA H 5TH Wave Tanks C 4. 3",
+    "GX GVU GLA H 5TH Wave Tanks C. 1",
+    "GX GVU GLA H 5TH Wave Tanks C. 3",
+    "GX GVU GLA H 5TH Wave Tanks F",
+    "GX GVU GLA H 5TH Wave Tanks F 2. 1",
+    "GX GVU GLA H 5TH Wave Tanks F 2. 3",
+    "GX GVU GLA H 5TH Wave Tanks F 3. 1",
+    "GX GVU GLA H 5TH Wave Tanks F 3. 3",
+    "GX GVU GLA H 5TH Wave Tanks F 4. 3",
+    "GX GVU GLA H 5TH Wave Tanks F. 1",
+    "GX GVU GLA H 5TH Wave Tanks F. 3"
+   ],
+   "unused": [
+    "behind_income_ratio",
+    "scud_esc_vs_usaaf"
+   ]
+  },
+  "COUNTER.USA_VS_GLA": {
+   "groups": [
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX COUNTER.USA_VS_GLA"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Matchup"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX COUNTER.USA_VS_GLA"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Matchup"
+    ]
+   ],
+   "matchup": "GLA",
+   "priority_sets": [],
+   "scope": [
+    "SkirmishAmericaAirForceGeneral",
+    "SkirmishAmericaSuperWeaponGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX MU Off USA H 1ST Wave Supply Hunters. 1"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX MU Off USA H 4TH Wave Burton. 1"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX MU Off USA H 4TH Wave Burton. 3"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Commando Orders"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA GX UVG Burton"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA GX UVG Burton Orders"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA GX UVG Launch Now Formed"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA GX UVG Raptors"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX MU Off USA H 1ST Wave Supply Hunters. 1"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX MU Off USA H 4TH Wave Burton. 1"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX MU Off USA H 4TH Wave Burton. 3"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA Commando Orders"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA GX UVG Burton"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA GX UVG Burton Orders"
+    ]
+   ],
+   "teams": [
+    "GX UVG USA H 1ST Wave Supply Hunters. 1",
+    "GX UVG USA H 4TH Wave Burton. 1",
+    "GX UVG USA H 4TH Wave Burton. 3",
+    "USA H 1ST Wave Supply Hunters. 1",
+    "USA H 4TH Wave Burton. 1",
+    "USA H 4TH Wave Burton. 3"
+   ],
+   "unused": [
+    "engage_after_cm",
+    "min_vet"
+   ]
+  },
+  "EXPAND.SUPPLY_BOOM": {
+   "groups": [
+    [
+     "SkirmishAmerica",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishChina",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishGLA",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX EXPAND.SUPPLY_BOOM"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX EXPAND.SUPPLY_BOOM"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishAmerica",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishChina",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishChina",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishChina",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishChina",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Supply Boom 5 - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Supply Boom 2 - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Supply Boom 3 - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Supply Boom 4 - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Supply Boom 5 - H"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "HARVPROT.USA_CHINOOK_GUARD": {
+   "groups": [
+    [
+     "SkirmishAmerica",
+     "GX HARVPROT.USA_CHINOOK_GUARD"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX HARVPROT.USA_CHINOOK_GUARD"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX HARVPROT.USA_CHINOOK_GUARD"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX HARVPROT.USA_CHINOOK_GUARD"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishAmerica",
+     "GX Chinook Guard Cond USA - H"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX Chinook Guard Start USA - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Chinook Guard Cond AirForce - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Chinook Guard Start AirForce - H"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX Chinook Guard Cond Laser - H"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX Chinook Guard Start Laser - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Chinook Guard Cond Superweapon - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Chinook Guard Start Superweapon - H"
+    ]
+   ],
+   "teams": [
+    "GX Chinook Guard AirForce",
+    "GX Chinook Guard Laser",
+    "GX Chinook Guard Superweapon",
+    "GX Chinook Guard USA"
+   ],
+   "unused": []
+  },
+  "NOFLOAT.AIRFIELD_BY_RAPTORS": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishAmericaAirForceGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Build Fourth Air Field - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Build Second Air Field - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Build Third Air Field - H"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "NOFLOAT.CLONE_GATES": {
+   "groups": [
+    [
+     "SkirmishAmerica",
+     "GX NOFLOAT.CLONE_GATES"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NOFLOAT.CLONE_GATES"
+    ],
+    [
+     "SkirmishChina",
+     "GX NOFLOAT.CLONE_GATES"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishAmerica",
+    "SkirmishAmericaAirForceGeneral",
+    "SkirmishChina"
+   ],
+   "scripts": [
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 1 AmericaAirfield"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 1 AmericaBarracks"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 1 AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 2 AmericaAirfield"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 2 AmericaBarracks"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 2 AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 3 AmericaAirfield"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 3 AmericaBarracks"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 3 AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 4 AmericaAirfield"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 4 AmericaBarracks"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 4 AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 5 AmericaAirfield"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 5 AmericaBarracks"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX NoFloat 5 AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Air Field RICH1 AmericaAirfield"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Barracks RICH1 AmericaBarracks"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA War Factory RICH1 AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 1 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 1 AirF_AmericaBarracks"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 1 AirF_AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 2 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 2 AirF_AmericaBarracks"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 2 AirF_AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 3 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 3 AirF_AmericaBarracks"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 3 AirF_AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 4 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 4 AirF_AmericaBarracks"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 4 AirF_AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 5 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 5 AirF_AmericaBarracks"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NoFloat 5 AirF_AmericaWarFactory"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Air Field RICH1 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA High Money Barracks RICH1 AirF_AmericaBarracks"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA High Money War Factory 2 RICH1 AirF_AmericaWarFactory"
+    ],
+    [
+     "SkirmishChina",
+     "China Air Field RICH1 ChinaAirfield"
+    ],
+    [
+     "SkirmishChina",
+     "China High Money Builds RICH1 ChinaBarracks"
+    ],
+    [
+     "SkirmishChina",
+     "China High Money Builds RICH1 ChinaWarFactory"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 1 ChinaAirfield"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 1 ChinaBarracks"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 1 ChinaWarFactory"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 2 ChinaAirfield"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 2 ChinaBarracks"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 2 ChinaWarFactory"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 3 ChinaAirfield"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 3 ChinaBarracks"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 3 ChinaWarFactory"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 4 ChinaAirfield"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 4 ChinaBarracks"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 4 ChinaWarFactory"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 5 ChinaAirfield"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 5 ChinaBarracks"
+    ],
+    [
+     "SkirmishChina",
+     "GX NoFloat 5 ChinaWarFactory"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "NOFLOAT.EXTRA_FACTORIES": {
+   "groups": [
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX NOFLOAT.EXTRA_FACTORIES"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishAmericaAirForceGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Extra War Factory 2 - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Extra War Factory 3 - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Extra War Factory 4 - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Extra War Factory 5 - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Stock RICH Air Fields Off - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Air Field - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Air Field RICH1 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Air Field RICH2 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Air Field RICH3 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Air Field RICH4 AirF_AmericaAirfield"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Build Fourth Air Field - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Build Second Air Field - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Build Third Air Field - H"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "OIL.CAPTURE_GATE_BUNKERS": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLA",
+    "SkirmishGLADemolitionGeneral",
+    "SkirmishGLAToxinGeneral",
+    "SkirmishGLAStealthGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishGLA",
+     "GLA Tech Capture Build"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Tech Capture Build"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA Tech Capture Build"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA Tech Capture Build"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "OIL.CAPTURE_TEAMS": {
+   "groups": [
+    [
+     "SkirmishAmerica",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishChina",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishGLA",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX OIL.CAPTURE_TEAMS"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX OIL.CAPTURE_TEAMS"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [
+    "GX Oil Priority SkirmishAmerica",
+    "GX Oil Priority SkirmishAmericaAirForceGeneral",
+    "GX Oil Priority SkirmishAmericaLaserGeneral",
+    "GX Oil Priority SkirmishAmericaSuperWeaponGeneral",
+    "GX Oil Priority SkirmishChina",
+    "GX Oil Priority SkirmishChinaInfantryGeneral",
+    "GX Oil Priority SkirmishChinaNukeGeneral",
+    "GX Oil Priority SkirmishChinaTankGeneral",
+    "GX Oil Priority SkirmishGLA",
+    "GX Oil Priority SkirmishGLADemolitionGeneral",
+    "GX Oil Priority SkirmishGLAStealthGeneral",
+    "GX Oil Priority SkirmishGLAToxinGeneral"
+   ],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishAmerica",
+     "USA GX Oil Priority Define"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Tech Building Detect"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Tech Capture Build"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA GX Oil Priority Define"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Tech Building Detect"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Tech Capture Build"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "USA GX Oil Priority Define"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "USA GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "USA GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "USA Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "USA Tech Building Detect"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "USA Tech Capture Build"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA GX Oil Priority Define"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA Tech Building Detect"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA Tech Capture Build"
+    ],
+    [
+     "SkirmishChina",
+     "China GX Oil Priority Define"
+    ],
+    [
+     "SkirmishChina",
+     "China GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishChina",
+     "China GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishChina",
+     "China Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishChina",
+     "China Tech Building Detect"
+    ],
+    [
+     "SkirmishChina",
+     "China Tech Capture Build"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China GX Oil Priority Define"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Tech Building Detect"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Tech Capture Build"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX Oil Priority Define"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Tech Building Detect"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Tech Capture Build"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX Oil Priority Define"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China Tech Building Detect"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China Tech Capture Build"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX Oil Priority Define"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA Tech Building Detect"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA Tech Capture Build"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX Oil Priority Define"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Tech Building Detect"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Tech Capture Build"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX Oil Priority Define"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA Tech Building Detect"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA Tech Capture Build"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX Oil Priority Define"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX Oil Priority Refinery"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX Oil Priority Refinery End"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA Tech Building Capture Orders"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA Tech Building Detect"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA Tech Capture Build"
+    ]
+   ],
+   "teams": [
+    "China Tech Capture Team",
+    "China Tech Capture Team. 1",
+    "China Tech Capture Team. 2",
+    "China Tech Capture Team. 3",
+    "GLA Tech Building Capture",
+    "GLA Tech Building Capture. 1",
+    "GLA Tech Building Capture. 2",
+    "GLA Tech Building Capture. 3",
+    "USA Tech Capture Team",
+    "USA Tech Capture Team. 1",
+    "USA Tech Capture Team. 2",
+    "USA Tech Capture Team. 3"
+   ],
+   "unused": []
+  },
+  "OIL.COUNT_GATES": {
+   "groups": [
+    [
+     "SkirmishChina",
+     "GX OIL.COUNT_GATES"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishChina"
+   ],
+   "scripts": [
+    [
+     "SkirmishChina",
+     "GX China Capture Research Latch"
+    ],
+    [
+     "SkirmishChina",
+     "GX China Helix Cond 3"
+    ],
+    [
+     "SkirmishChina",
+     "GX China Helix Cond 4"
+    ],
+    [
+     "SkirmishChina",
+     "GX China Helix Cond 5"
+    ]
+   ],
+   "teams": [
+    "China H 3W Base Guards",
+    "China H 4W Base Guards",
+    "China H 5W Base Guards",
+    "China H 5W Helix Attackers"
+   ],
+   "unused": [
+    "max_dozers",
+    "oil_swap_min_oils",
+    "refinery_min_oils"
+   ]
+  },
+  "OPEN.CHINA_2ND_SUPPLY": {
+   "groups": [
+    [
+     "SkirmishChina",
+     "GX OPEN.CHINA_2ND_SUPPLY"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX OPEN.CHINA_2ND_SUPPLY"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX OPEN.CHINA_2ND_SUPPLY"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX OPEN.CHINA_2ND_SUPPLY"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishChina",
+     "China GX 2nd Supply - H"
+    ],
+    [
+     "SkirmishChina",
+     "China GX 3rd Supply - H"
+    ],
+    [
+     "SkirmishChina",
+     "China War Factory 2 - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China GX 2nd Supply - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China GX 3rd Supply - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX 2nd Supply - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX 3rd Supply - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China War Factory 2 - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX 2nd Supply - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX 3rd Supply - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China War Factory 2 - H"
+    ]
+   ],
+   "teams": [],
+   "unused": [
+    "airfield_early",
+    "trucks_first"
+   ]
+  },
+  "OPEN.CHINA_BUNKER_WF": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishChinaNukeGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishChinaNukeGeneral",
+     "China War Factory 2 - H"
+    ]
+   ],
+   "teams": [],
+   "unused": [
+    "barracks_n",
+    "dozers",
+    "early_bunker",
+    "helix_delay_esc",
+    "outpost_loaded"
+   ]
+  },
+  "OPEN.CHINA_MIG_OPENER": {
+   "groups": [
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX OPEN.CHINA_MIG_OPENER"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Air Field - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China War Factory - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX MiG Opener Air Field - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX MiG Opener Cond - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX MiG Opener Start - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX MiG Opener Stock Air Field Off - H"
+    ]
+   ],
+   "teams": [
+    "GX MiG Opener"
+   ],
+   "unused": [
+    "armor_upg_after_migs"
+   ]
+  },
+  "OPEN.CHINA_PP_FIRST": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishChina",
+    "SkirmishChinaTankGeneral",
+    "SkirmishChinaNukeGeneral",
+    "SkirmishChinaInfantryGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishChina",
+     "China Barracks - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Barracks - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Barracks - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China Barracks - H"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "OPEN.GLA_DEMO_HARASS": {
+   "groups": [
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX OPEN.GLA_DEMO_HARASS"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Attack Enemy Base Flank"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Demo Bomb Truck Cond - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Demo Bomb Truck Start - H"
+    ]
+   ],
+   "teams": [
+    "GX Demo Bomb Truck"
+   ],
+   "unused": [
+    "oil_count",
+    "opening_technical"
+   ]
+  },
+  "OPEN.GLA_SUPPLY_COUNT": {
+   "groups": [
+    [
+     "SkirmishGLA",
+     "GX OPEN.GLA_SUPPLY_COUNT"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX OPEN.GLA_SUPPLY_COUNT"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX OPEN.GLA_SUPPLY_COUNT"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX OPEN.GLA_SUPPLY_COUNT"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishGLA",
+     "GLA GX 2nd Supply - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX 3rd Supply - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX Raid Gate - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX 2nd Supply - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX 3rd Supply - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX Raid Gate - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX 2nd Supply - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX 3rd Supply - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX Raid Gate - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX 2nd Supply - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX 3rd Supply - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX Raid Gate - H"
+    ]
+   ],
+   "teams": [
+    "GLA H 1ST Wave Supply Hunters",
+    "GLA H 1ST Wave Supply Hunters. 1",
+    "GLA H 1ST Wave Supply Hunters. 2",
+    "GLA H 1ST Wave Supply Hunters. 3"
+   ],
+   "unused": []
+  },
+  "OPEN.GLA_TECHNICAL_FIRST": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [],
+   "teams": [
+    "GLA H 1ST Wave Supply Hunters",
+    "GLA H 1ST Wave Supply Hunters. 1",
+    "GLA H 1ST Wave Supply Hunters. 2",
+    "GLA H 1ST Wave Supply Hunters. 3"
+   ],
+   "unused": [
+    "arms_dealers"
+   ]
+  },
+  "OPEN.GLA_TECH_ORDER": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLAToxinGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA Build 1st Defense - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA Build Tunnel Network 2 - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA Supply Defense - H"
+    ]
+   ],
+   "teams": [],
+   "unused": [
+    "black_market_max_early",
+    "radar_van_min_esc",
+    "worker_shoes_first"
+   ]
+  },
+  "OPEN.GLA_WORKERS_AFTER": {
+   "groups": [
+    [
+     "SkirmishGLA",
+     "GX OPEN.GLA_WORKERS_AFTER"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX OPEN.GLA_WORKERS_AFTER"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX OPEN.GLA_WORKERS_AFTER"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX OPEN.GLA_WORKERS_AFTER"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishGLA",
+     "GLA Disband"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Workers After Dealer Cond GLA - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Workers After Dealer Start GLA - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Workers After Tunnel Cond GLA - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Workers After Tunnel Start GLA - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Disband"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Workers After Dealer Cond Demo - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Workers After Dealer Start Demo - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Workers After Tunnel Cond Demo - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Workers After Tunnel Start Demo - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA Disband"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Workers After Dealer Cond Stealth - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Workers After Dealer Start Stealth - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Workers After Tunnel Cond Stealth - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Workers After Tunnel Start Stealth - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA Disband"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Workers After Dealer Cond Toxin - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Workers After Dealer Start Toxin - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Workers After Tunnel Cond Toxin - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Workers After Tunnel Start Toxin - H"
+    ]
+   ],
+   "teams": [
+    "GX Workers After Dealer Demo",
+    "GX Workers After Dealer GLA",
+    "GX Workers After Dealer Stealth",
+    "GX Workers After Dealer Toxin",
+    "GX Workers After Tunnel Demo",
+    "GX Workers After Tunnel GLA",
+    "GX Workers After Tunnel Stealth",
+    "GX Workers After Tunnel Toxin"
+   ],
+   "unused": []
+  },
+  "OPEN.SECOND_SUPPLY_T": {
+   "groups": [
+    [
+     "SkirmishAmerica",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishChina",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishGLA",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX OPEN.SECOND_SUPPLY_T"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishAmerica",
+     "USA GX Second Supply - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA GX Second Supply - H"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "USA GX Second Supply - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA GX Second Supply - H"
+    ],
+    [
+     "SkirmishChina",
+     "China GX Second Supply - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China GX Second Supply - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China GX Second Supply - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China GX Second Supply - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA GX Second Supply - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA GX Second Supply - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA GX Second Supply - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA GX Second Supply - H"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "OPEN.START_ORDER": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLA",
+    "SkirmishGLADemolitionGeneral",
+    "SkirmishGLAToxinGeneral",
+    "SkirmishGLAStealthGeneral"
+   ],
+   "scripts": [],
+   "teams": [
+    "GLA Worker",
+    "GLA Worker. 1",
+    "GLA Worker. 2",
+    "GLA Worker. 3"
+   ],
+   "unused": [
+    "dozer_first"
+   ]
+  },
+  "OPEN.USAF_COMANCHE": {
+   "groups": [
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX OPEN.USAF_COMANCHE"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishAmericaAirForceGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX USAF Comanche First - H"
+    ]
+   ],
+   "teams": [
+    "USA H 2W Comanche Guards. 1"
+   ],
+   "unused": []
+  },
+  "OPEN.USA_PP_FIRST": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishAmerica"
+   ],
+   "scripts": [
+    [
+     "SkirmishAmerica",
+     "USA Barracks - H"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "OPEN.USA_SC_AFTER_OILS": {
+   "groups": [
+    [
+     "SkirmishAmerica",
+     "GX OPEN.USA_SC_AFTER_OILS"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishAmerica",
+     "GX Stock Strategy Center Off - H"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX Strategy Center - H"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Strategy Center - H"
+    ]
+   ],
+   "teams": [],
+   "unused": [
+    "humvee_start_oils"
+   ]
+  },
+  "OPEN.USA_SUPW_RAX_CHINOOK": {
+   "groups": [
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX OPEN.USA_SUPW_RAX_CHINOOK"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Barracks 2 - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Barracks 3 - H"
+    ]
+   ],
+   "teams": [],
+   "unused": [
+    "chinooks_per_supply",
+    "oil_cap_t"
+   ]
+  },
+  "PLAN.USA_SEARCH_DESTROY": {
+   "groups": [
+    [
+     "SkirmishAmerica",
+     "GX PLAN.USA_SEARCH_DESTROY"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX PLAN.USA_SEARCH_DESTROY"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishAmerica",
+     "GX Plan Search And Destroy"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX Plan Stop Hold"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX Plan Strategy Center After WF"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Use Battle Plans"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Use Battle Plans - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Plan Search And Destroy"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Plan Stop Hold"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Plan Strategy Center After WF"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Use Battle Plans"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Use Battle Plans - H"
+    ]
+   ],
+   "teams": [],
+   "unused": []
+  },
+  "RAID.GATTLING_FLANK_SUPPLY": {
+   "groups": [
+    [
+     "SkirmishChina",
+     "GX RAID.GATTLING_FLANK_SUPPLY"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX RAID.GATTLING_FLANK_SUPPLY"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX RAID.GATTLING_FLANK_SUPPLY"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX RAID.GATTLING_FLANK_SUPPLY"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishChina",
+    "SkirmishChinaTankGeneral",
+    "SkirmishChinaNukeGeneral",
+    "SkirmishChinaInfantryGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishChina",
+     "China Apply Supply Lines Priority"
+    ],
+    [
+     "SkirmishChina",
+     "China Attack Enemy Base Flank"
+    ],
+    [
+     "SkirmishChina",
+     "GX Flank Raiders Cond China - H"
+    ],
+    [
+     "SkirmishChina",
+     "GX Flank Raiders Start China - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Apply Supply Lines Priority"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Attack Enemy Base Flank"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Flank Raiders Cond Infantry - H"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "GX Flank Raiders Start Infantry - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Apply Supply Lines Priority"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Attack Enemy Base Flank"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Flank Raiders Cond Nuke - H"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "GX Flank Raiders Start Nuke - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China Apply Supply Lines Priority"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China Attack Enemy Base Flank"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Flank Raiders Cond Tank - H"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "GX Flank Raiders Start Tank - H"
+    ]
+   ],
+   "teams": [
+    "GX Flank Raiders China",
+    "GX Flank Raiders Infantry",
+    "GX Flank Raiders Nuke",
+    "GX Flank Raiders Tank"
+   ],
+   "unused": [
+    "path_enum"
+   ]
+  },
+  "RAID.GLA_TECHNICAL_DUTY": {
+   "groups": [
+    [
+     "SkirmishGLA",
+     "GX RAID.GLA_TECHNICAL_DUTY"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX RAID.GLA_TECHNICAL_DUTY"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX RAID.GLA_TECHNICAL_DUTY"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX RAID.GLA_TECHNICAL_DUTY"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [
+    "GX Raider Prio Demo",
+    "GX Raider Prio GLA",
+    "GX Raider Prio Stealth",
+    "GX Raider Prio Toxin"
+   ],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishGLA",
+     "GLA Attack Enemy Base Back"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Raider A Cond GLA - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Raider B Cond GLA - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Raider Prio Apply GLA - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Raider Prio Set GLA - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Raider Start GLA - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Attack Enemy Base Back"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Raider A Cond Demo - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Raider B Cond Demo - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Raider Prio Apply Demo - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Raider Prio Set Demo - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Raider Start Demo - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA Attack Enemy Base Back"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Raider A Cond Stealth - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Raider B Cond Stealth - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Raider Prio Apply Stealth - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Raider Prio Set Stealth - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Raider Start Stealth - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GLA Attack Enemy Base Back"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Raider A Cond Toxin - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Raider B Cond Toxin - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Raider Prio Apply Toxin - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Raider Prio Set Toxin - H"
+    ],
+    [
+     "SkirmishGLAToxinGeneral",
+     "GX Raider Start Toxin - H"
+    ]
+   ],
+   "teams": [
+    "GX Raider A Demo",
+    "GX Raider A GLA",
+    "GX Raider A Stealth",
+    "GX Raider A Toxin",
+    "GX Raider B Demo",
+    "GX Raider B GLA",
+    "GX Raider B Stealth",
+    "GX Raider B Toxin"
+   ],
+   "unused": []
+  },
+  "RAID.TNT_RAID": {
+   "groups": [
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX RAID.TNT_RAID"
+    ]
+   ],
+   "matchup": "USA",
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLADemolitionGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Apply Supply Lines Priority"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Attack Enemy Base Center"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup China"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup GLA"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Matchup USA"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX TNT Gen AmericaSuperWeaponGeneral"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX TNT Gen Done"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX TNT Raid Cond - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX TNT Raid Start - H"
+    ]
+   ],
+   "teams": [
+    "GX TNT Raid"
+   ],
+   "unused": []
+  },
+  "RAID.USA_LASER_RAIDER": {
+   "groups": [
+    [
+     "SkirmishAmerica",
+     "GX RAID.USA_LASER_RAIDER"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX RAID.USA_LASER_RAIDER"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX RAID.USA_LASER_RAIDER"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX RAID.USA_LASER_RAIDER"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishAmerica",
+     "GX Humvee Raiders Cond USA - H"
+    ],
+    [
+     "SkirmishAmerica",
+     "GX Humvee Raiders Start USA - H"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Apply Supply Lines Priority"
+    ],
+    [
+     "SkirmishAmerica",
+     "USA Attack Enemy Base Back"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Humvee Raiders Cond AirForce - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Humvee Raiders Start AirForce - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Apply Supply Lines Priority"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Attack Enemy Base Back"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX Humvee Raiders Cond Laser - H"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "GX Humvee Raiders Start Laser - H"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "USA Apply Supply Lines Priority"
+    ],
+    [
+     "SkirmishAmericaLaserGeneral",
+     "USA Attack Enemy Base Back"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Humvee Raiders Cond Superweapon - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "GX Humvee Raiders Start Superweapon - H"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA Apply Supply Lines Priority"
+    ],
+    [
+     "SkirmishAmericaSuperWeaponGeneral",
+     "USA Attack Enemy Base Back"
+    ]
+   ],
+   "teams": [
+    "GX Humvee Raiders AirForce",
+    "GX Humvee Raiders Laser",
+    "GX Humvee Raiders Superweapon",
+    "GX Humvee Raiders USA"
+   ],
+   "unused": [
+    "target_enum"
+   ]
+  },
+  "TECH.CHINA_UPGRADE_GATES": {
+   "groups": [],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": null,
+   "scripts": [
+    [
+     "SkirmishChina",
+     "China Upgrade Black Napalm"
+    ],
+    [
+     "SkirmishChina",
+     "China Upgrade MiG Armor"
+    ],
+    [
+     "SkirmishChina",
+     "China Upgrade Nuke Tanks"
+    ],
+    [
+     "SkirmishChina",
+     "China Upgrade Subliminal Messaging"
+    ],
+    [
+     "SkirmishChina",
+     "China Upgrade Uranium Shells"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Upgrade Black Napalm"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Upgrade MiG Armor"
+    ],
+    [
+     "SkirmishChinaInfantryGeneral",
+     "China Upgrade Subliminal Messaging"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Upgrade Black Napalm"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Upgrade MiG Armor"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Upgrade Nuke Tanks"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Upgrade Subliminal Messaging"
+    ],
+    [
+     "SkirmishChinaNukeGeneral",
+     "China Upgrade Uranium Shells"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China Upgrade Auto Loader"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China Upgrade Black Napalm"
+    ],
+    [
+     "SkirmishChinaTankGeneral",
+     "China Upgrade Subliminal Messaging"
+    ]
+   ],
+   "teams": [],
+   "unused": [
+    "no_enemy_near"
+   ]
+  },
+  "TECH.GLA_ARMS_DEALER_CAP": {
+   "groups": [
+    [
+     "SkirmishGLA",
+     "GX TECH.GLA_ARMS_DEALER_CAP"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX TECH.GLA_ARMS_DEALER_CAP"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX TECH.GLA_ARMS_DEALER_CAP"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLA",
+    "SkirmishGLADemolitionGeneral",
+    "SkirmishGLAStealthGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishGLA",
+     "GLA Arms Dealer 2 - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA Arms Dealer 3 - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA High Money Builds - H"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA High Money Builds RICH1 GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA High Money Builds RICH2 GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA High Money Builds RICH3 GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLA",
+     "GLA High Money Builds RICH4 GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLA",
+     "GX Stock RICH Arms Dealers Off - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Arms Dealer 2 - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA Arms Dealer 3 - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA High Money Builds - H"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA High Money Builds RICH1 Demo_GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA High Money Builds RICH2 Demo_GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA High Money Builds RICH3 Demo_GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GLA High Money Builds RICH4 Demo_GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLADemolitionGeneral",
+     "GX Stock RICH Arms Dealers Off - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA Arms Dealer 2 - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA Arms Dealer 3 - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA High Money Builds - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA High Money Builds RICH1 Slth_GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA High Money Builds RICH2 Slth_GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA High Money Builds RICH3 Slth_GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA High Money Builds RICH4 Slth_GLAArmsDealer"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Stock RICH Arms Dealers Off - H"
+    ]
+   ],
+   "teams": [],
+   "unused": [
+    "post_open_choice_enum"
+   ]
+  },
+  "TECH.USA_COMANCHE_ORDER": {
+   "groups": [
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX TECH.USA_COMANCHE_ORDER"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishAmericaAirForceGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Comanche CM Latch - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Comanche Rocket Pods - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "GX Comanche Stealth Latch - H"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Upgrade Stealth Comanche"
+    ],
+    [
+     "SkirmishAmericaAirForceGeneral",
+     "USA Upgrade to Counter Measures"
+    ]
+   ],
+   "teams": [],
+   "unused": [
+    "cm_after_stealth_s"
+   ]
+  },
+  "TIMING.DECOY_ATTACK": {
+   "groups": [
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX TIMING.DECOY_ATTACK"
+    ]
+   ],
+   "matchup": null,
+   "priority_sets": [],
+   "scope": [
+    "SkirmishGLAStealthGeneral"
+   ],
+   "scripts": [
+    [
+     "SkirmishGLAStealthGeneral",
+     "GLA Attack Enemy Base Center"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Decoy Quads Cond - H"
+    ],
+    [
+     "SkirmishGLAStealthGeneral",
+     "GX Decoy Quads Start - H"
+    ]
+   ],
+   "teams": [
+    "GX Decoy Quads"
+   ],
+   "unused": []
+  }
+ },
+ "schema": "gx-rulebank-data-claims/1"
+}

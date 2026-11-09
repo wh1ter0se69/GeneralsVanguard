@@ -1,0 +1,22 @@
+# Replay fixtures are binary. Never let git line-ending translation or diff heuristics near
+# them: a single CRLF rewrite changes the header CRCs and the replay lane goes red for a
+# reason that has nothing to do with the engine.
+tests/replay/**/*.rep      binary
+
+# The asset archive is deliberately NOT in this repository, in any form - not as a plain
+# object and not via LFS.
+#
+# It is 46.6 MB of retail Zero Hour data. This repository is intended to be made public, and
+# git history cannot be un-published: the repo was already re-rooted once because content in
+# old commits could not be removed. Encryption gates reading, not redistribution - the moment
+# the repo is public, every clone carries the ciphertext forever and one leaked key opens it.
+# "Rotating" it in-tree would not have revoked anything either, because the old blob stays
+# reachable at its commit and the old key still opens that.
+#
+# So the archive is hosted and fetched at CI time from the ASSETS_URL secret, pinned by
+# tests/replay/generalszh.7z.sha256 (committed - a hash is not sensitive) and opened with
+# ASSETS_KEY. See tests/replay/README.md.
+
+# GeneralsX @build Claude 03/10/2026 The Windows DXVK patches are applied with git am and their applied HEAD sha is pinned
+# (scripts/build/windows/dxvk/dxvk-win64.pins): byte-exact on every checkout, whatever core.autocrlf says.
+scripts/build/windows/dxvk/patches/*.patch -text

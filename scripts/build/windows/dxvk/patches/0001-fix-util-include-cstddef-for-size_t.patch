@@ -1,0 +1,23 @@
+From 46a3bc018bcae408d49d3c500e4e536a11f6789a Mon Sep 17 00:00:00 2001
+From: Felipe Keller Braz <fbraz3@gmail.com>
+Date: Wed, 1 Apr 2026 00:05:39 -0300
+Subject: [PATCH] fix(util): include cstddef for size_t
+
+---
+ src/util/util_math.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/src/util/util_math.h b/src/util/util_math.h
+index 5457ef07..08230104 100644
+--- a/src/util/util_math.h
++++ b/src/util/util_math.h
+@@ -1,5 +1,6 @@
+ #pragma once
+ 
++#include <cstddef>
+ #include <cmath>
+ 
+ namespace dxvk {
+-- 
+2.50.1 (Apple Git-155)
+

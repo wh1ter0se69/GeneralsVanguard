@@ -1,0 +1,100 @@
+/* Options — HUD — generated from design/OptionsHud.dc.html by scripts/design/convert-artboards.py.
+   Every rule is scoped under .gx-s-optionshud: ten of the sixty-eight selectors shared
+   between artboards genuinely conflict, so nothing here is global. */
+
+.gx-s-optionshud { margin: 0; font-family: var(--gx-font-ui); }
+.gx-s-optionshud a { color: var(--gx-accent); text-decoration: none; }
+.gx-s-optionshud a:hover { color: var(--gx-accent-hi); }
+
+
+    @keyframes gx-rise--optionshud { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.gx-s-optionshud .gx-rise { animation: gx-rise--optionshud 520ms var(--gx-ease-out) both; }
+.gx-s-optionshud .item { height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 18px 0 15px;
+      color: var(--gx-ink-dim); font-size: var(--gx-fs-130); cursor: pointer; border-left: 3px solid transparent;
+      transition: background 160ms var(--gx-ease-out), color 160ms var(--gx-ease-out); }
+.gx-s-optionshud .item svg { flex-shrink: 0; }
+.gx-s-optionshud .item.sel { background: var(--gx-surface-4); color: var(--gx-ink); font-weight: 600; border-left-color: var(--gx-accent); }
+.gx-s-optionshud .grouphead { font-size: var(--gx-fs-95); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+      color: var(--gx-ink-faint); padding: 15px 18px 6px 18px; }
+.gx-s-optionshud .ctl { background: linear-gradient(180deg, var(--gx-line-3) 0%, var(--gx-surface-3) 100%);
+      border: 1px solid var(--gx-line-5); color: var(--gx-ink);
+      box-shadow: 0 1px 0 var(--gx-white-a07) inset, 0 2px 8px var(--gx-shadow-a35);
+      display: flex; align-items: center; cursor: pointer;
+      transition: background 180ms var(--gx-ease-out), border-color 180ms var(--gx-ease-out),
+                  transform 140ms var(--gx-ease-press); }
+.gx-s-optionshud .ctl:active { transform: scale(0.98); }
+.gx-s-optionshud .spin { display: flex; align-items: center; justify-content: center; width: 20px; height: 14px;
+      color: var(--gx-ink-dim); transition: color 140ms var(--gx-ease-out), background 140ms var(--gx-ease-out); }
+.gx-s-optionshud .toggle { box-sizing: border-box; width: 40px; height: 22px; border-radius: 11px; flex-shrink: 0; cursor: pointer;
+      display: flex; align-items: center; padding: 0 3px;
+      transition: background 220ms var(--gx-ease-out); }
+.gx-s-optionshud .toggle .knob { width: 16px; height: 16px; border-radius: 50%; box-shadow: 0 1px 3px var(--gx-shadow-a50);
+      transition: transform 260ms var(--gx-ease-out), background 220ms var(--gx-ease-out); }
+.gx-s-optionshud .toggle.on { background: var(--gx-accent); box-shadow: 0 0 0 1px var(--gx-accent-a35); }
+.gx-s-optionshud .toggle.on .knob { background: var(--gx-accent-deep); transform: translateX(18px); }
+.gx-s-optionshud .toggle.off { background: var(--gx-line); }
+.gx-s-optionshud .toggle.off .knob { background: var(--gx-ink-dim-2); transform: translateX(0); }
+.gx-s-optionshud .row { background: var(--gx-ground); padding: 9px 14px; display: flex; align-items: center;
+      justify-content: space-between; gap: 14px; transition: background 160ms var(--gx-ease-out); }
+/* UNUSED SINCE 21/08/2026, and kept because this file is regenerated from the artboard.
+   These three rules dressed the two hide-HUD rows as static labels, on a claim that turned out to
+   be wrong: a CommandMap file in Data\INI\CommandMap\ merges with the shipped map rather than
+   replacing it, so both keys ARE rebindable and both rows now carry the .cap / .capbox capture
+   control the source artboard already had (design/OptionsHud.dc.html:51-64). That control is
+   styled inline in OptionsHud.html, because the conversion that produced this file is what dropped
+   it. Do not re-point the rows at .fixedkey: it promises "fixed key", which is not true. */
+.gx-s-optionshud .fixedkey { display: flex; flex-direction: column; align-items: flex-end; gap: 4px;
+      min-width: 108px; flex-shrink: 0; cursor: default; }
+.gx-s-optionshud .fixednote { font-size: var(--gx-fs-95); color: var(--gx-ink-faint); letter-spacing: 0.8px;
+      text-transform: uppercase; }
+.gx-s-optionshud .key { font-family: var(--gx-font-ui); font-size: var(--gx-fs-115); font-weight: 600;
+      background: linear-gradient(180deg, #34343B 0%, var(--gx-line-2) 100%); border: 1px solid #45454F;
+      border-bottom-width: 2px; padding: 3px 9px; color: var(--gx-ink);
+      box-shadow: 0 1px 0 var(--gx-white-a06) inset; }
+.gx-s-optionshud .gx-save { cursor: pointer; border: 2px solid var(--gx-accent); background: var(--gx-accent-bg); color: var(--gx-ink);
+      box-shadow: 0 0 0 1px var(--gx-accent-a16), 0 8px 24px var(--gx-accent-a14);
+      transition: background 200ms var(--gx-ease-out), transform 140ms var(--gx-ease-press); }
+.gx-s-optionshud .gx-save:active { transform: scale(0.985); }
+.gx-s-optionshud /* THE PREVIEW IS A TRUE 1920x1080 SURFACE, .gx-s-optionshud SCALED AS ONE UNIT.
+       Drawing the HUD at 1:1 px inside a small box makes every size a lie: 13pt is small against a
+       real screen and huge against a 500px mockup. So the inner surface is the real thing at real
+       coordinates and .stage scales it, .gx-s-optionshud which means every number below is the value the engine
+       actually uses. */
+    .screen { background: url(../hudground.jpg) center / cover no-repeat, #6E4526;
+      border: 1px solid var(--gx-line); position: relative; overflow: hidden; }
+.gx-s-optionshud .stage { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px;
+      transform-origin: top left; transform: scale(0.30625); }
+.gx-s-optionshud .readout { position: absolute; font-family: var(--gx-font-hud);
+      color: #E8EFD8; text-shadow: 0 2px 3px var(--gx-shadow-a90); white-space: nowrap; }
+.gx-s-optionshud /* Player info list: bottom-CENTRE, .gx-s-optionshud 8 columns, .gx-s-optionshud Tahoma BOLD, .gx-s-optionshud 130/255 black panel.
+       InGameUI.cpp:1559-1575 (0.5/0.995, .gx-s-optionshud label rgb(125, .gx-s-optionshud 124, .gx-s-optionshud 122), .gx-s-optionshud value rgb(253, .gx-s-optionshud 251, .gx-s-optionshud 251)).
+       NOTHING WRAPS - the engine lays this out to fit, .gx-s-optionshud it never breaks a cell over two lines. */
+    .pil { position: absolute; left: 50%; transform: translateX(-50%); bottom: 6px;
+      background: rgba(0,0,0,0.51); padding: 10px 18px 12px;
+      font-family: var(--gx-font-hud-alt); font-weight: bold;
+      border-collapse: collapse; }
+.gx-s-optionshud .pil th, .gx-s-optionshud .pil td { white-space: nowrap; padding: 2px 18px; text-align: right; font-size: var(--gx-fs-260); }
+.gx-s-optionshud .pil th { color: #7D7C7A; }
+.gx-s-optionshud .pil td { color: inherit; text-shadow: 0 2px 2px var(--gx-black); }
+.gx-s-optionshud .pil th.n, .gx-s-optionshud .pil td.n { text-align: left; padding-left: 6px; }
+.gx-s-optionshud /* Intelligence feed: left edge, .gx-s-optionshud 32% down, .gx-s-optionshud player-coloured, .gx-s-optionshud own black panel. Replay only.
+       InGameUI.cpp:2820-2905. */
+    .intel { position: absolute; left: 14px; top: 32%; background: rgba(0,0,0,0.51);
+      padding: 8px 14px; display: flex; flex-direction: column; gap: 4px;
+      font-family: var(--gx-font-hud); font-size: var(--gx-fs-260); }
+.gx-s-optionshud .intel div { text-shadow: 0 2px 2px var(--gx-black); white-space: nowrap; }
+
+
+    @media (hover: hover) and (pointer: fine) {
+      .item:not(.sel):hover { background: var(--gx-surface-2); color: var(--gx-ink-3); }
+      .ctl:hover { background: linear-gradient(180deg, var(--gx-line-4) 0%, var(--gx-line-2) 100%); border-color: var(--gx-line-6); }
+      .spin:hover { color: var(--gx-ink); background: var(--gx-white-a06); }
+      .row:hover { background: var(--gx-surface); }
+      .gx-save:hover { background: var(--gx-accent-edge); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .gx-rise { animation: none; opacity: 1; transform: none; }
+      .ctl:active, .gx-save:active { transform: none; }
+      .toggle .knob { transition: none; }
+    }

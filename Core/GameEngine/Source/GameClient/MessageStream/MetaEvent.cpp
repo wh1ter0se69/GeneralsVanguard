@@ -1,0 +1,1415 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2025 Electronic Arts Inc.
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+////////////////////////////////////////////////////////////////////////////////
+//																																						//
+//  (c) 2001-2003 Electronic Arts Inc.																				//
+//																																						//
+////////////////////////////////////////////////////////////////////////////////
+
+// FILE: MetaEvent.cpp ////////////////////////////////////////////////////////////////////////////
+// Created:    Colin Day, September 2001
+// Desc:       Translating keystrokes into event command messages
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+// INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
+#include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
+
+#include "Common/GameUtility.h"
+#include "Common/GlobalData.h"
+#include "Common/LocalFileSystem.h"
+#include "Common/INI.h"
+#include "Common/MessageStream.h"
+#include "Common/Player.h"
+#include "Common/PlayerList.h"
+#include "Common/Team.h"
+#include "Common/ThingTemplate.h"
+
+#include "GameClient/Drawable.h"
+#include "GameClient/Mouse.h"
+#include "GameClient/GameClient.h"
+#include "GameClient/GameWindowManager.h"
+#include "GameClient/GXGraphicsSettings.h"
+#include "GameClient/InGameUI.h"
+#include "GameClient/KeyDefs.h"
+#include "GameClient/ParticleSys.h"	// for ParticleSystemDebugDisplay
+#include "GameClient/Shell.h"
+#include "GameClient/WindowLayout.h"
+#include "GameClient/GUICallbacks.h"
+#include "GameClient/DebugDisplay.h"	// for AudioDebugDisplay
+#include "GameClient/GameText.h"
+#include "GameClient/MetaEvent.h"
+#include "GameClient/HotKey.h"
+
+#include "GameLogic/GameLogic.h" // for TheGameLogic->getFrame()
+
+
+#define dont_DUMP_ALL_KEYS_TO_LOG
+
+
+#ifdef DUMP_ALL_KEYS_TO_LOG
+#include "GameClient/Keyboard.h"
+#endif
+
+MetaMap *TheMetaMap = nullptr;
+
+#include "Common/UserPreferences.h"
+
+// GeneralsX @feature Claude 26/09/2026 THE GENERAL KEYS - the launcher's Keybinds > GENERAL tab (owner, 26/09/2026:
+// "add custom keybind mapping for that in the launcher too").
+//
+// Four chords live in CommandButtonHotKeys.ini beside GXFriendsKey - user data, never in dataID - each written
+// "<MODIFIER>+<KEY>" in the CommandMap vocabulary (a ModifierNames and a KeyNames token, e.g. CTRL+KEY_I):
+//   GXSelectInfantryKey   select every infantry unit   default CTRL+KEY_I        onKeyEvent, in front of the map
+//   GXSelectAllKey        select every unit (Q's pick)  default ALT+KEY_I         onKeyEvent, in front of the map
+//   GXIdleWorkerKey       select the next idle worker   default SHIFT_CTRL+KEY_I  the SELECT_NEXT_IDLE_WORKER record
+//   GXRemasteredKey       Remastered graphics on/off    default SHIFT_CTRL+KEY_R  onKeyEvent, in front of the map
+//   GXCameraResetKey      reset the camera (retail KP5) default KEY_HOME          onKeyEvent, in front of the map; a BARE key
+//                          is allowed for this row only: Home is no command-bar letter, and a player without a numpad has no KP5
+// NOT CommandMap records: the select and Remastered chords have no GameMessage type, and a new one would live in
+// MessageStream.h, inside the sourceID digest. A MODIFIER IS REQUIRED: a bare key caught in front of the map would
+// take a command-bar letter, and its key-up would reach HotKeyTranslator. An entry that does not parse keeps its
+// default and says so. Read once, at startup (generateMetaMap), as the Friends key is. The launcher refuses a chord
+// another in-match binding already holds (gxio keybinds.rs general_refusal); nothing here checks that.
+struct GXChord
+{
+	Int key;		///< a MappableKeyType
+	Int mods;		///< a MappableKeyModState
+};
+static GXChord s_gxSelectInfantry = { MK_I, CTRL };
+static GXChord s_gxSelectAllUnits = { MK_I, ALT };
+/// Remastered graphics on/off (GXGraphicsSettings.h). Free in retail: its CommandMap binds nothing to R with any
+/// modifier, and SHIFT_CTRL only to DEMO_INSTANT_QUIT. No modifier = off: while GX_REMASTERED_UI is 0 it is never caught.
+#if GX_REMASTERED_UI
+static GXChord s_gxRemastered = { MK_R, SHIFT_CTRL };
+#else
+static GXChord s_gxRemastered = { MK_NONE, NONE };
+#endif
+/// Camera reset for a keyboard with no numpad (owner 11/10/2026: "reset the camera to default after tilting/moving ... the 5
+/// number on numpad which I dont have it"). The retail CAMERA_RESET record keeps KP5 - this is a SECOND key for the same
+/// MSG_META_CAMERA_RESET, no new GameMessage type. Home: retail's CommandMap binds nothing to it with any modifier and no
+/// GeneralsX code does. KEY_NONE / an unreadable value keeps the default; a chord another record holds wins (see generateMetaMap).
+static GXChord s_gxCameraReset = { MK_HOME, NONE };
+/// The idle-worker record's key as generateMetaMap left it (the GENERAL override, a CommandMap binding or the
+/// default). The meta map fires it; onKeyEvent only guards its key-up.
+static GXChord s_gxIdleWorker = { MK_I, SHIFT_CTRL };
+/// Where that record can fire (its m_usableIn): the guard follows the command, not a game-only assumption - a mod's
+/// observer-only idle-worker key must not swallow a player's key-up (Codex kg-general-r6).
+static CommandUsableInType s_gxIdleWorkerUsable = COMMANDUSABLE_GAME;
+
+/// The key-up guard for the idle-worker record: its chord when it fires on the key going DOWN with a modifier held,
+/// else none. A mod's `Transition = UP` binding fires on the key-up itself, so guarding that edge would swallow the
+/// command (Codex kg-general-r2); a bare binding's key-up was never ours to guard.
+/// scripts/test/audit/bench/select_chord_keys.cpp carries a copy.
+static GXChord gxIdleGuardFor(Int key, Int mods, Int transition)
+{
+	GXChord g = { MK_NONE, NONE };
+	if (transition == DOWN && mods != NONE)
+	{
+		g.key = key;
+		g.mods = mods;
+	}
+	return g;
+}
+
+static Bool gxLookupName(const LookupListRec *table, const char *name, Int *out)
+{
+	for (const LookupListRec *r = table; r->name; ++r)
+	{
+		if (stricmp(r->name, name) == 0)
+		{
+			*out = r->value;
+			return TRUE;
+		}
+	}
+	return FALSE;
+}
+
+// scripts/test/audit/bench/select_chord_keys.cpp carries a copy of this and of the onKeyEvent block.
+static Bool gxParseChord(const char *text, GXChord *out)
+{
+	const char *plus = strchr(text, '+');
+	if (plus == nullptr || plus == text || (size_t)(plus - text) >= 32)
+		return FALSE;
+	char mod[32];
+	memcpy(mod, text, plus - text);
+	mod[plus - text] = '\0';
+	Int mods = NONE, key = MK_NONE;
+	if (!gxLookupName(ModifierNames, mod, &mods) || mods == NONE)
+		return FALSE;
+	if (!gxLookupName(KeyNames, plus + 1, &key) || key == MK_NONE)
+		return FALSE;
+	out->key = key;
+	out->mods = mods;
+	return TRUE;
+}
+
+/// Reads the four chords; `idle` is set and TRUE returned when GXIdleWorkerKey names one.
+static Bool gxLoadGeneralKeys(GXChord *idle)
+{
+	s_gxSelectInfantry.key = MK_I;
+	s_gxSelectInfantry.mods = CTRL;
+	s_gxSelectAllUnits.key = MK_I;
+	s_gxSelectAllUnits.mods = ALT;
+#if GX_REMASTERED_UI
+	s_gxRemastered.key = MK_R;
+	s_gxRemastered.mods = SHIFT_CTRL;
+#endif
+	s_gxCameraReset.key = MK_HOME;
+	s_gxCameraReset.mods = NONE;
+	UserPreferences prefs;
+	if (!prefs.load("CommandButtonHotKeys.ini"))
+		return FALSE;
+	Bool idleSet = FALSE;
+	struct Entry { const char *name; GXChord *into; Bool *set; Bool bareOk; };
+	const Entry entries[] = {
+		{ "GXSelectInfantryKey", &s_gxSelectInfantry, nullptr, FALSE },
+		{ "GXSelectAllKey", &s_gxSelectAllUnits, nullptr, FALSE },
+		{ "GXIdleWorkerKey", idle, &idleSet, FALSE },
+		{ "GXCameraResetKey", &s_gxCameraReset, nullptr, TRUE },
+#if GX_REMASTERED_UI	// the launcher offers the row only to an engine whose binary names it
+		{ "GXRemasteredKey", &s_gxRemastered, nullptr, FALSE },
+#endif
+	};
+	for (size_t i = 0; i < ARRAY_SIZE(entries); ++i)
+	{
+		AsciiString value = prefs.getAsciiString(entries[i].name, AsciiString::TheEmptyString);
+		value.trim();
+		if (value.isEmpty())
+			continue;
+		GXChord chord;
+		Int bareKey = MK_NONE;
+		Bool parsed = gxParseChord(value.str(), &chord);
+		// A bare key is only ever a navigation key: any other would be taken from a command-bar button in front of the
+		// map (Codex r2 P2). The launcher's keybinds.rs canonical_chord_for applies the same list.
+		if (!parsed && entries[i].bareOk && gxLookupName(KeyNames, value.str(), &bareKey)
+			&& (bareKey == MK_HOME || bareKey == MK_END || bareKey == MK_PGUP || bareKey == MK_PGDN || bareKey == MK_INS || bareKey == MK_DEL))
+		{
+			chord.key = bareKey;
+			chord.mods = NONE;
+			parsed = TRUE;
+		}
+		if (parsed)
+		{
+			*entries[i].into = chord;
+			if (entries[i].set != nullptr)
+				*entries[i].set = TRUE;
+			fprintf(stderr, "[GXKEYS] %s = %s\n", entries[i].name, value.str());
+		}
+		else
+		{
+			fprintf(stderr, "[GXKEYS] %s = '%s' ignored - not <MODIFIER>+<KEY> with a modifier; the default stands\n",
+				entries[i].name, value.str());
+		}
+	}
+	return idleSet;
+}
+
+#if RTS_ZEROHOUR
+
+// GeneralsX @feature Claude 25/09/2026 THE FRIENDS KEY. F5 unless the player chose another.
+//
+// Owner decision 25/09/2026 (superseding 24/09): "F5 = Friends ONLINE only; offline (skirmish/campaign) keeps
+// camera view 5." So F5 opens the Friends overlay (GXBuddyOverlayToggle) in the relay lobby, a relay game room
+// and a relay match - there, and only there, it REPLACES the retail bare-F5 "View 5" camera bookmark. Anywhere
+// else GXFriendsKeyHere() says no and the key falls through to the meta map untouched (GXFriendsKey.h has the
+// rule). Ctrl+F5 (save view 5) is never caught. The launcher's Keys page picks the key, and refuses any other
+// key a camera binding uses (gxio keybinds.rs friends_refusal).
+//
+// NOT A META COMMAND, DELIBERATELY. A CommandMap record needs a GameMessage type, a new one lives in
+// MessageStream.h, and that header is inside the sourceID digest - every peer on the shipped build would
+// then refuse every join. So the key is caught here, in front of the meta map, which is GameClient code.
+// Being in front is also what makes it REPLACE: the matcher below stops at the first record and destroys
+// the raw key, so a record on the same key would otherwise always win.
+//
+// The choice lives in CommandButtonHotKeys.ini (user data, never in dataID) as `GXFriendsKey = KEY_F9`,
+// any KeyNames[] token. HotKeyManager ignores the entry (not a single character); the launcher writes it
+// (scripts/launcher-rs/gxio/src/keybinds.rs). Unknown or absent means F5. Read once, at startup.
+static MappableKeyType s_gxFriendsKey = MK_F5;
+
+static void gxLoadFriendsKey()
+{
+	s_gxFriendsKey = MK_F5;
+	UserPreferences prefs;
+	if (!prefs.load("CommandButtonHotKeys.ini"))
+		return;
+	AsciiString token = prefs.getAsciiString("GXFriendsKey", AsciiString::TheEmptyString);
+	token.trim();
+	for (const LookupListRec *k = KeyNames; !token.isEmpty() && k->name; ++k)
+	{
+		if (stricmp(k->name, token.str()) == 0 && k->value != MK_NONE)
+		{
+			s_gxFriendsKey = (MappableKeyType)k->value;
+			fprintf(stderr, "[GXKEYS] friends key %s\n", k->name);
+			return;
+		}
+	}
+}
+#endif
+
+
+
+// DEFINES ////////////////////////////////////////////////////////////////////
+
+// PRIVATE TYPES //////////////////////////////////////////////////////////////////////////////////
+
+// PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
+
+static const LookupListRec GameMessageMetaTypeNames[] =
+{
+	{ "SAVE_VIEW1",																GameMessage::MSG_META_SAVE_VIEW1 },
+	{ "SAVE_VIEW2",																GameMessage::MSG_META_SAVE_VIEW2 },
+	{ "SAVE_VIEW3",																GameMessage::MSG_META_SAVE_VIEW3 },
+	{ "SAVE_VIEW4",																GameMessage::MSG_META_SAVE_VIEW4 },
+	{ "SAVE_VIEW5",																GameMessage::MSG_META_SAVE_VIEW5 },
+	{ "SAVE_VIEW6",																GameMessage::MSG_META_SAVE_VIEW6 },
+	{ "SAVE_VIEW7",																GameMessage::MSG_META_SAVE_VIEW7 },
+	{ "SAVE_VIEW8",																GameMessage::MSG_META_SAVE_VIEW8 },
+	{ "VIEW_VIEW1",																GameMessage::MSG_META_VIEW_VIEW1 },
+	{ "VIEW_VIEW2",																GameMessage::MSG_META_VIEW_VIEW2 },
+	{ "VIEW_VIEW3",																GameMessage::MSG_META_VIEW_VIEW3 },
+	{ "VIEW_VIEW4",																GameMessage::MSG_META_VIEW_VIEW4 },
+	{ "VIEW_VIEW5",																GameMessage::MSG_META_VIEW_VIEW5 },
+	{ "VIEW_VIEW6",																GameMessage::MSG_META_VIEW_VIEW6 },
+	{ "VIEW_VIEW7",																GameMessage::MSG_META_VIEW_VIEW7 },
+	{ "VIEW_VIEW8",																GameMessage::MSG_META_VIEW_VIEW8 },
+	{ "CREATE_TEAM0",															GameMessage::MSG_META_CREATE_TEAM0 },
+	{ "CREATE_TEAM1",															GameMessage::MSG_META_CREATE_TEAM1 },
+	{ "CREATE_TEAM2",															GameMessage::MSG_META_CREATE_TEAM2 },
+	{ "CREATE_TEAM3",															GameMessage::MSG_META_CREATE_TEAM3 },
+	{ "CREATE_TEAM4",															GameMessage::MSG_META_CREATE_TEAM4 },
+	{ "CREATE_TEAM5",															GameMessage::MSG_META_CREATE_TEAM5 },
+	{ "CREATE_TEAM6",															GameMessage::MSG_META_CREATE_TEAM6 },
+	{ "CREATE_TEAM7",															GameMessage::MSG_META_CREATE_TEAM7 },
+	{ "CREATE_TEAM8",															GameMessage::MSG_META_CREATE_TEAM8 },
+	{ "CREATE_TEAM9",															GameMessage::MSG_META_CREATE_TEAM9 },
+	{ "SELECT_TEAM0",															GameMessage::MSG_META_SELECT_TEAM0 },
+	{ "SELECT_TEAM1",															GameMessage::MSG_META_SELECT_TEAM1 },
+	{ "SELECT_TEAM2",															GameMessage::MSG_META_SELECT_TEAM2 },
+	{ "SELECT_TEAM3",															GameMessage::MSG_META_SELECT_TEAM3 },
+	{ "SELECT_TEAM4",															GameMessage::MSG_META_SELECT_TEAM4 },
+	{ "SELECT_TEAM5",															GameMessage::MSG_META_SELECT_TEAM5 },
+	{ "SELECT_TEAM6",															GameMessage::MSG_META_SELECT_TEAM6 },
+	{ "SELECT_TEAM7",															GameMessage::MSG_META_SELECT_TEAM7 },
+	{ "SELECT_TEAM8",															GameMessage::MSG_META_SELECT_TEAM8 },
+	{ "SELECT_TEAM9",															GameMessage::MSG_META_SELECT_TEAM9 },
+	{ "ADD_TEAM0",																GameMessage::MSG_META_ADD_TEAM0 },
+	{ "ADD_TEAM1",																GameMessage::MSG_META_ADD_TEAM1 },
+	{ "ADD_TEAM2",																GameMessage::MSG_META_ADD_TEAM2 },
+	{ "ADD_TEAM3",																GameMessage::MSG_META_ADD_TEAM3 },
+	{ "ADD_TEAM4",																GameMessage::MSG_META_ADD_TEAM4 },
+	{ "ADD_TEAM5",																GameMessage::MSG_META_ADD_TEAM5 },
+	{ "ADD_TEAM6",																GameMessage::MSG_META_ADD_TEAM6 },
+	{ "ADD_TEAM7",																GameMessage::MSG_META_ADD_TEAM7 },
+	{ "ADD_TEAM8",																GameMessage::MSG_META_ADD_TEAM8 },
+	{ "ADD_TEAM9",																GameMessage::MSG_META_ADD_TEAM9 },
+	{ "VIEW_TEAM0",																GameMessage::MSG_META_VIEW_TEAM0 },
+	{ "VIEW_TEAM1",																GameMessage::MSG_META_VIEW_TEAM1 },
+	{ "VIEW_TEAM2",																GameMessage::MSG_META_VIEW_TEAM2 },
+	{ "VIEW_TEAM3",																GameMessage::MSG_META_VIEW_TEAM3 },
+	{ "VIEW_TEAM4",																GameMessage::MSG_META_VIEW_TEAM4 },
+	{ "VIEW_TEAM5",																GameMessage::MSG_META_VIEW_TEAM5 },
+	{ "VIEW_TEAM6",																GameMessage::MSG_META_VIEW_TEAM6 },
+	{ "VIEW_TEAM7",																GameMessage::MSG_META_VIEW_TEAM7 },
+	{ "VIEW_TEAM8",																GameMessage::MSG_META_VIEW_TEAM8 },
+	{ "VIEW_TEAM9",																GameMessage::MSG_META_VIEW_TEAM9 },
+	{ "SELECT_MATCHING_UNITS",										GameMessage::MSG_META_SELECT_MATCHING_UNITS },
+	{ "SELECT_NEXT_UNIT",													GameMessage::MSG_META_SELECT_NEXT_UNIT },
+	{ "SELECT_PREV_UNIT",													GameMessage::MSG_META_SELECT_PREV_UNIT },
+	{ "SELECT_NEXT_WORKER",												GameMessage::MSG_META_SELECT_NEXT_WORKER },
+	{ "SELECT_PREV_WORKER",												GameMessage::MSG_META_SELECT_PREV_WORKER },
+	{ "SELECT_NEXT_IDLE_WORKER",											    GameMessage::MSG_META_SELECT_NEXT_IDLE_WORKER },
+	{ "SELECT_HERO",												      GameMessage::MSG_META_SELECT_HERO },
+	{ "SELECT_ALL",																GameMessage::MSG_META_SELECT_ALL },
+	{ "SELECT_ALL_AIRCRAFT",											GameMessage::MSG_META_SELECT_ALL_AIRCRAFT },
+	{ "VIEW_COMMAND_CENTER",											GameMessage::MSG_META_VIEW_COMMAND_CENTER },
+	{ "VIEW_LAST_RADAR_EVENT",										GameMessage::MSG_META_VIEW_LAST_RADAR_EVENT },
+	{ "SCATTER",																	GameMessage::MSG_META_SCATTER },
+	{ "STOP",																			GameMessage::MSG_META_STOP },
+	{ "DEPLOY",																		GameMessage::MSG_META_DEPLOY },
+	{ "CREATE_FORMATION",													GameMessage::MSG_META_CREATE_FORMATION },
+	{ "FOLLOW",																		GameMessage::MSG_META_FOLLOW },
+	{ "CHAT_PLAYERS",															GameMessage::MSG_META_CHAT_PLAYERS },
+	{ "CHAT_ALLIES",															GameMessage::MSG_META_CHAT_ALLIES },
+	{ "CHAT_EVERYONE",														GameMessage::MSG_META_CHAT_EVERYONE },
+	{ "DIPLOMACY",																GameMessage::MSG_META_DIPLOMACY },
+	{ "PLACE_BEACON",															GameMessage::MSG_META_PLACE_BEACON },
+	{ "DELETE_BEACON",														GameMessage::MSG_META_REMOVE_BEACON },
+	{ "OPTIONS",																	GameMessage::MSG_META_OPTIONS },
+	{ "INCREASE_MAX_RENDER_FPS",									GameMessage::MSG_META_INCREASE_MAX_RENDER_FPS },
+	{ "DECREASE_MAX_RENDER_FPS",									GameMessage::MSG_META_DECREASE_MAX_RENDER_FPS },
+	{ "INCREASE_LOGIC_TIME_SCALE",								GameMessage::MSG_META_INCREASE_LOGIC_TIME_SCALE },
+	{ "DECREASE_LOGIC_TIME_SCALE",								GameMessage::MSG_META_DECREASE_LOGIC_TIME_SCALE },
+	{ "TOGGLE_LOWER_DETAILS",											GameMessage::MSG_META_TOGGLE_LOWER_DETAILS },
+	{ "TOGGLE_CONTROL_BAR",												GameMessage::MSG_META_TOGGLE_CONTROL_BAR },
+	{ "TOGGLE_PLAYER_OBSERVER",										GameMessage::MSG_META_TOGGLE_PLAYER_OBSERVER },
+	{ "TOGGLE_HUD_OVERLAY",												GameMessage::MSG_META_TOGGLE_HUD_OVERLAY },
+	{ "TOGGLE_GAME_HUD",													GameMessage::MSG_META_TOGGLE_GAME_HUD },
+	{ "BEGIN_PATH_BUILD",													GameMessage::MSG_META_BEGIN_PATH_BUILD },
+	{ "END_PATH_BUILD",														GameMessage::MSG_META_END_PATH_BUILD },
+	{ "BEGIN_FORCEATTACK",												GameMessage::MSG_META_BEGIN_FORCEATTACK },
+	{ "END_FORCEATTACK",													GameMessage::MSG_META_END_FORCEATTACK },
+	{ "BEGIN_FORCEMOVE",													GameMessage::MSG_META_BEGIN_FORCEMOVE },
+	{ "END_FORCEMOVE",														GameMessage::MSG_META_END_FORCEMOVE },
+	{ "BEGIN_WAYPOINTS",													GameMessage::MSG_META_BEGIN_WAYPOINTS },
+	{ "END_WAYPOINTS",														GameMessage::MSG_META_END_WAYPOINTS },
+	{ "BEGIN_PREFER_SELECTION",										GameMessage::MSG_META_BEGIN_PREFER_SELECTION },
+	{ "END_PREFER_SELECTION",											GameMessage::MSG_META_END_PREFER_SELECTION },
+
+	{ "TAKE_SCREENSHOT",													GameMessage::MSG_META_TAKE_SCREENSHOT },
+	{ "TAKE_SCREENSHOT_PNG",											GameMessage::MSG_META_TAKE_SCREENSHOT_PNG },
+	{ "ALL_CHEER",																GameMessage::MSG_META_ALL_CHEER },
+
+	{ "BEGIN_CAMERA_ROTATE_LEFT",									GameMessage::MSG_META_BEGIN_CAMERA_ROTATE_LEFT },
+	{ "END_CAMERA_ROTATE_LEFT",										GameMessage::MSG_META_END_CAMERA_ROTATE_LEFT },
+	{ "BEGIN_CAMERA_ROTATE_RIGHT",								GameMessage::MSG_META_BEGIN_CAMERA_ROTATE_RIGHT },
+	{ "END_CAMERA_ROTATE_RIGHT",									GameMessage::MSG_META_END_CAMERA_ROTATE_RIGHT },
+	{ "BEGIN_CAMERA_ZOOM_IN",											GameMessage::MSG_META_BEGIN_CAMERA_ZOOM_IN },
+	{ "END_CAMERA_ZOOM_IN",												GameMessage::MSG_META_END_CAMERA_ZOOM_IN },
+	{ "BEGIN_CAMERA_ZOOM_OUT",										GameMessage::MSG_META_BEGIN_CAMERA_ZOOM_OUT },
+	{ "END_CAMERA_ZOOM_OUT",											GameMessage::MSG_META_END_CAMERA_ZOOM_OUT },
+	{ "CAMERA_RESET",															GameMessage::MSG_META_CAMERA_RESET },
+	{ "TOGGLE_CAMERA_TRACKING_DRAWABLE",					GameMessage::MSG_META_TOGGLE_CAMERA_TRACKING_DRAWABLE },
+	{ "TOGGLE_FAST_FORWARD_REPLAY",								GameMessage::MSG_META_TOGGLE_FAST_FORWARD_REPLAY },
+	{ "TOGGLE_PAUSE",															GameMessage::MSG_META_TOGGLE_PAUSE },
+	{ "TOGGLE_PAUSE_ALT",													GameMessage::MSG_META_TOGGLE_PAUSE_ALT },
+	{ "STEP_FRAME",																GameMessage::MSG_META_STEP_FRAME },
+	{ "STEP_FRAME_ALT",														GameMessage::MSG_META_STEP_FRAME_ALT },
+	{ "DEMO_INSTANT_QUIT",												GameMessage::MSG_META_DEMO_INSTANT_QUIT },
+
+#if defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)//may be defined in GameCommon.h
+	{ "CHEAT_RUNSCRIPT1",								        	GameMessage::MSG_CHEAT_RUNSCRIPT1 },
+	{ "CHEAT_RUNSCRIPT2",								        	GameMessage::MSG_CHEAT_RUNSCRIPT2 },
+	{ "CHEAT_RUNSCRIPT3",								        	GameMessage::MSG_CHEAT_RUNSCRIPT3 },
+	{ "CHEAT_RUNSCRIPT4",								        	GameMessage::MSG_CHEAT_RUNSCRIPT4 },
+	{ "CHEAT_RUNSCRIPT5",								        	GameMessage::MSG_CHEAT_RUNSCRIPT5 },
+	{ "CHEAT_RUNSCRIPT6",								        	GameMessage::MSG_CHEAT_RUNSCRIPT6 },
+	{ "CHEAT_RUNSCRIPT7",								        	GameMessage::MSG_CHEAT_RUNSCRIPT7 },
+	{ "CHEAT_RUNSCRIPT8",								        	GameMessage::MSG_CHEAT_RUNSCRIPT8 },
+	{ "CHEAT_RUNSCRIPT9",								        	GameMessage::MSG_CHEAT_RUNSCRIPT9 },
+	{ "CHEAT_TOGGLE_SPECIAL_POWER_DELAYS",	      GameMessage::MSG_CHEAT_TOGGLE_SPECIAL_POWER_DELAYS },
+  { "CHEAT_SWITCH_TEAMS",							        	GameMessage::MSG_CHEAT_SWITCH_TEAMS },
+	{ "CHEAT_KILL_SELECTION",						        	GameMessage::MSG_CHEAT_KILL_SELECTION },
+	{ "CHEAT_TOGGLE_HAND_OF_GOD_MODE",		        GameMessage::MSG_CHEAT_TOGGLE_HAND_OF_GOD_MODE },
+	{ "CHEAT_INSTANT_BUILD",							        GameMessage::MSG_CHEAT_INSTANT_BUILD },
+	{ "CHEAT_DESHROUD",									          GameMessage::MSG_CHEAT_DESHROUD },
+	{ "CHEAT_ADD_CASH",									          GameMessage::MSG_CHEAT_ADD_CASH },
+	{ "CHEAT_GIVE_ALL_SCIENCES",					        GameMessage::MSG_CHEAT_GIVE_ALL_SCIENCES },
+  { "CHEAT_GIVE_SCIENCEPURCHASEPOINTS",        	GameMessage::MSG_CHEAT_GIVE_SCIENCEPURCHASEPOINTS },
+  { "CHEAT_SHOW_HEALTH",                        GameMessage::MSG_CHEAT_SHOW_HEALTH },
+  { "CHEAT_TOGGLE_MESSAGE_TEXT",                GameMessage::MSG_CHEAT_TOGGLE_MESSAGE_TEXT },
+
+#endif
+
+#if defined(RTS_DEBUG)
+	{ "HELP",																			GameMessage::MSG_META_HELP },
+
+	{ "DEMO_TOGGLE_BEHIND_BUILDINGS",							GameMessage::MSG_META_DEMO_TOGGLE_BEHIND_BUILDINGS },
+	{ "DEMO_LOD_DECREASE",												GameMessage::MSG_META_DEMO_LOD_DECREASE },
+	{ "DEMO_LOD_INCREASE",												GameMessage::MSG_META_DEMO_LOD_INCREASE },
+	{ "DEMO_TOGGLE_LETTERBOX",										GameMessage::MSG_META_DEMO_TOGGLE_LETTERBOX },
+	{ "DEMO_TOGGLE_MESSAGE_TEXT",									GameMessage::MSG_META_DEMO_TOGGLE_MESSAGE_TEXT },
+
+	{ "DEMO_GIVE_ALL_SCIENCES",										GameMessage::MSG_META_DEMO_GIVE_ALL_SCIENCES },
+	{ "DEMO_GIVE_RANKLEVEL",											GameMessage::MSG_META_DEMO_GIVE_RANKLEVEL },
+	{ "DEMO_TAKE_RANKLEVEL",											GameMessage::MSG_META_DEMO_TAKE_RANKLEVEL },
+	{ "DEMO_GIVE_SCIENCEPURCHASEPOINTS",					GameMessage::MSG_META_DEMO_GIVE_SCIENCEPURCHASEPOINTS },
+	{ "DEMO_SWITCH_TEAMS",												GameMessage::MSG_META_DEMO_SWITCH_TEAMS },
+	{ "DEMO_SWITCH_TEAMS_CHINA_USA",							GameMessage::MSG_META_DEMO_SWITCH_TEAMS_BETWEEN_CHINA_USA },
+	{ "DEMO_TOGGLE_CASHMAPDEBUG",									GameMessage::MSG_META_DEMO_TOGGLE_CASHMAPDEBUG },
+	{ "DEMO_TOGGLE_GRAPHICALFRAMERATEBAR",				GameMessage::MSG_META_DEMO_TOGGLE_GRAPHICALFRAMERATEBAR },
+	{ "DEMO_TOGGLE_PARTICLEDEBUG",								GameMessage::MSG_META_DEMO_TOGGLE_PARTICLEDEBUG },
+	{ "DEMO_TOGGLE_THREATDEBUG",									GameMessage::MSG_META_DEMO_TOGGLE_THREATDEBUG },
+	{ "DEMO_TOGGLE_VISIONDEBUG",									GameMessage::MSG_META_DEMO_TOGGLE_VISIONDEBUG },
+	{ "DEMO_TOGGLE_PROJECTILEDEBUG",							GameMessage::MSG_META_DEMO_TOGGLE_PROJECTILEDEBUG },
+	{ "DEMO_LOD_DECREASE",												GameMessage::MSG_META_DEMO_LOD_DECREASE },
+	{ "DEMO_LOD_INCREASE",												GameMessage::MSG_META_DEMO_LOD_INCREASE },
+	{ "DEMO_TOGGLE_SHADOW_VOLUMES",								GameMessage::MSG_META_DEMO_TOGGLE_SHADOW_VOLUMES },
+	{ "DEMO_TOGGLE_FOGOFWAR",											GameMessage::MSG_META_DEMO_TOGGLE_FOGOFWAR },
+	{ "DEMO_KILL_ALL_ENEMIES",										GameMessage::MSG_META_DEMO_KILL_ALL_ENEMIES },
+	{ "DEMO_KILL_SELECTION",											GameMessage::MSG_META_DEMO_KILL_SELECTION },
+	{ "DEMO_TOGGLE_HURT_ME_MODE",									GameMessage::MSG_META_DEMO_TOGGLE_HURT_ME_MODE },
+	{ "DEMO_TOGGLE_HAND_OF_GOD_MODE",							GameMessage::MSG_META_DEMO_TOGGLE_HAND_OF_GOD_MODE },
+	{ "DEMO_DEBUG_SELECTION",											GameMessage::MSG_META_DEMO_DEBUG_SELECTION },
+	{ "DEMO_LOCK_CAMERA_TO_SELECTION",						GameMessage::MSG_META_DEMO_LOCK_CAMERA_TO_SELECTION },
+	{ "DEMO_TOGGLE_SOUND",												GameMessage::MSG_META_DEMO_TOGGLE_SOUND },
+	{ "DEMO_TOGGLE_TRACKMARKS",										GameMessage::MSG_META_DEMO_TOGGLE_TRACKMARKS },
+	{ "DEMO_TOGGLE_WATERPLANE",										GameMessage::MSG_META_DEMO_TOGGLE_WATERPLANE },
+	{ "DEMO_TIME_OF_DAY",													GameMessage::MSG_META_DEMO_TIME_OF_DAY },
+	{ "DEMO_TOGGLE_MILITARY_SUBTITLES",						GameMessage::MSG_META_DEMO_TOGGLE_MILITARY_SUBTITLES },
+	{ "DEMO_TOGGLE_MUSIC",												GameMessage::MSG_META_DEMO_TOGGLE_MUSIC },
+	{ "DEMO_MUSIC_NEXT_TRACK",										GameMessage::MSG_META_DEMO_MUSIC_NEXT_TRACK },
+	{ "DEMO_MUSIC_PREV_TRACK",										GameMessage::MSG_META_DEMO_MUSIC_PREV_TRACK },
+	{ "DEMO_NEXT_OBJECTIVE_MOVIE",								GameMessage::MSG_META_DEMO_NEXT_OBJECTIVE_MOVIE },
+	{ "DEMO_PLAY_OBJECTIVE_MOVIE1",								GameMessage::MSG_META_DEMO_PLAY_OBJECTIVE_MOVIE1 },
+	{ "DEMO_PLAY_OBJECTIVE_MOVIE2",								GameMessage::MSG_META_DEMO_PLAY_OBJECTIVE_MOVIE2 },
+	{ "DEMO_PLAY_OBJECTIVE_MOVIE3",								GameMessage::MSG_META_DEMO_PLAY_OBJECTIVE_MOVIE3 },
+	{ "DEMO_PLAY_OBJECTIVE_MOVIE4",								GameMessage::MSG_META_DEMO_PLAY_OBJECTIVE_MOVIE4 },
+	{ "DEMO_PLAY_OBJECTIVE_MOVIE5",								GameMessage::MSG_META_DEMO_PLAY_OBJECTIVE_MOVIE5 },
+	{ "DEMO_PLAY_OBJECTIVE_MOVIE6",								GameMessage::MSG_META_DEMO_PLAY_OBJECTIVE_MOVIE6 },
+	{ "DEMO_BEGIN_ADJUST_PITCH",									GameMessage::MSG_META_DEMO_BEGIN_ADJUST_PITCH },
+	{ "DEMO_END_ADJUST_PITCH",										GameMessage::MSG_META_DEMO_END_ADJUST_PITCH },
+	{ "DEMO_BEGIN_ADJUST_DEFAULTPITCH",						GameMessage::MSG_META_DEMO_BEGIN_ADJUST_DEFAULTPITCH },
+	{ "DEMO_END_ADJUST_DEFAULTPITCH",							GameMessage::MSG_META_DEMO_END_ADJUST_DEFAULTPITCH },
+	{ "DEMO_BEGIN_ADJUST_FOV",										GameMessage::MSG_META_DEMO_BEGIN_ADJUST_FOV },
+	{ "DEMO_END_ADJUST_FOV",											GameMessage::MSG_META_DEMO_END_ADJUST_FOV },
+	{ "DEMO_LOCK_CAMERA_TO_PLANES",								GameMessage::MSG_META_DEMO_LOCK_CAMERA_TO_PLANES },
+	{ "DEMO_REMOVE_PREREQ",												GameMessage::MSG_META_DEMO_REMOVE_PREREQ },
+	{ "DEMO_RUNSCRIPT1",													GameMessage::MSG_META_DEMO_RUNSCRIPT1 },
+	{ "DEMO_RUNSCRIPT2",													GameMessage::MSG_META_DEMO_RUNSCRIPT2 },
+	{ "DEMO_RUNSCRIPT3",													GameMessage::MSG_META_DEMO_RUNSCRIPT3 },
+	{ "DEMO_RUNSCRIPT4",													GameMessage::MSG_META_DEMO_RUNSCRIPT4 },
+	{ "DEMO_RUNSCRIPT5",													GameMessage::MSG_META_DEMO_RUNSCRIPT5 },
+	{ "DEMO_RUNSCRIPT6",													GameMessage::MSG_META_DEMO_RUNSCRIPT6 },
+	{ "DEMO_RUNSCRIPT7",													GameMessage::MSG_META_DEMO_RUNSCRIPT7 },
+	{ "DEMO_RUNSCRIPT8",													GameMessage::MSG_META_DEMO_RUNSCRIPT8 },
+	{ "DEMO_RUNSCRIPT9",													GameMessage::MSG_META_DEMO_RUNSCRIPT9 },
+	{ "DEMO_ADDCASH",															GameMessage::MSG_META_DEMO_ADD_CASH },
+	{ "DEMO_TOGGLE_RENDER",												GameMessage::MSG_META_DEMO_TOGGLE_RENDER },
+	{ "DEMO_TOGGLE_BW_VIEW",											GameMessage::MSG_META_DEMO_TOGGLE_BW_VIEW },
+	{ "DEMO_TOGGLE_RED_VIEW",											GameMessage::MSG_META_DEMO_TOGGLE_RED_VIEW },
+	{ "DEMO_TOGGLE_GREEN_VIEW",										GameMessage::MSG_META_DEMO_TOGGLE_GREEN_VIEW },
+	{ "DEMO_TOGGLE_MOTION_BLUR_ZOOM",							GameMessage::MSG_META_DEMO_TOGGLE_MOTION_BLUR_ZOOM },
+	{ "DEMO_SHOW_EXTENTS",												GameMessage::MSG_META_DEBUG_SHOW_EXTENTS },
+  { "DEMO_SHOW_AUDIO_LOCATIONS",								GameMessage::MSG_META_DEBUG_SHOW_AUDIO_LOCATIONS },
+  { "DEMO_SHOW_HEALTH",													GameMessage::MSG_META_DEBUG_SHOW_HEALTH },
+	{ "DEMO_GIVE_VETERANCY",											GameMessage::MSG_META_DEBUG_GIVE_VETERANCY },
+	{ "DEMO_TAKE_VETERANCY",											GameMessage::MSG_META_DEBUG_TAKE_VETERANCY },
+	{ "DEMO_BATTLE_CRY",													GameMessage::MSG_META_DEMO_BATTLE_CRY },
+#ifdef ALLOW_SURRENDER
+	{ "DEMO_TEST_SURRENDER",											GameMessage::MSG_META_DEMO_TEST_SURRENDER },
+#endif
+	{ "DEMO_TOGGLE_AVI",													GameMessage::MSG_META_DEMO_TOGGLE_AVI },
+	{ "DEMO_PLAY_CAMEO_MOVIE",										GameMessage::MSG_META_DEMO_PLAY_CAMEO_MOVIE },
+	{ "DEMO_TOGGLE_ZOOM_LOCK",										GameMessage::MSG_META_DEMO_TOGGLE_ZOOM_LOCK },
+	{ "DEMO_TOGGLE_SPECIAL_POWER_DELAYS",					GameMessage::MSG_META_DEMO_TOGGLE_SPECIAL_POWER_DELAYS },
+
+	{ "DEMO_TOGGLE_METRICS",											GameMessage::MSG_META_DEMO_TOGGLE_METRICS},
+	{ "DEMO_DESHROUD",														GameMessage::MSG_META_DEMO_DESHROUD },
+	{ "DEMO_ENSHROUD",														GameMessage::MSG_META_DEMO_ENSHROUD },
+	{ "DEMO_TOGGLE_AI_DEBUG",											GameMessage::MSG_META_DEMO_TOGGLE_AI_DEBUG },
+	{ "DEMO_TOGGLE_SUPPLY_CENTER_PLACEMENT",			GameMessage::MSG_META_DEMO_TOGGLE_SUPPLY_CENTER_PLACEMENT },
+	{ "DEMO_TOGGLE_NO_DRAW",											GameMessage::MSG_NO_DRAW },
+	{ "DEMO_CYCLE_LOD_LEVEL",											GameMessage::MSG_META_DEMO_CYCLE_LOD_LEVEL },
+	{ "DEMO_DUMP_ASSETS",													GameMessage::MSG_META_DEBUG_DUMP_ASSETS},
+
+	{ "DEMO_INSTANT_BUILD",												GameMessage::MSG_META_DEMO_INSTANT_BUILD },
+	{ "DEMO_TOGGLE_CAMERA_DEBUG",									GameMessage::MSG_META_DEMO_TOGGLE_CAMERA_DEBUG },
+
+	/// Begin VTUNE
+	{ "DEMO_VTUNE_ON",														GameMessage::MSG_META_DEBUG_VTUNE_ON },
+	{ "DEMO_VTUNE_OFF",														GameMessage::MSG_META_DEBUG_VTUNE_OFF },
+	/// End VTUNE
+
+
+	//lorenzen's feather water
+	{ "DEMO_TOGGLE_FEATHER_WATER",								GameMessage::MSG_META_DEBUG_TOGGLE_FEATHER_WATER },
+
+	{ "DEMO_INCR_ANIM_SKATE_SPEED",								GameMessage::MSG_META_DEBUG_INCR_ANIM_SKATE_SPEED },
+	{ "DEMO_DECR_ANIM_SKATE_SPEED",								GameMessage::MSG_META_DEBUG_DECR_ANIM_SKATE_SPEED },
+	{ "DEMO_CYCLE_EXTENT_TYPE",										GameMessage::MSG_META_DEBUG_CYCLE_EXTENT_TYPE },
+	{ "DEMO_INCR_EXTENT_MAJOR",										GameMessage::MSG_META_DEBUG_INCREASE_EXTENT_MAJOR },
+	{ "DEMO_DECR_EXTENT_MAJOR",										GameMessage::MSG_META_DEBUG_DECREASE_EXTENT_MAJOR },
+	{ "DEMO_INCR_EXTENT_MAJOR_LARGE",							GameMessage::MSG_META_DEBUG_INCREASE_EXTENT_MAJOR_BIG },
+	{ "DEMO_DECR_EXTENT_MAJOR_LARGE",							GameMessage::MSG_META_DEBUG_DECREASE_EXTENT_MAJOR_BIG },
+	{ "DEMO_INCR_EXTENT_MINOR",										GameMessage::MSG_META_DEBUG_INCREASE_EXTENT_MINOR },
+	{ "DEMO_DECR_EXTENT_MINOR",										GameMessage::MSG_META_DEBUG_DECREASE_EXTENT_MINOR },
+	{ "DEMO_INCR_EXTENT_MINOR_LARGE",							GameMessage::MSG_META_DEBUG_INCREASE_EXTENT_MINOR_BIG },
+	{ "DEMO_DECR_EXTENT_MINOR_LARGE",							GameMessage::MSG_META_DEBUG_DECREASE_EXTENT_MINOR_BIG },
+	{ "DEMO_INCR_EXTENT_HEIGHT",									GameMessage::MSG_META_DEBUG_INCREASE_EXTENT_HEIGHT },
+	{ "DEMO_DECR_EXTENT_HEIGHT",									GameMessage::MSG_META_DEBUG_DECREASE_EXTENT_HEIGHT },
+	{ "DEMO_INCR_EXTENT_HEIGHT_LARGE",						GameMessage::MSG_META_DEBUG_INCREASE_EXTENT_HEIGHT_BIG },
+	{ "DEMO_DECR_EXTENT_HEIGHT_LARGE",						GameMessage::MSG_META_DEBUG_DECREASE_EXTENT_HEIGHT_BIG },
+	{ "DEMO_TOGGLE_NETWORK",											GameMessage::MSG_META_DEBUG_TOGGLE_NETWORK },
+	{ "DEBUG_DUMP_PLAYER_OBJECTS",								GameMessage::MSG_META_DEBUG_DUMP_PLAYER_OBJECTS },
+	{ "DEBUG_DUMP_ALL_PLAYER_OBJECTS",						GameMessage::MSG_META_DEBUG_DUMP_ALL_PLAYER_OBJECTS },
+	{ "DEMO_WIN",																	GameMessage::MSG_META_DEBUG_WIN },
+	{ "DEMO_TOGGLE_DEBUG_STATS",									GameMessage::MSG_META_DEMO_TOGGLE_DEBUG_STATS },
+	{ "DEBUG_OBJECT_ID_PERFORMANCE",							GameMessage::MSG_META_DEBUG_OBJECT_ID_PERFORMANCE },
+	{ "DEBUG_DRAWABLE_ID_PERFORMANCE",						GameMessage::MSG_META_DEBUG_DRAWABLE_ID_PERFORMANCE },
+	{ "DEBUG_SLEEPY_UPDATE_PERFORMANCE",					GameMessage::MSG_META_DEBUG_SLEEPY_UPDATE_PERFORMANCE },
+#endif // defined(RTS_DEBUG)
+
+
+#if defined(RTS_DEBUG)
+	{ "DEMO_TOGGLE_AUDIODEBUG",										GameMessage::MSG_META_DEMO_TOGGLE_AUDIODEBUG },
+#endif//defined(RTS_DEBUG)
+#ifdef DUMP_PERF_STATS
+	{ "DEMO_PERFORM_STATISTICAL_DUMP",						GameMessage::MSG_META_DEMO_PERFORM_STATISTICAL_DUMP },
+#endif//DUMP_PERF_STATS
+
+
+	{ nullptr, 0	}
+};
+
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+// PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
+static const FieldParse TheMetaMapFieldParseTable[] =
+{
+
+	{ "Key",								INI::parseLookupList,						KeyNames, offsetof( MetaMapRec, m_key ) },
+	{ "Transition",					INI::parseLookupList,						TransitionNames, offsetof( MetaMapRec, m_transition ) },
+	{ "Modifiers",					INI::parseLookupList,						ModifierNames, offsetof( MetaMapRec, m_modState ) },
+	{ "UseableIn",					INI::parseBitString32,					TheCommandUsableInNames, offsetof( MetaMapRec, m_usableIn ) },
+	{ "Category",						INI::parseLookupList,						CategoryListName, offsetof( MetaMapRec, m_category ) },
+	{ "Description",				INI::parseAndTranslateLabel,		nullptr, offsetof( MetaMapRec, m_description ) },
+	{ "DisplayName",				INI::parseAndTranslateLabel,		nullptr, offsetof( MetaMapRec, m_displayName ) },
+
+	{ nullptr,									nullptr,														nullptr, 0 }
+
+};
+
+// PRIVATE FUNCTIONS //////////////////////////////////////////////////////////////////////////////
+
+// PUBLIC FUNCTIONS ///////////////////////////////////////////////////////////////////////////////
+
+//-------------------------------------------------------------------------------------------------
+MetaEventTranslator::MetaEventTranslator() :
+	m_lastKeyDown(MK_NONE),
+	m_lastModState(0),
+	m_gxChordHeld()
+{
+	for (Int i = 0; i < NUM_MOUSE_BUTTONS; ++i) {
+		m_nextUpShouldCreateDoubleClick[i] = FALSE;
+	}
+
+
+}
+
+//-------------------------------------------------------------------------------------------------
+MetaEventTranslator::~MetaEventTranslator()
+{
+}
+
+//-------------------------------------------------------------------------------------------------
+static const char * findGameMessageNameByType(GameMessage::Type type)
+{
+	for (const LookupListRec* metaNames = GameMessageMetaTypeNames; metaNames->name; metaNames++)
+		if (metaNames->value == (Int)type)
+			return metaNames->name;
+
+	DEBUG_CRASH(("MetaTypeName %d not found -- did you remember to add it to GameMessageMetaTypeNames[] ?", (Int)type));
+	return "???";
+}
+
+//-------------------------------------------------------------------------------------------------
+static Bool isMessageUsable(CommandUsableInType usableIn)
+{
+	// We will ignore all commands if the game client has not yet incremented to frame 1.
+	// It prevents the user from doing commands during a map load, which throws the input
+	// system into whack because there isn't a client frame for the input event, and in
+	// the case of a command that pauses the game, like the quit menu, the client frame
+	// will never get beyond 0 and we lose the ability to process any input.
+	if (TheGameClient->getFrame() == 0)
+		return false;
+
+	const Bool usableInShell = (usableIn & COMMANDUSABLE_SHELL);
+	const Bool usableInGame = (usableIn & COMMANDUSABLE_GAME);
+	const Bool usableAsObserver = (usableIn & COMMANDUSABLE_OBSERVER);
+	const Bool isShellActive = TheShell && TheShell->isShellActive();
+	const Bool isObserving = !ThePlayerList->getLocalPlayer()->isPlayerActive();
+
+	if (usableInShell && isShellActive)
+		return true;
+
+	if (usableInGame && !isShellActive)
+		return true;
+
+	if (usableAsObserver && isObserving)
+		return true;
+
+	return false;
+}
+
+//-------------------------------------------------------------------------------------------------
+GameMessageDisposition MetaEventTranslator::translateGameMessage(const GameMessage *msg)
+{
+	GameMessageDisposition disp = KEEP_MESSAGE;
+	const GameMessage::Type t = msg->getType();
+
+	if (t == GameMessage::MSG_RAW_KEY_DOWN || t == GameMessage::MSG_RAW_KEY_UP)
+	{
+		onKeyEvent(msg, disp);
+	}
+	else if (t > GameMessage::MSG_RAW_MOUSE_BEGIN && t < GameMessage::MSG_RAW_MOUSE_END )
+	{
+		onMouseEvent(msg);
+	}
+
+	return disp;
+}
+
+//-------------------------------------------------------------------------------------------------
+void MetaEventTranslator::onMouseEvent(const GameMessage *msg)
+{
+	Int index = 3;
+	switch (msg->getType())
+	{
+		case GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_DOWN:
+			--index;
+			FALLTHROUGH;
+		case GameMessage::MSG_RAW_MOUSE_MIDDLE_BUTTON_DOWN:
+			--index;
+			FALLTHROUGH;
+		case GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_DOWN:
+		{
+			--index;
+			m_mouseDownPosition[index] = msg->getArgument(0)->pixel;
+			m_nextUpShouldCreateDoubleClick[index] = FALSE;
+			break;
+		}
+
+		case GameMessage::MSG_RAW_MOUSE_LEFT_DOUBLE_CLICK:
+			--index;
+			FALLTHROUGH;
+		case GameMessage::MSG_RAW_MOUSE_MIDDLE_DOUBLE_CLICK:
+			--index;
+			FALLTHROUGH;
+		case GameMessage::MSG_RAW_MOUSE_RIGHT_DOUBLE_CLICK:
+		{
+			--index;
+			m_nextUpShouldCreateDoubleClick[index] = TRUE;
+			break;
+		}
+
+		case GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_UP:
+			--index;
+			FALLTHROUGH;
+		case GameMessage::MSG_RAW_MOUSE_MIDDLE_BUTTON_UP:
+			--index;
+			FALLTHROUGH;
+		case GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_UP:
+		{
+			--index;
+
+			constexpr const GameMessage::Type SingleClickMessages[3] =
+			{
+				GameMessage::MSG_MOUSE_LEFT_CLICK,
+				GameMessage::MSG_MOUSE_MIDDLE_CLICK,
+				GameMessage::MSG_MOUSE_RIGHT_CLICK,
+			};
+			constexpr const GameMessage::Type DoubleClickMessages[3] =
+			{
+				GameMessage::MSG_MOUSE_LEFT_DOUBLE_CLICK,
+				GameMessage::MSG_MOUSE_MIDDLE_DOUBLE_CLICK,
+				GameMessage::MSG_MOUSE_RIGHT_DOUBLE_CLICK,
+			};
+
+			const ICoord2D location = msg->getArgument(0)->pixel;
+			const GameMessage::Type messageType = m_nextUpShouldCreateDoubleClick[index] ? DoubleClickMessages[index] : SingleClickMessages[index];
+			GameMessage *newMessage = TheMessageStream->insertMessage(messageType, const_cast<GameMessage*>(msg));
+
+			IRegion2D pixelRegion;
+			buildRegion( &m_mouseDownPosition[index], &location, &pixelRegion );
+			if (abs(pixelRegion.hi.x - pixelRegion.lo.x) < TheMouse->m_dragTolerance &&
+					abs(pixelRegion.hi.y - pixelRegion.lo.y) < TheMouse->m_dragTolerance)
+			{
+				pixelRegion.hi.x = pixelRegion.lo.x;
+				pixelRegion.hi.y = pixelRegion.lo.y;
+			}
+
+			newMessage->appendPixelRegionArgument( pixelRegion );
+
+			// append the modifier keys to the message.
+			newMessage->appendIntegerArgument( msg->getArgument(1)->integer );
+
+			// append the time to the message.
+			//newMessage->appendIntegerArgument( msg->getArgument(2)->integer );
+			break;
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+// GeneralsX @feature Claude 28/09/2026 Is an Options menu up? Matched by NAME through keyToName, which only reads: never
+// nameToKey, which on a peer that has not loaded OptionsMenu.wnd yet would mint a name key there alone and shift every
+// key minted after it - and upgrades travel between peers as that number (Codex gfxp3-toggle-r4b). A destroyed window
+// waits in the list until the frame ends, and nothing under it counts.
+static Bool gxOptionsMenuUp(GameWindow *w)
+{
+	for (; w != nullptr; w = w->winGetNext())
+	{
+		if (BitIsSet(w->winGetStatus(), WIN_STATUS_DESTROYED))
+			continue;
+		if (TheNameKeyGenerator->keyToName((NameKeyType)w->winGetWindowId()).compare("OptionsMenu.wnd:OptionsMenuParent") == 0
+			|| gxOptionsMenuUp(w->winGetChild()))
+			return TRUE;
+	}
+	return FALSE;
+}
+
+// The Remastered chord's press (GXGraphicsSettings.h). Refused while an Options menu is up - keys do reach this
+// translator under its modal parent, and its checkbox still shows the old value, so its Accept would write that back
+// over the flip.
+static void gxToggleRemastered()
+{
+	if (gxOptionsMenuUp(TheWindowManager->winGetWindowList()))
+	{
+		fprintf(stderr, "[GXREMASTER] chord refused - the Options menu is open\n");
+		return;
+	}
+	const Bool on = !GXGraphics::isRemastered();
+	GXGraphics::setRemastered(on);
+	if (TheInGameUI)
+		TheInGameUI->messageNoFormat(on
+			? TheGameText->FETCH_OR_SUBSTITUTE("GUI:GXRemasteredOn", L"Remastered graphics on")
+			: TheGameText->FETCH_OR_SUBSTITUTE("GUI:GXRemasteredOff", L"Remastered graphics off"));
+}
+
+//-------------------------------------------------------------------------------------------------
+// GeneralsX @refactor fbraz3 06/05/2026 — adopt upstream's structural split (#2758)
+// into a single onKeyEvent() helper while keeping GeneralsX's pre-existing
+// input semantics: a "mods-only-changed" branch using m_lastModState and a
+// m_lastKeyDown-tracking normal key-transition branch. We do not adopt
+// upstream's m_keyDownInfos / KeyDownInfo bit-array (introduced for the
+// "ignore order of modifier release" fix in #2577) because that fix is not
+// part of GeneralsX's behavior, and the bit-array member is not declared
+// in MetaEvent.h.
+//
+// GeneralsX @note The temporary key-path probe that traced this match link by link (arrival,
+// stale modifier bits, the AUTOREPEAT arm, isMessageUsable) was removed for release; recover it
+// from af881e0bd if a key binding ever appears to be silently missed again.
+void MetaEventTranslator::onKeyEvent(const GameMessage *msg, GameMessageDisposition &disp)
+{
+	const Int systemKey = msg->getArgument(0)->integer;
+	const Int systemKeyState = msg->getArgument(1)->integer;
+
+	const MappableKeyType key = (MappableKeyType)systemKey;
+
+	// for our purposes here, we don't care to distinguish between right and left keys,
+	// so just fudge a little to simplify things.
+	Int newModState = 0;
+
+	if (systemKeyState & KEY_STATE_CONTROL)
+	{
+		newModState |= CTRL;
+	}
+
+	if (systemKeyState & KEY_STATE_SHIFT)
+	{
+		newModState |= SHIFT;
+	}
+
+	if (systemKeyState & KEY_STATE_ALT)
+	{
+		newModState |= ALT;
+	}
+
+#if RTS_ZEROHOUR
+	// The Friends key - see s_gxFriendsKey. A bare press only, so Ctrl+F5 still saves view 5. Both
+	// edges are eaten so nothing downstream sees half a keystroke; only a real down toggles. Frame 0
+	// is excluded for isMessageUsable's reason: no input while a map is still loading.
+	if (key == s_gxFriendsKey && newModState == 0 && TheGameClient->getFrame() != 0 && GXFriendsKeyHere())
+	{
+		if ((systemKeyState & KEY_STATE_DOWN) && !(systemKeyState & KEY_STATE_AUTOREPEAT))
+			GXBuddyOverlayToggle();
+		disp = DESTROY_MESSAGE;
+		m_lastModState = newModState;
+		return;
+	}
+#endif
+
+	// GeneralsX @feature Claude 26/09/2026 SELECT EVERY INFANTRY UNIT (default Ctrl+I), SELECT EVERY UNIT (default Alt+I)
+	// - on screen, and a second press across the map. Owner, 25/09/2026, for "select every infantry, then waypoint them
+	// into several transports"; rebindable from the launcher's Keybinds > GENERAL tab since 26/09/2026 (gxLoadGeneralKeys).
+	//
+	// Both become the retail SELECT_ALL message, the one Q sends, so CommandXlat does what it does for Q: select on
+	// screen, and when nothing new is on screen, across the map (InGameUI::selectAllUnitsByType). The infantry chord
+	// adds GX_SELECT_ALL_INFANTRY as its argument. The selection reaches the simulation as the MSG_CREATE_SELECTED_GROUP
+	// every peer already receives - no new network message, no new GameMessage type. A new meta command would need
+	// one, in MessageStream.h, inside the sourceID digest; this is caught in front of the meta map for the Friends
+	// key's reason, and wins over any CommandMap record on the same chord.
+	//
+	// Both edges are eaten, and the UP is eaten even when the modifier was released first: a bare key-up reaches
+	// HotKeyTranslator, which fires command buttons on the UP, and would press whatever is bound to that key - the Demo
+	// general's worker has "Su&icide" on I. The idle-worker chord (the GENERAL tab's third row) is the meta map's to
+	// fire, but its key-up is guarded the same way (Codex kg-general-r1). One bit PER KEY, so two chords held on two
+	// keys at once each keep their own guard (Codex kg-general-r1).
+	//
+	// A key-UP is the chord's only when that key went DOWN as the chord (the held bit): an Up arrow held to scroll and
+	// released after Ctrl went down must still reach LookAtTranslator, or the camera scrolls on (Codex kg-general-r3).
+	//
+	// The Remastered chord (gxToggleRemastered) rides the same block and the same held bit, for the same key-up reason:
+	// Ctrl or Shift released before R would otherwise hand a bare R-up to the command bar. It appends nothing.
+	{
+		const Bool usable = isMessageUsable(COMMANDUSABLE_GAME);
+		const Bool isDown = (systemKeyState & KEY_STATE_DOWN) != 0;
+		const Bool infantry = key == s_gxSelectInfantry.key && newModState == s_gxSelectInfantry.mods;
+		const Bool fire = (infantry || (key == s_gxSelectAllUnits.key && newModState == s_gxSelectAllUnits.mods)) && usable && isDown;
+		const Bool idle = s_gxIdleWorker.mods != NONE && key == s_gxIdleWorker.key && newModState == s_gxIdleWorker.mods && isDown
+			&& isMessageUsable(s_gxIdleWorkerUsable);
+		const Bool remastered = s_gxRemastered.mods != NONE && key == s_gxRemastered.key && newModState == s_gxRemastered.mods
+			&& usable && isDown;
+		const Bool cameraReset = s_gxCameraReset.key != MK_NONE && key == s_gxCameraReset.key && newModState == s_gxCameraReset.mods
+			&& usable && isDown;
+		const Bool isUp = (systemKeyState & KEY_STATE_UP) != 0;
+		const Bool isPress = (systemKeyState & KEY_STATE_DOWN) && !(systemKeyState & KEY_STATE_AUTOREPEAT);
+		const Int slot = ((UnsignedInt)key < 256u) ? (Int)key : -1;
+		const UnsignedByte bit = (UnsignedByte)(1u << (slot & 7));
+		// A fresh press decides again, so a key-up lost to a focus change cannot linger.
+		if (isPress && slot >= 0)
+		{
+			if (fire || idle || remastered || cameraReset)
+				m_gxChordHeld[slot >> 3] |= bit;
+			else
+				m_gxChordHeld[slot >> 3] &= (UnsignedByte)~bit;
+		}
+		const Bool held = slot >= 0 && (m_gxChordHeld[slot >> 3] & bit) != 0;
+		if (fire || remastered || cameraReset || (isUp && held))
+		{
+			if (fire && isPress)
+			{
+				GameMessage *selectAll = TheMessageStream->appendMessage(GameMessage::MSG_META_SELECT_ALL);
+				if (infantry)
+					selectAll->appendIntegerArgument(GX_SELECT_ALL_INFANTRY);
+			}
+			if (remastered && isPress)
+				gxToggleRemastered();
+			if (cameraReset && isPress)
+				TheMessageStream->appendMessage(GameMessage::MSG_META_CAMERA_RESET);	// the retail KP5 message, CommandXlat resets the view
+			if (GXKeyTraceEnabled())
+			{
+				fprintf(stderr, "[GXKEY] select-chord: key=0x%02x state=0x%x mods=%d -> %s\n", systemKey, systemKeyState, newModState,
+					(fire && isPress) ? (infantry ? "SELECT_ALL infantry" : "SELECT_ALL")
+						: (remastered && isPress) ? "Remastered toggle"
+						: (cameraReset && isPress) ? "CAMERA_RESET" : "consumed (other edge)");
+				fflush(stderr);
+			}
+			if (isUp && slot >= 0)
+				m_gxChordHeld[slot >> 3] &= (UnsignedByte)~bit;
+			disp = DESTROY_MESSAGE;
+			m_lastModState = newModState;
+			return;
+		}
+	}
+
+	for (const MetaMapRec *map = TheMetaMap->getFirstMetaMapRec(); map; map = map->m_next)
+	{
+		if (!isMessageUsable(map->m_usableIn))
+			continue;
+
+		// check for the special case of mods-only-changed.
+		if (
+				map->m_key == MK_NONE &&
+				newModState != m_lastModState &&
+				(
+					(map->m_transition == UP && map->m_modState == m_lastModState) ||
+					(map->m_transition == DOWN && map->m_modState == newModState)
+				)
+			)
+		{
+			//DEBUG_LOG(("Frame %d: MetaEventTranslator::translateGameMessage() Mods-only change: %s", TheGameLogic->getFrame(), findGameMessageNameByType(map->m_meta)));
+			/*GameMessage *metaMsg =*/ TheMessageStream->appendMessage(map->m_meta);
+			disp = DESTROY_MESSAGE;
+			break;
+		}
+
+		// ok, now check for "normal" key transitions.
+		if (
+				map->m_key == key &&
+				map->m_modState == newModState &&
+				(
+					(map->m_transition == UP && (systemKeyState & KEY_STATE_UP)) ||
+					(map->m_transition == DOWN && (systemKeyState & KEY_STATE_DOWN)) //||
+					//(map->m_transition == DOUBLEDOWN && (systemKeyState & KEY_STATE_DOWN) && m_lastKeyDown == key)
+				)
+			)
+		{
+
+			if (systemKeyState & KEY_STATE_AUTOREPEAT)
+			{
+				// if it's an autorepeat of a "known" key, don't generate the meta-event,
+				// but DO eat the keystroke so no one else can mess with it
+				//DEBUG_LOG(("Frame %d: MetaEventTranslator::translateGameMessage() auto-repeat: %s", TheGameLogic->getFrame(), findGameMessageNameByType(map->m_meta)));
+			}
+			else
+			{
+
+        // THIS IS A GREASY HACK... MESSAGE SHOULD BE HANDLED IN A TRANSLATOR, BUT DURING CINEMATICS THE TRANSLATOR IS DISABLED
+        if (map->m_meta == GameMessage::MSG_META_TOGGLE_FAST_FORWARD_REPLAY)
+	      {
+				#if defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)//may be defined in GameCommon.h
+			      if (TheGlobalData)
+				#else
+				  if (TheGlobalData && TheGameLogic->isInReplayGame())
+				#endif
+			      {
+	            if (TheWritableGlobalData)
+                TheWritableGlobalData->m_TiVOFastMode = 1 - TheGlobalData->m_TiVOFastMode;
+
+              if (TheInGameUI)
+								TheInGameUI->messageNoFormat( TheGlobalData->m_TiVOFastMode
+									? TheGameText->FETCH_OR_SUBSTITUTE("GUI:FF_ON", L"Fast Forward is on")
+									: TheGameText->FETCH_OR_SUBSTITUTE("GUI:FF_OFF", L"Fast Forward is off")
+								);
+			      }
+			      disp = KEEP_MESSAGE; // cause for goodness sake, this key gets used a lot by non-replay hotkeys
+			      break;
+	      }
+
+
+				/*GameMessage *metaMsg =*/ TheMessageStream->appendMessage(map->m_meta);
+				//DEBUG_LOG(("Frame %d: MetaEventTranslator::translateGameMessage() normal: %s", TheGameLogic->getFrame(), findGameMessageNameByType(map->m_meta)));
+			}
+			// GeneralsX @probe Claude 25/09/2026 GX_KEYTRACE (HotKey.h): a CommandMap binding eats the key before the
+			// command-button hotkeys see it.
+			if (GXKeyTraceEnabled())
+			{
+				fprintf(stderr, "[GXKEY] commandmap: key=0x%02x state=0x%x mods=%d -> %s%s - consumed\n", systemKey, systemKeyState,
+					newModState, GameMessage::getCommandTypeAsString(map->m_meta),
+					(systemKeyState & KEY_STATE_AUTOREPEAT) ? " (autorepeat, not emitted)" : "");
+				fflush(stderr);
+			}
+			disp = DESTROY_MESSAGE;
+			break;
+		}
+	}
+
+	if (msg->getType() == GameMessage::MSG_RAW_KEY_DOWN)
+  {
+		m_lastKeyDown = key;
+
+
+#ifdef DUMP_ALL_KEYS_TO_LOG
+
+	          WideChar Wkey = TheKeyboard->getPrintableKey(key, 0);
+	          UnicodeString uKey;
+	          uKey.set(&Wkey);
+	          AsciiString aKey;
+	          aKey.translate(uKey);
+  	          DEBUG_LOG(("^%s ", aKey.str()));
+#endif
+
+  }
+
+
+
+  m_lastModState = newModState;
+}
+
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+//-------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------
+MetaMap::MetaMap() :
+	m_metaMaps(nullptr)
+{
+}
+
+//-------------------------------------------------------------------------------------------------
+MetaMap::~MetaMap()
+{
+	while (m_metaMaps)
+	{
+		MetaMapRec *next = m_metaMaps->m_next;
+		deleteInstance(m_metaMaps);
+		m_metaMaps = next;
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+GameMessage::Type MetaMap::findGameMessageMetaType(const char* name)
+{
+	for (const LookupListRec* metaNames = GameMessageMetaTypeNames; metaNames->name; metaNames++)
+		if (stricmp(metaNames->name, name) == 0)
+			return (GameMessage::Type)metaNames->value;
+
+	DEBUG_CRASH(("MetaTypeName %s not found -- did you remember to add it to GameMessageMetaTypeNames[] ?", name));
+	return GameMessage::MSG_INVALID;
+}
+
+//-------------------------------------------------------------------------------------------------
+MetaMapRec *MetaMap::getMetaMapRec(GameMessage::Type t)
+{
+	for (MetaMapRec *map = m_metaMaps; map; map = map->m_next)
+	{
+		if (map->m_meta == t)
+			return map;
+	}
+
+	// not found.. create a new one.
+	MetaMapRec *m = newInstance(MetaMapRec);
+	m->m_meta = t;
+	m->m_key = MK_NONE;
+	m->m_transition = DOWN;
+	m->m_modState = NONE;
+	m->m_usableIn = COMMANDUSABLE_NONE;
+	m->m_category = CATEGORY_MISC;
+	m->m_description.clear();
+	m->m_displayName.clear();
+	m->m_next = m_metaMaps;
+	m_metaMaps = m;
+
+	return m;
+}
+
+//-------------------------------------------------------------------------------------------------
+/*static */ void MetaMap::parseMetaMap(INI* ini)
+{
+	// read and ignore the meta-map name
+	const char *c = ini->getNextToken();
+
+	GameMessage::Type t = TheMetaMap->findGameMessageMetaType(c);
+	if (t == GameMessage::MSG_INVALID)
+		throw INI_INVALID_DATA;
+
+	MetaMapRec *map = TheMetaMap->getMetaMapRec(t);
+	if (map == nullptr)
+		throw INI_INVALID_DATA;
+
+	ini->initFromINI(map, TheMetaMapFieldParseTable);
+}
+
+//-------------------------------------------------------------------------------------------------
+// GeneralsX @feature Claude 28/09/2026 The Remastered chord came after the other GENERAL keys and every CommandMap binding,
+// so it gives way to them: when its chord is a select chord's or any meta map record's (a player who put Shift+Ctrl+R on
+// Select All under an engine that did not read GXRemasteredKey yet, or a mod's CommandMap record), that binding keeps the
+// key and the Remastered chord is off for the session, said on stderr (Codex gfxp3-toggle-r3b). Any transition and any
+// UseableIn: the chord eats both edges, so it would swallow an UP record too.
+#if GX_REMASTERED_UI
+static void gxYieldRemasteredChord(const MetaMapRec *first)
+{
+	const char *holder = nullptr;
+	if (s_gxRemastered.key == s_gxSelectInfantry.key && s_gxRemastered.mods == s_gxSelectInfantry.mods)
+		holder = "GXSelectInfantryKey";
+	else if (s_gxRemastered.key == s_gxSelectAllUnits.key && s_gxRemastered.mods == s_gxSelectAllUnits.mods)
+		holder = "GXSelectAllKey";
+	for (const MetaMapRec *r = first; holder == nullptr && r != nullptr; r = r->m_next)
+	{
+		if (r->m_key == s_gxRemastered.key && r->m_modState == s_gxRemastered.mods)
+			holder = GameMessage::getCommandTypeAsString(r->m_meta);
+	}
+	if (holder == nullptr)
+		return;
+	fprintf(stderr, "[GXKEYS] GXRemasteredKey: that chord is already %s's - it keeps it, and the Remastered chord is off this session\n", holder);
+	s_gxRemastered.key = MK_NONE;
+	s_gxRemastered.mods = NONE;
+}
+#endif
+
+//-------------------------------------------------------------------------------------------------
+void MetaMap::generateMetaMap()
+{
+	// GeneralsX @bugfix Claude 24/09/2026 THE LAUNCHER'S KEY OVERRIDES LIVE IN GENERALSX'S OWN FOLDER.
+	//
+	// scripts/launcher-rs/gxio/src/commandmap.rs used to write GXUserKeys.ini into Data\INI\CommandMap\ under the
+	// working directory, which on macOS and Linux is the Zero Hour folder - often one we do not own. It now writes
+	// <user data>/GXUserKeys.ini, and this reads it. FIRST here, which is AFTER every shipped CommandMap file
+	// (GameEngine.cpp initSubsystem(TheMetaMap, ...)) and BEFORE the defaults below fill what is still unbound: the
+	// precedence the file had when the directory scan found it. Not in dataID: CommandMap bytes never reach the CRC
+	// (null Xfer at initSubsystem). A malformed file throws out of init, as it always did - the launcher writes it
+	// atomically for that reason.
+	if (TheGlobalData != nullptr && TheLocalFileSystem != nullptr)
+	{
+		AsciiString keys = TheGlobalData->getPath_UserData();
+		keys.concat("GXUserKeys.ini");
+		if (TheLocalFileSystem->doesFileExist(keys.str()))
+		{
+			INI ini;
+			ini.load(keys, INI_LOAD_MULTIFILE, nullptr);
+			fprintf(stderr, "[GXKEYS] loaded %s\n", keys.str());
+		}
+	}
+#if RTS_ZEROHOUR
+	gxLoadFriendsKey();
+#endif
+	GXChord gxIdleWorker = { MK_NONE, NONE };
+	const Bool gxIdleWorkerSet = gxLoadGeneralKeys(&gxIdleWorker);
+
+	// TheSuperHackers @info A default mapping for MSG_META_SELECT_ALL_AIRCRAFT would be useful for Generals
+	// but is not recommended, because it will cause key mapping conflicts with original game languages.
+
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_INCREASE_MAX_RENDER_FPS);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_KPPLUS;
+			map->m_transition = DOWN;
+			map->m_modState = CTRL;
+			map->m_usableIn = COMMANDUSABLE_EVERYWHERE;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_DECREASE_MAX_RENDER_FPS);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_KPMINUS;
+			map->m_transition = DOWN;
+			map->m_modState = CTRL;
+			map->m_usableIn = COMMANDUSABLE_EVERYWHERE;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_INCREASE_LOGIC_TIME_SCALE);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_KPPLUS;
+			map->m_transition = DOWN;
+			map->m_modState = SHIFT_CTRL;
+			map->m_usableIn = COMMANDUSABLE_EVERYWHERE;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_DECREASE_LOGIC_TIME_SCALE);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_KPMINUS;
+			map->m_transition = DOWN;
+			map->m_modState = SHIFT_CTRL;
+			map->m_usableIn = COMMANDUSABLE_EVERYWHERE;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_TOGGLE_PLAYER_OBSERVER);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_M;
+			map->m_transition = DOWN;
+			map->m_modState = NONE;
+			map->m_usableIn = COMMANDUSABLE_OBSERVER;
+		}
+	}
+	{
+		// Is mostly useful for Generals.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_TOGGLE_FAST_FORWARD_REPLAY);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_F;
+			map->m_transition = DOWN;
+			map->m_modState = NONE;
+			map->m_usableIn = COMMANDUSABLE_GAME; // @todo COMMANDUSABLE_OBSERVER
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_TOGGLE_PAUSE);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_P;
+			map->m_transition = DOWN;
+			map->m_modState = NONE;
+			map->m_usableIn = COMMANDUSABLE_OBSERVER;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_TOGGLE_PAUSE_ALT);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_P;
+			map->m_transition = DOWN;
+			map->m_modState = SHIFT; // Requires modifier to avoid key conflicts as a player.
+			map->m_usableIn = COMMANDUSABLE_EVERYWHERE;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_STEP_FRAME);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_O;
+			map->m_transition = DOWN;
+			map->m_modState = NONE;
+			map->m_usableIn = COMMANDUSABLE_OBSERVER;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_STEP_FRAME_ALT);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_O;
+			map->m_transition = DOWN;
+			map->m_modState = SHIFT; // Requires modifier to avoid key conflicts as a player.
+			map->m_usableIn = COMMANDUSABLE_EVERYWHERE;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_SELECT_NEXT_IDLE_WORKER);
+		if (map->m_key == MK_NONE) {
+			map->m_key = MK_I;
+			map->m_transition = DOWN;
+			// GeneralsX @tweak Claude 26/09/2026 Upstream's Ctrl+I is now "select all infantry" (MetaEventTranslator::
+			// onKeyEvent, owner request 25/09/2026), which is caught before this map and would leave the idle-worker key
+			// unreachable. Shift+Ctrl+I keeps it one modifier away; the control bar's idle-worker button is unchanged.
+			map->m_modState = SHIFT_CTRL;
+			map->m_usableIn = COMMANDUSABLE_GAME;
+			map->m_category = CATEGORY_SELECTION;
+			map->m_description = TheGameText->FETCH_OR_SUBSTITUTE("GUI:SelectNextIdleWorkerDescription", L"Select the next idle worker");
+			map->m_displayName = TheGameText->FETCH_OR_SUBSTITUTE("GUI:SelectNextIdleWorker", L"Next Idle Worker");
+		}
+		// GeneralsX @feature Claude 26/09/2026 The launcher's GENERAL tab (GXIdleWorkerKey, see gxLoadGeneralKeys) wins
+		// over the default above and over any CommandMap record for this command: it is the player's own choice.
+		if (gxIdleWorkerSet)
+		{
+			map->m_key = (MappableKeyType)gxIdleWorker.key;
+			map->m_modState = (MappableKeyModState)gxIdleWorker.mods;
+			map->m_transition = DOWN;
+			map->m_usableIn = COMMANDUSABLE_GAME;
+		}
+		// What onKeyEvent guards the key-up of: the key this record ends up on, whoever chose it.
+		s_gxIdleWorker = gxIdleGuardFor(map->m_key, map->m_modState, map->m_transition);
+		s_gxIdleWorkerUsable = map->m_usableIn;
+	}
+	{
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_ALT_CAMERA_ROTATE_LEFT);
+		if (map->m_key == MK_NONE) {
+			map->m_key = MK_KP4;
+			map->m_transition = DOWN;
+			map->m_modState = CTRL;
+			map->m_usableIn = COMMANDUSABLE_GAME;
+		}
+	}
+	{
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_ALT_CAMERA_ROTATE_RIGHT);
+		if (map->m_key == MK_NONE) {
+			map->m_key = MK_KP6;
+			map->m_transition = DOWN;
+			map->m_modState = CTRL;
+			map->m_usableIn = COMMANDUSABLE_GAME;
+		}
+	}
+	{
+		MetaMapRec *map = TheMetaMap->getMetaMapRec(GameMessage::MSG_META_TAKE_SCREENSHOT);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_F12;
+			map->m_transition = DOWN;
+			map->m_modState = NONE;
+			map->m_usableIn = COMMANDUSABLE_EVERYWHERE;
+		}
+	}
+	{
+		MetaMapRec *map = TheMetaMap->getMetaMapRec(GameMessage::MSG_META_TAKE_SCREENSHOT_PNG);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_F12;
+			map->m_transition = DOWN;
+			map->m_modState = CTRL;
+			map->m_usableIn = COMMANDUSABLE_EVERYWHERE;
+		}
+	}
+
+#if defined(RTS_DEBUG)
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_DEMO_REMOVE_PREREQ);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_P;
+			map->m_transition = DOWN;
+			map->m_modState = ALT;
+			map->m_usableIn = COMMANDUSABLE_GAME;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = getMetaMapRec(GameMessage::MSG_META_DEMO_FREE_BUILD);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_B;
+			map->m_transition = DOWN;
+			map->m_modState = ALT;
+			map->m_usableIn = COMMANDUSABLE_GAME;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = TheMetaMap->getMetaMapRec(GameMessage::MSG_META_DEMO_BEGIN_ADJUST_DEFAULTPITCH);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_COMMA;
+			map->m_transition = DOWN;
+			map->m_modState = CTRL;
+			map->m_usableIn = COMMANDUSABLE_GAME;
+		}
+	}
+	{
+		// Is useful for Generals and Zero Hour.
+		MetaMapRec *map = TheMetaMap->getMetaMapRec(GameMessage::MSG_META_DEMO_END_ADJUST_DEFAULTPITCH);
+		if (map->m_key == MK_NONE)
+		{
+			map->m_key = MK_COMMA;
+			map->m_transition = UP;
+			map->m_modState = CTRL;
+			map->m_usableIn = COMMANDUSABLE_GAME;
+		}
+	}
+#endif // defined(RTS_DEBUG)
+
+#if GX_REMASTERED_UI
+	// Last, once every record above has its key.
+	gxYieldRemasteredChord(getFirstMetaMapRec());
+#endif
+	// GeneralsX @feature Claude 11/10/2026 The camera-reset key gives way like the Remastered chord: a select chord or any
+	// record of another command on its key keeps it, and this key is off for the session (said on stderr). CAMERA_RESET's own
+	// record (KP5, or a mod's key) is the command itself, not a holder.
+	if (s_gxCameraReset.key != MK_NONE)
+	{
+		const char *holder = nullptr;
+		if (s_gxCameraReset.key == s_gxSelectInfantry.key && s_gxCameraReset.mods == s_gxSelectInfantry.mods)
+			holder = "GXSelectInfantryKey";
+		else if (s_gxCameraReset.key == s_gxSelectAllUnits.key && s_gxCameraReset.mods == s_gxSelectAllUnits.mods)
+			holder = "GXSelectAllKey";
+		else if (s_gxCameraReset.key == s_gxRemastered.key && s_gxCameraReset.mods == s_gxRemastered.mods)
+			holder = "GXRemasteredKey";
+		else if (s_gxCameraReset.key == s_gxIdleWorker.key && s_gxCameraReset.mods == s_gxIdleWorker.mods)
+			holder = "GXIdleWorkerKey";
+		for (const MetaMapRec *r = getFirstMetaMapRec(); holder == nullptr && r != nullptr; r = r->m_next)
+		{
+			if (r->m_meta != GameMessage::MSG_META_CAMERA_RESET && r->m_key == s_gxCameraReset.key && r->m_modState == s_gxCameraReset.mods)
+				holder = GameMessage::getCommandTypeAsString(r->m_meta);
+		}
+		if (holder != nullptr)
+		{
+			fprintf(stderr, "[GXKEYS] GXCameraResetKey: that key is already %s's - it keeps it, and camera reset stays on its CommandMap key only\n", holder);
+			s_gxCameraReset.key = MK_NONE;
+			s_gxCameraReset.mods = NONE;
+		}
+	}
+}
+
+//-------------------------------------------------------------------------------------------------
+void MetaMap::verifyMetaMap()
+{
+#ifdef DEBUG_CRASHING
+	for (const MetaMapRec *map = getFirstMetaMapRec(); map; map = map->m_next)
+	{
+		DEBUG_ASSERTCRASH(
+			map->m_meta > GameMessage::MSG_BEGIN_META_MESSAGES &&
+			map->m_meta < GameMessage::MSG_END_META_MESSAGES,
+			("hmm, expected only meta-msgs here"));
+	}
+#endif
+}
+
+//-------------------------------------------------------------------------------------------------
+/*static*/ void INI::parseMetaMapDefinition( INI* ini )
+{
+	MetaMap::parseMetaMap(ini);
+}
+

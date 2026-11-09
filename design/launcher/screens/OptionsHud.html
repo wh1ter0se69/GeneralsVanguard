@@ -1,0 +1,2490 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GeneralsX launcher — Options — HUD</title>
+<link rel="stylesheet" href="../fonts/fonts.css">
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="./OptionsHud.css">
+<!-- Held hidden until the saved state is on it (gx-settle.js): the first frame is the final one. -->
+<script src="./gx-settle.js" onerror="window.gxSettle={wait:function(p){return p},whenShown:function(f){f()},picture:function(){},held:function(){return false}}"></script>
+<style id="gx-ground">
+/* The artboards are a fixed 1280x720 box. The launcher window's content area is taller than
+   that, and anything the box does not cover falls through to the webview's own default
+   background - which is WHITE. That is the strip along the bottom edge on macOS.
+   Paint the page ground behind the artboard so the uncovered area matches the design instead
+   of flashing white. Layout is untouched: this sits BEHIND the box, it does not resize it. */
+html, body { margin: 0; }
+/* THE BACKDROP LIVES ON THE VIEWPORT, NOT THE ARTBOARD. The artboard is a fixed
+   1280x720 composition that the fit script scales, so a backdrop painted on IT ends at
+   its scaled edge and every letterboxed band fell through to the flat page ground -
+   which is a different colour from the gradient, and read as the window being split in
+   two. Here it is one continuous ground behind everything, so there is no seam to find
+   at any window size. */
+body {
+  background: var(--gx-backdrop-2);
+  background-attachment: fixed;
+}
+/* Tells the platform to draw its own widgets - scrollbars, dropdowns, spinners - in their dark
+   variant. Without it Windows draws a WHITE scrollbar track with arrow buttons down the side of
+   a black launcher, which is what the operator saw. */
+html { color-scheme: dark; }
+/* An app, not a document: text does not highlight when a click drags a pixel. Anything meant to
+   be copied (the network-test paste line, file paths) opts back in with .gx-selectable. */
+body { -webkit-user-select: none; user-select: none; cursor: default; }
+.gx-selectable, .gx-selectable * { -webkit-user-select: text; user-select: text; cursor: text; }
+
+/* The scrollbar itself, so it matches the design rather than merely being dark. Uses the same
+   surface stack as the panels: track disappears into the page, thumb is one step up from a
+   card border, and it lightens on hover like every other control here. WebKit and Chromium
+   both honour these, which covers macOS, Windows and Linux webviews. */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #2E2E33;
+  border-radius: 5px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: #3D3D45; background-clip: content-box; }
+::-webkit-scrollbar-corner { background: transparent; }
+/* No stepper arrows: the design has none anywhere else. */
+::-webkit-scrollbar-button { display: none; height: 0; width: 0; }
+/* The standard property, for engines that prefer it over the WebKit ones. */
+* { scrollbar-width: thin; scrollbar-color: #2E2E33 transparent; }
+body { min-height: 100vh; }
+
+/* THE TWO HIDE-HUD KEYS ARE REBINDABLE (owner, 21/08/2026), so they need a capture control
+   rather than the static .key label the converted artboard left behind.
+   This is the .cap / .capbox language the SOURCE artboard already carried - design/OptionsHud.dc.html
+   :51-64 - restored here rather than re-invented, with its raw hexes swapped for the tokens they
+   were sampled from. It lives in this file and not in OptionsHud.css because that file is
+   regenerated from the artboard by scripts/design/convert-artboards.py, and the conversion is what
+   dropped the control in the first place. OptionsKeys.html carries its own owner-requested chip
+   styles inline for the same reason. */
+.gx-s-optionshud .cap { display: flex; align-items: center; justify-content: flex-end;
+      min-width: 108px; flex-shrink: 0; cursor: pointer; }
+.gx-s-optionshud .capbox { min-width: 76px; text-align: center; padding: 5px 10px;
+      font-size: var(--gx-fs-115); font-weight: 600;
+      background: linear-gradient(180deg, var(--gx-line-3) 0%, var(--gx-surface-3) 100%);
+      border: 1px solid var(--gx-line-5); color: var(--gx-ink);
+      box-shadow: 0 1px 0 var(--gx-white-a07) inset;
+      transition: border-color 160ms var(--gx-ease-out), background 160ms var(--gx-ease-out),
+                  color 160ms var(--gx-ease-out); }
+.gx-s-optionshud .capbox.listening { border-color: var(--gx-accent); color: var(--gx-accent-ink);
+      background: var(--gx-accent-bg); box-shadow: 0 0 0 1px var(--gx-accent-a35); }
+.gx-s-optionshud .capbox.unbound { color: var(--gx-ink-faint); font-weight: 500; }
+.gx-s-optionshud .capbox.bad { border-color: var(--gx-bad); color: var(--gx-bad-ink);
+      background: var(--gx-bad-edge); }
+.gx-s-optionshud .capnote { font-size: var(--gx-fs-100); line-height: 1.4; }
+.gx-s-optionshud .capnote.bad { color: var(--gx-bad); }
+.gx-s-optionshud .capnote.warn { color: var(--gx-warn); }
+.gx-s-optionshud .capnote.dim { color: var(--gx-ink-faint); word-break: break-word; }
+@media (hover: hover) and (pointer: fine) {
+  .gx-s-optionshud .cap:hover .capbox { border-color: var(--gx-line-6); }
+}
+@media (prefers-reduced-motion: reduce) { .gx-s-optionshud .capbox { transition: none; } }
+/* FOUR SECTIONS (owner, 24/09/2026): Readouts / Messages & chat / Hide keys / Layout. The two new
+   headers cost the left column ~50px it did not have (it already ended 9px past its box), so its
+   rows lose 3px of padding top and bottom. Scoped to .hudcol: Across / Down keep theirs. */
+.gx-s-optionshud .hudcol .row { padding-top: 4px; padding-bottom: 4px; }
+.gx-s-optionshud .seg { display: flex; flex-shrink: 0; border: 1px solid var(--gx-line-5); background: var(--gx-ground); padding: 3px; gap: 3px; }
+.gx-s-optionshud .segopt { padding: 9px 20px; font-size: var(--gx-fs-125); font-weight: 700; letter-spacing: 0.6px; text-transform: uppercase;
+      color: var(--gx-ink-dim); cursor: pointer; transition: background 160ms var(--gx-ease-out), color 160ms var(--gx-ease-out); }
+.gx-s-optionshud .segopt.on { background: var(--gx-accent); color: #fff; }
+.gx-s-optionshud .segopt:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .gx-s-optionshud .segopt:not(.on):hover { color: var(--gx-ink); background: var(--gx-surface-3); } }
+.gx-s-optionshud .gx-soon { padding: 14px 16px; border: 1px dashed var(--gx-line-5); background: var(--gx-ground); }
+.gx-s-optionshud[data-gx-ui="legacy"] .gx-gxui, .gx-s-optionshud:not([data-gx-ui]) .gx-gxui { display: none; }
+.gx-s-optionshud[data-gx-ui="generalsx"] .gx-legacy { display: none !important; }
+.gx-s-optionshud[data-gx-ui="generalsx"] .gx-gxui { display: flex; }
+/* SPECTATOR rows (GeneralsX UI side). Same row / toggle / .ctl language as the legacy readouts. */
+.gx-s-optionshud .gx-spgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--gx-line); }
+.gx-s-optionshud .gx-spgrid .row { padding: 5px 11px; gap: 9px; justify-content: flex-start; }
+.gx-s-optionshud .gx-spgrid .row > div { display: flex; align-items: center; gap: 9px; min-width: 0; }
+.gx-s-optionshud .toggle[role="switch"] { transition: background 160ms var(--gx-ease-out); }
+.gx-s-optionshud .toggle[role="switch"]:active { transform: scale(0.82) !important; }
+.gx-s-optionshud .toggle[role="switch"]:focus-visible { outline: 2px solid var(--gx-accent); outline-offset: 2px; }
+.gx-s-optionshud #gx-uimode.gx-wait { opacity: 0.5; pointer-events: none; }
+.gx-s-optionshud .gx-sppic { position: relative; width: 588px; height: 331px; flex-shrink: 0; border: 1px solid var(--gx-line-5); background: var(--gx-ground); overflow: hidden; }
+.gx-s-optionshud .gx-sppic > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover;
+      opacity: 0; transition: opacity 160ms var(--gx-ease-out); }
+.gx-s-optionshud .gx-sppic > img { pointer-events: none; }
+.gx-s-optionshud .gx-sppic > img.on { opacity: 1; }
+.gx-s-optionshud .gx-sppic .pvhost { position: absolute; inset: 0; display: none; }
+.gx-s-optionshud .gx-sppic.pv-live .pvhost { display: block; }
+.gx-s-optionshud .gx-sppic.pv-live[data-view="play"]:not(.pv-hasplay) .pvhost { display: none; }
+.gx-s-optionshud .gx-sppic.pv-live.pv-hasplay > img[data-pic="play"] { display: none; }
+.gx-s-optionshud .pvstage .pvscene { position: absolute; inset: 0; }
+.gx-s-optionshud .pvstage .pvscene.off { display: none; }
+.gx-s-optionshud .pvstage .pvbar { position: absolute; inset: 0; }
+.gx-s-optionshud .pvstage .pvsp { position: absolute; overflow: hidden; }
+.gx-s-optionshud .pvstage .pvsp.off { display: none; }
+.gx-s-optionshud .pvstage .pvsp img { position: absolute; }
+.gx-s-optionshud .pvstage .pvsp .hi { opacity: var(--pvt, 0.333); }
+.gx-s-optionshud .gx-sppic.pv-live > img[data-pic="bar"], .gx-s-optionshud .gx-sppic.pv-live > img[data-pic="board"] { display: none; }
+.gx-s-optionshud .pvstage { position: absolute; inset: 0; background: #000; overflow: hidden; container-type: inline-size; }
+.gx-s-optionshud .pvstage img { position: absolute; display: block; max-width: none; user-select: none; -webkit-user-drag: none; }
+.gx-s-optionshud .pvstage .pvbase { left: 0; top: 0; width: 100%; height: 100%; }
+.gx-s-optionshud .pvstage .pvp { position: absolute; }
+.gx-s-optionshud .pvstage .pvp img { left: 0; top: 0; width: 100%; height: 100%; }
+.gx-s-optionshud .pvstage .pvp .hi { opacity: var(--pvt, 0.333); }
+.gx-s-optionshud .pvstage .pvl { transition: opacity 120ms var(--gx-ease-out), visibility 0s; }
+.gx-s-optionshud .pvstage .pvl.off { opacity: 0; visibility: hidden; transition: opacity 120ms var(--gx-ease-out), visibility 0s 120ms; }
+.gx-s-optionshud .pvstage .pvnote { position: absolute; left: 50%; bottom: 3%; transform: translateX(-50%); max-width: 92%; text-align: center;
+      padding: 0.45em 0.9em; font-size: clamp(11px, 1.35cqw, 22px); line-height: 1.35; color: var(--gx-ink-dim);
+      background: rgba(10, 10, 12, 0.86); border: 1px solid var(--gx-line-5); }
+.gx-s-optionshud .gx-sppic:not(.pv-live) .pvexp { display: none; }
+.gx-s-optionshud .pvexp { position: absolute; z-index: 1; top: 8px; right: 8px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+      color: var(--gx-ink-2); background: rgba(10, 10, 12, 0.78); border: 1px solid var(--gx-line-5); cursor: pointer; padding: 0;
+      transition: background 160ms var(--gx-ease-out), border-color 160ms var(--gx-ease-out), transform 140ms var(--gx-ease-press); }
+.gx-s-optionshud .pvexp:active { transform: scale(0.97); }
+.gx-s-optionshud .pvexp:focus-visible, .gx-s-optionshud .gx-pvx button:focus-visible { outline: 2px solid var(--gx-accent); outline-offset: 1px; }
+@media (hover: hover) and (pointer: fine) { .gx-s-optionshud .pvexp:hover { background: rgba(10, 10, 12, 0.94); border-color: var(--gx-accent); color: var(--gx-ink); } }
+.gx-s-optionshud .gx-sppic.pv-live { cursor: zoom-in; }
+.gx-s-optionshud .gx-pvx { position: fixed; inset: 0; z-index: 10000; display: flex; flex-direction: column; align-items: center; gap: 12px;
+      padding: 12px 16px 16px; background: #0A0A0C; opacity: 0; transition: opacity 160ms var(--gx-ease-out); cursor: zoom-out; }
+.gx-s-optionshud .gx-pvx.in { opacity: 1; }
+.gx-s-optionshud .gx-pvx .pvx-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; width: 100%; max-width: 1920px; cursor: default; }
+.gx-s-optionshud .gx-pvx .pvx-hint { font-size: var(--gx-fs-105); color: var(--gx-ink-faint); }
+.gx-s-optionshud .gx-pvx .pvx-stage { position: relative; flex: 1 1 auto; min-height: 0; width: 100%; display: flex; align-items: center; justify-content: center; }
+.gx-s-optionshud .gx-pvx .pvx-frame { position: relative; aspect-ratio: 16 / 9; width: min(100%, calc((100vh - 84px) * 16 / 9)); max-height: 100%;
+      border: 1px solid var(--gx-line-5); background: #000; transform: scale(0.97); transition: transform 200ms var(--gx-ease-out); }
+.gx-s-optionshud .gx-pvx.in .pvx-frame { transform: none; }
+.gx-s-optionshud .gx-pvx .pvx-frame > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: none; }
+.gx-s-optionshud .gx-pvx[data-view="play"]:not(.pv-hasplay) .pvx-frame > img { display: block; }
+.gx-s-optionshud .gx-pvx[data-view="play"]:not(.pv-hasplay) .pvstage { display: none; }
+.gx-s-optionshud .gx-pvx .pvx-close { color: var(--gx-ink-2); background: transparent; border: 1px solid var(--gx-line-5); padding: 6px 14px; font: inherit; font-size: var(--gx-fs-115); cursor: pointer;
+      transition: background 160ms var(--gx-ease-out), border-color 160ms var(--gx-ease-out), transform 140ms var(--gx-ease-press); }
+.gx-s-optionshud .gx-pvx .pvx-close:active { transform: scale(0.97); }
+@media (hover: hover) and (pointer: fine) { .gx-s-optionshud .gx-pvx .pvx-close:hover { border-color: var(--gx-accent); color: var(--gx-ink); } }
+@media (prefers-reduced-motion: reduce) { .gx-s-optionshud .pvstage .pvl, .gx-s-optionshud .pvstage .pvl.off, .gx-s-optionshud .gx-pvx, .gx-s-optionshud .gx-pvx .pvx-frame, .gx-s-optionshud .pvexp { transition: none; }
+      .gx-s-optionshud .gx-pvx .pvx-frame { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .gx-s-optionshud .gx-sppic > img, .gx-s-optionshud .toggle[role="switch"] { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .gx-s-optionshud .segopt { transition: none; } }
+.gx-s-optionshud .grp { padding: 4px 13px 3px; background: var(--gx-ground); font-size: var(--gx-fs-95);
+      letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700; color: var(--gx-ink-faint); }
+
+</style>
+</head>
+<body class="gx-screen gx-s-optionshud">
+<div style="width: 1280px; height: 720px; background: transparent; color: var(--gx-ink); display: flex; overflow: hidden;">
+
+  <div style="width: 208px; flex-shrink: 0; background: var(--gx-ground); border-right: 1px solid var(--gx-line); display: flex; flex-direction: column;">
+    <div style="height: 40px;"></div>
+    <div style="padding: 4px 18px 0 18px;">
+      <div style="display: flex; align-items: baseline; gap: 6px;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; letter-spacing: 0.8px; line-height: 1.12;">GENERALS</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: var(--gx-fs-260); font-weight: 700; color: var(--gx-accent); line-height: 1.12; text-shadow: 0 0 16px var(--gx-accent-a45);">X</div>
+      </div>
+      <div style="width: 52px; height: 2px; background: linear-gradient(90deg, var(--gx-accent), var(--gx-accent-a15)); margin-top: 9px;"></div>
+    </div>
+
+    <div class="grouphead" style="padding-top: 20px;">Settings</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg><span>General</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span>Graphics</span></div>
+    <div class="item sel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>HUD</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>Keybinds</span></div>
+
+    <div class="grouphead">If something is wrong</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Network test</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>Diagnostics</span></div>
+
+    <div style="flex-grow: 1;"></div>
+    <div style="height: 1px; background: var(--gx-line);"></div>
+    <div class="item" style="height: 44px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>About</span></div>
+    <div style="padding: 14px 16px 16px 16px;">
+      <div class="gx-save" style="height: 44px; display: flex; align-items: center; justify-content: center; font-size: var(--gx-fs-125); font-weight: 700; letter-spacing: 0.8px;">BACK</div>
+      <div style="padding-top: 8px; text-align: center; font-size: var(--gx-fs-110); color: var(--gx-ink-faint);">Changes save automatically.</div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0;">
+    <div style="height: 40px;"></div>
+
+    <div class="gx-rise" style="padding: 4px 34px 0 34px;">
+      <div style="display: flex; align-items: flex-end; justify-content: space-between; gap: 20px;">
+        <div>
+          <div data-gx-noroute style="font-size: var(--gx-fs-230); font-weight: 700; letter-spacing: -0.2px;">HUD</div>
+          <div style="font-size: var(--gx-fs-125); color: var(--gx-ink-dim); margin-top: 3px;">The readouts drawn over the battlefield. Applied the next time the game starts.</div>
+        </div>
+        <div id="gx-uimode" data-gx-noroute role="tablist" aria-label="Which HUD to set up" class="seg">
+          <div class="segopt on" role="tab" tabindex="0" aria-selected="true" data-ui="legacy">Show legacy</div>
+          <div class="segopt" role="tab" tabindex="0" aria-selected="false" data-ui="generalsx">Show GeneralsX UI</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="flex-grow: 1; padding: 12px 34px 14px 34px; display: flex; gap: 20px; min-height: 0;">
+
+      <div class="gx-rise hudcol" style="width: 396px; flex-shrink: 0; display: flex; flex-direction: column; gap: 6px; animation-delay: 60ms;">
+        <div class="gx-legacy" style="display: flex; flex-direction: column; gap: 6px;">
+        <div id="gx-syncrow" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: -2px;"
+             title="Sync all: sets the size of every readout that is shown, in one go. Hidden readouts stay hidden and take this size when you switch them on.">
+          <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600;">Readouts</div>
+          <div style="display: flex; align-items: center; gap: 9px;">
+            <span style="font-size: var(--gx-fs-110); color: var(--gx-ink-dim);">Size of all</span>
+            <div class="ctl" style="width: 74px; height: 26px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">14</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+          <div class="grp">Performance</div>
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: var(--gx-fs-125);">Frame rate</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">12</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: var(--gx-fs-125);">Ping / latency</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">14</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grp">Match</div>
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: var(--gx-fs-125);">Match timer</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">18</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle off" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: var(--gx-fs-125); color: var(--gx-ink-dim);">System clock</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px; opacity: 0.4;">
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">12</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <span style="font-size: var(--gx-fs-125);">Show income per minute</span>
+            </div>
+          </div>
+
+          <div class="grp">Players</div>
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <div style="display: flex; flex-direction: column; gap: 1px;">
+                <span style="font-size: var(--gx-fs-125);">Player list</span>
+                <span style="font-size: var(--gx-fs-100); color: var(--gx-warn); letter-spacing: 0.4px;">Replays and observers</span>
+              </div>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">13</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SPECTATOR category: the observer-ui worker adds its opacity + what-shows rows here
+               (a .grp header + .row children), and nothing above needs to move. -->
+
+        </div>
+
+        <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600; margin-top: 6px;">Messages &amp; chat</div>
+        <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+          <div class="row">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div class="toggle on" style="transform: scale(0.86);"><div class="knob"></div></div>
+              <div style="display: flex; flex-direction: column; gap: 1px;">
+                <span style="font-size: var(--gx-fs-125);">In-game messages</span>
+                <span style="font-size: var(--gx-fs-100); color: var(--gx-ink-dim); letter-spacing: 0.4px;">Custom size — off uses the game&rsquo;s own size. The text cannot be hidden here</span>
+              </div>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">15</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <span style="font-size: var(--gx-fs-125);">In-game chat fade</span>
+              <span style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.45;">Seconds a chat or system message stays on screen</span>
+            </div>
+            <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+              <!-- Artboard sample, blanked at runtime. 10 rather than the old 75 so the static
+                   design-review preview shows the default the launcher actually writes. -->
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">10</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        </div>
+        <div class="gx-gxui" id="gx-spectator" style="flex-direction: column; gap: 6px;">
+          <div style="display: flex; align-items: center; justify-content: space-between;">
+            <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600;">Spectator</div>
+            <span id="gx-spreset" role="button" tabindex="0" title="Put the opacity, the what-shows switches and hide dead back to the game&rsquo;s defaults. The while-playing switches have their own Reset. The keys are on the Keybinds page." style="font-size: var(--gx-fs-115); color: var(--gx-accent); cursor: pointer;">Reset</span>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+            <div class="row">
+              <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+                <span style="font-size: var(--gx-fs-125);">Opacity</span>
+                <span style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.45;">How see-through the panels are, spectating and playing. 25 is nearly clear, 100 is solid.</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                <div class="ctl" style="width: 74px; height: 30px; flex-shrink: 0; justify-content: space-between; padding: 0 3px 0 11px;">
+                  <span id="gx-spopacity" style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">50</span>
+                  <div style="display: flex; flex-direction: column;">
+                    <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                    <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+                  </div>
+                </div>
+                <span style="font-size: var(--gx-fs-110); color: var(--gx-ink-dim);">%</span>
+              </div>
+            </div>
+            <div class="grp">What shows</div>
+            <div class="gx-spgrid">
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="Portraits" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Portraits</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="Names" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Names</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="Cash" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Cash</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="Income" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Income</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="Power" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Power</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="XP" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">XP</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="UnitsBuildings" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Units and buildings</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="ClockTotals" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Clock and totals</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="EventToast" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Event toast</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="FollowPanel" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Follow panel</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="Minimap" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Minimap</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="StatusTime" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Status and time</span></div></div>
+            <div class="row"><div><div class="toggle on" role="switch" aria-checked="true" tabindex="0" data-spshow="TabBoard" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Tab scoreboard</span></div></div>
+            <div class="row"><div><div class="toggle off" role="switch" aria-checked="false" tabindex="0" id="gx-sphidedead" style="transform: scale(0.86);"><div class="knob"></div></div><span style="font-size: var(--gx-fs-120);">Hide dead players</span></div></div>
+            </div>
+          </div>
+          <div style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.5;">Shown to spectators, replay viewers and defeated players, and to you while you play (While playing, on the right). Applied the next time the game starts. The keys are on the Keybinds page.</div>
+        </div>
+
+        <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600; margin-top: 6px;">Hide keys</div>
+        <div style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+          <!-- THE TWO HIDE-HUD BINDINGS. The command names are the ENGINE's own tokens and are
+               carried in data-hudkey verbatim: they are what the CommandMap file is keyed by, and
+               MetaEvent.cpp:162-163 is the only place they are defined. TOGGLE_HUD_OVERLAY still
+               says "overlay" rather than "spectator" for exactly that reason - renaming the token
+               would break a file somebody already has. The label does the disambiguating. -->
+          <div class="row" style="align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <span style="font-size: var(--gx-fs-125);">Hide the game HUD</span>
+              <span data-huddesc="TOGGLE_GAME_HUD" style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.45;">The command bar, build cameos, money, minimap and radar</span>
+              <div class="capnote" data-hudnote="TOGGLE_GAME_HUD" style="display: none;"></div>
+            </div>
+            <div class="cap" data-hudkey="TOGGLE_GAME_HUD" title="Click, then press the key you want. No modifier is used.">
+              <span class="capbox">F10</span>
+            </div>
+          </div>
+          <div class="row" style="align-items: flex-start;">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0;">
+              <span style="font-size: var(--gx-fs-125);">Hide the spectator HUD</span>
+              <span data-huddesc="TOGGLE_HUD_OVERLAY" style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.45;">Only the readouts above. Independent, so you can hide either alone</span>
+              <div class="capnote" data-hudnote="TOGGLE_HUD_OVERLAY" style="display: none;"></div>
+            </div>
+            <div class="cap" data-hudkey="TOGGLE_HUD_OVERLAY" title="Click, then press the key you want. No modifier is used.">
+              <span class="capbox">F11</span>
+            </div>
+          </div>
+          <!-- Anything that applies to BOTH rows: where the file lands, a clash check that could
+               not run, or a reason there is nowhere to write at all. -->
+          <div class="row" id="gx-hudkeys-foot" style="display: none;">
+            <div class="capnote dim" style="min-width: 0;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="gx-rise gx-legacy" style="flex-grow: 1; display: flex; flex-direction: column; gap: 9px; min-width: 0; animation-delay: 120ms;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between;">
+          <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600;">Layout</div>
+          <div style="display: flex; align-items: baseline; gap: 16px;">
+            <span id="gx-pvfull" title="Expand the preview to fill the window. Click it, or press Escape, to close." style="font-size: var(--gx-fs-115); color: var(--gx-accent); cursor: pointer;">Fullscreen</span>
+            <span id="gx-anchor-reset" title="Put every HUD setting on this page back to the game&rsquo;s defaults: sizes, messages, chat fade and position. The hide keys stay as they are." style="font-size: var(--gx-fs-115); color: var(--gx-accent); cursor: pointer;">Reset</span>
+          </div>
+        </div>
+
+        <!-- THE BACKGROUND IS A PLACEHOLDER AND HAS TO BE REPLACED (owner, 23/08/2026: "in the
+             preview we need to update the picture to a real picture"). hudground.jpg today is an
+             empty patch of desert with one obelisk in the top-left corner - a terrain crop, not a
+             game. Every readout drawn on top of it is anchored to something that is not there, and
+             the Across / Down control exists precisely because these readouts sit OVER things a
+             player needs to see. On bare ground there is nothing to move them off.
+
+             WHAT THE REPLACEMENT HAS TO BE. Measured against this surface rather than guessed:
+
+               * EXACTLY 1920x1080. Not "16:9". .stage is a real 1920x1080 surface scaled as one
+                 unit (0.30625, OptionsHud.css), and every coordinate in it - including the anchor
+                 the two boxes below write - is an ENGINE pixel. At 1920x1080 the picture and the
+                 coordinate space are the same grid, so what sits under a readout here is what sits
+                 under it in game. Today's asset is 1280x719, which is neither the engine's grid nor
+                 a clean 16:9, and Fullscreen on a 1440p display upscales it 2x.
+               * A REAL MATCH, with units, structures and terrain features - not an empty map.
+               * Captured with the READOUTS HIDDEN and the game HUD LEFT ON. F11 (TOGGLE_HUD_OVERLAY)
+                 hides exactly the five this preview draws, so the picture cannot double them; F10
+                 would also take the command bar and radar, and the observer player list below is
+                 drawn OVER the command-bar region in game, so a screenshot without it would float
+                 that table on bare terrain.
+               * Something worth reading in ALL FOUR anchored regions, because that is where the
+                 preview draws: top-left (the ping/fps row and the message list, from 3,-1 by
+                 default), top-right (the match timer), the left edge at 32% down (the intelligence
+                 feed) and bottom-centre (the player table).
+               * No player names, addresses or anything identifying. This repository is public.
+
+             REPLACE BOTH COPIES. design/hudground.jpg feeds the artboard (OptionsHud.dc.html:81)
+             and design/launcher/hudground.jpg feeds this screen (OptionsHud.css:63); they are
+             byte-identical today and build-prototype.py copies one to the other. Replacing one
+             leaves verify.html reporting a difference between the screen and its own reference.
+             Keep the FILENAME - only the bytes need to change, and nothing then needs editing. -->
+        <div class="screen" style="width: 588px; height: 331px; flex-shrink: 0;">
+          <div class="stage">
+
+            <!-- TOP-LEFT CLUSTER, in the order the engine stacks it.
+                 ping is "38ms", colour-banded green/yellow/red.
+                 the fps line is a TRIPLE: fps yellow (255,255,0), [limit] grey (119,119,119),
+                 tps banded on the same thresholds as ping.
+                 then the message list, alternating MessageColor1 white / MessageColor2 grey. -->
+            <div data-gx-pv-anchor style="position: absolute; left: 16px; top: 12px; display: flex; flex-direction: column; gap: 2px;">
+              <!-- ONE ROW. InGameUI.cpp:4553-4569 threads a single hudOffsetX through
+                   drawNetworkLatency, drawNetworkResends, drawRenderFps, drawLogicRate and
+                   drawSystemTime, and each one ADVANCES x (":7125  x += width + kHudGapPx").
+                   They sit side by side, never stacked. kHudGapPx is 6 (:1109), and there is NO
+                   gap between the fps number and its [limit] - :7300 advances by the width alone.
+                   data-gx-pv names the PREFERENCE each part is drawn with, which is not one per
+                   readout: :4593-4599 gates BOTH the fps triple and tps on m_renderFpsPointSize,
+                   the twinning InGameUI.cpp:4576-4586 explains. The system clock starts hidden
+                   because the artboard's System clock row is off, which is the engine's own
+                   default (SystemTimeFontSize absent means 0, and :4603 gates on > 0).
+                   data-gx-pv-gap marks the 6px advances, which have to disappear with whatever
+                   they trail - see tidyGaps in the preview block below. -->
+              <div data-gx-pv-row style="font-family: Arial, 'Liberation Sans', Helvetica, sans-serif; font-size: var(--gx-fs-260); text-shadow: 0 2px 3px var(--gx-shadow-a90); white-space: nowrap; display: flex; align-items: baseline;"><span data-gx-pv="networkLatency" style="color: #00FF00;">38ms</span><span data-gx-pv-gap style="width: 6px;"></span><span data-gx-pv="renderFps" style="color: #FFFF00;">59</span><span data-gx-pv="renderFps" style="color: #777777;">[60]</span><span data-gx-pv-gap style="width: 6px;"></span><span data-gx-pv="renderFps" style="color: #00FF00;">60tps</span><span data-gx-pv-gap style="width: 6px;"></span><span data-gx-pv="systemTime" style="display: none; color: var(--gx-white);">14:32:05</span></div>
+              <div style="height: 8px;"></div>
+              <div data-gx-pv="inGameMessage" style="font-family: Arial, 'Liberation Sans', Helvetica, sans-serif; font-size: var(--gx-fs-280); color: var(--gx-white); text-shadow: 0 2px 3px var(--gx-shadow-a90); white-space: nowrap;">Unit under attack</div>
+              <div data-gx-pv="inGameMessage" style="font-family: Arial, 'Liberation Sans', Helvetica, sans-serif; font-size: var(--gx-fs-280); color: #B4B4B4; text-shadow: 0 2px 3px var(--gx-shadow-a90); white-space: nowrap;">Upgrade Complete: AP Bullets</div>
+              <div data-gx-pv="inGameMessage" style="font-family: Arial, 'Liberation Sans', Helvetica, sans-serif; font-size: var(--gx-fs-280); color: var(--gx-white); text-shadow: 0 2px 3px var(--gx-shadow-a90); white-space: nowrap;">User-PC has been Defeated</div>
+            </div>
+
+            <div class="readout" data-gx-pv="gameTime" style="right: 16px; top: 12px; font-size: var(--gx-fs-340); color: var(--gx-white);">00:12:45<span style="color: #B4B4B4;">.17</span></div>
+
+            <div style="position: absolute; left: 14px; top: calc(32% - 34px); font-size: var(--gx-fs-200); letter-spacing: 1px; color: var(--gx-warn); font-family: Arial, sans-serif;">REPLAYS AND OBSERVERS ONLY</div>
+            <div class="intel">
+              <div style="color: #598DFF;">BiG SiZe completed MOAB</div>
+              <div style="color: #FF5959;">[OoE]Marakar completed Nuclear Tanks</div>
+              <div style="color: #59C159;">[OoE]ExCaL^ completed Anthrax Beta</div>
+            </div>
+
+            <!-- The size lives on the CELLS here (OptionsHud.css .pil th/.pil td), not on the
+                 table, so the preview block scales every th and td rather than this element. -->
+            <table class="pil" data-gx-pv="playerInfoList">
+              <tr><th class="n">(T) Player</th><th>Army</th><th>Cash</th><th>Cash/m</th><th>(R) XP</th><th>SP</th><th>K/D</th><th>Power</th></tr>
+              <tr style="color: #598DFF;"><td class="n">(1) BiG SiZe</td><td>USA</td><td>4,210</td><td>+820</td><td>(3) 5140</td><td>2</td><td>4.7</td><td>ON (35)</td></tr>
+              <tr style="color: #FF5959;"><td class="n">(2) [OoE]Marakar</td><td>Nuke</td><td>3,880</td><td>+640</td><td>(2) 3020</td><td>1</td><td>1.3</td><td>OFF</td></tr>
+              <tr style="color: #59C159;"><td class="n">(2) [OoE]ExCaL^</td><td>Toxin</td><td>2,105</td><td>+410</td><td>(1) 1180</td><td>0</td><td>0.3</td><td>-</td></tr>
+            </table>
+
+          </div>
+        </div>
+
+        <!-- WHAT THE PREVIEW IS, said on the screen and not only in a comment. The sizes above
+             move with the controls but they are proportional, not predictive - see the note on
+             the preview in the wiring block below for exactly what is and is not claimed. -->
+        <div style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.5;">
+          <span style="color: var(--gx-ink);">Approximate.</span> Each readout is scaled against its own default and drawn with this launcher&rsquo;s fonts, not the game&rsquo;s, so read it as direction and rough size rather than exact pixels. In-game messages are scaled from the size this screen turns them on at, because the game&rsquo;s own message size lives inside its archives.
+        </div>
+
+        <div style="display: flex; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+          <div class="row" style="flex: 1; padding: 10px 13px;">
+            <span style="font-size: var(--gx-fs-120); color: var(--gx-ink-dim);">Across</span>
+            <div class="ctl" style="width: 70px; height: 29px; justify-content: space-between; padding: 0 3px 0 10px;">
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">14</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+          <div class="row" style="flex: 1; padding: 10px 13px;">
+            <span style="font-size: var(--gx-fs-120); color: var(--gx-ink-dim);">Down</span>
+            <div class="ctl" style="width: 70px; height: 29px; justify-content: space-between; padding: 0 3px 0 10px;">
+              <span style="font-size: var(--gx-fs-120); font-variant-numeric: tabular-nums;">12</span>
+              <div style="display: flex; flex-direction: column;">
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 11 7-6 7 6"/></svg></div>
+                <div class="spin"><svg width="9" height="6" viewBox="0 0 24 16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 5 7 6 7-6"/></svg></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-size: var(--gx-fs-115); color: var(--gx-ink-dim); line-height: 1.5;">Screen pixels from the top-left corner, for the ping and frame rate row only — saved to <span style="color: var(--gx-ink);">GXHud.ini</span>, the file the engine reads for this anchor. The match timer is anchored <span style="color: var(--gx-ink);">right</span>, the player list <span style="color: var(--gx-ink);">bottom-centre</span>, and the intelligence feed <span style="color: var(--gx-ink);">32% down the left</span>. Each keeps its own anchor.</div>
+      </div>
+
+      <div class="gx-gxui gx-rise" style="flex-grow: 1; flex-direction: column; gap: 9px; min-width: 0; align-self: flex-start;">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600;">Layout</div>
+          <div id="gx-sppicbar" class="seg" role="tablist" aria-label="Which view to preview">
+            <div class="segopt on" role="tab" tabindex="0" aria-selected="true" data-pic="bar" style="padding: 6px 14px;">Players bar</div>
+            <div class="segopt" role="tab" tabindex="0" aria-selected="false" data-pic="board" style="padding: 6px 14px;">Tab scoreboard</div>
+            <div class="segopt" role="tab" tabindex="0" aria-selected="false" data-pic="play" style="padding: 6px 14px;">Playing</div>
+          </div>
+        </div>
+        <div class="gx-sppic" data-view="bar">
+          <div class="pvhost" id="gx-pvhost"></div>
+          <button type="button" class="pvexp" id="gx-pvexp" aria-label="Expand the preview" title="Expand the preview to the whole window. Esc or a click closes it."><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+          <img class="on" data-pic="bar" src="../spectator-bar.jpg" alt="The GeneralsX spectator screen in a six against six match: a top bar with every player's card, the minimap and the follow panel docked to the side.">
+          <img data-pic="board" src="../spectator-board.jpg" alt="The Tab scoreboard over a six against six match: one row per player with cash, income, experience, power and units.">
+          <img data-pic="play" src="../player-c.jpg" alt="The GeneralsX UI while playing: the players bar folded into a small tab at the top centre, a see-through command bar with an economy line above it showing income, power, army and experience, and the radar at the bottom left shaped like the map.">
+        </div>
+        <div style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.5;">
+          <span style="color: var(--gx-ink);">A real match, cut from game screenshots.</span> <span id="gx-pvcap">The picture is a screenshot from the game, so the switches and the opacity do not redraw it; they apply in the game. Hold Tab for the scoreboard.</span>
+        </div>
+        <div id="gx-player" style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; ">
+            <div style="font-size: var(--gx-fs-105); letter-spacing: 1.5px; color: var(--gx-ink-dim); text-transform: uppercase; font-weight: 600;">While playing</div>
+            <span id="gx-plreset" role="button" tabindex="0" title="Put the two while-playing switches back to the game&rsquo;s defaults. Nothing else changes." style="font-size: var(--gx-fs-115); color: var(--gx-accent); cursor: pointer;">Reset</span>
+          </div>
+          <div class="gx-plgrp" style="display: flex; flex-direction: column; gap: 1px; border: 1px solid var(--gx-line); background: var(--gx-line);">
+            <div class="row">
+              <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+                <span style="font-size: var(--gx-fs-120);">Numbers on the command bar</span>
+                <span style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.4;">Your income, power, units, buildings and rank progress.</span>
+              </div>
+              <div class="toggle on" role="switch" aria-checked="true" aria-label="Numbers on the command bar" tabindex="0" id="gx-plstrip" style="transform: scale(0.86); flex-shrink: 0;"><div class="knob"></div></div>
+            </div>
+            <div class="row">
+              <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0;">
+                <span style="font-size: var(--gx-fs-120);">Tab opens the scoreboard</span>
+                <span style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.4;">Hold Tab for the scoreboard. Off keeps Tab as Diplomacy.</span>
+              </div>
+              <div class="toggle on" role="switch" aria-checked="true" aria-label="Tab opens the scoreboard" tabindex="0" id="gx-pltab" style="transform: scale(0.86); flex-shrink: 0;"><div class="knob"></div></div>
+            </div>
+          </div>
+          <div style="font-size: var(--gx-fs-105); color: var(--gx-ink-dim); line-height: 1.5;">While playing you see only what the game already shows a player: your own numbers in full, everyone else by name, general and team.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+<!-- gx-nav-wired -->
+<script src="./gx-savekey.js"></script>
+<script>
+// Navigation. The screens were converted from artboards as standalone pages, so nothing linked
+// to anything - every button was inert. This wires the real routes by the visible label, which
+// is stable because the labels ARE the design.
+(function () {
+  var ROUTES = {
+    'general': 'OptionsGeneral.html',
+    'graphics': 'Options.html',
+    'hud': 'OptionsHud.html',
+    'keybinds': 'OptionsKeys.html',
+    'network test': 'OptionsNetwork.html',
+    'diagnostics': 'OptionsDiag.html',
+    'about': 'OptionsAbout.html',
+    'options': 'OptionsGeneral.html',
+    'changelogs': 'Changelogs.html',
+    'all releases': 'Changelogs.html',
+    'save & go back': 'MainWeb.html',
+    'go back': 'MainWeb.html',
+    'back': 'MainWeb.html'
+  };
+  function labelOf(el) {
+    return (el.textContent || '').trim().toLowerCase().replace(/\s+/g, ' ');
+  }
+  document.addEventListener('click', function (ev) {
+    var el = ev.target;
+    for (var i = 0; el && i < 6; i++, el = el.parentElement) {
+      if (el.hasAttribute && el.hasAttribute('data-cmd')) { return; }   // keybind tiles own their clicks
+      if (el.hasAttribute && el.hasAttribute('data-gx-noroute')) { return; }  // static headings are not nav
+      var dest = ROUTES[labelOf(el)];
+      if (dest) {
+        ev.preventDefault();
+        // Leaving writes anything still waiting first, and a refused write keeps the page once
+        // (gxAutosave in gx-savekey.js).
+        var go = window.gxLeave ? window.gxLeave() : Promise.resolve(true);
+        go.then(function (ok) { if (ok) { window.location.href = dest; } });
+        return;
+      }
+    }
+  });
+})();
+</script>
+<script>
+// SHOW LEGACY / SHOW GENERALSX UI (owner, 05/10/2026). Legacy = today's readouts and layout preview;
+// GeneralsX UI = the new spectator screen's own settings. The choice is PERSISTED as SpectatorUI in
+// GXHud.ini, which the engine reads (GXSpectatorHud.h): the wiring block below installs
+// window.gxUiPersist once it has read the file, and sets the switch from it. Inside the launcher the
+// switch is inert until then, so it can never show a choice that was not saved. Outside the launcher
+// (the static design-review page) it stays a pure view switch.
+(function () {
+  var bar = document.getElementById('gx-uimode');
+  if (!bar) { return; }
+  var inLauncher = !!(window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke);
+  if (inLauncher) { bar.classList.add('gx-wait'); bar.setAttribute('aria-disabled', 'true'); }
+  function set(ui) {
+    document.body.setAttribute('data-gx-ui', ui);
+    Array.prototype.forEach.call(bar.children, function (b) {
+      var on = b.getAttribute('data-ui') === ui;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+  }
+  function choose(ui) {
+    if (bar.classList.contains('gx-wait')) { return; }   // inert until GXHud.ini has been read
+    set(ui);
+    if (window.gxUiPersist) { window.gxUiPersist(ui); }
+  }
+  bar.addEventListener('click', function (ev) {
+    var b = ev.target.closest && ev.target.closest('[data-ui]');
+    if (b) { choose(b.getAttribute('data-ui')); }
+  });
+  bar.addEventListener('keydown', function (ev) {
+    var b = ev.target.closest && ev.target.closest('[data-ui]');
+    if (b && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); choose(b.getAttribute('data-ui')); }
+  });
+  // The wiring block calls this with what GXHud.ini holds; it enables the switch.
+  window.gxUiLoaded = function (ui) { set(ui); bar.classList.remove('gx-wait'); bar.removeAttribute('aria-disabled'); };
+  set('legacy');
+  // The preview's two pictures (a view switch only; nothing is saved).
+  var pb = document.getElementById('gx-sppicbar');
+  function pic(which) {
+    Array.prototype.forEach.call(pb.children, function (t) {
+      var on = t.getAttribute('data-pic') === which;
+      t.classList.toggle('on', on); t.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.gx-sppic > img'), function (i) {
+      i.classList.toggle('on', i.getAttribute('data-pic') === which);
+    });
+  }
+  if (pb) {
+    pb.addEventListener('click', function (ev) { var t = ev.target.closest && ev.target.closest('[data-pic]'); if (t) { pic(t.getAttribute('data-pic')); } });
+    pb.addEventListener('keydown', function (ev) {
+      var t = ev.target.closest && ev.target.closest('[data-pic]');
+      if (t && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); pic(t.getAttribute('data-pic')); }
+    });
+  }
+})();
+</script>
+<!-- gx-optionshud-wired -->
+<script>
+// The HUD screen, against the GAME's Options.ini plus the launcher's own GXHud.ini
+// (gxio::options -> cmd_options.rs: options_load / options_save_hud).
+//
+// STATIC PREVIEW OUTSIDE THE LAUNCHER: window.__TAURI__ is absent in a plain browser, this block
+// returns at the first line, and the artboard's sample content stays exactly as designed. That is
+// the design-review mode, and a packaging gate.
+//
+// INSIDE THE LAUNCHER the baked samples are blanked BEFORE any invoke resolves, so a slow or
+// failed options_load shows an honest em dash plus an error line - never plausible fake numbers.
+//
+// WHAT IS WIRED
+//
+//   Ping / latency     NetworkLatencyFontSize     toggle + size
+//   Match timer        GameTimeFontSize           toggle + size
+//   Player list        PlayerInfoListFontSize     toggle + size
+//   Frame rate         RenderFpsFontSize          toggle + size
+//   System clock       SystemTimeFontSize         toggle + size
+//   In-game messages   InGameMessageFontSize      custom-size toggle + size - see below
+//   In-game chat fade  chatFadeSeconds            1..600 s. Absent means the game data's own 75,
+//                                                 which is too long, so the launcher WRITES its
+//                                                 own 10 on a fresh install - see the block below
+//   Show income per minute   ShowMoneyPerMinute   yes/no
+//   Across / Down      anchorX / anchorY          the readout stack anchor. Saved to GXHud.ini,
+//                                                 which the ENGINE reads for this anchor; absent =
+//                                                 engine defaults 3 / -1, shown dim
+//   Reset              resetAnchor: true          removes the anchor so the engine defaults return
+//
+// EVERY NUMBER BOX HERE CAN BE TYPED INTO as well as stepped - see makeTypable. Typing commits
+// through the same function the spin buttons call, so there is one clamp and one save path.
+//
+// THE TOGGLE IS THE SIZE for the five gated readouts. There is no separate on/off key: the engine
+// gates each readout on `pointSize > 0` (InGameUI.cpp:4561-4590), so switching one off writes 0
+// and switching it back on restores the size it had. Where the file never said, "on" writes the
+// engine's own default of 8 (OptionPreferences.cpp:961-1016) handed over by options_load - not a
+// number chosen here. A size drawn DIM is that engine default, not a value read from a file.
+//
+// IN-GAME MESSAGES IS THE ONE EXCEPTION. For that key alone 0 does NOT mean hidden - the engine's
+// own comment (OptionPreferences.cpp:1024-1029) records that it means "use the INI/language
+// value", because the shipped message size differs per language. So its toggle controls whether a
+// CUSTOM size applies: off writes 0 (the game's own size), on writes a real size. The text itself
+// cannot be hidden from here, and the row's copy says so.
+//
+// F10 / F11 ARE REBIND CONTROLS as of 21/08/2026 - see the gx-hudkeys-wired block below. This
+// comment used to say the opposite ("the two hide-HUD bindings live in the CommandMap INI and are
+// fixed"), and the first half was right while the second was not: a file in
+// Data\INI\CommandMap\ MERGES with the shipped map rather than replacing it, so one binding can
+// be changed without touching the other 95. Worse, on this Mac neither key was BOUND at all -
+// only the Windows loader has ever written that file - so "F10 / fixed key" was a label for a key
+// that did nothing. gxio::commandmap carries the evidence.
+//
+// THE PREVIEW IS PROPORTIONAL, NOT PREDICTIVE (owner report, 21/08/2026: "All of these buttons do
+// NOT adjust anything on the preview, so not sure if they do anything in game too"). They do work
+// in game - all six keys are read by OptionPreferences.cpp:961-1052 - and the SIZE controls move
+// the preview with them.
+//
+// ACROSS / DOWN DID NOT, AND THIS COMMENT USED TO CLAIM THEY DID (owner again, 23/08/2026: "they
+// dont display the preview right now and are incorrect"). The claim was written and never checked.
+// Measured before the fix, headless Chromium against a stubbed options_load: stepping Across from
+// 3 to 13 and Down from -1 to 9 left the readout stack at left: 16px / top: 12px, unchanged - the
+// baked artboard position - while every step really did reach options_save_hud. So the anchor
+// always wrote, and the picture always lied about where it wrote to. wireNumber's onCommit now
+// repaints the stack, and the stack starts at the anchor rather than at the artboard's sample.
+//
+// "OUTSIDE THE SCREEN" IS THE THIRD DEFECT AND IT IS LITERAL. Re-measured in the owner's OWN
+// configuration - his Options.ini carries `Resolution = 2560 1440` - against the screen as it stood
+// at f9c4d2fb9:
+//
+//     saved anchor 2000 / 700   boxes 2000 / 700     cluster 16px / 12px   (never moved)
+//     holding the up arrow      boxes 4003 / 3999    cluster 16px / 12px
+//                               and it WROTE { anchorX: 4003, anchorY: 3999 } to GXHud.ini
+//
+// On a 2560x1440 screen that draws the ping and frame-rate row 1443 px past the right edge and
+// 2559 px below the bottom. The engine clamps nothing - gxHudSetting takes whatever strtol returns
+// - so the readouts were simply gone, with no feedback anywhere and Reset the only way back. The
+// same three arms now give 1500 / 525 stage px, a ceiling of 2559 / 1439, and a default that lands
+// at 2.3 / -0.8 rather than the artboard's 16 / 12.
+//
+//   The warning that kept it static STILL STANDS and is why this is scaling and not rendering:
+//   drawing a readout at its true on-screen size needs the language pack's font scaler, which
+//   lives inside the game's archives, and it is then rasterised by a font this webview does not
+//   have. A preview claiming exact pixels would be a confident wrong picture.
+//
+//   What IS knowable is the shape of the mapping. GlobalLanguage::adjustFontSize
+//   (GlobalLanguage.cpp:344-353) is floor(size * adjustFactor), and getResolutionFontSizeScale
+//   (:272-300) derives that factor from the display width and the language's own adjustment -
+//   never from the size being scaled. One factor, applied to every readout. So the RATIO between
+//   two sizes of one readout survives the scaler exactly, up to the floor's sub-point rounding,
+//   even though the absolute size does not. Scaling each readout against its OWN default is
+//   therefore a true statement about direction and magnitude, and the screen labels it
+//   "Approximate" so it never claims more than that.
+//
+//   Hiding is not approximate at all and is done exactly: the engine gates each readout on
+//   pointSize > 0 (InGameUI.cpp:4587-4615), so switching one off removes it from the preview the
+//   same way it removes it from the game.
+//
+//   TWO THINGS THE PREVIEW STILL CANNOT SHOW, said out loud rather than left to be discovered:
+//     * In-game messages have no launcher-readable default. 0 means "the game's own size for your
+//       language", which is in Data\<lang>\Language.ini inside the archives. So that row is scaled
+//       from the size this screen turns it ON at, and the copy under the preview says so.
+//     * Show income per minute changes nothing here, and correctly. It adds a Cash/m column while
+//       you are PLAYING; the preview draws the observer table, and InGameUI.cpp:7595-7601 makes
+//       that column unconditional for observers and replays. The row carries a tooltip saying it.
+//
+// SAVED ON EVERY CHANGE, with no Save button (owner, 26/09/2026): gxAutosave in gx-savekey.js
+// debounces the writes and flushes them before BACK or the sidebar leaves the page. EVERY save
+// rejects with a human sentence while Zero Hour is running (the engine dumps its own map back over
+// Options.ini on exit, reverting anything written underneath it). The sentence is surfaced next to
+// BACK, the pending choices are kept, and the next change, Ctrl+S or leaving retries them.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }
+  var invoke = T.core.invoke;
+
+  function norm(t) { return (t || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+  function rowByLabel(prefix) {
+    var rows = document.querySelectorAll('.row');
+    for (var i = 0; i < rows.length; i++) {
+      var first = rows[i].firstElementChild;
+      if (first && norm(first.textContent).indexOf(prefix) === 0) { return rows[i]; }
+    }
+    return null;
+  }
+  // The anchor and chat-fade fields are newer than some builds of the Rust side, and the two
+  // sides have disagreed on case before (this DTO serialises camelCase; other commands do not).
+  // Read every plausible spelling; the first one present and non-null wins.
+  function pick(objs, names) {
+    for (var i = 0; i < objs.length; i++) {
+      var o = objs[i];
+      if (!o) { continue; }
+      for (var j = 0; j < names.length; j++) {
+        if (o[names[j]] !== undefined && o[names[j]] !== null) { return o[names[j]]; }
+      }
+    }
+    return null;
+  }
+
+  // The error surface: one selectable line above BACK, created only when there is
+  // something to say and cleared when a later write lands. Selectable because the sentence can
+  // carry a file path worth copying.
+  var save = document.querySelector('.gx-save');
+  var msgEl = null;
+  function say(text, tone) {
+    if (!text) { if (msgEl) { msgEl.remove(); msgEl = null; } return; }
+    if (!msgEl && save && save.parentNode) {
+      msgEl = document.createElement('div');
+      msgEl.className = 'gx-selectable';
+      msgEl.style.cssText = 'padding: 0 2px 10px 2px; font-size: var(--gx-fs-105);' +
+                            ' line-height: 1.5; word-break: break-word;';
+      save.parentNode.insertBefore(msgEl, save);
+    }
+    if (!msgEl) { return; }
+    msgEl.textContent = text;
+    msgEl.style.color = tone === 'bad' ? 'var(--gx-bad-ink)'
+                      : tone === 'warn' ? 'var(--gx-warn-ink)'
+                      : 'var(--gx-ink-dim)';
+  }
+
+  // Blank the baked samples NOW - before options_load resolves. A failed read must end in an
+  // honest em dash and an error line, never the artboard's plausible numbers.
+  var SAMPLE_ROWS = ['ping / latency', 'match timer', 'player list', 'frame rate', 'system clock',
+                     'in-game messages', 'in-game chat fade', 'across', 'down',
+                     'show income per minute'];
+  SAMPLE_ROWS.forEach(function (l) {
+    var row = rowByLabel(l);
+    if (!row) { return; }
+    var t = row.querySelector('.toggle');
+    if (t) { t.style.opacity = '0.45'; }
+    var s2 = row.querySelector('.ctl span');
+    if (s2) { s2.textContent = '—'; s2.style.color = 'var(--gx-ink-faint)'; }
+  });
+  // "Size of all" is not a labelled .row, so its baked 14 is blanked here too (Codex codex-batch-1005 p1-launcher);
+  // a good read repaints it (the sync block's paint() sets its text, colour and opacity).
+  (function () {
+    var ctl = document.querySelector('#gx-syncrow .ctl');
+    var s3 = ctl && ctl.querySelector('span');
+    if (s3) { s3.textContent = '—'; s3.style.color = 'var(--gx-ink-faint)'; ctl.style.opacity = '0.45'; }
+  })();
+
+  // ONE WRITER. Every change lands in `pending`; a debounced flush sends the merged edit. On
+  // rejection (Zero Hour running, an unwritable file) the edit is merged back and retried by the
+  // next change, by Ctrl+S, or on the way off the page (gxAutosave's leave guard).
+  var pending = {};
+  var inflight = null;
+  // Run with each edit that REACHED the file - whether it was the first attempt or a retry after a
+  // refusal - so a row that paints "set" only once written learns it however the write happened.
+  var savedHooks = [];
+  function flush() {
+    if (inflight) { return inflight; }
+    if (!Object.keys(pending).length) { return Promise.resolve(); }
+    var edit = pending;
+    pending = {};
+    inflight = invoke('options_save_hud', { edit: edit }).then(function () {
+      inflight = null;
+      say('');
+      savedHooks.forEach(function (h) { h(edit); });
+      if (Object.keys(pending).length) { return flush(); }
+    }).catch(function (e) {
+      inflight = null;
+      // Keep the failed choices so a retry re-sends them; anything changed since wins.
+      for (var k in edit) { if (!(k in pending)) { pending[k] = edit[k]; } }
+      // The what-shows map merges by name: a refused toggle must survive a later one made before the retry.
+      if (edit.spectatorShow && pending.spectatorShow && pending.spectatorShow !== edit.spectatorShow) {
+        pending.spectatorShow = Object.assign({}, edit.spectatorShow, pending.spectatorShow);
+      }
+      say(window.gxSaveRefused ? window.gxSaveRefused(e) : String(e), 'bad');
+      throw e;
+    });
+    return inflight;
+  }
+  var auto = window.gxAutosave(flush, say);
+  function push(edit) {
+    for (var k in edit) { pending[k] = edit[k]; }
+    auto.changed();
+  }
+
+  // Ctrl+S / Cmd+S: writes whatever is still waiting now, and says how that went. An armed
+  // hide-key capture ends first, as it does on the Keybinds page: the shortcut is taken before the
+  // capture sees it, so otherwise the NEXT key pressed would still be bound (Codex P3, 25/09/2026).
+  if (window.gxSaveKey) {
+    window.gxSaveKey(function () {
+      if (window.gxHudEndCapture) { window.gxHudEndCapture(); }
+      say('Saving…', 'dim');
+      auto.now().then(function () { say('Saved.', 'dim'); })
+                .catch(function () { /* flush() said why, and what to do next */ });
+    });
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // TYPING INTO A NUMBER BOX.
+  //
+  // Owner report (2026-08-21): none of the boxes on this screen can be typed into. That is exact
+  // rather than a UI nicety - every number here is a <span> with two .spin buttons beside it, so
+  // there has never been anything to type into. Reaching a font size of 40 from 8 was 32 clicks.
+  //
+  // The value stays the SAME <span>, made contenteditable. An <input> would have to re-create the
+  // gradient box, the tabular-nums, the size and the two ink colours the artboard draws, and would
+  // drift from them the first time OptionsHud.css is regenerated from the artboard. Editing in
+  // place cannot drift, because there is nothing to keep in sync.
+  //
+  // COMMIT IS THE SPIN BUTTONS' OWN FUNCTION. Every wiring below hands `commit` the same absolute
+  // setter its buttons call, so a typed value clamps, paints, dims and SAVES identically to a
+  // stepped one. There is deliberately no second save path - the queue in `flush` stays the only
+  // writer.
+  //
+  // plaintext-only is asked for first so a pasted "<b>7</b>" arrives as 7; a webview that refuses
+  // the value falls back to plain contenteditable plus the paste handler below, which does the
+  // same job by hand. Either way `parse` re-reads the text on commit, so no editing surface can
+  // produce a value the spin path could not.
+  // ---------------------------------------------------------------------------------------------
+  (function injectTypableStyle() {
+    // A box you can type into has to look focusable while it is focused, or there is no way to
+    // tell it is armed. This reuses the screen's OWN hover recipe (OptionsHud.css) rather than
+    // inventing a second highlight, and touches nothing in the resting state.
+    var s = document.createElement('style');
+    s.textContent = '.gx-s-optionshud .ctl:focus-within {' +
+                    ' background: linear-gradient(180deg, var(--gx-line-4) 0%, var(--gx-line-2) 100%);' +
+                    ' border-color: var(--gx-accent); }' +
+                    '.gx-s-optionshud .ctl span[contenteditable] { outline: none; }';
+    document.head.appendChild(s);
+  })();
+
+  /// Text -> whole number, or null for "that is not a number".
+  ///
+  /// Null is the important half. An empty box, a lone "-", or "40px" must REVERT rather than be
+  /// read as 0: a box that silently became 0 because somebody selected all and tabbed away is a
+  /// bug, not a default (and on this screen 0 is "hidden", so the bug would blank a readout).
+  /// Spaces, non-breaking spaces (contenteditable inserts them) and thousands commas are dropped
+  /// first so a pasted "1,200" is still a number.
+  function parseNum(text) {
+    var t = String(text === null || text === undefined ? '' : text).replace(/[\s ,]/g, '');
+    if (!/^-?\d+$/.test(t)) { return null; }
+    var n = parseInt(t, 10);
+    return isFinite(n) ? n : null;
+  }
+
+  /// Make one number <span> typeable.
+  ///
+  ///   enabled()   - false while the row is switched off, exactly when its spin buttons no-op.
+  ///   repaint()   - the wiring's own paint(). Used for Escape and for invalid input, so a revert
+  ///                 restores the true state (value AND its dim/normal ink) rather than replaying
+  ///                 whatever text happened to be on screen when editing began.
+  ///   commit(n)   - the wiring's absolute setter: the spin buttons' function, clamp included.
+  ///   step(by)    - the wiring's relative step, for arrow keys on a box nobody has typed into.
+  ///
+  /// Returns { editing() }, which each paint() consults before writing textContent: a save that
+  /// resolves, or an options_load that lands late, must not eat the digits being typed.
+  function makeTypable(span, opts) {
+    if (!span) { return { editing: function () { return false; } }; }
+    var editing = false;
+    var before = '';
+
+    span.setAttribute('contenteditable', 'plaintext-only');
+    if (String(span.contentEditable) !== 'plaintext-only') {
+      span.setAttribute('contenteditable', 'true');   // older webviews; the paste handler covers it
+    }
+    span.setAttribute('inputmode', 'numeric');
+    span.setAttribute('spellcheck', 'false');
+    span.setAttribute('role', 'textbox');
+
+    function selectAll() {
+      // Typing REPLACES the value - nobody wants to reach 40 by first deleting 8.
+      try {
+        var r = document.createRange();
+        r.selectNodeContents(span);
+        var sel = window.getSelection();
+        sel.removeAllRanges();
+        sel.addRange(r);
+      } catch (e) { /* selection is a courtesy; typing works without it */ }
+    }
+    function begin() { editing = true; before = span.textContent; selectAll(); }
+    function revert() { editing = false; opts.repaint(); }
+
+    /// Enter, blur and a stolen focus all end here. `editing` is cleared BEFORE commit so the
+    /// wiring's paint() writes: a value clamped down from 900 to 72 has to be SEEN to clamp.
+    function commitNow() {
+      if (!editing) { return; }
+      var text = span.textContent;
+      editing = false;
+      if (text === before) { opts.repaint(); return; }   // focused and left alone: no write
+      var n = parseNum(text);
+      if (n === null) { opts.repaint(); return; }        // empty or non-numeric reverts
+      opts.commit(n);
+    }
+
+    // THE CLICK THAT FOCUSES THE BOX SELECTS IT (owner, 25/09/2026, macOS: 40, click, "7" gave 470).
+    // begin() selects on focus, and Chromium keeps that; WebKit's mouseup then collapses a selection
+    // the click landed inside to a caret at the click point. So that one mouseup selects again and
+    // cancels the collapse. A click on a box already being edited is left alone: it places a caret,
+    // as in any text field. So is a DRAG on the focusing press: that is the player selecting part
+    // of the number on purpose, and WebKit does not collapse a selection the mouse moved to make.
+    var focusingClick = null;                    // where the focusing press went down, or null
+    span.addEventListener('mousedown', function (ev) {
+      ev.stopPropagation();                       // placing a caret is not navigation
+      if (!opts.enabled()) { ev.preventDefault(); }
+      focusingClick = (opts.enabled() && document.activeElement !== span) ? { x: ev.clientX, y: ev.clientY } : null;
+    });
+    span.addEventListener('mouseup', function (ev) {
+      var down = focusingClick;
+      focusingClick = null;
+      if (!down || document.activeElement !== span) { return; }
+      if (Math.abs(ev.clientX - down.x) > 3 || Math.abs(ev.clientY - down.y) > 3) { return; }
+      ev.preventDefault();
+      selectAll();
+    });
+    span.addEventListener('click', function (ev) { ev.stopPropagation(); });
+    // Evaluated on entry rather than in paint(), so the cursor is right without every wiring
+    // having to remember to refresh it.
+    span.addEventListener('mouseenter', function () {
+      span.style.cursor = opts.enabled() ? 'text' : 'pointer';
+    });
+    span.addEventListener('focus', function () {
+      if (!opts.enabled()) { span.blur(); return; }
+      begin();
+    });
+    span.addEventListener('blur', commitNow);     // people click away instead of pressing Enter
+    span.addEventListener('input', function () { if (opts.enabled()) { editing = true; } });
+    span.addEventListener('paste', function (ev) {
+      // Needed only where plaintext-only was refused, but done always so there is one path.
+      // execCommand is deprecated and is still the only insertion every webview here implements.
+      var data = ev.clipboardData && ev.clipboardData.getData('text/plain');
+      if (data === null || data === undefined) { return; }
+      ev.preventDefault();
+      document.execCommand('insertText', false, String(data).replace(/[\r\n]+/g, ' '));
+    });
+    span.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); commitNow(); span.blur(); return; }
+      if (ev.key === 'Escape') { ev.preventDefault(); revert(); span.blur(); return; }
+      if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') { return; }
+      ev.preventDefault();                         // or the caret walks out of the box
+      var by = ev.key === 'ArrowUp' ? 1 : -1;
+      var n = parseNum(span.textContent);
+      editing = false;                             // let the step's paint() through
+      // Step from the digits ON SCREEN when they are a number, so arrowing after typing 45 gives
+      // 46 and not 9. Both branches are the spin buttons' own functions.
+      if (n === null) { opts.step(by); } else { opts.commit(n + by); }
+      begin();                                     // stay armed for more typing or more arrows
+    });
+
+    return { editing: function () { return editing; } };
+  }
+
+  // ---------------------------------------------------------------------------------------------
+  // THE PREVIEW.
+  //
+  // See the "THE PREVIEW IS PROPORTIONAL, NOT PREDICTIVE" note in this block's header for what is
+  // and is not being claimed. In short: a ratio against each readout's own default is faithful
+  // because the engine's scaler is one multiplier applied to every readout
+  // (GlobalLanguage.cpp:344-353), and hiding is exact because the engine gates on pointSize > 0.
+  //
+  // THE BASE SIZE IS MEASURED, NOT LOOKED UP. Every size in the preview is a var(--gx-fs-NNN)
+  // token, and reading a token back by name would mean keeping a second copy of tokens.css in
+  // this file. getComputedStyle answers in real pixels, once, before anything has been scaled -
+  // so the ratio is always applied to the size the designer drew and never compounds across
+  // repaints.
+  // ---------------------------------------------------------------------------------------------
+  var preview = (function () {
+    var bases = [];                      // [element, base px] pairs, filled on first use
+    // SCOPED TO THE ARTBOARD'S OWN PREVIEW, captured before anything can clone it. The Fullscreen
+    // control (gx-preview-fullscreen, further down) appends a CLONE of .screen to <body>, and a
+    // document-wide query would then reach the clone too - measuring its already-scaled text as
+    // its base and compounding the ratio on the next change. Resolved once here, so it is always
+    // the original.
+    var surface = document.querySelector('.screen');
+    // The readout stack's own wrapper, and the reference surface it is positioned on. Both are
+    // READ off the document rather than restated here: .stage is 1920x1080 in OptionsHud.css, and
+    // a second copy of those numbers in this file is a copy that can drift from the one that
+    // actually lays the preview out. getComputedStyle answers the LAYOUT width, which is the
+    // untransformed 1920 - the scale on .stage does not enter into it.
+    var anchorEl = surface ? surface.querySelector('[data-gx-pv-anchor]') : null;
+    var stageEl = surface ? surface.querySelector('.stage') : null;
+    var STAGE_W = stageEl ? (parseFloat(window.getComputedStyle(stageEl).width) || 1920) : 1920;
+    var STAGE_H = stageEl ? (parseFloat(window.getComputedStyle(stageEl).height) || 1080) : 1080;
+
+    function nodesOf(el) {
+      // The player list carries its size on its CELLS (OptionsHud.css .pil th/.pil td), so
+      // setting font-size on the table would be overridden by that rule and do nothing.
+      return el.tagName === 'TABLE' ? el.querySelectorAll('th, td') : [el];
+    }
+    function baseOf(node) {
+      for (var i = 0; i < bases.length; i++) { if (bases[i][0] === node) { return bases[i][1]; } }
+      var px = parseFloat(window.getComputedStyle(node).fontSize) || 0;
+      bases.push([node, px]);
+      return px;
+    }
+    function shown(el) { return el.style.display !== 'none'; }
+
+    /// The 6px advances between readouts (kHudGapPx, InGameUI.cpp:1109) are TRAILING gaps in the
+    /// engine - each drawn readout advances x past itself and one gap. Hiding a readout without
+    /// its gap would leave the row indented by something invisible, and a gap at the end of the
+    /// row would push nothing. So a gap is drawn only when something visible sits on both sides.
+    function tidyGaps() {
+      var rows = surface.querySelectorAll('[data-gx-pv-row]');
+      for (var r = 0; r < rows.length; r++) {
+        var kids = Array.prototype.slice.call(rows[r].children);
+        var before = false;
+        for (var i = 0; i < kids.length; i++) {
+          if (!kids[i].hasAttribute('data-gx-pv-gap')) {
+            if (shown(kids[i])) { before = true; }
+            continue;
+          }
+          var after = false;
+          for (var j = i + 1; j < kids.length; j++) {
+            if (!kids[j].hasAttribute('data-gx-pv-gap') && shown(kids[j])) { after = true; break; }
+          }
+          kids[i].style.display = (before && after) ? '' : 'none';
+        }
+      }
+    }
+
+    return {
+      /// `ratio` is chosen size / that readout's own default; `visible` is the engine's own
+      /// pointSize > 0 gate. A ratio that is not a usable number falls back to 1 rather than
+      /// collapsing the readout to nothing - an unreadable preference must not look like a
+      /// deliberate setting.
+      set: function (field, ratio, visible) {
+        if (!surface) { return; }
+        if (!isFinite(ratio) || ratio <= 0) { ratio = 1; }
+        var els = surface.querySelectorAll('[data-gx-pv="' + field + '"]');
+        for (var i = 0; i < els.length; i++) {
+          els[i].style.display = visible ? '' : 'none';
+          var nodes = nodesOf(els[i]);
+          for (var j = 0; j < nodes.length; j++) {
+            var b = baseOf(nodes[j]);
+            if (b > 0) { nodes[j].style.fontSize = (b * ratio).toFixed(2) + 'px'; }
+          }
+        }
+        tidyGaps();
+      },
+
+      /// Where the readout stack sits, in the engine's own screen pixels.
+      ///
+      /// HudAnchorX / HudAnchorY are ABSOLUTE coordinates on the player's display - InGameUI.cpp
+      /// :7180 draws at `hudAnchorX() + x, hudAnchorY() + y` - so they mean nothing without a
+      /// resolution to measure them against. They are mapped onto the preview's 1920x1080
+      /// reference surface PROPORTIONALLY rather than copied straight across: at 2560x1440 an x of
+      /// 100 is 3.9% of the way across the real display, and pasting 100 onto a 1920-wide stage
+      /// would draw it at 5.2%. The proportion is what the player recognises; the pixel is not.
+      ///
+      /// Nothing here clips or hides. The stack is inside .screen, which already has
+      /// `overflow: hidden` (OptionsHud.css), so an anchor near the edge runs off the preview the
+      /// same way it runs off the screen - which is the honest picture of what the number does.
+      anchor: function (x, y, screenW, screenH) {
+        if (!anchorEl) { return; }
+        var sx = screenW > 0 ? STAGE_W / screenW : 1;
+        var sy = screenH > 0 ? STAGE_H / screenH : 1;
+        anchorEl.style.left = (x * sx).toFixed(1) + 'px';
+        anchorEl.style.top = (y * sy).toFixed(1) + 'px';
+      },
+
+      /// The reference surface, for a caller that has no resolution to measure the anchor against.
+      stageWidth: function () { return STAGE_W; },
+      stageHeight: function () { return STAGE_H; }
+    };
+  })();
+
+  /// One gated readout: a toggle that means "size > 0" and a spin box that means the size.
+  // Set once the five readouts exist; each readout's paint() tells the sync box to re-read them.
+  var onReadoutPaint = function () {};
+  function wireReadout(label, field, fileVal, dflt, maxSize) {
+    var row = rowByLabel(label);
+    if (!row) { return; }
+    var toggle = row.querySelector('.toggle');
+    var ctl = row.querySelector('.ctl');
+    var span = ctl && ctl.querySelector('span');
+    var btns = ctl ? ctl.querySelectorAll('.spin') : [];
+    var labelSpan = row.querySelector('span');
+    if (!toggle || !ctl || !span || btns.length < 2) { return; }
+
+    // A key that is absent really does resolve to `dflt`, and that number is the engine's own
+    // compiled-in constant handed over by options_load - not a guess made in this file.
+    var fromFile = !(fileVal === null || fileVal === undefined);
+    var size = fromFile ? fileVal : dflt;
+    // Where "on" goes back to after an "off". Never 0, or the toggle would not come back on.
+    var restore = size > 0 ? size : dflt;
+
+    var typing = null;                          // set below; paint() runs before it exists
+    function isEditing() { return !!(typing && typing.editing()); }
+
+    function paint() {
+      // Not while the box is being typed into: a late options_load or a resolving save would
+      // otherwise eat the digits mid-keystroke.
+      if (!isEditing()) { span.textContent = String(size); }
+      span.style.color = fromFile ? '' : 'var(--gx-ink-faint)';   // dim = engine default, not the file
+      toggle.style.opacity = '';
+      toggle.classList.toggle('on', size > 0);
+      toggle.classList.toggle('off', size <= 0);
+      // The artboard dims a switched-off row (the System clock row); match it both ways.
+      ctl.style.opacity = size > 0 ? '' : '0.4';
+      if (labelSpan) { labelSpan.style.color = size > 0 ? '' : 'var(--gx-ink-dim)'; }
+      // …and the preview, which is the only feedback a player gets that any of this reaches the
+      // game. `dflt` is the engine's own constant for this readout, handed over by options_load.
+      preview.set(field, dflt > 0 ? size / dflt : 1, size > 0);
+      onReadoutPaint();
+    }
+    function commit(v) {
+      // The clamp lives HERE, not only at the spin buttons, because typing reaches the same
+      // function and a typed 900 has to come back as the engine's maximum - visibly, through the
+      // paint below. 0 is the toggle's "hidden" and is left alone.
+      if (v > 0) { v = Math.max(1, Math.min(maxSize, v)); }
+      size = v; fromFile = true;
+      if (v > 0) { restore = v; }
+      paint();
+      var e = {};
+      e[field] = v;
+      push(e);
+    }
+
+    toggle.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      commit(size > 0 ? 0 : restore);
+    }, true);
+    btns[0].addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (size <= 0) { return; }               // a hidden readout has no size to raise
+      commit(Math.min(maxSize, size + 1));
+    });
+    btns[1].addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      if (size <= 0) { return; }
+      commit(Math.max(1, size - 1));           // 0 is reached with the toggle, not by stepping
+    });
+    typing = makeTypable(span, {
+      enabled: function () { return size > 0; },   // a hidden readout has no size to type either
+      repaint: paint,
+      // Typing 0 or a negative is not "hide the row" - hiding is the toggle's job - so it lands
+      // on the same minimum the down button stops at.
+      commit: function (n) { commit(n <= 0 ? 1 : n); },
+      step: function (by) { commit(size + by <= 0 ? 1 : size + by); }
+    });
+    paint();
+    // Reset (owner, 25/09/2026: Reset puts EVERYTHING back): the engine's own size, written.
+    return {
+      reset: function (e) { size = dflt; restore = dflt; fromFile = true; paint(); e[field] = dflt; },
+      size: function () { return size; },
+      // SYNC ALL: a shown readout takes the size now; a hidden one keeps its off state and only
+      // changes where its toggle brings it back to (restore), so syncing never switches one on.
+      sync: function (v, e) {
+        v = Math.max(1, Math.min(maxSize, v));
+        if (size > 0) { size = v; fromFile = true; e[field] = v; }
+        restore = v;
+        paint();
+      }
+    };
+  }
+
+  /// A plain number spinner (chat fade, the two anchor boxes). Returns handles so Reset can put
+  /// the pair back to their dim defaults without faking a commit.
+  function wireNumber(label, fileVal, dflt, min, max, onCommit) {
+    var row = rowByLabel(label);
+    if (!row) { return null; }
+    var ctl = row.querySelector('.ctl');
+    var span = ctl && ctl.querySelector('span');
+    var btns = ctl ? ctl.querySelectorAll('.spin') : [];
+    if (!ctl || !span || btns.length < 2) { return null; }
+    var fromFile = !(fileVal === null || fileVal === undefined);
+    var val = fromFile ? fileVal : dflt;
+    var typing = null;                          // set below; paint() runs before it exists
+    function isEditing() { return !!(typing && typing.editing()); }
+    function paint() {
+      if (!isEditing()) { span.textContent = String(val); }   // never eat digits mid-keystroke
+      span.style.color = fromFile ? '' : 'var(--gx-ink-faint)';
+    }
+    function commit(v) {
+      val = Math.max(min, Math.min(max, v));    // typed and stepped values clamp the same way
+      fromFile = true;
+      paint();
+      onCommit(val);
+    }
+    btns[0].addEventListener('click', function (ev) { ev.stopPropagation(); commit(val + 1); });
+    btns[1].addEventListener('click', function (ev) { ev.stopPropagation(); commit(val - 1); });
+    typing = makeTypable(span, {
+      enabled: function () { return true; },    // these boxes have no off state
+      repaint: paint,
+      commit: commit,
+      step: function (by) { commit(val + by); }
+    });
+    paint();
+    return {
+      current: function () { return val; },
+      toDefault: function () { fromFile = false; val = dflt; paint(); },
+      /// Mark the shown value as one the FILE now holds, so it paints normally rather than dim.
+      /// Only correct once the write it describes has actually resolved - see the chat-fade
+      /// default below, which is the one caller.
+      adopt: function (v) { fromFile = true; val = v; paint(); }
+    };
+  }
+
+  // The page is held until this has painted (gx-settle.js), so the default tab and the em dashes are never seen.
+  window.gxSettle.wait(invoke('options_load').then(function (s) {
+    var h = s.hud || {}, d = s.defaults || {};
+
+    // RESET PUTS EVERY HUD VALUE BACK (owner, 25/09/2026). It used to remove only the two anchor keys,
+    // so with a size set to 72 it visibly did nothing. Each row below registers how to put its own
+    // default back on screen and into the ONE edit Reset sends. The two hide keys are not HUD values
+    // (they are key bindings with their own save) and are left alone.
+    var resetters = [];
+    var readoutHandles = [];
+    [wireReadout('ping / latency',   'networkLatency',  h.networkLatency,  d.readout, d.maxFontSize),
+     wireReadout('match timer',      'gameTime',        h.gameTime,        d.readout, d.maxFontSize),
+     wireReadout('player list',      'playerInfoList',  h.playerInfoList,  d.readout, d.maxFontSize),
+     wireReadout('frame rate',       'renderFps',       h.renderFps,       d.readout, d.maxFontSize),
+     wireReadout('system clock',     'systemTime',      h.systemTime,      d.readout, d.maxFontSize)
+    ].forEach(function (r) { if (r) { resetters.push(r.reset); readoutHandles.push(r); } });
+
+    // SYNC ALL SIZES (owner, 05/10/2026: "sync all"). One box that sets every SHOWN readout's size
+    // through the same five keys the rows write - no new engine key. It shows the common size, or
+    // "mixed" when the shown readouts differ, or an em dash when none is shown. In-game messages
+    // is a different thing (a chat size, with its own off meaning) and is deliberately not in it.
+    (function () {
+      var readouts = readoutHandles;
+      var row = document.getElementById('gx-syncrow');
+      var ctl = row && row.querySelector('.ctl');
+      var span = ctl && ctl.querySelector('span');
+      var btns = ctl ? ctl.querySelectorAll('.spin') : [];
+      if (!span || btns.length < 2) { return; }
+      var typing = null;
+      function shown() { return readouts.filter(function (r) { return r.size() > 0; }); }
+      function paint() {
+        var sizes = shown().map(function (r) { return r.size(); });
+        var mixed = sizes.some(function (n) { return n !== sizes[0]; });
+        if (!(typing && typing.editing())) {
+          span.textContent = !sizes.length ? '\u2014' : (mixed ? 'mixed' : String(sizes[0]));
+        }
+        span.style.color = (!sizes.length || mixed) ? 'var(--gx-ink-dim)' : '';
+        ctl.style.opacity = sizes.length ? '' : '0.4';
+      }
+      function apply(v) {
+        if (!shown().length) { return; }
+        var e = {};
+        readouts.forEach(function (r) { r.sync(v, e); });
+        push(e);                                   // ONE save for all five keys
+      }
+      function current() { var s = shown(); return s.length ? s[0].size() : d.readout; }
+      btns[0].addEventListener('click', function (ev) { ev.stopPropagation(); apply(Math.min(d.maxFontSize, current() + 1)); });
+      btns[1].addEventListener('click', function (ev) { ev.stopPropagation(); apply(Math.max(1, current() - 1)); });
+      typing = makeTypable(span, {
+        enabled: function () { return shown().length > 0; },
+        repaint: paint,
+        commit: function (n) { apply(n <= 0 ? 1 : n); },
+        step: function (by) { apply(Math.max(1, current() + by)); }
+      });
+      onReadoutPaint = paint;
+      paint();
+    })();
+
+    // In-game messages: the toggle means "a custom size applies". Off writes 0, which for this
+    // key alone means "the game's own size for your language" - the text itself never hides.
+    (function () {
+      var row = rowByLabel('in-game messages');
+      if (!row) { return; }
+      var toggle = row.querySelector('.toggle');
+      var ctl = row.querySelector('.ctl');
+      var span = ctl && ctl.querySelector('span');
+      var btns = ctl ? ctl.querySelectorAll('.spin') : [];
+      if (!toggle || !ctl || !span || btns.length < 2) { return; }
+
+      var custom = h.inGameMessage !== null && h.inGameMessage !== undefined && h.inGameMessage > 0;
+      // The first custom size after "on": the engine's readout constant. There is no engine
+      // constant for a custom message size (0 is the shipped value), so the handed-over readout
+      // default is the least-invented starting point; the player steps it from there.
+      var size = custom ? h.inGameMessage : d.readout;
+      var typing = null;                        // set below; paint() runs before it exists
+      function isEditing() { return !!(typing && typing.editing()); }
+      function paint() {
+        toggle.style.opacity = '';
+        toggle.classList.toggle('on', custom);
+        toggle.classList.toggle('off', !custom);
+        ctl.style.opacity = custom ? '' : '0.4';
+        if (!isEditing()) { span.textContent = custom ? String(size) : '—'; }
+        span.style.color = custom ? '' : 'var(--gx-ink-faint)';
+        ctl.setAttribute('title', custom
+          ? 'Drawn at ' + size + ' pt, scaled by your resolution.'
+          : 'Using the game’s own size for your language. These messages cannot be hidden here.');
+        // THE ONE READOUT WITH NO DEFAULT TO SCALE AGAINST. 0 means "the game's own size for your
+        // language", which lives in Data\<lang>\Language.ini inside the archives - so there is no
+        // number here to divide by, and dividing by d.readout would be asserting that the shipped
+        // message size is 8. It is not; measured on this install it is 12. So the ratio is taken
+        // against the size the toggle turns this row ON at, which claims only what it can: how far
+        // a custom size has moved from where the player started it. Off, the lines are drawn as
+        // designed and the copy under the preview says why. They never hide - for this key alone 0
+        // is not "hidden" (OptionPreferences.cpp:1024-1029).
+        preview.set('inGameMessage', custom && d.readout > 0 ? size / d.readout : 1, true);
+      }
+      function commit(v) {
+        // Clamped here so typing gets the same ceiling the up button stops at, and visibly:
+        // paint() below rewrites the box with whatever survived the clamp. 0 stays 0 - for this
+        // key alone it means "the game's own size", which is the toggle's off state.
+        if (v > 0) { v = Math.max(1, Math.min(d.maxFontSize, v)); }
+        custom = v > 0;
+        if (v > 0) { size = v; }
+        paint();
+        push({ inGameMessage: v });
+      }
+      toggle.addEventListener('click', function (ev) { ev.stopPropagation(); commit(custom ? 0 : size); }, true);
+      btns[0].addEventListener('click', function (ev) { ev.stopPropagation(); if (!custom) { return; } commit(Math.min(d.maxFontSize, size + 1)); });
+      btns[1].addEventListener('click', function (ev) { ev.stopPropagation(); if (!custom) { return; } commit(Math.max(1, size - 1)); });
+      typing = makeTypable(span, {
+        // Only while a custom size applies. Off the box shows an em dash, and typing a number
+        // into "the game's own size" would have to mean turning the toggle on behind the
+        // player's back.
+        enabled: function () { return custom; },
+        repaint: paint,
+        // Typing 0 is not "go back to the game's size" - that is the toggle - so it clamps up.
+        commit: function (n) { commit(n <= 0 ? 1 : n); },
+        step: function (by) { commit(size + by <= 0 ? 1 : size + by); }
+      });
+      paint();
+      // Reset: off, which for this row is "the game's own size for your language".
+      resetters.push(function (e) { custom = false; size = d.readout; paint(); e.inGameMessage = 0; });
+    })();
+
+    // Show income per minute. Absent means off, and that one IS knowable: the field the engine
+    // falls back to appears in no INI parse table, so nothing inside the archives can move it.
+    (function () {
+      var row = rowByLabel('show income per minute');
+      if (!row) { return; }
+      var toggle = row.querySelector('.toggle');
+      if (!toggle) { return; }
+      var on = (h.showMoneyPerMinute === null || h.showMoneyPerMinute === undefined)
+        ? !!d.showMoneyPerMinute : !!h.showMoneyPerMinute;
+      // THIS ONE CHANGES NOTHING IN THE PREVIEW, and that is correct rather than a gap. The
+      // preference adds a Cash/m column while you are PLAYING; the preview draws the OBSERVER
+      // table - the one with Army, SP, K/D and Power - and InGameUI.cpp:7595-7601 makes Cash/m
+      // unconditional for observers and replays. Said in a tooltip rather than left to look like
+      // another dead control.
+      row.setAttribute('title', 'Adds a Cash/m column to the player list while you are playing. '
+        + 'The preview shows the observer table, where that column is always drawn, so this '
+        + 'switch does not change it.');
+      function paint() {
+        toggle.style.opacity = '';
+        toggle.classList.toggle('on', on);
+        toggle.classList.toggle('off', !on);
+      }
+      toggle.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        on = !on;
+        paint();
+        push({ showMoneyPerMinute: on });
+      }, true);
+      paint();
+      resetters.push(function (e) { on = !!d.showMoneyPerMinute; paint(); e.showMoneyPerMinute = on; });
+    })();
+
+    // -------------------------------------------------------------------------------------------
+    // IN-GAME CHAT FADE - how long a chat or system message stays on screen inside a match.
+    //
+    // THE DEFAULT IS 10 SECONDS, AND IT IS WRITTEN RATHER THAN ASSUMED (owner, 2026-08-21: 75 is
+    // far too long). Getting there by lowering the ENGINE's fallback was the other option and is
+    // the wrong one, for two reasons:
+    //
+    //   * The engine has no compiled-in 75. InGameUI.cpp:1703 takes MessageDelaySeconds only at
+    //     >= 1 and otherwise KEEPS THE GAME DATA'S value, which lives in InGameUI's INI block
+    //     inside INIZH.big. Editing that INI moves dataID and denies every join; editing the C++
+    //     to override it would make an untouched install stop behaving as shipped, which is the
+    //     invariant that comment exists to protect.
+    //   * It would also be a four-platform engine rebuild to change one launcher preference.
+    //
+    // So the launcher materialises its own default into GXHud.ini, the file it already owns and
+    // which is outside dataID - the same file, and the same write path, the anchor uses. Nothing
+    // here can move dataID.
+    //
+    // The box only paints as "set" once the write RESOLVES. While Zero Hour is running every save
+    // is refused, and a screen that showed 10 in normal ink while the file still said nothing
+    // would be claiming a setting it never made.
+    var CHAT_FADE_DEFAULT = 10;
+    var fade = pick([h, s], ['chatFadeSeconds', 'chat_fade_seconds']);
+    var fadeSet = fade !== null && fade !== undefined;
+    // The range is the backend's (gxio::options::MESSAGE_DELAY_SECONDS_RANGE, the engine's own clamp),
+    // not a number in this file: 600 here outlived the engine's move to 60.
+    var fadeRange = (d.chatFadeSecondsRange && d.chatFadeSecondsRange.length === 2) ? d.chatFadeSecondsRange : [1, 60];
+    var fadeBox = wireNumber('in-game chat fade', fade, CHAT_FADE_DEFAULT, fadeRange[0], fadeRange[1],
+      function (v) { push({ chatFadeSeconds: v }); });
+    if (fadeBox) {
+      // Dim means "the file does not say" - and then the GAME's data value applies, not 10 - so after
+      // Reset the box paints as set only once a write of its value has reached the file: on the first
+      // try, or on the retry after a refusal (Zero Hour running). Not over a newer choice: a fade
+      // changed while that write was in flight is what the box shows, and its own save adopts it.
+      resetters.push(function (e) { fadeBox.toDefault(); e.chatFadeSeconds = CHAT_FADE_DEFAULT; });
+      savedHooks.push(function (edit) {
+        if ('chatFadeSeconds' in edit && fadeBox.current() === edit.chatFadeSeconds) { fadeBox.adopt(edit.chatFadeSeconds); }
+      });
+    }
+    if (!fadeSet) {
+      pending.chatFadeSeconds = CHAT_FADE_DEFAULT;
+      // Held for (gx-settle.js; Codex lfp-r6): on a fresh install the box turns from dim to set when this write lands.
+      window.gxSettle.wait(flush().then(function () {
+        if (fadeBox) { fadeBox.adopt(CHAT_FADE_DEFAULT); }
+      }).catch(function () { /* say() carries it; the box stays dim, which is then the truth */ }));
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // THE READOUT-STACK ANCHOR, written to GXHud.ini. Engine defaults 6 across / 4 down when the
+    // file does not say (InGameUI.cpp kHudAnchorDefaultX/Y; the iPad build compiles 32 / 10 instead, and the
+    // launcher does not ship there - which is exactly why the pair is HANDED OVER by options_load
+    // rather than written here. The literals below are the last-resort fallback for a Rust side
+    // older than the field, not this screen's opinion).
+    // ---------------------------------------------------------------------------------------------
+    var ax = pick([h, s], ['hudAnchorX', 'hud_anchor_x', 'anchorX', 'anchor_x']);
+    var ay = pick([h, s], ['hudAnchorY', 'hud_anchor_y', 'anchorY', 'anchor_y']);
+    // defaults.hudAnchor is [x, y]. This used to look for hudAnchorX/hudAnchorY keys the backend never
+    // sent, so it always fell to literals - 3 / -1, which the engine stopped using on 21/09 (6 / 4).
+    var hd = (d.hudAnchor && d.hudAnchor.length === 2) ? d.hudAnchor : [6, 4];
+    var axD = hd[0], ayD = hd[1];
+
+    // THE SCREEN THE ANCHOR IS MEASURED AGAINST. These are absolute display pixels, so a number
+    // means nothing on its own - and the launcher does not have to guess, because Options.ini
+    // carries the player's own resolution and options_load hands it over. When the key is absent
+    // the engine picks the mode at startup and this screen cannot know it, so the preview's own
+    // reference surface stands in and the mapping is 1:1.
+    var res = (s.graphics && s.graphics.resolution) || null;
+    var scrW = (res && res.length === 2 && res[0] > 0) ? res[0] : preview.stageWidth();
+    var scrH = (res && res.length === 2 && res[1] > 0) ? res[1] : preview.stageHeight();
+
+    // AN ANCHOR HAS TO NAME A PIXEL THAT EXISTS (owner, 23/08/2026: "outside the screen").
+    //
+    // The engine applies no clamp of its own - gxHudSetting takes whatever strtol returns - so the
+    // launcher was free to write 9999, which puts every readout off the display with no way back
+    // except Reset, and off the preview too because .screen clips. The ceiling is the last pixel of
+    // the player's screen. The floor is min(0, default) rather than 0, because the engine's own
+    // desktop default is NEGATIVE: -1 hugs the top edge, and a floor of 0 would make the shipped
+    // default a number the player could not type back after changing it.
+    //
+    // …and not merely a pixel that exists (owner, 25/09/2026): Down at 1079 on a 1080-line screen is
+    // on the display, and starts the readout stack on its last row, so every readout lands below
+    // it. The ceiling is defaults.hudAnchorMaxPct of the screen on each axis, the same fraction the
+    // engine clamps a file's anchor to (kGxHudAnchorMaxPct); the floor is 0 now that no default is
+    // negative.
+    //
+    // IN RENDER PIXELS. The anchor is a render-pixel coordinate, and on macOS the resolution in
+    // Options.ini is not: the engine renders at that POINT size times the density of the display its
+    // window is on (W3DDisplay.cpp SDL3_ScaleRenderResolutionToPixels, even-rounded; 1.0 on every
+    // other platform) and draws - and clamps - the anchor in those pixels. The game window opens on
+    // the primary display (SDL3Main.cpp creates it with no position), so options_load hands over THAT
+    // display's density - not this webview's, which on a mixed-density Mac can be a different panel.
+    var density = d.gameDisplayDensity > 1 ? d.gameDisplayDensity : 1;
+    function toPx(v) { return density > 1 ? (Math.floor(v * density) & ~1) : v; }
+    var known = !!(res && res.length === 2 && res[0] > 0 && res[1] > 0);
+    // The preview maps a KNOWN screen in render pixels; without one it stays 1:1 with its own stage.
+    var pxW = known ? toPx(scrW) : scrW;
+    var pxH = known ? toPx(scrH) : scrH;
+    //
+    // WITHOUT A STORED RESOLUTION the engine picks the mode at startup, and this screen cannot know
+    // it (the preview's stage is a picture, not the game's display). The bound is then taken from
+    // the smallest mode the game runs at - 800 x 600, the bottom of the Graphics page's list - which
+    // holds whatever it picks, and a file's value is shown as written rather than clamped against a
+    // screen nobody has chosen yet.
+    // That smallest mode is in render pixels too: a 2x Mac draws 800 x 600 points at 1600 x 1200.
+    var pct = d.hudAnchorMaxPct > 0 ? d.hudAnchorMaxPct : 50;
+    var axLo = 0, axHi = Math.floor((known ? pxW : toPx(800)) * pct / 100);
+    var ayLo = 0, ayHi = Math.floor((known ? pxH : toPx(600)) * pct / 100);
+    // A file value beyond a KNOWN ceiling shows as the ceiling: that is what the engine draws with.
+    if (known && ax !== null && ax !== undefined) { ax = Math.max(axLo, Math.min(axHi, ax)); }
+    if (known && ay !== null && ay !== undefined) { ay = Math.max(ayLo, Math.min(ayHi, ay)); }
+
+    // resetAnchor wins over the setters on the Rust side (the camera-defaults precedent), so a
+    // step that follows an unsent Reset supersedes it - and materialises the OTHER axis's shown
+    // value too, or that axis would silently keep its old on-disk number.
+    function anchorCommit(field, v, otherHandle, otherField) {
+      var e = {};
+      e[field] = v;
+      if (pending.resetAnchor) {
+        delete pending.resetAnchor;
+        if (otherHandle) { e[otherField] = otherHandle.current(); }
+      }
+      push(e);
+    }
+    /// The preview's half of every anchor change, including the first paint. Reads the boxes rather
+    /// than taking the committed value, so Reset - which sets both boxes without committing either -
+    /// moves the picture too.
+    function paintAnchor() {
+      preview.anchor(across ? across.current() : axD, down ? down.current() : ayD, pxW, pxH);
+    }
+    var across = wireNumber('across', ax, axD, axLo, axHi,
+      function (v) { anchorCommit('anchorX', v, down, 'anchorY'); paintAnchor(); });
+    var down = wireNumber('down', ay, ayD, ayLo, ayHi,
+      function (v) { anchorCommit('anchorY', v, across, 'anchorX'); paintAnchor(); });
+    // The artboard bakes the stack at 16 / 12, which is a composition, not a coordinate. Move it to
+    // where the file - or the engine's default - actually puts it, before the player touches
+    // anything. Without this the picture disagrees with the two boxes beside it from the first
+    // frame, which is the half of the owner's report that "and are incorrect" names.
+    paintAnchor();
+
+    // -------------------------------------------------------------------------------------------
+    // SPECTATOR (GeneralsX UI side): SpectatorUI, SpectatorOpacity, SpectatorShow*, SpectatorHideDead, all in
+    // GXHud.ini through the same options_save_hud as the readouts. Values come from options_load as the ENGINE
+    // reads them (absent = its defaults), the edit sends ONLY what was touched, and the engine's own customise
+    // panel writes the same file - neither clobbers the other (gxio tests/spectator_interop.rs).
+    // -------------------------------------------------------------------------------------------
+    (function () {
+      var uiNow = s.spectatorUi === 'generalsx' ? 'generalsx' : 'legacy';
+      if (window.gxUiLoaded) { window.gxUiLoaded(uiNow); }
+      // The Legacy layout preview's ground is a CSS background, which the hold's <img> wait cannot see.
+      if (uiNow === 'legacy') { window.gxSettle.picture('../hudground.jpg'); }
+      window.gxUiPersist = function (ui) { uiNow = ui; push({ spectatorUi: ui }); };
+
+      var spReset = [];          // the SPECTATOR group's own Reset (the page-wide Reset is on the legacy side)
+      function addReset(fn) { spReset.push(fn); }   // NOT the legacy Reset's list: that one is readouts and position only
+      var opDflt = 50;
+      var op = wireNumber('opacity', s.spectatorOpacity, opDflt, 25, 100, function (v) { push({ spectatorOpacity: v }); });
+      if (op) { addReset(function (e) { op.toDefault(); e.spectatorOpacity = opDflt; }); }
+
+      var SHOW_DEFAULT = { UnitsBuildings: false };
+      var shows = s.spectatorShow || {};
+      function wireSwitch(el, getFile, dflt, send) {
+        var on = getFile === undefined || getFile === null ? dflt : !!getFile;
+        function paint() {
+          el.classList.toggle('on', on); el.classList.toggle('off', !on);
+          el.setAttribute('aria-checked', on ? 'true' : 'false');
+        }
+        function flip(ev) { ev.stopPropagation(); on = !on; paint(); send(on); }
+        el.addEventListener('click', flip);
+        el.addEventListener('keydown', function (ev) { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); flip(ev); } });
+        paint();
+        return function reset(e) { on = dflt; paint(); send(on, e); };
+      }
+      Array.prototype.forEach.call(document.querySelectorAll('[data-spshow]'), function (el) {
+        var name = el.getAttribute('data-spshow');
+        var dflt = SHOW_DEFAULT[name] === undefined ? true : SHOW_DEFAULT[name];
+        var reset = wireSwitch(el, shows[name], dflt, function (on, into) {
+          var m = Object.assign({}, (into || pending).spectatorShow || {});
+          m[name] = on;
+          if (into) { into.spectatorShow = m; } else { push({ spectatorShow: m }); }
+        });
+        addReset(reset);
+      });
+      var hd = document.getElementById('gx-sphidedead');
+      if (hd) {
+        addReset(wireSwitch(hd, s.spectatorHideDead, false, function (on, into) {
+          if (into) { into.spectatorHideDead = on; } else { push({ spectatorHideDead: on }); }
+        }));
+      }
+      // WHILE PLAYING: PlayerShowStrip + PlayerShowTabBoard (engine default on). Its own Reset sends only these two keys.
+      var plReset = [];
+      var plStrip = document.getElementById('gx-plstrip');
+      var plTab = document.getElementById('gx-pltab');
+      if (plStrip) {
+        plReset.push(wireSwitch(plStrip, s.playerShowStrip, true, function (on, into) {
+          if (into) { into.playerShowStrip = on; } else { push({ playerShowStrip: on }); }
+        }));
+      }
+      if (plTab) {
+        plReset.push(wireSwitch(plTab, s.playerShowTabBoard, true, function (on, into) {
+          if (into) { into.playerShowTabBoard = on; } else { push({ playerShowTabBoard: on }); }
+        }));
+      }
+      var plr = document.getElementById('gx-plreset');
+      if (plr) {
+        plr.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var e = {};
+          plReset.forEach(function (r) { r(e); });
+          delete pending.playerShowStrip; delete pending.playerShowTabBoard;
+          push(e);
+        });
+        plr.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); plr.click(); } });
+      }
+      var spr = document.getElementById('gx-spreset');
+      if (spr) {
+        spr.addEventListener('click', function (ev) {
+          ev.stopPropagation();
+          var e = {};
+          spReset.forEach(function (r) { r(e); });
+          delete pending.spectatorShow; delete pending.spectatorOpacity; delete pending.spectatorHideDead;
+          push(e);
+        });
+        spr.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); spr.click(); } });
+      }
+    })();
+
+    var reset = document.getElementById('gx-anchor-reset');
+    if (reset) {
+      reset.addEventListener('click', function (ev) {
+        ev.stopPropagation();
+        var e = { resetAnchor: true };
+        resetters.forEach(function (r) { r(e); });
+        if (across) { across.toDefault(); }
+        if (down) { down.toDefault(); }
+        paintAnchor();
+        delete pending.anchorX;
+        delete pending.anchorY;
+        push(e);
+      });
+    }
+  }).catch(function (e) {
+    // The em dashes stay - they are the honest value when the file could not be read - and every
+    // control stays inert rather than writing over a state this screen never saw.
+    console.error('options_load failed:', e);
+    // The switch only changes the VIEW when nothing could be read; nothing is claimed saved (no persist hook).
+    if (window.gxUiLoaded && !window.gxUiPersist) { window.gxUiLoaded('legacy'); window.gxSettle.picture('../hudground.jpg'); }
+    // Controls that were never wired must not read as live: dim the spectator group and make it inert.
+    var spx = document.getElementById('gx-spectator');
+    [spx, document.getElementById('gx-player')].forEach(function (g) {
+      if (g && !window.gxUiPersist) { g.style.opacity = '0.45'; g.style.pointerEvents = 'none'; g.setAttribute('aria-disabled', 'true'); }
+    });
+    // "Size of all" is wired only after a good read, so it stays dimmed and is made inert, not left looking live.
+    var syncCtl = document.querySelector('#gx-syncrow .ctl');
+    if (syncCtl) { syncCtl.style.pointerEvents = 'none'; syncCtl.setAttribute('aria-disabled', 'true'); }
+    say('Could not read the game options: ' + String(e), 'bad');
+  }));
+})();
+</script>
+<!-- gx-hudkeys-wired -->
+<script>
+// THE TWO HIDE-HUD KEYS, rebindable (owner, 21/08/2026).
+//
+// They were rendered as static "fixed key" labels. The claim behind that - that the CommandMap INI
+// owns them and cannot be changed - was wrong in the way that matters: a file in
+// Data\INI\CommandMap\ MERGES with the shipped map (INI.cpp:218-232 loads <root>.ini AND the
+// <root>\ directory, and MetaEvent.cpp:702-741 overwrites only the fields a block names), so one
+// binding moves and the other 95 do not. Worse, on macOS and Linux neither key was bound at all:
+// only the Windows loader ever wrote that file, so the label named a key that did nothing.
+// The evidence, with citations, is in gxio::commandmap.
+//
+// STANDALONE IN A BROWSER this block returns at the first line and the artboard's F10 / F11 stay
+// exactly as designed - the same design-review mode the options block above uses.
+//
+// NO MODIFIERS, BY CONSTRAINT (owner, 21/08/2026). A Ctrl chord is not the same combination on
+// Windows, macOS and Linux - the modifier row differs on two of the four platforms this ships to -
+// so what is written is always a bare key with Modifiers = NONE. Holding one during capture is
+// refused with a sentence rather than silently ignored, because silently dropping the modifier
+// would bind something the player did not press.
+//
+// THE REFUSAL IS RUST'S, NOT THIS FILE'S. hudkeys_save checks the key against the whole map the
+// engine will load - the retail CommandMap out of the archives, the bindings generateMetaMap
+// creates in C++, and every command button's letter - and returns one sentence naming what the key
+// already does. Keeping a copy of that check here would mean two clash rules that can disagree,
+// and the one on screen would be the one that goes stale: the player can rebind a command button
+// on the Keybinds screen between this screen loading and the key being pressed.
+//
+// CAPTURE IS THE KEYBINDS SCREEN'S PATTERN (OptionsKeys.html): one capture at a time, and an
+// abandoned one is TORN DOWN rather than merely un-highlighted. That is not tidiness - the version
+// it replaced there added a listener per click and removed it only when a key finally arrived, so
+// clicking one tile, changing your mind, clicking another and then pressing a key wrote BOTH
+// bindings. One difference, deliberate: Escape here CANCELS rather than clearing. On the Keybinds
+// screen clearing restores the game's own letter, which is a third state worth reaching; here
+// clearing would leave the toggle unreachable, and attaching that to the universal "get me out of
+// here" key is a destructive default.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }
+  var invoke = T.core.invoke;
+
+  // The engine's own command tokens - MetaEvent.cpp:162-163. Verbatim, because they are what the
+  // file is keyed by.
+  var GAME_HUD = 'TOGGLE_GAME_HUD';
+  var SPECTATOR_HUD = 'TOGGLE_HUD_OVERLAY';
+  var COMMANDS = [GAME_HUD, SPECTATOR_HUD];
+
+  // KeyboardEvent.code -> the engine's key token, for the keys whose names do not follow a
+  // pattern. `code` is the PHYSICAL key and is layout-independent, which is the only correct
+  // choice here: the engine's KeyDefType values are DirectInput scancodes, so KEY_Z is the key in
+  // the bottom-left row whatever a French or German layout prints on it. Using `key` instead would
+  // bind whatever character the layout produced and land on a different physical key.
+  var CODE_TO_KEY = {
+    Escape: 'KEY_ESC', Backspace: 'KEY_BACKSPACE', Tab: 'KEY_TAB', Enter: 'KEY_ENTER',
+    Space: 'KEY_SPACE', Minus: 'KEY_MINUS', Equal: 'KEY_EQUAL',
+    BracketLeft: 'KEY_LBRACKET', BracketRight: 'KEY_RBRACKET', Semicolon: 'KEY_SEMICOLON',
+    Quote: 'KEY_APOSTROPHE', Backquote: 'KEY_TICK', Backslash: 'KEY_BACKSLASH',
+    Comma: 'KEY_COMMA', Period: 'KEY_PERIOD', Slash: 'KEY_SLASH',
+    Insert: 'KEY_INS', Delete: 'KEY_DEL', Home: 'KEY_HOME', End: 'KEY_END',
+    PageUp: 'KEY_PGUP', PageDown: 'KEY_PGDN',
+    ArrowUp: 'KEY_UP', ArrowDown: 'KEY_DOWN', ArrowLeft: 'KEY_LEFT', ArrowRight: 'KEY_RIGHT',
+    NumpadDecimal: 'KEY_KPDEL', NumpadMultiply: 'KEY_KPSTAR', NumpadSubtract: 'KEY_KPMINUS',
+    NumpadAdd: 'KEY_KPPLUS', NumpadEnter: 'KEY_KPENTER', NumpadDivide: 'KEY_KPSLASH'
+  };
+  /// Null means "this launcher has no name the game would accept for that key", which is refused
+  /// rather than guessed: a token outside KeyNames[] throws out of GameEngine::init at startup,
+  /// so a wrong guess here is a game that will not start.
+  function tokenOf(ev) {
+    var c = ev.code || '';
+    if (CODE_TO_KEY[c]) { return CODE_TO_KEY[c]; }
+    if (/^Key[A-Z]$/.test(c)) { return 'KEY_' + c.slice(3); }
+    if (/^Digit[0-9]$/.test(c)) { return 'KEY_' + c.slice(5); }
+    if (/^F([1-9]|1[0-2])$/.test(c)) { return 'KEY_' + c; }
+    if (/^Numpad[0-9]$/.test(c)) { return 'KEY_KP' + c.slice(6); }
+    return null;
+  }
+
+  // `state.bound` is only ever what Rust has CONFIRMED the file holds; `pendingKey` is the
+  // optimistic overlay a save paints before it resolves. See bind() for why they are separate.
+  var state = { bound: {}, defaults: {}, labels: {}, path: null, problem: null, notes: [] };
+  var pendingKey = {};
+  var queue = Promise.resolve();         // hudkeys_save is read-modify-write over one file
+  var capture = null;                    // { cmd, onKey, hint } - one at a time, torn down on abandon
+
+  function cellOf(cmd) { return document.querySelector('[data-hudkey="' + cmd + '"]'); }
+  function boxOf(cmd) { var c = cellOf(cmd); return c && c.querySelector('.capbox'); }
+  function noteOf(cmd) { return document.querySelector('[data-hudnote="' + cmd + '"]'); }
+  function descOf(cmd) { return document.querySelector('[data-huddesc="' + cmd + '"]'); }
+
+  // ---------------------------------------------------------------------------------------------
+  // A MESSAGE TAKES ITS ROW'S DESCRIPTION SLOT, and that is a measurement rather than a taste.
+  //
+  // The artboard is a fixed 1280x720 composition with `overflow: hidden`, and this column is
+  // already 9px taller than its box before anything is added - it paints into the container's 26px
+  // bottom padding, which is why nobody has noticed. Measured in a webview 21/08/2026: a two-line
+  // refusal costs 31px and the shared line under the pair costs 33px, so either one pushes the
+  // bottom of the group past the artboard edge and the sentence is CLIPPED. A refusal nobody can
+  // read is worse than no refusal at all.
+  //
+  // Scrolling the column was the alternative and is worse: the 9px would put a scrollbar on the
+  // screen permanently, on a settings page that currently has none.
+  //
+  // So the two texts swap. A row shows its description OR its message, never both, and the shared
+  // line takes both descriptions when it appears - which is affordable because it only ever
+  // appears when the control is degraded or dead, and the descriptions of a control you cannot use
+  // are not what you need to read. Everything is restored the moment the message clears.
+  // ---------------------------------------------------------------------------------------------
+  var footText = '';
+
+  function layout() {
+    var row = document.getElementById('gx-hudkeys-foot');
+    if (row) {
+      row.firstElementChild.textContent = footText;
+      row.style.display = footText ? '' : 'none';
+    }
+    COMMANDS.forEach(function (cmd) {
+      var n = noteOf(cmd);
+      var d = descOf(cmd);
+      var hasNote = !!(n && n.style.display !== 'none' && n.textContent);
+      if (d) { d.style.display = (hasNote || footText) ? 'none' : ''; }
+    });
+  }
+
+  function note(cmd, text, tone) {
+    var el = noteOf(cmd);
+    if (!el) { return; }
+    el.className = 'capnote' + (tone ? ' ' + tone : '');
+    el.textContent = text || '';
+    el.style.display = text ? '' : 'none';
+    layout();
+  }
+
+  /// The line under both rows. It carries only what applies to BOTH and only when there is
+  /// something wrong: a reason the control cannot work at all, then a clash check that could not
+  /// run. Where the file lands is not on it - that is useful but never urgent, so it rides in the
+  /// rows' tooltips where it costs no height. See the note above layout().
+  function foot() {
+    var row = document.getElementById('gx-hudkeys-foot');
+    if (!row) { return; }
+    var tone = 'dim';
+    footText = '';
+    if (state.problem) { footText = state.problem; tone = 'bad'; }
+    else if (state.notes && state.notes.length) { footText = state.notes.join(' '); tone = 'warn'; }
+    row.firstElementChild.className = 'capnote ' + tone;
+    layout();
+  }
+
+  /// Where the bindings land, on the control itself. A path is worth being able to find and is
+  /// never worth a line of a column that has none to spare.
+  function showPath() {
+    if (!state.path) { return; }
+    COMMANDS.forEach(function (cmd) {
+      var c = cellOf(cmd);
+      if (c) {
+        c.setAttribute('title', 'Click, then press the key you want. No modifier is used.'
+                              + '\nSaved to ' + state.path);
+      }
+    });
+  }
+
+  function paint(cmd) {
+    var box = boxOf(cmd);
+    if (!box) { return; }
+    box.classList.remove('listening', 'unbound', 'bad');
+    if (capture && capture.cmd === cmd) {
+      box.classList.add('listening');
+      box.textContent = 'Press a key';
+      return;
+    }
+    var key = Object.prototype.hasOwnProperty.call(pendingKey, cmd)
+      ? pendingKey[cmd] : state.bound[cmd];
+    if (!key) {
+      box.classList.add('unbound');
+      box.textContent = 'Not bound';
+      return;
+    }
+    // The label comes from Rust's own key table, so this file never has to invent a name for a
+    // key - and a key it has never heard of still shows the token rather than a blank box.
+    box.textContent = state.labels[key] || key;
+  }
+  function paintAll() { COMMANDS.forEach(paint); foot(); }
+
+  function showBad(cmd, text) {
+    var box = boxOf(cmd);
+    if (box) { box.classList.add('bad'); }
+    note(cmd, text, 'bad');
+  }
+
+  /// Tear the armed capture down, and take its hint with it.
+  ///
+  /// The hint is cleared ONLY when it is still on screen unchanged. Abandoning a capture - by
+  /// clicking the row again, by arming the other one, or by clicking anywhere else - has to leave
+  /// no instruction behind for a row that is no longer listening. But a refusal written since must
+  /// survive: `bind` is asynchronous, so a rejection can land after the capture has already gone,
+  /// and blanking the note unconditionally would erase the sentence the player needs.
+  function endCapture() {
+    if (!capture) { return; }
+    document.removeEventListener('keydown', capture.onKey, true);
+    var cmd = capture.cmd;
+    var el = noteOf(cmd);
+    var hint = capture.hint;
+    capture = null;
+    if (el && el.textContent === hint) { note(cmd, '', null); }
+    paint(cmd);
+  }
+  window.gxHudEndCapture = endCapture;   // for the options block's Ctrl+S, which runs first
+
+  /// Write one binding.
+  ///
+  /// The box is repainted OPTIMISTICALLY, because a refusal is the common case here - measured on
+  /// this install 21/08/2026, 57 of the 90 offerable keys are already taken - and a box still
+  /// showing the old key while a sentence explains a new one reads as though the sentence is about
+  /// something else.
+  ///
+  /// `state.bound` IS ONLY EVER WHAT RUST HAS CONFIRMED. The optimistic value lives in a separate
+  /// overlay that both paths delete, so a rejection restores the file's own state and cannot
+  /// restore a guess. Writing the optimism into `state.bound` and remembering a "previous" was the
+  /// obvious shape and is wrong: found while testing on 21/08/2026, two binds started before the
+  /// first resolved left the row showing a key that had never been written - the second rollback
+  /// restored the FIRST one's unconfirmed value. One capture at a time makes that hard to reach by
+  /// hand, not impossible, and a settings screen that displays a binding nobody made is the exact
+  /// failure this whole change exists to remove.
+  ///
+  /// AND THE WRITES ARE QUEUED. hudkeys_save is read-modify-write over one file and Tauri runs
+  /// commands on a thread pool, so two in flight can each read the file before the other writes it
+  /// and the second silently drops the first's binding.
+  function bind(cmd, token) {
+    pendingKey[cmd] = token;
+    paint(cmd);
+    note(cmd, '', null);
+    var done = queue.then(function () {
+      return invoke('hudkeys_save', { command: cmd, key: token }).then(function (p) {
+        state.bound[cmd] = token;
+        delete pendingKey[cmd];
+        state.path = p;
+        showPath();
+        paint(cmd);
+      }).catch(function (e) {
+        delete pendingKey[cmd];          // back to what the file is known to hold
+        paint(cmd);
+        showBad(cmd, String(e));
+        throw e;
+      });
+    });
+    // The chain must survive a rejection, or the first refused key would stop every later save.
+    queue = done.catch(function () {});
+    return done;
+  }
+
+  function beginCapture(cmd) {
+    var again = capture && capture.cmd === cmd;
+    endCapture();
+    if (again) { return; }               // clicking the armed row again cancels
+    if (state.problem) { return; }       // nowhere to write; the foot line says why
+    // The fn hint is not platform-guessed and is not meant to be: this file never reads the user
+    // agent (see gx-chrome-wired, where Rust decides instead), and it is true of Mac laptops and
+    // of plenty of PC ones. A player pressing F10 on a MacBook and seeing nothing happen would
+    // otherwise conclude the control is broken - which is the very report this change answers.
+    var hint = 'Press the key you want. Some keyboards need fn held for the F-keys. Escape cancels.';
+    note(cmd, hint, 'warn');
+
+    function onKey(ev) {
+      // Modifier presses on their own are not a choice yet - the player is on their way to a
+      // chord, or has simply rested a finger on Shift. Waiting is right; refusing here would fire
+      // before they pressed anything.
+      if (ev.key === 'Shift' || ev.key === 'Control' || ev.key === 'Alt' || ev.key === 'Meta') {
+        return;
+      }
+      // preventDefault AND stopPropagation. This listener is on document in the CAPTURE phase, so
+      // it runs before the bubble-phase handler in gx-chrome-wired - which binds F11 to the
+      // launcher's own fullscreen. Without stopPropagation, choosing F11 for a hide-HUD key would
+      // also throw the launcher into fullscreen, which is exactly the kind of thing that reads as
+      // the settings screen being broken.
+      ev.preventDefault();
+      ev.stopPropagation();
+
+      // Escape CANCELS and leaves the binding alone - endCapture takes the hint with it. See this
+      // block's header for why this differs from the Keybinds screen, where Escape clears.
+      if (ev.key === 'Escape') { endCapture(); return; }
+      if (ev.ctrlKey || ev.altKey || ev.metaKey || ev.shiftKey) {
+        endCapture();
+        showBad(cmd, 'This binding is a single key with no modifier: a Ctrl or Alt chord is not '
+                   + 'the same combination on Windows, macOS and Linux. Press one key on its own.');
+        return;
+      }
+      var token = tokenOf(ev);
+      endCapture();
+      if (!token) {
+        showBad(cmd, 'The game has no name for that key, so it cannot be bound. Try another one.');
+        return;
+      }
+      bind(cmd, token).catch(function () { /* showBad already holds the sentence */ });
+    }
+
+    capture = { cmd: cmd, onKey: onKey, hint: hint };
+    paint(cmd);
+    document.addEventListener('keydown', onKey, true);
+  }
+
+  // Clicks. Every handled click stops here: the navigation script matches on VISIBLE LABEL, and a
+  // box reading "Not bound" is one rename away from colliding with a route.
+  document.addEventListener('click', function (ev) {
+    var t = ev.target;
+    for (var i = 0; t && i < 6; i++, t = t.parentElement) {
+      if (t.hasAttribute && t.hasAttribute('data-hudkey')) {
+        ev.stopPropagation();
+        beginCapture(t.getAttribute('data-hudkey'));
+        return;
+      }
+    }
+    // Clicked past the control: disarm, so a keystroke meant for the page cannot land on a row the
+    // player has stopped looking at.
+    endCapture();
+  }, true);
+
+  // Blank the artboard's F10 / F11 BEFORE the load resolves. They are the right defaults and they
+  // are also, on this install, a claim about a file that does not exist - so nothing is asserted
+  // until Rust has said what the file holds.
+  COMMANDS.forEach(function (cmd) {
+    var box = boxOf(cmd);
+    if (box) { box.classList.add('unbound'); box.textContent = '…'; }
+  });
+
+  // Held until the boxes show what the file binds - including, on a first run, the two defaults written below.
+  window.gxSettle.wait(invoke('hudkeys_load').then(function (s) {
+    state.bound = s.bound || {};
+    state.defaults = s.defaults || {};
+    state.labels = s.labels || {};
+    state.path = s.path || null;
+    state.problem = s.problem || null;
+    state.notes = s.notes || [];
+    paintAll();
+    showPath();
+
+    // MATERIALISE THE DEFAULTS, once, on an install that has never had the file.
+    //
+    // F10 and F11 stay the defaults (owner, 21/08/2026) - and until this ran, on macOS and Linux
+    // they were a default nothing had ever written. The same reasoning as the chat-fade default
+    // above: the launcher writes its own default into a file it owns rather than showing a number
+    // it has not made true. The row only stops saying "Not bound" once the write RESOLVES.
+    //
+    // SEQUENTIALLY, not in parallel. hudkeys_save is read-modify-write over one file and Tauri
+    // runs commands on a thread pool, so two in flight at once can each read the file before the
+    // other writes it and the second would drop the first's binding.
+    //
+    // A default that is refused - a mod has taken F10 - is left unbound with its sentence on
+    // screen, which is the honest outcome and is exactly the case the clash check exists for.
+    if (!s.exists && !state.problem) {
+      return COMMANDS.reduce(function (chain, cmd) {
+        return chain.then(function () {
+          var k = state.defaults[cmd];
+          if (!k || state.bound[cmd]) { return; }
+          return bind(cmd, k).catch(function () { /* the row carries its own sentence */ });
+        });
+      }, Promise.resolve());
+    }
+  }).catch(function (e) {
+    // hudkeys_load never rejects by design, so this is a broken IPC rather than a missing game.
+    // Say so instead of leaving two boxes reading "…" forever.
+    console.error('hudkeys_load failed:', e);
+    state.problem = 'The hide-HUD keys could not be read: ' + String(e);
+    paintAll();
+  }));
+})();
+</script>
+<!-- gx-preview-fullscreen -->
+<script>
+// Owner request: the preview, window-sized. Pure frontend - it clones the preview surface into a
+// fixed overlay appended to <body> (the artboard root is transform-scaled by the fit block, so
+// position:fixed INSIDE it would pin to the artboard, not the window). Click anywhere, or press
+// Escape, to close. Needs no Tauri, so standalone design review gets the same control.
+(function () {
+  var btn = document.getElementById('gx-pvfull');
+  if (!btn) { return; }
+  var overlay = null;
+  function onKey(e) { if (e.key === 'Escape') { close(); } }
+  function size() {
+    if (!overlay) { return; }
+    var box = overlay.firstElementChild;
+    var bw = Math.min(window.innerWidth, window.innerHeight * 1920 / 1080);
+    var bh = bw * 1080 / 1920;
+    box.style.width = bw + 'px';
+    box.style.height = bh + 'px';
+    var stage = box.querySelector('.stage');
+    if (stage) { stage.style.transform = 'scale(' + (bw / 1920) + ')'; }
+  }
+  function close() {
+    if (!overlay) { return; }
+    overlay.remove();
+    overlay = null;
+    window.removeEventListener('keydown', onKey);
+    window.removeEventListener('resize', size);
+  }
+  btn.addEventListener('click', function (ev) {
+    ev.stopPropagation();
+    if (overlay) { close(); return; }
+    var screen = document.querySelector('.screen');
+    if (!screen) { return; }
+    overlay = document.createElement('div');
+    overlay.title = 'Click, or press Escape, to close';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:10000;background:#0A0A0C;' +
+      'display:flex;align-items:center;justify-content:center;';
+    var box = screen.cloneNode(true);   // stays styled: <body> carries the .gx-s-optionshud scope
+    overlay.appendChild(box);
+    overlay.addEventListener('click', close);
+    document.body.appendChild(overlay);
+    size();
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', size);
+  });
+})();
+</script>
+
+<!-- gx-hudpreview -->
+<script src="../hudprev/manifest.js" onerror="void 0"></script>
+<script src="../hudprev/hudprev.js"></script>
+<script>
+// The GeneralsX UI preview (hudprev/hudprev.js) and its large view. With no manifest (hudprev/manifest.js missing) the
+// page keeps the three still screenshots it had, and nothing below runs.
+(function () {
+  var H = window.gxHudPreview;
+  var box = document.querySelector('.gx-sppic');
+  var host = document.getElementById('gx-pvhost');
+  var bar = document.getElementById('gx-sppicbar');
+  if (!H || !H.ready || !box || !host || !bar) { return; }
+  // Live only if the stage builds AND its base picture loads: a half-shipped set must leave the stills, not a black box.
+  var stage = null;
+  var cap = document.getElementById('gx-pvcap'), capStill = cap ? cap.textContent : '';
+  function fallBack() { box.classList.remove('pv-live', 'pv-hasplay'); if (stage) { H.unmount(stage); stage = null; } if (cap) { cap.textContent = capStill; } }
+  try { stage = H.mount(host); } catch (e) { console.error('hud preview: ' + e); stage = null; }
+  if (!stage) { return; }
+  box.classList.add('pv-live');
+  if (H.hasPlay) { box.classList.add('pv-hasplay'); }
+  if (stage.baseImg) { stage.baseImg.addEventListener('error', fallBack); }
+  if (cap) { cap.textContent = 'Each switch hides or shows the piece the game draws for it, and Opacity re-blends the panels. Tab scoreboard shows what holding Tab opens; Playing is the command bar with its numbers line. Click the picture to see it large.'; }
+
+  function view() { var t = bar.querySelector('[data-pic].on'); return t ? t.getAttribute('data-pic') : 'bar'; }
+  var big = null;
+  function syncView() {
+    box.setAttribute('data-view', view());
+    if (big) { big.el.setAttribute('data-view', view()); Array.prototype.forEach.call(big.tabs.children, function (b) { var on = b.getAttribute('data-pic') === view(); b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false'); }); }
+  }
+  new MutationObserver(syncView).observe(bar, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  syncView();
+
+  var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function open() {
+    if (big || !box.classList.contains('pv-live')) { return; }
+    var el = document.createElement('div');
+    el.className = 'gx-pvx' + (H.hasPlay ? ' pv-hasplay' : ''); el.setAttribute('role', 'dialog'); el.setAttribute('aria-modal', 'true'); el.setAttribute('aria-label', 'HUD preview, large');
+    var top = document.createElement('div'); top.className = 'pvx-bar';
+    var tabs = bar.cloneNode(true); tabs.removeAttribute('id'); tabs.style.pointerEvents = 'auto';
+    Array.prototype.forEach.call(tabs.children, function (b) {
+      b.addEventListener('click', function (ev) { ev.stopPropagation(); var src = bar.querySelector('[data-pic="' + b.getAttribute('data-pic') + '"]'); if (src) { src.click(); } });
+      b.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ev.stopPropagation(); b.click(); } });
+    });
+    var hint = document.createElement('span'); hint.className = 'pvx-hint'; hint.textContent = 'Esc or a click closes this';
+    var close = document.createElement('button'); close.type = 'button'; close.className = 'pvx-close'; close.textContent = 'Close';
+    top.appendChild(tabs); top.appendChild(hint); top.appendChild(close);
+    var stage = document.createElement('div'); stage.className = 'pvx-stage';
+    var frame = document.createElement('div'); frame.className = 'pvx-frame';
+    var still = document.createElement('img'); still.src = '../player-c.jpg'; still.alt = 'The GeneralsX UI while playing.';
+    stage.appendChild(frame); frame.appendChild(still);
+    el.appendChild(top); el.appendChild(stage);
+    document.body.appendChild(el);
+    var inst = H.mount(frame);
+    var a = document.activeElement;   // Safari does not focus a button on click: then it is the expand button that gets focus back
+    big = { el: el, tabs: tabs, inst: inst, from: a && a !== document.body ? a : document.getElementById('gx-pvexp') };
+    syncView();
+    el.addEventListener('click', function (ev) {
+      if (ev.target === close || !(ev.target.closest && ev.target.closest('.pvx-bar'))) { shut(); }
+    });
+    close.focus();
+    if (reduce) { el.classList.add('in'); } else { requestAnimationFrame(function () { requestAnimationFrame(function () { el.classList.add('in'); }); }); }
+  }
+  function shut() {
+    if (!big) { return; }
+    var b = big; big = null;
+    H.unmount(b.inst);
+    var done = function () { if (b.el.parentNode) { b.el.parentNode.removeChild(b.el); } };
+    b.el.classList.remove('in');
+    if (reduce) { done(); } else { setTimeout(done, 170); }
+    if (b.from && b.from.focus) { b.from.focus(); }
+  }
+  document.addEventListener('keydown', function (ev) {
+    if (!big) { return; }
+    if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); shut(); return; }
+    if (ev.key === 'Tab') {   // the dialog is modal: Tab cycles inside it
+      var f = Array.prototype.slice.call(big.el.querySelectorAll('button, [role="tab"]'));
+      if (!f.length) { return; }
+      var i = f.indexOf(document.activeElement);
+      ev.preventDefault();
+      f[(i + (ev.shiftKey ? f.length - 1 : 1)) % f.length].focus();
+    }
+  }, true);
+  document.getElementById('gx-pvexp').addEventListener('click', function (ev) { ev.stopPropagation(); open(); });
+  box.addEventListener('click', function () { open(); });
+})();
+</script>
+
+<!-- gx-chrome-wired -->
+<script>
+// The app's own title row, on the platforms that want one.
+//
+// Windows and Linux get it: their OS title bar is a wide painted strip in the user's accent
+// colour, sitting above a dark launcher looking like a different application. macOS keeps its
+// native traffic lights - they are the platform idiom and a drawn set would sit opposite them.
+// Rust decides (window_custom_chrome); this file never guesses from the user agent.
+(function () {
+  var T = window.__TAURI__;
+  if (!T || !T.core || !T.core.invoke) { return; }   // standalone in a browser: leave the page alone
+  var invoke = T.core.invoke;
+
+  var SVG = 'http://www.w3.org/2000/svg';
+  function icon(paths) {
+    var s = document.createElementNS(SVG, 'svg');
+    s.setAttribute('width', '14'); s.setAttribute('height', '14');
+    s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('fill', 'none');
+    s.setAttribute('stroke', 'currentColor'); s.setAttribute('stroke-width', '1.9');
+    s.setAttribute('stroke-linecap', 'round');
+    paths.forEach(function (d) {
+      var p = document.createElementNS(SVG, 'path'); p.setAttribute('d', d); s.appendChild(p);
+    });
+    return s;
+  }
+
+  function build(maximized) {
+    // The focus ring for the three buttons below. It cannot be an inline style - :focus-visible
+    // is a selector - and this bar is built in script with no stylesheet of its own, so the rule
+    // is injected once. Same 2px accent outline at offset 1px every other control on every screen
+    // paints, because two focus rings in one window is two vocabularies.
+    if (!document.getElementById('gx-chrome-focus')) {
+      var fs = document.createElement('style');
+      fs.id = 'gx-chrome-focus';
+      fs.textContent = '#gx-chrome [role="button"]:focus-visible{outline:2px solid var(--gx-accent);'
+        + 'outline-offset:1px;}';
+      document.head.appendChild(fs);
+    }
+
+    var bar = document.createElement('div');
+    bar.id = 'gx-chrome';
+    bar.setAttribute('data-tauri-drag-region', '');
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;height:40px;display:flex;' +
+      'align-items:center;justify-content:flex-end;gap:2px;padding:0 6px;z-index:9999;' +
+      '-webkit-app-region:drag;user-select:none;';
+
+    function btn(paths, title, onClick, danger) {
+      var b = document.createElement('div');
+      b.title = title;
+      b.setAttribute('role', 'button');
+      // MINIMISE / MAXIMISE / CLOSE ARE CONTROLS (round 6c). They carried the role and nothing
+      // else: no tab stop, no name a screen reader is obliged to read, and no key that works.
+      // On Windows and Linux this bar REPLACES the OS title bar - so without these three lines a
+      // keyboard-only player on those platforms cannot close the launcher from inside it.
+      //
+      // aria-label RATHER THAN title ALONE: `title` is the last fallback in the accessible-name
+      // computation and several screen readers are configured never to reach it. Both are kept in
+      // sync wherever the maximise button relabels itself.
+      b.setAttribute('tabindex', '0');
+      b.setAttribute('aria-label', title);
+      b.style.cssText = 'width:40px;height:26px;display:flex;align-items:center;' +
+        'justify-content:center;color:#96999E;border-radius:3px;cursor:default;' +
+        '-webkit-app-region:no-drag;transition:background .12s,color .12s;';
+      b.appendChild(icon(paths));
+      b.addEventListener('mouseenter', function () {
+        b.style.background = danger ? '#E86A6A' : '#232327';
+        b.style.color = danger ? '#ECEEF0' : '#ECEEF0';
+      });
+      b.addEventListener('mouseleave', function () {
+        b.style.background = 'transparent'; b.style.color = '#96999E';
+      });
+      b.addEventListener('click', function (e) { e.stopPropagation(); onClick(b); });
+      // ENTER AND SPACE. An element wearing role="button" is activated by neither key on its own;
+      // only a real <button> gets that from the platform, and this bar cannot be one - it is a
+      // drag region with `-webkit-app-region` children, and a <button> inside a drag region is
+      // swallowed by the region on Windows.
+      b.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ' || e.key === 'Spacebar') {
+          e.preventDefault(); e.stopPropagation(); onClick(b);
+        }
+      });
+      return b;
+    }
+
+    var MAX_ON  = ['M8 3H5a2 2 0 0 0-2 2v3', 'M21 8V5a2 2 0 0 0-2-2h-3',
+                   'M3 16v3a2 2 0 0 0 2 2h3', 'M16 21h3a2 2 0 0 0 2-2v-3'];
+    var MAX_OFF = ['M8 3v3a2 2 0 0 1-2 2H3', 'M21 8h-3a2 2 0 0 1-2-2V3',
+                   'M3 16h3a2 2 0 0 1 2 2v3', 'M16 21v-3a2 2 0 0 1 2-2h3'];
+
+    // Every invoke carries a .catch: a rejected window op with no handler is silent, and a
+    // button that sometimes does nothing with no explanation reads as a broken launcher.
+    bar.appendChild(btn(['M5 12h14'], 'Minimise', function () {
+      invoke('window_minimize').catch(function (e) { console.error('minimize:', e); });
+    }));
+
+    var maxBtn = btn(maximized ? MAX_OFF : MAX_ON, 'Maximise', function (b) {
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var old = b.querySelector('svg');
+        if (old) { b.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), old); }
+        b.title = isMax ? 'Restore' : 'Maximise';
+        b.setAttribute('aria-label', b.title);
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+    bar.appendChild(maxBtn);
+
+    bar.appendChild(btn(['M18 6 6 18', 'm6 6 12 12'], 'Close', function () {
+      invoke('window_close').catch(function (e) { console.error('close:', e); });
+    }, true));
+
+
+    document.body.appendChild(bar);
+
+    // DOUBLE-CLICK THE TITLE ROW TO MAXIMISE. Every OS does this and the drag region swallowed
+    // it, so the app's own title bar behaved worse than the one it replaced.
+    bar.addEventListener('dblclick', function (e) {
+      if (e.target.closest && e.target.closest('[role="button"]')) { return; }
+      invoke('window_maximize_toggle').then(function (isMax) {
+        var b = maxBtn.querySelector('svg');
+        if (b) { maxBtn.replaceChild(icon(isMax ? MAX_OFF : MAX_ON), b); }
+        maxBtn.title = isMax ? 'Restore' : 'Maximise';
+      }).catch(function (e) { console.error('maximize:', e); });
+    });
+
+    // RESIZE GRIPS. set_decorations(false) removed the OS frame, and with it the resize borders -
+    // the window could be maximised but never dragged to a size. These eight invisible strips put
+    // them back, handing the drag to the OS (window_start_resize) rather than tracking the mouse
+    // here. 6px reads as a border and is still easy to hit; the corners are 12px because corners
+    // are aimed at rather than swept into. They sit UNDER the chrome bar's z-index so the buttons
+    // always win, and each one stops the click reaching the label router.
+    var GRIPS = [
+      ['north',      'top:0;left:12px;right:12px;height:6px;',        'ns-resize'],
+      ['south',      'bottom:0;left:12px;right:12px;height:6px;',     'ns-resize'],
+      ['west',       'left:0;top:12px;bottom:12px;width:6px;',        'ew-resize'],
+      ['east',       'right:0;top:12px;bottom:12px;width:6px;',       'ew-resize'],
+      ['north-west', 'top:0;left:0;width:12px;height:12px;',          'nwse-resize'],
+      ['north-east', 'top:0;right:0;width:12px;height:12px;',         'nesw-resize'],
+      ['south-west', 'bottom:0;left:0;width:12px;height:12px;',       'nesw-resize'],
+      ['south-east', 'bottom:0;right:0;width:12px;height:12px;',      'nwse-resize']
+    ];
+    GRIPS.forEach(function (g) {
+      var el = document.createElement('div');
+      el.setAttribute('data-gx-noroute', '');
+      el.style.cssText = 'position:fixed;z-index:9998;-webkit-app-region:no-drag;' +
+                         g[1] + 'cursor:' + g[2] + ';';
+      el.addEventListener('mousedown', function (ev) {
+        ev.preventDefault(); ev.stopPropagation();
+        invoke('window_start_resize', { direction: g[0] })
+          .catch(function (e) { console.error('resize:', e); });
+      });
+      document.body.appendChild(el);
+    });
+  }
+
+  // F11 EVERYWHERE, including macOS, where the window keeps its own decorations and this block
+  // otherwise does nothing. Fullscreen is not maximised: it gives the whole display to the
+  // artboard, which the fit script then scales into. Escape leaves, because a player who cannot
+  // see a title bar needs a way out that does not require finding one.
+  var isFull = false;
+  function toggleFullscreen() {
+    invoke('window_fullscreen_toggle')
+      .then(function (v) { isFull = !!v; })
+      .catch(function (e) { console.error('fullscreen:', e); });
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); return; }
+    if (e.key === 'Escape' && isFull) { e.preventDefault(); toggleFullscreen(); }
+  });
+
+  // Held for this too (gx-settle.js): on Windows the minimise / maximise / close buttons are part of the first frame,
+  // not a pop-in. The fit block placed the artboard before the bar existed; below 1:1 it must sit under the bar, so
+  // it is fitted again now rather than at the player's first resize.
+  window.gxSettle.wait(invoke('window_custom_chrome').then(function (wants) {
+    if (wants) { build(false); window.dispatchEvent(new Event('resize')); }
+  }).catch(function (e) { console.error('window_custom_chrome failed:', e); }));
+})();
+</script>
+
+<!-- gx-fit-wired -->
+<script>
+// Fit the artboard to the window.
+//
+// Every screen's root is a fixed 1280x720 box, because that is what the design IS - a fixed
+// composition, not a responsive layout. Maximising therefore did nothing: the box stayed its
+// size in the corner and the rest of the window was empty ground.
+//
+// Scaling it is the honest fix. Reflowing eleven screens into a responsive layout would be a
+// redesign, would need the designer, and would not obviously be better - the artboards are laid
+// out to be read at one set of proportions. So: scale by the smaller of the two ratios, keep the
+// aspect, and centre what is left over.
+//
+// Runs standalone in a browser too - it needs no Tauri - so the screens still review correctly
+// at any window size.
+(function () {
+  var root = null;
+  function findRoot() {
+    var kids = document.body ? document.body.children : [];
+    for (var i = 0; i < kids.length; i++) {
+      var el = kids[i];
+      if (el.id === 'gx-chrome') { continue; }          // the title row is window-scale, not art-scale
+      if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE') { continue; }
+      var w = parseFloat(el.style.width), h = parseFloat(el.style.height);
+      if (w >= 1000 && h >= 600) { return el; }
+    }
+    return null;
+  }
+  function fit() {
+    if (!root) { root = findRoot(); }
+    if (!root) { return; }
+    var w = parseFloat(root.style.width)  || 1280;
+    var h = parseFloat(root.style.height) || 720;
+    var iw = window.innerWidth, ih = window.innerHeight;
+    var s = Math.min(iw / w, ih / h);
+    var ty = (ih - h * s) / 2;
+    // The injected title row (#gx-chrome) is window-scale and 40px tall. At s >= 1 the
+    // artboard's own 40px top spacer scales to >= 40px, so the bar overlays empty ground.
+    // Below s = 1 the spacer shrinks under the bar and the bar starts stealing clicks from
+    // real content — so refit into the strip BELOW the bar instead.
+    if (s < 1 && document.getElementById('gx-chrome')) {
+      var avail = Math.max(ih - 40, 40);
+      s = Math.min(iw / w, avail / h);
+      ty = 40 + (avail - h * s) / 2;
+    }
+    root.style.transformOrigin = 'top left';
+    root.style.transform = 'translate(' + ((iw - w * s) / 2) + 'px,' + ty + 'px) scale(' + s + ')';
+  }
+  document.documentElement.style.overflow = 'hidden';
+  if (document.body) { document.body.style.overflow = 'hidden'; }
+  window.addEventListener('resize', fit);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fit);
+  } else {
+    fit();
+  }
+  fit();
+})();
+</script>
+</body>
+</html>

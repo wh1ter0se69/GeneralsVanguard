@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>reference — OptionsNetwork</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;500;600&display=swap">
+<style>
+    body { margin: 0; font-family: "Barlow", "Segoe UI", system-ui, sans-serif; }
+    a { color: #3B8EEA; text-decoration: none; } a:hover { color: #6AA9F0; }
+    :root { --ease-out: cubic-bezier(0.23, 1, 0.32, 1); --ease-press: cubic-bezier(0.4, 0, 0.2, 1); }
+    @keyframes gx-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .gx-rise { animation: gx-rise 520ms var(--ease-out) both; }
+
+    .item { height: 40px; display: flex; align-items: center; gap: 12px; padding: 0 18px 0 15px;
+      color: #96999E; font-size: 13px; cursor: pointer; border-left: 3px solid transparent;
+      transition: background 160ms var(--ease-out), color 160ms var(--ease-out); }
+    .item svg { flex-shrink: 0; }
+    .item.sel { background: #26262B; color: #ECEEF0; font-weight: 600; border-left-color: #3B8EEA; }
+    .grouphead { font-size: 9.5px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 700;
+      color: #6F7378; padding: 15px 18px 6px 18px; }
+    .gx-save { cursor: pointer; border: 2px solid #3B8EEA; background: #1D2A38; color: #ECEEF0;
+      box-shadow: 0 0 0 1px rgba(59,142,234,0.16), 0 8px 24px rgba(59,142,234,0.14); }
+
+    .run { height: 46px; padding: 0 26px; display: inline-flex; align-items: center; justify-content: center;
+      border: 2px solid #3B8EEA; background: #1D2A38; color: #ECEEF0; cursor: pointer;
+      font-size: 14px; font-weight: 700; letter-spacing: 1.1px;
+      box-shadow: 0 0 0 1px rgba(59,142,234,0.16), 0 8px 22px rgba(59,142,234,0.14);
+      transition: background 200ms var(--ease-out), transform 140ms var(--ease-press); }
+    .run:active { transform: scale(0.985); }
+
+    /* THE VERDICT SITS ABOVE THE EVIDENCE. A reader who takes one thing off this page should
+       take the sentence, not a dot. Kept from NetworkPage.cs, where it is already argued. */
+    .verdict { border-left: 3px solid #E86A6A; background: #241618; padding: 13px 16px; }
+    .vt { font-size: 15px; font-weight: 600; color: #ECEEF0; line-height: 1.45; }
+
+    .chk { display: grid; grid-template-columns: 22px 190px 1fr; gap: 10px; align-items: baseline;
+      padding: 7px 12px; background: #1B1B1E; }
+    .gl { font-size: 13px; text-align: center; }
+    .cn { font-size: 12.5px; font-weight: 600; color: #ECEEF0; }
+    .cv { font-size: 12px; color: #ECEEF0; line-height: 1.5; }
+    /* Dimming the passes is what makes the one failing row findable without the page shouting. */
+    .cv.dim { color: #7E8288; }
+    /* Colour carries a MEASUREMENT, never a status. The bands are the engine's own ping bands
+       (drawNetworkLatency: green at or under 80 ms, yellow to 180, red beyond), so the launcher
+       and the in-game readout say the same thing about the same number. Prose stays dim, which is
+       what keeps the one failing row findable. */
+    .ms   { font-variant-numeric: tabular-nums; font-weight: 600; }
+    .good { color: #5FC98D; }
+    .fair { color: #EABE3B; }
+    .poor { color: #E86A6A; }
+    .host { color: #8FB4DE; }
+    .hash { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; color: #A9ACB1; }
+
+    .copy { font-family: "JetBrains Mono", ui-monospace, monospace; font-size: 11px; color: #C3C6CA;
+      background: #1B1B1E; border: 1px solid #2E2E33; padding: 9px 12px; overflow-x: auto; white-space: nowrap; }
+    .ghost { height: 34px; padding: 0 16px; display: inline-flex; align-items: center; cursor: pointer;
+      border: 1px solid #2E2E33; background: #1B1B1E; color: #96999E; font-size: 12px; font-weight: 600;
+      letter-spacing: 0.5px; transition: color 160ms var(--ease-out), border-color 160ms var(--ease-out); }
+
+    @media (hover: hover) and (pointer: fine) {
+      .item:not(.sel):hover { background: #202024; color: #C3C6CA; }
+      .run:hover { background: #223449; }
+      .ghost:hover { color: #ECEEF0; border-color: #3D3D45; }
+      .chk:hover { background: #1E1E22; }
+    }
+    @media (prefers-reduced-motion: reduce) { .gx-rise { animation: none; opacity: 1; transform: none; } .run:active { transform: none; } }
+  </style>
+</head><body>
+<div style="width: 1280px; height: 720px; background: #141416; color: #ECEEF0; display: flex; overflow: hidden;">
+
+  <div style="width: 208px; flex-shrink: 0; background: #1B1B1E; border-right: 1px solid #2E2E33; display: flex; flex-direction: column;">
+    <div style="height: 40px;"></div>
+    <div style="padding: 4px 18px 0 18px;">
+      <div style="display: flex; align-items: baseline; gap: 6px;">
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; letter-spacing: 0.8px; line-height: 1.12;">GENERALS</div>
+        <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 26px; font-weight: 700; color: #3B8EEA; line-height: 1.12; text-shadow: 0 0 16px rgba(59,142,234,0.45);">X</div>
+      </div>
+      <div style="width: 52px; height: 2px; background: linear-gradient(90deg, #3B8EEA, rgba(59,142,234,0.15)); margin-top: 9px;"></div>
+    </div>
+    <div class="grouphead" style="padding-top: 20px;">Settings</div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 5H3"/><path d="M12 19H3"/><path d="M14 3v4"/><path d="M16 17v4"/><path d="M21 12h-9"/><path d="M21 19h-5"/><path d="M21 5h-7"/><path d="M8 10v4"/><path d="M8 12H3"/></svg><span>General</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></svg><span>Graphics</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg><span>HUD</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/></svg><span>Keybinds</span></div>
+    <div class="grouphead">If something is wrong</div>
+    <div class="item sel"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></svg><span>Network test</span></div>
+    <div class="item"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg><span>Diagnostics</span></div>
+    <div style="flex-grow: 1;"></div>
+    <div style="height: 1px; background: #2E2E33;"></div>
+    <div class="item" style="height: 44px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg><span>About</span></div>
+    <div style="padding: 14px 16px 16px 16px;">
+      <div class="gx-save" style="height: 44px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; letter-spacing: 0.8px;">SAVE &amp; GO BACK</div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0; padding: 40px 34px 20px 34px; box-sizing: border-box; gap: 14px;">
+
+    <div class="gx-rise" style="display: flex; align-items: flex-start; justify-content: space-between; gap: 24px;">
+      <div style="min-width: 0;">
+        <div style="font-size: 23px; font-weight: 700; letter-spacing: -0.2px;">Network test</div>
+        <div style="font-size: 12.5px; color: #96999E; margin-top: 3px; line-height: 1.5; max-width: 66ch;">
+          Nothing to configure. The launcher finds the relay itself, checks who signed the list, and picks the closest. This page is for when a join fails anyway.
+        </div>
+      </div>
+      <div class="run" style="flex-shrink: 0;">RUN THE TEST</div>
+    </div>
+
+    <div class="gx-rise verdict" style="animation-delay: 50ms;">
+      <div class="vt">Your router is dropping the relay's replies. Everything else is fine.</div>
+    </div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 1px; border: 1px solid #2E2E33; background: #2E2E33; animation-delay: 100ms;">
+          <div class="chk">
+            <span class="gl" style="color: #5FC98D;">&#10003;</span>
+            <span class="cn">Game version</span>
+            <span class="cv dim"><span class="hash">d64b81cd9</span>, <span class="good">current</span></span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: #5FC98D;">&#10003;</span>
+            <span class="cn">Required game data</span>
+            <span class="cv dim"><span class="good">all 14</span> archives present</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: #5FC98D;">&#10003;</span>
+            <span class="cn">Debug mode</span>
+            <span class="cv dim"><span class="good">off</span>, as it must be to join</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: #5FC98D;">&#10003;</span>
+            <span class="cn">Download host DNS</span>
+            <span class="cv dim"><span class="host">dl.wh1ter0se.dev</span> in <span class="ms good">12 ms</span></span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: #5FC98D;">&#10003;</span>
+            <span class="cn">Download host, HTTPS</span>
+            <span class="cv dim">reachable in <span class="ms good">41 ms</span>, 1.4 MB/s</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: #5FC98D;">&#10003;</span>
+            <span class="cn">Relay DNS</span>
+            <span class="cv dim"><span class="host">relay.wh1ter0se.dev</span> in <span class="ms fair">146 ms</span>, slower than usual</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: #E86A6A;">&#10007;</span>
+            <span class="cn">Relay round trip, UDP</span>
+            <span class="cv">no answer on <span class="ms">8086</span> after <span class="poor">three tries</span>, <span class="ms poor">1200 ms</span> each. A firewall or router is dropping UDP, which is the single most common reason a join fails.</span>
+          </div>
+          <div class="chk">
+            <span class="gl" style="color: #6F7378;">&#8722;</span>
+            <span class="cn">Relay build agreement</span>
+            <span class="cv dim">not checked, the relay never answered</span>
+          </div>
+    </div>
+
+    <div style="flex-grow: 1;"></div>
+
+    <div class="gx-rise" style="display: flex; flex-direction: column; gap: 8px; animation-delay: 150ms;">
+      <div style="display: flex; gap: 16px; font-size: 11px; color: #6F7378; padding-bottom: 2px;">
+        <span>Timings use the same bands as the in&#8209;game ping:</span>
+        <span><span class="good">&#9632;</span> under 80 ms</span>
+        <span><span class="fair">&#9632;</span> to 180 ms</span>
+        <span><span class="poor">&#9632;</span> over 180 ms</span>
+      </div>
+      <div style="font-size: 11.5px; color: #96999E;">Paste this when you ask for help. It is enough to diagnose without follow-up questions, and it names nothing about you.</div>
+      <div class="copy">gx net d64b81cd9 4E775DE5 | dns ok | https 41ms | relay TIMEOUT x3 | agree - | eu</div>
+      <div><span class="ghost">COPY</span></div>
+    </div>
+
+  </div>
+</div>
+</body></html>

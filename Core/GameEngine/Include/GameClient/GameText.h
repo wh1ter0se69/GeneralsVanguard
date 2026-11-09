@@ -1,0 +1,139 @@
+/*
+**	Command & Conquer Generals Zero Hour(tm)
+**	Copyright 2025 Electronic Arts Inc.
+**
+**	This program is free software: you can redistribute it and/or modify
+**	it under the terms of the GNU General Public License as published by
+**	the Free Software Foundation, either version 3 of the License, or
+**	(at your option) any later version.
+**
+**	This program is distributed in the hope that it will be useful,
+**	but WITHOUT ANY WARRANTY; without even the implied warranty of
+**	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+**	GNU General Public License for more details.
+**
+**	You should have received a copy of the GNU General Public License
+**	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+////////////////////////////////////////////////////////////////////////////////
+//																																						//
+//  (c) 2001-2003 Electronic Arts Inc.																				//
+//																																						//
+////////////////////////////////////////////////////////////////////////////////
+
+
+//----------------------------------------------------------------------------
+//
+//                       Westwood Studios Pacific.
+//
+//                       Confidential Information
+//                Copyright (C) 2001 - All Rights Reserved
+//
+//----------------------------------------------------------------------------
+//
+// Project:    RTS 3
+//
+// File name:  GameClient/GameText.h
+//
+// Created:    11/07/01
+//
+//----------------------------------------------------------------------------
+
+#pragma once
+
+//----------------------------------------------------------------------------
+//           Includes
+//----------------------------------------------------------------------------
+
+//----------------------------------------------------------------------------
+//           Forward References
+//----------------------------------------------------------------------------
+
+class AsciiString;
+class UnicodeString;
+
+//----------------------------------------------------------------------------
+//           Type Defines
+//----------------------------------------------------------------------------
+typedef std::vector<AsciiString> AsciiStringVec;
+
+//===============================
+// GameTextInterface
+//===============================
+/** Game text interface object for localised text.
+	*/
+//===============================
+
+class GameTextInterface : public SubsystemInterface
+{
+
+	public:
+
+		virtual ~GameTextInterface() override {};
+
+		virtual UnicodeString fetch( const Char *label, Bool *exists = nullptr ) = 0;		///< Returns the associated labeled unicode text
+		virtual UnicodeString fetch( AsciiString label, Bool *exists = nullptr ) = 0;		///< Returns the associated labeled unicode text ; TheSuperHackers @todo Remove
+		virtual UnicodeString fetchFormat( const Char *label, ... ) = 0;
+		// GeneralsX @security Claude 06/10/2026 The game's own string tables only, never the loaded map's map.str: for text that will be
+		// used as a printf format. *exists says whether the GAME's tables hold the label (fetch()'s also counts map.str).
+		virtual UnicodeString fetchGameOnly( const Char *label, Bool *exists = nullptr ) = 0;
+
+		// Do not call this directly, but use the FETCH_OR_SUBSTITUTE macro
+		virtual UnicodeString fetchOrSubstitute( const Char *label, const WideChar *substituteText ) = 0;
+		virtual UnicodeString fetchOrSubstituteFormat( const Char *label, const WideChar *substituteFormat, ... ) = 0;
+		virtual UnicodeString fetchOrSubstituteFormatVA( const Char *label, const WideChar *substituteFormat, va_list args ) = 0;
+
+		// This function is not performance tuned.. Its really only for Worldbuilder. jkmcd
+		virtual AsciiStringVec& getStringsWithLabelPrefix(AsciiString label) = 0;
+
+		virtual void					initMapStringFile( const AsciiString& filename ) = 0;
+
+#if __cplusplus < 201103L // TheSuperHackers @todo Remove function when abandoning VC6
+		inline UnicodeString FETCH_OR_SUBSTITUTE_FORMAT( const Char *label, const WideChar *substituteFormat, ... )
+		{
+			va_list args;
+			va_start(args, substituteFormat);
+			UnicodeString str = fetchOrSubstituteFormatVA(label, substituteFormat, args);
+			va_end(args);
+			return str;
+		}
+#endif
+};
+
+
+extern GameTextInterface *TheGameText;
+extern GameTextInterface* CreateGameTextInterface();
+
+//----------------------------------------------------------------------------
+//           Inlining
+//----------------------------------------------------------------------------
+
+// TheSuperHackers @info This is meant to be used like:
+// TheGameText->FETCH_OR_SUBSTITUTE("GUI:LabelName", L"Substitute Fallback Text")
+// TheGameText->FETCH_OR_SUBSTITUTE_FORMAT("GUI:LabelName", L"Substitute Fallback Text %d %d", 1, 2)
+// The substitute text will be compiled out if ENABLE_GAMETEXT_SUBSTITUTES is not defined.
+//
+// Note: ##__VA_ARGS__ handles zero variadic arguments by removing the preceding comma when empty.
+// Example: FETCH_OR_SUBSTITUTE_FORMAT("Label", L"Text") expands correctly without trailing comma.
+// Without ##, it would expand to fetchOrSubstituteFormat("Label", L"Text",) causing a syntax error.
+// This extension is widely supported (GCC, Clang, MSVC 2015+). C++20 __VA_OPT__ is the standard
+// alternative, but ##__VA_ARGS__ is simpler and compatible across C++11/14/17/20.
+#if ENABLE_GAMETEXT_SUBSTITUTES
+
+#define FETCH_OR_SUBSTITUTE(labelA, substituteTextW) fetchOrSubstitute(labelA, substituteTextW)
+#if __cplusplus >= 201103L // TheSuperHackers @todo Remove condition when abandoning VC6
+#define FETCH_OR_SUBSTITUTE_FORMAT(labelA, substituteFormatW, ...) fetchOrSubstituteFormat(labelA, substituteFormatW, ##__VA_ARGS__)
+#endif
+
+#else
+
+// GeneralsX @security Claude 06/10/2026 The game's tables only, as fetchOrSubstitute is: FETCH_OR_SUBSTITUTE labels are the engine's own,
+// and callers format the result (InGameUI replay announcements), so plain fetch()'s map.str fallback let a custom map supply the format
+// in a -DENABLE_GAMETEXT_SUBSTITUTES=0 build (Codex format-strings-r4 P2). A missing label is still the MISSING line, as fetch() gives.
+#define FETCH_OR_SUBSTITUTE(labelA, substituteTextW) fetchGameOnly(labelA)
+#if __cplusplus >= 201103L // TheSuperHackers @todo Remove condition when abandoning VC6
+#define FETCH_OR_SUBSTITUTE_FORMAT(labelA, substituteFormatW, ...) fetchFormat(labelA, ##__VA_ARGS__)
+#endif
+
+#endif // ENABLE_GAMETEXT_SUBSTITUTES

@@ -1,0 +1,5 @@
+[submodule "references/fbraz3-dxvk"]
+	path = references/fbraz3-dxvk
+	url = https://github.com/wh1ter0se69/dxvk.git
+	branch = generalsx-ios-moltenvk-hidpi
+	ignore = untracked
