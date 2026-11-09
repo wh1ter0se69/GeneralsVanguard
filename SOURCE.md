@@ -1,7 +1,8 @@
 # GeneralsX 0.9.71 — source
 
 This repository is the source code of **GeneralsX 0.9.71**, the release published on 9 November 2026
-(game for Windows, Linux, macOS and iOS/iPadOS, the GeneralsX Launcher and the Windows installer).
+(game for Windows, Linux and macOS, the GeneralsX Launcher and the Windows installer; the iOS/iPadOS build in this
+source is in testing and has no public download).
 
 It is a snapshot of commit `bfeca14d0223e62b936141e1f22a2e37b1bd68c5` of the GeneralsX development
 repository, published as one commit, with comments edited for publication. Every statement and string
