@@ -1,0 +1,47 @@
+name: Pull request checks
+
+# Runs on pull requests from forks with a read-only token and no secrets. It never uses pull_request_target.
+# The checker script is taken from main, so editing it in a pull request does not weaken it. GitHub does run the
+# pull request's own copy of this workflow file, though: for a pull request that changes anything under .github/
+# these results prove nothing, and it is read by hand before its run is approved.
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  files:
+    name: files
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Binaries, large files, links, automation changes
+        run: |
+          git show HEAD^1:.github/scripts/pr_checks.py > "$RUNNER_TEMP/pr_checks.py"
+          python3 "$RUNNER_TEMP/pr_checks.py" files HEAD^1 HEAD
+
+  needles:
+    name: needles
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Tool signatures and private details
+        run: |
+          git show HEAD^1:.github/scripts/pr_checks.py > "$RUNNER_TEMP/pr_checks.py"
+          git log -z --format=%B HEAD^1..HEAD^2 > "$RUNNER_TEMP/messages"
+          python3 "$RUNNER_TEMP/pr_checks.py" needles HEAD^1 HEAD "$RUNNER_TEMP/messages"

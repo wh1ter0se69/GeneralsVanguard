@@ -1,0 +1,13 @@
+# Keeps the pinned action versions in .github/workflows current: at most one grouped pull request a month.
+# Vulnerable dependencies are reported by Dependabot alerts and security updates, which are repository settings and
+# do not need this file. Library upgrades are made in development.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 1
