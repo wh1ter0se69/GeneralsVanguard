@@ -1,0 +1,44 @@
+# Every change needs a review from a code owner before it can be merged.
+# The later, more specific lines keep the files where a bad change does the most harm with the maintainer even if
+# more people are added to the first line one day.
+
+*                                   @wh1ter0se69
+
+# Automation and repository settings
+/.github/                           @wh1ter0se69
+/.gitmodules                        @wh1ter0se69
+/.gitattributes                     @wh1ter0se69
+
+# Build system, dependencies and patches applied to third-party code
+/CMakeLists.txt                     @wh1ter0se69
+/CMakePresets.json                  @wh1ter0se69
+/cmake/                             @wh1ter0se69
+/triplets/                          @wh1ter0se69
+/vcpkg.json                         @wh1ter0se69
+/vcpkg-lock.json                    @wh1ter0se69
+/Patches/                           @wh1ter0se69
+/Dependencies/                      @wh1ter0se69
+/resources/                         @wh1ter0se69
+
+# Packaging and the Windows installer
+/scripts/build/                     @wh1ter0se69
+/scripts/build/windows/installer/   @wh1ter0se69
+/scripts/get-assets.sh              @wh1ter0se69
+/ios/                               @wh1ter0se69
+
+# Network code, sign-in and signature checks
+**/GameNetwork/                     @wh1ter0se69
+**/GXRelay*                         @wh1ter0se69
+**/GXLobby*                         @wh1ter0se69
+**/GXPlayerIdentity*                @wh1ter0se69
+**/GXEd25519*                       @wh1ter0se69
+**/GXSha512*                        @wh1ter0se69
+**/GXIdentityAssertion*             @wh1ter0se69
+**/GXSignOutFiles*                  @wh1ter0se69
+**/GXDiscord*                       @wh1ter0se69
+
+# Licence and policy files
+/LICENSE*                           @wh1ter0se69
+/SECURITY.md                        @wh1ter0se69
+/CONTRIBUTING.md                    @wh1ter0se69
+/CODE_OF_CONDUCT.md                 @wh1ter0se69

@@ -1,0 +1,110 @@
+name: Bug or crash
+description: Something in GeneralsX does not work, crashes, or behaves differently from the original game.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Security problems (anything another player could use against you) go
+        [here instead](https://github.com/wh1ter0se69/GeneralsX-source/security/advisories/new), never in a public issue.
+
+  - type: checkboxes
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched the open and closed issues and this is not already reported.
+          required: true
+        - label: I am on the latest GeneralsX release.
+          required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: GeneralsX version
+      description: The version line shown on the main menu.
+      placeholder: "0.9.71"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows
+        - Linux
+        - macOS
+        - iPhone / iPad (testing)
+        - More than one
+    validations:
+      required: true
+
+  - type: input
+    id: system
+    attributes:
+      label: System
+      description: OS version, CPU and graphics card.
+      placeholder: "Windows 11 24H2, Ryzen 7 5800X, RTX 3070"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of problem
+      options:
+        - Crash or freeze
+        - Wrong behaviour in a match
+        - Players out of sync (mismatch)
+        - Slow or stuttering
+        - Graphics or sound
+        - Online lobby, sign-in or connection
+        - Launcher or installer
+        - Something else
+    validations:
+      required: true
+
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Where it happened
+      options:
+        - Online match
+        - LAN match
+        - Skirmish against the AI
+        - Replay
+        - Menus, outside a match
+        - Launcher
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start a skirmish on <map> as <faction> against <AI level>
+        2. Build ...
+        3. ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: files
+    attributes:
+      label: Replay, crash log, screenshots
+      description: |
+        A replay of the match is the most useful thing you can attach. Replays and crash logs are in your Zero Hour
+        user data folder (the one with `Options.ini`), in the `Replays` and `CrashLogs` folders. GitHub does not accept
+        `.rep` files directly: put them in a `.zip` first, then drag the zip into this box.
+        Replays store no network address. Logs can contain your player name and computer name; look before you upload.
+    validations:
+      required: false

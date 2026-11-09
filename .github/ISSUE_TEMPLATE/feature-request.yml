@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest something GeneralsX should do.
+labels: ["enhancement", "triage"]
+body:
+  - type: checkboxes
+    attributes:
+      label: Before you start
+      options:
+        - label: I searched the open and closed issues and this is not already requested.
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would it solve
+      description: Describe the situation, not only the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: What you would like
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Gameplay or AI
+        - Online play, lobby, friends
+        - Graphics or performance
+        - Interface
+        - Launcher or installer
+        - Something else
+    validations:
+      required: true
+
+  - type: textarea
+    id: more
+    attributes:
+      label: Anything else
+      description: Other games that do it well, screenshots, mock-ups.
+    validations:
+      required: false

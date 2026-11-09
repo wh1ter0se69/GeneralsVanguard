@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Questions and help
+    url: https://github.com/wh1ter0se69/GeneralsX-source/discussions
+    about: Installing, setting up and playing GeneralsX. Ask here; issues are for bugs.
+  - name: Downloads and release notes
+    url: https://wh1ter0se.dev/generals
+    about: The latest release, what changed, and how to install it.
+  - name: Report a security problem
+    url: https://github.com/wh1ter0se69/GeneralsX-source/security/advisories/new
+    about: Privately. Never in a public issue.
