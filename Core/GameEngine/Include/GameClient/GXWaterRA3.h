@@ -1,5 +1,5 @@
 // GeneralsX: RA3 WATER, a client-only look option on top of clearer and live water (GXWaterClear.h,
-// GXWaterLive.h). wh1ter0se 24/10, with a Red Alert 3 screenshot beside our shell map: "WE should look into RA3 Water though".
+// GXWaterLive.h).
 // DEFAULT ON for every player since wh1ter0se's yes, 04/11/2026: GXWaterRA3 = no turns it off; GX_WATER_RA3=0/1 overrides the key
 // and GX_WATER_RA3_TUNE=<name:value,...> tunes it per run (A/B arms, picture pieces).
 //
@@ -53,11 +53,11 @@ struct GxWaterRA3Tune
 	float tintB;		// ... green and blue lifted: sand reads turquoise)
 	float tintShape;	// how fast the multiplier reaches its end value across the band (the same ramp)
 	float deepR;		// the water's own colour where it is opaque, before the map's light: teal, green ~ blue, little red
-						// (wh1ter0se's RA3 screenshot measures deep ~(15,80,92), shallow ~(37,140,158) on screen)
+						//
 	float deepG;
 	float deepB;
 	float flat;			// >= 0.5: our smooth surface texture; below: the map's own (TWWater01)
-	// PHASE 2, THE MOTION (wh1ter0se 24/10 on phase 1's pictures: "Okay now i love it but still needs animation no?"):
+	// PHASE 2, THE MOTION:
 	float glint;		// the sun's sheen and glints over the moving normals: strength x the sun's colour (0 = none)
 	float tiltMin;		// the sun's half vector is held between these angles from straight up, degrees: a sun reflected
 	float tiltMax;		// straight at the camera would wash the sea white, one far off would never touch a ripple

@@ -257,8 +257,8 @@ Int CodeGuiRowsEnsure( GameWindow *parent, const char *idFormat, Int rowCount, C
 											 GameWindow *leadRow = nullptr, Int leadIndex = 0 );
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: SCROLLING SEAT ROWS (owner, 08/11: "make this max hold 12-14 players with a
-// scroll bar downwards like maps"; "for ipad show maximum 10 players then scroll"). The chat box was removed the same
+// GeneralsX: SCROLLING SEAT ROWS.
+// The chat box was removed the same
 // day and put back on 08/11 ("add back the lobby chat asap"): the rows take whole rows from the top of the chat history
 // instead of the whole chat.
 //

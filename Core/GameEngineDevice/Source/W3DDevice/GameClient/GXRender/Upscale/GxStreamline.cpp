@@ -409,9 +409,9 @@ bool Streamline::dlssEvaluate(VkCommandBuffer cmd, DlssMode mode, const DlssFram
 		options.outputHeight = f.outputH;
 		options.colorBuffersHDR = sl::Boolean::eFalse;	// the game's world colour is LDR (RGBA8)
 		options.useAutoExposure = sl::Boolean::eTrue;	// no exposure texture
-		// The model: E at EVERY mode, never eDefault (wh1ter0se's ruling 16/10/2026, at DLAA on his
-		// PC E cost 0.42 ms of GPU per frame against L's 2.32, and kept 95% / 86% of native's fine detail at f4800 / f3500; it was L since
-		// dlss-integrator's ruling 13/10). Streamline 2.14.1's sl_dlss.h marks ePresetE "Deprecated": it runs on today's DLSS DLLs (measured
+		// The model: E at EVERY mode, never eDefault.
+		//
+		// Streamline 2.14.1's sl_dlss.h marks ePresetE "Deprecated": it runs on today's DLSS DLLs (measured
 		// 16/10), a later DLL may drop it. eDefault = K at DLAA/Balanced/Quality. TEST-ONLY GX_DLSS_PRESET=<E..O> overrides it for every
 		// mode (picture A/Bs).
 		static const char* const presetEnv = std::getenv("GX_DLSS_PRESET");

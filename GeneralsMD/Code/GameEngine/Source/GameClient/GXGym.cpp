@@ -725,7 +725,7 @@ const char *perform(const GXGymAction &a, const Player *me, Coord3D *at, Bool *p
 			Coord3D want;
 			if (!onMap(a.x, a.y, &want))
 				return "off the map";
-			// GeneralsX: ai-train-8: a facing from the bot (wh1ter0se's live watch #15), else the template's -
+			// GeneralsX: ai-train-8: a facing from the bot, else the template's -
 			// what a player who clicks without dragging gets (InGameUI). It travels in the message, so every peer builds the same.
 			const Real angle = a.hasAngle ? (Real)a.angleDeg * (PI / 180.0f) : what->getPlacementViewAngle();
 			if (!findBuildSpot(want, what, angle, dozer, at))

@@ -248,7 +248,7 @@ static float proximityBlend( const Object *obj, MissileVisual *mv, float ignoreT
 			continue;
 		// Something whose top is below the height the missile dies at cannot be touched before it dies (the nuke, dying by
 		// height over its target, passes the target's own command center and the buildings around it without touching them):
-		// no pull onto the logic path for those (wh1ter0se's look #1, the landing).
+		// no pull onto the logic path for those.
 		if( o->getPosition()->z + o->getGeometryInfo().getMaxHeightAbovePosition() < ignoreTopsBelow )
 			continue;
 		const Real gap = sqrtf( ThePartitionManager->getDistanceSquared( obj, o, FROM_BOUNDINGSPHERE_3D ) );
@@ -410,7 +410,7 @@ static Bool stepNuke( MissileVisual *mv, Drawable *draw, Object *obj, UnsignedIn
 	ns.framesSinceLaunch = te;
 	const float tau = mvNukeTau( ns, fl );
 	mv->lastTau = tau;
-	// Nothing pulls the nuke's drawn flight onto the logic path (wh1ter0se's look #1, the landing): the drawn arc ends at the target
+	// Nothing pulls the nuke's drawn flight onto the logic path: the drawn arc ends at the target
 	// on the frame the logic dies. HeightDieUpdate cannot kill it early either - it kills only moving down (its data says
 	// OnlyWhenMovingDown), and the nuke moves down only in its drop over the target, at the die height it was aimed at - so
 	// the height blends the SCUD needs are not needed here. Only a contact with something that can detonate it counts.
@@ -965,8 +965,8 @@ void missileVisualShockTick()
 		Bool anyLeft = FALSE;
 		for( int k = 0; k < MV_SHOCK_SYSTEMS; ++k )
 			anyLeft = anyLeft || s.ids[k] != INVALID_PARTICLE_SYSTEM_ID;
-		// The front: re-sized every RENDERED frame from the logic phase (wh1ter0se: the particle ring moved once per particle update -
-		// "1 fps"), still on the blast schedule; past the last blast it keeps going and fades.
+		// The front: re-sized every RENDERED frame from the logic phase,
+		// still on the blast schedule; past the last blast it keeps going and fades.
 		{
 			const float phase = TheDisplay != nullptr ? TheDisplay->getLogicPhase() : 1.0f;
 			float tf = (float)( now - s.start ) - 1.0f + phase;
@@ -1121,7 +1121,7 @@ const Matrix3D *missileVisualUpdate( Drawable *draw, MissileVisual **state, Bool
 	}
 	mv->xfrm.buildTransformMatrix( Vector3( mv->V.x, mv->V.y, mv->V.z ), d );
 	// Visibility is the missile's own, as in the classic look: GameClient::update sets the drawable's shroud flag from the
-	// logic object (with its grace). It is NOT decided at the drawn position (wh1ter0se's look #1, "it disappears"): the nuke's
+	// logic object (with its grace). It is NOT decided at the drawn position: the nuke's
 	// vision clears the fog around its logic position only, and the drawn arc runs hundreds of units from it.
 	mv->prevV = mv->V;
 	mv->havePrev = TRUE;

@@ -317,7 +317,7 @@ namespace
 	}
 }
 
-/// GeneralsX: wh1ter0se 05/10: a superweapon you own from ANOTHER faction ("ye use the one used as a normal
+/// GeneralsX: a superweapon you own from ANOTHER faction ("ye use the one used as a normal
 /// superweapon from the live keybinds") takes the key of that power's normal command. Returns the button whose key `shortcut`
 /// should show, or `shortcut` itself when it keeps its own: it is not a cross-faction shortcut power (the local faction's own
 /// shortcut set carries it, so retail's keys are untouched), the user bound IT explicitly, or no normal command exists.
@@ -2191,7 +2191,7 @@ void ControlBar::update()
 	// GeneralsX: Cb-06a: a flash step ran on every UPDATE whose logic frame was a multiple of 10, so at
 	// k draws per tick it stepped k times in one tick (a whole flash could end inside a tick at 240+ fps) and on every
 	// update while time was frozen. It steps once per 10 reference (60 fps) frames of loop time now - its cadence at 60 fps
-	// before this change (wh1ter0se: "def 60 fps"); the first step comes on the first update of a flash, inside the old 0-10 frame
+	// before this change; the first step comes on the first update of a flash, inside the old 0-10 frame
 	// phase (GameClient/GXClientAnimPolicy.h).
 	if( !m_flash )
 		s_gxFlashBaseFrames = GX_FLASH_BASE_FRAMES;
@@ -3298,8 +3298,8 @@ void ControlBar::setControlCommand( GameWindow *button, const CommandButton *com
 		const CommandButton *keySource = purchase ? resolvePurchaseScienceSource( commandButton ) : gxShortcutKeySource( commandButton );
 		AsciiString hotKey = TheHotKeyManager->getCommandButtonHotKey( keySource->getName(),
 																																	 keySource->getTextLabel() );
-		// GeneralsX: The letter is NEVER hidden (owner decision: "Still the unit's win
-		// but don't hide the buttons/keybinds"). addHotKey still refuses a key another visible button
+		// GeneralsX: The letter is NEVER hidden.
+		// addHotKey still refuses a key another visible button
 		// owns, so a selected unit's command keeps S over the general's-power shortcut, as in retail.
 		// The refused button keeps its letter; drawHotKeyLabel asks isHotKeyBoundTo every frame and
 		// greys it while the key would not fire it. It used to be cleared, so selecting a unit made
@@ -4042,7 +4042,7 @@ void ControlBar::updateRadarAttackGlow ()
 		return;
 	// GeneralsX: Cb-06a: the glow counted 150 UPDATES and blinked every 15: 2.5 s at 60 fps, a quarter of a
 	// second at 600. It counts reference (60 fps) frames of loop time now, each one exactly the old update: 2.5 s with a blink
-	// every 0.25 s at any fps, its look at 60 fps before this change (wh1ter0se: "def 60 fps"; GameClient/GXClientAnimPolicy.h).
+	// every 0.25 s at any fps, its look at 60 fps before this change.
 	for (Int steps = GXClientAnimPolicy::takeBaseFrames(s_gxRadarGlowCarry,
 			GXClientAnimPolicy::refFrames(gxRenderBaseOverUpdateFpsRatio(), (Real)BaseFps)); steps > 0; --steps)
 	{

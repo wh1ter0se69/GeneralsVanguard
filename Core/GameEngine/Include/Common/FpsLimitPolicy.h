@@ -16,9 +16,9 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: ONE max-FPS setting, and it is exactly what it says (wh1ter0se, 27/09:
-// "the max FPS should not be dynamic; rather that's like the max fps limits that is set, [0] for
-// unlimited, and default should be the screen's refresh rate unless changed in the launcher").
+// GeneralsX: ONE max-FPS setting, and it is exactly what it says.
+//
+//
 //
 // Before this, the render cap was chosen in six places and the limiter switched in five more: the
 // retail INI's FramesPerSecondLimit = 30 was the default, Options.ini "FPSLimit" yes/no was a second

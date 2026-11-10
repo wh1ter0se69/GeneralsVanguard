@@ -2186,7 +2186,7 @@ Bool Drawable::showsClientPhysics() const
 // every stiffness, damping and coefficient calcPhysicsXform* applies is a per-step value for a 30 Hz step (TSH: "catered to
 // a 30 fps logic step"). At GX_LOGIC_60HZ a WW3D sync is half a retail frame, so stepping once per sync rang every spring
 // twice as fast and fed it velocities per 60 Hz frame (half) and accelerations per 60 Hz frame^2 (a quarter): a jet in a
-// turn banked about half as far as at 30 Hz (wh1ter0se 04/10, King Raptor and MiG "rotation"; Generals Online does the same).
+// turn banked about half as far as at 30 Hz.
 // So the client physics steps once per retail frame, reads velocity and acceleration per retail frame, and the draw
 // interpolates across the whole retail frame (gxRetailPhysicsPhase). Picture only: calcPhysicsXform is outside the
 // simulation (resources/gitinfo/simdigest_exclusions.txt). At 30 Hz a retail frame is one logic frame: unchanged.

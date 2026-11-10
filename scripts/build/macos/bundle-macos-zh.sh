@@ -1046,7 +1046,7 @@ echo "  Relinking Mach-O load commands to be bundle-relative..."
 gx_macho_relink "${LIB_DIR}" "@loader_path/../lib" "${BIN_DIR}/GeneralsXZH" || exit 1
 gx_macho_assert_portable "${APP_DIR}" "${APP_DIR_NAME}" "${BIN_DIR}" || exit 1
 
-# THE ZIP CONTAINS EXACTLY ONE THING: GeneralsXZH.app (owner, 26/08/2026).
+# THE ZIP CONTAINS EXACTLY ONE THING: GeneralsXZH.app.
 #
 # A top-level run.sh used to be written here as a "helper runner for launching the generated .app
 # from terminal" - a convenience for whoever was building it, shipped to every player. Measured on

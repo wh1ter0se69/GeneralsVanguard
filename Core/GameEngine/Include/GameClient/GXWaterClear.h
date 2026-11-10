@@ -1,4 +1,4 @@
-// GeneralsX: CLEARER WATER, a client-only look option (look S8a, 5.1; wh1ter0se 13/10:
+// GeneralsX: CLEARER WATER, a client-only look option (look S8a, 5.1;
 // "actual water ... invisible/white water compared to the blue one"). It is ON by default from 0.9.66 (gxWaterClearOptionOn
 // below): Options.ini GXWaterClear = no turns it off; GX_WATER_CLEAR=0/1 overrides the key for A/B arms.
 //

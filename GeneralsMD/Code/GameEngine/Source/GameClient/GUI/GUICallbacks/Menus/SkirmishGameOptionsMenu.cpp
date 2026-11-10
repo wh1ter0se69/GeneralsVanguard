@@ -707,8 +707,8 @@ void positionAdditionalImages( MapMetaData *mmd, GameWindow *mapWindow, Bool for
 }
 
 // GeneralsX: The retail string table holds NUMBER:0..NUMBER:9 (the control-group
-// numerals), so a start spot held by player 10, 11 or 12 drew "MISSING: 'NUMBER:12'" (wh1ter0se's screenshot, 12-player
-// lobby). The localized numeral where the table has one, plain digits past it. Not FETCH_OR_SUBSTITUTE: that is a
+// numerals), so a start spot held by player 10, 11 or 12 drew "MISSING: 'NUMBER:12'".
+// The localized numeral where the table has one, plain digits past it. Not FETCH_OR_SUBSTITUTE: that is a
 // placeholder for a missing label and compiles out with ENABLE_GAMETEXT_SUBSTITUTES=0, which would bring MISSING back;
 // digits past NUMBER:9 are the label itself, in every build.
 static UnicodeString gxStartSpotNumberText(Int number)
@@ -1328,8 +1328,8 @@ void InitSkirmishGameGadgets()
 	// every ComboBoxPlayer went 43 px/Arial 23 -> 25 px/Arial 13, TextEntryPlayerName stayed
 	// 43 px/Arial 23 and overhung the row below it.
 	//
-	// GeneralsX: The seat columns SCROLL instead (owner 08/11: rows at a readable size with a
-	// scroll bar like the map list). Skirmish has no chat to give up, so its band stays the authored eight rows and
+	// GeneralsX: The seat columns SCROLL instead.
+	// Skirmish has no chat to give up, so its band stays the authored eight rows and
 	// the rest scroll; the scroll bar wears ListboxInfo's art. See CodeGui.h.
 	static const char * const skirmishSeatColumns[] =
 	{

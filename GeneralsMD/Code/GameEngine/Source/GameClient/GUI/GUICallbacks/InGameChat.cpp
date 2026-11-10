@@ -344,8 +344,8 @@ void ToggleInGameChat( Bool immediate )
 	if (TheGameLogic->isInReplayGame())
 		return;
 
-	// GeneralsX: CHAT OPENS IN A SOLO GAME TOO (owner: "allow that to happen - they chat
-	// fine in solo"). EA refused here unless a SECOND human was in the match (`!isMultiPlayer() && m_netMinPlayers`,
+	// GeneralsX: CHAT OPENS IN A SOLO GAME TOO.
+	// EA refused here unless a SECOND human was in the match (`!isMultiPlayer() && m_netMinPlayers`,
 	// and m_netMinPlayers is 1 by default), so a LAN/Online host alone with AIs pressed Enter and got nothing; a
 	// skirmish was also refused one step earlier, in CommandXlat's MSG_META_CHAT_* cases. Only a game with no
 	// GameInfo at all (the campaign) is still refused - the send below reads it.

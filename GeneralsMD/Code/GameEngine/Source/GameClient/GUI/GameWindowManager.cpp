@@ -559,10 +559,10 @@ void GameWindowManager::windowHiding( GameWindow *window )
 	//
 	// A text entry does real work when it loses focus (GadgetTextEntry.cpp:373-388): it resets
 	// the caret and constructText and - the part that matters - calls TheIMEManager->attach(nullptr).
-	// (It does NOT clear the entry's own text; an earlier version of this comment said it did.)
-	// Skipping the message means the IME stays bound to a window that is no longer visible, and
-	// IMEManager forwards every WM_CHAR to whatever it is bound to with no focus or visibility
-	// check (IMEManager.cpp:705-720 -> winSendInputMsg, which rejects only nullptr and DESTROYED).
+	//
+	//
+	//
+	//
 	//
 	// THE PATH THAT ACTUALLY PRODUCES THE REPORTED BUG is HideInGameChat
 	// (GUICallbacks/InGameChat.cpp:106-118), and it is worth stating exactly, because an earlier

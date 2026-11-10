@@ -70,8 +70,8 @@ MetaMap *TheMetaMap = nullptr;
 
 #include "Common/UserPreferences.h"
 
-// GeneralsX: THE GENERAL KEYS - the launcher's Keybinds > GENERAL tab (owner, 26/09/2026:
-// "add custom keybind mapping for that in the launcher too").
+// GeneralsX: THE GENERAL KEYS - the launcher's Keybinds > GENERAL tab.
+//
 //
 // Four chords live in CommandButtonHotKeys.ini beside GXFriendsKey - user data, never in dataID - each written
 // "<MODIFIER>+<KEY>" in the CommandMap vocabulary (a ModifierNames and a KeyNames token, e.g. CTRL+KEY_I):
@@ -100,8 +100,8 @@ static GXChord s_gxRemastered = { MK_R, SHIFT_CTRL };
 #else
 static GXChord s_gxRemastered = { MK_NONE, NONE };
 #endif
-/// Camera reset for a keyboard with no numpad (owner 11/10/2026: "reset the camera to default after tilting/moving ... the 5
-/// number on numpad which I dont have it"). The retail CAMERA_RESET record keeps KP5 - this is a SECOND key for the same
+/// Camera reset for a keyboard with no numpad.
+/// The retail CAMERA_RESET record keeps KP5 - this is a SECOND key for the same
 /// MSG_META_CAMERA_RESET, no new GameMessage type. Home: retail's CommandMap binds nothing to it with any modifier and no
 /// GeneralsX code does. KEY_NONE / an unreadable value keeps the default; a chord another record holds wins (see generateMetaMap).
 static GXChord s_gxCameraReset = { MK_HOME, NONE };

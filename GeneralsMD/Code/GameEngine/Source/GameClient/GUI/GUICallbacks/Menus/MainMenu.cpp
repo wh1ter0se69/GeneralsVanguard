@@ -264,8 +264,8 @@ static void showSelectiveButtons( Int show )
 // SAYING NO DOES NOT OPEN THE LOBBY. See "ONLINE IS SIGN-IN ONLY" further down this file, which is
 // the paragraph that governs.
 //
-// GeneralsX: This block used to say the opposite - "SAYING NO STILL OPENS
-// THE LOBBY. That is deliberate..." - and it had been false since 11/08/2026, when gxSignInNoCallback
+// GeneralsX:
+// That is deliberate..." - and it had been false since 11/08/2026, when gxSignInNoCallback
 // was changed to call gxSignInRefused() instead of gxEnterOnlineLobby(). It sat 1600 lines above the
 // code that contradicts it, read as a design invariant, and cost a planning round on 20/09/2026: a
 // brief was written around "declining Online still opens the lobby" and the owner had to correct it.
@@ -1166,9 +1166,9 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 	{
 		// GeneralsX: A FAILED LOGIN NO LONGER OPENS THE LOBBY.
 		//
-		// This branch used to read "failed, timed out or cancelled -> into the lobby anyway,
-		// unauthenticated", which was true of the old design and became a BYPASS the moment Online
-		// required an identity: press Online, answer Yes, cancel in the browser, and you were in.
+		//
+		//
+		//
 		// The button refused you and this let you through one click later. Found by cross-model
 		// review; the comment that justified it was the most dangerous part, because it read as a
 		// deliberate exemption a later reader would respect.

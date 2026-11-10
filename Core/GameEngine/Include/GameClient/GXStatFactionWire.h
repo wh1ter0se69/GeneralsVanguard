@@ -1,5 +1,5 @@
-// GeneralsX: each player's RESOLVED faction on GXSTAT (owner: "show me the Random
-// factions instead of telling me they are random").
+// GeneralsX: each player's RESOLVED faction on GXSTAT.
+//
 //
 //   GXSTAT <room> <memberIp> sq= mid= f= [rs=] p<slot>=<cells> ... fa<slot>=<faction> ...
 //
@@ -91,8 +91,8 @@ inline int gxStatAppendFactions( char *line, size_t cap, int len, size_t lineMax
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: THE MATCH RECORD SAYS WHAT THE MATCH WAS (owner, 27/09/2026: "real accurate
-// records"; the wire contract W13's relay/ingest side reads is this block).
+// GeneralsX: THE MATCH RECORD SAYS WHAT THE MATCH WAS.
+//
 //
 //   GXEND ... r<slot>=... sb=1
 //

@@ -1912,8 +1912,8 @@ void INI::parseDurationUnsignedInt( INI *ini, void * /*instance*/, void *store, 
 
 #if GX_LOGIC_60HZ
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: GENERALS ONLINE PARITY (owner 05/10: "Look through everything GO does and do
-// it"). GO converts every duration with the plain rounding at its tick rate, ceil(ms * 60 / 1000): 250 ms is 15
+// GeneralsX: GENERALS ONLINE PARITY.
+// GO converts every duration with the plain rounding at its tick rate, ceil(ms * 60 / 1000): 250 ms is 15
 // frames, where parseDurationUnsignedInt above gives retail's 8 x 2 = 16. The timers that decide WHEN A SHOT HAPPENS
 // (weapon, turret, fire-weapon and point-defence-laser timers, the idle auto-acquire waits MoodAttackCheckRate and
 // ForceIdleMSEC, deploy-style pack/unpack times) use this through

@@ -372,8 +372,8 @@ bool changeLogicTimeScale(FpsValueChange change)
 	return true;
 }
 
-// GeneralsX: Fast forward - who may, and the steps (wh1ter0se, 30/09: "if a match is sandboxed with
-// 1 player as viewer and rest AIs even though it's a live game, allow making the whole game move faster from debug").
+// GeneralsX: Fast forward - who may, and the steps.
+//
 //
 // The rule is the cheats' sandbox rule, GameLogic::gxCheatsAllowed: at most one human in the match, observers counted,
 // decided from simulation state. With one human there is one network peer, so no other machine's pace is involved -
@@ -3506,8 +3506,8 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 		*/
 
 		//-----------------------------------------------------------------------------------------
-		// GeneralsX: ...and in a skirmish (owner: "allow that to happen - they chat fine in
-		// solo"). EA opened chat only in a LAN/Internet match; the rest of the solo half is in ToggleInGameChat.
+		// GeneralsX: ...and in a skirmish.
+		// EA opened chat only in a LAN/Internet match; the rest of the solo half is in ToggleInGameChat.
 		case GameMessage::MSG_META_CHAT_ALLIES:
 			if ((TheGameLogic->isInMultiplayerGame() || TheGameLogic->isInSkirmishGame()) && !TheGameLogic->isInReplayGame())
 			{

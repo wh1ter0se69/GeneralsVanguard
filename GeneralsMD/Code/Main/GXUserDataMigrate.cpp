@@ -27,7 +27,7 @@ namespace
 // reset, on every start after. Only the folders below are retried.
 //
 // MERGE, not copy, for every file a launcher can write in the new folder BEFORE the engine's first
-// start (owner decision, 23/09/2026: "copy only if absent" would silently drop the player's old settings):
+// start:
 //   Options.ini               gxlaunch.c (RelayAddress), both launchers' options screens, the harness
 //   SagePatch.ini             BOTH launchers at their own startup (Program.cs GameSagePatch.EnsureDefaults,
 //                             gxlauncher main.rs sagepatch::ensure_defaults) - always, and whole.

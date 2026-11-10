@@ -14,7 +14,7 @@
 **	    only, who has no command a bare key could also mean.
 **	  * STATUS: "Left" (quit or dropped) wins over "Dead", because a player who leaves is also destroyed a moment later
 **	    and the reason is the news. A replay has no network, so it can only ever say "Dead".
-**	  * DOCKING (owner, 05/10): everything starts docked to its tab; a panel can be dragged anywhere; clicking the tab
+**	  * DOCKING: everything starts docked to its tab; a panel can be dragged anywhere; clicking the tab
 **	    of a MOVED panel snaps it home instead of closing it.
 **
 **	Client-only, read by nothing the simulation runs; no engine types, so it cannot reach the digest either.
@@ -66,7 +66,7 @@ inline int stepOpacity( int cur, int dir ) { return clampOpacity( cur + (dir < 0
 struct Settings
 {
 	bool generalsx;					///< SpectatorUI=generalsx; anything else, or absent, is legacy. The ONE switch: it
-													///< drives the GeneralsX UI while spectating AND while playing (owner, 05/10/2026)
+													///< drives the GeneralsX UI while spectating AND while playing
 	int opacity;						///< panel plates, 25..100 %, spectating and playing alike
 	bool show[SHOW_COUNT];
 	bool hideDead;					///< hide Dead and Left players from the bar and the board
@@ -355,7 +355,7 @@ inline bool isTwoTeamGame( const int *teams, int n )
 	return a >= 0 && b >= 0;
 }
 
-/// The minimap panel takes the map's own shape (owner, 05/10: "draw the map exactly as it is to fit"), so the radar's
+/// The minimap panel takes the map's own shape, so the radar's
 /// aspect-preserving fit (Radar::findDrawPositions) has nothing to letter-box. Height first, capped by the width.
 inline Rect fitMinimap( int mapW, int mapH, int maxW, int maxH )
 {
@@ -405,8 +405,8 @@ inline ViewState viewAfterClick( ViewState cur, int clickedSlot, Status clickedS
 	ViewState n = { clickedStatus == STATUS_ALIVE ? clickedSlot : -1, clickedSlot };
 	return n;
 }
-/// The VIEWING chip (owner 24/10/2026, decision A - following a player kept VIEWING: WHOLE MAP and he could not find how to see
-/// through that player's eyes): one click switches between the whole map and the FOLLOWED player's eyes (his fog of war, through
+/// The VIEWING chip:
+/// one click switches between the whole map and the FOLLOWED player's eyes (his fog of war, through
 /// the retail toggle's own call). Nobody followed, or a followed player with no eyes left (dead, left): the click does nothing.
 /// canViewAs: the engine can look through a player's eyes at all - rts::changeObservedPlayer refuses to begin unless
 /// PlayerObserverEnabled is on and every player's ghosts are tracked (spectator-occupants r1); going back always works.
@@ -438,12 +438,12 @@ inline ViewState viewAfterStatus( ViewState cur, Status viewedStatus )
 	return cur;
 }
 
-/// A spectator's left click on a unit or building (owner 12/10/2026: "click any unit and it shows me the building and
-/// upgrades") follows its OWNER. ownerSlot -1 = nobody's row (neutral, civilian): view and follow stay. It never unfollows -
+/// A spectator's left click on a unit or building
+/// follows its OWNER. ownerSlot -1 = nobody's row (neutral, civilian): view and follow stay. It never unfollows -
 /// more of the followed player's units keep him - and the eyes move only when the spectator already looks through someone's
 /// (as the follow keys do); a dead or left owner has none, so the map goes whole.
-/// In a REPLAY the click shows the card and changes nothing else (owner 14/10/2026, 0.9.64 hand test: "when i select red's
-/// dozer it goes back to blue"): following a player there also plays back his recorded camera (retail "Use camera in
+/// In a REPLAY the click shows the card and changes nothing else:
+/// following a player there also plays back his recorded camera (retail "Use camera in
 /// replays", GameLogic::onSetReplayCamera), so following the owner snapped the camera to wherever that player was looking.
 inline ViewState viewAfterObjectClick( ViewState cur, int ownerSlot, Status ownerStatus, bool replay )
 {
@@ -478,8 +478,8 @@ inline bool isClickNotDrag( int x0, int y0, int x1, int y1, int tol )
 /// the power needs, -1 for none (a superweapon, a unit ability); power = the power template's id.
 struct PowerNote { unsigned caster; int player; int science; unsigned power; unsigned frame; bool live; };
 
-/// The note a feed row's click jumps to (owner 12/10/2026: "I dont want to see the command center from where it was called I
-/// wanna see WHERE it was called to"); -1 = none, and the row keeps its old jump.
+/// The note a feed row's click jumps to;
+/// -1 = none, and the row keeps its old jump.
 ///   * A superweapon row names its launcher and its power (rowCaster, rowPower): that launcher's newest order for that power, at
 ///     any age - the order comes first and a SCUD Storm held by an EMP may fire much later - up to `after` frames past the row.
 ///   * A general's-skill row names the player and the skill: his note for a power needing it, the nearest within `window` frames.
@@ -529,8 +529,8 @@ inline int nextLevelXP( const int *needed, int levelCount, int rank )
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Player mode: the GeneralsX UI for a player still playing (owner, 05/10/2026: layout "C" - navy panels instead of the
-// control bar art, the radar in the map's own shape, the players bar folded into its tab, an economy line on the bar).
+// Player mode: the GeneralsX UI for a player still playing.
+//
 // ---------------------------------------------------------------------------------------------------------------------
 enum Mode { MODE_LEGACY, MODE_SPECTATOR, MODE_PLAYER };
 
@@ -608,7 +608,7 @@ inline int teamBlocks( const int *teams, int n, int ownTeam, int *out )
 /// The retail radar window in the map's own shape on its home rect's bottom-left corner (the GeneralsX panels, where the
 /// bar's corner is). The radar draws, clips its view box and maps clicks through that window's rect. Where the GeneralsX UI
 /// keeps the retail box instead, W3DRadar::draw fills the margins of a map that does not fill it with the map's own
-/// out-of-bounds terrain, dimmed (owner 06/10, option a); the legacy look keeps retail's black margins (21/10).
+/// out-of-bounds terrain, dimmed; the legacy look keeps retail's black margins (21/10).
 inline Rect fitRadar( const Rect &home, int mapW, int mapH )
 {
 	if (mapW <= 0 || mapH <= 0)
@@ -619,8 +619,8 @@ inline Rect fitRadar( const Rect &home, int mapW, int mapH )
 	return r;
 }
 
-/// The retail bar under the GeneralsX UI (F11, a campaign; owner 06/10, round 3: "get rid of the black bars, make the map show
-/// on its own with the borders" - asked of the legacy look, which since 21/10 is retail's own radar again: "These shouldn't
+/// The retail bar under the GeneralsX UI (F11, a campaign;
+/// - asked of the legacy look, which since 21/10 is retail's own radar again: "These shouldn't
 /// change if the UI is legacy"): the radar window in the map's own shape, in the bottom-left corner of its home rect, so
 /// Radar::findDrawPositions has no bars to leave. A map whose shape already fills the box (within 2 px - the radar draws it
 /// inset by 1) keeps the home rect untouched, so a square map stays exactly as retail draws it.
@@ -635,8 +635,8 @@ inline Rect fitRadarCentred( const Rect &home, int mapW, int mapH )
 	r.h += 2;
 	if (r.w >= home.w - 2 && r.h >= home.h - 2)
 		return home;
-	// Tucked into the box's bottom-left corner, where retail's radar sits (owner 06/10: "always tuck the map to the corner
-	// bottom left"): the freed strip goes to the right (tall map) or the top (wide map).
+	// Tucked into the box's bottom-left corner, where retail's radar sits:
+	// the freed strip goes to the right (tall map) or the top (wide map).
 	r.x = home.x;
 	r.y = home.y + home.h - r.h;
 	return r;
@@ -647,7 +647,7 @@ inline Rect fitRadarCentred( const Rect &home, int mapW, int mapH )
 // ---------------------------------------------------------------------------------------------------------------------
 /// The bottom bar's heights (1080p px) for what is on it: the followed player's panel and the selected object's card used to
 /// stack at 160 + 112 even when the panel only said "no player focused". Nothing followed = no panel at all; both = the player
-/// strip shrinks to one row of key stats under the card (wh1ter0se 14/10: "still taking too much space").
+/// strip shrinks to one row of key stats under the card.
 struct FocusBarLayout { int panelH; int bandH; bool compact; };
 inline FocusBarLayout focusBarLayout( bool hasFocus, bool hasObject, int fullH = 160, int bandH = 112, int compactH = 56 )
 {
@@ -811,8 +811,8 @@ inline int fpsShown( bool ownRow, int ownFps, int slotFps )
 enum GateMsg { GATE_PRESS, GATE_FOLLOW, GATE_WHEEL, GATE_POSITION };
 
 /// The open Tab board owns a press or a wheel turn over its rectangle, and the drag and release of a press that began on it:
-/// nothing reaches the windows, the selection or the camera under it (owner 06/10: "with tab opened i can play through the
-/// game"). A press that began on the world finishes on the world wherever it is released - the camera's rotate and the
+/// nothing reaches the windows, the selection or the camera under it.
+/// A press that began on the world finishes on the world wherever it is released - the camera's rotate and the
 /// selection box clean up on their own release - and moves always pass, so edge scrolling and
 /// every hover keep their bookkeeping.
 inline bool boardGateTakes( bool boardOpen, const Rect &board, int x, int y, int kind, bool pressOwnedByBoard )
@@ -862,7 +862,7 @@ inline bool rectsMeet( const Rect &a, const Rect &b )
 }
 
 /// The player bar's home rect (before any drag), its card width and its centre block's width.
-/// GeneralsX: More players than the band has room for at its normal card size (32-player maps, wh1ter0se 08/11:
+/// GeneralsX: More players than the band has room for at its normal card size (32-player maps,
 /// 31 cards in one row, every name cut to "Hard ..."): the cards keep that size, each half shows what fits and pages through the
 /// rest with two buttons at its outer end. 14 players or fewer never page: their band is what it always was.
 enum { BAR_UNPAGED_MAX = 14 };
@@ -988,8 +988,8 @@ inline Rect displayPanelHome( int screenW, int rowCount, float scale )
 	return Rect{ screenW - w - hudS( 100.0f, scale ), hudS( 160.0f, scale ), w, h };
 }
 
-/// The event toasts (wh1ter0se 03/11/2026, "show up to 3 notifications under each other up to 3 seconds each fading in and
-/// out; also fix the overlap" - the PLAYERS tab used to hang 11 px into the one toast). A stack hung under the PLAYERS tab, newest
+/// The event toasts.
+/// A stack hung under the PLAYERS tab, newest
 /// on top: the newest is always where the eye already looks, an arrival moves the stack (one motion, at the moment something
 /// happened) and a toast always leaves from the bottom (the oldest dies first), so nothing reflows when one simply expires.
 /// Lengths in 1080p design pixels, times in milliseconds.
@@ -1166,8 +1166,8 @@ inline int toastStack( const unsigned *born, const unsigned *seen, int n, unsign
 /// about the same player sits next to it, or a new one moved the stack in between.
 inline int toastHitId( unsigned bornMs, int ringSlot ) { return (int)((bornMs << 2) | (unsigned)(ringSlot & 3)); }
 
-/// The money prefix before a grouped figure: "+$" / "-$" for an income (owner 06/10: "add $ sign here"), "$" for an amount
-/// (owner 08/10: "Add $ next to their number like $180,424"; wh1ter0se 03/11: the bar's two team totals too), else none.
+/// The money prefix before a grouped figure: "+$" / "-$" for an income, "$" for an amount
+/// else none.
 inline const wchar_t *cashPrefix( int v, bool plus, bool dollar )
 {
 	return plus ? (v < 0 ? L"-$" : L"+$") : (dollar ? L"$" : L"");
@@ -1234,8 +1234,8 @@ struct GeneralPoint
 };
 
 // ---------------------------------------------------------------------------------------------------------------------
-// What is inside (owner 24/10/2026, on a spectator's China Bunker card: "Am I not supposed to be able to see how many units
-// he has in those?"). The spectator object card lists a container's occupants the way retail's exit buttons do for its owner:
+// What is inside.
+// The spectator object card lists a container's occupants the way retail's exit buttons do for its owner:
 // one cameo per occupant, then one empty box per free slot. Retail gives an OBSERVER nothing (ControlBar::update returns
 // before any context UI for the observer bar) and a PLAYER only his own containers and neutral garrisons
 // (ControlBar::evaluateContextUI: "Can't peek inside enemy/allied containers period!"); neither changes here.

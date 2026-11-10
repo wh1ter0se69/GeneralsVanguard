@@ -1736,8 +1736,8 @@ FontCharsClass::Create_GDI_Font (const char *font_name)
 	//	Create the Windows font
 	//
 	// GeneralsX: CLEARTYPE_QUALITY, not ANTIALIASED_QUALITY: ALL Windows game text was drawn
-	// without anti-aliasing at the sizes the game uses (owner 06/10: "why are they still pixelated ... texts in that game is
-	// so bad"). ANTIALIASED_QUALITY obeys the font's own 'gasp' table, and Arial's says 9-17 ppem = GRIDFIT only, no gray
+	// without anti-aliasing at the sizes the game uses.
+	// ANTIALIASED_QUALITY obeys the font's own 'gasp' table, and Arial's says 9-17 ppem = GRIDFIT only, no gray
 	// (arialbd.ttf: 9-10 ppem), so GDI drew those sizes bilevel. Measured with the engine's own glyph path run standalone
 	// on the owner's PC: Arial 10pt regular = 0.0% partial-coverage pixels (100% on/off). ClearType smooths those sizes,
 	// and with CLEARTYPE_QUALITY (not _NATURAL_) its advance widths and text metrics are GDI's - identical layout, measured

@@ -692,7 +692,7 @@ void FadeTransition::reverse()
 
 // GeneralsX: This transition draws the window's retail FRAME IMAGE itself, fading it in while the window
 // is hidden, whatever WIN_STATUS_IMAGE says - so a window the GeneralsX player look has restyled (GXSpectatorHud.inl) flashed its
-// old steel frame for the nine fade steps, then appeared navy (owner: "opening it first shows this, then the new one"). The hook
+// old steel frame for the nine fade steps, then appeared navy. The hook
 // answers with the colour the restyled window fills with (alpha 0 = not restyled: retail's way); the fade then draws THAT fill
 // at the same step alpha. Display only; null hook = retail.
 Color (*gxChromeFadeColorHook)( GameWindow *win ) = nullptr;

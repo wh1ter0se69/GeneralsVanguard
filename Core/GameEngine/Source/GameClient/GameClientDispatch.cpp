@@ -44,8 +44,8 @@
 // that count: GameLogic::onCreateSelectedGroup, the network's NetGameCommandMsg / GameMessageParser, the replay writer.
 // A box-select (SelectionXlat) or a select-across-map (InGameUI) puts every id into ONE message, so selecting 1000 units
 // put 232 of them into the logic's group - and 255, 511, 767 or 1023 put in none - while the client drew all of them as
-// selected; the next order moved only the units the logic held (wh1ter0se 05/10, ~1000 admin-spawned units: "I kinda broke it
-// with that many units"). The message's own argument list still holds every id, so it is re-sent here, the last stop
+// selected; the next order moved only the units the logic held.
+// The message's own argument list still holds every id, so it is re-sent here, the last stop
 // before the network and the logic, as messages of at most 255 arguments: the first keeps the type, the rest are silent
 // (though no translator after this one plays a voice), and every part ADDS to the group - a replacement selection is
 // cleared first by its own MSG_DESTROY_SELECTED_GROUP (see below). A hotkey team

@@ -71,7 +71,7 @@ namespace GXSpecHud
 using namespace GXSpectatorHud;
 
 // ---------------------------------------------------------------------------------------------------------------------
-// Palette: ControlBar Pro's navy glass and steel-blue frame, one blue accent. No green (owner: "do the game's blue").
+// Palette: ControlBar Pro's navy glass and steel-blue frame, one blue accent. No green.
 // ---------------------------------------------------------------------------------------------------------------------
 static Color navy( Int a )		{ return GameMakeColor( 10, 26, 54, a ); }
 static Color navyDeep( Int a )	{ return GameMakeColor( 4, 13, 30, a ); }
@@ -80,7 +80,7 @@ static Color steelDim()			{ return GameMakeColor( 64, 92, 134, 220 ); }
 static Color edge()					{ return GameMakeColor( 0, 0, 0, 190 ); }
 static Color accent()				{ return GameMakeColor( 111, 168, 240, 255 ); }
 static Color white()				{ return GameMakeColor( 238, 243, 250, 255 ); }
-static Color label()				{ return GameMakeColor( 186, 210, 244, 255 ); }	// owner 05/10: "the text in blue is barely visible"
+static Color label()				{ return GameMakeColor( 186, 210, 244, 255 ); }
 static Color dim()					{ return GameMakeColor( 140, 156, 180, 255 ); }
 static Color red()					{ return GameMakeColor( 255, 112, 112, 255 ); }
 static Color green()				{ return GameMakeColor( 120, 220, 120, 255 ); }	// the lobby/Diplomacy greens, lifted for the navy panel
@@ -350,9 +350,9 @@ static Color faded( Color c )
 	return GameMakeColor( r, g, b, (Int)(a * s_fade) );
 }
 
-/// Panels that carry text keep at least this much navy whatever the opacity (owner 05/10/2026: "the values in white
-/// compared to the text in blue is not good; the text in blue is barely visible"; no text shadows - removed on purpose in
-/// 0.9.56). ~71% holds the labels above 4.5:1 over the brightest ground measured in real frames (player-ui-c contrast.py).
+/// Panels that carry text keep at least this much navy whatever the opacity.
+///
+/// ~71% holds the labels above 4.5:1 over the brightest ground measured in real frames (player-ui-c contrast.py).
 /// Panels without text of ours (the bar's islands, the map) follow the opacity setting alone.
 enum { TEXT_ALPHA_FLOOR = 182 };
 static Int textAlpha() { return max( s_alpha, (Int)TEXT_ALPHA_FLOOR ); }
@@ -379,7 +379,7 @@ static void addHit( const Rect &r, Int kind, Int id, Int panel )
 	}
 }
 
-/// Income per minute is for sandbox play only (owner 06/10, after a community player: "I don't need this info"): a skirmish or
+/// Income per minute is for sandbox play only: a skirmish or
 /// single-player game, or any match whose lobby verdict is GameInfo::START_SANDBOX (nobody's stats count). In every other
 /// multiplayer match a PLAYER sees neither it nor UNITS/BUILDINGS; spectators and observers keep every figure.
 static Bool sandboxMatch()
@@ -480,7 +480,7 @@ static void loadChords()
 		"GXSpecHideDeadKey", "GXSpecDockAllKey", "GXSpecOpacityDownKey", "GXSpecOpacityUpKey", "GXSpecNextKey", "GXSpecPrevKey",
 		"GXSpecDiplomacyKey" };
 	// The four panel keys are Shift+Alt+1..4: Alt+1..4 are retail's VIEW_TEAM1..4 (Data\English\CommandMap.ini), and retail binds nothing to
-	// Shift+Alt. A player who set his own chord keeps it: only the defaults moved (07/10/2026, wh1ter0se: "see with WHAT it clashes").
+	// Shift+Alt. A player who set his own chord keeps it: only the defaults moved.
 	static const char *const defaults[A_COUNT] = {
 		"KEY_TAB", "SHIFT_ALT+KEY_1", "SHIFT_ALT+KEY_2", "SHIFT_ALT+KEY_3", "SHIFT_ALT+KEY_4", "ALT+KEY_S",
 		"ALT+KEY_H", "ALT+KEY_D", "ALT+KEY_MINUS", "ALT+KEY_EQUAL", "ALT+KEY_N", "ALT+KEY_B",
@@ -876,7 +876,7 @@ static void sampleStatuses()
 			continue;
 		const GameSlot *gs = TheGameInfo ? TheGameInfo->getConstSlot( slot ) : nullptr;
 		// The network never lists the local player as connected to himself, which read as "LEFT" on his own row from the
-		// first frame, with no time (owner 06/10: "why does You Left doesnt say the time?"). While he is looking at this
+		// first frame, with no time. While he is looking at this
 		// screen he has not left.
 		const Bool connected = (hasNetwork && p != ThePlayerList->getLocalPlayer()) ? TheNetwork->isPlayerConnected( slot ) : TRUE;
 		Status st = decideStatus( hasNetwork, connected, gs != nullptr && gs->isHuman(), p->isPlayerActive() );
@@ -985,7 +985,7 @@ static void gatherRows()
 	}
 	s_twoTeams = isTwoTeamGame( teams, s_rowCount );
 	// Rows in team blocks (teamBlocks): a player's own team first, then the lobby's order, the teamless last; slot order
-	// inside a block. Two teams: team A first, as before. 2v2v2v2v2v2: six blocks of two (owner 05/10/2026).
+	// inside a block. Two teams: team A first, as before. 2v2v2v2v2v2: six blocks of two.
 	Int ownTeam = -1;
 	for (Int i = 0; !spectator && i < s_rowCount; ++i)
 		if (s_rows[i].own)
@@ -1138,8 +1138,8 @@ static void applyView( const ViewState &t )
 
 static Bool isReplay() { return TheRecorder != nullptr && TheRecorder->isPlaybackMode(); }
 
-/// "Follow the player's camera" (owner 14/10/2026: "i want us replaying exactly what the player was ... or maybe we can have
-/// that enabled/disabled"): retail's own "Use camera in replays" - TheGlobalData->m_useCameraInReplay, Options.ini
+/// "Follow the player's camera":
+/// retail's own "Use camera in replays" - TheGlobalData->m_useCameraInReplay, Options.ini
 /// UseCameraInReplays, default on - so the Options menu's box and this row are one setting. Following a player in a replay
 /// plays back his recorded camera while it is on (GameLogic::onSetReplayCamera); off, the camera stays the spectator's.
 static Bool followCameraOn() { return TheGlobalData != nullptr && TheGlobalData->m_useCameraInReplay; }
@@ -1204,7 +1204,7 @@ static Player *apparentOwner( Object *o, const ThingTemplate **tt )
 
 static ObjectID s_inspectID = INVALID_ID;	///< what a spectator's battlefield click shows (inspectAt); looked up by id every frame
 
-/// A spectator's click on the battlefield (owner 12/10/2026: "click any unit and it shows me the building and upgrades"): the
+/// A spectator's click on the battlefield: the
 /// unit or building under it goes on the FOCUS panel and its owner is followed (viewAfterObjectClick; in a replay the follow
 /// stays, since there it is also whose recorded camera plays - owner 14/10/2026); empty ground clears the
 /// card and keeps the focus. It picks what retail's point click picks (SelectionTranslator: pickDrawable + CanSelectDrawable)
@@ -1333,7 +1333,7 @@ static void dockTab( const char *id, const wchar_t *text, Int x, Int y, Int pane
 }
 
 /// A tab hung by its CENTRE: the PLAYERS tab sits centred under the clock block, folded or open, so it never jumps sideways
-/// when it folds (owner 06/10: "move this here").
+/// when it folds.
 static void dockTabCentred( const char *id, const wchar_t *text, Int cx, Int y, Int panel, Bool arrowUp )
 {
 	DisplayString *ds = fixed( id, 10, TRUE, text );
@@ -1448,13 +1448,13 @@ static void drawCard( const Row &r, Int x, Int y, Int w, Int h, Bool followed )
 			put( fixed( "card.nogrid", 12, TRUE, L"0 / 0" ), tx, ty, dim() );
 		else
 		{
-			const Int u = r.use, p = r.prod;		// USED / PRODUCED everywhere (owner 06/10: "4 used out of 20")
+			const Int u = r.use, p = r.prod;		// USED / PRODUCED everywhere
 			put( txt( "card.pw", r.slot, 12, TRUE, ((long long)u << 32) | (UnsignedInt)p, [u, p]() { UnicodeString s; s.format( L"%d / %d", u, p ); return s; } ),
 				tx, ty, r.deficit ? red() : white() );
 		}
 		ty += th( 12 ) + S( 1 );
 	}
-	// A PLAYER's own card: income only in sandbox play, never units/buildings (owner 06/10). Spectators keep both.
+	// A PLAYER's own card: income only in sandbox play, never units/buildings. Spectators keep both.
 	if (shown( SHOW_INCOME ) && (s_mode != MODE_PLAYER || sandboxMatch()))
 	{
 		put( number( "card.cpm", r.slot, 11, FALSE, r.cpm, TRUE ), tx, ty, label() );
@@ -1715,7 +1715,7 @@ static void drawBar( Rect &out )
 			(s_rows[i].team == teamA ? c1 : c2) += s_rows[i].cash;
 		const Int cy = mid.y + S( 14 );
 		putC( clock, mid.x + mid.w / 2, cy, white() );
-		// wh1ter0se 03/11 "add $ sign": the totals read like the cards' cash ("$672"), $313,480
+		// the totals read like the cards' cash ("$672"), $313,480
 		DisplayString *a = number( "bar.t1", 0, 20, TRUE, c1, FALSE, TRUE ), *b = number( "bar.t2", 0, 20, TRUE, c2, FALSE, TRUE );
 		const Int cx0 = mid.x + mid.w / 2 - tw( clock ) / 2 - S( 12 ), cx1 = mid.x + mid.w / 2 + tw( clock ) / 2 + S( 12 );
 		putR( a, cx0, cy, white() );
@@ -1748,7 +1748,7 @@ static void drawBar( Rect &out )
 	}
 }
 
-/// The newest announcements ("X used Y") stacked under the PLAYERS tab (wh1ter0se 03/11): up to TOAST_MAX, newest on top, each
+/// The newest announcements ("X used Y") stacked under the PLAYERS tab: up to TOAST_MAX, newest on top, each
 /// TOAST_LIFE_MS with a fade in and out, a newer one pushing the oldest out - toastLayout / toastStack in GXSpectatorHud.h, model-tested
 /// frame by frame against the tab, the gear, the name tips and the customise panel. Click one: the camera jumps to that player's base
 /// (or where its power was aimed). Same feed and same spectator gate as the legacy banners; only the place and the look change.
@@ -2348,7 +2348,7 @@ static void drawFocus( const Rect &mapRect )
 	const Int x = s_mapHome.w + S( 16 );
 	(void)mapRect;
 	// One compact bar: the selected object's card and the followed player's stats share it, and with nobody followed the
-	// empty panel is gone (wh1ter0se 14/10: "still taking too much space").
+	// empty panel is gone.
 	const Row *f = rowForFocus();
 	Object *sel = s_dock.panel[PANEL_FOCUS].open ? inspectedObject() : nullptr;
 	const FocusBarLayout lay = focusBarLayout( f != nullptr, sel != nullptr, kFocusFullH, kObjectBandH, 56 );
@@ -2713,7 +2713,7 @@ static void drawBoard()
 				UnicodeString s;
 				s.format( L"%.1f", d > 0 ? (Real)k / (Real)d : (Real)k );
 				return s; } ), b.x + colX[C_KD] + S( (Real)kColW[C_KD] ), cy, tc );
-			// Rank stars: hovering them shows what this general bought (owner, 05/10: bought only).
+			// Rank stars: hovering them shows what this general bought.
 			const Int sz = S( 15 );
 			const Rect sr = { b.x + colX[C_RANK] - S( 3 ), y + S( 4 ), max( sz * max( 1, r.rank ) + S( 6 ), S( 40 ) ), rh - S( 8 ) };
 			drawStars( b.x + colX[C_RANK], y + (rh - sz) / 2, sz, r.rank );
@@ -2801,7 +2801,7 @@ static void drawHoverCard()
 			r = &s_rows[i];
 	// Purchases are private: anything but the spectator HUD gets its own card only, whatever slot a previous match or
 	// panel left in s_hoverSlot (fail closed).
-	// A player may also see what his ALLIES bought (owner 06/10) - never an enemy's: the lobby team decides, Row::ally.
+	// A player may also see what his ALLIES bought - never an enemy's: the lobby team decides, Row::ally.
 	if (r == nullptr || (s_mode != MODE_SPECTATOR && !r->own && !(s_mode == MODE_PLAYER && r->ally && liveAlly( r->player ))))
 		return;
 	refreshBought( *r, TRUE );
@@ -2926,7 +2926,7 @@ static void drawDisplayPanel()
 			H_CHECK, panels[i], colW );
 	y += (Int)ARRAY_SIZE( panels ) * S( 22 ) + S( 10 );
 
-	// Players: hide all dead ones, or specific ones (owner, 05/10 point 13). Specific hides last for this match only:
+	// Players: hide all dead ones, or specific ones. Specific hides last for this match only:
 	// names change from match to match.
 	put( fixed( "d.players", 10, TRUE, L"PLAYERS" ), c0, y, label() );
 	y += th( 10 ) + S( 4 );
@@ -2984,7 +2984,7 @@ static GXSpectatorHud::GeneralPoint s_gen;	///< the General's button pulse state
 static Rect s_radarHome = { 0, 0, 0, 0 };	///< the radar window's own rect (parent-relative), as the bar laid it out
 static Rect s_radarSet = { 0, 0, 0, 0 };		///< what we resized it to; w == 0 = untouched
 
-enum PAction { PA_BOARD, PA_BAR, PA_COUNT };		// no Diplomacy key: the board mutes (owner 06/10: "no need for diplomacy")
+enum PAction { PA_BOARD, PA_BAR, PA_COUNT };		// no Diplomacy key: the board mutes
 static Chord s_pchords[PA_COUNT];
 static Bool s_pOwned[PA_COUNT];			///< this key's DOWN was ours: its up and repeats are ours too, whatever the modifiers
 static Int s_forceLook = -1;					///< GX_PLAYERUI_SHOW: -1 the switch decides, 0 legacy, 1 player mode (tests only)
@@ -3098,8 +3098,8 @@ static void fitRadarWindow( GameWindow *w, RadarFit how )
 	s_radarSet = fit;
 }
 
-/// The legacy look when the map does not fill the retail radar box (owner 06/10: "get rid of the black bars ... the map on its
-/// own with the borders"): the bar art is cut out around the retail box (the baked frame stands around the box, not the map),
+/// The legacy look when the map does not fill the retail radar box:
+/// the bar art is cut out around the retail box (the baked frame stands around the box, not the map),
 /// and a bevelled frame in the retail frame's own colours is drawn hugging the map instead; the world shows where the
 /// box was. Nothing is cut or drawn when the map fills the box (a square map), so those pixels stay retail's.
 static Rect s_blockHome = { 0, 0, 0, 0 }, s_blockSet = { 0, 0, 0, 0 };		///< the Pro bar's radar input blocker: its own rect / what we set (w == 0 = untouched)
@@ -3174,8 +3174,8 @@ static void drawLegacyFrame()
 
 // ---------------------------------------------------------------------------------------------------------------------
 // The retail pop-ups that sit on the right of the screen - the General's promotion window (GeneralsExpPoints.wnd) and the
-// superweapon shortcut tray (GenPowersShortcutBar*.wnd) - in the player look (owner 06/10: "make the UI update consistent
-// too for the right side thing and the generals promotions"). Their grey-steel frames and header bars are one IMAGE per
+// superweapon shortcut tray (GenPowersShortcutBar*.wnd) - in the player look.
+// Their grey-steel frames and header bars are one IMAGE per
 // window, drawn by the default window draw only while WIN_STATUS_IMAGE is set; with the bit cleared the same window draws
 // its own colour fill and border. So each such window is switched, for as long as the look is up, to a navy fill with a
 // steel border (the bar's own panel colours) and put back exactly as it was afterwards. The command cells (ButtonRank*,
@@ -3184,8 +3184,8 @@ static void drawLegacyFrame()
 struct ChromeSaved { Color color, border; Bool image; const GameWindow *win; };		// win: the window that was switched (a rebuilt layout has new ones)
 static std::map<std::string, ChromeSaved> s_chrome;		///< by decorated .wnd name; only while the player look has them switched
 
-/// The promotion window's plate is as see-through as the Tab board's (owner 06/10: "make the generals menu see through
-/// more"): the board's own text-panel alpha, a touch less. Only the plate - the rank headers, the cells and the star counter
+/// The promotion window's plate is as see-through as the Tab board's:
+/// the board's own text-panel alpha, a touch less. Only the plate - the rank headers, the cells and the star counter
 /// keep their own fills.
 static Int chromeRootAlpha()
 {
@@ -3249,7 +3249,7 @@ static void chromeWalk( GameWindow *c, Bool on, Bool dump )		// this window, the
 				c->winClearStatus( WIN_STATUS_IMAGE );
 				const Bool root = c->winGetParent() == nullptr;
 				// The tray's frame window (ButtonParentN) is far larger than the icon cell inside it: it draws nothing at all, and
-				// drawTrayFrames() puts a thin frame right round the cell instead (owner 06/10: "what's this XDD").
+				// drawTrayFrames() puts a thin frame right round the cell instead.
 				const Bool tray = name.find( ":ButtonParent" ) != std::string::npos;
 				c->winSetEnabledColor( 0, tray ? WIN_COLOR_UNDEFINED : root ? navy( chromeRootAlpha() ) : navyDeep( 222 ) );
 				c->winSetEnabledBorderColor( 0, tray ? WIN_COLOR_UNDEFINED : root ? steel() : steelDim() );
@@ -3303,8 +3303,8 @@ static void applyLook( Bool skin )
 	// margins W3DRadar's own.
 	const Bool worldBehind = TheTacticalView != nullptr && TheDisplay != nullptr && TheTacticalView->getHeight() >= TheDisplay->getHeight() - 4;
 	// The legacy look (the switch off) keeps the radar exactly as retail lays it out: its own box inside the bar's own frame,
-	// black margins and all (owner 21/10/2026, a legacy screenshot: "These shouldn't change if the UI is legacy" - newer than,
-	// and replacing, his 06/10 legacy asks this hug served). The hug stays for the GeneralsX UI's legacy-looking moments
+	// black margins and all.
+	// The hug stays for the GeneralsX UI's legacy-looking moments
 	// (F11, a campaign), which that request did not touch.
 	const Bool hug = !skin && !movie && worldBehind && s_set.generalsx;
 	fitRadarWindow( rw, movie ? RADAR_HOME : skin ? RADAR_CORNER : hug ? RADAR_CENTRED : RADAR_HOME );
@@ -3633,8 +3633,8 @@ static void drawBarPlates()
 	const Rect ra = screenRect( barChild( BW_RADAR ) );
 	if (cw.w > 0)
 	{
-		// The command window's plate starts BELOW the economy row (owner 05/10 via wh1ter0se on Windows: the row sat on the
-		// plate's top border, its frame line running through the row's panels). Only the plate moves; the retail buttons
+		// The command window's plate starts BELOW the economy row.
+		// Only the plate moves; the retail buttons
 		// stay where the bar put them, and none of them is that high.
 		Rect p = cw;
 		if (s_mode == MODE_PLAYER && mo.w > 0)
@@ -3654,7 +3654,7 @@ static void drawBarPlates()
 	if (mo.w > 0)
 		plate( Rect{ mo.x - S( 8 ), mo.y, mo.w + S( 16 ), mo.h }, TRUE, TRUE );
 	// No plate under the General's button: drawGeneralButton() paints the whole button over it after the windows, and a socket
-	// here, offset up and left of that rect, showed round it as a second, older frame (wh1ter0se 09/10 on 0.9.61).
+	// here, offset up and left of that rect, showed round it as a second, older frame.
 	if (ra.w > 0)
 	{
 		plate( Rect{ ra.x - S( 6 ), ra.y - S( 6 ), ra.w + S( 12 ), ra.h + S( 12 ) } );
@@ -3676,8 +3676,8 @@ static UnicodeString xpText( Int xp, Int next )
 	return s;
 }
 
-/// My economy on ONE row with the $ box (owner 05/10/2026: "I dont like how the money thing is going under the bar make it
-/// align better"): INCOME and POWER to its left, ARMY and XP to its right, the same height and plate as the money's, so
+/// My economy on ONE row with the $ box:
+/// INCOME and POWER to its left, ARMY and XP to its right, the same height and plate as the money's, so
 /// the money sits IN the line instead of under it. A bar with no money box gets the row on top of the command window.
 static void drawOwnStrip( const Row &me )
 {
@@ -3687,7 +3687,7 @@ static void drawOwnStrip( const Row &me )
 	const Bool money = mo.w > 0;
 	const Rect row = ownRowRect( cw, mo );
 	// The three panels SNAP: the side blocks butt against the $ box's plate and share its border line, instead of three
-	// separate bordered boxes with gaps (owner 06/10: "remove the excess borders to make the Units block snap").
+	// separate bordered boxes with gaps.
 	const Int midL = money ? mo.x - S( 8 ) + 1 : row.x + row.w / 2, midR = money ? mo.x + mo.w + S( 8 ) - 1 : midL;
 	const Rect halves[2] = { { row.x, row.y, midL - row.x, row.h }, { midR, row.y, row.x + row.w - midR, row.h } };
 	for (Int i = 0; i < 2; ++i)
@@ -3695,12 +3695,12 @@ static void drawOwnStrip( const Row &me )
 		plate( halves[i], TRUE, TRUE );
 		addHit( halves[i], H_BLOCK, 0, -1 );
 	}
-	// ONE shared baseline for every label and value (owner 06/10: "the values are not aligned with their text"): the 16 px
+	// ONE shared baseline for every label and value: the 16 px
 	// values are centred in the row and each 11 px label sits on the value's baseline - bottoms of the two text boxes
 	// aligned, less the 1 px the larger face's deeper descender adds.
 	const Int vy = row.y + (row.h - th( 16 )) / 2, ly = vy + th( 16 ) - th( 11 ) - S( 1 );
-	// Left block: INCOME, POWER. Right block: UNITS, BUILDINGS, XP - whole words, no abbreviations (owner 06/10: "bldgs is
-	// annoying"). Digits are tabular in this face, so the figures do not jitter as they change.
+	// Left block: INCOME, POWER. Right block: UNITS, BUILDINGS, XP - whole words, no abbreviations.
+	// Digits are tabular in this face, so the figures do not jitter as they change.
 	static const wchar_t *const heads[5] = { L"INCOME", L"POWER USED", L"UNITS", L"BUILDINGS", L"XP" };
 	static const char *const ids[5] = { "ps.h0", "ps.h1", "ps.h2", "ps.h3", "ps.h4" };
 	// UNITS and BUILDINGS are gone for a player; INCOME shows in sandbox play only (sandboxMatch). The cells that are left
@@ -3726,7 +3726,7 @@ static void drawOwnStrip( const Row &me )
 			fill( x0, row.y + S( 5 ), 1, row.h - S( 10 ), steelDim() );
 		const Int cx = x0 + S( 10 );
 		// Short of power (the engine's own test, Energy::hasSufficientPower - also true while the grid is sabotaged): the
-		// label itself reads OFFLINE in red (owner 06/10), the figure beside it stays red as before. Own row only.
+		// label itself reads OFFLINE in red, the figure beside it stays red as before. Own row only.
 		const Bool offline = i == 1 && me.deficit;
 		DisplayString *hd = offline ? fixed( "ps.h1off", 11, TRUE, L"OFFLINE" ) : fixed( ids[i], 11, TRUE, heads[i] );
 		put( hd, cx, ly, offline ? red() : label() );
@@ -3739,8 +3739,8 @@ static void drawOwnStrip( const Row &me )
 		}
 		else if (i == 1)
 		{
-			// USED / PRODUCED, the way it is read aloud: "4 used out of 20" (owner 06/10: "why 20/4 more like 4 used out of 20
-			// no?"). The whole figure goes red when the base uses more than it makes.
+			// USED / PRODUCED, the way it is read aloud: "4 used out of 20".
+			// The whole figure goes red when the base uses more than it makes.
 			if (!me.grid)
 				put( fixed( "ps.nogrid", 16, TRUE, L"0 / 0" ), vx, vy, dim() );
 			else
@@ -3812,7 +3812,7 @@ static void trackGeneralPoint()
 /// windows, opaque, over the retail button (like the $ box below) - navy with gold stars, the border lit while points wait
 /// to be spent. The retail window underneath keeps its job: the click, its tooltip and its hotkey are untouched. It must be
 /// fully opaque: under it the window still paints its own scheme art (!GXUISide.big's stars since 0.9.61), which showed
-/// through a 238 fill as a second button (wh1ter0se 09/10).
+/// through a 238 fill as a second button.
 /// A new point PULSES it (retail blinked it): the stars and the inner frame line swing from lit to dim and back once a second
 /// on a cosine, light only - nothing moves - and the pulse ends for good when the panel is opened or a point is spent.
 /// Pressed, the stars sit a pixel lower; disabled (an observer's bar), they are dim.
@@ -3843,7 +3843,7 @@ static void drawGeneralButton()
 }
 
 /// The $ box in the SAME face as the other cells: CASH label + the figure on the shared baseline. Drawn AFTER the windows,
-/// opaque, over the retail money display (a thin 30 px face of its own: owner 06/10 "the cash is inconsistent"), from the
+/// opaque, over the retail money display (a thin 30 px face of its own), from the
 /// same number the retail display shows (the local player's money, read every frame).
 static void drawOwnMoney( const Row &me )
 {
@@ -4048,8 +4048,8 @@ static void drawPlayerBoard( const Row *me )
 	}
 	y += heroH + S( 6 );
 
-	// ---- everyone: ONE table (owner 06/10: "this is very ugly" - one aligned grid, a quiet band per row, no boxes
-	// behind single words). Columns in 1080p px from the board's left; the column heads sit on the same x as the cells.
+	// ---- everyone: ONE table.
+	// Columns in 1080p px from the board's left; the column heads sit on the same x as the cells.
 	enum { X_CHIP = 14, X_PORT = 24, X_NAME = 62, X_GEN = 306, X_STATUS = 476, R_PING = 642, R_FPS = 712, X_MUTE = 752, W_MUTE = 72,
 		X_KICK = 834, W_KICK = 58 };
 	fill( b.x + S( 6 ), y + colH - 1, b.w - S( 12 ), 1, steelDim() );			// the one line between the hero and the list
@@ -4071,7 +4071,7 @@ static void drawPlayerBoard( const Row *me )
 	const Bool net = TheNetwork != nullptr;
 	const Int localSlot = net ? (Int)TheNetwork->getLocalPlayerID() : -1, routerSlot = net ? TheNetwork->getPacketRouterSlot() : -1;
 	const Bool iRoute = net && routerSlot >= 0 && routerSlot == localSlot;
-	// PING and FPS are shown once a second (owner 06/10: the figure "updates too fast"): the last value is held between
+	// PING and FPS are shown once a second: the last value is held between
 	// refreshes, so the colour follows the shown value. A board not drawn for 1.5 s (Tab was up) refreshes at once.
 	static Int s_heldPing[MAX_SLOTS], s_heldFps[MAX_SLOTS];
 	static UnsignedInt s_heldAt = 0, s_heldDrawn = 0;
@@ -4108,7 +4108,7 @@ static void drawPlayerBoard( const Row *me )
 		const Int ty = y + (teamH - th( 12 )) / 2;
 		put( blockTitle( block, myTeam ), b.x + S( X_NAME ), ty, accent() );
 		putR( txt( "pb.alive", block, 12, TRUE, (alive << 8) | total, [alive, total]() { UnicodeString u; u.format( L"%d OF %d STANDING", alive, total ); return u; } ),
-			b.x + b.w - S( 10 ) - sbW, ty, label() );		// right of the FPS column with a clear gap (owner 06/10: it "feels like it is within the fps")
+			b.x + b.w - S( 10 ) - sbW, ty, label() );		// right of the FPS column with a clear gap
 		y += teamH;
 		for (Int i = 0; i < s_rowCount; ++i)
 		{
@@ -4126,7 +4126,7 @@ static void drawPlayerBoard( const Row *me )
 			const Bool up = r.status == STATUS_ALIVE;
 			const Rect rr = { b.x + S( 6 ), y, b.w - S( 12 ) - sbW, rh };
 			// The band IS the text backing: a bright patch of map under the see-through board cannot swallow a name, with the
-			// board's own opacity untouched (owner 06/10). Alternate rows a shade apart; my own row in the accent.
+			// board's own opacity untouched. Alternate rows a shade apart; my own row in the accent.
 			fill( rr, r.own ? GameMakeColor( 111, 168, 240, 52 ) : navyDeep( (band++ & 1) ? 132 : 100 ) );
 			const Int cy = y + (rh - th( 15 )) / 2, sy = y + (rh - th( 14 )) / 2;
 			fill( b.x + S( X_CHIP ), y + S( 6 ), S( 4 ), rh - S( 12 ), r.color );
@@ -4284,7 +4284,7 @@ static void underWindows( Bool overlayHidden )
 	if (!s_loaded)
 		loadMatchState();
 	// The switch, not the mode: the legacy look is retail's radar margins and the side buttons, General's button and ladder
-	// in their original art (owner 21/10/2026); every GeneralsX moment keeps !GXUISide.big's art and the border image.
+	// in their original art; every GeneralsX moment keeps !GXUISide.big's art and the border image.
 	gxRadarRetailMargins = !s_set.generalsx;
 	if (TheMappedImageCollection)
 		TheMappedImageCollection->gxShowGeneralsXLook( s_set.generalsx );
@@ -4366,7 +4366,7 @@ static Bool drawPlayerMode()
 	drawBar( pbar );
 	const Bool open = s_dock.panel[PANEL_PLAYERS].open;
 	// Messages and superweapon timers start under the bar's HOME position and size, open or folded, dragged or not: they
-	// never move when the strip does (owner 06/10: "moving this around also moves the nuclear missile timer").
+	// never move when the strip does.
 	if (s_barHome.y < s_H / 3)
 	{
 		s_topInset = s_barHome.y + s_barHome.h + S( 26 );
@@ -4418,9 +4418,9 @@ static GameMessageDisposition onPlayerKey( Int key, Int mods, Bool down, Bool re
 /// up for a spectator: VIEWING <name> in his colour when the view is through his eyes (his fog of war), else VIEWING
 /// WHOLE MAP, then FOLLOWING <name> when the follow panel is on someone. His card and his board row carry the accent
 /// frame too. It changes on the frame the view does, with no animation: the view moves on a key press, many times a match.
-/// THEIR CAMERA when the camera is the followed player's own, played back from the replay (owner 14/10/2026: following
-/// himself showed a base he had parked his camera on, and nothing said whose camera that was).
-/// A click switches between the whole map and the followed player's eyes (owner 24/10/2026, decision A; viewAfterChip), and the
+/// THEIR CAMERA when the camera is the followed player's own, played back from the replay.
+///
+/// A click switches between the whole map and the followed player's eyes, and the
 /// chip says which a click gives; Esc leaves both. The plate lights its frame under the mouse while a click would act.
 static void drawViewingChip()
 {
@@ -4512,8 +4512,8 @@ static void leaveMode()
 	s_modeOn = FALSE;
 }
 
-// ---- where the toast's power was aimed (owner 12/10/2026: "I wanna see WHERE it was called to like show the actual landing
-// thing just like it would show a player like the target preview") ---------------------------------------------------------
+// ---- where the toast's power was aimed
+//
 /// Every targeted power's newest order, one per caster and power (a ring let unannounced radar scans push a live row's
 /// target out, spectator-click r1-BC P2); emptied each match.
 struct NoteAt { PowerNote note; Coord3D at; };
@@ -4958,7 +4958,7 @@ public:
 	virtual ~Translator() override {}
 };
 
-/// The open player Tab board owns the mouse (owner 06/10: "with tab opened i can play through the game"). Translator runs
+/// The open player Tab board owns the mouse. Translator runs
 /// at 11, AFTER the WindowTranslator (10), so a retail window under the board - the General's promotion panel, the command
 /// bar - took the click before the board's H_BLOCK hit could eat it. This gate runs at 9, ahead of the windows: a press or
 /// wheel turn over the open board, and the drag and release of a press that began on it (boardGateTakes), stop here - the
@@ -5514,7 +5514,7 @@ GameMessageDisposition BoardGate::translateGameMessage( const GameMessage *msg )
 	return DESTROY_MESSAGE;
 }
 
-/// The bottom bar's Communicator button (owner 06/10: it "opens the old players screen"): in the GeneralsX player look it
+/// The bottom bar's Communicator button: in the GeneralsX player look it
 /// latches the Tab board open and shut - the same rows (mute, ping, fps, team, status) - instead of retail's Diplomacy
 /// window. FALSE = not ours (legacy look, the panels hidden with F11, a spectator, the board switched off): retail's runs.
 static Bool communicatorToggle()
@@ -5538,7 +5538,7 @@ static void gxSpectatorHudUnderWindows( Bool overlayHidden ) { ++GXSpecHud::s_fr
 static void gxSpectatorHudUpdate() { GXSpecHud::trackGeneralPointUpdate(); }
 Int gxSpectatorHudTopInset() { return GXSpecHud::s_topInset; }
 /// The span [x0,x1) x [y0, inset) the inset protects, FALSE when there is no inset this frame. The bar's HOME rect (and the toast), never
-/// the dragged position: the message list must not move when the strip does (owner 06/10).
+/// the dragged position: the message list must not move when the strip does.
 Bool gxSpectatorHudInsetSpan( Int *x0, Int *x1, Int *y0 )
 {
 	if (GXSpecHud::s_topInset <= 0 || !GXSpecHud::s_insetSpanOn) return FALSE;

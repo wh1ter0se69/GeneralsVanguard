@@ -246,8 +246,8 @@ static void gxWarmShot( LoadScreen *screen, Bool message )
 	fprintf(stderr, "[GXWARM] shot message=%d\n", message);
 }
 
-// GeneralsX: A2 (wh1ter0se 02/10: "show the message top left 'Optimizing shaders...' with a
-// 0.00-100.00% info"): one left-aligned line in the screen's top-left corner, in the face and size of the render-fps/
+// GeneralsX: A2:
+// one left-aligned line in the screen's top-left corner, in the face and size of the render-fps/
 // clock readout InGameUI draws there (Tahoma bold, its size, resolution-adjusted), white with a black border, one row below that
 // readout. Not a .wnd text's font: the multiplayer screens' features font is so large the line ran into the general's
 // name under it (rc-check RD3, 02/10). Nothing drawn behind it (defaultVisual FALSE, as MainMenu.cpp's credit label).
@@ -305,7 +305,7 @@ void LoadScreen::waitForPipelineWarmup()
 	}
 	const UnsignedInt start = timeGetTime();
 	UnsignedInt pending = pendingAtEntry;
-	// GeneralsX: A2 (wh1ter0se 01/10: "with a clear message"): say what the hold is, in the screen's
+	// GeneralsX: A2: say what the hold is, in the screen's
 	// own text element so it looks like the rest of the screen, once the hold has lasted long enough to notice - a shorter
 	// one would only flash a sentence. Put back after: a LAN screen goes on to wait for the other players.
 	UnicodeString savedText;

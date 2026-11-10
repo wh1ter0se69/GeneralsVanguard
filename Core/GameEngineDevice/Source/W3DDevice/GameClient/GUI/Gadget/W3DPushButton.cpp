@@ -179,9 +179,9 @@ static DisplayString *getHotKeyDisplayString( const UnicodeString& label, GameFo
 	return ds;
 }
 
-// GeneralsX: The letter's size follows the BUTTON, not the button's font (wh1ter0se, 27/09: "on
-// the actual items make the slightly bolder and bigger but make the ones appearing on the right side in the
-// powerups stuff smaller").
+// GeneralsX: The letter's size follows the BUTTON, not the button's font.
+//
+//
 //
 // It used to be drawn in window->winGetFont(), the font each layout gives its buttons for text they never show, so
 // the three surfaces carrying a letter set three unrelated sizes: the command bar's Arial 8, the General's Points

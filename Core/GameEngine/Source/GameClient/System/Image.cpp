@@ -287,8 +287,8 @@ const Image *ImageCollection::findImageByNameNoMint( const char* name ) const
 /** GeneralsX: A GeneralsX LOOK LAYER is a HandCreated MappedImage file named zzGX*.ini
 	* (!GXUISide.big's zzGXSidebar.ini): it REDEFINES retail and Control Bar Pro images in place - the control bar's side
 	* buttons, the General's star button and his experience ladder - so the GeneralsX UI's bar matches its HUD. Being data,
-	* it used to reach the legacy look too (owner 21/10/2026, a legacy screenshot: "These shouldn't change if the UI is
-	* legacy"). The layer cannot carry its art under new names instead: every MappedImage name is interned as a NameKey,
+	* it used to reach the legacy look too.
+	* The layer cannot carry its art under new names instead: every MappedImage name is interned as a NameKey,
 	* and a name only some peers intern renumbers the keys minted after it on those peers (memory
 	* namekey-minting-is-a-desync-hazard). So the art keeps its names and the collection keeps BOTH definitions. */
 static Bool gxIsLookLayer( const AsciiString &path )

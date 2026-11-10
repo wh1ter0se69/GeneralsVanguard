@@ -115,8 +115,8 @@ static UnicodeString formatMoneyValue(UnsignedInt amount)
 	return result;
 }
 
-// GeneralsX: The HUD readout sizes have a ceiling (owner: "limit those to
-// something"): at 72 the frame-rate readout covers a third of the screen. Same number as Zero Hour's
+// GeneralsX: The HUD readout sizes have a ceiling:
+// at 72 the frame-rate readout covers a third of the screen. Same number as Zero Hour's
 // kGxHudMaxPointSize and the launcher's gxio::options::MAX_FONT_SIZE; applied where each size is read,
 // so a file already holding more draws at the ceiling too.
 static const Int kGxHudMaxPointSize = 24;
@@ -5822,7 +5822,7 @@ void InGameUI::updateAndDrawWorldAnimations()
 			// scale the width and height given the camera zoom level
 			// TheSuperHackers @todo Rework this with sane values. scaler=1.3 originally came from TheTacticalView::getMaxZoom()
 			// GeneralsX: THE ZOOM RETAIL WOULD REPORT, AND THE GENTLE SHRINK ABOVE ITS CEILING
-			// (owner, 02/10/2026: the promotion chevrons - LevelGainedAnimation, 32x32 - "are too big"). This divided by
+			// This divided by
 			// plain getZoom(), which is height / the EFFECTIVE max camera height: with the camera allowed higher than retail's
 			// MaxCameraHeight the same view reports a smaller zoom, so every world animation (promotion, heal, crate cash) grew
 			// by effectiveMax / retailMax - about 3x at Extras' 1000, 10x at the Debug menu's 3000 - the bug the health bar,

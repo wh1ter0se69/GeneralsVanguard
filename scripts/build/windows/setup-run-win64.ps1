@@ -250,7 +250,7 @@ if ($pyExe) {
     Write-Warning "[setup] no working python on PATH - Data\INI\Weapon.ini NOT generated; every peer carrying it will refuse this one (DATA_DIFFERS)"
 }
 
-# GeneralsX: PRESENT WITH MAILBOX, NOT FIFO (owner decision 24/09/2026).
+# GeneralsX: PRESENT WITH MAILBOX, NOT FIFO.
 #
 # THIS HEREDOC IS THE SOURCE OF TRUTH FOR EVERY WINDOWS dxvk.conf: package-windows-share.ps1 zips
 # this run folder's copy into the runtime tier, the installer unpacks that zip, and

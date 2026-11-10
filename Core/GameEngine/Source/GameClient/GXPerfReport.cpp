@@ -67,7 +67,7 @@ namespace
 // home or a host:port pin) and is read from GXLobbyPresence together with the address, into s_relayPort.
 const UnsignedShort GX_PERF_RELAY_PORT = 8086;
 
-// One report per second (owner decision, 20/09/2026). The design proposed 15 s; the owner asked for
+// One report per second. The design proposed 15 s; the owner asked for
 // 1 s explicitly - "every second, we delete old data or something". The consequence of that choice
 // is handled in the RELAY, not here: peers report at 1 Hz, and the relay aggregates ten of those
 // into one stored row (see tools/relay/relay.js, GX_PERF_ROLLUP_MS). MEASURED against the real
@@ -395,7 +395,7 @@ Bool gxStatEnabled( void )
 }
 
 /// GeneralsX: The end-of-match record (GXEND + GXSEAT) is ON BY DEFAULT in a relay match
-/// (owner, 27/09/2026: "real accurate records"); exactly GX_MATCH_STATS=0 turns it off. The 1 Hz GXSTAT stays
+/// exactly GX_MATCH_STATS=0 turns it off. The 1 Hz GXSTAT stays
 /// behind gxStatEnabled's opt-in.
 static Bool gxEndReportEnabled( void )
 {

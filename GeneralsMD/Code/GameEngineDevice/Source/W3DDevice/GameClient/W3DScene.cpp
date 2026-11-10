@@ -1958,7 +1958,7 @@ static void gxPrebuildPoses(RefRenderObjListClass &renderList)
 // the GLA Worker's gun and supply sack sit at z -1261..-8197 (UIWRKR_IDA/RNA/TRA2...), and 70+ skeletons do the same
 // (Rebels, angry mobs, hackers, tunnel defenders, Black Lotus...). Inside the map the terrain hides them from any camera; but a
 // camera far enough out to see past the map's near edge (Debug camera heights, the whole-map spectator view) looks under the
-// map, and they showed there as small specks moving in the black void as the workers walked (wh1ter0se 09/10, 0.9.61 replay).
+// map, and they showed there as small specks moving in the black void as the workers walked.
 // Depth only (colour writes off), so the void keeps its clear colour, fog never touches it, and nothing above FLOOR_Z changes:
 // terrain heights are unsigned bytes * MAP_HEIGHT_SCALE, so no ground is ever below 0. Client-only, render-only.
 // GX_FLOOR_Z (TEST-ONLY, read once, for picture A/Bs): "off" = no floor, a number = that height (a fail arm sets one above the

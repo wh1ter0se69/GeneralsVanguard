@@ -27,7 +27,7 @@
 // right after drawRiverWater returns (gxWaterRA3DrawRiverSheen): retail's own river triangles from its own buffers, each cut along the
 // bank fade's two lines (GXWaterRA3.h), the water:ra3river program (the sheen and the sky, x the bank fade x the shroud in the vertex alpha), the same save-and-restore-raw
 // rule as the standing pass. `river:0` (GX_WATER_RA3_TUNE) gives phase 2's retail rivers exactly.
-// PHASE 3b, DEEPER RIVERS (GXWaterRA3.h "PHASE 3b", wh1ter0se 25/10 "the light blue is too light blue"): the river's colour x riverShade
+// PHASE 3b, DEEPER RIVERS (GXWaterRA3.h "PHASE 3b"): the river's colour x riverShade
 // (gxWaterRA3RiverShade) and the river sheen's sky x riverSky (gxWaterRA3RiverSheenTune); with riverOpacity 0.76 and both 1 it is
 // phase 3 exactly. Neither touches the standing pass.
 

@@ -84,7 +84,7 @@ static Bool gxAirWatchOn(const Player *p)
 {
 	return p && p->getAIPlayer() && p->getAIPlayer()->gxAirWatchRadius() > 0;
 }
-// GeneralsX 27/10/2026 ai-pro-rules-2 T2 (wh1ter0se 27/10: "they need to target them manually"): with the owner's ACTING watch on, an aircraft
+// GeneralsX 27/10/2026 ai-pro-rules-2 T2: with the owner's ACTING watch on, an aircraft
 // is attacked from the tunnels only by the watch's assignments - every other way a guard picks a target (team target, the tunnel's
 // attacker, the network nemesis, its own scan, retaliation) skips aircraft
 static Bool gxAirByAssignmentOnly(const Object *guard, const Object *target)
@@ -115,7 +115,7 @@ static Bool hasAttackedMeAndICanReturnFire( State *thisState, void* /*userData*/
 	if (!(obj && bmi)) {
 		return FALSE;
 	}
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard the air watch is bringing back in does not stop to retaliate (wh1ter0se 27/10)
+	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard the air watch is bringing back in does not stop to retaliate
 	if (gxAirReturningGuard(obj)) {
 		return FALSE;
 	}
@@ -289,7 +289,7 @@ Bool gxAirEngageable(const Object *guard, const Object *plane)	// GeneralsX 27/1
 	return v != nullptr && (v->x * dx + v->y * dy) > 0.0f;
 }
 
-// GeneralsX: ai-pro-rules-2 T2 (wh1ter0se 27/10: "they need to target them manually"): with the owner's ACTING air
+// GeneralsX: ai-pro-rules-2 T2: with the owner's ACTING air
 // watch on, a guard never takes an aircraft as its nemesis by itself - every shot at an aircraft from the tunnels is an assignment of
 // the watch (AISkirmishPlayer::gxTunnelAirWatch: an explicit attack order on one plane, back in once it is gone). T's own rule (an
 // aircraft taken only by a guard that can engage it) is what this replaces. Watch off or T0, or any other nemesis: stock (taken).
@@ -803,8 +803,8 @@ StateReturnType AITNGuardReturnState::onEnter()
 		// we are already inside our tunnel.  Return success. jba [8/24/2003]
 		return STATE_SUCCESS;
 	}
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard the air watch is bringing back in goes straight in (wh1ter0se 27/10: "instantly go
-	// back in") - no team target, no nemesis turns it round (update below); once inside it is an ordinary guard again
+	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard the air watch is bringing back in goes straight in
+	// - no team target, no nemesis turns it round (update below); once inside it is an ordinary guard again
 	if (getMachineOwner()->getTeam() && !gxAirReturningGuard(getMachineOwner())) {
 		Object *teamVictim = getMachineOwner()->getTeam()->getTeamTargetObject();
 		if (teamVictim && !gxAirByAssignmentOnly(getMachineOwner(), teamVictim))	{

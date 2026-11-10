@@ -1,8 +1,8 @@
 // GeneralsX: IN-MATCH VOTE KICK - the rules, and nothing else.
 //
-// wh1ter0se, 05/10/2026: "Kick needs to be initiated by one play; one play can initiate a vote to kick once every 5 minutes; and a
-// small banner appears with ... f1 to accept, f2 to reject; EVERYONE should vote YES for a kick to happen, one vetos the thing,
-// and make it likes cs with a countdown of 30 seconds before its failed to vote, and make it small enough and can be hidden".
+//
+//
+//
 //
 // LOCKSTEP. This is simulation code: GameLogic calls it only from the synchronised orders MSG_GX_VOTEKICK_START / _CAST (executed
 // at the same frame on every peer and in a replay) and from its per-frame tick right after that frame's orders. Every input is

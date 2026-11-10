@@ -456,8 +456,8 @@ static void remapTexture16Bit(Int dx, Int dy, Int pitch, SurfaceClass::SurfaceDe
 #define DO_HUE_SHIFT
 
 #ifdef DO_HUE_SHIFT
-// GeneralsX: A dark house colour no longer turns ZHCA texels white (wh1ter0se 18/10, the Black
-// colour: "these units need to be black top not white"). The hue shift gives a texel the colour's hue, scales its
+// GeneralsX: A dark house colour no longer turns ZHCA texels white.
+// The hue shift gives a texel the colour's hue, scales its
 // saturation by the colour's and KEEPS THE TEXEL'S OWN VALUE. That is right for a bright colour, and every retail and
 // shipped colour is one (Purple's day value 200/255 is the darkest), but Black (40,40,40) has saturation 0, so each
 // house-colour texel became a grey at its own brightness - near white on infantry. Below HOUSE_COLOR_FULL_VALUE the

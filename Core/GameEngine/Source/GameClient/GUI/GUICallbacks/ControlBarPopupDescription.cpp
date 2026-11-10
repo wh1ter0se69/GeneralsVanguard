@@ -424,7 +424,7 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 
 		// GeneralsX: The idle-worker button has no CommandButton key (it is no command): its key is the
 		// meta map's SELECT_NEXT_IDLE_WORKER record (Shift+Ctrl+I by default, the launcher's GENERAL tab or a CommandMap
-		// can move it). Name the live chord in the title so the player can find it (owner 06/10/2026: "add keybind here").
+		// can move it). Name the live chord in the title so the player can find it.
 		if( TheMetaMap != nullptr && commandButton->getName().compareNoCase( "NonCommand_IdleWorker" ) == 0 )
 		{
 			for( const MetaMapRec *rec = TheMetaMap->getFirstMetaMapRec(); rec; rec = rec->m_next )

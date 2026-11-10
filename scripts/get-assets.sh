@@ -31,8 +31,8 @@ for arg in "$@"; do
     esac
 done
 
-# App ids confirmed against Steam's own store API, not guessed - an earlier version of this note
-# had the Generals id wrong and it resolved to an unrelated product.
+#
+#
 ZH_APP=2732960        # Command & Conquer(tm) Generals Zero Hour
 GEN_APP=2229870       # Command & Conquer(tm) Generals
 

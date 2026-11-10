@@ -1233,7 +1233,7 @@ void InitWOLGameGadgets()
 	// over the preview from the map's own start waypoints, so they only need to exist.
 	//
 	// GeneralsX: The seat columns SCROLL instead, and the chat box's space goes to them
-	// (owner 08/11: rows at a readable size with a scroll bar like the map list). See CodeGui.h.
+	// See CodeGui.h.
 	static const char * const wolSeatColumns[] =
 	{
 		"GameSpyGameOptionsMenu.wnd:ComboBoxPlayer%d",

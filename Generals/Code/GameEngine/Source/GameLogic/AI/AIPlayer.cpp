@@ -67,7 +67,7 @@
 // centre), and isLocationLegalToBuild sees an object only when the two boxes overlap in height too
 // (PartitionManager::geomCollidesWithGeom). So from a spot on a ridge, every candidate on the low ground below was tested as a box
 // floating far above it and passed through everything there: on Twin Ridges a GLA AI put two Barracks 20 units apart, the
-// second tested 47 units above the first (wh1ter0se's 0.9.64 game, 14/10). The same code is in TheSuperHackers and Generals Online.
+// second tested 47 units above the first. The same code is in TheSuperHackers and Generals Online.
 // This tests a grounded copy and leaves the caller's position untouched.
 static LegalBuildCode gxLegalToBuildOnGround( const Coord3D *pos, const ThingTemplate *what, Real angle, UnsignedInt options,
 	const Object *builder, Player *player )
@@ -621,8 +621,8 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 			if (!valid) {
 				// GeneralsX: With no legal spot found, retail builds on the build-list spot
 				// anyway and refuses it only for enemies. A skirmish AI's spot is a template offset from its Command
-				// Center, so that put buildings on its own structures, on neutral supply docks and over cliffs (wh1ter0se's
-				// Mayhem game). Both passes above found nothing, so a skirmish AI retries this entry after the rebuild
+				// Center, so that put buildings on its own structures, on neutral supply docks and over cliffs.
+				// Both passes above found nothing, so a skirmish AI retries this entry after the rebuild
 				// delay instead: it neither starves the rest of its build list nor repeats this search every pass.
 				// A mission AI keeps the retail fallback; its spots are designer-placed.
 				if (isSkirmishAI()) {
@@ -1416,8 +1416,8 @@ Bool AIPlayer::startTraining( WorkOrder *order, Bool busyOK, AsciiString teamNam
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: A Hard skirmish AI sitting on a large bank spends it (wh1ter0se 08/10, 12 Hard AIs on a
-// $200,000 start still banked $147k-$198k each at 4:00, and "this made 3 airfields yet using only 1?"). Above AI_HOARD_CASH:
+// GeneralsX: A Hard skirmish AI sitting on a large bank spends it.
+// Above AI_HOARD_CASH:
 // a team's units are built in parallel (buildSpecificAITeam), teams and structures are picked faster and attack teams may field extra copies (AISkirmishPlayer.cpp, ported from Zero
 // Hour Reforged's cash hoard). Only in a match that STARTED richer than the default cash: Hard's scripted gifts alone lift
 // a bank to ~$50k in a $10,000 start (measured 08/10), so no bank threshold separates the

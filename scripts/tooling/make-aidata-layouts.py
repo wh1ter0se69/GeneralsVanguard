@@ -8,7 +8,7 @@
 #   make-aidata-layouts.py --selftest [--search <dir>]
 #   make-aidata-layouts.py --list
 #
-# wh1ter0se 03/11/2026 ("look at the rotation facing back of the base"), go 04/11. Plan and registration:
+# ("look at the rotation facing back of the base"), go 04/11. Plan and registration:
 # The stock lists draw doors all round the command centre, and their footprints overlap (the minimum gap is 0 in all 12 lists), so the AI has no room to
 # turn a door. Here, in a frame with the command centre at the origin and +X at the base front:
 #   * doors in a front row, each with a clear exit lane and room for R's three tries;

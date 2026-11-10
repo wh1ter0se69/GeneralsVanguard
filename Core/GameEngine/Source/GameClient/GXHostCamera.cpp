@@ -316,7 +316,7 @@ Limits effectiveLimits( void )
 	}
 	// GeneralsX: An OBSERVER keeps his own local limits (Debug range, up to 10000 / down to
 	// 10) and the host's pair does not bind him. The clamp below and the host pair exist so no PLAYER sees more map
-	// than the others; an observer already sees all of it, so "zoom past 1000 does not work while observing" (wh1ter0se)
+	// than the others; an observer already sees all of it, so "zoom past 1000 does not work while observing"
 	// was a rule with nothing to protect. Both branches are skipped by the same predicate isOverrideInForce()
 	// carries, so the UI that greys on it and this value cannot disagree.
 	else if( gateEnabled() && s_wasInMatch && isLocalPlayerObserving() )

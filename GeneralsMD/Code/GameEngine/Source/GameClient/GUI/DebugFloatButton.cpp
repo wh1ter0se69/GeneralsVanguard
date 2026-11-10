@@ -88,7 +88,7 @@ static ICoord2D	s_dragOrigin	= { 0, 0 };
 static const Int DEBUG_FLOAT_DEAD_ZONE_PX = 8;
 
 // GeneralsX: Defined in InGameUI.cpp (GXSpectatorHud.inl): where the spectator HUD's top strip ends (0 =
-// no strip). The default corner sits below it - at y = margin the DEBUG button covered the last player card (owner 08/10).
+// no strip). The default corner sits below it - at y = margin the DEBUG button covered the last player card.
 extern Int gxSpectatorHudTopInset();
 
 static WindowMsgHandledType DebugFloatSystem( GameWindow *window, UnsignedInt msg,

@@ -26,10 +26,10 @@
 // it base-36, which agrees by accident for 0..9 and diverges at the first value past it.
 //
 // THE OUTCOME IS THE ONE EXCEPTION AND IT IS DELIBERATE: it is a CATEGORY, not a magnitude, and a
-// letter cannot be misread as a count by anything that meets it. The first version of this header
-// wrote it base-36 like everything else, on a "one alphabet" argument that read well and was wrong -
-// tools/relay/relay.js's parser expects the letter, and the cross-language fixture check caught the
-// whole GXEND line being silently refused. A grammar agreed in two comments is not agreed.
+// letter cannot be misread as a count by anything that meets it.
+//
+//
+// A grammar agreed in two comments is not agreed.
 //
 // "-" IS NOT "0". A player nobody sampled and a player with no money are different facts, and
 // collapsing them is the defect tools/admin/schema.sql:127 exists to name. It is the only non-base-36

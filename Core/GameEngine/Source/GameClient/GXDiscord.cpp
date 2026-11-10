@@ -93,7 +93,7 @@ static UnsignedInt s_lastSendMs = 0;
 static UnsignedInt s_lastPollMs = 0;
 // GeneralsX: Seconds in a time_t. This was UnsignedInt milliseconds, set as
 // time(NULL) * 1000u: ~1.79e12 wraps a 32-bit value, so Discord was sent a start in early 1970 and showed
-// ~496307 hours elapsed (wh1ter0se, "rpc time is braindead").
+// ~496307 hours elapsed.
 static time_t s_startedS = 0;
 
 static Bool gxPipeValid(void)

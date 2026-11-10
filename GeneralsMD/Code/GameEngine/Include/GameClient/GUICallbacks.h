@@ -379,7 +379,7 @@ extern void GXBuddyCloseRCMenu( void );				///< RC menus are lone layouts; trans
 extern void GXBuddyOverlayPump( void );
 /// GeneralsX: Does the Friends key (MetaEvent.cpp, F5 by default) belong to
 /// Friends right now? Only in a live relay session - the relay lobby, a relay game room, a relay match
-/// (owner, 25/09/2026: "F5 = Friends ONLINE only"). The rule: GameClient/GXFriendsKey.h.
+/// The rule: GameClient/GXFriendsKey.h.
 extern Bool GXFriendsKeyHere( void );
 
 /// GeneralsX: Presence of one id: 1 online, 0 offline, -1 not known.

@@ -142,8 +142,8 @@ static Int currentSpeed()
 
 // GeneralsX: A SEEK RACE RUNS WITH FAST FORWARD OFF AND SOUND EFFECTS MUTED, and puts both back
 // where they were when it lands. Fast forward capped the race at k x the tick rate (the fast mode is uncapped) and its
-// every-k-th-pass draws never met the race's own frames, so a 2x-10x seek drew nothing until it landed (wh1ter0se 07/10: "it
-// froze when i did like 4x and dragged"); W3DDisplay::draw now draws a race by GXReplayStrip::passRenders alone. Sound
+// every-k-th-pass draws never met the race's own frames, so a 2x-10x seek drew nothing until it landed;
+// W3DDisplay::draw now draws a race by GXReplayStrip::passRenders alone. Sound
 // effects: an uncapped race plays every shot of minutes of battle; switched off they are what a player with sound
 // effects off gets, which holds lockstep (AudioManager::addAudioEvent - no simulation state reads a handle). Speech and
 // music stay. Re-applied every pass of the race: a seek behind restarts the replay, and the new game resets fast forward.

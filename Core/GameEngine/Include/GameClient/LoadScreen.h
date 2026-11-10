@@ -76,8 +76,8 @@ void LoadScreenSetRowBuilder( LoadScreenRowBuilder builder );
 /// rowCount. Safe and side-effect-free in all three cases.
 Int LoadScreenEnsureRows( GameWindow *parent, const char *idFormat, Int rowCount, Bool placedByCaller = FALSE );
 
-// GeneralsX: SPLIT THE PLAYER LIST WHEN IT DOES NOT FIT (owner 08/11, with 32 players
-// the multiplayer load screen's rows ran past the frame and off the screen). Called once the screen knows how many rows
+// GeneralsX: SPLIT THE PLAYER LIST WHEN IT DOES NOT FIT.
+// Called once the screen knows how many rows
 // it filled: up to the authored row count nothing moves; past it the columns become two side-by-side groups, each with
 // its own header row, the rows sharing the authored band. Same hook arrangement as the row builder above: registered by
 // the game that has CodeGui, a no-op in the twin. Columns must be created with placedByCaller = TRUE (positioned here).

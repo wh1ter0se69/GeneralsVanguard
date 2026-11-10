@@ -160,8 +160,8 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 		// GeneralsX: Added with PRESERVE_RETAIL_PARTICLES in the same
 		// commit, per the rule above.
 		//
-		// NOT for the same reason bit 15 was appended - an earlier draft of this comment said
-		// so and had it exactly backwards. Bit 15 was appended BECAUSE
+		//
+		// Bit 15 was appended BECAUSE
 		// PRESERVE_SNIPING_EMPTY_STINGER_SITES defaults to 0 (GameDefines.h:94), which keeps
 		// engineID unchanged until somebody sets the switch. PRESERVE_RETAIL_PARTICLES defaults
 		// to 1 (GameDefines.h:102), so this bit moves engineID for every default build - the

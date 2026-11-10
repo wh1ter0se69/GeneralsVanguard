@@ -3729,7 +3729,7 @@ StateReturnType AIAttackMoveToState::update()
 		nextObjectToAttack = ai->getNextMoodTarget( !forceRetargetThisFrame, false );
 		// GeneralsX 28/10/2026 ai-pro-rules-2 T2 (smoke T2s1, diag T2d1: a row unit's attack order replaced by a mood-converted attack-move
 		// that took another aircraft): a watched row unit / AA team member takes no aircraft by its own mood here either - the watch's
-		// assignment is its only air target (wh1ter0se 27/10: "they need to target them manually")
+		// assignment is its only air target
 		if (nextObjectToAttack && getMachineOwner()->getControllingPlayer() && getMachineOwner()->getControllingPlayer()->getAIPlayer()
 				&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchTeamMemberSkips(getMachineOwner(), nextObjectToAttack))
 			nextObjectToAttack = nullptr;
@@ -4580,7 +4580,7 @@ StateReturnType AIAttackFollowWaypointPathState::update()
 		}
 		// GeneralsX 28/10/2026 ai-pro-rules-2 T2 (smoke T2s1, diag T2d1: a row unit's attack order replaced by a mood-converted attack-move
 		// that took another aircraft): a watched row unit / AA team member takes no aircraft by its own mood here either - the watch's
-		// assignment is its only air target (wh1ter0se 27/10: "they need to target them manually")
+		// assignment is its only air target
 		if (nextObjectToAttack && getMachineOwner()->getControllingPlayer() && getMachineOwner()->getControllingPlayer()->getAIPlayer()
 				&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchTeamMemberSkips(getMachineOwner(), nextObjectToAttack))
 			nextObjectToAttack = nullptr;

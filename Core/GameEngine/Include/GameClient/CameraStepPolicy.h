@@ -16,8 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: The time a once-per-DRAW camera step covers (wh1ter0se, 03/10, fast forward: "moving/
-// zooming out in and moving around ... is buggy and freezing just the moving thing").
+// GeneralsX: The time a once-per-DRAW camera step covers.
+//
 //
 // The camera's zoom and ground-follow easing (W3DView::zoomCameraToDesiredHeight, movePivotToGround) run once per draw,
 // from W3DView::update, and stepped by the pacer's LAST ITERATION (FramePacer::getBaseOverUpdateFpsRatio). At 1x every

@@ -16,12 +16,12 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: Cb-06a: client animations that ran at the render rate (wh1ter0se's 2027 endpoint: smooth at
-// 120-240 Hz). Each stepped "so much per drawn frame": the camera lock's follow easing, the radar-attack glow (150 frames),
+// GeneralsX: Cb-06a: client animations that ran at the render rate.
+// Each stepped "so much per drawn frame": the camera lock's follow easing, the radar-attack glow (150 frames),
 // the command-button flash, the shell's 30 Hz update gate. At 240 fps they ran 4x as fast as at 60; at 600 fps the radar
 // glow lasted a quarter of a second.
 //
-// THE REFERENCE IS TODAY'S 60 FPS LOOK (wh1ter0se, 29/10: "def 60 fps"), not the retail 30 fps they were authored at: at any fps
+// THE REFERENCE IS TODAY'S 60 FPS LOOK, not the retail 30 fps they were authored at: at any fps
 // each site now measures what this game measured at 60 fps before the change. A REFERENCE FRAME is 1/RefFps s; refFrames
 // converts the engine's base-rate (30 fps, BaseFps) step ratios into reference frames.
 //
@@ -40,7 +40,7 @@
 
 namespace GXClientAnimPolicy
 {
-	static const float RefFps = 60.0f;	///< the reference frame rate: wh1ter0se's "def 60 fps" (29/10/2026)
+	static const float RefFps = 60.0f;	///< the reference frame rate: (29/10/2026)
 
 	// Reference frames in a step given in base frames of baseFps (BaseFps = 30: m_drawFpsRatio, gxRenderBaseOverUpdateFpsRatio).
 	inline float refFrames(float baseFrames, float baseFps)

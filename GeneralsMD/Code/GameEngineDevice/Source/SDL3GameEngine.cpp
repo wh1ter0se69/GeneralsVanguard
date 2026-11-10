@@ -972,8 +972,8 @@ SDL3GameEngine::~SDL3GameEngine()
 
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 /*
- * GeneralsX: THE SHIPPED MAPS ON AN iPAD (owner 07/11: "also ship the maps we are making by
- * default"). The bundle carries them in <GeneralsXPatch>/ShippedMaps/<Name>/ (package-ios-zh.sh), and on the desktop the
+ * GeneralsX: THE SHIPPED MAPS ON AN iPAD.
+ * The bundle carries them in <GeneralsXPatch>/ShippedMaps/<Name>/ (package-ios-zh.sh), and on the desktop the
  * launcher's PLAY copies that folder into <userdata>/Maps. An iPad has no launcher, so this does the same copy, by the same
  * rule (GXShippedMaps.h), once per start, after GameEngine::init() has made TheMapCache and fixed the user-data folder and
  * before any screen lists maps. Into getUserMapDir() and nowhere else: those are user maps with the PORTABLE_USER_MAPS lobby
@@ -1213,7 +1213,7 @@ void SDL3GameEngine::update(void)
 
 	// GeneralsX: The replay telemetry's AWAY flag (U): in a match the loop keeps simulating while
 	// nobody is looking - an iOS app inactive or in the background (the render-suspended branch below), a desktop window that lost
-	// focus - and those rows read fps 0 at 60 TPS with no flag (wh1ter0se's R2 iPad replay: 158 s). Set BEFORE GameEngine::update()
+	// focus - and those rows read fps 0 at 60 TPS with no flag. Set BEFORE GameEngine::update()
 	// samples, so this iteration's row carries it; the solo iOS stop below is flagged suspended as well, which wins in the reader.
 	// m_IsActive: true from init (headless too), false on SDL_EVENT_WINDOW_FOCUS_LOST / DID_ENTER_BACKGROUND.
 	Bool telAway = !m_IsActive;

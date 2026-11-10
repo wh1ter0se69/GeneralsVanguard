@@ -284,7 +284,7 @@ inline float mvNukeTau( const MVNukeState &s, const MVNukeFlight &f )
 }
 
 /// The terminal blend of the nuke: none. (It used to blend over the whole ~375-unit drop, dragging the drawn missile off
-/// its steep arc onto the logic's slow vertical drop - wh1ter0se's "weird landing" - and any shorter blend still had to
+/// its steep arc onto the logic's slow vertical drop - - and any shorter blend still had to
 /// brake it from the dive speed to the logic's drop speed in a few frames.) The drawn flight ends AT the target, at the
 /// height the logic dies at (`E`), on the frame the logic dies: it lands at an angle, at speed, and matches the logic to
 /// within one drop step (a few units, less than the frame's own travel). Only the proximity blend can still pull it onto

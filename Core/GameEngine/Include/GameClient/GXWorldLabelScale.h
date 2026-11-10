@@ -1,6 +1,6 @@
 // GeneralsX: How much smaller world-anchored text and 2D world animations draw above the stock
-// camera ceiling (owner, 02/10/2026, watching a 12-AI match at max zoom-out: the "Building: x%" labels cover the map;
-// "make [them] dynamic ... slightly smaller on the max zoom out"; and the promotion chevrons "are too big").
+// camera ceiling.
+//
 //
 // `iconScale` is View::getRetailReferenceZoom's: 1.0 up to the height the stock MaxCameraHeight would allow this view,
 // and ceiling / height above it - the proportional shrink every unit on screen gets, which the health bar, pips and

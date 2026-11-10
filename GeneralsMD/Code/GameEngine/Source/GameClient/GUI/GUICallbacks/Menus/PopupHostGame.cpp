@@ -347,9 +347,9 @@ void PopupHostGameInit( WindowLayout *layout, void *userData )
 	// leaves dataID at AB9092CC, identical to baseline, while the asset fingerprint moves - so the
 	// archive is genuinely mounted and dataID genuinely ignores it. The engine's identity code says
 	// the same thing in words ("a skinned UI has no effect on the simulation and must not be a
-	// compatibility barrier"). Note this contradicts LANAPI.h's claim that a .wnd edit costs a
-	// DATA_DIFFERS refusal; that comment is wrong and is corrected in the state doc rather than in
-	// place, because LANAPI.h is inside the sourceID digest and editing it is a wire break.
+	// compatibility barrier").
+	//
+	//
 	//
 	// EVERY LOOKUP IS NULL-TOLERANT. A player running the stock archive without !GXUI.big gets a
 	// layout with neither control, and must still be able to host - so an absent confirm field

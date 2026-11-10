@@ -66,7 +66,7 @@ enum ConnectionNumbers CPP_11(: Int)
 	// players and MAX_PLAYER_COUNT is not raised: the 16-bit player masks in saves and replays are
 	// untouched. 14 also fits the 16-bit relay destination mask (RelayMaskType, below).
 	// GeneralsX: Raised 13 -> 33: 34 lobby slots = 32 players + 2 observers
-	// (owner, 06/11: "a 32 player option ... online"). Observers still share the ReplayObserver, so
+	// Observers still share the ReplayObserver, so
 	// 32 players need 34+ Player objects: MAX_PLAYER_COUNT went to 40 and PlayerMaskType to 64 bits
 	// (GameCommon.h), RelayMaskType to 64 bits (below). An all-players wire, save and replay break.
 	MAX_PLAYER = 33,		// The index of the highest possible player number.  This is 0 based, so the most players allowed in a game is MAX_PLAYER+1.

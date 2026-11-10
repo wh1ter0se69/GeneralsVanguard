@@ -12,9 +12,9 @@
 //
 // GXPlayer.ini is the durable identity and the friends list. Without it every Windows player
 // becomes a new player. The settings files after it are custom keybinds, HUD and camera settings,
-// and the LAN and skirmish setups (owner decision, 23/09/2026).
+// and the LAN and skirmish setups.
 //
-// The rules (owner decision, 23/09/2026), each held by scripts/test/userdata-migrate-test.cpp:
+// The rules, each held by scripts/test/userdata-migrate-test.cpp:
 //   * MapCache.ini is NEVER copied. The engine rebuilds its own from the maps.
 //   * NOTHING already in the new folder is overwritten. A file a launcher can create in the new
 //     folder BEFORE the engine's first start is merged rather than skipped, or "copy only if absent"

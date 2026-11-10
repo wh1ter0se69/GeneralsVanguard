@@ -1,11 +1,11 @@
 // GeneralsX: The REMASTERED ground's switch and quality steps (slice 1 of
-// wh1ter0se 14/10 "new ground looks better" = the direction, wh1ter0se 17/10: every look
+// = the direction, every look
 // feature ships with 2-4 quality steps a runtime governor can move).
 //
 // THE GROUND. W3DDevice/GameClient/TerrainTex.cpp draws EA's 2003 terrain tiles with height-aware edges, a baked sun relief
 // (BASE, replacing the retail terrain pixel shader) and a second MULT pass (the stock cloud and macro noise, a world detail
-// grain and a world macro variation). It is ON by default (wh1ter0se 17/10, "yes all green" to the look set: kGxGroundKeyDefault
-// below); Options.ini `GXGround = no` turns it off. GX_GROUND overrides the key for A/B arms: `off`, or "shade,blend,detail,macro,noise" in percent (1-5 values, the
+// grain and a world macro variation). It is ON by default;
+// Options.ini `GXGround = no` turns it off. GX_GROUND overrides the key for A/B arms: `off`, or "shade,blend,detail,macro,noise" in percent (1-5 values, the
 // rest 100; the key's values are 100,100,100,100,50). Off draws today's ground byte for byte: nothing is built, nothing drawn.
 //
 // THE STEPS, one per drawn frame:
@@ -21,7 +21,7 @@
 
 #pragma once
 
-// The Options.ini GXGround key's value when the key is absent (TerrainTex.cpp gxgDecideForMap, its only reader). wh1ter0se 17/10: the
+// The Options.ini GXGround key's value when the key is absent (TerrainTex.cpp gxgDecideForMap, its only reader). the
 // REMASTERED ground for everyone; the look governor may still drop its steps in a big fight.
 static const bool kGxGroundKeyDefault = true;
 

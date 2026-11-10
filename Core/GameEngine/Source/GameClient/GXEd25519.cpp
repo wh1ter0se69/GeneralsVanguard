@@ -659,9 +659,9 @@ static int ge_decompress_raw(ge *r, const unsigned char s[32])
 
 /* THE ONE-TIME INIT IS SYNCHRONISED, AND THE MOVE INTO THE ENGINE IS WHY.
  *
- * This file used to say, correctly, "NOT THREAD SAFE, and does not need to be: the launcher is
- * single-threaded (no CreateThread, no async WinHTTP)... if this ever gains a second caller thread
- * it needs a real once-gate rather than a comment." It has now gained one: the engine is threaded,
+ *
+ *
+ * It has now gained one: the engine is threaded,
  * and identity verification will not stay on one thread forever.
  *
  * The hazard is not hypothetical and this file already documents its own version of it. ge_init
@@ -795,11 +795,11 @@ int gx_ed25519_verify(const unsigned char *pk, const unsigned char *sig,
 	 * manifest is not a token whose uniqueness matters - but it is one comparison and it costs
 	 * nothing.
 	 *
-	 * It does NOT make this verifier's accept set identical to every other implementation's. That
-	 * is what this comment used to claim and it is no longer true in either direction, measured:
-	 * across 2455 structured cases, 1680 torsion-key cases and 100 identity-key cases, this file
-	 * refuses things OpenSSL accepts - an identity public key, and any key carrying torsion - and
-	 * accepts nothing OpenSSL refuses. The narrowing is deliberate and is the whole point of the
+	 * It does NOT make this verifier's accept set identical to every other implementation's.
+	 *
+	 *
+	 *
+	 * The narrowing is deliberate and is the whole point of the
 	 * subgroup check below. The direction is what matters for a code-signing anchor, and the
 	 * honest statement of it lives in GXEd25519.h. */
 	if (!scalar_lt_L(sig + 32)) {

@@ -15,7 +15,7 @@
 // The rules, each held by scripts/test/userdata-dir-test.cpp:
 //   * Absolute only. Windows: X:\ or X:/, or \\server\share. POSIX: a leading /. No ~ expansion; that is
 //     the shell's job.
-//   * SET BUT UNUSABLE STOPS THE PROCESS (wh1ter0se, 28/09/2026). An empty or relative value is REFUSED with a
+//   * SET BUT UNUSABLE STOPS THE PROCESS. An empty or relative value is REFUSED with a
 //     stderr line and the process exits 2 before anything reads or writes a profile
 //     (gxUserDataDirRefuse). It used to fall back to the normal folder - the owner's, the one outcome a
 //     test profile exists to prevent. Unset is still the normal player path.

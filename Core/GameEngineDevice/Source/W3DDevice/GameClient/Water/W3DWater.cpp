@@ -311,8 +311,8 @@ static Bool skyDrawIsDeferred(RenderObjClass *r)
 	return deferred;
 }
 
-// GeneralsX: below eye level the always-on sky is black (wh1ter0se 16/10, on the 12-player
-// spectator picture: "more black here - players shouldn't be able to see that unless like they zoom out infinitely").
+// GeneralsX: below eye level the always-on sky is black.
+//
 // The box is centred on the eye, so the lower half of its faces - the art's flat colour, 61,93,194 for TSSunny - filled
 // every direction past the map below the horizon down to the box's bottom edge. This cap, drawn right after the box at the
 // same far depth (it shows only where nothing else was drawn), is a cylinder from eye level (clear) to SKY_BLACK_DEG below

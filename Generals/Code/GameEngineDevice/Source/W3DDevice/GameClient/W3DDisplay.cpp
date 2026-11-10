@@ -1081,11 +1081,11 @@ Bool W3DDisplay::setDisplayMode( UnsignedInt xres, UnsignedInt yres, UnsignedInt
 	// GeneralsX: The EFFECTIVE POINT size is published here, not assumed
 	// by the caller. Ported from the GeneralsMD twin (0450933cc).
 	//
-	// This used to read "the player's chosen POINT values are what the caller stores in
-	// m_x/yResolution and writes to Options.ini", and while that described what the code did it is
-	// exactly the hole a cross-model review found on 2026-09-14: when this function reduces a
-	// request, the REQUEST is still what OptionsMenu::saveOptions wrote into the globals and into
-	// Options.ini, and what MainMenu::DeclineResolution restored. The options combo box then
+	//
+	//
+	//
+	//
+	// The options combo box then
 	// preselected a resolution that was not running, the confirm dialog named it, and the next
 	// launch read the same oversized value back off disk - so the correction had to be made again
 	// every single time and was never visible anywhere the player could see it.
@@ -1600,12 +1600,12 @@ void W3DDisplay::init()
 				// render resolution becomes pixels.
 				//
 				// GeneralsX: The globals stay in POINTS - that has not
-				// changed and is what Options.ini holds and what the options combo box offers. What
-				// this comment used to say, that m_x/yResolution is "deliberately NOT written back",
-				// was never true of the block above it: the migration has written the corrected
-				// POINT value into the globals since 11/08/2026, and the capability correction added
-				// on 14/09/2026 writes it for the same reason - so the options screen preselects
-				// what is actually running. The scaled PIXEL value below is what is never written
+				// changed and is what Options.ini holds and what the options combo box offers.
+				//
+				//
+				//
+				//
+				// The scaled PIXEL value below is what is never written
 				// back, and it is the only thing that was ever meant.
 				//
 				// The window is put back to the player's chosen POINT size by

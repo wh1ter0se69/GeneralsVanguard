@@ -1364,8 +1364,8 @@ static void handleLimitArmiesClick()
 	}
 }
 
-// GeneralsX: THE LAN HOST'S ARMIES SURVIVE A MATCH, A RE-HOST AND A RESTART (a tester, via wh1ter0se: "if i
-// put 11 hard armies, i want them to remain not reset"). All three lost them the same way. There is no room to go back to:
+// GeneralsX: THE LAN HOST'S ARMIES SURVIVE A MATCH, A RE-HOST AND A RESTART (a tester, via)
+// All three lost them the same way. There is no room to go back to:
 // LanGameOptionsMenuInit pops to the lobby after a match, LanLobbyMenuInit's TheLAN->reset() drops the game, and Host Game has
 // LANAPI::RequestGameCreate build a new LANGameInfo whose slots are all GameSlot::reset's SLOT_CLOSED until adjustSlotsForMap
 // opens them. Init only ever read the map, cash and limits back from LANPreferences, so that is where these go too (Network.ini).
@@ -1623,8 +1623,8 @@ void InitLanGameGadgets()
 	// badly, though - positionStartSpotControls walks the array to the marker it is placing with no
 	// null check of its own.
 	//
-	// GeneralsX: The seat columns SCROLL instead (owner 08/11: 12-14 rows with a scroll bar
-	// like the map list, 10 on iPad). The chat stays (owner 08/11, "add back the lobby chat"): the rows take
+	// GeneralsX: The seat columns SCROLL instead.
+	// The chat stays: the rows take
 	// ONE row from the top of the chat history - nine rows at the authored size - as long as the history keeps the
 	// host's Private / password row, which lanPasswordRowCreate (below) builds on its top with the same arithmetic, plus
 	// LAN_CHAT_KEEP_LINES lines of chat; on a screen where it cannot, the room keeps the authored eight. Host and joiners

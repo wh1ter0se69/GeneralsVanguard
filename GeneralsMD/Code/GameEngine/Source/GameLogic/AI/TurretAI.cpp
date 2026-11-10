@@ -700,8 +700,8 @@ DECLARE_PERF_TIMER(TurretAI)
 UpdateSleepTime TurretAI::updateTurretAI()
 {
 #if GX_LOGIC_60HZ
-	// GeneralsX: GENERALS ONLINE PARITY (owner 05/10: "Look through everything GO does and do
-	// it"). GO runs turret AI only on every second 60 Hz frame - the even frames from 2 on, its 30 Hz "legacy" frames -
+	// GeneralsX: GENERALS ONLINE PARITY.
+	// GO runs turret AI only on every second 60 Hz frame - the even frames from 2 on, its 30 Hz "legacy" frames -
 	// so a turret aims and fires on retail's cadence: the aim -> fire -> aim round takes 4 frames, and a Quad's 6-frame
 	// delay fires every 8 (133 ms, as in 2003) where an every-frame turret fired every 6 (100 ms). Odd frames ask to be
 	// woken next frame, as in GO. GO counts these frames with an unsaved counter, which also skips the first even frame

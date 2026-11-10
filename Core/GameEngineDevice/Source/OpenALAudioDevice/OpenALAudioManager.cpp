@@ -78,7 +78,7 @@ static void logAudioDevice(ALCdevice* device, int askedRate);
 //
 // alcOpenDevice(NULL) binds whatever is the default AT LAUNCH, and the backends we ship pin it there
 // (WASAPI by endpoint id, CoreAudio by AudioDeviceID): a headset asleep at launch left a whole session
-// on the monitor's HDMI audio, silent in the headset once it woke (wh1ter0se, Windows, 2026-09-25).
+// on the monitor's HDMI audio, silent in the headset once it woke.
 // ALC_SOFT_system_events reports the change and alcReopenDeviceSOFT moves the open device - context,
 // sources and buffers included - onto the new default.
 //

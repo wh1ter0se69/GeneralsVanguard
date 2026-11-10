@@ -65,7 +65,7 @@
 // centre), and isLocationLegalToBuild sees an object only when the two boxes overlap in height too
 // (PartitionManager::geomCollidesWithGeom). So from a spot on a ridge, every candidate on the low ground below was tested as a box
 // floating far above it and passed through everything there: on Twin Ridges a GLA AI put two Barracks 20 units apart, the
-// second tested 47 units above the first (wh1ter0se's 0.9.64 game, 14/10). The same code is in TheSuperHackers and Generals Online.
+// second tested 47 units above the first. The same code is in TheSuperHackers and Generals Online.
 // This tests a grounded copy and leaves the caller's position untouched.
 static LegalBuildCode gxLegalToBuildOnGround( const Coord3D *pos, const ThingTemplate *what, Real angle, UnsignedInt options,
 	const Object *builder, Player *player )

@@ -215,8 +215,8 @@ public:
 	/// accepted from that slot - which it then records. Simulation state only. Defined in GameLogicDispatch.cpp.
 	Bool gxAdminOrderAccepted( const GameMessage *msg, const Player *sender );
 	/// GeneralsX: Does a MSG_GX_CHEAT_SPAWN_UNIT at `target` make NEUTRAL units ("civilians":
-	/// nobody commands them, their vehicles come unmanned)? Yes when it is defeated or observing (wh1ter0se 27/09); the
-	/// orderer's state has no say (wh1ter0se 05/10). Simulation state only. Defined in GameLogicDispatch.cpp.
+	/// nobody commands them, their vehicles come unmanned)? Yes when it is defeated or observing; the
+	/// orderer's state has no say. Simulation state only. Defined in GameLogicDispatch.cpp.
 	static Bool gxSpawnGoesNeutral( const Player *target );
 
 	/// GeneralsX @feature Spawn `count` of `tmpl` for `target` on a hex lattice around `where` - the

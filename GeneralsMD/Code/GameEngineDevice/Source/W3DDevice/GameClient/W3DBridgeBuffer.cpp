@@ -1199,9 +1199,9 @@ void W3DBridgeBuffer::addBridge(Vector3 fromLoc, Vector3 toLoc, AsciiString name
 
 	// GeneralsX: A SIMULATION OBJECT MUST NOT EXIST ONLY WHEN ITS ART DOES.
 	//
-	// This used to read `if (load(BODY_PRISTINE)) { ... addBridgeToLogic ...; m_numBridges++; }`,
-	// so on a peer whose install cannot supply the bridge model the map's GenericBridge objects
-	// were never created at all. MEASURED 2026-09-20 on this box, one symlink the only variable:
+	//
+	//
+	// MEASURED 2026-09-20 on this box, one symlink the only variable:
 	// a Zero Hour data root with no reachable base-Generals archives ran twilight flame with 452
 	// objects at frame 0 where the same build with them had 456, every later object id shifted by
 	// two, and the frame-0 CRC differed (4A947AEF vs BAF0B59D) and never recovered for the whole

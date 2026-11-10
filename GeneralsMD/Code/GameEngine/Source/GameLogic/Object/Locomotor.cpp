@@ -938,7 +938,7 @@ void Locomotor::setPhysicsOptions(Object* obj)
 	// GeneralsX: a per-frame friction fraction added on top of the (halved)
 	// template friction: halved with it, as PhysicsUpdate's friction constants are.
 	// GeneralsX: except aircraft, which keep the per-30-Hz-frame 0.5 as
-	// Generals Online does: see gxGripScale in PhysicsUpdate.cpp (owner, 04/10: "use go's ... for jets").
+	// Generals Online does: see gxGripScale in PhysicsUpdate.cpp.
 	const Real EXTRA_FRIC = obj->isKindOf(KINDOF_AIRCRAFT) ? 0.5f : 0.25f;
 #else
 	const Real EXTRA_FRIC = 0.5f;
@@ -2072,7 +2072,7 @@ Real Locomotor::getSurfaceHtAtPt(Real x, Real y)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX: wh1ter0se 17/10: "just need the planes ... not to go that low over a gorge". A jet held
+// GeneralsX: A jet held
 // its cruise height above the ground straight under it and nothing else, and its lift barely beats gravity (a Raptor:
 // Lift 120 vs Gravity 64), so it started down only once the ground had fallen away and could not climb back in time:
 // crossing Twilight Flame's 99-deep gorge it sank 82 units into it and cleared the far rim by 18 (his 17/10 replay,

@@ -512,8 +512,8 @@ Int WeaponTemplate::getDelayBetweenShots(const WeaponBonus& bonus) const
 		delayToUse = GameLogicRandomValue( m_minDelayBetweenShots, m_maxDelayBetweenShots );
 
 #if GX_LOGIC_60HZ
-	// GeneralsX: GENERALS ONLINE PARITY (owner 05/10: "Look through everything GO does and do
-	// it"). Before the rate-of-fire bonus, as GO does at 60 Hz: a nonzero delay is at least one retail aim-and-fire
+	// GeneralsX: GENERALS ONLINE PARITY.
+	// Before the rate-of-fire bonus, as GO does at 60 Hz: a nonzero delay is at least one retail aim-and-fire
 	// round (2 retail frames), and the China Gattling building's guns wait 1/1.5 as long (GO's own note on it: "HACK ...
 	// seems like an ini data bug"; it runs on GO's 30 Hz turret cadence, TurretAI::updateTurretAI). This replaces our 01/10 fix,
 	// which did the bonus arithmetic on the retail 30 Hz grid (exactly 2003); the owner chose GO's numbers instead.

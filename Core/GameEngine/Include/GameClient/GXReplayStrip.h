@@ -105,8 +105,8 @@ enum { RACE_DRAW_MS = 250 };	///< a seek race draws one progress frame per this 
 /// Does this render pass draw (W3DDisplay::draw)? `fastMode` = the replay fast mode runs (m_TiVOFastMode, a replay, not
 /// paused); `seekRace` = the strip is racing to a frame; `ffDrawDue` = fast forward's own cadence (FramePacer::
 /// isFastForwardDrawDue - a caller asks it only when this needs it, it keeps credit).
-/// A seek race skips every frame but a progress one every RACE_DRAW_MS of wall time (wh1ter0se 07/10: "skip frames entirely
-/// instead of racing"), so the strip and playhead visibly move at any speed the machine reaches. The fast mode alone - the
+/// A seek race skips every frame but a progress one every RACE_DRAW_MS of wall time,
+/// so the strip and playhead visibly move at any speed the machine reaches. The fast mode alone - the
 /// retail replay hotkey - keeps retail's one frame in 30. Fast forward's cadence is never asked under the fast mode: with
 /// one tick per pass, its every-k-th pass and frame 30n+1 can be disjoint for good, and a 2x-10x seek drew nothing until
 /// it landed (07/10, "it froze").

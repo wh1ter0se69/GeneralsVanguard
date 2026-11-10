@@ -11,7 +11,7 @@
 **	the fast-forward readout: a vote that waits for you must not be hideable by accident. It has its own HIDE, per vote; the
 **	keys still answer while it is hidden.
 **
-**	NO KEYS (wh1ter0se, 06/10/2026: "just make them click yes/no or something green and red"): no F-key is free (F1-F8 camera
+**	NO KEYS: no F-key is free (F1-F8 camera
 **	views, F9 control bar, F5 Friends, F10/F11 HUD toggles, F12 screenshot), so the ballot is two buttons, a green YES and a
 **	red NO, each labelled in words (never colour alone). Every click or tap on the banner is the banner's: none passes through
 **	as an order to the units under it. On the iPad a tap arrives as the same left down/up (SDL3GameEngine.cpp's touch state

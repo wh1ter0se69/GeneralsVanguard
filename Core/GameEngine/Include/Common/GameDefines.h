@@ -33,8 +33,8 @@
 // Note also that the common call-site form `#if RETAIL_COMPATIBLE_CRC || PRESERVE_X` guards the
 // OLD behaviour, so a PRESERVE_X set to 0 only takes effect while RETAIL_COMPATIBLE_CRC is 0.
 //
-// GeneralsX: THE UPSTREAM FIXES ARE BUILT IN, ALWAYS (wh1ter0se, 30/09/2026: "the whole
-// point is to fix all bugs ... i do not want a switch to enable bug fixes"). CRC, XFER_SAVE, PATHFINDING,
+// GeneralsX: THE UPSTREAM FIXES ARE BUILT IN, ALWAYS.
+// CRC, XFER_SAVE, PATHFINDING,
 // PATHFINDING_ALLOCATION, NETWORKING and AIGROUP below default to 0, as Generals Online ships them. GeneralsX
 // never plays against retail peers or loads retail saves (engineID refuses the one, the save format moved long
 // ago for the other), so retail compatibility bought nothing and kept ~110 TheSuperHackers fixes compiled out.

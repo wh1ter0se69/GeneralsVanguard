@@ -1,6 +1,6 @@
 // GeneralsX: the shipped maps, installed by the ENGINE where no launcher runs (iOS).
 //
-// The owner, 07/11/2026: "also ship the maps we are making by default". Every payload carries the maps in
+// Every payload carries the maps in
 // scripts/build/overlay-maps.txt as loose files in <GeneralsXPatch>/ShippedMaps/<Name>/, and on the desktop the
 // launcher's PLAY copies them into <userdata>/Maps (scripts/launcher-rs/gxio/src/shippedmaps.rs). An iPad has no
 // launcher, so nothing did, and its player saw them only by lobby transfer. This is that copy, for the engine.

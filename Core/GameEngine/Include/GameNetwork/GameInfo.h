@@ -305,7 +305,7 @@ public:
 
 	/// GeneralsX: THE START RULE, one for every setup screen (LAN and relay lobbies,
 	/// GameSpy, Skirmish) and for the match's end report, and inside the SimID digest, so two builds that
-	/// disagree on it never share a lobby (owner, 27/09/2026). A lobby may start when at least one occupied
+	/// disagree on it never share a lobby. A lobby may start when at least one occupied
 	/// slot PLAYS - an AI or a human player; every human may observe. Such a start is a SANDBOX when no human
 	/// plays or every player is on one side: it counts in nobody's stats, ranking or win-loss, and its record
 	/// says so.
@@ -428,7 +428,7 @@ void        GameInfo::setOldFactionsOnly( Bool oldFactionsOnly ) { m_oldFactions
 enum { GX_REPLAY_OPTIONS_MAX = 4095 };	///< RecorderClass::readAsciiString's buffer, less its NUL
 // GeneralsX: forReplayFile: the string a replay FILE keeps (RecorderClass::startRecording, its only
 // caller that passes TRUE). Replays get sent around and posted, so it holds no network address of anyone: no NP=, and each
-// human slot's IP and port are placeholders (wh1ter0se 04/11, names stay). See buildGameInfoAsciiString.
+// human slot's IP and port are placeholders. See buildGameInfoAsciiString.
 AsciiString GameInfoToAsciiString( const GameInfo *game, Int maxLength = 0, Bool forReplayFile = FALSE );
 Bool ParseAsciiStringToGameInfo( GameInfo *game, AsciiString options );
 

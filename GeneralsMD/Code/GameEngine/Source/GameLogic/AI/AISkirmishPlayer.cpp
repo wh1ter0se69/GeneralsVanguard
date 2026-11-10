@@ -121,7 +121,7 @@ GX_HOOK_STATS_DEFINE(gxTunnelAAHook, "tunnel_air_watch");
 // centre), and isLocationLegalToBuild sees an object only when the two boxes overlap in height too
 // (PartitionManager::geomCollidesWithGeom). So from a spot on a ridge, every candidate on the low ground below was tested as a box
 // floating far above it and passed through everything there: on Twin Ridges a GLA AI put two Barracks 20 units apart, the
-// second tested 47 units above the first (wh1ter0se's 0.9.64 game, 14/10). The same code is in TheSuperHackers and Generals Online.
+// second tested 47 units above the first. The same code is in TheSuperHackers and Generals Online.
 // This tests a grounded copy and leaves the caller's position untouched.
 static LegalBuildCode gxLegalToBuildOnGround( const Coord3D *pos, const ThingTemplate *what, Real angle, UnsignedInt options,
 	const Object *builder, Player *player )
@@ -278,8 +278,8 @@ void AISkirmishPlayer::processBaseBuilding()
 			// GeneralsX: A supply centre whose dock-face spot is not safe moves to today's spot at once and
 			// is tested there, instead of waiting for the face to clear (useFallbackSpot is one-shot; see AIPlayer::buildBySupplies).
 			// GeneralsX: ...but only when today's spot IS safe. Moving to a spot that is just as unsafe gave up
-			// the face for nothing: the entry then waited there and the centre was built off the dock with 3 trucks (wh1ter0se's 27/10
-			// 0.9.68 game: all 6 unsafe refusals had an unsafe today's spot). Now the entry waits on
+			// the face for nothing: the entry then waited there and the centre was built off the dock with 3 trucks.
+			// Now the entry waits on
 			// the face and moves the first time today's spot is safe and the face is not.
 			if (!isLocationSafe(info->getLocation(), curPlan)) {
 				const Coord3D *fallback = info->getFallbackLocation();
@@ -761,8 +761,8 @@ void AISkirmishPlayer::acquireEnemy()
 	Player *bestEnemy = nullptr;
 	Real bestDistanceSqr = HUGE_DIST*HUGE_DIST;
 
-	// GeneralsX: Smarter target picking for Normal and Hard skirmish AIs (wh1ter0se: "yes, build
-	// a test"). Retail kept the current enemy until it had no units or no build facility, and its two tie-breakers below
+	// GeneralsX: Smarter target picking for Normal and Hard skirmish AIs.
+	// Retail kept the current enemy until it had no units or no build facility, and its two tie-breakers below
 	// (+500^2 when another AI already targets him, -25^2 when he targets me) are negligible against squared base
 	// distances of ~3.6-6.8 M on a 12-spawn map - so every AI fought its nearest neighbour to the end and never answered
 	// whoever was actually in its base. Normal and Hard now re-score every enemy: squared distance x (1 + 0.5 per OTHER
@@ -968,8 +968,8 @@ Bool AISkirmishPlayer::gxFrontPointFixed()
 	return !m_baseCenterSet || gxFrontDoors() || gxFrontWaypoint() != nullptr;
 }
 
-// GeneralsX: base-layout (wh1ter0se 03/11 "look at the rotation facing back of the
-// base"): this side's list in the AI data. Looked up by side each time: nothing is saved, and the same data gives the same answer after a load
+// GeneralsX: base-layout:
+// this side's list in the AI data. Looked up by side each time: nothing is saved, and the same data gives the same answer after a load
 // (dataID guarantees the data). A side with no list has no keys.
 const AISideBuildList *AISkirmishPlayer::gxSideList() const
 {
@@ -1516,10 +1516,10 @@ void AISkirmishPlayer::update()
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: ai-wh1ter0se-econ T (7; wh1ter0se 22/10: "keeping gla troops like 4-6 in the
-// tunnel mostly ... anti air units like quads to pop when it detects incoming airplanes ... and then hide back instantly").
-// GeneralsX: ai-pro-rules-2 T2 (wh1ter0se 27/10 via: "pop and then
-// instantly go back in after like instantly shooting stuff down, and they need to target them manually"). Every 6 frames:
+// GeneralsX: ai-wh1ter0se-econ T.
+//
+// GeneralsX: ai-pro-rules-2 T2.
+// Every 6 frames:
 //  * RAID PLANES: every enemy aircraft this player can see (free of fog, not stealthed-undetected, not UNATTACKABLE) within the watch
 //    radius of an own tunnel - beyond GX_AIR_HOLD only while closing on that tunnel (T's rule) - nearest to its nearest tunnel first.
 //  * ASSIGNMENT (acting watch only): a tunnel GUARD inside the network that can shoot a raid plane (the tunnel guard's attack test and
@@ -2273,7 +2273,7 @@ void AISkirmishPlayer::adjustBuildList(BuildListInfo *list)
 			curPos.y = newY + startPos.y;
 			cur->setLocation(curPos);
 			cur->setAngle(gxTurn ? normalizeAngle(cur->getAngle() + angle) : cur->getAngle());
-			// GeneralsX: base-layout (wh1ter0se's option 2): a keyed entry's fallback is the
+			// GeneralsX: base-layout: a keyed entry's fallback is the
 			// stock list's spot for it, placed as retail places that list: the retail turn about the command centre, its angle as written.
 			if (gxTurn && cur->hasLayoutFallback()) {
 				Coord3D fb = *cur->getFallbackLocation();

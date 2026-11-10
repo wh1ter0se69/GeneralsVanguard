@@ -41,8 +41,8 @@ struct DlssImage
 
 // GeneralsX: which Streamline features
 // this session loads. PCL (the latency markers) loads with every Streamline. NVIDIA's frame-generation DLLs (sl.dlss_g.dll,
-// nvngx_dlssg.dll) stay OPTIONAL like every other: absent = that feature unavailable, logged, the rest unchanged (wh1ter0se 14/10 via
-// the lead: the game builds, runs and ships without them; no link-time dependency).
+// nvngx_dlssg.dll) stay OPTIONAL like every other: absent = that feature unavailable, logged, the rest unchanged.
+//
 struct StreamlineFeatures
 {
 	bool dlss = false;	// sl.dlss: Super Resolution / DLAA (GXUpscaler=dlss)

@@ -225,7 +225,7 @@ public: // AIPlayer interface, may be overridden by AISkirmishPlayer.  jba.
 	/// Every other team: TRUE. Build needs C's airfield term, reinforcement needs C (AIPlayer.cpp).
 	Bool gxAirTeamAllowed(const TeamPrototype *proto, Bool reinforce) const;
 	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): an AA guard on its way back into the tunnels after its assigned aircraft (the tunnel
-	/// guard's Return state then turns back for nothing - wh1ter0se 27/10: "pop and then instantly go back in").
+	/// guard's Return state then turns back for nothing).
 	Bool gxAirReturning(ObjectID unit) const;
 	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): with the ACTING watch on, a member of the air-watch team never
 	/// takes an aircraft as its own idle-mood attack target (AIIdleState) - every attack order at an aircraft is an assignment

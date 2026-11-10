@@ -377,7 +377,7 @@ void GameClient::init()
 		// quit menu so no menu click is taken. Passes everything else through.
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( gxNewVoteKickTranslator(),     9 );
 		// GeneralsX: The open player Tab board owns the mouse over itself, ahead of the windows
-		// (owner 06/10: "with tab opened i can play through the game"). Passes everything when no board is up.
+		// Passes everything when no board is up.
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( gxNewSpectatorHudBoardGate(),     9 );
 		m_translators[ m_numTranslators++ ] =	TheMessageStream->attachTranslator( MSGNEW("GameClientSubsystem") WindowTranslator,     10 );
 	// GeneralsX: The replay strip draws over the spectator HUD, so it takes the mouse first: the same
@@ -1058,7 +1058,7 @@ static void gxGfxSample( Bool paceEmitted )
 // existing toast channel, authored nowhere, so this ships with the engine alone and is outside the
 // sourceID digest as well (GameClient/, not Common/GameLogic/GameNetwork).
 //
-// THEIR OWN VERDICT AND NOBODY ELSE'S (owner decision, 20/09/2026). gxPerfLocalVerdict() is built
+// THEIR OWN VERDICT AND NOBODY ELSE'S. gxPerfLocalVerdict() is built
 // from values measured on THIS machine; it never names another player. An in-game table of
 // everyone's numbers is a blame generator that would be wrong - [GXSTALL]'s blocked-slot field is
 // the standing example of an attribution signal that reads authoritative and is biased toward low

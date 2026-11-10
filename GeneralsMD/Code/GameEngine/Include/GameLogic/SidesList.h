@@ -309,7 +309,7 @@ protected:
 	Coord3D	 m_fallbackLocation;
 	Real		 m_fallbackAngle;
 	Bool		 m_hasFallback;
-	// GeneralsX: base-layout (wh1ter0se's option 2): TRUE while the unused fallback above is
+	// GeneralsX: base-layout: TRUE while the unused fallback above is
 	// the stock list's spot for this entry (AIData's GXFallbackLocation), never a supply centre's today's spot. Only the parse below sets it, and
 	// AISkirmishPlayer::adjustBuildList keeps it on a GXTurnLayout list only, so no stock list can carry it.
 	Bool		 m_gxLayoutFallback;

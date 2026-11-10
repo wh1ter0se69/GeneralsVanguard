@@ -316,8 +316,8 @@ Int WaterTracksObj::render(DX8VertexBufferClass	*vertexBuffer, Int batchStart)
 	Real	widthFrac;
 	Real	heightFrac;
 
-	// GeneralsX: Live water grows the crests in (wh1ter0se 22/10: "i dont like how the waves spawn out of
-	// nowhere make it more natural spawning"). The retail pose below gives every crest of the map one clock (SYNC_WAVES) and a
+	// GeneralsX: Live water grows the crests in.
+	// The retail pose below gives every crest of the map one clock (SYNC_WAVES) and a
 	// crest is a sliver at full alpha the moment it starts to surge, so the whole coast drew a white line in one frame (Mini
 	// 22/10, TournamentB frame 855). With live water's waves part the crest is posed here instead, before the lock, so a crest
 	// between two breaks costs no draw: it breaks when the live swell reaches it and rides in from offshore, building smoothly

@@ -1181,7 +1181,7 @@ static void buildFilteredResolutions(Bool windowed)
 	// Set_Display_Size_Provider is never called (it lives inside #ifdef SAGE_USE_SDL3, which no
 	// Windows preset enables), so GetNativeDisplaySize returns false and nativeH stays 0.
 	//
-	// Linux is NOT covered by that argument, and an earlier draft of this comment claimed it was.
+	//
 	// linux64-deploy DOES set SAGE_USE_SDL3, so the provider IS registered, and on Wayland SDL3
 	// fills SDL_DisplayMode::pixel_density with the output's scale factor whenever scale_to_display
 	// is off - which is the default (SDL_waylandvideo.c, desktop_mode.pixel_density =
@@ -1407,11 +1407,11 @@ Bool W3DDisplay::setDisplayMode( UnsignedInt xres, UnsignedInt yres, UnsignedInt
 	// GeneralsX: The EFFECTIVE POINT size is published here, not assumed
 	// by the caller.
 	//
-	// This used to read "the player's chosen POINT values are what the caller stores in
-	// m_x/yResolution and writes to Options.ini", and while that described what the code did it is
-	// exactly the hole a cross-model review found on 2026-09-14: when this function reduces a
-	// request, the REQUEST is still what OptionsMenu::saveOptions wrote into the globals and into
-	// Options.ini, and what MainMenu::DeclineResolution restored. The options combo box then
+	//
+	//
+	//
+	//
+	// The options combo box then
 	// preselected a resolution that was not running, the confirm dialog named it, and the next
 	// launch read the same oversized value back off disk - so the correction had to be made again
 	// every single time and was never visible anywhere the player could see it.
@@ -1782,7 +1782,7 @@ void W3DDisplay::init()
 #endif
 
 		// GeneralsX: MACOS PRESENTS WITH VSYNC WHEN THE PLAYER HAS A MAX-FPS CAP.
-		// wh1ter0se, 29/09/2026, MacBook Pro 120 Hz, fullscreen: "i feel screen tears when i move around too fast".
+		//
 		// Every SDL3 present is windowed to D3D8, so DXVK presented IMMEDIATE and MoltenVK turned the Metal
 		// layer's display sync off (DX8Wrapper::Set_Windowed_VSync). Now FIFO for any cap - the launcher's
 		// -fps N, or the display's refresh by default - on a panel faster than the tick rate (gxMacVSyncFor).
@@ -2055,12 +2055,12 @@ void W3DDisplay::init()
 				// render resolution becomes pixels.
 				//
 				// GeneralsX: The globals stay in POINTS - that has not
-				// changed and is what Options.ini holds and what the options combo box offers. What
-				// this comment used to say, that m_x/yResolution is "deliberately NOT written back",
-				// was never true of the block above it: the migration has written the corrected
-				// POINT value into the globals since 11/08/2026, and the capability correction added
-				// on 14/09/2026 writes it for the same reason - so the options screen preselects
-				// what is actually running. The scaled PIXEL value below is what is never written
+				// changed and is what Options.ini holds and what the options combo box offers.
+				//
+				//
+				//
+				//
+				// The scaled PIXEL value below is what is never written
 				// back, and it is the only thing that was ever meant.
 				//
 				// The window is put back to the player's chosen POINT size by
@@ -3229,12 +3229,12 @@ static void gxPoseStatsLine()
 	s_draws = 0;
 }
 
-// GeneralsX: The look governor (GameClient/GXLookGovernor.h, S14; wh1ter0se 17/10: lower look steps in a
+// GeneralsX: The look governor (GameClient/GXLookGovernor.h, S14; lower look steps in a
 // big fight when this PC cannot hold its frame rate, raise them back after). Render-only: it reads this frame's timings and
 // publishes steps the render-side read sites honour (g_gxGovEff); it never writes TheGlobalData, so the player's saved options
-// stay his. It is ON by default (wh1ter0se 17/10, "yes all green": kGxGovKeyDefault); Options.ini GXLookGovernor = no turns it off;
+// stay his. It is ON by default; Options.ini GXLookGovernor = no turns it off;
 // GX_GOVERNOR=0/1 overrides; GX_GOVERNOR_FPS=<n> or Options GXLookGovernorFps sets the frame rate to hold (default: the logic tick
-// rate, or a network game's agreed rate when lower, never above the display refresh, at least 30 - wh1ter0se 17/10: gxGovTargetFps in the header); GX_GOVERNOR_FORCE="shadow:2,part:1,heat:1,cloud:1" pins steps with the controller off (the
+// rate, or a network game's agreed rate when lower, never above the display refresh, at least 30 - gxGovTargetFps in the header); GX_GOVERNOR_FORCE="shadow:2,part:1,heat:1,cloud:1" pins steps with the controller off (the
 // proofs); GX_GOVERNOR_LOG=1 (or GX_GFX) prints [GXGOV] once per second. Every change prints whatever the log setting.
 static GxLookGovernor s_gxGov;
 static Bool gxFxLightOn();	// S9 classic light pulses, defined with createLightPulse below
@@ -3702,7 +3702,7 @@ AGAIN:
 	// GeneralsX: ...but never while the replay fast mode runs (m_TiVOFastMode: a seek race of the
 	// replay strip, or the retail replay hotkey): that mode draws by its own rule (GXReplayStrip::passRenders), and asking
 	// fast forward too multiplied the two to ZERO draws - its every-k-th pass and the fast mode's frame 30n+1 never met
-	// with one tick per pass, so a 4x seek showed nothing until it landed (wh1ter0se 07/10: "it froze"). A seek race now skips
+	// with one tick per pass, so a 4x seek showed nothing until it landed. A seek race now skips
 	// every pass but a progress frame per RACE_DRAW_MS of wall time; the hotkey alone keeps retail's frame 30n+1 below.
 #if defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)
 	const Bool tivoFastMode = !TheGameLogic->isGamePaused() && TheGlobalData->m_TiVOFastMode;

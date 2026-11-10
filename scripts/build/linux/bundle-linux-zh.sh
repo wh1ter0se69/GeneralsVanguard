@@ -673,8 +673,8 @@ if [[ -z "${DXVK_CONFIG_FILE:-}" && ! -f dxvk.conf && -f "${SCRIPT_DIR}/dxvk.con
     export DXVK_CONFIG_FILE="${SCRIPT_DIR}/dxvk.conf"
 fi
 
-# GeneralsX: THE SHIPPED MAPS ARE INSTALLED HERE TOO (owner 07/11: "ship the maps we are making by
-# default"). This tarball carries GeneralsXPatch/ShippedMaps/<Name>/ (scripts/build/overlay-maps.txt), but only the
+# GeneralsX: THE SHIPPED MAPS ARE INSTALLED HERE TOO.
+# This tarball carries GeneralsXPatch/ShippedMaps/<Name>/ (scripts/build/overlay-maps.txt), but only the
 # launcher's PLAY copied them into the engine's <userdata>/Maps, and the Linux launcher neither installs nor finds a
 # tarball engine - so a player who starts this script got them only by lobby transfer. The rule is gxio shippedmaps.rs's:
 # a map is (re)installed when its <Name>.map is missing or its bytes differ; only the shipped folder's own regular files

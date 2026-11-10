@@ -152,7 +152,7 @@ namespace
 	}
 }
 
-// wh1ter0se, 28/09/2026 (graphics DECISIONS_P3 #2): OFF everywhere until he approves the REMASTERED look; then ON for
+// (graphics DECISIONS_P3 #2): OFF everywhere until he approves the REMASTERED look; then ON for
 // Windows, macOS and Linux, and OFF on iPad until its GPU cost is measured. One constant per platform. Every existing
 // iPad takes whatever its line says: iOS seeds no GXGraphics.ini and has no launcher.
 Bool GXGraphics::platformDefault()

@@ -148,8 +148,8 @@ public:
 	// display preference.
 	Bool getShowCommandButtonIndicators() const { return m_showIndicators; }
 
-	// GeneralsX: The letter badge, from the launcher's Keybinds page (wh1ter0se, 29/09: "where to
-	// draw ... also beautify them"): which corner of the button, how big, and how it is drawn. Same file and same
+	// GeneralsX: The letter badge, from the launcher's Keybinds page:
+	// which corner of the button, how big, and how it is drawn. Same file and same
 	// reasoning as the indicators switch above - a per-user display preference, outside the digest. The defaults are the
 	// look before this change (bottom-left, the 27/09 size, a dark plate), so a file without these entries changes nothing.
 	enum BadgeCorner { BADGE_TOP_LEFT, BADGE_TOP_RIGHT, BADGE_BOTTOM_LEFT, BADGE_BOTTOM_RIGHT };

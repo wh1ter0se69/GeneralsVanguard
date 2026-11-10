@@ -854,7 +854,7 @@ protected:
 	static void populateButtonProc( Object *obj, void *userData );
 	void populatePurchaseScience(Player* player);
 
-	// GeneralsX: General's Points keys (wh1ter0se's option A, 27/09): a purchase button shows the
+	// GeneralsX: General's Points keys: a purchase button shows the
 	// key of the power or unit it buys, and binds it in HotKeyManager's priority layer while the panel is open.
 	const CommandButton *resolvePurchaseScienceSource( const CommandButton *purchase );	///< the button whose key it shows
 	Bool isPurchaseSciencePanelWindow( const GameWindow *win ) const;	///< one of the panel's purchase buttons

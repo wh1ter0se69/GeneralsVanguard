@@ -32,15 +32,15 @@
 # the same bytes or joins are refused with DATA_DIFFERS. The output is deterministic, so every box
 # that runs this against the pinned archive produces the same file.
 #
-# THE EDIT: Toxin Tractor option 1 (
-# owner decision 24/09/2026), re-tuned 05/10/2026 for Generals Online fire timing: DelayBetweenShots
+# THE EDIT: Toxin Tractor option 1,
+# re-tuned 05/10/2026 for Generals Online fire timing: DelayBetweenShots
 # 40 -> 120 ms and twice the damage, on every ToxinTruckGun* weapon (GLA, Demolition, Stealth and Toxin
 # generals, all upgrades). Each shot creates and destroys a missile-class projectile Object, so fewer
 # shots is less of that cost. ClipReloadTime moves with it, as in the source (reload == delay, so the
 # clip stays invisible).
 #
 # WHY 120, NOT THE 80 OF 24/09. 80 ms was chosen on the retail-grid timing (80 ms = 6 frames: +33%
-# direct damage). fix/go-parity-fire (owner 05/10: fire like Generals Online) rounds fire timers on the
+# direct damage). fix/go-parity-fire rounds fire timers on the
 # 60 Hz grid (INI::parseDurationUnsignedIntGO: 40 ms = 3 frames, raised to GO's 4-frame minimum; 80 ms =
 # 5; 120 ms = 8) and the tractor's gun is turret-driven, so it fires on GO's 4-frame turret cadence, and
 # a RATE_OF_FIRE bonus divides then FLOORS the frame count (WeaponTemplate::getDelayBetweenShots).
@@ -51,7 +51,7 @@
 #   veteran+     4          4 (2.00x)           8 (1.00x)   (veteran, horde 125%, elite, heroic)
 #   solo-AI 80%  8          8 (2.00x)          12 (1.33x)
 # 80 ms doubled GO's direct damage from veteran up; 120 ms matches GO at every player rank with half
-# GO's projectile Objects (owner 05/10: yes, "do what GO does"). Rate-of-fire bonuses ADD: once the total
+# GO's projectile Objects. Rate-of-fire bonuses ADD: once the total
 # passes 160% (a veteran or better firing at a target an Avenger has marked, 150%; hero + hard AI; elite or
 # hero + a propaganda tower) 120 ms floors to 4 frames, the turret cadence, and does 2x GO's direct damage.
 #

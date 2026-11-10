@@ -129,8 +129,8 @@ static const char *codeGuiFontFamily( Bool bold )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX: THE DEBUG OVERLAY DRAWS IN TAHOMA BOLD (owner: "try a different, sharper,
-	* more beautiful font").
+/** GeneralsX: THE DEBUG OVERLAY DRAWS IN TAHOMA BOLD.
+	*
 	*
 	* Weight, not family, is what makes it sharper here, and that was measured, not assumed: rendered the way
 	* render2dsentence.cpp renders (FreeType v35, 96 dpi, 8-bit alpha) at the overlay's 10/12 pt, a line of its text

@@ -2115,7 +2115,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			}
 		}
 
-		// GeneralsX: LIMIT ARMIES (owner, 25/09/2026): when the host's "O=Y"
+		// GeneralsX: LIMIT ARMIES: when the host's "O=Y"
 		// is on, every slot - human and AI - must be USA, China or GLA (PlayerTemplate OldFaction). The
 		// lobby already filters the faction list and Random already draws only from those three
 		// (populateRandomSideAndColor, above); this is the backstop for a slot list that got past the

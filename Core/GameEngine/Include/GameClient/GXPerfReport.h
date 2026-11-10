@@ -31,7 +31,7 @@
 // And every existing probe is getenv-gated and OFF: GX_PACE, GX_NET, GX_ROUTER_TRACE,
 // GX_RUNAHEAD_TRACE, GX_ACTIVITY. A player hitting a lag problem right now emits nothing. A
 // telemetry system that must be switched on BEFORE the problem happens does not solve this problem,
-// so this one is ON, always, with no opt-out (owner decision, 20/09/2026).
+// so this one is ON, always, with no opt-out.
 //
 // WHAT IT WILL NEVER CLAIM. Each of these is a number somebody will otherwise ask for:
 //   1. "Peer X's lag only affects peer X." Impossible. Frame N executes nowhere until every peer's
@@ -643,7 +643,7 @@ void gxStatSample( void );
 /// GeneralsX: One GXEND datagram: the winner and each player's seven
 /// end-of-match counters - then, since 27/09/2026, one GXSEAT: who sat where (GXStatFactionWire.h). Call it
 /// while the match is STILL ASSEMBLED - before TheGameEngine->reset() empties ThePlayerList. ON BY DEFAULT
-/// (owner, 27/09/2026); GX_MATCH_STATS=0 turns it off. Sends nothing unless a relay match actually ran and the
+/// GX_MATCH_STATS=0 turns it off. Sends nothing unless a relay match actually ran and the
 /// victory conditions recorded an end frame; and nothing at all on a second call for the same match.
 void gxStatMatchEnd( void );
 
@@ -656,7 +656,7 @@ void gxStatNoteSelfDestruct( const Player *player );
 
 /// This player's OWN verdict, one short line, or "" when there is nothing honest to say.
 ///
-/// THEIR OWN AND NOBODY ELSE'S (owner decision, 20/09/2026). An in-game table of everyone's numbers
+/// THEIR OWN AND NOBODY ELSE'S. An in-game table of everyone's numbers
 /// is a blame generator that will be wrong, and [GXSTALL]'s blocked-slot field is the standing
 /// example of an attribution signal that reads authoritative and is biased. This string is computed
 /// from values measured on THIS machine only; it never names another player and never quotes one.

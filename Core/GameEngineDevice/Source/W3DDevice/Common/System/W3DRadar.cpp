@@ -1609,10 +1609,10 @@ void W3DRadar::draw( Int pixelX, Int pixelY, Int width, Int height )
 
 	// draw black border areas where we need map
 	// GeneralsX: ...unless the border image can fill them: the map's own out-of-bounds terrain,
-	// dimmed, at the map image's scale (owner 06/10: the legacy radar's black margins, "we LITERALLY have the game code to
-	// fix that" - option a). The thin line still marks where the playable map ends.
+	// dimmed, at the map image's scale.
+	// The thin line still marks where the playable map ends.
 	// GeneralsX: Not in the legacy look: there the radar is retail's again, black margins included
-	// (owner 21/10: "These shouldn't change if the UI is legacy" - gxRadarRetailMargins, set by the HUD every frame).
+	//
 	const Bool border = !gxRadarRetailMargins && m_borderImage != nullptr && (scaledWidth < width - 1 || scaledHeight < height - 1);
 	if( border )
 	{

@@ -18,10 +18,10 @@
 # IT MOVES dataID: SimulationId.cpp computeLooseDataID hashes the .scb bundles, so every peer must carry the
 # same bytes or the join is refused with DATA_DIFFERS.
 #
-# THE EDITS (wh1ter0se 2026-09-29):
+# THE EDITS:
 #  1. Easy-plus (B-ai-overhaul, "Easy plays a real game"): sets the Easy flag on the Hard/Normal alert, upgrade,
 #     generals-power and invasion-alert scripts. Only flag bytes change.
-#  2. Spend patch (B-ai-economy): Hard AI keeps its scripted cash gifts (wh1ter0se: KEEP) but turns money into army:
+#  2. Spend patch (B-ai-economy): Hard AI keeps its scripted cash gifts but turns money into army:
 #       a. for each production type a Hard script already builds, four money-gated clones (credits AND escalation),
 #          placed beside the supply warehouse (AI_PLAYER_BUILD_SUPPLY_CENTER: the flank/front arcs of
 #          SKIRMISH_BUILD_STRUCTURE_* are shared with base defences and run out, measured 30/09), plus two extra dozer clones;
@@ -41,7 +41,7 @@
 #     Plants" scripts also call AI_PLAYER_BUILD_SUPPLY_CENTER(Lazr_AmericaPowerPlant), because the arc they call runs out and only
 #     Laser's tanks draw power, so a capped supply disables its whole tank army (laser_power_step below).
 # 10. USA Search and Destroy (D-usa-search-destroy, USA_SD, the last step): the four USA generals' "USA Use Battle Plans" is Easy + Normal now, and a Hard
-#     copy asks for Search and Destroy instead of Hold the Line, checked every frame (usa_sd_step below). wh1ter0se 03/11 + 06/11, pro rows 35, 907, 1342.
+#     copy asks for Search and Destroy instead of Hold the Line, checked every frame (usa_sd_step below). + 06/11, pro rows 35, 907, 1342.
 #  4. Nearby expansion (C-ai-economy-4, EXPAND_NEARBY, a FIXUP_STEPS entry): the 12 Hard "Base Expand Start - H" scripts
 #     ask for a source holding >= EXPAND_MIN instead of 25000, so a Hard AI expands to the piles near its base instead of
 #     only ever picking a neighbour's or the centre's dock (unsafe). Normal/Easy byte-identical ([CRC] 224/224, both maps).
@@ -341,8 +341,8 @@ def spend_patch(scb, no_spend=None):
     return added, tech, waves
 
 
-# GeneralsX: Four retail launch bugs park Hard attack teams at home for the whole match (
-# wh1ter0se: "attacks while preparing attacks"). Every Hard wave team leaves base through a team script that fires on the attack
+# GeneralsX: Four retail launch bugs park Hard attack teams at home for the whole match.
+# Every Hard wave team leaves base through a team script that fires on the attack
 # pulse while the team is inside its own base; these teams could not:
 #  1. plain China "China Attack Sequence Back" tests TEAM_OUTSIDE_AREA_ENTIRELY(MyOuterPerimeter); every other copy (the three
 #     China generals') tests TEAM_INSIDE_AREA_PARTIALLY -> its wave-4 Tanks/Artillery/Air B and wave-5 Artillery B never left.
@@ -405,8 +405,8 @@ def launch_fixes(scb):
     return edits
 
 
-# GeneralsX: A Hard AI never expands to the supplies near its base on 12-seat maps (
-# wh1ter0se: "expand to their nearby supplies"). "<Side> Base Expand Start - H" asks SUPPLY_SOURCE_SAFE(25000) and builds with
+# GeneralsX: A Hard AI never expands to the supplies near its base on 12-seat maps.
+# "<Side> Base Expand Start - H" asks SUPPLY_SOURCE_SAFE(25000) and builds with
 # AI_PLAYER_BUILD_SUPPLY_CENTER(.., 25000). AIPlayer::findSupplyCenter takes the CLOSEST unserved source holding >= that cash
 # and halves the amount only when NO source qualifies; the caller then tests just that one source (isLocationSafe). Crater
 # Ring and Cauldron put a $30,000 dock in every base plus unmined centre docks, so the pick is a neighbour's base dock or the
@@ -445,8 +445,8 @@ def expand_nearby(scb):
     return edits
 
 
-# Capture from home (wh1ter0se: "the oil splits bottom left weren't even taken ... top right and
-# left were both taken by the AI on the front"). Every '<side> Tech Building Capture Orders' script first runs
+# Capture from home.
+# Every '<side> Tech Building Capture Orders' script first runs
 # TEAM_MOVE_TOWARDS_NEAREST_OBJECT_TYPE(<team>, Tech Buildings, CombatZone): a walk to the tech building nearest the team
 # INSIDE the map's CombatZone (any owner), and only then TEAM_HUNT_WITH_COMMAND_BUTTON(capture), which takes the nearest
 # capturable building from where the team stands. On a big map every AI's team walks to the same middle first, so the
@@ -479,7 +479,7 @@ def capture_home(scb):
 
 
 
-# No defence at the dock (C-ai-supply-fix, 06/10/2026; wh1ter0se: "cluster stuff in the middle of the base"). Each Hard "Base Expand Start - H"
+# No defence at the dock (C-ai-supply-fix, 06/10/2026). Each Hard "Base Expand Start - H"
 # script is re-armed every 150 s while SUPPLY_SOURCE_SAFE and, besides the supply centre, calls AI_PLAYER_BUILD_SUPPLY_CENTER with a
 # DEFENCE template (Patriot / Gattling / Stinger). AIPlayer::buildBySupplies puts a non-cash-generator beside m_curWarehouseID (the last
 # source a centre was asked for), so every re-arm drops another defence into the same ~400 wu square: measured 9-10 Patriots per AI at
@@ -506,7 +506,7 @@ def expand_no_defence(scb):
     return len(removed)
 
 
-# Superweapons fire when ready (B-scud-fire, 13/10/2026; wh1ter0se 12/10: "scuds arent being launched instantly or at all"). Every Hard
+# Superweapons fire when ready (B-scud-fire, 13/10/2026). Every Hard
 # superweapon script pair ("... Fire ... - H" fires, then hands over to "... AI - H", which re-arms it) ANDs SKIRMISH_SPECIAL_POWER_READY
 # with FLAG(_LAUNCH_ATTACK, true). That flag is the AI's attack-wave pulse: up for ~2 frames every 30-45 s, so a ready SCUD Storm,
 # Particle Cannon or Neutron Missile sat at 0:00 for up to ~40 s before it fired (measured on 0.9.62 and 0.9.63 alike: ai/scud-fire
@@ -751,8 +751,8 @@ def opt_in_selftest(base, out, group, script_name_, action, generals=None):
         assert script_flags(g.kids[0])[0] == [1, 1, 0, 0, 1, 0]
     print("  %s: +1 Hard one-shot script in %d lists, nothing else (on: %s)" % (group, len(want), sha256(out)))
 
-# GeneralsX: ai-wh1ter0se-econ R (6; wh1ter0se 22/10: "building rotation should always be
-# rotated to where it matters"): every Hard general calls AI_PLAYER_FACE_FRONT once - its barracks / war factory / arms dealer doors face
+# GeneralsX: ai-wh1ter0se-econ R:
+# every Hard general calls AI_PLAYER_FACE_FRONT once - its barracks / war factory / arms dealer doors face
 # its base front, its base defences face out. Engine-gated by the action (a stock .scb never calls it).
 FACE_FRONT = True                         # False = the 0.9.67 package (FACE_FRONT_OFF_SHA256)
 FACE_FRONT_OFF_SHA256 = "14414fcd6ea7c84496fc7d74a43228c41c0f228988a135e613e3529025f58fec"
@@ -931,8 +931,8 @@ def gx_arm_selftest(base, out, owners, label):
     print("  %s: +1 group in %d lists, +%d team bytes, +%d chunk names, nothing else (on: %s)" % (
         label, len(want), len(tb) - len(ta), len(b.toc) - len(a.toc), sha256(out)))
 
-# GeneralsX: ai-wh1ter0se-econ T (7; wh1ter0se 22/10: "keeping gla troops like 4-6 in the
-# tunnel mostly should be anti air units like quads to pop when it detects incoming airplanes/migs/raptors and then hide back instantly").
+# GeneralsX: ai-wh1ter0se-econ T.
+#
 # Per GLA general (Hard only):
 #  * "GX Tunnel AA Watch <side>" (one-shot): AI_PLAYER_TUNNEL_AIR_WATCH(700) - the engine names incoming aircraft as the tunnels' nemesis;
 #  * team "GLA Tunnel AA <side>" = 4 Quad Cannons + 2 Tunnel Defenders (RPG) on the STOCK team path: production condition "GX Tunnel AA
@@ -940,8 +940,8 @@ def gx_arm_selftest(base, out, owners, label):
 #    team-common-target off; on creation it guards in the tunnel network (TEAM_GUARD_IN_TUNNEL_NETWORK). 6 of the network's 10 places;
 #  * the general's two STOCK tunnel-guard teams (Hard 3W and 5W, on-create "GLA Behavior: Guard Tunnel", 10 units each) become 1 Quad
 #    Cannon + 1 Tunnel Defender each, so 6 + 2 + 2 = 10 always fits the whole network (TunnelTracker::isValidContainerFor refuses a unit
-#    when it is full: an airfield built after the stock team left the AA team outside). wh1ter0se's "4-6 in the
-#    tunnel, mostly AA": 4 without an enemy airfield, up to 10 with one; every one of them can fire at aircraft.
+#    when it is full: an airfield built after the stock team left the AA team outside).:
+#    4 without an enemy airfield, up to 10 with one; every one of them can fire at aircraft.
 TUNNEL_AA = True                           # False = the 0.9.68 package (TUNNEL_AA_OFF_SHA256 = R on all twelve generals)
 TUNNEL_AA_OFF_SHA256 = "14d03e02a70e4f6c02eaa30b2b3735929b4a673e21cc52ec28efa9f35c96620d"
 TUNNEL_SIDES = [('SkirmishGLA', ''), ('SkirmishGLADemolitionGeneral', 'Demo_'), ('SkirmishGLAToxinGeneral', 'Chem_'),
@@ -1074,7 +1074,7 @@ def tunnel_aa(scb, generals=None, watch=None):
         changed += 1
     return changed
 
-# GeneralsX @bugfix C-laser-power 04/11/2026 (wh1ter0se's $200k games): Crusader and Paladin are the
+# GeneralsX @bugfix C-laser-power 04/11/2026: Crusader and Paladin are the
 # only units in the game that draw power, so a Laser General under power disables its whole tank army, and the tanks cannot leave a door or
 # go and fight, so the AI has no way to lower the load. A plant is forced only into an empty build-list slot (Laser has 6), and past that the
 # only source is "USA 7+ Power Plants Flank/Front - H", whose SKIRMISH_BUILD_STRUCTURE_* walks an arc shared with base defences that runs out

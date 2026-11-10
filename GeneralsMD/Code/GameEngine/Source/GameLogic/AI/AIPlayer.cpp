@@ -83,7 +83,7 @@ GX_HOOK_STATS_DEFINE(gxFaceFrontHook, "face_front");
 // centre), and isLocationLegalToBuild sees an object only when the two boxes overlap in height too
 // (PartitionManager::geomCollidesWithGeom). So from a spot on a ridge, every candidate on the low ground below was tested as a box
 // floating far above it and passed through everything there: on Twin Ridges a GLA AI put two Barracks 20 units apart, the
-// second tested 47 units above the first (wh1ter0se's 0.9.64 game, 14/10). The same code is in TheSuperHackers and Generals Online.
+// second tested 47 units above the first. The same code is in TheSuperHackers and Generals Online.
 // This tests a grounded copy and leaves the caller's position untouched.
 static LegalBuildCode gxLegalToBuildOnGround( const Coord3D *pos, const ThingTemplate *what, Real angle, UnsignedInt options,
 	const Object *builder, Player *player )
@@ -94,8 +94,8 @@ static LegalBuildCode gxLegalToBuildOnGround( const Coord3D *pos, const ThingTem
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: base-layout (wh1ter0se 03/11 "look at the rotation
-// facing back of the base"): THE DOOR RULE, for a side whose list carries GXFrontDoors. R's own aim, the octant towards the front waypoint, reverses a
+// GeneralsX: base-layout:
+// THE DOOR RULE, for a side whose list carries GXFrontDoors. R's own aim, the octant towards the front waypoint, reverses a
 // door that stands past its waypoint, and it fans the flanks far off the way the base faces. With t = unit(spot -> front) and a = unit(base centre ->
 // front): past the waypoint (t.a <= 0) aim along a, else along t + a. Then half the door's skew: units leave along model +X, but the rally point
 // sits off to one side (ChinaBarracks -35 deg, war factories -21..-30, USA and GLA barracks 0), and aiming between the two keeps both within the
@@ -331,7 +331,7 @@ void gxLayoutFallbackFixture()
 #define SUPPLY_CENTER_CLOSE_DIST (20*PATHFIND_CELL_SIZE_F)
 
 // GeneralsX: Gatherers on a supply centre that stands on its pro spot (AIPlayer::buildBySupplies,
-// findDockFacePlacement): the free truck + one. wh1ter0se 15/10: "One supply placed perfectly with ONLY 2 TRUCKS AT A TIME ONLY TWO".
+// findDockFacePlacement): the free truck + one.
 static const Int AI_PRO_SPOT_GATHERERS = 2;
 
 #define USE_DOZER 1
@@ -830,8 +830,8 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 	Real angle = info->getAngle();
 	Int gxDoorTurned = -1;	// GeneralsX 23/10/2026 ai-wh1ter0se-econ R: -1 = no door candidate, else 0 / 1 = list angle / turned ([GXROT] ev=placed)
 	Bool gxSearchAtWant = FALSE;	// GeneralsX 05/11/2026 base-layout: the position search below starts at the door rule's angle
-	// GeneralsX: ai-wh1ter0se-econ R (6; wh1ter0se 22/10 "building rotation should always
-	// be rotated to where it matters"): with AI_PLAYER_FACE_FRONT on, a barracks / war factory / arms dealer is turned so its door - model
+	// GeneralsX: ai-wh1ter0se-econ R:
+	// with AI_PLAYER_FACE_FRONT on, a barracks / war factory / arms dealer is turned so its door - model
 	// +X, where every production building's NaturalRallyPoint sits - points at the base front (the point front defences use). Today every
 	// AI base has one world orientation (RotateSkirmishBases = No, adjustBuildList never turns an angle). Only an angle legal at this very
 	// spot is taken (the octant, then +/-45 deg); else the list angle, as before - the position search below is untouched.
@@ -981,8 +981,8 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 			if (!valid) {
 				// GeneralsX: With no legal spot found, retail builds on the build-list spot
 				// anyway and refuses it only for enemies. A skirmish AI's spot is a template offset from its Command
-				// Center, so that put buildings on its own structures, on neutral supply docks and over cliffs (wh1ter0se's
-				// Mayhem game). Both passes above found nothing, so a skirmish AI retries this entry after the rebuild
+				// Center, so that put buildings on its own structures, on neutral supply docks and over cliffs.
+				// Both passes above found nothing, so a skirmish AI retries this entry after the rebuild
 				// delay instead: it neither starves the rest of its build list nor repeats this search every pass.
 				// A mission AI keeps the retail fallback; its spots are designer-placed.
 				if (isSkirmishAI()) {
@@ -1632,8 +1632,8 @@ void AIPlayer::onUnitProduced( Object *factory, Object *unit )
 }
 
 //----------------------------------------------------------------------------------------------------------
-// GeneralsX: STRATEGIC POWER AIM (owner 10/10: "super weapon aim should be strategic based on
-// markets/second economy/hackers/black markets/strat center/hacker center combined with other powers"). Stock values a
+// GeneralsX: STRATEGIC POWER AIM.
+// Stock values a
 // spot by the enemy's build cost alone, so a strike lands on defences, factories or a parked army as readily as on the
 // income. This weighs what the cost buys, in percent, integer only:
 //   income (supply centers/stashes, drop zones, black markets, internet centers, hackers)  300
@@ -2096,8 +2096,8 @@ Bool AIPlayer::startTraining( WorkOrder *order, Bool busyOK, AsciiString teamNam
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: A Hard skirmish AI sitting on a large bank spends it (wh1ter0se 08/10, 12 Hard AIs on a
-// $200,000 start still banked $147k-$198k each at 4:00, and "this made 3 airfields yet using only 1?"). Above AI_HOARD_CASH:
+// GeneralsX: A Hard skirmish AI sitting on a large bank spends it.
+// Above AI_HOARD_CASH:
 // a team's units are built in parallel (buildSpecificAITeam), teams and structures are picked faster and attack teams may field extra copies (AISkirmishPlayer.cpp, ported from Zero
 // Hour Reforged's cash hoard). Only in a match that STARTED richer than the default cash: Hard's scripted gifts alone lift
 // a bank to ~$50k in a $10,000 start (measured 08/10), so no bank threshold separates the
@@ -2681,7 +2681,7 @@ void AIPlayer::buildUpgrade(const AsciiString &upgrade)
 // stash is KINDOF_IGNORE_DOCKING_BONES) square on a face of its dock, AI_SUPPLY_CENTER_DOCK_GAP from the dock's edge by the
 // SupplyBuildBorder metric (the dock's footprint expanded by the gap). Returns FALSE when no face is legal; the caller then
 // keeps the stock placement.
-// GeneralsX: THE PRO SPOT (wh1ter0se 30/09 + 15/10: "One supply placed perfectly with ONLY 2 TRUCKS"):
+// GeneralsX: THE PRO SPOT:
 // on the dock's long side, centred, the centre's front (where its trucks come out) pointing at the dock, a 45 wu gap - how GO's
 // top players place their first Supply Center (ai/pro-macro). The supply dock and the China centre have no docking bones, so a
 // truck docks where it stands once its approach path ends there; in that gap both trucks stop moving and load AND unload in
@@ -2730,8 +2730,8 @@ static BuildListInfo *gxQueuedBuildingAt(Player *player, const ThingTemplate *ce
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: THE CHINA MAIN BASE PRO SPOT (wh1ter0se 27/10: "when does china AI get the correct placement and 2
-// trucks?"): a centred LONG dock face that only QUEUED build-list entries block keeps the centre, and those entries move, instead of
+// GeneralsX: THE CHINA MAIN BASE PRO SPOT:
+// a centred LONG dock face that only QUEUED build-list entries block keeps the centre, and those entries move, instead of
 // the face being skipped as U2 does. Measured on 0.9.68 (20 maps, every seat a China Hard AI): the main
 // base got the pro spot on 28 of 102 starts, Twin Ridges v2 on 2 of 24, because at ~45 s the China SkirmishBuildList template already
 // holds a spot on the dock's long face (a queued War Factory, Power Plant, Airfield or Propaganda Center); 21 of Twin Ridges' 22 misses
@@ -3523,7 +3523,7 @@ static Bool findDockFacePlacement(const Object *dock, const ThingTemplate *cente
 	// the face, still facing the dock across the same gap.
 	// GeneralsX: Pass 2 exists for the main base: at ~45 s the China base template already fills the dock's
 	// faces (a queued War Factory or Power Plant spot on one long face, a standing Barracks or Power Plant on the other, the Command
-	// Center on a short face), so the centred spot failed on 5 of 6 main bases in wh1ter0se's 27/10 0.9.68 game and the centre went to
+	// Center on a short face), so the centred spot failed on 5 of 6 main bases in 0.9.68 game and the centre went to
 	// today's spot with 3 trucks. A slid centre's door still faces the dock's long side.
 	// Only on a BOX dock, and only while the shuttle line still starts on the face itself (|off| <= the face's half-length less the
 	// margin): off a cylinder, or past a short face's end, the line would start in open ground and could miss water or a cliff

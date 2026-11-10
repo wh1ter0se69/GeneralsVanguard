@@ -1,5 +1,5 @@
-// GeneralsX: AI IN THREE COLOURS, the launcher's choice for a game against Hard AI (wh1ter0se 07/11: "either
-// all 32 colors or split ai into 3 same colors; (for hard AI games only) multiplayer should have the 32 colors regardless"). With
+// GeneralsX: AI IN THREE COLOURS, the launcher's choice for a game against Hard AI.
+// With
 // 31 AI on one screen, 31 shades read as noise; three colours read as three enemy groups.
 //
 // WHEN IT APPLIES. At most one human, observers counted, because a second person means multiplayer, which always keeps every colour;

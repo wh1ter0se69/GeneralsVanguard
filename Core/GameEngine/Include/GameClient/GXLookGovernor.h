@@ -1,5 +1,5 @@
-// GeneralsX: the look governor (S14, wh1ter0se 17/10: "if someone's PC struggles in a big
-// fight we lower stuff to compensate, then raise it back").
+// GeneralsX: the look governor (S14)
+//
 //
 // WHAT. A per-peer, render-only controller. Every look feature registers a few quality STEPS (step 0 = full quality). Once
 // per window the governor reads what the last frames cost and, when the frame time is over the player's target, lowers ONE
@@ -173,11 +173,11 @@ inline GxGovConfig gxGovDefaultConfig( int targetFps )
 	return c;
 }
 
-// GeneralsX: wh1ter0se 17/10 ("yes all green" to the look set): the governor is ON by default. Options.ini
+// GeneralsX: ("yes all green" to the look set): the governor is ON by default. Options.ini
 // GXLookGovernor = no turns it off; an absent key reads as this value (W3DDisplay.cpp gxGovInitOnce, its only reader).
 static const bool kGxGovKeyDefault = true;
 
-// The frame rate the governor holds. wh1ter0se 17/10 (~18:3x, replacing "the player's frame cap, clamped 60-144" the same day, when a
+// The frame rate the governor holds. (~18:3x, replacing "the player's frame cap, clamped 60-144" the same day, when a
 // 480 cap on a 500 Hz panel would have aimed at 144 and cut every big fight to the floor): "aim for 60 or whatever the server's tickrate".
 // So: the game's LOGIC tick rate - tickFps = LOGICFRAMES_PER_SECOND (60 under GX_LOGIC_60HZ, 30 otherwise) - or, in a network game, the
 // match's agreed rate when it is lower (netFps = TheNetwork->getFrameRate(), the source FramePacer uses; <= 0 = no network game). Frames

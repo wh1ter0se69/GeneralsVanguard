@@ -2933,9 +2933,9 @@ static void relayHostGame( const UnicodeString *hostName = nullptr,
 	//
 	// GeneralsX: THE HOST'S NAME IS THE HOST'S NAME AGAIN.
 	//
-	// This used to read `hostName` here when PopupHostGame supplied one, on the reasoning that the
-	// browser's "Game (host)" column IS this name and the relay model had no separate game-name
-	// field. The consequence was reported immediately: the text typed into the popup's Game Name
+	//
+	//
+	// The consequence was reported immediately: the text typed into the popup's Game Name
 	// box became the host's PLAYER name, so their own slot in GAME OPTIONS showed the lobby's name
 	// instead of who they are.
 	//
@@ -5535,7 +5535,7 @@ void GXBuddyOverlayPump( void )
 	s_gxOverlay->runUpdate();
 }
 
-// ONLINE ONLY (owner, 25/09/2026): the relay lobby, a relay game room, a relay match. Offline - skirmish,
+// ONLINE ONLY: the relay lobby, a relay game room, a relay match. Offline - skirmish,
 // campaign, replay, a plain LAN match, the main menu - the key falls through to the meta map and a bare F5
 // recalls View 5 as it always did. The rule and why each fact is needed: GameClient/GXFriendsKey.h.
 Bool GXFriendsKeyHere( void )

@@ -517,7 +517,7 @@ void RecorderClass::updatePlayback() {
 	// shell records one such command (the shell player's MSG_ENABLE_RETALIATION_MODE, at f0 for player 0), so every AI
 	// group alive at the first checks - the start-of-game selection, the AI's first team groups - carried an id one
 	// higher than in the recording, and the replay reported REPLAY_CRC_MISMATCH from frame 0 until those groups were gone
-	// (wh1ter0se's 16/10 replays: f0-f1600 / f2200 / f2400; replay-start-crc-1). GAME_REPLAY is set only by the replay's own
+	// GAME_REPLAY is set only by the replay's own
 	// MSG_NEW_GAME (prepareNewGame), and clearGameData() puts GAME_NONE back - playbackFile() clears first - so this is
 	// FALSE exactly in that first update: the one that runs startNewGame() also runs this, after the load.
 	if (!m_doingAnalysis && TheGameLogic->getGameMode() != GAME_REPLAY)
@@ -996,7 +996,7 @@ void RecorderClass::writeToFile(GameMessage * msg) {
 
 	// GeneralsX: A moderator's kick rides MSG_SELF_DESTRUCT as a signed ticket naming the kicked player's relay
 	// address, the room and the moderator (GXKickTicket.h). The FILE keeps argument 0, the one the simulation reads, and nothing after it: a
-	// replay carries no address (wh1ter0se 04/11), and playback never shows a kick (gxKickShowLine). The message itself is untouched.
+	// replay carries no address, and playback never shows a kick (gxKickShowLine). The message itself is untouched.
 	if (type == GameMessage::MSG_SELF_DESTRUCT && msg->getArgumentCount() > 1)
 	{
 		const GameMessageArgumentDataType firstType = msg->getArgumentDataType(0);
@@ -1571,7 +1571,7 @@ Bool RecorderClass::replayMatchesGameVersion(const ReplayHeader& header)
 	return replayWaiverNeeded(header) >= 0;
 }
 
-// GeneralsX: wh1ter0se 01/10: a wrong-version replay is refused now, and a future launcher update
+// GeneralsX: a wrong-version replay is refused now, and a future launcher update
 // will play it with the build that recorded it (the StarCraft II model). So the refusal names that build: the header's
 // version string, plus the commit for a GENS14 file - the key a launcher would fetch the matching engine by.
 UnicodeString RecorderClass::describeRecordingBuild(const ReplayHeader& header)

@@ -1334,7 +1334,7 @@ namespace
 #endif
 	constexpr const Int kHudGapPx = 6;
 
-	// GeneralsX: A CEILING ON EVERY HUD NUMBER (owner: "limit those to something").
+	// GeneralsX: A CEILING ON EVERY HUD NUMBER.
 	//
 	// At size 72 the frame-rate readout drew "60 [60]" across a third of the screen and over the
 	// clock, and a HudAnchorY of 1079 on a 1080-line display started the stack on the last pixel row
@@ -3441,8 +3441,8 @@ static void gxFindUpgradeSeller( Object *o, void *userData )
  * opponents have teched into, which is intel the game deliberately does not give him.
  *
  * GeneralsX: Was playback only; an observer seat or a defeated player in a live
- * match now sees it from the first frame (the owner, spectating a live 6v6: "who's using what power
- * ups just like in a replay"). A player defeated mid-match sees upgrades from his defeat on; one
+ * match now sees it from the first frame.
+ * A player defeated mid-match sees upgrades from his defeat on; one
  * that completed earlier and is RE-granted later (Nationalism, per building) announces once, late -
  * the ledger only records what was shown. True, merely late, and it costs the playing path nothing.
  *
@@ -3505,12 +3505,12 @@ void InGameUI::announceUpgrade( Player *player, const UpgradeTemplate *upgrade )
 	// a replay that announces Worker Shoes has buried the Anthrax Beta three lines above it.
 	//
 	// Keyed on getUpgradeName(), the non-localised INI key, for the same reason the army labels are:
-	// display names are localised and matching them works in English only. Names verified against
-	// the Upgrade blocks in INIZH.big, RECOUNTED 24/08/2026 because this line used to say
-	// "sixty-eight" and that number is wrong: Data\INI\Upgrade.ini carries 82 `Upgrade <name>`
-	// headers, 81 of them distinct (SupW_Upgrade_AmericaPointDefenseDrone is declared twice), of
-	// which 69 use the bare Upgrade_ prefix and the rest are general-specific variants such as
-	// Nuke_Upgrade_ChinaFusionReactors. Data\INI\Default\Upgrade.ini adds DefaultUpgrade.
+	// display names are localised and matching them works in English only.
+	//
+	//
+	//
+	//
+	// Data\INI\Default\Upgrade.ini adds DefaultUpgrade.
 	//
 	// A new or modded upgrade is SILENT until it is added here. That is the deliberate cost of an
 	// allowlist over a blocklist, chosen because the failure mode runs the right way: a missing
@@ -7661,7 +7661,7 @@ void InGameUI::updateAndDrawWorldAnimations()
 			// scale the width and height given the camera zoom level
 			// TheSuperHackers @todo Rework this with sane values. scaler=1.3 originally came from TheTacticalView::getMaxZoom()
 			// GeneralsX: THE ZOOM RETAIL WOULD REPORT, AND THE GENTLE SHRINK ABOVE ITS CEILING
-			// (owner, 02/10/2026: the promotion chevrons - LevelGainedAnimation, 32x32 - "are too big"). This divided by
+			// This divided by
 			// plain getZoom(), which is height / the EFFECTIVE max camera height: with the camera allowed higher than retail's
 			// MaxCameraHeight the same view reports a smaller zoom, so every world animation (promotion, heal, crate cash) grew
 			// by effectiveMax / retailMax - about 3x at Extras' 1000, 10x at the Debug menu's 3000 - the bug the health bar,
@@ -8380,8 +8380,8 @@ void InGameUI::drawRenderFps(Int &x, Int &y)
 	}
 
 	// GeneralsX: THE BRACKET IS THE LIMIT AGAIN - the one max-FPS setting, "[0]"
-	// for unlimited, exactly as upstream and base Generals print it (wh1ter0se, 27/09: "the max FPS should not
-	// be dynamic; rather that's like the max fps limits that is set, [0] for unlimited").
+	// for unlimited, exactly as upstream and base Generals print it.
+	//
 	//
 	// From 24/09 it printed the most frames drawn in one second, best of the last 10 (gxPerfPeakFps, still
 	// in [GXPACE] as rfps_max): a number that moved on its own. It had replaced the limiter cap because in

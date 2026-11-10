@@ -1852,7 +1852,7 @@ Bool GameLogic::gxAdminOrderAccepted( const GameMessage *msg, const Player *send
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX: WHO OWNS A CHEAT SPAWN (wh1ter0se, 27/09): a spawn ordered BY a defeated player or an
+/** GeneralsX: WHO OWNS A CHEAT SPAWN: a spawn ordered BY a defeated player or an
 	* observer, or aimed AT one, makes "civilian" units - the Neutral player's, which nobody commands - so a player who is
 	* out of the game can still stock the map for the living, but never field units of their own or hand them to a live
 	* player. Neutral, not the map's PlyrCivilian: every slot player is set NEUTRAL to it (PlayerList::newGame), where
@@ -1863,7 +1863,7 @@ Bool GameLogic::gxAdminOrderAccepted( const GameMessage *msg, const Player *send
 	* fixed at the start), so every peer and a replay choose the same owner. The Debug menu asks the same question to say
 	* so before the click.
 	*
-	* GeneralsX: ...AIMED AT one only: the ORDERER's state no longer decides the owner. wh1ter0se 05/10:
+	* GeneralsX: ...AIMED AT one only: the ORDERER's state no longer decides the owner.
 	* "as an admin I need to be able to select a player from the cheats tab and then go to spawn and spawning a unit would
 	* assign in that player" - an admin watching as an observer, or one already defeated, got Neutral units instead.
 	* Whether an orderer may cheat at all is gxCheatTarget's gate (the sandbox, or a signed relay-proven admin), and no
@@ -1915,7 +1915,7 @@ static Player *gxCheatTarget( const GameMessage *msg )
 	Player *target = ThePlayerList->getNthPlayer( idx );
 
 	// GeneralsX: ...EXCEPT A SPAWN, which is not refused but made NEUTRAL: aimed at a defeated
-	// or observing player, its units go to the Neutral player (gxSpawnGoesNeutral, wh1ter0se 27/09; not by the orderer's state
+	// or observing player, its units go to the Neutral player (gxSpawnGoesNeutral, not by the orderer's state
 	// since 05/10). Checked before the refusal below, which every other order still meets unchanged.
 	if( msg->getType() == GameMessage::MSG_GX_CHEAT_SPAWN_UNIT && GameLogic::gxSpawnGoesNeutral( target ) )
 	{
@@ -2154,8 +2154,8 @@ bool GameLogic::onGxCheatRevealMap(MAYBE_UNUSED GameMessage *msg)
 	}
 	else
 	{
-		// GeneralsX: Re-shroud = lift the reveal, nothing more (wh1ter0se 07/10, 0.9.59: "turns it into
-		// darkness instead of the good original fog"). This used to copy MSG_META_DEMO_ENSHROUD (LookAtXlat.cpp:653) and
+		// GeneralsX: Re-shroud = lift the reveal, nothing more.
+		// This used to copy MSG_META_DEMO_ENSHROUD (LookAtXlat.cpp:653) and
 		// follow the undo with shroudMapForPlayer, which pulses addShrouder/removeShrouder on every cell and so turns
 		// every cell nobody is looking at from FOGGED (m_currentShroud 0) to SHROUDED (1): black, "never seen".
 		// The undo alone is the exact inverse of the reveal: removeLooker on a cell at -1 goes to min(activeShroudLevel,1),
@@ -2497,7 +2497,7 @@ bool GameLogic::onGxCheatSpawnUnit(MAYBE_UNUSED GameMessage *msg)
 	std::vector<ObjectID> spawnedIds;
 	const Int spawned = gxSpawnUnitsAround( target, tmpl, msg->getArgument( 2 )->location, count, vet, &spawnedIds );
 
-	// GeneralsX: NEUTRAL VEHICLES COME UNMANNED, so a living player can take them - wh1ter0se 27/09:
+	// GeneralsX: NEUTRAL VEHICLES COME UNMANNED, so a living player can take them
 	// spawned "as civilians, ready to enter / capture". A transport takes only its owner's units and hijacking needs an
 	// enemy (TransportContain::isValidContainerFor, ActionManager::canHijackVehicle), so a manned Neutral vehicle would be
 	// of no use to anyone. Unmanned is the engine's own "any infantry may crew it" state (ActionManager::canEnterObject;

@@ -326,7 +326,7 @@ Real FramePacer::getLogicTimeStepMilliseconds(LogicTimeQueryFlags flags) const
 
 // ------------------------------------------------------------------------------------------------
 // GeneralsX: FAST FORWARD - the whole match at k times its normal tick rate, for a match whose
-// only human is this player (wh1ter0se, 30/09: "sandboxed with 1 player as viewer and rest AIs ... 2x 3x 4x x5 10x").
+// only human is this player.
 //
 // IT IS PACING, NOT SIMULATION. The engine's invariant stays exactly as it is: at most one logic tick per main-loop
 // iteration, i.e. per GameClient::update - which refreshes shroud state the logic reads back (GameEngine::

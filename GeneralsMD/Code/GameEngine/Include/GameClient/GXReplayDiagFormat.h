@@ -2,7 +2,7 @@
 //
 // GeneralsX: The replay diagnostics block: the bytes, and the arithmetic of a timeline row.
 //
-// wh1ter0se 03/11/2026, after a tester reported "42 fps at times" and we asked for his replay: a replay said nothing about
+// and we asked for his replay: a replay said nothing about
 // HIS machine. This makes "send me the replay" the whole ask: build, renderer, settings, coarse machine facts and a 10 s
 // performance timeline travel inside the .rep. scripts/tooling/replay-info.py reads them.
 //

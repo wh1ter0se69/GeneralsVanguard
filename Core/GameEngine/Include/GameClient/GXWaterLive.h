@@ -1,4 +1,4 @@
-// GeneralsX: LIVE WATER, a client-only look option on top of clearer water (GXWaterClear.h). wh1ter0se 17/10:
+// GeneralsX: LIVE WATER, a client-only look option on top of clearer water (GXWaterClear.h).
 // "Clearer water looks nice just needs obvious animation and white glare to make it look like water and like wave water in
 // white". It is ON by default from 0.9.66 (gxWaterLiveOptionOn): Options.ini GXWaterLive = no turns it off, GXWaterLiveStrength
 // (0..1, default 1) scales it;
@@ -8,7 +8,7 @@
 //   motion (m)  standing water is a 150-unit tiling of TWWater01 whose coordinates wobble by 0.02 of a tile (3 units): a
 //               slosh back and forth, its u and v swings on different periods, so its direction wanders. Live water
 //               REPLACES that slosh with one flow per map (THE FLOW below): the tile drifts steadily along it, and a long
-//               swell travels along it, surging the surface forward - never backwards (drawTrapezoidWater). wh1ter0se 18/10, on
+//               swell travels along it, surging the surface forward - never backwards (drawTrapezoidWater).
 //               the first version, which amplified the slosh over the clear water's still sea floor: "why is the water
 //               moving so randomly fix it".
 //   glare  (g)  the retail ps.1.1 water shader already ADDS WaterSurfaceBubbles x Noise0000 - white specks where the noise is
@@ -28,7 +28,7 @@
 //   waves  (w)  EA's own breaking waves (the map's .wak file, wave256.tga - 25 stock maps, TournamentB among them) are drawn
 //               pure white at the texture's thin alpha: faint lines. Live water lights them like EA's own unused code meant to
 //               (W3DWaterTracks.cpp flush computes diffuseLight and never uses it) and doubles their alpha. And it grows them in
-//               (22/10, wh1ter0se: "the waves spawn out of nowhere"): retail breaks the whole coast in one frame as a full-white line;
+//               retail breaks the whole coast in one frame as a full-white line;
 //               live, each crest breaks when the swell reaches it, riding in from offshore and building smoothly (EA'S CRESTS).
 //
 // RENDER-ONLY. Every value here feeds texture coordinates, pixel-shader constants or vertex colours of render passes; nothing
@@ -582,8 +582,8 @@ inline void gxWaterLiveUphill(float dhx, float spanX, float dhy, float spanY, fl
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
-// THE BANK. GeneralsX: wh1ter0se 22/10, live water on a grass map with a pond and a river: "looks annoying
-// like that though looks weird" - a thin cream outline drawn along every shore, stair-stepped in close-up. The foam's band is a
+// THE BANK. GeneralsX:
+// - a thin cream outline drawn along every shore, stair-stepped in close-up. The foam's band is a
 // band of DEPTH (about -0.4 to 0.7 height units at full surge, gxWaterLiveFoamAlpha), so on the ground it is that depth over
 // the bank's slope wide. On TournamentB's beaches (median slope 0.35 at the water line) that is a few world units of swash; on
 // the cut banks of ponds and rivers (median 0.7 to 0.9: Mountain Guns, Killing Fields, Winding River, Tournament Lake) it is
@@ -740,8 +740,8 @@ inline int gxWaterLiveSplitTriangle(const GxFoamPt in[3], GxFoamPt out[9], int *
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
-// EA'S CRESTS, GROWN IN. GeneralsX: wh1ter0se 22/10, watching TournamentB with live water: "i dont like how
-// the waves spawn out of nowhere make it more natural spawning". Retail (W3DWaterTracks.cpp) gives every crest of a map ONE
+// EA'S CRESTS, GROWN IN. GeneralsX:
+// Retail (W3DWaterTracks.cpp) gives every crest of a map ONE
 // clock (SYNC_WAVES: each bindTrack resets them all) and rides a crest in as a sliver: a Pond crest (TournamentB's 921 are all
 // Pond) is 28 x 0.01 wide and 0.18 of that deep - 0.05 world units - while it approaches, and its alpha is already 1 the moment
 // it reaches the beach and starts to stretch. So the whole coast drew a sharp full-white line out of nothing in one frame

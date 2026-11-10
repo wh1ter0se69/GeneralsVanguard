@@ -111,8 +111,8 @@
 
 # GeneralsX: A DATED EXCEPTION to this file's rule: !!GXPropsHD.big does NOT move dataID
 # and is listed anyway. It is the HD (2x) texture pack for multiplayer-map props, vehicles and trees (batches
-# A+B, 2228 DDS; EA-derived art, never in git), and the owner wants it in every install with no toggle (wh1ter0se 11/10/2026:
-# "ship it by default without anything else to toggle"; 13/10/2026: "KEEP HD"). overlay-optional.txt would make it a launcher
+# A+B, 2228 DDS; EA-derived art, never in git), and the owner wants it in every install with no toggle.
+# overlay-optional.txt would make it a launcher
 # switch; this list is the only "everyone gets it" path the packagers have, so the exception is deliberate, not a drift.
 #   file  !!GXPropsHD.big  315,321,771 B  sha256 9157fe15bab248da86e9ca004714400f98cfb9635c6baf7b0689112f7874c2be
 #         (zipped 182.7 MB) - it must be in GX_PATCH_SRC on EVERY packaging and deploy host before this line reaches them,
@@ -127,7 +127,7 @@
 # Air M3 (8 GB), same G4 replay, in-process phys_footprint: peak 2.23 GB without it, 2.96 GB with it (+0.73 GB, paid at
 # load), per-app limit 5.37 GB, no jetsam (ipad/). A smaller iPad would need a memory-gated mount.
 # GeneralsX: THE SAME FILE NAME, NEW CONTENTS FOR 0.9.65: the 71 HD smoke/fire/explosion particle
-# textures (13/10, ~/gx-hd/fx/members71.txt; wh1ter0se 17/10 "yes all green": ship) are folded INTO !!GXPropsHD.big, so no
+# textures (13/10, ~/gx-hd/fx/members71.txt; ship) are folded INTO !!GXPropsHD.big, so no
 # list entry, launcher list or download artifact is added. They join as Art\Textures\*.dds next to the 2228 prop textures; no name was in
 # both (the four shared ones, exgrid/extnkmzl01/muzzflsh_front/muzzflsh_side, were already left out of the fx set), and the packer refuses
 # a duplicate. The 13/10 line above is the 0.9.64 file; THIS is the one packaging hosts need for 0.9.65 (the release step replaces it in
@@ -143,7 +143,7 @@
 # same measurement sees a data move. (A first F that removed CoreINI from the overlay only did NOT move: the Mini's retail dir carries a
 # copy, which then mounted - a control has to take the file out of every place the engine looks.)
 !!GXPropsHD.big
-# GeneralsX: THE SAME FILE NAME, NEW CONTENTS FOR 0.9.66 (wh1ter0se 18/10/2026 "more hd yes"): the 0.9.65
+# GeneralsX: THE SAME FILE NAME, NEW CONTENTS FOR 0.9.66: the 0.9.65
 # pack above (ef240ccf, 2299 entries) + 194 HD textures of the ORIGINAL art, made sharper, never restyled (Real-ESRGAN x4plus, palette-locked;
 # EA-derived, never in git; recipe):
 #   - 4 tank/tyre track decals (extiretrack, extiretrack2, extiretrack03, extnktrack; 4x). The track strip samples with WRAP, so they are
@@ -167,12 +167,12 @@
 # maps (MapsZH incl. campaign, the shipped and test maps) the worst, MD_CHI03, goes 51 -> 198 tiles, atlas 512 -> 1024 px (+4 MiB RGBA8).
 # The release step replaces !!GXPropsHD.big in GX_PATCH_SRC on every packaging host (an old host ships 0.9.65's pack: joins, stock look).
 
-# GeneralsX: THE SAME DATED EXCEPTION for !!GXModelsHD.big: the 3D model pack (wh1ter0se 16-17/10:
-# "everything we have worked on should be in one build"). Rewritten EA models, never in git: round wheels/tyres/drums/pillars/domes
-# (look-models AC, pack ac5, China buildings left stock - wh1ter0se 14/10), fused round parts + tank running gear (look-models B, Crusader end
-# wheels B-4), sandbag walls with real bags + recessed doors/windows (look-models E, ROUNDED - wh1ter0se 17/10), every part that sits on a
-# faceted part kept faceted (wh1ter0se 14/10 "round both or leave both": census_mate.py = 0), plus the 2x HD of the stock barbed-wire
-# texture pmbarbwire.dds (wh1ter0se 17/10: "the old one ... just more detail"). Only MESH chunks differ from EA's files; bones, HLODs and
+# GeneralsX: THE SAME DATED EXCEPTION for !!GXModelsHD.big: the 3D model pack.
+# Rewritten EA models, never in git: round wheels/tyres/drums/pillars/domes
+# (look-models AC, pack ac5, China buildings left stock), fused round parts + tank running gear (look-models B, Crusader end
+# wheels B-4), sandbag walls with real bags + recessed doors/windows (look-models E, ROUNDED), every part that sits on a
+# faceted part kept faceted, plus the 2x HD of the stock barbed-wire
+# texture pmbarbwire.dds. Only MESH chunks differ from EA's files; bones, HLODs and
 # animations are byte-identical (compose_pack.py refuses otherwise) and no bridge model is touched (bridges are the one place mesh
 # vertices reach the simulation). It does NOT move dataID (models are outside the fingerprint; measured below) and ships to everyone with
 # no toggle, exactly like !!GXPropsHD.big above; a peer without it joins and plays the same simulation (LP6 replay gate below).
@@ -195,7 +195,7 @@
 #     Mini S  0.9.65 install incl. !!GXPropsHD.big   data=6CA2CCD9  data-ini=442969AD  data-loose=9192BB35  asset=7C8EF803
 #     Mini P  S + this archive (v1 = models only)   data=6CA2CCD9  data-ini=442969AD  data-loose=9192BB35  asset=A0F95B2E
 #   LP6 on S and on P: REPLAY_CRC_MISMATCH 0 to the score screen, [GXHP] identical (f0-39540 eeec5163, whole game 2547a005); Windows x64
-#   (wh1ter0se's PC, same source + test hooks): P 0 mismatches to the score screen, [GXHP] f0-39540 eeec5163. FAIL ARM (v1 + 387 models with
+#   P 0 mismatches to the score screen, [GXHP] f0-39540 eeec5163. FAIL ARM (v1 + 387 models with
 #   weapon-launch pivots +0.5): mismatch at f11207 - the gate does see a model change that reaches the simulation. A second archive of
 #   the same name with different bytes read the same asset=A0F95B2E (the basename-only fingerprint above).
 #   Cost, wh1ter0se's PC (1440p, CCD0 pin, n=4+4 ABBA ABBA, R1 frame interval): no attributable cost (+0.3% within the fast machine state;

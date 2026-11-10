@@ -203,7 +203,7 @@ constexpr const UnsignedInt MAX_CLOSEST_PATH_INFO_COUNT = 5000;
 // cac8ebc65 also stopped it at 5000 infos taken per search (MAX_INTERNAL_PATH_INFO_COUNT). That
 // share turned reachable goals into failures - this search knows only "the goal", so it returns
 // nullptr, and the bounded findClosestPath fallback answers with the best cell it has seen, which
-// for a goal across a cliff is the cliff edge (wh1ter0se's W11 report, 27/09/2026). The WHAT TRUNCATION
+// for a goal across a cliff is the cliff edge. The WHAT TRUNCATION
 // COSTS argument the share was written with ("the fallback that already exists answers instead")
 // holds for an unreachable goal and fails for a reachable one. Measured on W5's w5g1 game with the
 // hierarchical scan fixed (processHierarchicalCell): 730 findPath failures cut by the share and 563
@@ -9052,8 +9052,8 @@ void Pathfinder::processHierarchicalCell( const ICoord2D &scanCell, const ICoord
 		// in 7,864 longer ones. Every caller then called setAllPassable() and searched the WHOLE map at cell
 		// level, and a goal just across a long ridge (409-442 cells round for 17-88 cells straight) needs
 		// more of the 30,000-info pool than exists: findPath failed, the findClosestPath fallback answered
-		// with the ridge edge, and AI armies parked along both ridges re-pathing every 2 s (wh1ter0se, 27/09/2026:
-		// "they are trying to go over a cliff"). That failure is independent of GeneralsX's search bounds: the
+		// with the ridge edge, and AI armies parked along both ridges re-pathing every 2 s.
+		// That failure is independent of GeneralsX's search bounds: the
 		// same ridge test fails on the port's own August builds with no bound at all.
 		// Generals' copy of this line - examine the cell, allocate it below, skip it only if it was already
 		// looked at - is what Zero Hour gets now. The allocation below already tolerates an empty pool

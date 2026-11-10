@@ -70,9 +70,9 @@
 
 //=============================================================================
 // GeneralsX: THE REMASTERED GROUND, slice 1 (productised from
-// test/look-ground-2 4fe7f0db9, itself grown from per-pixel relief; wh1ter0se 14/10 "new ground looks
-// better"). The switch, its A/B override, the vetoes and the governor steps are GameClient/GXGroundSteps.h: Options.ini
-// GXGround = yes (absent = kGxGroundKeyDefault: ON since wh1ter0se 17/10), GX_GROUND = off | "shade,blend,detail,macro,noise". OFF = today's ground byte for byte: nothing
+// test/look-ground-2 4fe7f0db9, itself grown from per-pixel relief)
+// The switch, its A/B override, the vetoes and the governor steps are GameClient/GXGroundSteps.h: Options.ini
+// GXGround = yes (absent = kGxGroundKeyDefault: ON since), GX_GROUND = off | "shade,blend,detail,macro,noise". OFF = today's ground byte for byte: nothing
 // is built, nothing is drawn, no device call differs. Client-only: this file is outside the SimID digest
 // (resources/gitinfo/simdigest_exclusions.txt), and nothing here is read by the simulation.
 // The 2003 ground read as flat wallpaper for four reasons: one light value per

@@ -182,7 +182,7 @@ struct DebugSliderSpec
 // still shipped and still works; this screen is the new home for the same five settings.
 static const DebugSliderSpec s_sliderSpecs[ DBG_NUM_SLIDERS ] =
 {
-	// GeneralsX: Owner: max up to 10000 (was 3000; owner 30/09: "zoom past 3k"), min down to 10 - beyond the launcher's 1000 / 50, so
+	// GeneralsX: Owner: max up to 10000 (was 3000), min down to 10 - beyond the launcher's 1000 / 50, so
 	// Apply marks a pair outside that range (View::setPrefDebugCameraHeights) and it holds across a restart.
 	// GeneralsX 27/09/2026 Owner: Defaults restore Generals Online's 310 / 100 (was this screen's own 500 / 80).
 	{ "DebugMenu:SliderMaxCameraHeight", L"Max camera height",	"MaxCameraHeight",	View::CameraMaxHeightLo, View::DebugCameraMaxHeightHi, 310 },
@@ -1217,7 +1217,7 @@ static GameMessage *beginCheatOrder( GameMessage::Type type, Int &targetOut )
 	// own "alive and not observing" (Player.h), the same test the status line prints DEAD from.
 	// Reveal / Re-shroud stay allowed: showing a defeated player the map is how they watch the rest.
 	// GeneralsX: So does Spawn: the simulation makes its units civilians - the Neutral player's,
-	// vehicles unmanned - instead of refusing it (GameLogic::gxSpawnGoesNeutral, wh1ter0se 27/09). Delete and the rest stay refused.
+	// vehicles unmanned - instead of refusing it (GameLogic::gxSpawnGoesNeutral). Delete and the rest stay refused.
 	if( type != GameMessage::MSG_GX_CHEAT_REVEAL_MAP && type != GameMessage::MSG_GX_CHEAT_SPAWN_UNIT )
 	{
 		const Player *p = ( ThePlayerList != nullptr ) ? ThePlayerList->getNthPlayer( target ) : nullptr;
@@ -2174,9 +2174,9 @@ static void refreshSpawnTarget( void )
 	UnicodeString text;
 	const WideChar *inactive = cheatTargetInactiveWord( p );
 	// GeneralsX: Spawn stays live and makes civilians - the Neutral player's, vehicles unmanned -
-	// when the target is out of the game (GameLogic::gxSpawnGoesNeutral, wh1ter0se 27/09); said here, before the click. Delete
+	// when the target is out of the game (GameLogic::gxSpawnGoesNeutral); said here, before the click. Delete
 	// still refuses such a target. GeneralsX: Whether YOU are observing or defeated no longer
-	// matters: the target owns what you spawn (wh1ter0se 05/10).
+	// matters: the target owns what you spawn.
 	if( inactive != nullptr )
 		text.format( L"Target %d  %s is %s - Spawn makes civilians (Neutral), Delete stays greyed   (change it on the Cheats tab)",
 								 target, cheatTargetName( target ).str(), inactive );

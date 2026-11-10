@@ -2770,8 +2770,8 @@ void ConnectionManager::updateRunAhead(Int oldRunAhead, Int frameRate, Bool didS
 			// max() picks the same value the clamp already used.
 			//
 			// GeneralsX: THE CEILING MUST NOT BE ABOVE THE TICK RATE EITHER.
-			// This line used to read max(m_framesPerSecondLimit, LOGICFRAMES_PER_SECOND), and that
-			// max() is how the simulation learned to sprint.
+			//
+			//
 			//
 			// A logic frame IS 1/LOGICFRAMES_PER_SECOND of game time - SECONDS_PER_LOGICFRAME_REAL,
 			// and every duration in the INI is denominated in it. Negotiating a rate ABOVE the tick

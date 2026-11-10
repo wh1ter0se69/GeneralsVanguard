@@ -159,7 +159,7 @@ void W3DShroud::init(WorldHeightMap *pMap, Real worldCellSizeX, Real worldCellSi
 	srcHeight=m_numCellsY;
 	srcHeight += 1;
 
-	// GeneralsX: FOG INTERPOLATION IS A CLIENT OPTION, ON BY DEFAULT (wh1ter0se 13/10).
+	// GeneralsX: FOG INTERPOLATION IS A CLIENT OPTION, ON BY DEFAULT.
 	// Retail compiled it out (DO_FOG_INTERPOLATION): each shroud cell's DRAWN level fades toward its logical level at
 	// FOG_INTERPOLATION_RATE (black to lit in ~1 s of render time) instead of snapping. Render-only: the logical shroud is
 	// PartitionManager's, and this file is outside the SimID digest (resources/gitinfo/simdigest_exclusions.txt). The cost:

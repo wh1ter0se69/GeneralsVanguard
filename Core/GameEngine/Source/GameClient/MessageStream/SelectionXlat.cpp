@@ -784,10 +784,10 @@ GameMessageDisposition SelectionTranslator::onMouseLeftDoubleClick(MAYBE_UNUSED 
 			// isSelectable() lets objects that may never be part of a multi-unit group back
 			// into the group. Upstream TheSuperHackers PR #3169, sha 4f9fafe62.
 			//
-			// NOT a null-deref fix, which an earlier draft of this comment claimed: both twins'
-			// Drawable::isSelectable() is already "return getObject() && getObject()->isSelectable();"
-			// (Drawable.cpp), so the old predicate guaranteed the non-null Object that
-			// draw->getObject()->getID() below needs, exactly as isMassSelectable() does. The
+			//
+			//
+			//
+			// The
 			// change is about group membership only.
 			if (draw && draw->isMassSelectable()) {
 				TheInGameUI->selectDrawable(draw);

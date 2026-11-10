@@ -638,8 +638,8 @@ struct LANMessage
 			// true. GameInfo 437, GameToJoin 103, GameNotJoined 102, GameJoined 90, LANMessage
 			// still exactly 471. 334 dead bytes remain behind GameInfo.
 			//
-			// STALE AS OF 12/08/2026, corrected 14/08/2026 - and this is exactly the drift the
-			// paragraph above predicted. MAX_LANAPI_PACKET_SIZE went 476 -> 768 for the twelve-slot
+			//
+			// MAX_LANAPI_PACKET_SIZE went 476 -> 768 for the twelve-slot
 			// announce, and `options` (:449, :582) is sized `m_lanMaxOptionsLength+1`, which is
 			// derived from that budget (:54). So the budget-dependent member grew by 292 bytes
 			// (m_lanMaxOptionsLength 400 -> 692) and sizeof(LANMessage) went 471 -> ~763.

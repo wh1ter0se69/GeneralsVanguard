@@ -120,7 +120,7 @@ on|340_ControlBarPro1440ZH.big|ControlBar Pro - 1440 layout
 # it now; iOS still does not, and it produces no CDN artifact either.
 on|!GXUI.big|GeneralsX UI layouts (adds the Confirm Password field to Host Game)
 # GeneralsX: !GXUIHD.big: hand-drawn 7x16 / 10x24 occupancy pips for renders 1440p and taller
-# (owner, 03/10/2026). BUILT, like !GXUI.big, but from nothing: scripts/build/make-gxuihd-archive.py draws the art in its
+# BUILT, like !GXUI.big, but from nothing: scripts/build/make-gxuihd-archive.py draws the art in its
 # own grids, so no install is read and every box writes the same bytes. Two members, Art\Textures\GXUIHD_Pips.tga and
 # Data\INI\MappedImages\TextureSize_512\GXUIHD.ini - MappedImages and textures are outside the SimID fingerprint, so
 # dataID does not move (re-measured for this archive). Off, or absent on an older
@@ -137,8 +137,8 @@ on|!GXUIHD.big|Sharper unit pips at 1440p and 4K (hand-drawn, original colours)
 # Default on and never flip it later (see the note above on flipped defaults).
 on|!!GXEmblemHD.big|HD faction emblems (upscaled, original colours)
 # GeneralsX: !GXUISide.big: the control bar's side buttons (Options, Idle Worker, Chat, Beacon, the General's
-# star button) and the General's experience ladder in the player HUD's navy-and-steel look (owner, 08/10/2026: "rebranded with our
-# new stuff for GeneralsX UI"). Built like !GXUIHD.big, from nothing, by scripts/build/make-gxsidebar-archive.py. It REDEFINES 137 existing
+# star button) and the General's experience ladder in the player HUD's navy-and-steel look.
+# Built like !GXUIHD.big, from nothing, by scripts/build/make-gxsidebar-archive.py. It REDEFINES 137 existing
 # MappedImage names (retail SA*/SN*/SU*, Control Bar Pro <Faction>Pro*/ObserverPro*, GenExpBar*) and adds none; MappedImages and textures are
 # outside the SimID fingerprint (probe-dataid.sh with and without it: see the handback), so turning it off changes nothing for joining.
 on|!GXUISide.big|GeneralsX look for the side buttons and the General's ladder

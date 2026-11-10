@@ -920,7 +920,7 @@ void Locomotor::setPhysicsOptions(Object* obj)
 	// GeneralsX: a per-frame friction fraction added on top of the (halved)
 	// template friction: halved with it, as PhysicsUpdate's friction constants are.
 	// GeneralsX: except aircraft, which keep the per-30-Hz-frame 0.5 as
-	// Generals Online does: see gxGripScale in PhysicsUpdate.cpp (owner, 04/10: "use go's ... for jets").
+	// Generals Online does: see gxGripScale in PhysicsUpdate.cpp.
 	const Real EXTRA_FRIC = obj->isKindOf(KINDOF_AIRCRAFT) ? 0.5f : 0.25f;
 #else
 	const Real EXTRA_FRIC = 0.5f;

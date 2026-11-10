@@ -476,7 +476,7 @@ void W3DView::buildCameraTransform( Matrix3D *transform, const Vector3 &sourcePo
 
 //-------------------------------------------------------------------------------------------------
 // TheSuperHackers @info Original logic responsible for zooming the camera to the desired height.
-// GeneralsX: wh1ter0se 17/10 ("the camera not to go that low over a gorge", then on the pictures "zoom
+// GeneralsX: ("the camera not to go that low over a gorge", then on the pictures "zoom
 // still needs a bit more zoom out"): the zoom height counts from the ground at the look-at point and the camera body sits
 // well behind that point, so looking into a valley next to a cliff the body came within 33 units of the rim behind it (his
 // 17/10 replay: retail's rule gives the same). The desired zoom is now raised
@@ -907,7 +907,7 @@ Real W3DView::getCameraOffsetZ() const
 // camera height (host limits) where retail used MaxCameraHeight (310). With the camera allowed higher,
 // the same view reports a smaller zoom, and everything drawn at "size / zoom" in pixels - the health
 // bar, the ammo pips, the veterancy chevron, the formation marker - grew by effectiveMax / retailMax:
-// long thin lines over tiny infantry (owner, 2026-09-25: "use the original game's health bar").
+// long thin lines over tiny infantry.
 // Rescaled from the LIVE zoom and the live offset, so it cannot lag a frame behind a zoom the way the
 // cached height above ground does. A scripted camera keeps its own offset in retail too
 // (getCameraOffsetZ's PRESERVE_RETAIL_SCRIPTED_CAMERA branch), so it keeps plain zoom.
@@ -1846,7 +1846,7 @@ void W3DView::update()
 	// movePivotToGround) run once per DRAW, so they step by the time since the last draw. They stepped by the pacer's last
 	// ITERATION, the same time at 1x, but fast forward draws 1 iteration in k (FramePacer::isFastForwardDrawDue) and a
 	// network catch-up pass skips a draw too: the zoom eased at 1/k speed and near-stopped after a slow draw ("moving/
-	// zooming ... buggy and freezing" - wh1ter0se, 03/10). GameClient/CameraStepPolicy.h, scripts/test/camera-step-test.sh.
+	// zooming ... buggy and freezing"). GameClient/CameraStepPolicy.h, scripts/test/camera-step-test.sh.
 	// Under GX_SHOT capture every iteration draws and the capture clock steps it, as before.
 	{
 		const double loopNow = gxRenderLoopSeconds();
@@ -1960,8 +1960,8 @@ void W3DView::update()
 		{
 			// GeneralsX: Cb-06a: every easing of the lock below was a fixed share per DRAW, so the camera
 			// caught its target 4x as fast at 240 fps as at 60. Each now covers the draw's 60 fps reference frames (gxRef, from
-			// m_drawFpsRatio; GameClient/GXClientAnimPolicy.h): at any fps the path in time this game drew at 60 fps (wh1ter0se:
-			// "def 60 fps"). The ramp steps in WHOLE reference frames, as it stepped once per 60 fps draw: a ramp growing
+			// m_drawFpsRatio; GameClient/GXClientAnimPolicy.h): at any fps the path in time this game drew at 60 fps.
+			// The ramp steps in WHOLE reference frames, as it stepped once per 60 fps draw: a ramp growing
 			// every draw held more strength on average and arrived 6-15% early at 240 fps (measured 29/10, run set runs2).
 			// Its carry starts a tenth of a frame in: a 60 fps cap really draws at 59-61 fps, and from 0 the ramp fell a
 			// whole step behind there (client-anim-policy-test.sh: 0.12 off today's path from 0, 0.015 from 0.1).
@@ -3018,8 +3018,8 @@ void W3DView::setCameraHeightAboveGroundLimitsToDefault(Real heightScale)
 	Real effectiveMinHeight, effectiveMaxHeight;
 	getEffectiveCameraHeightLimits(&effectiveMinHeight, &effectiveMaxHeight);
 	m_maxHeightAboveGround = effectiveMaxHeight * aspectRatioScale * heightScale;
-	// GeneralsX: Only the MAX takes the aspect allowance, as in Generals Online (owner: "min/max
-	// zoom must match Generals Online's"): GO scales m_maxHeightAboveGround alone (GameClient W3DView.cpp setDefaultView,
+	// GeneralsX: Only the MAX takes the aspect allowance, as in Generals Online:
+	// GO scales m_maxHeightAboveGround alone (GameClient W3DView.cpp setDefaultView,
 	// 1 + (w/h - 4/3)) and its view takes the min height unscaled (View.cpp View::init). Scaling the min too left a
 	// 16:9 player unable to zoom in past 144 for a setting of 100 - a widescreen zooms OUT further, not in less.
 	m_minHeightAboveGround = effectiveMinHeight;
@@ -3075,7 +3075,7 @@ void W3DView::setZoom(Real z)
 void W3DView::setZoomToMax()
 {
 	// default zoom has to be max, otherwise players will just zoom to max always
-	// GeneralsX: The start rises with the max, as in Generals Online (owner, 26/09/2026): GO
+	// GeneralsX: The start rises with the max, as in Generals Online: GO
 	// starts a match at m_defaultMaxHeightAboveGround, which setDefaultView makes the max itself, aspect allowance
 	// included (GameClient ecb828ebd, Core/GameEngineDevice/Source/W3DDevice/GameClient/W3DView.cpp:2295 and :2304,
 	// setZoomToDefault :2349). So 447.8 at 16:9 for the default 310, 1444.4 for 1000, 4333.3 for the Debug menu's 3000.

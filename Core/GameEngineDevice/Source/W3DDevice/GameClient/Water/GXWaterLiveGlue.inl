@@ -589,8 +589,8 @@ static GxWaterLiveUV gxWaterLiveFrameUV()
 	return uv;
 }
 
-// Over retail's vertex: the water tile carried by the flow (it REPLACES retail's slosh - wh1ter0se 18/10, "why is the water moving
-// so randomly"), and the glints' own coordinates carried the same way. Called only while motion or glare is on, so the retail
+// Over retail's vertex: the water tile carried by the flow (it REPLACES retail's slosh)
+// and the glints' own coordinates carried the same way. Called only while motion or glare is on, so the retail
 // vertex is untouched otherwise.
 static inline void gxWaterLiveVertex(VertexFormatXYZNDUV2 *vb, Real x, Real y, const GxWaterLiveUV &live)
 {

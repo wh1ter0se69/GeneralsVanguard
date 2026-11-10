@@ -82,7 +82,7 @@ namespace GXGraphics
 	Bool shadowMap();
 	Int shadowMapStepPin();
 	// GeneralsX: alpha-to-coverage under the existing MSAA (PREREG A108):
-	// GXAlphaToCoverage = yes | no (default YES, wh1ter0se 21/10/2026), env twin GX_A2C (TEST-ONLY), read ONCE with the rest. The native device acts on it only
+	// GXAlphaToCoverage = yes | no (default YES), env twin GX_A2C (TEST-ONLY), read ONCE with the rest. The native device acts on it only
 	// when the session is multisampled at creation (MSAA 2x and above); classic ignores it.
 	Bool alphaToCoverage();
 	enum LookFeature { LOOK_SHADOWMAP = 1, LOOK_A2C = 2 };
