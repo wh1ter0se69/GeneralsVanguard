@@ -545,7 +545,13 @@ static void gxDrawCheckPlant()
 	if (s_n < 0)
 	{
 		s_n = 0;
+		// GeneralsX: Only an instrumented build reads it: it reported any object's existence and model
+		// state by id, an enemy's under the shroud included.
+#if defined(GX_TEST_INSTRUMENTS)
 		const char *v = getenv("GX_TEST_DRAWCHECK_PLANT");
+#else
+		const char *v = nullptr;
+#endif
 		char w = 0; unsigned f = 0; int id = 0, used = 0;
 		while (v != nullptr && s_n < 4 && sscanf(v, "%c:%u:%d%n", &w, &f, &id, &used) == 3)
 		{

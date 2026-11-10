@@ -93,7 +93,13 @@ static Bool gxDrawDbgEnabled()
 	static Int s_on = -1;
 	if (s_on < 0)
 	{
+		// GeneralsX: Only an instrumented build reads it: it logged hidden enemy objects' identities
+		// and states. Outside every GX-SIMID region.
+#if defined(GX_TEST_INSTRUMENTS)
 		const char *e = getenv("GX_DRAWDBG");
+#else
+		const char *e = nullptr;
+#endif
 		s_on = (e != nullptr && *e != '\0' && *e != '0') ? 1 : 0;
 	}
 	return s_on != 0;

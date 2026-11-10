@@ -88,7 +88,13 @@ namespace
 		static Int s_gate = -1;
 		if( s_gate < 0 )
 		{
+			// GeneralsX: Only an instrumented build reads it: GX_HOSTCAM=0 turned the host's camera
+			// limits off in a live online match - the zoom hack this module exists to close (N4).
+#if defined(GX_TEST_INSTRUMENTS)
 			const char *v = getenv( "GX_HOSTCAM" );
+#else
+			const char *v = nullptr;
+#endif
 			s_gate = ( v && atoi( v ) == 0 ) ? 0 : 1;
 			fprintf( stderr, "[GXHCAM] host camera override = %s\n", s_gate ? "on" : "off (GX_HOSTCAM=0)" );
 			fflush( stderr );

@@ -1696,7 +1696,13 @@ void Drawable::flashAsSelected( const RGBColor *color ) ///< drawable takes care
 // Diagnostic only: it reads what was drawn and writes nothing but stderr.
 static Bool gxInterpStatsOn()
 {
+	// GeneralsX: Only an instrumented build: its counts are every drawable's, an enemy's under the
+	// fog included. Outside every GX-SIMID region.
+#if defined(GX_TEST_INSTRUMENTS)
 	static const Bool s_on = getenv("GX_INTERP_STATS") != nullptr;
+#else
+	static const Bool s_on = FALSE;
+#endif
 	return s_on;
 }
 
@@ -1878,7 +1884,13 @@ struct GXPosePubStats
 static GXPosePubStats s_gxPosePub;
 static Bool gxPosePubStatsOn()
 {
+	// GeneralsX: The [GXPOSEPUB] line is only an instrumented build's: updates / active / walks
+	// count every drawable, an enemy's under the fog included. GX_POSEPUB_CHECK's check still runs.
+#if defined(GX_TEST_INSTRUMENTS)
 	static const Bool s_on = getenv("GX_POSEPUB_STATS") != nullptr || gxPosePubCheck() != 0;
+#else
+	static const Bool s_on = FALSE;
+#endif
 	return s_on;
 }
 

@@ -21,6 +21,7 @@
 #include "GameClient/GXPlayerIdentity.h"
 #include "GameClient/GXIdentityAssertion.h"
 #include "GameClient/GXScopedWipe.h"	// the sign-in's stack and stdio copies are wiped
+#include "GameClient/GXPrivateFile.h"	// the assertion is written owner-only
 #include "Common/GlobalData.h"
 
 // GeneralsX: Gate on SAGE_USE_SDL3, not SAGE_UPDATE_CHECK. SDL3 is what
@@ -173,7 +174,7 @@ Bool acceptDelivery(const char *assertion)
 	// hands the stream this array instead, and the guard wipes it on every way out of this function.
 	char iobuf[512];
 	GXScopedWipe wipeIo(iobuf, sizeof(iobuf));
-	FILE *fp = fopen(tmp.str(), "wb");
+	FILE *fp = gxOpenPrivate(tmp.str(), "wb");	// GeneralsX @security 10/11/2026: owner-only, not 0644 (GXPrivateFile.h)
 	Bool wrote = FALSE;
 	if (fp != NULL)
 	{

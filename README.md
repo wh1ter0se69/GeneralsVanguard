@@ -6,8 +6,8 @@ all three join the same match through a relay server. The iPhone/iPad build play
 testing and has no public download.
 
 This repository holds the source of each published release as one snapshot commit, tagged with its version. The
-current tag, `v0.9.71`, is the source of the 0.9.71 release and was cut from development commit
-`bfeca14d0223e62b936141e1f22a2e37b1bd68c5`; [SOURCE.md](SOURCE.md) lists exactly what differs from that commit.
+current tag, `v0.9.72`, is the source of the 0.9.72 release and was cut from development commit
+`aaf44a2a421352c89877868ed55a5d803af477d2`; [SOURCE.md](SOURCE.md) lists exactly what differs from that commit.
 Downloads and release notes: [wh1ter0se.dev/generals](https://wh1ter0se.dev/generals) and
 [wh1ter0se.dev/generals/changes](https://wh1ter0se.dev/generals/changes).
 
@@ -44,19 +44,19 @@ Most of this code is not ours, and the projects it comes from did the foundation
 
 ### Lines of code by origin
 
-Engine C/C++ in `v0.9.71` (`Core/`, `Generals/`, `GeneralsMD/`, `Dependencies/`), each line counted toward the
+Engine C/C++ in `v0.9.72` (`Core/`, `Generals/`, `GeneralsMD/`, `Dependencies/`), each line counted toward the
 earliest project that already has it:
 
 | Engine C/C++ | Lines | Share |
 |---|---:|---:|
-| EA's 2003 release | 1,408,541 | 71.0% |
-| TheSuperHackers | 216,105 | 10.9% |
-| Fighter19 / fbraz3 / ammaarreshi, not in upstream | 27,978 | 1.4% |
-| This fork | 331,804 | 16.7% |
-| **Total** | **1,984,428** | |
+| EA's 2003 release | 1,408,502 | 71.0% |
+| TheSuperHackers | 216,136 | 10.9% |
+| Fighter19 / fbraz3 / ammaarreshi, not in upstream | 27,209 | 1.4% |
+| This fork | 332,937 | 16.8% |
+| **Total** | **1,984,784** | |
 
 Of this fork's lines, 45,529 are vendored third-party code, 29,676 are generated shader bytecode and 34,839 are
-tests; 221,760 are hand-written engine code. Method, the commits compared and the command to reproduce it:
+tests; 222,893 are hand-written engine code. Method, the commits compared and the command to reproduce it:
 [docs/LINES_BY_ORIGIN.md](docs/LINES_BY_ORIGIN.md).
 
 ## How it is built
@@ -117,7 +117,7 @@ cmake --build --preset win64 --target z_generals   # RelWithDebInfo, the configu
 untouched; packaging and the installer are in `scripts/build/windows/`. The GeneralsX Launcher and its updater are
 separate programs and are not part of this repository; the game builds and runs without them.
 
-A game built from the `v0.9.71` tag cannot play with the published 0.9.71: publishing edited comments in files the
+A game built from the `v0.9.72` tag cannot play with the published 0.9.72: publishing edited comments in files the
 simulation's source id is computed from, so the two refuse each other. [SOURCE.md](SOURCE.md) has the numbers and
 how to check that only comments differ; from the next release on, the tag is the tree the binaries were built from.
 

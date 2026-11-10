@@ -25,12 +25,33 @@
     "generalszh.exe",
     "GeneralsXZH",
     "libsage_patch*",
-    "GeneralsXLauncher.exe",
     "GeneralsXUpdate.exe",
-    "generals-x-launcher",
     "GeneralsX"
    ],
    "note": "Your copy of LICENSE.md (GPL-3 plus EA's additional terms) travels next to this file and governs the program itself."
+  },
+  {
+   "id": "generalsx-launcher",
+   "name": "GeneralsX Launcher",
+   "version": "this release",
+   "license": "GeneralsX Launcher terms (below); a separate program, not covered by the GPL",
+   "url": "https://wh1ter0se.dev/generals/download/",
+   "copyright": [
+    "Copyright 2026 GeneralsX contributors"
+   ],
+   "platforms": [
+    "macos",
+    "linux",
+    "windows"
+   ],
+   "where": "the launcher: GeneralsXLauncher.exe on Windows, the GeneralsX Launcher app on macOS, the launcher AppImage (generals-x-launcher) on Linux. It downloads and starts the game; it is not part of the game. The Windows updater GeneralsXUpdate.exe is part of the game's entry above",
+   "texts": [],
+   "files": [
+    "GeneralsXLauncher.exe",
+    "generals-x-launcher",
+    "GeneralsX Launcher"
+   ],
+   "note": "Free to use and to share unmodified. Source not published. You may reverse-engineer it to debug its use of the LGPL libraries it bundles. The Rust crates (section 3), fonts and, on Linux, Debian/Ubuntu packages (section 2) it is built from or bundles stay under their own licences."
   },
   {
    "id": "lzo",

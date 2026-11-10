@@ -58,6 +58,7 @@
 #include "GameClient/CodeGuiSearchField.h"
 #include "GameClient/CommandXlat.h"
 #include "GameClient/DebugMenu.h"
+#include "GameClient/GXDebugIntelGate.h"	// GeneralsX @security who may read other players' state off this menu
 #include "GameClient/GXSpectatorFeed.h"
 #include "GameClient/GXAdminKey.h"	// GeneralsX @security the admin's match key, for the refusal line
 #include "GameClient/Display.h"
@@ -321,6 +322,7 @@ static GameWindow *s_buttonSpawnDeleteAll		= nullptr;
 // Players tab - a grid of labels, because CodeGuiListbox hard-codes one column.
 static GameWindow *s_plCell[ DBG_PL_COLS ][ DBG_PL_ROWS ] = { { nullptr } };
 static Int				 s_plRowsShown												= 0;
+static GameWindow *s_plRefusal													= nullptr;	///< over the first row, shown only while the table is withheld
 
 // Camera (the five ported Extras sliders)
 static GameWindow *s_slider[ DBG_NUM_SLIDERS ]			= { nullptr };
@@ -444,13 +446,42 @@ static const WideChar *debugSyncedCheatsRefusal( void )
 //-------------------------------------------------------------------------------------------------
 /** Client-only debug toggles - the radar force-on and the read-only player panel.
 	*
-	* Nothing behind this gate touches logic state, so a network game is not a reason to refuse. */
+	* Nothing behind this gate touches logic state, so a network game is not a reason to refuse ON SYNC GROUNDS.
+	* GeneralsX: It is on FAIRNESS grounds: what these tools show is what the fog of war and
+	* the build order hide, so anything that reads ANOTHER player's state also asks debugOthersRefusal() below. */
 //-------------------------------------------------------------------------------------------------
 static Bool debugClientToolsAllowed( void )
 {
 	return ( TheGameLogic != nullptr && TheGameLogic->isInGame() &&
 					 TheGameLogic->isInShellGame() == FALSE &&
 					 ThePlayerList != nullptr && ThePlayerList->getLocalPlayer() != nullptr );
+}
+
+//-------------------------------------------------------------------------------------------------
+/** GeneralsX: May this menu show OTHER players' state? Null when it may, else the reason.
+	*
+	* Asked by everything here that reads another player: the Players tab, Force radar, the Cheats and Spawn target lines'
+	* cash / power / counts, the Stats tab's world counts and a Random enemy's real general in the target list. The rule
+	* and its reasoning are GXDebugIntelGate.h: a replay, an observer seat, a defeated player, a game that is not a
+	* network game, or a network game with no second human. A player still playing against another human is refused.
+	* Read per call: a defeat flips it mid-match. */
+//-------------------------------------------------------------------------------------------------
+static const WideChar *debugOthersRefusal( void )
+{
+	const Bool playback = TheRecorder != nullptr && TheRecorder->isPlaybackMode();
+	const Bool network = TheNetwork != nullptr || ( TheGameLogic != nullptr && TheGameLogic->isInMultiplayerGame() );
+	const Player *local = ( ThePlayerList != nullptr ) ? ThePlayerList->getLocalPlayer() : nullptr;
+	if( GXDebugIntel::mayShowOthersFor( playback, network, GameLogic::gxCheatsAllowed(), local ) )
+		return nullptr;
+	return L"you are playing a network match against another human (it opens to a spectator, a defeated player or a replay)";
+}
+
+/// May this menu show p's own economy and counts? Your own always; anyone else's only where debugOthersRefusal() allows.
+static Bool debugMayShowPlayer( const Player *p )
+{
+	if( p != nullptr && ThePlayerList != nullptr && p == ThePlayerList->getLocalPlayer() )
+		return TRUE;
+	return debugOthersRefusal() == nullptr;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -992,6 +1023,9 @@ static Bool debugViewerSeesReal( void )
 }
 /// What debugViewerSeesReal() said when the target list was last built; the list is rebuilt when it changes (a defeat).
 static Int s_cheatViewerSeesReal = -1;
+/// GeneralsX: Likewise debugOthersRefusal() == nullptr, which decides the rows' general:
+/// a list built where it was allowed must not survive into a match where it is not.
+static Int s_cheatOthersShown = -1;
 
 //-------------------------------------------------------------------------------------------------
 /** Would the target listbox come out different from what is in it right now?
@@ -1011,6 +1045,8 @@ static Bool cheatRosterChanged( void )
 		return TRUE;
 	if( (Int)debugViewerSeesReal() != s_cheatViewerSeesReal )
 		return TRUE;								// the row colours depend on it: a defeated player now sees the real ones
+	if( (Int)( debugOthersRefusal() == nullptr ) != s_cheatOthersShown )
+		return TRUE;								// the rows' general depends on it (debugFactionName)
 
 	for( Int i = 0; i < count && i < MAX_PLAYER_COUNT; ++i )
 	{
@@ -1057,6 +1093,30 @@ static Color debugRowColor( Player *p )
 }
 
 //-------------------------------------------------------------------------------------------------
+/** GeneralsX: The general a target-list row names. The real one where debugOthersRefusal()
+	* allows it; otherwise, for anyone but you, the lobby slot's apparent one (GameSlot::getApparentPlayerTemplateDisplayName:
+	* an enemy who picked Random stays "Random", as on retail's Diplomacy screen). A player with no lobby slot keeps the
+	* real one, as debugRowColor keeps its colour. */
+//-------------------------------------------------------------------------------------------------
+static UnicodeString debugFactionName( const Player *p, const PlayerTemplate *pt )
+{
+	const Player *local = ( ThePlayerList != nullptr ) ? ThePlayerList->getLocalPlayer() : nullptr;
+	if( p != local && TheGameInfo != nullptr && debugOthersRefusal() != nullptr )
+	{
+		for( Int s = 0; s < MAX_SLOTS; ++s )
+		{
+			if( ThePlayerList->getPlayerFromSlotIndex( s ) != p )
+				continue;
+			const GameSlot *gs = TheGameInfo->getConstSlot( s );
+			if( gs != nullptr )
+				return gs->getApparentPlayerTemplateDisplayName();
+			break;
+		}
+	}
+	return pt->getDisplayName();
+}
+
+//-------------------------------------------------------------------------------------------------
 /** Rebuild the target list, preserving the selection by player index.
 	*
 	* Mirrors refreshPrefList(): GadgetListBoxReset, then GadgetListBoxAddEntryText per row with a
@@ -1081,6 +1141,7 @@ static void refreshCheatTargets( void )
 
 	s_cheatRosterCount = count;
 	s_cheatViewerSeesReal = (Int)debugViewerSeesReal();
+	s_cheatOthersShown = (Int)( debugOthersRefusal() == nullptr );
 	for( Int i = 0; i < MAX_PLAYER_COUNT; ++i )
 	{
 		Player *p = ( i < count ) ? ThePlayerList->getNthPlayer( i ) : nullptr;
@@ -1104,7 +1165,7 @@ static void refreshCheatTargets( void )
 			name.translate( p->getPlayerName() );
 
 		UnicodeString line;
-		line.format( L"%d   %s   -   %s   %s%s", i, name.str(), pt->getDisplayName().str(),
+		line.format( L"%d   %s   -   %s   %s%s", i, name.str(), debugFactionName( p, pt ).str(),
 								 ( p->getPlayerType() == PLAYER_HUMAN ) ? L"human" : L"AI",
 								 ( p == local ) ? L"   (you)" : L"" );
 
@@ -1867,6 +1928,16 @@ static void toggleForceRadar( void )
 		return;
 	}
 
+	// GeneralsX: A radar the player never built is an advantage over the other humans.
+	const WideChar *hidden = debugOthersRefusal();
+	if( hidden != nullptr )
+	{
+		UnicodeString msg;
+		msg.format( L"Refused: %s.", hidden );
+		setCheatResult( msg );
+		return;
+	}
+
 	s_forceRadar = !s_forceRadar;
 	applyForceRadar( s_forceRadar );
 
@@ -1990,9 +2061,12 @@ static void setPlayerCell( Int col, Int row, const UnicodeString &text )
 //-------------------------------------------------------------------------------------------------
 /** The live player panel.
 	*
-	* Client-only, reads nothing the shipped UI does not already read every frame: InGameUI's
-	* drawPlayerInfoList reads every player's money and rank, and the observer control bar reads
-	* another player's object counts. Neither is gated on single-player, and neither writes anything.
+	* Client-only, and writes nothing. GeneralsX:
+	*
+	* FALSE: InGameUI draws that table only behind
+	* TheControlBar->isObserverControlBarOn(), the bar only a player who is NOT ACTIVE gets, so this panel was handing
+	* every opponent's economy to a player still in the match. It now shows nothing unless debugOthersRefusal() allows it,
+	* and blanks what it showed before.
 	*
 	* Every accessor used here is an O(1) member read. Three that are NOT, and must never appear:
 	*   Player::getCurrentEnemy()      - reaches AISkirmishPlayer::getAiEnemy, which writes
@@ -2003,7 +2077,19 @@ static void setPlayerCell( Int col, Int row, const UnicodeString &text )
 //-------------------------------------------------------------------------------------------------
 static void refreshPlayersTab( void )
 {
-	if( ThePlayerList == nullptr )
+	const WideChar *hidden = debugOthersRefusal();
+	if( s_plRefusal != nullptr )
+	{
+		s_plRefusal->winHide( hidden == nullptr );
+		if( hidden != nullptr )
+		{
+			UnicodeString msg;
+			msg.format( L"Hidden: %s.", hidden );
+			GadgetStaticTextSetText( s_plRefusal, msg );
+		}
+	}
+
+	if( ThePlayerList == nullptr || hidden != nullptr )
 	{
 		for( Int r = 0; r < s_plRowsShown; ++r )
 			for( Int c = 0; c < DBG_PL_COLS; ++c )
@@ -2117,14 +2203,21 @@ static void refreshCheatTargetInfo( void )
 	const Energy *energy = p->getEnergy();
 	const Int     tally  = ( target < MAX_PLAYER_COUNT ) ? target : 0;
 
+	// GeneralsX: Another player's cash, power and counts only where debugOthersRefusal() allows.
+	UnicodeString state;
+	if( debugMayShowPlayer( p ) )
+		state.format( L"$%u   power %d/%d   %d units, %d buildings",
+									money ? money->countMoney() : 0,
+									energy ? energy->getProduction() : 0,
+									energy ? energy->getConsumption() : 0,
+									s_tally.units[ tally ], s_tally.buildings[ tally ] );
+	else
+		state = UnicodeString( L"(cash, power and counts hidden in this match)" );
+
 	UnicodeString text;
 	const WideChar *inactive = cheatTargetInactiveWord( p );
-	text.format( L"Target %d  %s   $%u   power %d/%d   %d units, %d buildings   %s%s",
-							 target, cheatTargetName( target ).str(),
-							 money ? money->countMoney() : 0,
-							 energy ? energy->getProduction() : 0,
-							 energy ? energy->getConsumption() : 0,
-							 s_tally.units[ tally ], s_tally.buildings[ tally ],
+	text.format( L"Target %d  %s   %s   %s%s",
+							 target, cheatTargetName( target ).str(), state.str(),
 							 inactive == nullptr ? L"alive" : ( p->isPlayerObserver() ? L"OBSERVER" : L"DEAD" ),
 							 inactive == nullptr ? L"" : L" - only Reveal / Re-shroud and Spawn (as civilians) apply" );
 
@@ -2180,10 +2273,13 @@ static void refreshSpawnTarget( void )
 	if( inactive != nullptr )
 		text.format( L"Target %d  %s is %s - Spawn makes civilians (Neutral), Delete stays greyed   (change it on the Cheats tab)",
 								 target, cheatTargetName( target ).str(), inactive );
-	else
+	else if( debugMayShowPlayer( p ) )
 		text.format( L"Target %d  %s   -   owns %d units, %d buildings   (change it on the Cheats tab)",
 								 target, cheatTargetName( target ).str(),
 								 s_tally.units[ tally ], s_tally.buildings[ tally ] );
+	else		// GeneralsX: debugOthersRefusal()
+		text.format( L"Target %d  %s   -   counts hidden in this match   (change it on the Cheats tab)",
+								 target, cheatTargetName( target ).str() );
 
 	GadgetStaticTextSetText( s_spawnTargetInfo, text );
 }
@@ -2324,6 +2420,7 @@ void DebugMenuUpdate( void )
 	const WideChar *refusal = debugSyncedCheatsRefusal();
 	const Bool cheats = ( refusal == nullptr );
 	const Bool client = debugClientToolsAllowed();
+	const Bool others = ( debugOthersRefusal() == nullptr );	// GeneralsX: Force radar + the readouts below
 
 	// GeneralsX: Say why the row is dead before it is clicked. A guest in a
 	// LAN game sees seven greyed buttons and no reason; the result line is otherwise only written on
@@ -2352,7 +2449,7 @@ void DebugMenuUpdate( void )
 	if( s_buttonKillUnits )		s_buttonKillUnits->winEnable( orders );
 	if( s_buttonKillAll )			s_buttonKillAll->winEnable( orders );
 	if( s_buttonSpawn )				s_buttonSpawn->winEnable( cheats );	// a target out of the game gets civilians
-	if( s_buttonForceRadar )	s_buttonForceRadar->winEnable( client );
+	if( s_buttonForceRadar )	s_buttonForceRadar->winEnable( client && others );
 
 	// The Spawn pane's three Delete buttons ride the same gate as the orders above (Spawn is set above, on `cheats`).
 	// The steppers, the scope toggle and the picker are pure client state and stay live, so the pane
@@ -2372,7 +2469,15 @@ void DebugMenuUpdate( void )
 	// transition. Re-assert it rather than making the user notice and press the button again. Only
 	// ever asserted, never cleared: pushing FALSE every tick would stomp the forceOn that
 	// VictoryConditions sets for a locally defeated player.
-	if( s_forceRadar )
+	//
+	// GeneralsX: ...and never into a match debugOthersRefusal() refuses: a force switched on in
+	// a skirmish used to come back in the next online match while this screen was up. There the flag is dropped instead
+	// (the button then reads "Force radar" again). No forceOn( FALSE ): the match's own Radar::newMap -> reset() clears any
+	// force taken before it (prepareNewGame sets the LAN / internet mode first, so this already refuses by then), and FALSE
+	// would stomp a map script's own forceOn.
+	if( others == FALSE )
+		s_forceRadar = FALSE;
+	else if( s_forceRadar )
 		applyForceRadar( TRUE );
 
 	if( s_buttonForceRadar && s_forceRadarShown != (Int)s_forceRadar )
@@ -2457,14 +2562,22 @@ void DebugMenuUpdate( void )
 	// refreshObjectTally() above did the walk these four lines used to do inline, and reproduces all
 	// four counters exactly - including the quirk that an object with no controlling player is
 	// counted under "other players' units".
-	line.format( L"Objects in world      %d  (%d effectively dead)",
-							 s_tally.totalObjects, s_tally.deadObjects );
+	// GeneralsX: The world total less your own is the other players' army, so both totals ride
+	// debugOthersRefusal() like the Players tab does; your own two lines stay.
+	if( others )
+		line.format( L"Objects in world      %d  (%d effectively dead)",
+								 s_tally.totalObjects, s_tally.deadObjects );
+	else
+		line = UnicodeString( L"Objects in world      hidden in this match" );
 	setStatLine( n++, line );
 	line.format( L"Your units            %d", s_tally.localUnits );
 	setStatLine( n++, line );
 	line.format( L"Your structures       %d", s_tally.localStructures );
 	setStatLine( n++, line );
-	line.format( L"Other players' units  %d", s_tally.otherUnits );
+	if( others )
+		line.format( L"Other players' units  %d", s_tally.otherUnits );
+	else
+		line = UnicodeString( L"Other players' units  hidden in this match" );
 	setStatLine( n++, line );
 
 	line.format( L"Players               %d", ( ThePlayerList != nullptr )
@@ -2664,6 +2777,7 @@ static void nullifyControls( void )
 		for( Int r = 0; r < DBG_PL_ROWS; ++r )
 			s_plCell[c][r] = nullptr;
 	s_plRowsShown = 0;
+	s_plRefusal = nullptr;
 
 	s_cheatTargetIndex.clear();
 	s_cheatRosterCount = -1;					// forces a rebuild of the target list on the next tick
@@ -2853,9 +2967,15 @@ static void buildPlayersTab( GameWindow *pane, Int paneW )
 		}
 	}
 
+	// GeneralsX: Why the table is empty (refreshPlayersTab). One label across the first row,
+	// which is blank whenever this shows, so the two never overlap.
+	s_plRefusal = CodeGuiLabel( pane, pad, step, innerW, lineH, nullptr, L"", FALSE, 12 );
+	if( s_plRefusal != nullptr )
+		s_plRefusal->winHide( TRUE );
+
 	CodeGuiLabel( pane, pad, ( DBG_PL_ROWS + 1 ) * step, innerW, lineH, nullptr,
 								L"Read-only, nothing is sent. POWER is produced/used. This shows information the "
-								L"fog of war hides.", FALSE, 12 );
+								L"fog of war hides, so a network match against another human withholds it.", FALSE, 12 );
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -3462,7 +3582,8 @@ static WindowMsgHandledType DebugMenuSystem( GameWindow *window, UnsignedInt msg
 			// GeneralsX: All of these append to TheMessageStream and return.
 			// None of them touch logic state directly, which is why none of them is gated to
 			// single-player any more. The one exception is the radar force, which is pure presentation
-			// on this machine and is therefore gated on debugClientToolsAllowed() instead.
+			// on this machine and is therefore gated on debugClientToolsAllowed() instead - and, since
+			// 10/11/2026, on debugOthersRefusal() too (toggleForceRadar).
 			if( control == s_buttonGiveCash )
 			{
 				gxGiveMoney();

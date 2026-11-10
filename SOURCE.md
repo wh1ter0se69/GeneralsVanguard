@@ -1,14 +1,14 @@
-# GeneralsX 0.9.71 — source
+# GeneralsX 0.9.72 — source
 
-This repository is the source code of **GeneralsX 0.9.71**, the release published on 9 November 2026
+This repository is the source code of **GeneralsX 0.9.72**, the release published on 10 November 2026
 (the game for Windows, Linux and macOS and the Windows installer; the iOS/iPadOS build in this source is in testing
 and has no public download). The GeneralsX Launcher and its updater, which ship with the release, are separate
-programs and are not part of this repository.
+programs and are not part of this repository. The updater's source is in the `v0.9.71` tag.
 
-It is a snapshot of commit `bfeca14d0223e62b936141e1f22a2e37b1bd68c5` of the GeneralsX development
+It is a snapshot of commit `aaf44a2a421352c89877868ed55a5d803af477d2` of the GeneralsX development
 repository, published as one commit, with comments edited for publication. Every statement and string
 compiled into a release build is the same as in that commit, but **a game built from this tree cannot play
-with the published 0.9.71**, because the comment edits change the source id the engine compares before a
+with the published 0.9.72**, because the comment edits change the source id the engine compares before a
 match. Both are explained below, with commands to check them.
 
 GeneralsX is licensed under the GNU General Public License v3.0 or later, with the additional terms
@@ -48,7 +48,7 @@ checkouts of other projects are not part of the released programs and are not in
   Windows download with the launcher and its updater, checks both against the development repository and does not
   run from this tree.
 
-The Apple builds compile DXVK from the one submodule, pinned to the exact commit 0.9.71 used:
+The Apple builds compile DXVK from the one submodule, pinned to the exact commit 0.9.72 used:
 
 ```sh
 git submodule update --init --recursive references/fbraz3-dxvk
@@ -61,47 +61,51 @@ the build files.
 Some packaging scripts build on a remote machine and read its address from `scripts/test/local.env`
 (not included; copy `scripts/test/local.env.example` and fill it in).
 
-A binary you build embeds this repository's commit id, not `bfeca14d02`, so it reports a different
-build id than the published 0.9.71 files.
+A binary you build embeds this repository's commit id, not `aaf44a2a42`, so it reports a different
+build id than the published 0.9.72 files.
 
 ## What differs from the shipped commit
 
-For the `v0.9.71` tag, the publication edited 143 files of `bfeca14d02` and added this one. The edits are:
+For the `v0.9.72` tag, the publication edited 1,385 files of `aaf44a2a42` and added this one. The edits are:
 
-* comments: a personal name replaced by the `wh1ter0se` handle, profanity reworded, a few quoted log
-  values paraphrased;
-* launcher test code, which is never part of a release build (inside `#[cfg(test)]` or under `tests/`):
-  the same name replaced in test fixtures and test names in `scripts/launcher-rs/gxio/src/crashlogs.rs`,
-  `gxio/src/options.rs` and `gxio/tests/image_quality_engine_parser.rs`, and an IP address in
-  `gxio/src/netdiag.rs` replaced with the documentation address `198.51.100.7` (RFC 5737);
-* two `"prior"` entries in `scripts/tooling/rulebank/registry.json` (the same name; no code reads that
-  field);
-* `.gitmodules`, which lists only the submodule the build needs.
+* comments: personal names replaced by the `wh1ter0se` handle, profanity reworded, notes about how the project was
+  worked on removed, headers that named upstream's authors on files they did not write changed to
+  "GeneralsX contributors", a few quoted log values paraphrased;
+* `scripts/legal/third_party_notices.py`: `check` compares `crates.json` with the launcher's `Cargo.lock` only when
+  that file is in the tree;
+* `README.md` and `scripts/test/local.env.example`: they say the launcher is a separate program and is not
+  published here;
+* `.gitmodules`, which lists only the submodule the build needs;
+* `GeneralsMD/Code/CompatLib/Includecho`, a stray 160-byte file that nothing reads, and the leftover patch
+  files `GameText.cpp.orig` and `GameText.cpp.rej`, removed.
+
+The files of `aaf44a2a42` that are not here are the launcher (its source has its own licence and is not published),
+internal notes, test harnesses and the online services' server code; see "What is here".
 
 The C and C++ sources are the same as the shipped commit's once comments and layout are set aside. To
 check, run
 
 ```sh
-python3 scripts/tooling/comment-free-sha.py v0.9.71
+python3 scripts/tooling/comment-free-sha.py v0.9.72
 ```
 
-It prints `2cb491977b8ded266a4a2852a48c5d154ce947e2d65a31319b3635ad6558d048  4610 files`, the value the
-shipped commit gives for the same 4,610 files.
+It prints `4e3e2f858058d2f521c50bd542051facc377b395ac6ccf3334c90098e81c71a0  4611 files`, the value the
+shipped commit gives for the same 4,611 files.
 
-## A build of this tree does not play with 0.9.71
+## A build of this tree does not play with 0.9.72
 
 GeneralsX peers run the simulation in lockstep, so before a match the engine compares a **source id**
 (`sourceID`): a hash of the text of every file the simulation is built from, taken at build time by
 `resources/gitinfo/simsourcedigest_watcher.cmake`. Peers whose source ids differ refuse each other.
-Comments are part of that text, and 49 of the edited files feed the hash, so this tree has a different
-source id from the one 0.9.71 shipped with:
+Comments are part of that text, and edited files feed the hash, so this tree has a different
+source id from the one 0.9.72 shipped with:
 
 | | Zero Hour | Generals |
 |---|---|---|
-| published 0.9.71 (`bfeca14d02`) | `0x186E518B` | `0x225BD309` |
-| this tree (`v0.9.71`) | `0x14DE941E` | `0x8EC22195` |
+| published 0.9.72 (`aaf44a2a42`) | `0x186E518B` | `0x225BD309` |
+| this tree (`v0.9.72`) | `0xF3368F4F` | `0xC912CAA5` |
 
-A game built from this tree is refused by official 0.9.71 players, and refuses them. The build prints the
+A game built from this tree is refused by official 0.9.72 players, and refuses them. The build prints the
 value (`SimID source digest: ZH=0x... G=0x...`); to read it without building, run from the repository root:
 
 ```sh

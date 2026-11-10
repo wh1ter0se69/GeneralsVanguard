@@ -48,6 +48,7 @@
 #include "Common/GameUtility.h"
 #include "Common/GlobalData.h"
 #include "GameClient/GXNoShroud.h"
+#include "GameClient/GXDebugIntelGate.h"	// GeneralsX @security GX_CAM: who may have the camera find other players' armies
 #include "Common/PerfTimer.h"
 #include "Common/Player.h"
 #include "Common/PlayerList.h"
@@ -294,7 +295,7 @@ GameClient::~GameClient()
 static void gxNoShroud( void );		// defined above update(); see the GX_NOSHROUD note there
 
 // GeneralsX: GX_REMASTERED_PROBE (graphics P3-3, GXGraphicsSettings.h): lets a run with no
-// keyboard - a headless peer, a Linux server - prove GXGraphics.ini persists. =1 reads the value and logs it
+// keyboard - a headless peer, the Linux VPS - prove GXGraphics.ini persists. =1 reads the value and logs it
 // ([GXREMASTER]); =flip also flips it and writes the file, as the chord does. The value is render-only.
 static void gxRemasteredProbe( void )
 {
@@ -1149,7 +1150,27 @@ static void gxObserveDrive( void )
 	s_index = -1;
 }
 
+// GeneralsX: May a test probe that finds OTHER players' units steer this client now? In a
+// GX_TEST_INSTRUMENTS build, always. Otherwise the Debug menu's rule (GXDebugIntelGate.h): a replay, an observer seat, a
+// defeated player, a game that is not a network game, or a network game with no second human (observers counted).
+static Bool gxProbeMaySeeOthers( void )
+{
+#if defined(GX_TEST_INSTRUMENTS)
+	return TRUE;
+#else
+	const Player *local = (ThePlayerList != NULL) ? ThePlayerList->getLocalPlayer() : NULL;
+	return GXDebugIntel::mayShowOthersFor( TheRecorder != NULL && TheRecorder->isPlaybackMode(),
+		TheNetwork != NULL || (TheGameLogic != NULL && TheGameLogic->isInMultiplayerGame()),
+		GameLogic::gxCheatsAllowed(), local );
+#endif
+}
+
 // GeneralsX: GX_CAM - point the camera at an army, every N logic frames.
+//
+// GeneralsX: It picks ANY player's army, a shrouded enemy's included, and prints where: in a
+// live match against another human that told a player where every enemy army was. It now holds the camera wherever
+// gxProbeMaySeeOthers() says no, printing [GXCAMLOCK] once per match and no [GXCAM] move, so gx-ab's rule F excludes the
+// peer's fps; GX_CAMPAN follows the target, so it holds too.
 //
 // WHY THIS EXISTS. Every render measurement this project has taken from a `-lanhost -lanai` arm was
 // taken with the camera parked where the engine left it: over the local player's start position,
@@ -1200,6 +1221,20 @@ static void gxCameraDrive( void )
 	const UnsignedInt frame = TheGameLogic->getFrame();
 	if (frame == 0 || (frame % (UnsignedInt)s_period) != 0 || frame == s_lastMoved)
 		return;
+
+	static UnsignedInt s_lockSaid = 0xFFFFFFFF;	// the frame of the last [GXCAMLOCK]; a lower frame is a new match
+	if (!gxProbeMaySeeOthers())
+	{
+		if (s_lockSaid == 0xFFFFFFFF || frame < s_lockSaid)
+		{
+			fprintf(stderr, "[GXCAMLOCK] GX_CAM held at f=%u: another human is in this network match and you are playing "
+				"(a GX_TEST_INSTRUMENTS build, a replay, an observer seat or a defeated player is not held)\n", (unsigned)frame);
+			fflush(stderr);
+		}
+		s_lockSaid = frame;
+		s_gxCamHaveTarget = FALSE;
+		return;
+	}
 
 	// Collect mobile objects owned by playable players. Structures are excluded deliberately: they
 	// sit at the base for the whole match, so including them drags the camera back to the start
@@ -1705,14 +1740,28 @@ static void gxShotDrive( void )
 //
 // THE CANARY IS NOT OPTIONAL: [GXNOSHROUD] says the shroud was off; without it a render number
 // came from a shrouded map and is provisional.
+//
+// GeneralsX: ONLY IN A GX_TEST_INSTRUMENTS BUILD. In a shipped build this was a map hack: one
+// environment variable, and a player in a live online match saw every enemy unit and building, undetectable by the
+// other peers because nothing the simulation reads changes. A per-match gate (replay / observer / no network game) cannot
+// be applied here: this runs once, before any match exists, and what it decides is built in at init (W3DScene's shroud
+// pass, BaseHeightMap's W3DShroud) and cannot be withdrawn when a match turns out to be against another human. So a
+// build without the instruments ignores it and says so - in a line WITHOUT the [GXNOSHROUD] canary, so gx-ab's G14
+// excludes that peer's fps instead of passing a shrouded map. A replay or an observer seat seen as itself loses nothing:
+// it draws no shroud anyway (gxObserveDrive's note). Rendered A/B arms that need the whole map from a PLAYER's seat build
+// with -DGX_TEST_INSTRUMENTS=ON, both arms.
 static void gxNoShroud( void )
 {
 #if ENABLE_CONFIGURABLE_SHROUD
 	const char *env = getenv( "GX_NOSHROUD" );
 	if( env == nullptr || atoi( env ) <= 0 )
 		return;
+#if defined(GX_TEST_INSTRUMENTS)
 	gxNoShroudProbe() = TRUE;
 	fprintf( stderr, "[GXNOSHROUD] shroud OFF on this client (display only; the simulation is untouched)\n" );
+#else
+	fprintf( stderr, "[GXSHROUDLOCK] GX_NOSHROUD ignored: honoured only in a GX_TEST_INSTRUMENTS build\n" );
+#endif
 	fflush( stderr );
 #endif
 }
@@ -1855,6 +1904,16 @@ static void gxTestSaveAtFrame()
 		return;
 	const Int at = s_frame;
 	s_frame = -1;
+	// GeneralsX: Never in a network match with a second human in it. A save is every player's
+	// whole state - bases, armies, cash - and a LAN one is written below as a skirmish so it loads past the gate, so a copy
+	// loaded on a second machine scouted the whole map mid-match. Every harness that uses this is a solo host or an all-AI
+	// match watched from one observer seat: GameLogic::gxCheatsAllowed's sandbox (observers counted), left alone.
+	if ((TheNetwork != NULL || TheGameLogic->isInMultiplayerGame()) && !GameLogic::gxCheatsAllowed())
+	{
+		fprintf(stderr, "[SAVELOAD] test save at frame %d refused: another human is in this network match\n", at);
+		fflush(stderr);
+		return;
+	}
 	// The only headless match is a solo -lanhost, and a LAN save is refused on load (SaveLoadFeedback.cpp).
 	// Write it as the skirmish it effectively is: GameStateMap::xfer saves the mode and, for a skirmish,
 	// TheSkirmishGameInfo - built here from the LAN game's own slots, map and seed - then put it all back.

@@ -1889,7 +1889,13 @@ void W3DView::update()
 
 	// GeneralsX: [GXTERRAIN], with GX_TERRAIN set on a rendered peer: the cost of each
 	// terrain rebuild this frame - "partial" (ground a building flattened) or "full" (the whole draw window).
+	// GeneralsX: Only an instrumented build: the "partial" rebuilds it logs are an enemy's
+	// foundation being flattened under the fog.
+#if defined(GX_TEST_INSTRUMENTS)
 	static const Bool s_terrainTrace = (getenv("GX_TERRAIN") != nullptr) && !TheGlobalData->m_headless;
+#else
+	static const Bool s_terrainTrace = FALSE;
+#endif
 
 	// GeneralsX: Ground a building flattened since the last frame: rebuilt here, once,
 	// instead of through a full terrain update per lowered cell (BaseHeightMapRenderObjClass::terrainHeightChanged).

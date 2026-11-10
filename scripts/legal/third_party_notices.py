@@ -56,6 +56,13 @@ below. Each component stays under its own licence; this file reproduces the
 required copyright notices and licence texts. Every licence text appears once,
 in section 4, and is referenced by number.
 
+The GeneralsX Launcher (GeneralsXLauncher.exe on Windows, the GeneralsX
+Launcher app on macOS, the launcher AppImage on Linux) is a separate program
+that downloads and starts the game. The GPL does not cover it; its terms are
+in its own entry in section 1. The third-party software it is built from or
+ships with stays under its own licence, below. The Windows updater
+GeneralsXUpdate.exe is not part of it: it is covered with the game.
+
 This file is generated (scripts/legal/third_party_notices.py generate) from
 resources/legal/third-party/. Do not edit it by hand.
 
@@ -75,7 +82,9 @@ LGPL libraries (OpenAL Soft, mpg123, LAME, FFmpeg's LGPL build on iOS and the
 LGPL Debian libraries) are used as separate shared libraries that you may
 replace with your own build, except where the component entry says it is
 statically linked; GeneralsX as a whole is GPL-3.0-or-later and its full source
-is available, which is what the LGPL's relinking requirement asks for.
+is available, which is what the LGPL's relinking requirement asks for. The
+launcher's Linux AppImage uses its LGPL libraries the same way, as separate
+shared libraries, and its terms allow reverse engineering to debug that use.
 """
 
 

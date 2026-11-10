@@ -39,7 +39,13 @@ namespace GXAnimTrace
 {
 	inline bool on()
 	{
+		// GeneralsX: GX_ANIMTRACE and GX_ANIMTEST: only an instrumented build reads them - camlock
+		// locked the view on an unseen enemy command center and the trace printed where it was.
+#if defined(GX_TEST_INSTRUMENTS)
 		static const bool s_on = []() { const char *e = getenv("GX_ANIMTRACE"); return e != nullptr && e[0] != '\0' && e[0] != '0'; }();
+#else
+		static const bool s_on = false;
+#endif
 		return s_on;
 	}
 
@@ -62,7 +68,11 @@ namespace GXAnimTrace
 		if (s_count < 0)
 		{
 			s_count = 0;
+#if defined(GX_TEST_INSTRUMENTS)
 			const char *e = getenv("GX_ANIMTEST");
+#else
+			const char *e = nullptr;
+#endif
 			while (e != nullptr && *e != '\0' && s_count < MaxItems)
 			{
 				const char *end = strchr(e, ',');

@@ -3391,7 +3391,13 @@ static Bool gxViewerMaySeeFeed()
  * which skill (review P3): printing it on a playing client's stderr would be the leak itself. */
 static Bool gxFeedLog()
 {
+	// GeneralsX: Only an instrumented build: a playing client's "refused" lines carried no event, but
+	// their TIMING did - in a 1v1, every one not of your own making was the enemy teching up.
+#if defined(GX_TEST_INSTRUMENTS)
 	static const Bool on = getenv( "GX_FEEDLOG" ) != nullptr;
+#else
+	static const Bool on = FALSE;
+#endif
 	return on;
 }
 

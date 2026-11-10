@@ -122,7 +122,13 @@ static Int missileVisualMode()
 	static Int s_mode = -1;
 	if( s_mode < 0 )
 	{
+		// GeneralsX: Only an instrumented build reads it: the "1" trace logged an enemy superweapon's
+		// launch and target before it landed. A shipped build always draws the flight, silently.
+#if defined(GX_TEST_INSTRUMENTS)
 		const char *env = getenv( "GX_MISSILEVIS" );
+#else
+		const char *env = nullptr;
+#endif
 		s_mode = env == nullptr ? 2 : (env[0] == '1' ? 1 : (env[0] == '0' ? 0 : 2));
 	}
 	return s_mode;
@@ -556,6 +562,16 @@ void missileVisualTestFire()
 	if( s_on < 0 )
 	{
 		const char *env = getenv( "GX_TEST_FIRESW" );
+#if !defined(GX_TEST_INSTRUMENTS)
+		// GeneralsX: A superweapon aimbot in a live match (it aims at an enemy command centre read
+		// from logic state): only an instrumented build honours it. [GXFIRESWLOCK] lets a harness fail loudly.
+		if( env != nullptr && env[0] != '\0' && env[0] != '0' )
+		{
+			fprintf( stderr, "[GXFIRESWLOCK] GX_TEST_FIRESW ignored: honoured only in a GX_TEST_INSTRUMENTS build\n" );
+			fflush( stderr );
+		}
+		env = nullptr;
+#endif
 		s_on = (env != nullptr && (env[0] == '1' || env[0] == '2')) ? 1 : 0;
 		s_buildOnly = (env != nullptr && env[0] == '2') ? 1 : 0;
 		if( s_on )
