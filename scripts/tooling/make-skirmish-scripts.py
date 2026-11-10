@@ -1308,7 +1308,7 @@ def build_base(search):
 
 
 def build_bytes(search, rule_ids=None):
-    """the shipped file: the recipe's output plus the promoted ruleset, if any (Codex rbd-r6-lensA 2), checked against OUTPUT_SHA256"""
+    """the shipped file: the recipe's output plus the promoted ruleset, if any, checked against OUTPUT_SHA256"""
     out = build_base(search)
     if os.path.isfile(SHIPPED_RULESET):
         import importlib.util
@@ -1329,7 +1329,7 @@ def build_bytes(search, rule_ids=None):
 
 def keep_pristine(path):
     """Before an in-place overwrite of the retail original (a --root deploy), keep it as <path>.retail: written to a
-    temp file and renamed, and an existing backup that is not the pinned release is replaced (Codex r4 P1)."""
+    temp file and renamed, and an existing backup that is not the pinned release is replaced."""
     bak = path + RETAIL_BACKUP
     if not (os.path.isfile(path) and sha256(open(path, 'rb').read()) == SOURCE_SHA256):
         return

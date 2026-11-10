@@ -71,7 +71,7 @@ def _out(obs, me, before=None):
 
 def activation(obs, me, params=None):
     """triggered: an own Arms Dealer by 150 s and the game ran past 400 s; fired: decoy_quad_n own Quads out at once before the own Palace
-    (by 400 s with decoy_until_palace 0: the decoys keep coming - Codex rbd11-r1 P2)"""
+    (by 400 s with decoy_until_palace 0: the decoys keep coming)"""
     if not obs:
         return {'triggered': False, 'fired': False, 'detail': 'no obs'}
     hz, n = ob.hz(obs), (params or {}).get('decoy_quad_n', 3)

@@ -49,7 +49,7 @@ def _half_up(n, pct):
 def _swap(o, slots, p):
     """(mix slots, early slots) of a team of nothing but Battlemasters and Overlords with no minimum, or None when the team stays stock.
     early slots None: the stock team names an Overlord, so it needs the Propaganda Center already - an early copy could never be built
-    (AIPlayer::isPossibleToBuildTeam checks every type, whatever its minimum; Codex rbd14-r1 P2)"""
+    (AIPlayer::isPossibleToBuildTeam checks every type, whatever its minimum)"""
     pre = PRE[o]
     BM, OL, ECM, G = pre + 'ChinaTankBattleMaster', pre + 'ChinaTankOverlord', pre + 'ChinaTankECM', pre + 'ChinaTankGattling'
     slots = [s if s[2] > 0 else [NONE, 0, 0] for s in slots]       # a slot with max 0 is empty

@@ -133,7 +133,7 @@ def _buggies(obs, me):
 
 
 def _plays_stealth(obs, me):
-    """this player plays the Stealth general: template names are per general, and a game that ended early must not read as 0 of the other's unit (Codex rbd18-r1 P2)"""
+    """this player plays the Stealth general: template names are per general, and a game that ended early must not read as 0 of the other's unit"""
     return ob.first_frame(obs, me, lambda n: n.startswith('Slth_')) is not None
 
 

@@ -144,7 +144,7 @@ def _quads(obs, me):
 def activation(obs, me, params=None):
     """triggered: an own Arms Dealer complete by 300 s and the game ran past 600 s; fired: 3 own Quad Cannons by 600 s and Quads at least 3/4
     of Scorpions. Stock Hard GLA fields Scorpions in every wave 2-5 team: its Quad / Scorpion ratio by 600 s is 0.51 at most (smoke11-13's
-    12 OFF games: 9-23 Quads vs 42-63 Scorpions); a half share plus stock wave-1 Scorpions still fires (Codex rbd16-r1 / r2 P2). The
+    12 OFF games: 9-23 Quads vs 42-63 Scorpions); a half share plus stock wave-1 Scorpions still fires. The
     CONTRAST - ON - OFF of the same seed - is the reading"""
     if not obs:
         return {'triggered': False, 'fired': False, 'detail': 'no obs'}

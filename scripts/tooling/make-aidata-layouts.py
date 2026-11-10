@@ -216,7 +216,7 @@ def new_entries(side, stock):
 
 
 def fallback_spots(keyed, stock):
-    """ADDENDUM_8 (wh1ter0se's option 2, lead C70): per keyed entry, the spot the stock list gives the same template, the k-th occurrence to the k-th: (x, y, angle)
+    """ADDENDUM_8: per keyed entry, the spot the stock list gives the same template, the k-th occurrence to the k-th: (x, y, angle)
     as the stock list writes them, or None when the stock list has no k-th one of that template (never a guess)."""
     seen, out = {}, []
     for e in keyed:

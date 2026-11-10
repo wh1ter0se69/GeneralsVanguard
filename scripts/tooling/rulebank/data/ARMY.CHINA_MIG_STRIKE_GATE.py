@@ -24,7 +24,7 @@ def apply(scb, scope, p):
 
 
 def _biggest(obs, me):
-    """the most own MiGs out at once by 400 s - farther than 1000 from the own Command Center (Codex rbd10-r1 P2: first sightings are
+    """the most own MiGs out at once by 400 s - farther than 1000 from the own Command Center (first sightings are
     production times, not raids); None when the game ended earlier or no Command Center was seen"""
     if not obs:
         return None

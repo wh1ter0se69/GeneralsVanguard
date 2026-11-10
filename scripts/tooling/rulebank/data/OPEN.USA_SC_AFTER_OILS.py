@@ -24,7 +24,7 @@ def apply(scb, scope, p):
 
 def _ref(obs, me, params):
     """(the frame the Strategy Center should follow, the Strategy Center frame): the oils_for_sc-th own oil derrick, or the 600 s floor
-    when the player never owned that many (Codex rbd10-r1 P2); None for either that never came (the floor: a game shorter than 600 s)"""
+    when the player never owned that many; None for either that never came (the floor: a game shorter than 600 s)"""
     hz = ob.hz(obs)
     n = (params or {}).get('oils_for_sc', 2)
     fs = ob.first_frame(obs, me, ob.ends_with(SC))

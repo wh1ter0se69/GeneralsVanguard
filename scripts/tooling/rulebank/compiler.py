@@ -545,7 +545,7 @@ def compile_ruleset(mss, base, ruleset_data, tier_gate=None, registry=None, rule
 
 def promote_default(manifest, ruleset_data, scb_data, dst, mss=None, base=None, registry=None, rule_ids=None, module_dirs=None):
     """plan 4.4 step 2: a frozen champion becomes the recipe's shipped default - only a ruleset that resolves to tier_gate on and that
-    RECOMPILES here to exactly these scb bytes (a relabelled manifest proves nothing, Codex rbd-fw-r1b-lensB 14)"""
+    RECOMPILES here to exactly these scb bytes (a relabelled manifest proves nothing)"""
     if manifest.get('tier_gate') != 'on':
         raise Refused('promote: the manifest says tier_gate=%s - only a tier_gate=on compile can become the shipped default'
                       % manifest.get('tier_gate'))

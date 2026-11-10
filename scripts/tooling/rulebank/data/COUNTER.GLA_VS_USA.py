@@ -136,7 +136,7 @@ def measure(obs, me, params=None):
 
 def activation(obs, me, params=None):
     """triggered: an own Palace complete by 540 s and the game ran past 600 s; fired: 3 own Rocket Buggies by 600 s. Stock's wave 4
-    artillery team holds 2, but a destroyed team is rebuilt, so stock can reach 3 too (Codex rbd14-r1 P2): the activation alone cannot
+    artillery team holds 2, but a destroyed team is rebuilt, so stock can reach 3 too: the activation alone cannot
     tell ON from OFF - the CONTRAST (ON - OFF of the same seed) reads it"""
     if not obs:
         return {'triggered': False, 'fired': False, 'detail': 'no obs'}

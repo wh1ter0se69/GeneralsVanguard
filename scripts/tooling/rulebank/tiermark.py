@@ -41,7 +41,7 @@ def _rename(rb, mss, n, name):
 
 
 def merge_order(seqs):
-    """one order of the union of the tiers' sequences in which EVERY tier's own sequence is a subsequence (Codex rbd-r2-lensA 1: a
+    """one order of the union of the tiers' sequences in which EVERY tier's own sequence is a subsequence (a
     union that only respects the shared names reorders a tier), or None when none exists. Deterministic: Kahn's algorithm, ties to the
     earliest tier and position."""
     nodes, rank = [], {}

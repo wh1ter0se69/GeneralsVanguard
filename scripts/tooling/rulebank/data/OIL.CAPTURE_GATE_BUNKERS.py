@@ -24,7 +24,7 @@ def apply(scb, scope, p):
 
 
 def _until(params):
-    """the reader's window in seconds: 400, or cap_t + 100 for a later cap_t (Codex rbd11-r1 P2)"""
+    """the reader's window in seconds: 400, or cap_t + 100 for a later cap_t"""
     return max(UNTIL, (params or {}).get('cap_t', 300) + 100)
 
 

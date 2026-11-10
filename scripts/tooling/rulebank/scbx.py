@@ -199,7 +199,7 @@ def matchup_latch(scb, name, knows, flag, decided, faction):
     """[the latch, then one "<knows> <base side>" script per base side]: one-shot Hard-only scripts that DECIDE ONCE, on the first faction this
     AI fairly knows for its enemy (sense_enemy) - in FFA the script's enemy can change, and RULE_BRIEFS 7 locks the variant to the first.
     The latch (first in the list, so it runs first in a frame) sets `flag` and `decided` when the enemy is `faction` and nothing was decided;
-    each base-side script only sets `decided`. A Random enemy decides nothing until it is fairly seen (Codex rbd12-r1 P2)"""
+    each base-side script only sets `decided`. A Random enemy decides nothing until it is fairly seen"""
     undecided = lambda: flag_is(scb, decided, False)
     done = lambda: act(scb, 'SET_FLAG', ('FLAG', decided), ('BOOLEAN', 1))
     out = [new_script(scb, name, [[sense_enemy(scb, faction), undecided()]], [act(scb, 'SET_FLAG', ('FLAG', flag), ('BOOLEAN', 1)), done()],
@@ -227,7 +227,7 @@ def matchup_latch_scripts(scb):
     """the canonical latch: per base side F (SENSE_BASE order) a one-shot Hard-only script "GX Matchup F": AI_PLAYER_GX_SENSE says my enemy
     is F and nothing was decided -> gxrb_mu_<F> and gxrb_mu_decided ON. Each script sets its flag only with `decided` and in the same
     run, and the scripts run one after another, so at most one gxrb_mu_ flag is ever set: the first side this AI fairly knows for its
-    enemy decides once (RULE_BRIEFS 7; in FFA the enemy can change - Codex rbd12-r1 P2). A Random enemy decides nothing until seen"""
+    enemy decides once (RULE_BRIEFS 7; in FFA the enemy can change). A Random enemy decides nothing until seen"""
     return [new_script(scb, '%s %s' % (MU_GROUP, f), [[sense_enemy(scb, f), flag_is(scb, MU_DECIDED, False)]],
                        [act(scb, 'SET_FLAG', ('FLAG', mu_flag(f)), ('BOOLEAN', 1)), act(scb, 'SET_FLAG', ('FLAG', MU_DECIDED), ('BOOLEAN', 1))],
                        oneshot=True) for f in SENSE_BASE]
@@ -447,7 +447,7 @@ FORMED = ' Formed'
 
 
 def launch_scripts(scb, name, tick):
-    """rb-data-18 (Codex rbd18-r1 P1): a team that hunts from _GX_CLOCK >= tick (0: as soon as it forms). Player::update runs a team's generic hooks whether
+    """rb-data-18: a team that hunts from _GX_CLOCK >= tick (0: as soon as it forms). Player::update runs a team's generic hooks whether
     it has formed or not, and a one-shot hook is spent on its first true evaluation: a generic hook alone, at tick 0, hunts with an EMPTY team and its units
     never get the order (smoke14: USA_VS_GLA's Burton stayed near home for the whole game). So: "<name> Formed" on teamOnCreateScript, which runs when the team
     forms, with the same condition; it must NOT be one-shot (ScriptEngine::executeScript deactivates a one-shot script for every team of that player). And,
@@ -662,7 +662,7 @@ _TRO = {}
 def teams_ro(scb):
     """teams() for READING only, cached on the ScriptTeams bytes (and the name table they decode with). The view is immutable
     (tuples, read-only mappings): a write through it would change every later reader's copy, the guard's "before" included, and so
-    hide the edit (Codex rbd-r2-lensB 8) - write through teams() + put_teams()"""
+    hide the edit - write through teams() + put_teams()"""
     raw = next(k for k in scb.root if k.name == 'ScriptTeams').raw
     k = (raw, tuple(scb.toc))            # the table's CONTENTS: two compiles can give different keys one id
     if k not in _TRO:

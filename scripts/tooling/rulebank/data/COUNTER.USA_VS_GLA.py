@@ -108,7 +108,7 @@ RAPTOR_S, BURTON_S = 200, 350
 
 
 def _raptor_s(params):
-    """the Raptor read: 100 s past the opener's first clock tick, at least 200 s (wave1_t reaches 180 s: Codex rbd15-r1 P2). Read both arms
+    """the Raptor read: 100 s past the opener's first clock tick, at least 200 s (wave1_t reaches 180 s). Read both arms
     of a CONTRAST with the ON arm's params"""
     t = (params or {}).get('wave1_t', 100)
     return max(RAPTOR_S, 10 * -(-t // 10) + 100)

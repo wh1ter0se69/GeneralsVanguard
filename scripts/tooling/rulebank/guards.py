@@ -193,7 +193,7 @@ def enemy_reach(rb, scb, owner, taint, writes=False):
     """{name: why} of the scripts and groups of a list whose RUNNING can depend on another player: a condition that reads one (or a
     tainted state), a HIDDEN action, or a call / enable / sequential reference or group membership leading to one (a DISABLE does
     not run its target). writes=True: also every script that writes a stock flag or counter - a new reference must not run stock
-    state writers either (a sequential script runs the actions without the gate, Codex rbd-r6-lensB 1)"""
+    state writers either (a sequential script runs the actions without the gate)"""
     scripts = [s for _g, _k, s in rb.scripts_of(scb, owner)]
     reach = {}
     for s in scripts:
@@ -228,7 +228,7 @@ def enemy_reach(rb, scb, owner, taint, writes=False):
 
 def frozen_inputs(rb, scb, owner, frozen):
     """{writer: why} - every script of a list that writes a flag / counter / team state a frozen script (a gift, a table definer)
-    reads, transitively through those writers' own reads: switching one off or retiming it moves the gift (Codex rbd-r7-lensB 1)"""
+    reads, transitively through those writers' own reads: switching one off or retiming it moves the gift"""
     info = []
     for _g, _k, s in rb.scripts_of(scb, owner):
         reads = {v for l in leaf_list(rb, scb, s) for t, v in rb.decode(scb, l)[1] if t in STATE_TYPES}
@@ -385,7 +385,7 @@ def seen_list_why(rb, scb, owner, script, name, ps):
 
 
 def seen_final(rb, scbs, Refused):
-    """over the whole compile, every module and tier view (Codex rbs3-r2): each list has ONE contents - lists are GLOBAL, so a second definition would
+    """over the whole compile, every module and tier view: each list has ONE contents - lists are GLOBAL, so a second definition would
     be counted by every reader - and no SEEN script is a team's generic hook: Team::updateGenericScripts evaluates a hook every frame, delay or not"""
     built = collections.defaultdict(set)
     where = collections.defaultdict(list)
@@ -492,7 +492,7 @@ def tech_near_ok(rb, A, scb, key, script, leaf):
     """None when an added SKIRMISH_TECH_BUILDING_WITHIN_DISTANCE is a map-layout query: it caches its FIRST result
     (ScriptConditions.cpp:2270-2271, 2291-2294), so that evaluation must be the first frame - the first condition of the first OR
     block (evaluation short-circuits) of an active, undelayed, non-subroutine script in an active non-subroutine group (or none),
-    which nothing else names (no switch, call or team hook can move it) - and of MY area (Codex rbd-r2-lensB 4)"""
+    which nothing else names (no switch, call or team hook can move it) - and of MY area"""
     o, _g, n, _occ = key
     area = [v for t, v in rb.decode(scb, leaf)[1] if t == 'TRIGGER_AREA']
     if not area or any(a not in MY_AREAS for a in area):
@@ -1017,7 +1017,7 @@ def alias_pairs(names, base):
 
 
 def check_names(rb, scbs, base_ctx, where):
-    """new names of the finished file(s) neither shadow a name of their list nor alias another name (Codex rbd-r2-lensB 2, 7)"""
+    """new names of the finished file(s) neither shadow a name of their list nor alias another name"""
     Refused = base_ctx['Refused']
     union = collections.defaultdict(set)
     for scb in scbs:
@@ -1048,7 +1048,7 @@ def pool_names(rb, scb, owner):
 
 
 def pool_budget(rb, scbs, base_ctx, touched):
-    """the engine pools a compile can fill (Codex rbd-r5-lensB 3): global tables over every general and tier view, and the heaviest
+    """the engine pools a compile can fill: global tables over every general and tier view, and the heaviest
     general's counters / flags, which a match holds once per player - refused when a retail map's 8 players could overflow them"""
     Refused = base_ctx['Refused']
     sets, heavy = set(), {'COUNTER': 0, 'FLAG': 0}
@@ -1199,7 +1199,7 @@ def matchup_module(rb, before, after, entry, key, ctx):
 
 
 def team_provenance(rb, before, after, entry, Refused):
-    """rb-data-17 (the lead's ruling on Codex rbd17-r4): every team a module adds was built by rb.variant_team, which clones its donor and records
+    """rb-data-17: every team a module adds was built by rb.variant_team, which clones its donor and records
     donor -> team, or declared by rb.add_new_team. These guards check our own reviewed modules, so a recorded donor
     is enough; what no table can read is intent (a true copy of T' whose slots were meant to replace T)"""
     old = {d['teamName'] for d in rb.teams_ro(before)}
@@ -1222,14 +1222,14 @@ def hook_shape(rb, scb, x):
 
 
 def team_hooks(rb, before, after, entry, Refused):
-    """rb-data-19 (the lead's ruling on Codex rbd19-r1, the second round of new routes after r2 and r3): the launch check is an ALLOW-LIST of the exact shapes the shipped modules use, not a model of the engine, and it is
+    """rb-data-19 (the second round of new routes after r2 and r3): the launch check is an ALLOW-LIST of the exact shapes the shipped modules use, not a model of the engine, and it is
     stricter than the engine BY DESIGN. Anything else is refused and the refusal names the shape, whether or not the engine could run it: a group, a CALL_SUBROUTINE, a false action, a repeating generic hook, a missing
     target. ENABLE_SCRIPT then CALL_SUBROUTINE of an inactive script or group would run, and is refused all the same: no rule uses it. The list is what every shipped module compiles to at its defaults and at each param's lo and hi,
     and every smoke pack; a rule that needs a new shape adds it here, with its red arm.
-    Why these shapes (rb-data-18, Codex rbd18-r1 P1; smoke14: USA_VS_GLA's Burton stayed near home for the whole game): Player::update runs a team's generic hooks whether it has formed or not and a one-shot hook is spent on
+    Why these shapes (rb-data-18, smoke14: USA_VS_GLA's Burton stayed near home for the whole game): Player::update runs a team's generic hooks whether it has formed or not and a one-shot hook is spent on
     its first true evaluation, so a generic hook either cannot fire on an empty team (TEAM_HAS_UNITS) or has a twin on teamOnCreateScript, which runs when the team forms (rb.launch_scripts: same conditions, same actions);
     ScriptEngine::executeScript switches a one-shot script off for every team of the player and a delay is shared, so a formation script is neither, and no other script may name it.
-    A hook is judged when it is the module's: on a new team, a team it moved to another owner, a name it set, or a name whose script now leads to anything else (closure, Codex rbd18-r3)"""
+    A hook is judged when it is the module's: on a new team, a team it moved to another owner, a name it set, or a name whose script now leads to anything else (closure)"""
     was = {d['teamName']: d for d in rb.teams_ro(before)}
     hunt, stop, guard, seq = 'TEAM_HUNT(<This Team>)', 'TEAM_STOP(<This Team>)', 'TEAM_GUARD_AREA(<This Team>, TRIGGER_AREA)', 'TEAM_EXECUTE_SEQUENTIAL_SCRIPT(<This Team>, SCRIPT)'
     add, always, clock = 'INCREMENT_COUNTER(INT, COUNTER)', (('CONDITION_TRUE()',),), (('COUNTER(%s, %d, INT)' % (GX_CLOCK, rb.GE),),)
@@ -1493,7 +1493,7 @@ def excludes(rb, a, b):
 
 def final_claims_overlap(rb, scb, entries, claims, Refused, keys=None, stock_teams=()):
     """two entries of one tier for one player whose CLAIMS meet once a claimed group counts every member it has at the END of the
-    compile - a script another module added into it included (Codex rbd-r8-lensB 2); two MATCHUP keys that differ may share what
+    compile - a script another module added into it included; two MATCHUP keys that differ may share what
     mu_shareable allows (rb-data-13)"""
     groups = {o: groups_of(rb, scb, o) for o in rb.GENERALS}
     keys = keys or {}
@@ -1516,7 +1516,7 @@ def shared_tables(rb, scb, base_ctx):
     """a NEW attack-priority table is ONE global object shared by every player of its general, friend or foe (set names are not
     qualified, findAttackInfo resolves one table, applying hands units a pointer to it): it may be written only behind conditions that
     are the same for every player - _GX_CLOCK thresholds, CONDITION_TRUE, a stock table definer's own (startup-timer) conditions - by a
-    script nothing switches, calls or hooks; otherwise one player's state moves another's targets (Codex rbd-r10-lensB 1)"""
+    script nothing switches, calls or hooks; otherwise one player's state moves another's targets"""
     Refused = base_ctx['Refused']
     for o in rb.GENERALS:
         writers = []
@@ -1549,7 +1549,7 @@ def shared_tables(rb, scb, base_ctx):
 
 def whole_file(rb, scb, base_ctx):
     """checks on the finished tier: every recorded read of stock state is still clean now that every module has written (a later
-    module can taint an earlier reader, Codex r1b 6); a new priority set name lives in one general only"""
+    module can taint an earlier reader); a new priority set name lives in one general only"""
     Refused = base_ctx['Refused']
     taints = {}
     for o, v, rid, copied in base_ctx['reads']:
@@ -1604,7 +1604,7 @@ def whole_file(rb, scb, base_ctx):
 
 def merged_priority_sets(rb, views, base_sets, Refused):
     """the tier-merged file, as each tier reads it (views: {tier: scb}): players of different tiers run their marks in one match, so a
-    global set name has one owner and one definition (Codex rbd-fw-r1b-lensB 12)"""
+    global set name has one owner and one definition"""
     seen = {}
     for t, scb in sorted(views.items()):
         for v, defs in priority_definitions(rb, scb, base_sets).items():
