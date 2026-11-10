@@ -20,10 +20,10 @@
 // in the admin's name.
 //
 // WHY A SIGNATURE AND NOT THE ORDER'S SENDER FIELD. A network order names its sender in a packet field
-// (NetCommandMsg::getPlayerID) that ConnectionManager::processNetCommand does not bind to the peer the datagram came
-// from - the packet router relays everybody's orders, a frame resend carries a third peer's, and a modified client
-// can forge the FRAMEINFO count as well (on this branch; the NOT CLOSED note beside the ack gate in
-// ConnectionManager.cpp is the same gap). "The admin's slot sent it" is therefore not evidence. A signature is: each
+// (NetCommandMsg::getPlayerID) that is not bound to the peer the datagram came from: the packet router relays
+// everybody's orders and a frame resend carries a third peer's, and command envelopes are not authenticated
+// per hop (a known limit of the inherited lockstep design). So "the admin's slot sent it" is not evidence.
+// A signature is: each
 // relay-proven admin holds a per-match Ed25519 key (GameClient/GXAdminKey.h), the relay publishes the public half
 // for live admins only (relay.js GXAKR), every peer confirms the host stamped exactly that key at the start
 // (LANAPI::OnGameStart), and the simulation accepts an admin order only with a valid signature under the stamped key

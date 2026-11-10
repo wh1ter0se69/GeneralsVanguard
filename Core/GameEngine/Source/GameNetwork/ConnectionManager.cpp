@@ -835,19 +835,19 @@ Bool ConnectionManager::processNetCommand(NetCommandRef *ref) {
 		// The router itself has no connection to itself, so it accepts only acks from their acker and
 		// relays nothing else: a forged ACK PACKET cannot be laundered through it. A refused ack is not
 		// relayed.
-		// NOT CLOSED: the same cancel is reachable by forging the acked COMMAND
-		// instead, because doRelay acks every acked type before any sender check (isForgedDirect judges only
-		// the disconnect range and FRAMERESENDREQUEST). A LOADCOMPLETE/TIMEOUTSTART/FILE* naming V sent to W
-		// makes W ack {W,X,V} straight to V. And a GAMECOMMAND {playerID V, ID X} the router relays on its
-		// forged mask is acked back to the router by everyone it reaches, whose stage 2 then tells V that X
-		// arrived everywhere, so V drops X from m_pendingCommands. Those acks come from the peer they name, so
-		// this gate passes them. NARROWED 02/10/2026 by ackCommand acking the hop (the datagram's sender): a
-		// GAMECOMMAND naming V sent to the router no longer makes the router ack V (it acks the forger), and
-		// one sent to W no longer makes W ack the router (W acks the forger), so neither cancels a queued copy
-		// of V's X any more (scripts/test/audit/bench/net_ack_source_gate.cpp, section C). A non-router acker
-		// still cannot refuse to ack by sender: a frame resent to it (sendSingleFrameToPlayer) arrives from the
-		// resender carrying the original slot's ID, and that ack is what clears the resender's queue. Closing it
-		// needs per-hop authentication of the command envelope.
+		// Known limit: command envelopes are not authenticated per hop (inherited lockstep design).
+
+
+
+
+
+
+
+
+
+
+
+
 		if (!arrivedFrom(msg->getPlayerID()) && !arrivedFrom(m_packetRouterSlot)) {
 			static Int s_ackRefusals = 0;	// Trade-off: capped, as the disconnect gate below
 			if (s_ackRefusals < 32) {
