@@ -1,5 +1,5 @@
 name: Bug or crash
-description: Something in GeneralsX does not work, crashes, or behaves differently from the original game.
+description: Something in Generals Vanguard does not work, crashes, or behaves differently from the original game.
 labels: ["bug", "triage"]
 body:
   - type: markdown
@@ -14,13 +14,13 @@ body:
       options:
         - label: I searched the open and closed issues and this is not already reported.
           required: true
-        - label: I am on the latest GeneralsX release.
+        - label: I am on the latest Generals Vanguard release.
           required: false
 
   - type: input
     id: version
     attributes:
-      label: GeneralsX version
+      label: Generals Vanguard version
       description: The version line shown on the main menu.
       placeholder: "0.9.71"
     validations:

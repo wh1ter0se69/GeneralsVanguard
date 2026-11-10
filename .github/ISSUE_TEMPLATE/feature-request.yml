@@ -1,5 +1,5 @@
 name: Feature request
-description: Suggest something GeneralsX should do.
+description: Suggest something Generals Vanguard should do.
 labels: ["enhancement", "triage"]
 body:
   - type: checkboxes

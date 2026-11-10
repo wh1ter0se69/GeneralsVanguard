@@ -1,4 +1,4 @@
-# Contributing to GeneralsX
+# Contributing to Generals Vanguard
 
 Thank you for helping. This page explains how a change gets from a pull request into a release.
 
@@ -64,10 +64,10 @@ expected; the maintainer runs the cross-platform checks before it ships.
 
 ## Licence
 
-GeneralsX is licensed under the GPL-3.0-or-later with the additional terms in [LICENSE.md](LICENSE.md). By opening a
+Generals Vanguard is licensed under the GPL-3.0-or-later with the additional terms in [LICENSE.md](LICENSE.md). By opening a
 pull request you agree that your contribution is published under the same licence.
 
-The signature code in `GXEd25519`, `GXSha512` and `GXIdentityAssertion` is also built into the GeneralsX updater, which
+The signature code in `GXEd25519`, `GXSha512` and `GXIdentityAssertion` is also built into the Generals Vanguard updater, which
 is not open source, so a change to those files is only taken if you agree that it may be used there too.
 
 ## Reporting bugs and security problems

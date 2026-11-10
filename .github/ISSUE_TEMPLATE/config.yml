@@ -2,7 +2,7 @@ blank_issues_enabled: false
 contact_links:
   - name: Questions and help
     url: https://github.com/wh1ter0se69/GeneralsX-source/discussions
-    about: Installing, setting up and playing GeneralsX. Ask here; issues are for bugs.
+    about: Installing, setting up and playing Generals Vanguard. Ask here; issues are for bugs.
   - name: Downloads and release notes
     url: https://wh1ter0se.dev/generals
     about: The latest release, what changed, and how to install it.

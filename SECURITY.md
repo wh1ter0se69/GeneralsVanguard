@@ -11,7 +11,7 @@ trigger in someone else's game can be used before a fix ships.
 
 A useful report says:
 
-* the GeneralsX version (the version line on the main menu) and the platform;
+* the Generals Vanguard version (the version line on the main menu) and the platform;
 * what an attacker sends or provides (a packet, a replay, a map, a file) and what happens;
 * the smallest steps or file that reproduce it.
 
@@ -24,7 +24,7 @@ The code in this repository, in particular anything that reads data another pers
 * signature checks: the signed relay list and sign-in identity (`GXEd25519`, `GXSha512`, `GXIdentityAssertion`);
 * how the game client stores and sends sign-in tokens.
 
-The relay server, the account services and the GeneralsX Launcher are not in this repository. If you find a problem
+The relay server, the account services and the Generals Vanguard launcher are not in this repository. If you find a problem
 with them, report it through the same form.
 
 ## What is out of scope
