@@ -29,8 +29,9 @@ with them, report it through the same form.
 
 ## What is out of scope
 
-* Cheats that only change your own game (for example editing your own files). Report desyncs and gameplay bugs as a
-  normal issue.
+* Cheats in single-player or skirmish games, where you only change your own play. A way to see hidden information
+  or gain an unfair edge in an online match IS in scope: report it privately here. Report desyncs and gameplay bugs
+  as a normal issue.
 * Problems in Electronic Arts' original game data.
 * Load tests or denial-of-service against the public servers. Do not test against other players' games or
   accounts; use your own.
