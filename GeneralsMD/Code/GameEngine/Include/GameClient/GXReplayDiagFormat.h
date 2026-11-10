@@ -393,7 +393,7 @@ inline void gxDiagWindowRow( const GXDiagWindow &w, const GXDiagIter &it, long l
 }
 
 // ------------------------------------------------------------------------------------------------
-// TELEMETRY (wh1ter0se msg 3d92 + 238d, 05/11/2026): per-second rows on the same comment-record path. Kinds 3 PERF, 4 VIEW, 5 INPUT keep
+// TELEMETRY: per-second rows on the same comment-record path. Kinds 3 PERF, 4 VIEW, 5 INPUT keep
 // prelude ver 1 (an old replay-info.py ignores a kind it does not know; a ver above its own reads as "future"). One record is one
 // BATCH: a 14-byte header, `rows` fixed-size rows, then for PERF a 16-bucket frame-time histogram. Every field is little endian.
 //
@@ -409,7 +409,7 @@ inline void gxDiagWindowRow( const GXDiagWindow &w, const GXDiagIter &it, long l
 //     30 netRetries | 32 netRecvDrop | 34 cpuProcMs | 36 cpuMainMs | 38 cpuRenderMs | 40 cpuAudioMs | 42 cpuPcoreMs
 //     44 sysCpuX10 0.1 % | 46 gpuProcMs | 48 gpuFrameX10 0.1 ms | 50 sysGpuPct u8 % | 51 rss16M | 53 sysAvailMb16M (16 MiB units)
 //     55 flags u8 | 56 iterMaxX10 0.1 ms: the longest main-loop ITERATION in the second (a frame interval spans skipped draws, so
-//     ft_max cannot stand in for it; "waiting on a peer" needs the loop's own iteration time normal - CLAUDE.md measurement rules)
+//     ft_max cannot stand in for it; "waiting on a peer" needs the loop's own iteration time normal - measurement rules)
 //
 // Every field is u16 unless marked. NOTHING IS TRUNCATED: a value too large for its field is the CENSORED marker (u16 0xFFFE, u8
 // 0xFE), a value not measured is UNKNOWN (u16 0xFFFF, u8 0xFF). A 90 s wallMs cast to u16 would read 24,464 ms; censored it reads

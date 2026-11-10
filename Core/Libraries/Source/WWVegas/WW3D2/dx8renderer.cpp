@@ -61,7 +61,7 @@
 #include "stripoptimizer.h"
 #include "meshgeometry.h"
 #include <unordered_map>
-#include "../../../../GameEngineDevice/Include/W3DDevice/GameClient/GXParallel.h"	// E·skin-workers: header-only, std only
+#include "../../../../GameEngineDevice/Include/W3DDevice/GameClient/GXParallel.h"	// header-only, std only
 #include <cctype>
 #include <cstring>
 #include <vector>
@@ -79,8 +79,8 @@ void (*GxL2FlushHook)(bool end) = nullptr;	// WS-G (dx8renderer.h GxClassicDraw)
 void (*GxL2FlushClosedHook)() = nullptr;	// GeneralsX: WS-G Task 5 T3 (dx8renderer.h)
 bool (*GxL2SeatHook)(DX8TextureCategoryClass *, PolyRenderTaskClass *) = nullptr;	// GeneralsX: WS-G S1 seat (dx8renderer.h)
 std::vector<GxClassicDraw> *GxL2Executed = nullptr;
-GxMotionHooks *GxMotion = nullptr;	// D · render-motion-units-1 A35 (dx8renderer.h)
-GxShadowCastHooks *GxShadowCast = nullptr;	// D · look-shadowmaps S7 (dx8renderer.h)
+GxMotionHooks *GxMotion = nullptr;	// A35 (dx8renderer.h)
+GxShadowCastHooks *GxShadowCast = nullptr;	// S7 (dx8renderer.h)
 
 // GeneralsX: S7 PREREG A74 / A74a (TEST-ONLY GX_SEETHROUGH_PAINT=<RRGGBB>): M3's don't-care mask. Pass 0
 // of an immediate (non-sorted), non-skin mesh whose category shader alpha-TESTS and whose model has CAST_SHADOW - the see-through casters
@@ -969,7 +969,7 @@ void DX8RigidFVFCategoryContainer::Log(bool only_visible)
 
 void DX8RigidFVFCategoryContainer::Render()
 {
-	GxFlushScope gxProf(GxFlushProf::RIGID);	// D·dxvk-palette GX_FLUSHPROF
+	GxFlushScope gxProf(GxFlushProf::RIGID);	// GX_FLUSHPROF
 	if (!Anything_To_Render()) return;
 	AnythingToRender=false;
 
@@ -1466,7 +1466,7 @@ void DX8SkinFVFCategoryContainer::Log(bool only_visible)
 
 // ----------------------------------------------------------------------------
 
-// GeneralsX: E·skin-workers (render-split lever "CPU skinning"): the skin container's
+// GeneralsX: (render-split lever "CPU skinning"): the skin container's
 // per-mesh deform + interleave (Get_Deformed_Vertices, VectorProcessorClass::Transform, the copy into the dynamic VB)
 // runs on the GXParallel pool. Render() first walks the visible skins on this thread exactly as before - the fit /
 // VERTEX_BUFFER_OVERFLOW logic, Set_Base_Vertex_Offset and the stats stay serial - and queues one job per fitted mesh
@@ -1479,8 +1479,8 @@ void DX8SkinFVFCategoryContainer::Log(bool only_visible)
 // TEST-ONLY negative control of both the check and the picture gate (a job that never ran); 4 is 1 plus a deliberate
 // data race in the jobs (TEST-ONLY: the ThreadSanitizer lane's mutant, as GX_COLLECTPAR=4). Client only: nothing here
 // feeds the simulation.
-// GeneralsX: C·skin-default-win: on by default on Windows only - wh1ter0se's PC, G2 R1 frame
-// time ~-0.4 ms in two n=6+6 ABBA leases (lead C32 ruling, modernize/render-split/HANDBACK_win-timing.md). The Mini
+// GeneralsX: on by default on Windows only - wh1ter0se's PC, G2 R1 frame
+// time ~-0.4 ms in two n=6+6 ABBA leases. The Mini
 // measured ~0 (-0.03 ms), so macOS, iOS and Linux stay on the serial fill. Unset or empty = GX_SKINPAR_DEFAULT;
 // GX_SKINPAR=0..4 overrides it on every platform.
 #ifdef _WIN32
@@ -1583,7 +1583,7 @@ static void gxSkinDispatch()
 
 void DX8SkinFVFCategoryContainer::Render()
 {
-	GxFlushScope gxProf(GxFlushProf::SKIN);	// D·dxvk-palette GX_FLUSHPROF
+	GxFlushScope gxProf(GxFlushProf::SKIN);	// GX_FLUSHPROF
 	SNAPSHOT_SAY(("DX8SkinFVFCategoryContainer::Render()"));
 	if (!Anything_To_Render()) {
 		SNAPSHOT_SAY(("Nothing to render"));
@@ -1663,7 +1663,7 @@ void DX8SkinFVFCategoryContainer::Render()
 
 				mesh = mesh->Peek_Next_Visible_Skin();
 			}
-			gxSkinDispatch();	// E·skin-workers: every job's vertices are written before the lock is released
+			gxSkinDispatch();	// every job's vertices are written before the lock is released
 		}
 
 		SNAPSHOT_SAY(("Set vb: %x ib: %x",&vb.FVF_Info(),index_buffer));

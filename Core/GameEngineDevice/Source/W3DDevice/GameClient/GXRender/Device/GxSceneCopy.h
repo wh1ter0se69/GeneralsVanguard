@@ -1,5 +1,5 @@
 // GeneralsX: F-depth+: the world's depth and opaque colour, taken mid-frame for the readers
-// that draw with them (soft particles S10, native water S8b) - look-director/d2/PLAN_fdepth-plus.md, PLAN_look.md §4 item 4.
+// that draw with them (soft particles S10, native water S8b) - item 4.
 //
 // The game calls IGxSceneTap::OpaqueDone (GxSceneTap.h) after the opaque world and before water and every transparent. When a
 // registered reader is on, the device takes - from whatever colour target and depth-stencil are bound then:
@@ -13,7 +13,7 @@
 // through the writer's tracker, so a reader's draw never splits a scope, and they stay valid until Present.
 //
 // Off - no reader on - nothing is created, armed or recorded: the world's targets keep their usage and every frame its passes.
-// Ownership (DLSS_INTEGRATION.md 13/10): render-motion-1's F-depth keeps the world depth's own SAMPLED usage (End-of-pass reads,
+// Ownership: render-motion-1's F-depth keeps the world depth's own SAMPLED usage (End-of-pass reads,
 // temporal); this is its mid-frame extension and never adds a usage bit to a world target. Render-only.
 #pragma once
 

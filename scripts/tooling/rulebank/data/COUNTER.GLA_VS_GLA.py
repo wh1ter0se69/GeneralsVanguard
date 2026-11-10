@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule COUNTER.GLA_VS_GLA (C·rb-data-18): the Toxin and Stealth generals meet each other
+# GeneralsX: rule bank DATA rule COUNTER.GLA_VS_GLA: the Toxin and Stealth generals meet each other
 # (rows 328, 1168, 1762-1763, 2052: "Vs Stealth, Toxin has the stronger early army ... get into the enemy base early with a lot of Scorpions";
 # rows 306, 308: "Vs Toxin ... Rocket Buggies pick off Toxin units well ... mass Buggies and survive the early game"; Dominator: "Toxin vs
 # Stealth: push early with double-Dealer Scorpions. Stealth vs Toxin: defend into Buggies/Mobs"). This, per general:

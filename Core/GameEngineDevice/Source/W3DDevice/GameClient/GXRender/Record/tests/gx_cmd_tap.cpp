@@ -1,4 +1,4 @@
-// GeneralsX: TEST-ONLY recorded-stream tap (PREREG_T A22's equality gate). Linked into the
+// GeneralsX: TEST-ONLY recorded-stream tap (A22's equality gate). Linked into the
 // record / translate / native / proxy test executables; does nothing unless GX_CMDTAP=<file> is set. Then, after every
 // volkLoadDevice (Vk::g_testAfterLoadDevice), the vkCmd* and vkUpdateDescriptorSets pointers the GXRender code calls through are
 // swapped for shims that fold each command - its arguments, the structs they point to, and every descriptor write - into an FNV-1a
@@ -47,7 +47,7 @@ uint64_t g_h = 0, g_n = 0, g_submits = 0;
 uint32_t g_dev = 0, g_next = 0;
 std::map<std::pair<size_t, uint64_t>, uint32_t> g_ids;   // (type, handle) -> id
 std::thread::id g_recThread;
-// The recording thread: the one that loaded the device, and - A23-B (D · rw3-X-2 13/10/2026) - the native device's command-stream
+// The recording thread: the one that loaded the device, and - A23-B - the native device's command-stream
 // worker gx-native-cs, which records at GX_NATIVE_CS=1. Compare the two modes under the SERIAL schedule (gx_native_test --serial):
 // the front and the worker never run at once there, so the events come in the same order as with the worker off. The name is read
 // until it says gx-native-cs (only that answer is cached: a call before the thread names itself is not final). CS=1 equality is

@@ -562,7 +562,7 @@ public:
 	void setWrappedCommandID(UnsignedShort wrappedCommandID);
 
 	// GeneralsX: The wrapping hop's per-connection serialization number and its lowWater
-	// (DESIGN_wrapper-memory-cap v16 section 2; NetPacketWrapperCommandData::FixedData).
+	// (v16 section 2; NetPacketWrapperCommandData::FixedData).
 	UnsignedInt getWrapSeq() const { return m_wrapSeq; }
 	void setWrapSeq(UnsignedInt wrapSeq) { m_wrapSeq = wrapSeq; }
 	UnsignedInt getLowWater() const { return m_lowWater; }
@@ -586,7 +586,7 @@ private:
 //-----------------------------------------------------------------------------
 /**
  * GeneralsX: The ack of ONE wrapper chunk: (original player, wrapSeq, chunk number), matched only
- * against wrapper chunks queued on the connection it arrived from (DESIGN_wrapper-memory-cap v16 section 2).
+ * against wrapper chunks queued on the connection it arrived from (v16 section 2).
  */
 class NetWrapperAckCommandMsg : public NetCommandMsgT<NetPacketWrapperAckCommand, SmallNetPacketWrapperAckCommand>
 {

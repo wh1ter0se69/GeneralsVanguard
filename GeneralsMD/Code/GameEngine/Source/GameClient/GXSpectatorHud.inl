@@ -1,6 +1,6 @@
 /*
 **	GeneralsX: the GeneralsX spectator HUD: "C2" caster layout + the "B3" Tab scoreboard,
-**	in the game's blue (the owner's pick of 05/10/2026, ui/LEAD-TO_wh1ter0se-observer-ui.md points 1-16).
+**	in the game's blue (the owner's pick of 05/10/2026, points 1-16).
 **
 **	Included ONCE, at the end of InGameUI.cpp, instead of being a .cpp of its own: a new translation unit has to be
 **	named in GeneralsMD/Code/GameEngine/CMakeLists.txt, and that file is inside the SimID digest - a display feature
@@ -728,7 +728,7 @@ static void applyStage( const std::string &list )
 		else if (item.compare( 0, 5, "view=" ) == 0) s_forceView = atoi( item.c_str() + 5 );
 		else if (item.compare( 0, 6, "click=" ) == 0)
 		{
-			std::string xy = item.substr( 6 );		// <x>x<y>: ';' already separates stages (spectator-click r2 P3)
+			std::string xy = item.substr( 6 );		// <x>x<y>: ';' already separates stages (spectator-click)
 			const size_t sep = xy.find( 'x' );
 			if (sep != std::string::npos)
 				injectClick( xy.replace( sep, 1, ";" ), FALSE );
@@ -1086,7 +1086,7 @@ static void follow( Int slot )
 		if (s_rows[i].slot == slot && TheControlBar)
 		{
 			// Already seeing through someone's eyes (that hotkey): move the view along with the focus, as retail's
-			// own buttons do, rather than leave focus and fog on two different players (review r2 P3).
+			// own buttons do, rather than leave focus and fog on two different players.
 			if (TheControlBar->getObservedPlayer() != nullptr)
 				rts::changeObservedPlayer( s_rows[i].player );
 			else
@@ -1182,7 +1182,7 @@ static Bool retailClicks()
 	return on;
 }
 
-/// A modal window (a scripted popup) is up: the battlefield behind it inspects nothing (spectator-click r2 P2).
+/// A modal window (a scripted popup) is up: the battlefield behind it inspects nothing (spectator-click).
 static Bool modalUp() { return TheWindowManager != nullptr && TheWindowManager->winGetModal() != nullptr; }
 
 /// What a spectator's click shows of an object, by retail's observer-portrait rules (ControlBar::setPortraitByObject): a
@@ -1210,7 +1210,7 @@ static ObjectID s_inspectID = INVALID_ID;	///< what a spectator's battlefield cl
 /// card and keeps the focus. It picks what retail's point click picks (SelectionTranslator: pickDrawable + CanSelectDrawable)
 /// and only REMEMBERS it: the client selection is never touched, because retail and simulation code read it (the observer
 /// bar's portrait mints NameKeys for its cameos, a solo mission's "named unit selected" condition, a selection carried over
-/// to a replacement object as MSG_CREATE_SELECTED_GROUP_NO_SOUND - spectator-click r1 P1/P2).
+/// to a replacement object as MSG_CREATE_SELECTED_GROUP_NO_SOUND - spectator-click /P2).
 static void inspectAt( Int x, Int y )
 {
 	if (TheTacticalView == nullptr || TheGameLogic == nullptr)
@@ -1474,7 +1474,7 @@ static Int s_barFirst[2] = { 0, 0 };					///< the first card each half shows whi
 static Int s_barPageMax[2] = { -1, -1 };				///< the furthest that half can start, -1 = it does not page
 static Rect s_barSide[2] = { { 0, 0, 0, 0 }, { 0, 0, 0, 0 } };	///< the two halves as drawn this frame, w 0 = not drawn (the wheel's target)
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-static const Int kListMaxRows = 10;		// the iPad's smaller screen (wh1ter0se msg 550c)
+static const Int kListMaxRows = 10;		// the iPad's smaller screen
 #else
 static const Int kListMaxRows = 14;
 #endif
@@ -1715,7 +1715,7 @@ static void drawBar( Rect &out )
 			(s_rows[i].team == teamA ? c1 : c2) += s_rows[i].cash;
 		const Int cy = mid.y + S( 14 );
 		putC( clock, mid.x + mid.w / 2, cy, white() );
-		// wh1ter0se 03/11 msg 9b3b "add $ sign": the totals read like the cards' cash ("$672"), $313,480
+		// wh1ter0se 03/11 "add $ sign": the totals read like the cards' cash ("$672"), $313,480
 		DisplayString *a = number( "bar.t1", 0, 20, TRUE, c1, FALSE, TRUE ), *b = number( "bar.t2", 0, 20, TRUE, c2, FALSE, TRUE );
 		const Int cx0 = mid.x + mid.w / 2 - tw( clock ) / 2 - S( 12 ), cx1 = mid.x + mid.w / 2 + tw( clock ) / 2 + S( 12 );
 		putR( a, cx0, cy, white() );
@@ -1748,7 +1748,7 @@ static void drawBar( Rect &out )
 	}
 }
 
-/// The newest announcements ("X used Y") stacked under the PLAYERS tab (wh1ter0se 03/11 msg a8bf): up to TOAST_MAX, newest on top, each
+/// The newest announcements ("X used Y") stacked under the PLAYERS tab (wh1ter0se 03/11): up to TOAST_MAX, newest on top, each
 /// TOAST_LIFE_MS with a fade in and out, a newer one pushing the oldest out - toastLayout / toastStack in GXSpectatorHud.h, model-tested
 /// frame by frame against the tab, the gear, the name tips and the customise panel. Click one: the camera jumps to that player's base
 /// (or where its power was aimed). Same feed and same spectator gate as the legacy banners; only the place and the look change.
@@ -2316,7 +2316,7 @@ static void drawObjectBand( const Rect &b, Object *o )
 	if (e != nullptr && cx + S( 260 ) <= b.x + b.w)
 	{
 		put( fixed( "obj.prod", 10, TRUE, L"PRODUCING" ), cx, b.y + pad, label() );
-		// One union in ProductionEntry: read only the member its type names (spectator-click r1 P1).
+		// One union in ProductionEntry: read only the member its type names (spectator-click).
 		const ThingTemplate *unit = e->getProductionType() == PRODUCTION_UNIT ? e->getProductionObject() : nullptr;
 		const UpgradeTemplate *upg = e->getProductionType() == PRODUCTION_UPGRADE ? e->getProductionUpgrade() : nullptr;
 		const void *what = unit != nullptr ? (const void *)unit : (const void *)upg;
@@ -2356,7 +2356,7 @@ static void drawFocus( const Rect &mapRect )
 	// The dock offset (dx, dy) is measured against the FULL panel's home whatever is showing, so a collapsed or compact bar never
 	// clamps a zero-height rect into a permanent offset; the shown strip sits on the home's bottom edge.
 	// In a replay the GeneralsX replay strip (pause / speed / scrub) sits on the bottom edge: the bar stands on top of it, not behind
-	// it (r3 P2; seen on the NEW picture, the card's lower rows ran under the strip).
+	// it (seen on the NEW picture, the card's lower rows ran under the strip).
 	// A CONSTANT clearance (the strip's home height + its gap), not its live rect: the bar's home just sits higher while a replay
 	// strip is up, so the saved dock offset is never rewritten and a drag starts from what is drawn. A strip the
 	// user dragged elsewhere is the user's doing; the tab is still kept out from under it below.
@@ -2377,7 +2377,7 @@ static void drawFocus( const Rect &mapRect )
 	{
 		// The clicked object stacks on the panel, above it - or below it when the panel was dragged to the top edge.
 		Rect band = { r.x, r.y - S( 4 ) - S( lay.bandH ), r.w, S( lay.bandH ) };
-		if (band.y - S( 22 ) < 0)		// no room above for it AND the tab on top of it (spectator-click r1 P3)
+		if (band.y - S( 22 ) < 0)		// no room above for it AND the tab on top of it (spectator-click)
 			band.y = r.y + r.h + S( 4 );
 		else
 			tabY = band.y;
@@ -3506,7 +3506,7 @@ static void injectClick( const std::string &xy, Bool right )
 /// GX_PLAYERUI_SHOW clickocc (tests only, the occupants fairness picture): a real left click on the ENEMY container nearest the
 /// screen centre that this player could click himself - on screen, clear of the bars, not under his shroud, and the drawable a
 /// click there picks (pickDrawable: nothing stealthed or unselectable). It never reads what is inside (spectator-occupants
-/// r3 P1: GX_PLAYERUI_SHOW is an environment variable a player can set, so a hook that ranked or logged by contents was an
+/// GX_PLAYERUI_SHOW is an environment variable a player can set, so a hook that ranked or logged by contents was an
 /// enemy-contents leak); an empty container proves the same thing, since the spectator card shows even "0 / 5". "[GXPUI] TEST
 /// clickocc" names the object it clicked, or obj=0.
 struct OccPick { const Object *best; Int dist; ICoord2D at; const Player *me; };
@@ -4755,7 +4755,7 @@ static void reset()
 		s_apparentGeneral[i] = UnicodeString::TheEmptyString;
 	}
 	// Names and fixed text are keyed 0 per slot; a new match can put a different player in the same slot - and the strings
-	// go back to their manager between matches (B · vote-kick /: its destructor asserts the list empty).
+	// go back to their manager between matches (: its destructor asserts the list empty).
 	freeStrings();
 }
 
@@ -4973,7 +4973,7 @@ public:
 
 /// The battlefield mouse is the HUD's whenever the GeneralsX look is a spectator's, decided NOW from the same inputs as decide():
 /// a network game translates and sends its input before the frame's draw refreshes s_mode, so a player defeated in the last
-/// tick would otherwise click the retail way once more (spectator-click r3 P1; r2 P1 was the panels never drawing).
+/// tick would otherwise click the retail way once more (spectator-click was the panels never drawing).
 /// Both guards ask this: the click capture and the OrderGate.
 static Bool spectatorInput()
 {
@@ -4993,8 +4993,8 @@ static Bool spectatorInput()
 static void endRetailLeftPress()
 {
 	// Only a drag selection's own lock and box, as that release unlocks only when it was dragging: another gesture's camera
-	// lock (a held scroll key) is not this press's to end (spectator-click r4 P2). The translator's own flag decides; the
-	// UI's can already be cleared by a script disabling input mid-drag (r5 P2).
+	// lock (a held scroll key) is not this press's to end (spectator-click). The translator's own flag decides; the
+	// UI's can already be cleared by a script disabling input mid-drag.
 	const Bool dragging = (TheSelectionTranslator != nullptr && TheSelectionTranslator->isDragSelecting())
 		|| (TheInGameUI != nullptr && TheInGameUI->isSelecting());
 	if (TheSelectionTranslator != nullptr)
@@ -5014,7 +5014,7 @@ static void endRetailLeftPress()
 /// A spectator's right DOUBLE click goes on as a plain right press: the camera (LookAtTranslator) treats both alike, but from a
 /// double click the meta map makes MSG_MOUSE_RIGHT_DOUBLE_CLICK, which with the alternate mouse and double-click attack-move on
 /// becomes a MSG_DO_GUARD_POSITION order (and an AcademyStats count) with no selection or ownership check (CommandXlat.cpp;
-/// spectator-click r4 P2). The press keeps the double click's position, modifiers and time.
+/// spectator-click). The press keeps the double click's position, modifiers and time.
 static GameMessageDisposition rightPressInstead( const GameMessage *msg )
 {
 	GameMessage *press = TheMessageStream->insertMessage( GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_DOWN, const_cast<GameMessage *>( msg ) );
@@ -5162,8 +5162,8 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 	{
 		// Hidden panels (F11, the Debug screen) hide the HUD, not the spectator: his battlefield clicks still only inspect (the card
 		// shows when the panels come back) and never go the retail way, whose selection and double-click guard order would be
-		// sent to every peer (spectator-click r1 P2). Every left message is drained, a release or drag of a press that was
-		// never ours included (r2 P2: the meta map would make it a click). Other messages pass; a panel capture ends as below.
+		// sent to every peer (spectator-click). Every left message is drained, a release or drag of a press that was
+		// never ours included (the meta map would make it a click). Other messages pass; a panel capture ends as below.
 		if (s_capture != CAP_WORLD)
 		{
 			s_capture = CAP_NONE;
@@ -5247,9 +5247,9 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 			// capture whose button is no longer down ends instead of dragging a panel with no button held. NOT on the
 			// first such message: Mouse::createStreamMessages appends the frame's position BEFORE its button events,
 			// and translators read m_currMouse after all of them, so a normal release frame shows "up" here one
-			// message before its own LEFT_BUTTON_UP arrives (review r2 P1). Two in a row = the up was eaten.
+			// message before its own LEFT_BUTTON_UP arrives. Two in a row = the up was eaten.
 			// Counted on POSITION only: it is appended exactly once per frame, while a LEFT_DRAG can precede the UP inside
-			// the very release frame (a 1 px jitter on a click), which made it a false second strike (review r3 P2).
+			// the very release frame (a 1 px jitter on a click), which made it a false second strike.
 			if (t == GameMessage::MSG_RAW_MOUSE_POSITION && s_capture != CAP_NONE && m->leftState != MBS_Down
 				&& m->leftState != MBS_DoubleClick)
 			{
@@ -5346,7 +5346,7 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 			s_listDrag = FALSE;
 			if (c == CAP_NONE && !owned && spectatorInput())
 			{
-				endRetailLeftPress();	// a spectator's release is never the meta map's, even one whose press was not ours (r2 P2)
+				endRetailLeftPress();	// a spectator's release is never the meta map's, even one whose press was not ours
 				return DESTROY_MESSAGE;
 			}
 			if (c == CAP_NONE)
@@ -5355,7 +5355,7 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 				saveSettings();
 			else if (c == CAP_WORLD)
 			{
-				// Not where a panel now is: one opened under the cursor, or a release just inside one (spectator-click r1 P2).
+				// Not where a panel now is: one opened under the cursor, or a release just inside one (spectator-click).
 				if (isClickNotDrag( s_worldPress.x, s_worldPress.y, x, y, S( 4 ) ) && hitAt( x, y ) == nullptr && !modalUp())
 					inspectAt( x, y );
 			}
@@ -5496,7 +5496,7 @@ GameMessageDisposition BoardGate::translateGameMessage( const GameMessage *msg )
 		if (button == 1 && (s_boardPressHit.kind == H_MUTE || s_boardPressHit.kind == H_KICK))
 		{
 			// A click is a press and a release on the same button, still on screen, while the board is still held: not
-			// after Tab was let go (r11 P3), nor in the batch its release is queued in (r12 P3).
+			// after Tab was let go, nor in the batch its release is queued in.
 			// ...and not behind a modal popup that opened meanwhile: the release is still drained.
 			const Hit *now = hitAt( at.x, at.y );
 			if (open && now != nullptr && now->kind == s_boardPressHit.kind && now->id == s_boardPressHit.id
@@ -5583,7 +5583,7 @@ Bool gxSpectatorHudToastZone( Int *x0, Int *x1, Int *y0, Int *y1 )
 }
 static void gxSpectatorHudReset() { GXSpecHud::reset(); }
 static void gxSpectatorHudFreeStrings() { GXSpecHud::freeStrings(); }
-/// The player Tab board is on screen this frame (B · vote-kick's banner stays out of its way).
+/// The player Tab board is on screen this frame (banner stays out of its way).
 static inline Bool gxSpectatorHudBoardUp() { return GXSpecHud::s_boardRect.w > 0; }
 
 /// GameClient.cpp attaches this right after the WindowTranslator (10), so a chat box or menu with focus still wins,

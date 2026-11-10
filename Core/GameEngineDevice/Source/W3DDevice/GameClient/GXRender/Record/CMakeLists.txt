@@ -58,7 +58,7 @@ if(GX_RECORD_TESTS)
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/gx_sha.cmake
         BYPRODUCTS ${CMAKE_CURRENT_BINARY_DIR}/gx_record_sha.h)
     add_dependencies(gx_record_test gx_record_sha)
-    # E · rw3-L: the translator's d3d8 -> packet rules, one case per rule + an X- arm per GxTranslateDebug plant
+    # the translator's d3d8 -> packet rules, one case per rule + an X- arm per GxTranslateDebug plant
     add_executable(gx_translate_test tests/gx_translate_test.cpp tests/gx_cmd_tap.cpp)
     target_include_directories(gx_translate_test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../Pipeline/shaders")
     target_link_libraries(gx_translate_test PRIVATE gx_record)

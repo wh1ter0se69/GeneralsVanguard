@@ -1,7 +1,7 @@
 // GxDxvkMath.h - DXVK 2.6's CPU vector/matrix arithmetic, for the FF state GxPackFF uploads (rw3-P, 11/10/2026).
 //
 // Adapted from DXVK 2.6 (fbraz3 fork 954c5c69 = the classic path players run) src/util/util_matrix.cpp / util_matrix.h and
-// src/util/util_vector.h - ALTERED (GXRender/third_party/SOURCE.txt: paths, commit, sha256). Approved by lead C32, 11/10/2026.
+// src/util/util_vector.h - ALTERED (GXRender/third_party/SOURCE.txt: paths, commit, sha256). Approved by, 11/10/2026.
 // DXVK is Copyright (c) 2017 Philip Rebohle and DXVK contributors, provided under the zlib/libpng licence:
 //   This software is provided 'as-is', without any express or implied warranty. In no event will the authors be held liable
 //   for any damages arising from the use of this software. Permission is granted to anyone to use this software for any

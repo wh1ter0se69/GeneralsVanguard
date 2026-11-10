@@ -7,7 +7,7 @@
 #              sub-allocate FF VS constants instead of renaming a buffer per draw, cache InverseView and the view-space
 #              lights, keyed on the FP control state (0006: its reader chosen by util_bit.h's architecture, so ARM64EC
 #              compiles; x86/x64 code unchanged). Zoomed out it is +11-18% fps on a 9950X3D/RTX 5090 and +11-22% on an
-#              M4 Mini (modernize/HANDBACK_perf-zoomout-draw-2.md); the constants are bit-identical to stock (oracle,
+#              M4 Mini; the constants are bit-identical to stock (oracle,
 #              255M uploads, 0 mismatches).
 # WHY BUILD IT HERE: macOS/iOS compile DXVK from references/fbraz3-dxvk inside cmake; Windows shipped the official
 # release DLLs, so the fix never reached Windows. This script is the ONLY way the Windows pair is made.

@@ -14,7 +14,7 @@
 #   macOS fixes are maintained in the DXVK fork history consumed by this build.
 #   This project no longer applies local patch scripts during configure/build.
 #
-# Reference: docs/WORKDIR/lessons/2026-02-LESSONS.md (historical patch rationale)
+# Reference: (historical patch rationale)
 
 set(DXVK_VERSION "v2.6")
 

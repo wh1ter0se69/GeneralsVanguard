@@ -3,7 +3,7 @@
 // A Ryzen X3D part with two CCDs (7900X3D, 7950X3D, 9900X3D, 9950X3D) has a large L3 on one CCD and a normal one
 // on the other. AMD's driver moves a game onto the cache CCD only when Windows Game Mode is on AND Windows knows
 // the program is a game; GeneralsX is not on that list, so Windows ran it on the other CCD. Measured on the
-// owner's 9950X3D with his own 6v6 replay (modernize/HANDBACK_perf-6v6-attribution.md PART 2): cache CCD
+// owner's 9950X3D with his own 6v6 replay (PART 2): cache CCD
 // 37.8-43.3 fps / 3.8-4.1 ms tick, unpinned (= the other CCD) 29.0-32.2 fps / 5.95-6.1 ms.
 //
 // So at startup, when the L3 domains are equally wide but the largest L3 is at least 2.5x the smallest (V-cache

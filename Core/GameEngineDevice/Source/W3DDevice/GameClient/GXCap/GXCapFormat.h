@@ -1,4 +1,4 @@
-// GeneralsX: GXCAP capture format (WS-I, gx-handoff modernize/render-seam/DESIGN_gxcap.md).
+// GeneralsX: GXCAP capture format (WS-I).
 // Shared by the recorder (GXCapRecorder.cpp, inside the game) and gxcap-replay (Core/Tools/gxcap-replay). A window file
 // is a header followed by call records; the window's start state is itself a run of records (CREATE / GET / UPLOAD / SET)
 // flagged F_SNAPSHOT, so one decoder replays both. Bulk bytes live in a content-addressed blob store shared by the run.

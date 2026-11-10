@@ -1,5 +1,5 @@
 // GeneralsX: S7 GPU sun shadow map: the Core side of the game glue
-// (modernize/look-director/d2/PREREG_look-shadowmaps.md; PLAN Task 5).
+// (PLAN Task 5).
 //
 // W3DView.cpp (Core: both games) defines these and calls the frame hooks around the tactical scene; the ZH glue
 // (GeneralsMD/.../Shadow/W3DShadowMap.cpp) installs them when the native device answers IGxShadowMap (GXShadowMap on). Null / false
@@ -15,7 +15,7 @@ struct GxShadowMapFrameHooks
 	void (*tacticalEnd)();						// after it (every tag cleared)
 };
 extern GxShadowMapFrameHooks *GxShadowMapFrame;
-// A49 (D · look-shadowmaps-4): W3DView::draw ARMS the tactical frame with its camera; RTS3DScene::Customized_Render (ZH) calls
+// A49: W3DView::draw ARMS the tactical frame with its camera; RTS3DScene::Customized_Render (ZH) calls
 // GxShadowMapFireArmed(&rinfo.Camera) right after its On_Frame_Update loop - the frame starts there (every pose it causes then lands where
 // key off's DoShadows poses do: after On_Frame_Update), before the first object is submitted. Null = nothing armed (key off, classic, Generals).
 extern CameraClass *GxShadowMapArmedCamera;

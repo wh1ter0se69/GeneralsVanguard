@@ -1,4 +1,4 @@
-// B · mac-upscaler-u2 18/10/2026: GXGraphics::resolveUpscaler - every GXUpscaler value x {Mac (no Streamline), Windows without
+// GXGraphics::resolveUpscaler - every GXUpscaler value x {Mac (no Streamline), Windows without
 // Streamline, Windows with Streamline} -> the value upscaler() will return. Build:
 //   c++ -std=c++17 -I u2stub -I <repo>/Core/GameEngine/Include gx_upscaler_resolve_test.cpp -o gx_upscaler_resolve_test
 // Mac and Windows-without-Streamline are the same build flag (streamlineBuild=false); both are listed so a platform split can't hide.

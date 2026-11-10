@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule OPEN.USA_PP_FIRST (C·rb-data-7): vanilla USA builds its Power Plant before its Barracks.
+# GeneralsX: rule bank DATA rule OPEN.USA_PP_FIRST: vanilla USA builds its Power Plant before its Barracks.
 # Stock Hard (owners.txt, 14d03e02): "USA Barracks - H" is CONDITION_TRUE (the Barracks is the very first order), "USA 1st Power Plant - H" waits
 # for the second Dozer, "USA Supply Center - H" for the Power Plant. Here the Barracks waits until an own Power Plant stands (any build state:
 # the dozer has started it), or _GX_CLOCK >= 12 (120 s, the floor so the Barracks always comes). Own state only, no enemy term, no gift; the

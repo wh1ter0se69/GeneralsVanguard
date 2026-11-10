@@ -1,5 +1,5 @@
 // GeneralsX: The world/HUD seam's private device interface
-// (modernize/render-dlss/DESIGN_hud-seam.md §5).
+//
 //
 // W3DWorldSeam asks the device for it once per device with QueryInterface(IID_GxWorldPass). DXVK and the GXCAP proxy answer
 // E_NOINTERFACE, and then the seam does everything with plain d3d8 calls (CopyRects resolve, its own bilinear quad). The native

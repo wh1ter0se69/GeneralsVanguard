@@ -1,4 +1,4 @@
-// gx_ff_test - the WS-D week-2 gates for the FF ubershader (C · rw2-D, 11/10/2026; RW2_BRIEFS.md §D, PLAN_rw2-D.md).
+// gx_ff_test - the WS-D week-2 gates for the FF ubershader (§D).
 //
 //   gx_ff_test --layout [--layout-mutant]
 //       Every member offset (and array stride) of the VS / PS uniform blocks and the push block, read from the compiled
@@ -9,7 +9,7 @@
 //       material, fog, tfactor, vertices, 8 noise textures): draw once with the generic pipeline, once with the specialised
 //       one, compare every byte. --synthetic adds coverage the census never met (fog modes, alpha funcs, specular, an op
 //       sweep). Fail arm --mutant: the specialised pipelines use gx_ff_mutant.frag (MODULATE x 1.0078125) -> must differ.
-//       --a2c-family (B · a2c-1, A108; the integrator's ruling (6)): the specialised pipelines use the ALPHA-TO-COVERAGE family
+//       --a2c-family (A108; the integrator's ruling (6)): the specialised pipelines use the ALPHA-TO-COVERAGE family
 //       (gx_ff.a2c / gx_ff_flat.a2c) with spec bit 3 clear, as every packed key has it -> must be identical to today's family, every
 //       census state and the synthetic alpha funcs included (what a session that loaded the family draws for a non-A2C draw).
 //       Fail arm --a2c-family --a2c-bit: bit 3 set on every alpha-tested entry (the ramp in force) -> must differ.
@@ -309,7 +309,7 @@ bool g_specCorrupt = false;
 bool g_specCorruptVs = false; // --spec-corrupt-vs: the same for a VS-only key word (fail arm for the vertex stage's constants)
 bool g_blankMutant = false;   // --blank-mutant: every entry's Projection zeroed (nothing on screen) - the coverage rule must fail   // --spec-corrupt: the specialised pipeline's constants disagree with the pushed key (fail arm)
 bool g_plantHazard = false;   // --plant-hazard: the readback's layout transition does not wait for the colour writes
-bool g_a2cFamily = false;     // --a2c-family: the specialised side is the alpha-to-coverage family (B · a2c-1)
+bool g_a2cFamily = false;     // --a2c-family: the specialised side is the alpha-to-coverage family
 bool g_a2cBit = false;        // --a2c-bit: ...with bit 3 set on every alpha-tested entry (its fail arm)
 std::map<std::string, int> g_errorIds;
 std::mutex g_errorLock;
@@ -470,7 +470,7 @@ struct Gpu {
 	Vk::VkCtx ctx;
 	GxGenericShaders sh;
 	VkShaderModule mutantFs = VK_NULL_HANDLE;
-	VkShaderModule a2cFs = VK_NULL_HANDLE, a2cFsFlat = VK_NULL_HANDLE;   // B · a2c-1: the alpha-to-coverage family
+	VkShaderModule a2cFs = VK_NULL_HANDLE, a2cFsFlat = VK_NULL_HANDLE;   // the alpha-to-coverage family
 	TestKit::FFLayout layout;
 	TestKit::FFResources res;
 	GxAttachConfig cfg = {};
@@ -1125,7 +1125,7 @@ int runCold(Gpu& g, const std::string& stream, const std::string& setArg, const 
 	const uint32_t vErr = vc.errors + vc.syncHazards;
 	if (vc.errors)
 		std::printf("[GXFF] first validation error: %s\n", vc.firstError.c_str());
-	// Pre-registered (PLAN_rw2-D.md task 7): the draw thread never compiles a specialised variant: getFF time per frame
+	// Pre-registered (task 7): the draw thread never compiles a specialised variant: getFF time per frame
 	// <= 1 ms at every frame and prebuild_wait 0. The fail arm (--sync-spec) must break the first clause.
 	const bool noHitch = worstGet <= 1.0 && st.prebuildWait == 0;
 	// The run must have done the work it claims: every stream entry prepared, every lookup a pipeline,

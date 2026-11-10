@@ -507,7 +507,7 @@ static Bool stepScud( MissileVisual *mv, Drawable *draw, Object *obj, UnsignedIn
 
 	// Remaining path: what is left of the straight climb, then a straight line from its top to the end point.
 	// Latched: the logic SCUD comes back down below its climb height long before the end, and counting that as climb
-	// still to do made tau 1.5-4x too long over the last 30% of the flight (measured on the Mini recording, rec4).
+	// still to do made tau 1.5-4x too long over the last 30% of the flight (measured recording, rec4).
 	if( pos.z - mv->L.z > mv->maxClimb )
 		mv->maxClimb = pos.z - mv->L.z;
 	const float climbed = mv->maxClimb;

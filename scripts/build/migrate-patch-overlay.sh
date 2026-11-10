@@ -8,7 +8,7 @@
 #
 # THIS IS dataID-NEUTRAL, AND THAT IS MEASURED, NOT ASSUMED. The same two archives mounted from
 # the game folder and mounted from an overlay outside it produce the identical dataID
-# (FA018128 both ways - arms B1 and C1 in docs/WORKDIR/evidence/patch-overlay-wiring-2026-08-12.md).
+# (FA018128 both ways - arms B1 and C1).
 # So peers may migrate one at a time; there is no atomic-rebuild requirement here and a
 # half-migrated fleet still interoperates. That is the whole reason this is safe to run on a
 # live install at all.

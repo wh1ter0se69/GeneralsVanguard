@@ -1,5 +1,5 @@
 // GeneralsX: What the temporal upscalers read from a world pass: depth, motion vectors,
-// jitter, camera (modernize/render-dlss/DESIGN_motion.md §2). ONE internal convention; each backend (DLSS/Streamline, FSR 3.1,
+// jitter, camera. ONE internal convention; each backend (DLSS/Streamline, FSR 3.1,
 // MetalFX, XeSS) maps it with scale/flag parameters only:
 //   motion vectors  RG16_SFLOAT, render size, CURRENT -> PREVIOUS (prev = cur + mv) in render PIXELS, +x right / +y down,
 //                   camera motion included, jitter EXCLUDED, not dilated   (DLSS InMVScale 1,1 / Streamline mvecScale 1/renderW,1/renderH;

@@ -1,4 +1,4 @@
-# GeneralsX: rule bank, DATA half: scb helpers for the ruleset compiler and its modules (C·rb-data).
+# GeneralsX: rule bank, DATA half: scb helpers for the ruleset compiler and its modules.
 # Works on the recipe's own parse (make-skirmish-scripts.py: SCB / Node / parse_call / enc_call), which the compiler binds in as `mss`
 # before any module runs. A module sees this file as `rb`.
 #
@@ -17,7 +17,7 @@ SIDE_ENEMY = "<This Player's Enemy>"
 # rb-data-12: the GX leaves a DATA rule may emit, each with the rule_ids.json capability that builds it (gen-rule-ids.py CAP_SOURCES)
 GX_LEAVES = {('Condition', 'AI_PLAYER_GX_SENSE'): 'SENSE.ENEMY_FACTION',
              ('Condition', 'AI_PLAYER_GX_SEEN_COUNT'): 'SENSE.FOG_CONDITIONS', ('Condition', 'AI_PLAYER_GX_SEEN_VALUE'): 'SENSE.FOG_CONDITIONS'}
-# rb-sense-3, SENSE.FOG_CONDITIONS: every ask walks the partition (~9 us, HANDBACK_rb-sense-2 section 7), so a script reading one runs on at least this
+# rb-sense-3, SENSE.FOG_CONDITIONS: every ask walks the partition (~9 us), so a script reading one runs on at least this
 # script delay (seconds); a seen value only of MY perimeter; an OBJECT_TYPE list a rule builds carries the prefix and is built by a seen_list_script
 SEEN_MIN_DELAY = 2
 SEEN_AREAS = ('[Skirmish]MyInnerPerimeter', '[Skirmish]MyOuterPerimeter')

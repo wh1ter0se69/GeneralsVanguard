@@ -2146,7 +2146,7 @@ StateReturnType AIMoveToState::update()
 	// busy (privateMoveToPosition: "move for 20 seconds"), and there the conversion clears and re-enters the main
 	// state - ATTACK_MOVE_TO, with a fresh path request - every frame, while the temporary move keeps running and the
 	// main state never updates. AIStateMachine::clear() does not drop a temporary state. Measured 01/10
-	// (C · ai-pathfinding, Killing Fields AI 1v1s, GX_PFTRACE): AI dozers and tanks re-ordered every frame for
+	// (Killing Fields AI 1v1s, GX_PFTRACE): AI dozers and tanks re-ordered every frame for
 	// exactly 1,202 frames at a time (the 20 s limit), 3,657-11,046 times per unit per match, standing at their goal
 	// without scanning for targets. Mood conversion only applies to AI-controlled units, so player units are unaffected.
 	Bool convertToAttackMove = m_isMoveTo && (adjustment & MAA_Action_To_AttackMove);

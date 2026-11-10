@@ -1,5 +1,5 @@
 // GeneralsX: THE WORLD/HUD SEAM - see W3DWorldSeam.h and
-// modernize/render-dlss/DESIGN_hud-seam.md §2 (mechanics), §3 (what follows the smaller target), §5 (IGxWorldPass), §7 (exactness).
+// (mechanics), §3 (what follows the smaller target), §5 (IGxWorldPass), §7 (exactness).
 
 #include "Lib/BaseType.h"
 #include "WWLib/always.h"
@@ -13,9 +13,9 @@
 #include "WW3D2/Renderer.h"
 #include "WW3D2/ww3d.h"
 #include "W3DDevice/GameClient/GxWorldPass.h"
-#include "W3DDevice/GameClient/GxSceneTap.h"   // D · look-fdepth-plus: F-depth+
+#include "W3DDevice/GameClient/GxSceneTap.h"   // F-depth+
 #ifdef GX_RENDER_NATIVE
-#include "W3DDevice/GameClient/GXRender/Scene/GxMotionUnits.h"   // D · render-motion-units-1 (A35): the object-velocity bridge
+#include "W3DDevice/GameClient/GXRender/Scene/GxMotionUnits.h"   // (A35): the object-velocity bridge
 #endif
 
 #include <math.h>
@@ -66,7 +66,7 @@ namespace
 		unsigned engaged = 0;	// frames the seam redirected (the picture gate's "engaged > 0")
 		char lastState[256] = "";
 
-		// D · look-fdepth-plus: F-depth+ (GxSceneTap.h) - asked once per device, whatever GXUpscaler says; null on DXVK / GXCAP
+		// F-depth+ (GxSceneTap.h) - asked once per device, whatever GXUpscaler says; null on DXVK / GXCAP
 		IGxSceneTap *tap = nullptr;
 		bool tapAsked = false;
 		bool tapFrame = false;	// this tactical frame may still be tapped (armed at push, spent by opaqueDone, cleared at pop)
@@ -170,7 +170,7 @@ namespace
 		if (FAILED(hr) || s.texSurf == nullptr)
 		{
 			if (s.wp != nullptr)
-				s.wp->NextTargetsAreWorld(0);	// a half-made set must not arm the device's next unrelated target (motion-code-r1 P2 #7)
+				s.wp->NextTargetsAreWorld(0);	// a half-made set must not arm the device's next unrelated target
 			failOff("world target allocation", hr);
 			return false;
 		}
@@ -292,7 +292,7 @@ namespace
 	// One axis of the composite: output pixels o0..o1 show source texels s0..s1, the first pixel centre on the first texel centre:
 	// pixel o0 + m samples s0 + 1/2 + m S/O. The world is drawn with D3D9's half-pixel convention in RENDER pixels, so the plain
 	// centre-to-centre mapping put a scaled world 0.5 (O/S - 1) output px right and down of native (measured 13/10: bilinear 67%
-	// +0.19..+0.28 px, predicted +0.247; NOTE_hud-seam-halfpixel-offset.md); this one cancels it and is the same mapping at 1:1.
+	// +0.19..+0.28 px, predicted +0.247); this one cancels it and is the same mapping at 1:1.
 	// The sample is clamped to the centre of the last texel on a source edge INSIDE the texture (CLAMP_TO_EDGE does it at the
 	// texture's own edge): those pixels form a strip with a constant coordinate, the edge texel replicated, so no texel outside the
 	// camera's viewport bleeds in and the scale stays exact; nothing samples below the first
@@ -609,7 +609,7 @@ void W3DWorldSeam::push(CameraClass *camera, Bool viewFilterActive)
 		s.wp->Begin(b);
 #ifdef GX_RENDER_NATIVE
 		if (GxMotionUnits::Key)
-			GxMotionUnits::Begin(s.wp, b);   // the one ordered sequence (DLSS_INTEGRATION.md 01:08Z): after Begin ...
+			GxMotionUnits::Begin(s.wp, b);   // the one ordered sequence (01:08Z): after Begin ...
 #endif
 	}
 	s.resetHistory = false;

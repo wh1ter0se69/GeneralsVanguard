@@ -1783,7 +1783,7 @@ void W3DTreeBuffer::drawTrees(CameraClass * camera, RefRenderObjListIterator *pD
 		DX8Wrapper::_Get_DX8_Transform(D3DTS_VIEW, matView);
 		DX8Wrapper::_Get_DX8_Transform(D3DTS_PROJECTION, matProj);
 		// GeneralsX: the world pass's projection jitter, so the trees VS rasterises with
-		// the rest of the frame under a temporal upscaler (no-op on classic / outside the pass; DESIGN_motion.md §5, #3)
+		// the rest of the frame under a temporal upscaler (no-op on classic / outside the pass; #3)
 		GxWorldPassJitterProjection(W3DWorldSeam::worldPass(), (float *)&matProj);
 		Matrix4x4 mat;
 		D3DXMatrixMultiply( (D3DXMATRIX*)&mat, (D3DXMATRIX*)&matView, (D3DXMATRIX*)&matProj );

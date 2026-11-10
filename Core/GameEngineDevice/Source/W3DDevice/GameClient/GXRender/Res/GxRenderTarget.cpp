@@ -102,7 +102,7 @@ bool GxRenderTarget::init(GxResources& res, const RenderTargetDesc& desc, std::s
 			vkDestroyImageView(res.ctx().device(), m_view, nullptr);
 			m_view = VK_NULL_HANDLE;
 			// never recorded, queued or published: freed at once, off every worker list (A23-B: creation runs on the front -
-			// D · look-fdepth-plus, the attachment-view failure above already does this)
+			// the attachment-view failure above already does this)
 			m_image.destroyUnpublished(res);
 			m_res = nullptr;
 			return false;

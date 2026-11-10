@@ -1,5 +1,5 @@
 // GeneralsX: VK_LAYER_GX_queue_census: a TEST-ONLY Vulkan layer for the DLSS Frame Generation
-// queue contract (PREREG A39a; modernize/render-dlss/DESIGN_dlss-fg-P0.md §6). Never shipped; loaded only when a test names it
+// queue contract (PREREG A39a). Never shipped; loaded only when a test names it
 // (VK_ADD_LAYER_PATH + VK_INSTANCE_LAYERS=VK_LAYER_GX_queue_census). Not in the game build, not digested.
 //
 // Why a layer: NVIDIA Streamline is the game's Vulkan loader root, and Streamline's own Vulkan calls go straight to the system
@@ -576,7 +576,7 @@ VKAPI_ATTR VkResult VKAPI_CALL census_CreateDevice(VkPhysicalDevice phys, const 
 				id = &it->second;
 		}
 	}
-	// LoaderLayerInterface.md's own pattern: the next layer's vkCreateDevice through a NULL instance
+	// 's own pattern: the next layer's vkCreateDevice through a NULL instance
 	PFN_vkCreateDevice create = reinterpret_cast<PFN_vkCreateDevice>(gipa(VK_NULL_HANDLE, "vkCreateDevice"));
 	if (!create && id)
 		create = reinterpret_cast<PFN_vkCreateDevice>(gipa(id->instance, "vkCreateDevice"));

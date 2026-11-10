@@ -4,7 +4,7 @@
 // retired on the graphics timeline - only then is its pool reset and its per-frame data (upload ring space, timestamp
 // queries, transient descriptors of the other streams) reusable. end() submits through VkCtx::submit, so the frame's
 // timeline value is also what VkUploadRing / VkCtx::retire key on.
-// Each slot also has an INIT command buffer (D · rw3-T-4, DXVK's init-buffer pattern): begun lazily by initCmd(), submitted
+// Each slot also has an INIT command buffer (DXVK's init-buffer pattern): begun lazily by initCmd(), submitted
 // BEFORE the frame's command buffer in the same submission, so work recorded into it runs before everything the frame recorded
 // (the writer's uploads into resources the frame has not touched yet, which would otherwise split an open render pass).
 #pragma once
@@ -43,7 +43,7 @@ public:
 	// S7 A101: whether the open frame's init command buffer has been begun (read-only; GxPacketWriter's GX_GPUTIME bookkeeping)
 	bool initOpen() const { return m_open && m_frames[m_current].initOpen; }
 	// Closes the open frame WITHOUT submitting it (its user could not use the slot): the ring can begin again; the slot's pool is
-	// reset at its next begin, after that slot's last real submission (rw3V-code-r2 P1-4).
+	// reset at its next begin, after that slot's last real submission.
 	void abandon();
 
 	Frame& current() { return m_frames[m_current]; }
@@ -51,7 +51,7 @@ public:
 	uint64_t frameIndex() const { return m_frameIndex; }
 	// Host time begin() spent waiting for the slot, in microseconds - the "GPU is behind" signal.
 	uint64_t lastWaitMicros() const { return m_lastWaitMicros; }
-	uint64_t waitMicrosTotal() const { return m_waitMicrosTotal; }   // the sum over every begin() (PREREG_T A30 [GXWAIT])
+	uint64_t waitMicrosTotal() const { return m_waitMicrosTotal; }   // the sum over every begin() (A30 [GXWAIT])
 
 private:
 	VkCtx* m_ctx = nullptr;

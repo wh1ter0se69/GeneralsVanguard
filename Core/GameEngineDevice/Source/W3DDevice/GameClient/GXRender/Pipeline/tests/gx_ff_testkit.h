@@ -1,4 +1,4 @@
-// gx_ff_testkit.h - what an FF draw needs in the WS-D tests (C · rw2-D, 11/10/2026): the FF pipeline layout (a mirror of
+// gx_ff_testkit.h - what an FF draw needs in the WS-D tests: the FF pipeline layout (a mirror of
 // rw2-F1's GxRecordLayout contract in GxFFState.h: set 0 = VS/PS dynamic uniform buffers, set 1 = eight 2D combined image
 // samplers, push constants 0-128 VS|FS = the FF key), a host-visible uniform buffer carved per draw, eight noise textures
 // and one descriptor set pair. Test code only.

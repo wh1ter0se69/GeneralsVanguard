@@ -1,4 +1,4 @@
-// gx_present_common.glsl - the native d3d8 device's present (DESIGN_l1-device §8.2; E · rw3-L-2, 11/10/2026).
+// gx_present_common.glsl - the native d3d8 device's present.
 // ADAPTED from DXVK (references/fbraz3-dxvk at 954c5c692, the classic path the game ships): src/dxvk/shaders/
 // dxvk_present_common.glsl and dxvk_color_space.glsl. ALTERED by GeneralsX (every change marked "GX:"): the gamma, HUD,
 // cursor and HDR paths (PQ, scRGB-linear and rec.2020 colour spaces) removed - a native session presents SDR, windowed,

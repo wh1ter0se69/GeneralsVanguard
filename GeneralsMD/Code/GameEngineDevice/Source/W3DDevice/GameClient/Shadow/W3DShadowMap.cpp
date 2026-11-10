@@ -1,6 +1,6 @@
 // GeneralsX: S7 GPU sun shadow map: the Zero Hour game glue.
 //
-// modernize/look-director/d2/PREREG_look-shadowmaps.md (A4, A7, A8, A14, A18, A23, A28), PLAN Task 5. Render-only: nothing here is
+// (A4, A7, A8, A14, A18, A23, A28), PLAN Task 5. Render-only: nothing here is
 // read by the simulation, and this file is outside the SimID digest (GeneralsMD/Code/GameEngineDevice: not on the watcher's list).
 //
 // Installed by W3DShadowManager::init. Per tactical frame (W3DView.cpp, GXShadowMapHooks.h):
@@ -18,7 +18,7 @@
 //      task and every procedural / delayed material pass of a clamped root carries its own light (A41 P2-3); tags and the own light go
 //      to the device only on change.
 //   7. (P2) RECEIVE from the frame's start to the stencil-shadow boundary (W3DShadowMapStencilBoundary): the receivers sample the map.
-//   8. (A44/A46, D · look-shadowmaps-4) the OFF-SCREEN casters: at the end of tacticalBegin, before the scene submits anything, every walk
+//   8. (A44/A46) the OFF-SCREEN casters: at the end of tacticalBegin, before the scene submits anything, every walk
 //      root whose CURRENT-pose bound reaches the whole cascade's light volume and is not wholly inside the camera is Render()ed into an
 //      isolated cast-only flush (GXShadowMapOffscreen.h gives the order; the device captures only CAST + z casters and drops the rest).
 // Not yet (later PLAN tasks): tree casters (A33; the tree blobs stay until then), PROJECTION casters.
@@ -78,7 +78,7 @@ namespace
 	// on this binary, so P runs with the same pictures and the same GX_SHADOW_DEBUG_COLOR as K / Z / N. Unset = A39 (always in play).
 	// TEST-ONLY GX_SHADOWMAP_CAST=none (PLAN Global Constraints; PREREG A41 M3's arm Z): no draw is ever tagged CAST - the map stays clear
 	// and, with the key on, nothing is shadowed at all (the volumes are off too): the no-shadow reference of the M3 masks
-	// A69 TEST-ONLY (D · look-shadowmaps-5, the D69 diagnostic of A68's checkered airborne shadow): GX_SHADOWMAP_OWN=0 forces every walk
+	// A69 TEST-ONLY (the D69 diagnostic of A68's checkered airborne shadow): GX_SHADOWMAP_OWN=0 forces every walk
 	// root's own light to none (casters captured unscaled, receivers look up unscaled); GX_SHADOWMAP_BIAS_SCALE=<x> scales the step's
 	// constant and slope depth biases (A73: never the clamp). Both read once, printed; unset = no change.
 	bool ownOff()
@@ -148,7 +148,7 @@ namespace
 		}
 		return s == 1;
 	}
-	// A79 (E · look-shadowmaps-7): the own-light pull's delta in world units. TEST-ONLY GX_SHADOWMAP_OWN_PULL=<wu> (0..256) sets it; the
+	// A79: the own-light pull's delta in world units. TEST-ONLY GX_SHADOWMAP_OWN_PULL=<wu> (0..256) sets it; the
 	// default stays 0 (no pull) until D79's registered policy is committed (PREREG A79a), as A73 did with the clamp. Printed once.
 	float ownPullDelta()
 	{
@@ -347,7 +347,7 @@ namespace
 		fprintf(stderr, "[GXSHADOWMAP] point light: %s - volumes for this map and time of day\n", s_key.why);
 	}
 
-	// ---- A44/A46/A47 (D · look-shadowmaps-4): the off-screen casters ---------------------------------------------------------------
+	// ---- A44/A46/A47: the off-screen casters ---------------------------------------------------------------
 	// Candidates = 2003's own Update pre-cull (the walk's cand flags, A47). Per caster MESH of a candidate (collected the way HLodClass::Render
 	// picks models): dropped outside the light volume; skipped when the scene will draw its root and the mesh is inside the camera (the
 	// scene captures it with CAST); else submitted. Only those MeshClass leaves are Render()ed - never a root - so the pose a candidate gets
@@ -370,7 +370,7 @@ namespace
 	unsigned s_emitN[2] = { ~0u, ~0u }, s_emitU[2] = { ~0u, ~0u };   // A50/A55/A56 (5): the last [GXEMIT] tuple printed (per ring)
 	unsigned long long s_emitS[2] = { ~0ull, ~0ull }, s_emitM[2] = { ~0ull, ~0ull };
 	double s_offUsPeriod = 0.0;
-	// A61/A62/A63 (D · look-shadowmaps-5): the sorted CAST_SHADOW casters (rotor discs) - submitted in view / off view, own-light groups,
+	// A61/A62/A63: the sorted CAST_SHADOW casters (rotor discs) - submitted in view / off view, own-light groups,
 	// meshes under a non-top LOD (A63's guard: 2003's geometry is the top LOD), and the sorted phase's own time (A62 (5))
 	uint32_t s_sortedInPeriod = 0, s_sortedOffPeriod = 0, s_sortedGroupsPeriod = 0, s_sortedLodDiffPeriod = 0;
 	double s_sortedUsPeriod = 0.0;

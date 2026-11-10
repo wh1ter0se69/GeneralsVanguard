@@ -1406,7 +1406,7 @@ void W3DRadar::buildBorderTexture( Int width, Int height )
 			{
 				// The out-of-bounds TILE colour only: no height shading (it is normalised by the whole map's heights, playable
 				// peaks included) and no water lookup (a water polygon crossing the boundary takes its level
-				// from the playable side - r15 P2). A tile is one cell and GUARD keeps it outside the playable map.
+				// from the playable side). A tile is one cell and GUARD keeps it outside the playable map.
 				TheTerrainVisual->getTerrainColorAt( wx, sy, &color );
 				// out of bounds: darker and a little greyer, so the playable map stays the brightest thing in the frame
 				const Real l = 0.30f * color.red + 0.59f * color.green + 0.11f * color.blue;

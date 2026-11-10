@@ -1,8 +1,8 @@
-// GeneralsX: The object-velocity bridge (PREREG_T A35, modernize/render-dlss/
-// DESIGN_motion-units.md): per-object motion vectors for moved rigid meshes and CPU-skinned meshes, until the MRT path replaces it
+// GeneralsX: The object-velocity bridge (A35, modernize/render-dlss/
+// ): per-object motion vectors for moved rigid meshes and CPU-skinned meshes, until the MRT path replaces it
 // after A22 + A25 (then this file is DELETED, not kept as a second path). Native renderer only.
 //
-// The world pass's one ordered sequence (render-dlss/DLSS_INTEGRATION.md ruling 01:08Z), all in W3DWorldSeam::push/pop:
+// The world pass's one ordered sequence (ruling 01:08Z), all in W3DWorldSeam::push/pop:
 //   IGxWorldPass::Begin -> GxMotionUnits::Begin -> the world draws -> GxMotionUnits::End -> IGxWorldPass::End (velocity resolve)
 // Between Begin and End the bridge records the draws of meshes that moved since the previous world pass (GxMotionHistory.h) and of
 // every skinned mesh; End re-draws only those into the object-velocity image O (GXRA, .xy = current -> previous in render pixels,

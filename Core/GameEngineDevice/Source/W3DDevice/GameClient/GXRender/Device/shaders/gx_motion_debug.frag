@@ -1,7 +1,7 @@
 #version 450
 
 // gx_motion_debug.frag - GeneralsX: GX_MOTION_DEBUG views drawn over the world colour at
-// IGxWorldPass::End (DESIGN_motion.md §4, §6.7). Mode 0 = linearised depth as grey; mode 1 = motion vectors as HSV (hue =
+// IGxWorldPass::End (§6.7). Mode 0 = linearised depth as grey; mode 1 = motion vectors as HSV (hue =
 // direction, brightness = magnitude, full at pc.p.x pixels; black = no motion).
 
 layout(constant_id = 0) const int c_mode = 0;

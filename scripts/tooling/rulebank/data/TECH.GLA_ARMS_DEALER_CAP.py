@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule TECH.GLA_ARMS_DEALER_CAP (C·rb-data-10): GLA caps its Arms Dealers. Stock GLA
+# GeneralsX: rule bank DATA rule TECH.GLA_ARMS_DEALER_CAP: GLA caps its Arms Dealers. Stock GLA
 # Hard queues three early - "GLA Arms Dealer - H", "2 - H" and "3 - H" wait for an own Supply Stash (Demolition and Stealth: #3 for two
 # own Arms Dealers); the build list holds three, none AutomaticallyBuild. Here the scripts past arms_dealer_max get the condition "fewer than 0 own Arms Dealers", which never
 # holds (the scripts run in one frame, so a real count cap could not tell them apart; CONDITION_FALSE has no stock leaf), so they never queue theirs:

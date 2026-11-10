@@ -78,7 +78,7 @@ public:
 
 	// rendering
 	void renderShadows( Bool forceStencilFill );
-	// GeneralsX: S7 (PREREG_look-shadowmaps A4/A7/A8/A28, A39/A41): the shadow map's caster walk -
+	// GeneralsX: S7 (A4/A7/A8/A28, A39/A41): the shadow map's caster walk -
 	// every caster today's volumes would draw (enabled, not invisible), as its ROOT render object (sorted, for the mesh tag's lookup),
 	// with its OWN LIGHT when its elevation clamp binds (GXShadowMapFit.h ownLight: the instance's live m_shadowLengthScale - template
 	// or raised at runtime by updateOptimalExtrusionPadding, which the walk runs exactly where Update() would: A41 P2-2), and the
@@ -97,14 +97,14 @@ public:
 		UnsignedInt paddingNow = 0, conflicts = 0;	///< runtime clamps computed this walk; roots whose shadows disagree on the own light
 		UnsignedInt pulledAir = 0, pulledGround = 0, pulledRuntime = 0;	///< A79: shadows in the pull class (template airborne / grounded; runtime)
 	};
-	// A79 (E · look-shadowmaps-7): eps / muMax = the frame's own-light pull (GXShadowMapFit.h ownPullEps / kOwnPullMuMax; eps 0 = none) - a
+	// A79: eps / muMax = the frame's own-light pull (GXShadowMapFit.h ownPullEps / kOwnPullMuMax; eps 0 = none) - a
 	// pulled root's sphere enters nearDist pulled (pulledNear), and the census counts the pull class
 	void gxShadowMapWalk(GxShadowMapWalkOut &out, const Vector3 &L, const Vector3 &axis, const AABoxClass &visibleBox, Real pullEps = 0.0f,
 		Real pullMuMax = 0.0f);
 	// GeneralsX: S7 PREREG A60/A60a (TEST-ONLY, the D60 diagnostic): TRUE when the spec names this
 	// mesh - <CONTAINERPREFIX>.<MESH>, case-insensitive (its name after the last '.' is MESH, the part before starts with CONTAINERPREFIX).
 	// map = FALSE: GX_SHADOW_DROP_MESH, 2003's volume geometry skips it (key OFF arms only). map = TRUE: GX_SHADOWMAP_DROP_CAST, S7's
-	// meshBegin strips CAST from its draws (nothing else changes). Unset: FALSE. A73 (E · look-shadowmaps-6): a comma list of up to 8
+	// meshBegin strips CAST from its draws (nothing else changes). Unset: FALSE. A73: a comma list of up to 8
 	// entries, and an entry ending in '.' names every mesh of that container prefix (GXShadowDropSpec.h).
 	static Bool gxShadowDropMesh(const char *meshName, Bool map);
 	void ReleaseResources();

@@ -45,7 +45,7 @@ const char* VkSwapchain::name(Status s)
 	}
 }
 
-// D · native-windows-1 13/10/2026 DXVK's pickPresentMode (dxvk_presenter.cpp:1067-1094); tearFree -1 (Auto) = the order before it
+// DXVK's pickPresentMode (dxvk_presenter.cpp:1067-1094); tearFree -1 (Auto) = the order before it
 std::vector<VkPresentModeKHR> VkSwapchain::presentOrder(bool sync, int tearFree)
 {
 	if (sync)

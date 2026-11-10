@@ -509,7 +509,7 @@ int main(int argc, char* argv[])
 	// lets us pull a full engine log after an on-device session — essential for
 	// debugging mode-specific issues (e.g. Generals Challenge radar/scripts) that
 	// only the user can reproduce. Pull with: devicectl ... copy from
-	// Library/Caches/generals-stderr.log. Remove once the relevant bugs are fixed.
+	// Remove once the relevant bugs are fixed.
 	{
 		// Quiet DXVK at the source: the d3d8 layer's per-call warns (e.g. an
 		// unimplemented render state set every frame) wrote hundreds of MB per
@@ -889,10 +889,10 @@ int main(int argc, char* argv[])
 		FilterPipeWireOpenAL();
 
 #ifdef GX_RENDER_NATIVE
-		// GeneralsX: native-device session (DESIGN_l1-device §8.1): name the Vulkan loader before SDL
+		// GeneralsX: native-device session: name the Vulkan loader before SDL
 		// loads Vulkan, so SDL and the native device share ONE Vulkan implementation; S8 then qualifies the outcome. Only when
 		// the process asked for the native session - a classic launch keeps today's SDL choice byte for byte.
-		// D · render-line-0967 21/10/2026: the first reader of the renderer switch (Options.ini GXRenderer, GX_RENDERER over it);
+		// the first reader of the renderer switch (Options.ini GXRenderer, GX_RENDERER over it);
 		// TheGlobalData exists since parseCommandLineForStartup, so the key is readable here and every later reader agrees.
 		if (GxNative::Requested())
 			GXRender::Vk::sdl3PreferVulkanLoader();
@@ -1060,10 +1060,10 @@ int main(int argc, char* argv[])
 	}
 
 #ifdef GX_RENDER_NATIVE
-	// GeneralsX: the native session's final stats line (DESIGN_l1-device §2.3) if its device outlived
+	// GeneralsX: the native session's final stats line if its device outlived
 	// the engine's teardown: _exit() below runs no atexit handler, and the line allocates - so here, before the memory manager goes.
 	// GeneralsX: and before SDL destroys the window: the flush first joins the native renderer's submit
-	// thread (lever 3, PREREG_T A21 am. 4), which may still be presenting to that window's swapchain.
+	// thread (lever 3, A21 am. 4), which may still be presenting to that window's swapchain.
 	GxNative::FlushFinalStats();
 #endif
 

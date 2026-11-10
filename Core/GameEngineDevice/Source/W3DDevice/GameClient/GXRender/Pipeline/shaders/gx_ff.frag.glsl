@@ -1,4 +1,4 @@
-// gx_ff.frag.glsl - the fixed-function fragment ubershader's body (WS-D week 2, C · rw2-D, 11/10/2026), included by
+// gx_ff.frag.glsl - the fixed-function fragment ubershader's body (WS-D week 2), included by
 // gx_ff.frag (smooth colours), gx_ff_flat.frag (D3DSHADE_FLAT) and gx_ff_mutant.frag (the identity gate's fail arm only).
 // ADAPTED from DXVK 3.0 src/d3d9/shaders/d3d9_fixed_function_frag.glsl (tag v3.0, commit 97fe0c66f; zlib/libpng licence,
 // notice in gx_ff_common.glsl and shaders/SOURCE.txt). ALTERED by GeneralsX (marked "GX:"): set 0 binding 1 std140 uniform
@@ -200,7 +200,7 @@ layout(set = 1, binding = 6) uniform sampler2D gxTex6;
 layout(set = 1, binding = 7) uniform sampler2D gxTex7;
 
 #ifdef GX_LOOK_SHADOWMAP
-// GX S7 GPU sun shadow map (D · look-shadowmaps-2 17/10/2026; PREREG_look-shadowmaps A2/A3/A10/A14/A26/A36, PLAN P2): the RECEIVER.
+// GX S7 GPU sun shadow map (A2/A3/A10/A14/A26/A36, PLAN P2): the RECEIVER.
 // Set 2 = the look frame set (GxRecordLayout, mask bit 0): b0 the D16 atlas through an immutable compare sampler (LESS_OR_EQUAL,
 // LINEAR, clamp: P0-a's shape, A35), b1 the same atlas with an immutable NEAREST sampler (raw depths for the blocker search, A10), b2 the
 // frame's UBO (Rec::GxLookFrameUbo, GxLookFrame.h - the same fit, rects and step the frame's INIT replay used).
@@ -645,7 +645,7 @@ bool alphaTest(float alpha) {
 }
 
 #ifdef GX_LOOK_A2C
-// GX (B · a2c-1 20/10/2026, A108 / render-dlss SCOPE_a2c.md): alpha-to-coverage, the key-on family only (regen.sh @A2C / @SMA2C). The
+// GX (A108 / render-dlss): alpha-to-coverage, the key-on family only (regen.sh @A2C / @SMA2C). The
 // translator sets bit 3 of alphaTestAndModeArgs only on a draw whose pipeline has alphaToCoverageEnable (GxAlphaToCoverage.h: an ORDERED
 // alpha test with a live ref, blending off, a multisampled target). Instead of the hard discard the alpha becomes a coverage ramp about
 // one pixel wide, (a - edge) / fwidth(a) + 0.5 clamped (B. Golus, "Anti-aliased Alpha Test", 2017), with `edge` where alphaTest's
@@ -668,7 +668,7 @@ float alphaCoverage(float alpha) {
     bool upperEdge = alphaTest.compareOp == VK_COMPARE_OP_GREATER || alphaTest.compareOp == VK_COMPARE_OP_LESS_OR_EQUAL;
     float edge = float(alphaRefInt) + (upperEdge ? 0.5 : -0.5);
     float width = max(fwidth(a), 1.0e-4 * alphaFactor);   // uniform control flow: the branch above it reads a push / spec constant
-    // B · a2c-2 (SCOPE_a2c.md "keep a discard only for alpha that is fully transparent"): the endpoint the hard
+    // ("keep a discard only for alpha that is fully transparent"): the endpoint the hard
     // test can never pass - alpha 0 for GE / G, full alpha for LE / L - covers nothing, however steep the ramp next to it (a 0 | 255
     // step inside one quad gives fwidth 255: at GE 0x60 the ramp alone would cover 12.5 % of a fully transparent texel). After the
     // derivative, so fwidth stays in uniform control flow.

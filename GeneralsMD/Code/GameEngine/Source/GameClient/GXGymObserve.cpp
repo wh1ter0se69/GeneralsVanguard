@@ -17,10 +17,10 @@
 */
 
 // GeneralsX: ai-gym observation logger: the match state as NDJSON, schema v1
-// (scripts/ai/gym/SCHEMA.md is the contract; bump GXGYM_SCHEMA_VERSION with any change to a line's fields).
+// (is the contract; bump GXGYM_SCHEMA_VERSION with any change to a line's fields).
 //
 // SELF-CONTAINED ON PURPOSE. The first learned AI will be trained on Generals Online replays decoded by GO's OWN client with
-// this same logger patched in (lead C8, 02/10), so this file uses only engine concepts both forks share - Object, Player,
+// this same logger patched in, so this file uses only engine concepts both forks share - Object, Player,
 // ThePlayerList, ThePartitionManager, TheTerrainLogic, ThingTemplate, ScoreKeeper, TheVictoryConditions - and no GeneralsX helper. Its caller
 // (GXGym.cpp here) decides when to call it and where the lines go.
 //
@@ -32,7 +32,7 @@
 //  * never a name key: NAMEKEY/nameToKey on a string no peer interned yet mints a SEQUENTIAL key on this peer alone. KEYNAME
 //    (keyToName) only reads, and the supply warehouse is found by dynamic_cast on its dock interface, not by module name;
 //  * no random numbers, no AI group creation, no weapon or mood queries (TheSuperHackers #3328's unsafe-getters list).
-// The [CRC] stream with this on and off on the same seed is the proof (ai/HANDBACK_ai-gym.md).
+// The [CRC] stream with this on and off on the same seed is the proof.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -82,7 +82,7 @@ void writeString(FILE *out, const char *s)
 		if (c == '"' || c == '\\')
 			fprintf(out, "\\%c", c);
 		else if (c < 0x20 || c >= 0x80)
-			fprintf(out, "\\u%04x", c);	// one escape per BYTE: valid JSON whatever the encoding (SCHEMA.md: re-encode latin-1)
+			fprintf(out, "\\u%04x", c);	// one escape per BYTE: valid JSON whatever the encoding (re-encode latin-1)
 		else
 			fputc(c, out);
 	}

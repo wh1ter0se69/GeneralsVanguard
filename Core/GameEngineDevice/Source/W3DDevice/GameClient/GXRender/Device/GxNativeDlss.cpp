@@ -1,5 +1,5 @@
 // GeneralsX: DLSS Super Resolution behind IGxWorldPass::Upscale (PREREG A36.2,
-// modernize/render-dlss/DESIGN_dlss-streamline.md §3). Without GX_STREAMLINE, or without Streamline loaded (m_host.streamline
+// ). Without GX_STREAMLINE, or without Streamline loaded (m_host.streamline
 // null: not DLSS, not NVIDIA, no DLLs), every entry point is FALSE / E_NOTIMPL and the seam draws its own bilinear quad.
 //
 // Upscale records ONE outside-scope command (GxPacketWriter::outsideScope: the scope closes, fn runs, every cached binding is
@@ -28,7 +28,7 @@ namespace GXRender { namespace Dev {
 #if defined(GX_STREAMLINE)
 namespace
 {
-// B · dlss-fg-1 (PREREG A39b): set by the Windows message loop, consumed by the device at its next frame (PCL guide 1: "set a flag for
+// (PREREG A39b): set by the Windows message loop, consumed by the device at its next frame (PCL guide 1: "set a flag for
 // the next simulation to send the ping marker" - the frame id is what matters, not the instant).
 std::atomic<uint32_t> g_pclMessage{ 0 };	// PCL Stats' ping message id, 0 = Reflex not running
 std::atomic<bool> g_pclPingPending{ false };
@@ -154,7 +154,7 @@ struct GxNativeDevice::Dlss
 	bool refused[6] = {};	// one log line per reason
 	uint64_t evaluations = 0;
 	uint64_t lastPresent = ~0ull;	// one evaluation per presented frame (Streamline's frame token, DLSS history)
-	// B · dlss-fg-1 (PREREG A39): the per-frame contract + Reflex + DLSS Frame Generation
+	// (PREREG A39): the per-frame contract + Reflex + DLSS Frame Generation
 	bool frameBegun = false;	// a Streamline frame is open (frameBegin succeeded)
 	bool sceneMarked = false;	// this frame's first BeginScene was marked
 	bool frameFailLogged = false;
@@ -279,7 +279,7 @@ void GxNativeDevice::dlssInit()
 		setTemporalConsumer(true);	// render-motion-1: the world pass jitters only for a backend that consumes it
 		m_motion.setMinJitterPhases(16);	// DLSS wants >= 16 phases
 	}
-	// B · dlss-fg-1: Reflex (mandatory with frame generation) and DLSS-G. Missing plugins = that feature off, logged.
+	// Reflex (mandatory with frame generation) and DLSS-G. Missing plugins = that feature off, logged.
 	if (feat.reflexMode) {
 		std::string w;
 		const uint32_t mode = feat.reflexLowLatencyOff ? 0u : feat.reflexMode;

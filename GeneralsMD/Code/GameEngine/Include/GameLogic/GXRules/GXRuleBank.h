@@ -1,4 +1,4 @@
-// GeneralsX: AI RULE BANK, the engine side (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.2-2.2.7, rb-core plan
+// GeneralsX: AI RULE BANK, the engine side (2.2.2-2.2.7, rb-core plan
 // Task 4). One GXRuleBank per skirmish AI player (AISkirmishPlayer owns it): the three AI_PLAYER_GX_RULE* actions configure it, ONE call in
 // AISkirmishPlayer::update() runs it and returns at once while no rule is enabled, AISkirmishPlayer::xfer saves it in its own block. The
 // decisions are GXRuleCore.h's (pure, unit-tested); this layer adapts them to the engine: rule instances, the context a rule reads the

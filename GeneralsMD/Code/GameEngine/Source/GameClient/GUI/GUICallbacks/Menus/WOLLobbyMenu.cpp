@@ -393,7 +393,7 @@ static time_t gameListRefreshTime = 0;
 // THIS INTERVAL WAS NEVER THE DOMINANT LATENCY TERM, so tuning it was the wrong lever anyway. The
 // browser's staleness was mostly the transport publishing the PREVIOUS sweep - replies sat complete
 // and unread for a whole interval on top of the wait for the poll, which is the documented "3-6 s"
-// (docs/WORKDIR/LOBBY_PRESENTATION_FINDINGS.md §1.2). Transport::settleGameList() now ends a sweep
+// Transport::settleGameList() now ends a sweep
 // on silence instead, which removes that term for zero extra datagrams. Measure before tuning this:
 // the remaining term is a uniform 0..interval wait, so the honest gain from halving it is ~1.5 s of
 // mean latency for double the relay draw.

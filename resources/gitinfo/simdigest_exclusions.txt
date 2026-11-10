@@ -1,5 +1,5 @@
 # simdigest_exclusions.txt - what the SimID digest may REACH without digesting it, each entry with its reason.
-# GeneralsX: the boundary rule lead C11 asked for.
+# GeneralsX: the boundary rule asked for.
 #
 # scripts/build/simid-closure.py walks every digested object of a build - inlined code, calls and globals, overrides
 # of digested virtuals - and requires each file it reaches to be digested (resources/gitinfo/simsourcedigest_watcher.cmake)

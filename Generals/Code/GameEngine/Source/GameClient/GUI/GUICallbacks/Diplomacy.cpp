@@ -477,7 +477,7 @@ void PopulateInGameDiplomacyPopup()
 				isInGame = true;
 			Player *player = ThePlayerList->getPlayerFromSlotIndex(slotNum);
 			// GeneralsX: isPlayerObserver() below was always an unguarded
-			// deref (docs/WORKDIR/PLAYER_CEILING_SWEEP_FINDINGS.md:334); the slot-index lookup makes
+			// deref; the slot-index lookup makes
 			// a miss return nullptr rather than whatever the name lookup happened to find.
 			if (!player)
 				continue;

@@ -1,10 +1,10 @@
-// GeneralsX: IGxWorldPass on the native device (GxWorldPass.h, DESIGN_hud-seam.md §5).
+// GeneralsX: IGxWorldPass on the native device (GxWorldPass.h).
 //
 // The game's W3DWorldSeam calls these around the world pass. Each stream adds its work as ONE call per method here and keeps the
 // code in its own files (render-motion-1: GxMotion; the upscaler backends: their own classes), so nobody edits the same lines.
 // Front-end contract (rw3-X, A23-B): a body that touches the translator, the writer or GPU resources is an async command with
 // owned arguments, stream-ordered with the draws around it; Supports is answered from front-side state.
-// E · seam-worker-1 18/10/2026 (tier 1, DESIGN_seam-worker-1.md): each recording body below is an A23-B S body - SScope drains
+// (tier 1): each recording body below is an A23-B S body - SScope drains
 // the worker, the body runs inline exactly as with GX_NATIVE_CS=0, and the mirror is re-seeded on exit. The S comes BEFORE any read of a
 // surface's image() or attachmentView(): a texture level's attachment view is created lazily (GxTexture::attachmentView), also by the
 // worker, and a back buffer's image follows the worker's rotation. Only front state is read before it. NextTargetsAreWorld, Supports,
@@ -128,7 +128,7 @@ HRESULT GxNativeDevice::WorldPass::ResolveLinear(IDirect3DSurface8* msaaSrc, IDi
 BOOL GxNativeDevice::WorldPass::Supports(uint32_t kind)
 {
 	if (kind == GX_UPSCALE_DLSS)
-		return dev->dlssSupported() ? TRUE : FALSE;   // B · dlss-streamline-1 (GxNativeDlss.cpp)
+		return dev->dlssSupported() ? TRUE : FALSE;   // (GxNativeDlss.cpp)
 	// front-side: a presenting device whose FSR 1 passes did not fail to initialise (RCAS alone is FSR 1's second pass)
 	return (kind == GX_UPSCALE_FSR1 || kind == GX_UPSCALE_RCAS) && dev->m_haveSwapchain && dev->m_fsr1Slots != ~0u;
 }
@@ -203,7 +203,7 @@ HRESULT GxNativeDevice::WorldPass::Upscale(const GxUpscaleCall& c)
 	if (!d.m_debug.seamNoSUpscale)   // (the plant: X-seam-fsr1 / X-seam-rcas)
 		sc.emplace(d, "seam Upscale");
 	if (c.kind == GX_UPSCALE_DLSS)
-		return d.dlssUpscale(c);   // B · dlss-streamline-1 (GxNativeDlss.cpp)
+		return d.dlssUpscale(c);   // (GxNativeDlss.cpp)
 	if (c.kind == GX_UPSCALE_RCAS)
 		return sharpen(c);
 	GxNativeSurface* src = static_cast<GxNativeSurface*>(c.src);
@@ -244,7 +244,7 @@ HRESULT GxNativeDevice::WorldPass::Upscale(const GxUpscaleCall& c)
 
 HRESULT GxNativeDevice::WorldPass::HudBegin()
 {
-	// B · dlss-fg-1 (PREREG A39c): no-op unless TEST-ONLY GX_FG_HUDLESS=1 with frame generation on. Its state lives in m_dlss, which exists
+	// (PREREG A39c): no-op unless TEST-ONLY GX_FG_HUDLESS=1 with frame generation on. Its state lives in m_dlss, which exists
 	// only with a loaded Streamline - and a loaded Streamline keeps the worker off (the guard), so this S never drains today; it keeps
 	// fgOn (written by slFrameEnd in the Present body) read inside an S if that ever changes. No Streamline (every Apple build): no S.
 	if (!dev->m_dlss)

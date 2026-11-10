@@ -5,7 +5,7 @@
 // viewport, the FVF, streams, indices, textures, the render target) and turns each Draw* into ONE GxDrawPacket:
 //  * the pipeline key from the FVF (DXVK's FVF -> declaration order), the blend state (D3DBLEND_BOTH* fix-up; on a target
 //    without alpha DST_ALPHA -> ONE and INV_DST_ALPHA -> ZERO, as DXVK's alpha swizzle), the write mask, the topology class,
-//    fill and shade mode and the EFFECTIVE attachments (DESIGN_pipeline-cache.md §5.2); the pipeline itself from
+//    fill and shade mode and the EFFECTIVE attachments; the pipeline itself from
 //    GxPipelineCache::getFF (rw2-D's specialised-or-generic FF ubershader);
 //  * dynamic state as DXVK binds it: the viewport flipped (y + height, -height) with the +0.5 correctness offset and the
 //    MinZ bias, scissor = the viewport (D3D8 has no scissor test), cull CW -> FRONT / CCW -> BACK with front = CLOCKWISE,
@@ -61,7 +61,7 @@ struct GxTranslateStats
 	// those whose world matrix alone had changed (WorldView + NormalMatrix refreshed by GxPackFFWorld); in check mode
 	// (GX_TR_PACK_CHECK=1, setPackCheck) every reuse is re-packed and byte-compared, and a difference is counted (must stay 0)
 	uint64_t packReused = 0, packed = 0, packWorld = 0, packChecks = 0, packCheckMismatches = 0;
-	// B · a2c-1 (A108): with the session's A2C on (setAlphaToCoverage), every draw by GxAlphaToCoverage.h's answer - on, or off by
+	// (A108): with the session's A2C on (setAlphaToCoverage), every draw by GxAlphaToCoverage.h's answer - on, or off by
 	// reason (a2cOff[GxA2C_Session] stays 0: a session-off translator counts nothing). The device prints them per window ([GXA2C]).
 	uint64_t a2cOn = 0;
 	uint64_t a2cOff[GxA2C_WhyCount] = {};
@@ -71,8 +71,8 @@ struct GxTranslateStats
 // must see exactly that case fail. All false in the product.
 struct GxTranslateDebug
 {
-	bool a2cIgnoreBlend = false;      // B · a2c-1 (A108): the blend guard skipped - a BLENDED alpha-tested draw gets A2C (a2c-derive's X-)
-	bool a2cSpecBitOff = false;       // B · a2c-1 (A108): the key gets A2C but the spec copy lacks bit 3 (no ramp: a2c-consistent's X-)
+	bool a2cIgnoreBlend = false;      // (A108): the blend guard skipped - a BLENDED alpha-tested draw gets A2C (a2c-derive's X-)
+	bool a2cSpecBitOff = false;       // (A108): the key gets A2C but the spec copy lacks bit 3 (no ramp: a2c-consistent's X-)
 	bool smBitsIgnoreBlend = false;   // S7 P2: applyRgb set on EVERY receiver (a modulate pass darkened twice: sm-bits must catch it)
 	bool smOwnMaskOff = false;        // S7 A41: the own-light words written with the look mask OFF (the pack-check must catch it: A40 T1)
 	bool smOwnNoCaster = false;       // S7 A41: a clamped caster captured with its plain World (sm-ownlight's X- must catch it)
@@ -103,7 +103,7 @@ struct GxTranslateDebug
 	bool packWorldStale = false;      // a world-matrix change leaves the cached WorldView / NormalMatrix as they were (cut 3b)
 	bool packOverlayInCache = false;  // a custom ps's c0-c7 overlay is written into the cached PS block, not a copy (cut 3b)
 	bool packVsOverlayInCache = false; // a custom vs's c0-c95 overlay is written into the cached VS block, not a copy (cut 3b)
-	// cut 3b owner review P3 (E · rw3-L-3; B · rw3-T-3 12/10): four more setters that would miss their pack invalidation
+	// cut 3b owner review P3: four more setters that would miss their pack invalidation
 	bool packKeepsOnLight = false;    // SetLight does not invalidate the cached pack
 	bool packKeepsOnViewport = false; // SetViewport does not invalidate the cached pack
 	bool packTableShort = false;      // A25 plant: RS_TEXTUREFACTOR left out of the pack-input table (a GxPackFF input that keeps the pack)
@@ -116,7 +116,7 @@ struct GxTranslateDebug
 	                                  // the native device gave live water's and the remastered ground's programs before their ports)
 };
 
-// TEST-ONLY (A23-B merge gate, D · rw3-X-3 13/10/2026): the translator-INPUT digest hook. Every public entry point that changes
+// TEST-ONLY (A23-B merge gate): the translator-INPUT digest hook. Every public entry point that changes
 // translator state reports, at its top, what it RECEIVED - scalars, Res objects by address (the sink numbers them), the bytes
 // behind its pointer arguments: exactly the bytes that entry itself reads, under its own read condition. The device's EXEC trace
 // records the call; this records what the translator got - a value forwarded differently from the one traced (CS=0 vs CS=1)
@@ -157,7 +157,7 @@ public:
 	void resetStates();
 
 	void renderState(uint32_t state, uint32_t value);
-	// S7 (D · look-shadowmaps, PREREG A1/A23): the shadow-map tags for the draws that follow (GxShadowCasters.h kShadowTag*); the
+	// S7 (PREREG A1/A23): the shadow-map tags for the draws that follow (GxShadowCasters.h kShadowTag*); the
 	// device sets them through IGxShadowMap::SetShadowTags, only on change. 0 = no S7 effect on any packet.
 	void shadowTags(uint32_t tags) { m_shadowTags = tags; }
 	uint32_t shadowTags() const { return m_shadowTags; }
@@ -170,7 +170,7 @@ public:
 	// S7 P2: the device's look mask has bit 0 (the receiver family is loaded): every draw then carries DrawBits in its PS block. Off
 	// (the default, key off) = the word is never written and stays 0.
 	void setReceivers(bool on) { m_receivers = on; }
-	// B · a2c-1 (A108, SCOPE_a2c.md): the session's alpha-to-coverage - GXAlphaToCoverage on AND the device loaded the a2c shader family
+	// (A108): the session's alpha-to-coverage - GXAlphaToCoverage on AND the device loaded the a2c shader family
 	// (creation MSAA >= 2). Off (the default, key off) = no draw is examined: today's keys and spec blocks exactly.
 	void setAlphaToCoverage(bool on) { m_a2c = on; }
 	bool alphaToCoverage() const { return m_a2c; }
@@ -192,7 +192,7 @@ public:
 	void deleteVertexShader(uint32_t handle);
 	void deletePixelShader(uint32_t handle);
 	void vsConstants(uint32_t first, uint32_t count, const float* data);
-	// DXVK's d3d9.samplerAnisotropy (the shipped dxvk.conf: 16; lead C32 11/10: the native renderer honours the player's classic
+	// DXVK's d3d9.samplerAnisotropy (the shipped dxvk.conf: 16; 11/10: the native renderer honours the player's classic
 	// setting, read once): every sampler with a mip filter whose min filter is above POINT gets this anisotropy whatever its
 	// MAXANISOTROPY (d3d9_device.cpp:7194-7202; GxSamplers keeps the mip-filter condition). -1 = no override (DXVK's default).
 	void setAnisotropyOverride(int32_t n);
@@ -232,7 +232,7 @@ public:
 	// The d3d8 state as the device's getters answer it (GetRenderState, GetTransform, ...). lights/lightCount are the ones the
 	// last draw packed (a draw that reuses the cached pack leaves them as the pack that made it: no light input changed since).
 	const GxD3D8FFState& state() const { return m_ff; }
-	// The device's production custom-pipeline miss path (DESIGN_l1-device §10): a custom key nobody built is built on the
+	// The device's production custom-pipeline miss path: a custom key nobody built is built on the
 	// caller, counted in stats().customBuilds. Off = rw2-E's rule (a counted miss that draws nothing).
 	void setBuildCustomOnMiss(bool on);
 	const GxD3D8Target& colorTarget() const { return m_color; }
@@ -266,7 +266,7 @@ private:
 	float m_castOwnMu = 0.f;     // S7 A79: the mu castWorld() applied (0 exactly when it returned m_ff.world) - the packet's castOwnMu
 	const float* castWorld();    // S7 A41: m_ff.world, or World x S into m_ownWorld while an own light is set
 	bool m_receivers = false;    // S7 P2
-	bool m_a2c = false;          // B · a2c-1 (A108)
+	bool m_a2c = false;          // (A108)
 	std::map<uint32_t, GxD3D8Light> m_lights;   // every light index SetLight / LightEnable has defined
 	uint32_t m_lightSlots[8];                    // DXVK's enabledLightIndices: a light index or kNoLight
 	uint32_t m_vs = 0;                    // current vertex shader: an FVF code or a handle
@@ -294,7 +294,7 @@ private:
 	uint64_t m_drawClassCount[32] = {};   // drawn draws by class index (16 positionT, 8 blend, 4 ztest, 2 zwrite with ztest, 1 rt-texture)
 	GxTranslateDebug m_debug;
 	bool m_buildCustomOnMiss = false;
-	// cut 3b (dirty-pack, E · rw3-L-3's conditions): GxPackFF's last output and the per-draw derived inputs it was packed with. Valid
+	// cut 3b (dirty-pack, conditions): GxPackFF's last output and the per-draw derived inputs it was packed with. Valid
 	// until a setter changes a byte GxPackFF reads (m_ff, the lights, the enable slots) - when in doubt a setter invalidates; the
 	// derived inputs emit() writes into m_ff each draw are compared instead. L1 only: rw3-G's instanced path packs from a copy and
 	// neither reads nor writes this.

@@ -1624,7 +1624,7 @@ void InitLanGameGadgets()
 	// null check of its own.
 	//
 	// GeneralsX: The seat columns SCROLL instead (owner 08/11: 12-14 rows with a scroll bar
-	// like the map list, 10 on iPad). The chat stays (owner 08/11, msg f656: "add back the lobby chat"): the rows take
+	// like the map list, 10 on iPad). The chat stays (owner 08/11, "add back the lobby chat"): the rows take
 	// ONE row from the top of the chat history - nine rows at the authored size - as long as the history keeps the
 	// host's Private / password row, which lanPasswordRowCreate (below) builds on its top with the same arithmetic, plus
 	// LAN_CHAT_KEEP_LINES lines of chat; on a screen where it cannot, the room keeps the authored eight. Host and joiners

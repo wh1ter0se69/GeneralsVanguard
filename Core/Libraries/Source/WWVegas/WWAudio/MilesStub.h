@@ -80,7 +80,7 @@ typedef void*          HANDLE;
 // specifier" - the compiler's way of saying it has never heard of CRITICAL_SECTION.
 //
 // It stayed hidden because a local build\win64 configured WITHOUT the -D silently falls back to
-// Miles and compiles (AUDIO_BACKENDS.md records that trap), so the OpenAL configuration is the one
+// Miles and compiles (records that trap), so the OpenAL configuration is the one
 // that ships and was not the one being built by hand.
 //
 // WIN32_LEAN_AND_MEAN because all that is wanted is the synchronisation primitives; pulling the

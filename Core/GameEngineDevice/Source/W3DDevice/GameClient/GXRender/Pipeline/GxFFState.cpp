@@ -1,4 +1,4 @@
-// GxFFState.cpp - D3D8 fixed-function state -> the ubershader's blocks (WS-D week 2, C · rw2-D, 11/10/2026).
+// GxFFState.cpp - D3D8 fixed-function state -> the ubershader's blocks (WS-D week 2).
 //
 // Adapted from DXVK 3.0 (zlib, Copyright (c) 2017 Philip Rebohle and DXVK contributors; see shaders/SOURCE.txt):
 // D3D9DeviceEx::UpdateFixedFunctionVS / UpdateFixedFunctionPS / UpdateFog / ComputeWNearFar / BindAlphaTestState /
@@ -214,7 +214,7 @@ bool GxPackFF(const GxD3D8FFState& s, GxFFVsBlock* vs, GxFFPsBlock* ps, GxFFSpec
 		spec->w[GxFFW_StageOps01 + i / 2] |= (TOP_DISABLE | (TOP_DISABLE << 5u)) << ((i & 1u) * 16u);
 
 	// A bound pixel shader reads its own stages (tex t<n>), whatever the FF stage ops cut: DXVK keys the VS texcoord generation and the
-	// sampler types for every stage then. Without this a custom ps on stages 2/3 saw the passthrough of set 0 (E · rw2-E, measured:
+	// sampler types for every stage then. Without this a custom ps on stages 2/3 saw the passthrough of set 0 (measured:
 	// every ps cell using stage >= 2 differed from the classic path, every cell on stages 0-1 was identical).
 	const uint32_t live = s.pixelShader ? 8u : active;
 	uint32_t projMask = 0, samplerTypes = 0;

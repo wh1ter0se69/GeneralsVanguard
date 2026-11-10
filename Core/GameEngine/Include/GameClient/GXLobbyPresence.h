@@ -29,7 +29,7 @@
 //
 // WHY A SECOND SOCKET RATHER THAN JUST SHARING A ROOM. The obvious fix - enter a shared room while
 // browsing and move to your own room when you press Host - was measured against the relay and
-// rejected (docs/WORKDIR/SHARED_LOBBY_ROOM_DESIGN.md §2, Option C):
+// rejected (Option C):
 //
 //   * One endpoint is in exactly one room, forced by the wire format: a relayed game packet carries
 //     source and destination virtual addresses but NO room, so the relay resolves the room from the

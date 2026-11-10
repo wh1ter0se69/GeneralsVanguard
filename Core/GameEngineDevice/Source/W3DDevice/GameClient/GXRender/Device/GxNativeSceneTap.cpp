@@ -83,7 +83,7 @@ void GxNativeDevice::logSceneStats()
 
 bool GxNativeDevice::testReadSceneProbe(float out[4])
 {
-	// E · seam-worker-2 (seam2 design r1 P2): an S body, not a bare csSync - endFrameForHost below is an ownership boundary, and a
+	// (seam2 design): an S body, not a bare csSync - endFrameForHost below is an ownership boundary, and a
 	// drain alone (m_inline 0) counted it as a front recording whenever the worker was on
 	std::optional<SScope> sc;
 	if (m_debug.accessorBareSync)

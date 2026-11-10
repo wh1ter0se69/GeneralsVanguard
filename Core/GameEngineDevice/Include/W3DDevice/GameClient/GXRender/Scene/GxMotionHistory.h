@@ -1,5 +1,5 @@
 // GeneralsX: What each mesh drew with in the previous world pass, for per-object motion
-// vectors (modernize/render-dlss/DESIGN_motion-units.md §2.2 rigid, §2.3 skinned). Header-only and free of engine types so the rules are
+// vectors (rigid, §2.3 skinned). Header-only and free of engine types so the rules are
 // unit-tested with plain c++ (Scene/tests/gx_motion_history_test.cpp). Keys are mesh addresses, frames are world-pass numbers.
 // Render-only: nothing here is read by the simulation, and it lives outside every digested path.
 //

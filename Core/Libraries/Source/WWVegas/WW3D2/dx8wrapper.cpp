@@ -3258,7 +3258,7 @@ void DX8Wrapper::End_Scene(bool flip_frames)
 			if (Present_Probe) Present_Probe(true);
 		}
 		DX8Ring::Frame_Stats();
-		GxFlushProf::Frame();	// D·dxvk-palette GX_FLUSHPROF: once per displayed frame (not per scene pass)
+		GxFlushProf::Frame();	// GX_FLUSHPROF: once per displayed frame (not per scene pass)
 
 		DX8_RECORD_DX8_CALLS();
 
@@ -4908,7 +4908,7 @@ void DX8Wrapper::Set_Light_Environment(LightEnvironmentClass* light_env)
 			// GX_WRAPSKIP 1: the device already holds exactly this light, enabled, and nothing is pending for the slot:
 			// re-flagging it only makes Apply_Render_State_Changes re-compare it (Set_DX8_Light's cache) per draw. The
 			// deferred copy is still updated: the sorting renderer sets device lights directly, so render_state can hold
-			// an older light than the device, and Insert_Triangles snapshots render_state (rcpu-wrapskip r1 P2).
+			// an older light than the device, and Insert_Triangles snapshots render_state (rcpu-wrapskip).
 			if ((Wrap_Skip() & 1u) && l < 4 && CurrentDX8LightValid[l] && CurrentDX8LightEnables[l]
 				&& render_state.LightEnable[l] && !(render_state_changed & (LIGHT0_CHANGED<<l))
 				&& memcmp(&CurrentDX8Lights[l], &light, sizeof(D3DLIGHT8)) == 0) {
@@ -4946,7 +4946,7 @@ void DX8Wrapper::Set_Light_Environment(LightEnvironmentClass* light_env)
 }
 
 // GeneralsX: WS-G Task 5: the `=2` call log (dx8wrapper.h GxLogOn; gxcalllog.h; render-seam/rw1-G/
-// T1_HOOKS_BRIEF.md). Nothing here runs unless the check turned GxLogOn on. Matrices and lights go into the log as bytes.
+// ). Nothing here runs unless the check turned GxLogOn on. Matrices and lights go into the log as bytes.
 static_assert(sizeof(D3DLIGHT8) == sizeof(gxlog::Light) && sizeof(D3DMATERIAL8) == sizeof(gxlog::Material)
 	&& sizeof(Matrix4x4) == sizeof(gxlog::Mat4) && sizeof(Vector3) == 3 * sizeof(float), "the call log's byte copies");
 bool DX8Wrapper::GxLogOn = false;

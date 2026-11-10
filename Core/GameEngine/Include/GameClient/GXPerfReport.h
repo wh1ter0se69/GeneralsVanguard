@@ -26,7 +26,7 @@
 // that separates "blocked on somebody else" from "my own limiter held me". NONE OF IT LEAVES THE
 // PEER. So the hitching peer knows it hitched, the starving peers know they starved, and no single
 // machine ever holds both halves - which is exactly the comparison the only successful attribution
-// this project has ever made (docs/WORKDIR/evidence/stutter-headless-host-2026-08-07.md) used.
+// this project has ever made used.
 //
 // And every existing probe is getenv-gated and OFF: GX_PACE, GX_NET, GX_ROUTER_TRACE,
 // GX_RUNAHEAD_TRACE, GX_ACTIVITY. A player hitting a lag problem right now emits nothing. A
@@ -366,7 +366,7 @@ inline int gxFpsPeakTake( GXFpsPeak &p )
  * This was a hand-rolled `#ifdef _WIN32` QueryPerformanceCounter / POSIX clock_gettime pair,
  * written out TWICE - in GXPerfReport.cpp and again in gxPaceSample (GameClient.cpp) - which is
  * platform-specific code living in game code, against .github/instructions/
- * cpp-conventions.instructions.md:9 ("platform-specific code stays in platform layers").
+ * ("platform-specific code stays in platform layers").
  *
  * std::chrono::steady_clock IS that abstraction already: MSVC implements it on
  * QueryPerformanceCounter and libc++/libstdc++ on clock_gettime(CLOCK_MONOTONIC), so it is exactly

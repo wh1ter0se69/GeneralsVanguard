@@ -358,7 +358,7 @@ Bool GameEngine::isTimeFrozen()
 
 	// GeneralsX: ...nor by the camera or a script in the replay of one, which plays back with no
 	// TheNetwork: a freeze the match ignored would put every script after it on another frame, and the replay's CRCs out
-	// (camera-sim-B r1 P1). The debug pause still holds.
+	// (camera-sim-B). The debug pause still holds.
 	const Bool networkReplay = TheRecorder != nullptr && TheRecorder->isPlaybackMode()
 		&& (TheRecorder->getGameMode() == GAME_LAN || TheRecorder->getGameMode() == GAME_INTERNET);
 
@@ -1041,7 +1041,7 @@ void GameEngine::init()
 		// before frame 1, and teardown segfaults in the WW3D pool destructors (measured
 		// 0xC0000005 with intermittent dumps). Users see "the game exits silently after a few
 		// seconds"; two machines and several sessions were lost to it. Root-cause evidence:
-		// docs/WORKDIR/ISSUE_WINDOWS_SILENT_EXIT_ROOT_CAUSE.md.
+		//
 		//
 		// The headless carve-out above already established the principle: a machine that
 		// cannot resolve music gets a loud stderr line and a music-less game, never a
@@ -1486,7 +1486,7 @@ Bool GameEngine::canUpdateRegularGameLogic(UnsignedInt logicTimeQueryFlags)
 	if (logicTimeScaleFps <= 0)
 	{
 		// GeneralsX: Paused (a zero rate): no catch-up debt survives it, so nothing kept before a
-		// pause is repaid after it (review r1 P2-2). A no-op unless catch-up kept debt.
+		// pause is repaid after it. A no-op unless catch-up kept debt.
 		CatchUpPolicy::regularDrop(m_logicTimeAccumulator, m_regularCatchUpPeriod);
 		TheFramePacer->noteRegularCarry(m_logicTimeAccumulator, m_regularCatchUpPeriod);
 		return false;
@@ -1510,7 +1510,7 @@ Bool GameEngine::canUpdateRegularGameLogic(UnsignedInt logicTimeQueryFlags)
 
 	// GeneralsX: Tick catch-up for single player, skirmish and replays (Common/CatchUpPolicy.h
 	// regularGate). While it is eligible the gate credits the whole pass at 1 / min(logic rate, render cap) - with the logic
-	// time scale off the cap is the rate it keeps (review r1 P1-1) - so a draw slower than a tick leaves debt that logic-only
+	// time scale off the cap is the rate it keeps - so a draw slower than a tick leaves debt that logic-only
 	// passes repay (FramePacer::isCatchUpDrawSkip), at most one tick per pass. Ineligible (paused, frozen time, menus, fast
 	// forward, GX_CATCHUP=0, a -headless peer) it drops any debt catch-up kept, then is the retail gate above bit for bit:
 	// credit min(update time, targetFrameTime), and straight away without touching the accumulator.
@@ -1755,7 +1755,7 @@ void GameEngine::updateLogic()
 		{
 			// GeneralsX: GX_TICKMS=1 prints one "[GXTICK] f=<frame> us=<us> cpu=<us>" line per
 			// logic tick: the wall time of GameLogic::update alone, the ms/tick the stream-weapon design
-			// (docs/WORKDIR/STREAM_WEAPON_FPS_DESIGN_2026-09-23.md) could only infer from a profiler.
+			// could only infer from a profiler.
 			// Diagnostic only: the clock is read around the update, never inside it, so the sim is untouched.
 			static const Bool s_tickMs = getenv("GX_TICKMS") != nullptr;
 			if (s_tickMs)
@@ -1823,7 +1823,7 @@ void GameEngine::updateLogic()
 				TheGameClient->step();
 				// GeneralsX: A motion blur's TRUE ending in this update's scripted camera step
 				// (ScriptedCamera::logicFrame) can make a camera freeze in flight hold: from the next draw on, and only after the
-				// view took this frame's step too (re-read inside that step, it made this very update skip it: camera-sim-B r1 P2).
+				// view took this frame's step too (re-read inside that step, it made this very update skip it: camera-sim-B).
 				TheFramePacer->setTimeFrozen(isTimeFrozen());
 			}
 			// GeneralsX: In a script freeze the scripts still run on this update and read

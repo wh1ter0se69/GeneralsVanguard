@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule RAID.GLA_TECHNICAL_DUTY (C·rb-data): a Technical raider kept on duty, hunting
+# GeneralsX: rule bank DATA rule RAID.GLA_TECHNICAL_DUTY: a Technical raider kept on duty, hunting
 # workers, trucks and dozers round the back of the enemy base, plus later diversion raiders (rows 276, 310). Stock Hard GLA's early
 # raider is 2 Quad Cannons; a Technical only comes inside the 2nd-wave Fast Attack team. Per GLA general this adds:
 #   team "GX Raider A <g>" (tech_n Technicals, at most 1 at a time) and, with raiders >= 2, "GX Raider B <g>" (raiders - 1 at a time,

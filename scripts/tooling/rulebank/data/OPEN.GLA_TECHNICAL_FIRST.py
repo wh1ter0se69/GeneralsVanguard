@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule OPEN.GLA_TECHNICAL_FIRST (C·rb-data-10): GLA's first raider pair is
+# GeneralsX: rule bank DATA rule OPEN.GLA_TECHNICAL_FIRST: GLA's first raider pair is
 # Technicals. Stock GLA Hard's "1ST Wave Supply Hunters" team is 2 Quads (vanilla, Stealth, Toxin) or 2 Scorpions (Demolition); stock's
 # first Technical comes inside the 2nd-wave Fast Attack team. first_unit_enum = 0 (Technical) makes that team 2 of the general's own
 # Technical; 1 (Quad) is stock. The Technical has no prerequisite (INIZH) and is built where the Quad was. Team type only; the wave gate

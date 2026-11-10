@@ -1,5 +1,5 @@
 // GeneralsX: AMD FidelityFX FSR 1 (EASU + RCAS) for IGxWorldPass::Upscale(GX_UPSCALE_FSR1)
-// (modernize/render-dlss/DESIGN_hud-seam.md §4; shaders/SOURCE.txt for the vendored MIT headers). Two full-screen fragment passes,
+// (shaders/SOURCE.txt for the vendored MIT headers). Two full-screen fragment passes,
 // recorded outside a rendering scope like GxNativePresent: EASU from the world colour into a scratch target of the output size,
 // then RCAS from the scratch into the output target. Both targets are the seam's own textures; the seam composites the output.
 // Descriptor slots rotate with the present's (the caller waits the slot's last submission first). Render-only; the device's thread.

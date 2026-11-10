@@ -1,4 +1,4 @@
-# GeneralsX: rule bank, DATA half: the ruleset compiler (C·rb-data; gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.9,
+# GeneralsX: rule bank, DATA half: the ruleset compiler (2.2.9,
 # CONTRACT v1 in 2.6). A ruleset file (JSON, schema gx-ruleset/1) compiles to a loose SkirmishScripts.scb plus a manifest:
 #
 #   base   = the recipe's own output (make-skirmish-scripts.py build_base, BASE_SHA256) - never edited in place
@@ -218,7 +218,7 @@ def validate(rs, registry, gate, rule_ids):
     by = {}
     for e in out:
         by.setdefault(e['id'], []).append(e)
-    # one rule twice: told apart by tier, or (lead C74 07/11, rb-tune c6 core #1) by DISJOINT generals - every entry is applied to its own generals only (DATA apply, ENGINE
+    # one rule twice: told apart by tier, or (07/11, rb-tune c6 core #1) by DISJOINT generals - every entry is applied to its own generals only (DATA apply, ENGINE
     # one script per general), so a direct game can seat one rule at two settings. A general named by two entries of one rule is still refused: in a shared tier, and always
     # under --tier-gate off, where there are no tiers to tell them apart
     for rid, es in by.items():

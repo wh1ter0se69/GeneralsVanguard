@@ -2183,7 +2183,7 @@ bool HLodClass::Pose_Is_Worker_Safe()
 	return true;
 }
 
-// A whitelist, not a blacklist (review r1 P2): only classes whose Set_Transform, Set_Animation_Hidden and
+// A whitelist, not a blacklist: only classes whose Set_Transform, Set_Animation_Hidden and
 // Update_Sub_Object_Transforms were read and touch nothing but the object itself (rendobj.cpp, boxrobj.cpp, dazzle.cpp,
 // part_emt.cpp - Start/Stop write the emitter and its own cloned buffer -, sphereobj, ringobj), plus HLODs, checked the
 // same way. Anything else (a sound object reaching the audio scene, a collection or HModel hiding its own animation)

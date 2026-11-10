@@ -290,7 +290,7 @@ static void gxWarmProgress( GameWindow *text, UnsignedInt pendingAtEntry, Unsign
 }
 
 // GeneralsX: A2: hold the load screen until every recorded graphics pipeline is compiled, so no
-// first draw in the match compiles one (13 of the 16 stops over 100 ms in modernize/HANDBACK_s0-hitch-attribution.md).
+// first draw in the match compiles one (13 of the 16 stops over 100 ms).
 // Before GameLogic reports the load complete, so a slow compile is load time, never a lockstep stop. Each pass is
 // update(101) - the subclass's own barrier pass, the one GameLogic's barrier makes: network keep-alive, the LAN start
 // resend, a redraw. Capped at 20 s, well inside the 60 s progress barrier a peer waits in.

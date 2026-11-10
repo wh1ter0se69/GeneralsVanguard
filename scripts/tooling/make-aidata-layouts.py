@@ -8,7 +8,7 @@
 #   make-aidata-layouts.py --selftest [--search <dir>]
 #   make-aidata-layouts.py --list
 #
-# wh1ter0se 03/11/2026 ("look at the rotation facing back of the base"), go 04/11. Plan and registration: gx-handoff ai/base-layout/PLAN_base-layout.md.
+# wh1ter0se 03/11/2026 ("look at the rotation facing back of the base"), go 04/11. Plan and registration:
 # The stock lists draw doors all round the command centre, and their footprints overlap (the minimum gap is 0 in all 12 lists), so the AI has no room to
 # turn a door. Here, in a frame with the command centre at the origin and +X at the base front:
 #   * doors in a front row, each with a clear exit lane and room for R's three tries;
@@ -86,7 +86,7 @@ LAYOUTS = {
 for _g in ("GLADemolitionGeneral", "GLAStealthGeneral", "GLAToxinGeneral"):
     LAYOUTS[_g] = LAYOUTS["GLA"]   # the same list with its own prefix
 
-# GeneralsX 06/11/2026 (gx-handoff ai/base-layout/ADDENDUM_10.md (b), lead C71): the lists the shipped file leaves to the Community Patch. Their $10k
+# GeneralsX 06/11/2026: the lists the shipped file leaves to the Community Patch. Their $10k
 # screen cells cost (Air Force $10k FAIL / FAIL; Demolition $10k FAIL / UNKNOWN, a deficit already on the ADDENDUM_7 head), so they ship with
 # stock placement until a mechanism probe explains it. A side absent from the file keeps the Community Patch's list, and a list without the keys
 # runs the retail path bit for bit, so these two are inert by construction. --only still writes them (test arms).

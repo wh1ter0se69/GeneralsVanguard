@@ -396,7 +396,7 @@ void GxSceneCopy::tap(Rc::GxPacketWriter& w, const Tap& t, R::GxImage* wc, R::Gx
 		w.outsideScope([&](VkCommandBuffer cmd) { ok = recordFallback(cmd, w.tracker(), rest, t, wc, wd, wdView, &dp, &cp); }, nullptr, 0);
 		if (ok) {
 			done |= rest;
-			// S7 A1 (D · look-shadowmaps, integrator 12:1xZ): the copies were written by this frame's MAIN commands - a shadow caster that
+			// S7 A1 (integrator 12:1xZ): the copies were written by this frame's MAIN commands - a shadow caster that
 			// samples one must not be replayed from INIT, which runs before them
 			if (rest & GX_SCENE_DEPTH)
 				t.depth->image().mainWrite = w.frameValue();

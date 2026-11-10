@@ -1420,7 +1420,7 @@ Bool AIPlayer::startTraining( WorkOrder *order, Bool busyOK, AsciiString teamNam
 // $200,000 start still banked $147k-$198k each at 4:00, and "this made 3 airfields yet using only 1?"). Above AI_HOARD_CASH:
 // a team's units are built in parallel (buildSpecificAITeam), teams and structures are picked faster and attack teams may field extra copies (AISkirmishPlayer.cpp, ported from Zero
 // Hour Reforged's cash hoard). Only in a match that STARTED richer than the default cash: Hard's scripted gifts alone lift
-// a bank to ~$50k in a $10,000 start (measured 08/10, ai/HANDBACK_ai-spend-scale.md), so no bank threshold separates the
+// a bank to ~$50k in a $10,000 start (measured 08/10), so no bank threshold separates the
 // two - the starting cash, a lobby option every peer shares, does. A default-cash match takes none of these branches.
 // Trade-off: one fixed threshold for Hard only; a per-difficulty AIData field when Normal/Easy want it.
 static const Int AI_HOARD_CASH = 20000;

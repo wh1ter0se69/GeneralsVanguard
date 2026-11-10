@@ -99,7 +99,7 @@
 #include "W3DDevice/GameClient/W3DScene.h"
 #include "W3DDevice/GameClient/W3DView.h"
 #include "W3DDevice/GameClient/W3DWorldSeam.h"
-#include "W3DDevice/GameClient/GXShadowMapHooks.h"   // D · look-shadowmaps S7
+#include "W3DDevice/GameClient/GXShadowMapHooks.h"   // S7
 #include "d3dx8math.h"
 #include "W3DDevice/GameClient/W3DShaderManager.h"
 #include "W3DDevice/GameClient/Module/W3DModelDraw.h"
@@ -479,7 +479,7 @@ void W3DView::buildCameraTransform( Matrix3D *transform, const Vector3 &sourcePo
 // GeneralsX: wh1ter0se 17/10 ("the camera not to go that low over a gorge", then on the pictures "zoom
 // still needs a bit more zoom out"): the zoom height counts from the ground at the look-at point and the camera body sits
 // well behind that point, so looking into a valley next to a cliff the body came within 33 units of the rim behind it (his
-// 17/10 replay: gx-handoff gameplay/NOTE_plane-hill-1017.md; retail's rule gives the same). The desired zoom is now raised
+// 17/10 replay: retail's rule gives the same). The desired zoom is now raised
 // by GX_GORGE_ZOOM_OUT times however much higher the (5-sample average) ground under the camera body is than the ground at
 // the look-at point - nothing on flat ground or when looking uphill, more the deeper the valley you look into - and never
 // lets the body come closer than the minimum zoom height (m_minHeightAboveGround) to the ground under it. The zoom eases
@@ -1594,7 +1594,7 @@ Bool W3DView::updateCameraMovements()
 	// The scripted camera will still move when the time is frozen, but not when the game is halted.
 	// A SCRIPT freeze is not stepped here either: its scripts still run once per gate pass, so the camera steps on those
 	// updates (stepFrozenLogicUpdate) - the freeze loop stops after one pass under it, and per draw a move ran fps times
-	// faster than the scripts watching it (catchup-reland r1/r2 P1). Only a camera-only freeze steps here.
+	// faster than the scripts watching it (catchup-reland r1). Only a camera-only freeze steps here.
 	const Bool frozen = (TheFramePacer != NULL) && TheFramePacer->isTimeFrozen()
 		&& !(TheScriptEngine->isTimeFrozenScript() || TheScriptEngine->isTimeFrozenDebug());
 	Bool didUpdate = false;
@@ -1709,15 +1709,15 @@ void W3DView::stepFrozenLogicUpdate()
 {
 	if (TheScriptEngine == NULL || !TheScriptEngine->isTimeFrozenScript() || TheScriptEngine->isTimeFrozenDebug())
 		return;
-	endWaypointPathForCameraLock();	// a lock set by a frozen update's script ends the path on that update (r3 P1)
+	endWaypointPathForCameraLock();	// a lock set by a frozen update's script ends the path on that update
 	if (applyScriptedStep(m_camTimeline.stepScriptFrozen(), MSEC_PER_LOGICFRAME_REAL))	// through the divider
 		m_recalcCamera = true;
 }
 
 // GeneralsX: A camera lock ends a waypoint path (update() did it on the next DRAW, so a logic-only
 // pass left the path running), and a lock whose object is gone ends, as update() ends it. On
-// every logic update that runs scripts - each new frame ahead of the time multiplier's divider (r2 P1) and each script-frozen
-// update (r3 P1) - so a lock a script sets ends the path before the next script reads CAMERA_MOVEMENT_FINISHED.
+// every logic update that runs scripts - each new frame ahead of the time multiplier's divider and each script-frozen
+// update - so a lock a script sets ends the path before the next script reads CAMERA_MOVEMENT_FINISHED.
 void W3DView::endWaypointPathForCameraLock()
 {
 	if (getCameraLock() == INVALID_ID)
@@ -1896,7 +1896,7 @@ void W3DView::update()
 	// Before the full-update check, so a pending full update makes it skip the partial rebuild.
 	if (TheTerrainRenderObject && TheTerrainRenderObject->hasTerrainHeightChanges() && W3DDisplay::m_3DScene)
 	{
-		GxShadowMapTerrainChanged = true;	// D · look-shadowmaps-2 S7 (GXShadowMapHooks.h): the shadow fit re-measures the terrain's height range
+		GxShadowMapTerrainChanged = true;	// S7 (GXShadowMapHooks.h): the shadow fit re-measures the terrain's height range
 		const std::chrono::steady_clock::time_point t0 = std::chrono::steady_clock::now();
 		RefRenderObjListIterator it(W3DDisplay::m_3DScene->getLightList());
 		const Int cells = TheTerrainRenderObject->flushTerrainHeightChanges(&it);
@@ -2282,7 +2282,7 @@ void W3DView::update()
 
 	// (gth) C&C3 if m_isCameraSlaved then force the camera to update each frame
 	// GeneralsX: The pan motion blur (calcDeltaScroll) measures how far the DRAWN camera moved since
-	// the last draw: the scripted camera steps once per logic frame now, so the step's own start no longer tells it (r5 P3).
+	// the last draw: the scripted camera steps once per logic frame now, so the step's own start no longer tells it.
 	Coord3D drawnLookAt = m_pos;
 	if (m_recalcCamera || m_isCameraSlaved)
 	{
@@ -2543,7 +2543,7 @@ void W3DView::draw()
 		if (m_isWireFrameEnabled)
 			W3DDisplay::m_3DScene->Set_Extra_Pass_Polygon_Mode(SceneClass::EXTRA_PASS_CLEAR_LINE);
 		// GeneralsX: S7 (GXShadowMapHooks.h): the shadow map's frame - the tactical view's
-		// default pass only (a filter that redirects the scene draws no map). A49 (D · look-shadowmaps-4): ARMED here; the scene starts it
+		// default pass only (a filter that redirects the scene draws no map). A49: ARMED here; the scene starts it
 		// after its On_Frame_Update loop (GxShadowMapFireArmed), so its poses land where key off's do
 		const bool gxShadowFrame = this == TheTacticalView && GxShadowMapFrame && customScenePassMode == SCENE_PASS_DEFAULT;
 		if (gxShadowFrame)
@@ -3514,7 +3514,7 @@ void W3DView::moveCameraTo(const Coord3D *o, Int milliseconds, Int shutter, Bool
 
 	setupWaypointPath(orient);
 	// ...and its "do it instantly" pose step stays, 1 ms of its 1 ms: base Generals' walk (>) puts the camera at the target here,
-	// so a rotation chained in the same script starts there (camera-sim-B r1 P2); Zero Hour's (>=) ends the walk first and
+	// so a rotation chained in the same script starts there (camera-sim-B); Zero Hour's (>=) ends the walk first and
 	// moves it on the first step, as it always did
 	if (m_camTimeline.waypointPath().total == 1.0f)
 	{
@@ -3530,7 +3530,7 @@ void W3DView::rotateCamera(Real rotations, Int milliseconds, Real easeIn, Real e
 {
 	m_rcInfo.trackObject = FALSE;
 	m_camTimeline.rotate(milliseconds, 0, easeIn, easeOut);	// GeneralsX: its frames and multiplier; it ends a path
-	setUserControlled(false);	// before the start pose, where addScriptedState ran (camera-sim-B r2 P2)
+	setUserControlled(false);	// before the start pose, where addScriptedState ran (camera-sim-B)
 	m_rcInfo.angle.startAngle = m_angle;
 	m_rcInfo.angle.endAngle = m_angle + 2*PI*rotations;
 	m_CameraArrivedAtWaypointOnPathFlag = false;
@@ -3600,7 +3600,7 @@ void W3DView::zoomCamera( Real finalZoom, Int milliseconds, Real easeIn, Real ea
 {
 	m_camTimeline.zoom(milliseconds);	// GeneralsX: its frames (Common/ScriptedCameraClock.h)
 	// before the start zoom is taken, where addScriptedState ran: under PRESERVE_RETAIL_SCRIPTED_CAMERA it converts m_zoom into
-	// scripted coordinates (camera-sim-B r2 P2: the zoom started from the user's)
+	// scripted coordinates (camera-sim-B: the zoom started from the user's)
 	setUserControlled(false);
 	if (milliseconds<1) milliseconds = 1;
 	m_zcInfo.startZoom = m_zoom;
@@ -4518,7 +4518,7 @@ bool W3DView::getDesiredTerrainDrawSize(ICoord2D &dimensions) const
 	//
 	// GeneralsX: Sized for the MAX height as well as the current one, so the window a
 	// player can zoom out to is drawn at once rather than found one 32-cell step at a time. The window only grows
-	// within a game (updateTerrain) and every step rebuilds the whole terrain: measured on the Mac Mini, Alpine Assault
+	// within a game (updateTerrain) and every step rebuilds the whole terrain: measured, Alpine Assault
 	// at 16:9, the first zoom-out after the Debug menu raised the max mid-match cost 4-5 frames of 30-35 ms (55.3 TPS).
 	// A match starts at the max (setZoomToMax), so this draws no more terrain than the player's own starting view; it
 	// only moves a raise of the max (Debug/Extras Apply, a host's pair arriving) to one rebuild, instead of several
@@ -4585,7 +4585,7 @@ void W3DView::updateTerrain()
 	RefRenderObjListIterator it(lightlist);
 
 	const Vector3 cameraPivot(m_pos.x, m_pos.y, m_pos.z);
-	// D · look-shadowmaps-2 S7 (GXShadowMapHooks.h): a full rebuild through ANY caller (update(), or a camera move such as a replay's
+	// S7 (GXShadowMapHooks.h): a full rebuild through ANY caller (update(), or a camera move such as a replay's
 	// camera command, which rebuilds and clears m_needFullUpdate before update() runs) re-measures the shadow fit's
 	// terrain height range
 	if (TheTerrainRenderObject->doesNeedFullUpdate())

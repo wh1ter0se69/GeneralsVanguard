@@ -960,7 +960,7 @@ static Int ringSpans(Int lo, Int hi, Int origin, Int period, Int out[2][2])
 	return 1;
 }
 
-// GeneralsX: Terrain row 1g (gx-handoff render-split/PLAN_gpu-terrain-light.md). The
+// GeneralsX: Terrain row 1g. The
 // extra blend pass relit every visible tile from scratch every frame - getStaticDiffuse on 4 corners: a normal from the
 // heights, then every scene and global light - 3.5% of the Mac Mini's main thread in a whole-map 6v6 view. Its inputs
 // (heights, the time-of-day terrain lights, the map's point lights) change only where the base pass relights too: a

@@ -309,7 +309,7 @@ protected:
 	Coord3D	 m_fallbackLocation;
 	Real		 m_fallbackAngle;
 	Bool		 m_hasFallback;
-	// GeneralsX: base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md, wh1ter0se's option 2): TRUE while the unused fallback above is
+	// GeneralsX: base-layout (wh1ter0se's option 2): TRUE while the unused fallback above is
 	// the stock list's spot for this entry (AIData's GXFallbackLocation), never a supply centre's today's spot. Only the parse below sets it, and
 	// AISkirmishPlayer::adjustBuildList keeps it on a GXTurnLayout list only, so no stock list can carry it.
 	Bool		 m_gxLayoutFallback;
@@ -372,7 +372,7 @@ public:
 	Bool hasFallbackSpot() const { return m_hasFallback && !m_gxLayoutFallback; }
 	/// GeneralsX 06/11/2026 base-layout (ADDENDUM_8): TRUE while the entry holds an unused fallback that came from the layout data.
 	Bool hasLayoutFallback() const { return m_hasFallback && m_gxLayoutFallback; }
-	/// GeneralsX 06/11/2026 base-layout (ADDENDUM_8, lead C70 condition 1): useFallbackSpot for a LAYOUT fallback only; a supply centre's today's spot, or
+	/// GeneralsX 06/11/2026 base-layout (ADDENDUM_8, condition 1): useFallbackSpot for a LAYOUT fallback only; a supply centre's today's spot, or
 	/// no fallback, returns FALSE and leaves the entry as it is (AIPlayer::buildStructureWithDozer's "nothing found" then takes today's path).
 	Bool gxUseLayoutFallback() { if (!hasLayoutFallback()) return false; return useFallbackSpot(); }
 	/// GeneralsX 06/11/2026 base-layout: a layout fallback, set by the parse and placed by AISkirmishPlayer::adjustBuildList.

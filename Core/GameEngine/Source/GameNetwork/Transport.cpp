@@ -67,7 +67,7 @@ static const char RELAY_WITHDRAW_TAG[] = "GXUNAD";
 // Generals Online does - "[EU] FFA 10k NO RULES".
 //
 // NOT a compiled-in constant, and that is the whole design constraint: "adding a relay must not
-// require updating clients" (CLAUDE.md). A region baked into the binary means the second relay
+// require updating clients". A region baked into the binary means the second relay
 // needs a client release, which is exactly what that rule exists to prevent. So it arrives as
 // data, from two sources in priority order:
 //
@@ -3626,7 +3626,7 @@ Int Transport::requestRelayGameList( const char *relayHost, RelayGameListing *ou
 //--------------------------------------------------------------------------
 // GeneralsX: Direct peer-to-peer, with per-pair relay fallback.
 //
-// Read docs/WORKDIR/DESIGN_2026-08-08_direct-p2p-with-relay-fallback.md, and read section 3 of it
+// Read, and read section 3 of it
 // before telling anyone this fixes lag. The short version, because it is the sentence people get
 // wrong: commands travel a STAR through the packet router at slot 0, not a mesh, and lockstep runs
 // at the worst remaining link. A direct route between two NON-router peers therefore improves acks

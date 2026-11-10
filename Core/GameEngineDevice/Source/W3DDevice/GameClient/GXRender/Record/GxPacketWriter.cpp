@@ -290,7 +290,7 @@ bool GxPacketWriter::beginFrame()
 	if (s.submitted > completed) {
 		violation("descriptor pools of a frame slot reset before the slot's last submission completed");
 		if (!m_ctx->queue(Vk::QueueKind::Graphics).timeline.wait(s.submitted)) {
-			m_ring.abandon();   // a false wait proves nothing: no pool reset, and the begun ring frame is closed (rw3V-code-r2 P1-4)
+			m_ring.abandon();   // a false wait proves nothing: no pool reset, and the begun ring frame is closed
 			return false;
 		}
 		completed = m_ctx->queue(Vk::QueueKind::Graphics).timeline.completed();
@@ -571,7 +571,7 @@ void GxPacketWriter::beginPass(const GxPassDesc& pass)
 	++m_stats.passes;
 	m_passName = p.name ? p.name : "";
 	m_passDraws = nullptr;
-	// the effective binding (DESIGN_pipeline-cache.md §5.2): DXVK cannot bind a colour/depth pair of different sample counts
+	// the effective binding: DXVK cannot bind a colour/depth pair of different sample counts
 	// and draws such a pass without its depth (the water reflection's single-sample texture with the MSAA depth buffer)
 	if (p.color.image && p.depth.image && p.color.image->samples != p.depth.image->samples) {
 		p.depth = GxAttachment();
@@ -579,7 +579,7 @@ void GxPacketWriter::beginPass(const GxPassDesc& pass)
 		++m_stats.depthDropped;
 	}
 	if (m_scope.wanted && sameAttachments(p)) {
-		m_scope.color.sampledLater |= p.color.sampledLater;   // a merged pass may be the one sampled later (review r2 P3 #2)
+		m_scope.color.sampledLater |= p.color.sampledLater;   // a merged pass may be the one sampled later
 		if (p.colorLoad == GxLoad::Clear || p.depthLoad == GxLoad::Clear)
 			clear(p.colorLoad == GxLoad::Clear, p.depthLoad == GxLoad::Clear, p.depthLoad == GxLoad::Clear, p.clearColor,
 				p.clearDepth, p.clearStencil, nullptr, 0);
@@ -1414,7 +1414,7 @@ bool GxPacketWriter::draw(const GxDrawPacket& p)
 	return true;
 }
 
-// S7 (D · look-shadowmaps, PREREG_look-shadowmaps A21/A23): a CAST-ONLY packet - an off-screen caster the scene never draws.
+// S7 (A21/A23): a CAST-ONLY packet - an off-screen caster the scene never draws.
 // It takes the draw's resource prologue (the producers are flushed first, every buffer is bound = marked used by this frame and
 // TOUCHED, so a later upload cannot be hoisted ahead of the INIT replay and a DISCARD slice it reads cannot be reused) and
 // nothing else: no sampled-image barrier, no scope, no pipeline lookup, nothing recorded into MAIN.

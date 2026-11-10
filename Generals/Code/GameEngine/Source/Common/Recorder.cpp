@@ -1817,7 +1817,7 @@ void RecorderClass::readArgument(GameMessageArgumentDataType type, GameMessage *
 		}
 		case ARGUMENTDATATYPE_BOOLEAN: {
 			// GeneralsX: The file's byte, normalised: reading 0x02 straight into a bool is undefined,
-			// so a crafted replay could play differently per compiler (as NetPacket::readGameMessage, batch0958 r1 P2).
+			// so a crafted replay could play differently per compiler (as NetPacket::readGameMessage, batch0958).
 			UnsignedByte thebyte = 0;
 			m_file->read(&thebyte, sizeof(thebyte));
 			const Bool thebool = (thebyte != 0);

@@ -338,7 +338,7 @@ Bool GameEngine::isTimeFrozen()
 
 	// GeneralsX: ...nor by the camera or a script in the replay of one, which plays back with no
 	// TheNetwork: a freeze the match ignored would put every script after it on another frame, and the replay's CRCs out
-	// (camera-sim-B r1 P1). The debug pause still holds.
+	// (camera-sim-B). The debug pause still holds.
 	const Bool networkReplay = TheRecorder != nullptr && TheRecorder->isPlaybackMode()
 		&& (TheRecorder->getGameMode() == GAME_LAN || TheRecorder->getGameMode() == GAME_INTERNET);
 
@@ -929,7 +929,7 @@ void GameEngine::init()
 		// VFS. When it does not (unresolvable asset roots, stripped installs), the engine set
 		// m_quitting with no log, no dialog and no artifact - a black window for two seconds and
 		// a vanished process, with teardown then segfaulting in the WW3D pool destructors. See
-		// the ZH twin and docs/WORKDIR/ISSUE_WINDOWS_SILENT_EXIT_ROOT_CAUSE.md. Audio is not
+		// the ZH twin and. Audio is not
 		// simulation state (the ZH headless carve-out established this); warn loudly and play on.
 		if (!TheAudio->isMusicAlreadyLoaded())
 		{
@@ -1388,7 +1388,7 @@ void GameEngine::updateLogic()
 			TheGameClient->step();
 			// GeneralsX: A motion blur's TRUE ending in this update's scripted camera step
 			// (ScriptedCamera::logicFrame) can make a camera freeze in flight hold: from the next draw on, and only after the
-			// view took this frame's step too (re-read inside that step, it made this very update skip it: camera-sim-B r1 P2).
+			// view took this frame's step too (re-read inside that step, it made this very update skip it: camera-sim-B).
 			TheFramePacer->setTimeFrozen(isTimeFrozen());
 		}
 		// GeneralsX: In a script freeze the scripts still run on this update and read

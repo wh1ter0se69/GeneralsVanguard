@@ -123,7 +123,7 @@ on|!GXUI.big|GeneralsX UI layouts (adds the Confirm Password field to Host Game)
 # (owner, 03/10/2026). BUILT, like !GXUI.big, but from nothing: scripts/build/make-gxuihd-archive.py draws the art in its
 # own grids, so no install is read and every box writes the same bytes. Two members, Art\Textures\GXUIHD_Pips.tga and
 # Data\INI\MappedImages\TextureSize_512\GXUIHD.ini - MappedImages and textures are outside the SimID fingerprint, so
-# dataID does not move (re-measured for this archive in ui/HANDBACK_ui-sharpness-2.md). Off, or absent on an older
+# dataID does not move (re-measured for this archive). Off, or absent on an older
 # install, the engine draws the retail 5x12 at every resolution (GXImageVariant.h falls back), so the switch is safe.
 # All four packagers run the generator now - iOS too (package-ios-zh.sh:477); the !GXUI.big note above predates that.
 on|!GXUIHD.big|Sharper unit pips at 1440p and 4K (hand-drawn, original colours)

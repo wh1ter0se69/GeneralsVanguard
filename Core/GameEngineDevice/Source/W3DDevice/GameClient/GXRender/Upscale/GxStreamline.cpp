@@ -409,7 +409,7 @@ bool Streamline::dlssEvaluate(VkCommandBuffer cmd, DlssMode mode, const DlssFram
 		options.outputHeight = f.outputH;
 		options.colorBuffersHDR = sl::Boolean::eFalse;	// the game's world colour is LDR (RGBA8)
 		options.useAutoExposure = sl::Boolean::eTrue;	// no exposure texture
-		// The model: E at EVERY mode, never eDefault (wh1ter0se's ruling 16/10/2026, modernize/render-dlss/RESULT_wh1ter0se-fg-live.md: at DLAA on his
+		// The model: E at EVERY mode, never eDefault (wh1ter0se's ruling 16/10/2026, at DLAA on his
 		// PC E cost 0.42 ms of GPU per frame against L's 2.32, and kept 95% / 86% of native's fine detail at f4800 / f3500; it was L since
 		// dlss-integrator's ruling 13/10). Streamline 2.14.1's sl_dlss.h marks ePresetE "Deprecated": it runs on today's DLSS DLLs (measured
 		// 16/10), a later DLL may drop it. eDefault = K at DLAA/Balanced/Quality. TEST-ONLY GX_DLSS_PRESET=<E..O> overrides it for every
@@ -490,7 +490,7 @@ bool Streamline::dlssEvaluate(VkCommandBuffer cmd, DlssMode mode, const DlssFram
 	const sl::ResourceLifecycle life = sl::ResourceLifecycle::eValidUntilEvaluate;
 	// dlss-fg-1: with frame generation the depth and motion vectors are read again at the PRESENT (DLSS_G guide §5.2: tag them
 	// eValidUntilPresent first). They are motion's own images, rewritten only by the next frame's world pass - which DLSS-G's blocking
-	// wait on our queue orders after its read (DESIGN_dlss-fg-P0.md §3).
+	// wait on our queue orders after its read.
 	const sl::ResourceLifecycle fgLife = m_api->dlssgSetOptions ? sl::ResourceLifecycle::eValidUntilPresent : life;
 	// The part of the presented image frame generation runs on (the camera viewport): the control bar outside it is copied as is.
 	const sl::Extent fgSubrect{ f.fgSubrectY, f.fgSubrectX, f.fgSubrectW, f.fgSubrectH };
@@ -557,7 +557,7 @@ bool Streamline::reflexSetMode(uint32_t mode, std::string* why)
 	}
 	sl::ReflexOptions o{};
 	o.mode = mode >= 2 ? sl::ReflexMode::eLowLatencyWithBoost : mode == 1 ? sl::ReflexMode::eLowLatency : sl::ReflexMode::eOff;
-	o.frameLimitUs = 0;	// the game's FramePacer is the cap (DESIGN_dlss-fg-P0.md §4)
+	o.frameLimitUs = 0;	// the game's FramePacer is the cap
 	const sl::Result r = m_api->reflexSetOptions(o);
 	if (r != sl::Result::eOk) {
 		*why = fail("slReflexSetOptions", r);
@@ -623,7 +623,7 @@ bool Streamline::frameGenSetOptions(bool on, uint32_t generated, std::string* wh
 	o.mode = on ? sl::DLSSGMode::eOn : sl::DLSSGMode::eOff;
 	o.numFramesToGenerate = generated ? generated : 1;
 	o.flags = sl::DLSSGFlags::eRetainResourcesWhenOff;
-	o.queueParallelismMode = sl::DLSSGQueueParallelismMode::eBlockPresentingClientQueue;	// DESIGN_dlss-fg-P0.md §3
+	o.queueParallelismMode = sl::DLSSGQueueParallelismMode::eBlockPresentingClientQueue;
 	const sl::Result r = m_api->dlssgSetOptions(sl::ViewportHandle(0u), o);
 	if (r != sl::Result::eOk) {
 		*why = fail("slDLSSGSetOptions", r);

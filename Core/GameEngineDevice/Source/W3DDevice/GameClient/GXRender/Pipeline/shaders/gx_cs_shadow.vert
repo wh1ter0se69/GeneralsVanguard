@@ -1,6 +1,6 @@
 #version 450
 // gx_cs_shadow.vert - hand port of the GX_SHADOW_GPU shadow-volume vertex shader (vs.1.1, GxShadowVolumeVS.h kGxShadowVS, catalogue
-// 'gx:shadowvol', bytecode sha1 84d63968db0f..., 87 dwords) for the custom-shader catalogue (C · rw3-R11, 13/10/2026). Both stencil
+// 'gx:shadowvol', bytecode sha1 84d63968db0f..., 87 dwords) for the custom-shader catalogue. Both stencil
 // passes draw it with colour writes off; no ps is bound, so it pairs with the generic FF fragment shader.
 //
 //   mov a0.x, v3.x ; mov r1.w, c0.y ; mov r2.w, c0.y ; sub r0.xyz, v2, c3[a0.x] ; dp3 r0.x, r0, v1 ; slt r0.y, r0.x, c0.x
@@ -35,7 +35,7 @@ layout(location = 9) out vec4 out_Color0;
 layout(location = 10) out vec4 out_Color1;
 layout(location = 11) out float out_Fog;
 #ifdef GX_LOOK_SHADOWMAP
-// GX S7 (D · look-shadowmaps-2, PREREG_look-shadowmaps A20/A36, PLAN P2): the key-on family (regen.sh "@SM") writes the WORLD position the
+// GX S7 (A20/A36, PLAN P2): the key-on family (regen.sh "@SM") writes the WORLD position the
 // receiver's shadow-map lookup needs (the key-on fragment shader reads location 12; every vertex shader it pairs with writes it).
 layout(location = 12) out vec3 out_WorldPos;
 #endif

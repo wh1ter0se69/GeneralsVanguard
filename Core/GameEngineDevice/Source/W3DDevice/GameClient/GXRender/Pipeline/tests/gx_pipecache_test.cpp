@@ -1,4 +1,4 @@
-// gx_pipecache_test - WS-D's gates and fail arms (render-seam/DESIGN_pipeline-cache.md §6). Offscreen, no window.
+// gx_pipecache_test - WS-D's gates and fail arms. Offscreen, no window.
 //
 //   gx_pipecache_test [--validation] [--device <sel>] [--cache-dir <dir>] [--workers <n>]
 //                     [--set builtin|<stream file>] [--configs C:D:S,...] [--drop-key <index>]
@@ -29,12 +29,12 @@
 // caller-fail-first / caller-in-flight: a key of the set a caller's get() failed before the prebuild / is compiling during it
 // (TEST-ONLY hooks) -> prebuildComplete() false (and true once the in-flight key publishes). keys-repair-fail /
 // keys-append-short (with --cache-dir): a failed repair / a torn append of the miss record is never appended behind.
-// custom-record (with --cache-dir, rw3-P-2, DESIGN_l1-device §10.2 item 1): a custom (WS-E) key one session builds through
+// custom-record (with --cache-dir, rw3-P-2, item 1): a custom (WS-E) key one session builds through
 // buildCustom() - the native device's miss path - is recorded, and a second session's prebuild builds it before any draw
 // (custom_miss 0). custom-record-off: the TEST-ONLY noCustomRecord plant - the second session must miss it (exactly 1).
 // custom-record-unbuildable: the second session has no custom modules (as an older/other build would lack the program) - the
 // recorded key is skipped (recorded_skipped 1, never queued), its prebuild still completes and the draw misses.
-// a2c-* (B · a2c-1 / a2c-2, A108): the alpha-to-coverage twins, plain twins, per-key modules and prebuild completion - see the block.
+// a2c-* (a2c-2, A108): the alpha-to-coverage twins, plain twins, per-key modules and prebuild completion - see the block.
 // --validation refuses to run (exit 2) unless the context really runs core AND sync validation (GX_VK_VALIDATION=0/core).
 // --draw: every prebuilt pipeline is bound inside an offscreen rendering of its own attachment configuration, with every
 // dynamic state set and its real + null vertex streams bound, and draws once; the work is submitted and waited (validation
@@ -47,7 +47,7 @@
 #include "../shaders/gx_ff.frag.h"
 #include "../shaders/gx_ff_flat.frag.h"
 #include "../shaders/gx_cs_ps.frag.h"
-#include "../shaders/gx_ff.a2c.frag.h"        // B · a2c-2: a2c-modules
+#include "../shaders/gx_ff.a2c.frag.h"        // a2c-modules
 #include "../shaders/gx_ff_flat.a2c.frag.h"
 #include "../shaders/gx_cs_ps.a2c.frag.h"
 #include "../GxCustomCatalog.h"
@@ -378,7 +378,7 @@ void captureLog(Vk::LogLevel, const char* line, void*) {
 	g_errorIds[std::string(p, e ? size_t(e - p) : std::strlen(p))]++;
 }
 
-// B · a2c-2 (the integrator's condition b, a2c-modules): every vkCreateGraphicsPipelines call's fragment module and alphaToCoverageEnable,
+// (the integrator's condition b, a2c-modules): every vkCreateGraphicsPipelines call's fragment module and alphaToCoverageEnable,
 // seen at the Vulkan boundary (volk's pointer swapped for the arm's span, restored after it)
 struct CgpSeen { VkShaderModule fs; bool a2c; };
 std::mutex g_cgpLock;
@@ -576,17 +576,17 @@ int main(int argc, char** argv) {
 		~SharedGuard() { destroy(); }
 	} shared = { ctx.device(), sh, ffLayout };
 
-	// B · a2c-1 (A108; the integrator's ruling DLSS_INTEGRATION.md:3798 (5)): the A2C twins. The builtin set x the production session
+	// (A108; the integrator's ruling (5)): the A2C twins. The builtin set x the production session
 	// configs at 4x (GxSessionAttachConfigs, X8R8G8B8 = 22). a2c-off: twins off -> exactly today's queue (no A2C key, the count of the
 	// distinct normalised candidates). a2c-twins: on -> + one twin per eligible candidate (multisampled, blending off, colour writes on),
 	// and every eligible key's A2C pipeline is there before any draw (generic_miss 0). a2c-twins-none: the noA2cTwins plant - the same
 	// draws must MISS (one per twin). a2c-recorded (--cache-dir): an A2C key a key-on session missed is recorded; a key-off session skips it,
-	// COUNTS it and prebuilds its PLAIN twin instead (B · a2c-2, DLSS_INTEGRATION.md:3857 (1): drawing that state = 0 first-use miss); a
+	// COUNTS it and prebuilds its PLAIN twin instead ((1): drawing that state = 0 first-use miss); a
 	// key-on session prebuilds the A2C key. a2c-plain-twin-none (--cache-dir): the noA2cPlainTwins plant - the key-off draw misses exactly once.
 	// a2c-recorded-custom (--cache-dir): a recorded CUSTOM A2C key's plain twin passes the custom-module check (skipped without the program,
 	// built with it); -nocheck: the plainTwinNoCustomCheck plant - the unbuildable twin fails the prebuild. a2c-retarget-unbuildable
 	// (--cache-dir): an MSAA Reset never retargets a recorded key the session cannot build; -nocheck: the plant.
-	// B · a2c-2 (the integrator's conditions after :3876): a2c-modules - every vkCreateGraphicsPipelines call (seen at the Vulkan boundary)
+	// (the integrator's conditions after :3876): a2c-modules - every vkCreateGraphicsPipelines call (seen at the Vulkan boundary)
 	// uses an a2c-family fragment module IFF its alphaToCoverageEnable is set (FF smooth + flat, a custom PS, plain and A2C);
 	// a2c-modules-swap: the a2cModuleSwapOne plant (one plain key on the a2c module) - exactly 1 mismatch. a2c-prebuild-again - a prebuild
 	// with a planted failure is not complete (as today), its failure dropped, a second prebuild re-queues exactly that key and IS complete

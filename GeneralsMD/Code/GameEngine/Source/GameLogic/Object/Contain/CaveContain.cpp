@@ -212,7 +212,7 @@ void CaveContain::onRemoving( Object *obj )
 Bool CaveContain::isValidContainerFor(const Object* obj, Bool checkCapacity) const
 {
 	TunnelTracker *myTracker = TheCaveSystem->findTunnelTrackerForCaveIndex( m_caveIndex );
-	if( myTracker == nullptr )	// GeneralsX: no tracker yet (sec-r5 P2): what an empty one answers
+	if( myTracker == nullptr )	// GeneralsX: no tracker yet: what an empty one answers
 		return obj != nullptr && !obj->isKindOf( KINDOF_AIRCRAFT ) && ( !checkCapacity || 0 < TheGlobalData->m_maxTunnelCapacity );
 	return myTracker->isValidContainerFor( obj, checkCapacity );
 }
@@ -264,7 +264,7 @@ void CaveContain::onDie( const DamageInfo * damageInfo )
 
 	TheCaveSystem->unregisterCave( m_caveIndex );
 
-	if( myTracker != nullptr )	// GeneralsX: no tracker = never an endpoint (sec-r5 P2)
+	if( myTracker != nullptr )	// GeneralsX: no tracker = never an endpoint
 		myTracker->onTunnelDestroyed( getObject() );
 }
 
@@ -314,7 +314,7 @@ void CaveContain::tryToSetCaveIndex( Int newIndex )
 	{
 		TunnelTracker *myOldTracker = TheCaveSystem->findTunnelTrackerForCaveIndex( m_caveIndex );
 		TheCaveSystem->unregisterCave( m_caveIndex );
-		if( myOldTracker != nullptr )	// GeneralsX: the old index may never have had a tracker (sec-r5 P2)
+		if( myOldTracker != nullptr )	// GeneralsX: the old index may never have had a tracker
 			myOldTracker->onTunnelDestroyed( getObject() );
 
 		m_caveIndex = newIndex;
@@ -386,7 +386,7 @@ static CaveInterface* findCave(Object* obj)
 void CaveContain::changeTeamOnAllConnectedCaves( Team *newTeam, Bool setOriginalTeams )
 {
 	TunnelTracker *myTracker = TheCaveSystem->findTunnelTrackerForCaveIndex( m_caveIndex );
-	if( myTracker == nullptr )	// GeneralsX: no tracker = no connected caves (sec-r5 P2)
+	if( myTracker == nullptr )	// GeneralsX: no tracker = no connected caves
 		return;
 	const std::list<ObjectID> *allCaves = myTracker->getContainerList();
 	for( std::list<ObjectID>::const_iterator iter = allCaves->begin(); iter != allCaves->end(); iter++ )

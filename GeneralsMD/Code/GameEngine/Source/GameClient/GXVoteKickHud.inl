@@ -6,7 +6,7 @@
 **	the two orders. So nothing here can desync anything: whatever this client shows or misses, the vote is decided by the
 **	orders' execution on every peer (Common/GXVoteKick.h).
 **
-**	THE BANNER: small, top-centre under the players bar, the GeneralsX navy/steel look (tokens from B · player-ui-c-3,
+**	THE BANNER: small, top-centre under the players bar, the GeneralsX navy/steel look (tokens from,
 **	06/10/2026), in both UI modes - it is game function, not a skin. It is drawn ABOVE the hide-everything switch (F11) like
 **	the fast-forward readout: a vote that waits for you must not be hideable by accident. It has its own HIDE, per vote; the
 **	keys still answer while it is hidden.

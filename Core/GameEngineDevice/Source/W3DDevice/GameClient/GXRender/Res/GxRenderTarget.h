@@ -17,9 +17,9 @@ struct RenderTargetDesc
 	uint32_t format = 0;     // d3d:: colour or depth format
 	uint32_t samples = 0;    // D3D8 multisample type: 0/1 = none, 2..16 = samples
 	bool sampled = false;    // MSAA colour ALSO sampled (the native device's present reads the back buffer's samples - DXVK's
-	                         // linear-light resolve, E · rw3-L-2 11/10); init fails when the device cannot sample that count
-	bool depthSampled = false;   // E · render-motion-1 13/10: a single-sample DEPTH target also gets SAMPLED + a DEPTH-aspect view
-	                             // (the motion key, DESIGN_motion.md §4); false = usage bit-identical to before
+	                         // linear-light resolve, 11/10); init fails when the device cannot sample that count
+	bool depthSampled = false;   // 13/10: a single-sample DEPTH target also gets SAMPLED + a DEPTH-aspect view
+	                             // (the motion key); false = usage bit-identical to before
 };
 
 class GxRenderTarget

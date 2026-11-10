@@ -38,7 +38,7 @@
 //                     real texture is drawn (a null view is never written to a descriptor)
 //   stride-limits     keyed FF draws with a stride equal to the attribute extent (drawn), below it (UP and a stream: refused
 //                     before anything is recorded) and 0 (drawn)
-//   hoist-*           upload hoisting (D · rw3-T-4, PREREG_T A18), at the run's --msaa: an upload into a resource the frame has
+//   hoist-*           upload hoisting (A18), at the run's --msaa: an upload into a resource the frame has
 //                     not touched is recorded into the frame's init command buffer (no split, new bytes); touched by a draw,
 //                     a main-buffer copy or a copy FROM it, it splits as before; WAR across frames in flight; textures the
 //                     tracker knows / has never seen, hoisted and sampled later in the frame - armHoist() lists them
@@ -65,10 +65,10 @@
 //   X-hoist-inflight  GXRES' pre-copy barrier waits for earlier copies only             -> sync validation hazard AND hoisted > 0
 //   X-hoist-stalelayout  the tracker keeps a layout a hoisted copy changed              -> VUID-vkCmdDraw-None-09600 AND hoisted > 0
 //   X-thread-initlast hoist-buffer on a submit-thread context whose thread submits a frame's init buffer AFTER its main buffer
-//                     (R19, PREREG_T A21 amendment 2 (3))                              -> the draw reads vb2's OLD bytes AND hoisted > 0
+//                     (R19, A21 amendment 2 (3))                              -> the draw reads vb2's OLD bytes AND hoisted > 0
 //                     (listed unless GX_VK_SUBMIT_THREAD=0; the clean proof is every hoist arm passing with GX_VK_SUBMIT_THREAD=1)
 //   X-foreign-submit  check mode OFF: a GXRES immediate() inside an open frame -> counted (production aborts) (review P2):
-//                     between two draws (the draw-time check) and after the last draw (endFrame's check alone, review r2 P3 #3)
+//                     between two draws (the draw-time check) and after the last draw (endFrame's check alone, #3)
 //   X-order-units     GxOrderCheck's own regression cases: a partial buffer barrier, two insufficient
 //                     dependencies, a host-signalled wait, a signal whose stage mask excludes the producer, a colour-only
 //                     barrier after a depth store, two barriers of ONE command forming a "chain", a barrier on mip level 1
@@ -142,7 +142,7 @@ struct Options
 	const char* device = nullptr;
 	const char* loader = nullptr;
 	uint32_t msaa = 1;
-	uint32_t fif = 2;   // --fif N (PREREG_T A30 step 2): the writer's frames in flight in every arm but the wrap arms (4)
+	uint32_t fif = 2;   // --fif N (A30 step 2): the writer's frames in flight in every arm but the wrap arms (4)
 };
 
 void say(const char* fmt, ...)
@@ -1791,7 +1791,7 @@ bool armOrderUnits(Env& e, std::string* d)
 	w.forget(&mipRt.image());
 	// r3 #4 a destroyed image's attachment history must not meet the next image its handle names: modelled by the same image
 	// used again as a NEW one would be (discard barrier with an empty source scope, CLEAR) after writer.forget(); without the
-	// forget the stale store is reported (the control proves the case can see it). Also review r2 P3 #1: after forget() of the
+	// forget the stale store is reported (the control proves the case can see it). Also #1: after forget() of the
 	// current pass's target a draw is refused (no pass) instead of opening a scope on it.
 	Target h;
 	if (!h.init(*e.res, 16, 16, false, &why)) {
@@ -2268,7 +2268,7 @@ bool armOutsideUnknownWrite(Env& e, std::string* d)
 
 // texture-refusal: a texture with no image (here: never initialised) must be refused before the tracker or a descriptor sees it
 // a real texture in the same slot is drawn.
-// pass-draws (PREREG_T A22 (a); r4 #7): the writer's per-pass draw counts equal the parent's - the pass name is
+// pass-draws (A22 (a); r4 #7): the writer's per-pass draw counts equal the parent's - the pass name is
 // read at EVERY draw (the caller may rewrite the borrowed bytes after beginPass), and a pass with no draw makes no entry.
 // X-pass-draws-stale plants the r1 defect (the counter resolved once per pass): the same checks must fail.
 bool armPassDraws(Env& e, std::string* d)
@@ -2520,7 +2520,7 @@ bool armForeignSubmit(Env& e, std::string* d)
 	ok &= w.draw(packet(pipe, 16, 16, q, &pu));
 	ok &= w.endFrame() != 0;
 	const uint64_t v1 = w.retireViolations();
-	// after the last draw: only endFrame's own check can see it (review r2 P3 #3)
+	// after the last draw: only endFrame's own check can see it
 	ok &= w.beginFrame() && w.draw(packet(pipe, 16, 16, q, &pu));
 	ok &= e.res->immediate([](VkCommandBuffer) {});
 	ok &= w.endFrame() != 0;
@@ -2535,7 +2535,7 @@ bool armForeignSubmit(Env& e, std::string* d)
 	return ok;
 }
 
-// gputime / X-gputime-noend (B · rw3-T-3 12/10/2026, PREREG_T A16): GX_GPUTIME's writer hook on a VALIDATED VkGpuTimer of 8 sets,
+// gputime / X-gputime-noend (A16): GX_GPUTIME's writer hook on a VALIDATED VkGpuTimer of 8 sets,
 // frames paced at 2 ms (a 500 fps game frame). validate()
 // submits ~31 probe submissions on the graphics queue, so the RUNNER validates right after VkCtx init, before GxResources tags any
 // staging for "the next submission" (validating after the writer's init tripped GXRES contract #1: "tagged for 2, next is 33"). 10 frames on 2 slots = 8 readable frames
@@ -2714,7 +2714,7 @@ struct ArmResult
 	std::string detail;
 };
 
-// ---------------------------------------------------------------------------------------- upload hoisting (D · rw3-T-4, PREREG_T A18)
+// ---------------------------------------------------------------------------------------- upload hoisting (A18)
 // A colour target (+ depth) at the run's --msaa (the game's scene pass is 4x MSAA), resolved for read-back.
 struct MsTarget
 {
@@ -2767,7 +2767,7 @@ struct MsTarget
 	}
 };
 
-// S7 P0-a (D · look-shadowmaps 17/10/2026, PREREG_look-shadowmaps.md Task 1): hardware depth compare through an IMMUTABLE compare
+// S7 P0-a (Task 1): hardware depth compare through an IMMUTABLE compare
 // sampler on a single-sample D16 image - the receiver path S7 registers (set 2: compare sampler immutable in the layout, so the
 // portability subset's mutableComparisonSamplers never matters). It decides the receiver on MoltenVK (Mac, iPad) and lavapipe:
 // a pass = hardware compare; a fail = S7's receivers compare manually on raw depths (PREREG A20 records which).
@@ -3009,7 +3009,7 @@ bool armShadowCompare(Env& e, std::string* d, bool plantGreater)
 
 bool fillTexture(R::GxTexture& t, uint32_t argbColor);   // defined with the hoist arms below (sm-dep-tex uses it)
 
-// S7 P0-b (D · look-shadowmaps 17/10/2026, PREREG_look-shadowmaps A1/A21, PLAN Task 2): the shadow-map casters are captured in
+// S7 P0-b (A1/A21, PLAN Task 2): the shadow-map casters are captured in
 // the frame and replayed depth-only into its INIT command buffer, which runs BEFORE the frame's MAIN commands. A caster is
 // eligible only if no MAIN command of the frame wrote its buffers before its draw (GxBuffer::mainWrite); the capture is a
 // protected use (bound = used + touched), so a LATER upload cannot be hoisted ahead of the replay.
@@ -3025,7 +3025,7 @@ bool fillTexture(R::GxTexture& t, uint32_t argbColor);   // defined with the hoi
 //                      the VB: the touch keeps it out of INIT                              -> replayed with A; no MAIN draw for it
 //   X-sm-dep-new / X-sm-dep-redraw  GXRES' mainWrite stamp planted off (mainWriteNoStamp): the stale caster is replayed
 //   X-sm-dep-hoist-later            the bind's touch planted off (bindNoTouch): the later upload is hoisted ahead of the replay
-// E · look-shadowmaps-9 (integrator fold rulings 02:1xZ / 02:2xZ 19/10, PREREG 3.3; every X- below is a BROKEN INPUT - no product plant):
+// (integrator fold rulings 02:1xZ / 02:2xZ 19/10, PREREG 3.3; every X- below is a BROKEN INPUT - no product plant):
 //   sm-dep-tex         a caster draw BINDING a texture re-uploaded in MAIN this frame (drawn, refilled, drawn as caster): a texture is
 //                      not a caster dependency (the depth-only replay samples nothing) -> captured, replayed with A, skippedLateTex 0
 //   X-sm-dep-tex       the late upload moved to the caster's VERTEX buffer (a real dependency)          -> skipped: the probe moves
@@ -3256,7 +3256,7 @@ bool armShadowDep(Env& e, std::string* d, const std::string& arm)
 	return ok;
 }
 
-// E · look-shadowmaps-9 (integrator fold ruling 02:1xZ / 02:2xZ 19/10, PREREG 3.3 "overflow is counted, not silent"): a caster list of
+// (integrator fold ruling 02:1xZ / 02:2xZ 19/10, PREREG 3.3 "overflow is counted, not silent"): a caster list of
 // capacity 2 and three distinct casters in one frame - the third capture is REFUSED and counted, the list stops at its capacity (nothing
 // written past it), the replay draws exactly the two kept records, and the overflowing draw still reaches MAIN.
 // Probe: quads A (16..48, z 0.4) at (32,32), B (0..16, z 0.2) at (8,8), C (x 48..64, y 0..16, z 0.3) at (56,8) - C's texel stays cleared.
@@ -3399,7 +3399,7 @@ bool armShadowOverflow(Env& e, std::string* d, const std::string& arm)
 	return ok;
 }
 
-// ---- E · look-shadowmaps-9: S7 P4 instrumentation (PREREG A92, the integrator's ruling 03:2xZ 19/10; A27 as registered) ----
+// ----: S7 P4 instrumentation (PREREG A92, the integrator's ruling 03:2xZ 19/10; A27 as registered) ----
 // One caster frame of armShadowDep's shape (64x64 atlas, quad A at z 0.4 as a VB caster), reusable by the gputime-shadow arms.
 struct SmFrame
 {
@@ -3989,7 +3989,7 @@ bool armShadowMisc(Env& e, std::string* d, const std::string& arm)
 	return s1.captured == s0.captured && s1.skippedFormat - s0.skippedFormat == 1 && nearZ(z[32 * AW + 32], 1.f);
 }
 
-// S7 A73 (E · look-shadowmaps-6): the depth-bias clamp reaches the GPU, and the device guard drops it where the feature is missing. One
+// S7 A73: the depth-bias clamp reaches the GPU, and the device guard drops it where the feature is missing. One
 // drawn caster sloped in depth (z 0.2 -> 0.6 over x 16..48 of a 64x64 D16 atlas: dz/dx = 0.0125 per pixel) is replayed twice, with bias
 // { 0, 0, 0 } and then { 0, 8 units, 2 }; the stored depth's offset at (32,32) is the bias the GPU applied (constant 0, so no r term).
 // Unclamped the slope term is 2 x 0.0125 = 0.025 = ~1,638 units; clamped it is 8.
@@ -4106,7 +4106,7 @@ bool armShadowBias(Env& e, std::string* d, const std::string& arm)
 	return ok;
 }
 
-// S7 A79 (E · look-shadowmaps-7): the own-light pull on the caster side (GxOwnPull.h, GxShadowCasters::record). One FLAT caster (z 0.4 over
+// S7 A79: the own-light pull on the caster side (GxOwnPull.h, GxShadowCasters::record). One FLAT caster (z 0.4 over
 // x/y 16..48 of a 64x64 D16 atlas, identity world, the test's orthographic light: clip z = world z), bias 0, a pass with the pull about
 // L = (32, 32, -1), eps 0.25: P(p) = L + 0.75 (p - L), so the caster's z 0.4 replays at -1 + 0.75 x 1.4 = 0.05 (D16 ~3,277) and stays over
 // (32,32) (x/y shrink toward 32). Three frames, the packet's castOwnMu (the writer copies it into the record):

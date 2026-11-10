@@ -1,5 +1,5 @@
 // GeneralsX: F-depth+: the scene copies' private device interface
-// (look-director/d2/PLAN_fdepth-plus.md; PLAN_look.md §4 item 4).
+//
 //
 // The game asks the device for it once per device with QueryInterface(IID_GxSceneTap); DXVK and the GXCAP proxy answer
 // E_NOINTERFACE, and then nothing is taken (classic has no reader). The native device answers it. A reader that draws with the

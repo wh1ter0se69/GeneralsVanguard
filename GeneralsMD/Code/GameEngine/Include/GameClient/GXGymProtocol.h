@@ -251,7 +251,7 @@ inline int gxGymParseAction(const char *line, GXGymAction *out, const char **why
 	return 1;
 }
 
-// GeneralsX: ai-train-3 (lead C11, option b): which build-spot search a match may use. The guarded
+// GeneralsX: ai-train-3 (option b): which build-spot search a match may use. The guarded
 // search (GXOrderDriver anyObjectNear: no object within ~2 x the footprint) exists because BuildAssistant's legality check reads
 // Object::getShroudedStatus, a lazy cache that must never be computed on one peer alone. A match with exactly one peer cannot
 // diverge from another, so it may use the engine's own legality check - which lets a supply center stand ~130 from its dock as

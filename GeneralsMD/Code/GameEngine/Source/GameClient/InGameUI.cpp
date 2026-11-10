@@ -818,7 +818,7 @@ void InGameUI::addSuperweapon(Int playerIndex, const AsciiString& powerName, Obj
 			} );
 		return;
 	}
-	// Taken only here, off the simulation side: a replayed command sets it just before it calls (review r1 P3, two threads).
+	// Taken only here, off the simulation side: a replayed command sets it just before it calls (two threads).
 	const GXSuperweaponCallState call = s_gxSuperweaponCall;
 	s_gxSuperweaponCall.set = FALSE;
 
@@ -925,7 +925,7 @@ void InGameUI::objectChangedTeam(const Object *obj, Int oldPlayerIndex, Int newP
 			powers.push_back( Power{ gxDetachedCopy( powerTemplate->getName() ), powerTemplate, gxSuperweaponCallState( newPlayerIndex, powerTemplate ) } );
 		}
 		if (powers.empty())
-			return;	// nothing listed or to list: no queued command (review r1 P3)
+			return;	// nothing listed or to list: no queued command
 		const ObjectID id = obj->getID();
 		// a power not listed under the old owner is added only for an object the map starts with
 		const Bool addUnlisted = TheGameLogic->getFrame() == 0 && !obj->getStatusBits().test( OBJECT_STATUS_UNDER_CONSTRUCTION ) &&
@@ -1274,7 +1274,7 @@ const FieldParse InGameUI::s_fieldParseTable[] =
 // (ScriptConditions.cpp, "player has selected") - so a map's limit leaking into the next solo game could take another script
 // branch than a fresh process. It goes back in InGameUI::reset. The other fields (caption,
 // message, timer and superweapon fonts, colors, positions; radius cursors; floating text) are only drawn, and stay as the map left
-// them, as on 0.9.61 (fixes/mapini-rollback/closure/UI-STORES-NOT-SIM.md).
+// them, as on 0.9.61.
 static Int s_maxSelectCountBeforeMap = 0;
 static Bool s_maxSelectCountKept = FALSE;
 
@@ -1528,7 +1528,7 @@ namespace
 	// only reading a player can act on.
 	//
 	// Generous, for the reason the latency bands are generous. A healthy 60 Hz network match was
-	// measured at 58.1 mean / 53 p10 (docs/WORKDIR/evidence/stutter-headless-host-2026-08-07.md),
+	// measured at 58.1 mean / 53 p10,
 	// so 90% keeps a good match green; the bad configuration in that same A/B, 52.0 mean / 24 p10,
 	// lands in yellow and red where it belongs.
 	constexpr const UnsignedInt kLogicRatePctGood = 90;	///< at or over this share of nominal, green
@@ -1538,7 +1538,7 @@ namespace
 	//
 	// A retransmission is a POINT event that costs about two seconds of lockstep (Connection.cpp:
 	// m_retryTime is a hard-coded 2000 ms with no NACK), and the measured rate is rare - 5 and 6
-	// over an entire 18,000-frame match in evidence/stutter-rootcause-2026-08-06.md. A one-second
+	// over an entire 18,000-frame match. A one-second
 	// window like [GXNET]'s would therefore flash "1" for a single second and be back to 0 before
 	// the player finished feeling the hitch it caused. Ten seconds is long enough to still be on
 	// screen when they look, and short enough that it is unambiguously about NOW.
@@ -3061,7 +3061,7 @@ void InGameUI::reset()
 	m_namedTimers.clear();
 	m_namedTimerLastFlashFrame = 0;
 	m_namedTimerUsedFlashColor = TRUE; // so next one is false
-	// GeneralsX: render-split step 3 (review r1 P3): a reset is a lifecycle call, so it writes these
+	// GeneralsX: render-split step 3: a reset is a lifecycle call, so it writes these
 	// two directly instead of through their converted setters - in a window left open by a time-frozen tick the setters
 	// would queue, and a save loaded before the window closed (GameEngine::update's autoload) would have its loaded values
 	// overwritten by the queued defaults.

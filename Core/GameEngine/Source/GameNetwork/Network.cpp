@@ -1508,7 +1508,7 @@ Int Network::getPacerFramesDue()
 	curTime = static_cast<int64_t>(ts.tv_sec) * 1000000000 + ts.tv_nsec;
 	#endif
 	const int64_t frameDelay = (m_lastFrameDelay > 0) ? m_lastFrameDelay : (int64_t)(m_perfCountFreq / m_frameRate);
-	// Both the frame this iteration ticks and the one after it (review r2 P3: frame+1 can complete first after a loss).
+	// Both the frame this iteration ticks and the one after it (frame+1 can complete first after a loss).
 	const UnsignedInt f = TheGameLogic->getFrame();
 	return CatchUpPolicy::framesOwed(CatchUpPolicy::framesDue(m_nextFrameTime, curTime, frameDelay),
 		m_conMgr->allCommandsReady(f, TRUE) && m_conMgr->allCommandsReady(f + 1, TRUE));

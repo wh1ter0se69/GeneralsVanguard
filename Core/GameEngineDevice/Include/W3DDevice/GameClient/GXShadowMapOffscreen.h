@@ -2,7 +2,7 @@
 // off-screen shadow casters - pure logic over its operations, host-tested (scripts/test/sm-fit/sm-fit-test.cpp A44-seq-*, with the
 // compile-time mutants sm-fit-test.sh builds), used by the ZH glue (W3DShadowMap.cpp), which supplies the real operations. Render-only.
 //
-// The integrator's T6 conditions (DLSS_INTEGRATION.md 17/10 22:1xZ) are part of the order: the motion-units bridge stays null across
+// The integrator's T6 conditions (17/10 22:1xZ) are part of the order: the motion-units bridge stays null across
 // every Render AND both flushes; the PREVIOUS static-sort value and mesh-renderer camera come back; a frame with foreign pending work (or a
 // flush-site tag already set) submits nothing and touches nothing.
 #pragma once
@@ -18,7 +18,7 @@ struct Result { uint32_t submitted = 0, dirty = 0, groups = 0; };
 //      void setStaticSort(bool); void render(size_t i); void* useCasterCamera(); void restoreCamera(void*); void flushMeshes();
 //      void flushSorted(); void clearOwn(); void renderGroup(size_t g); void setGroupOwn(size_t g);
 // castOnlyTag: the tags held across the submission and both flushes; tagsAfter: what the scene starts with (RECEIVE).
-// A61/A62 (D · look-shadowmaps-5; the integrator's A61 ruling): `groups` = the own-light groups of the SORTED caster meshes (rotor discs).
+// A61/A62 (the integrator's A61 ruling): `groups` = the own-light groups of the SORTED caster meshes (rotor discs).
 // After the opaque phase, per group: its meshes Render()ed under CAST_ONLY (static sort off), the mesh flush queues them into the
 // sorting renderer (containerEnd clears CAST and the own light there), then CAST_ONLY | solidTags (CAST | SOLID) and the group's own
 // light hold for that group's sorting flush ALONE (the sorting renderer interleaves nodes by depth: one own light per flush), and

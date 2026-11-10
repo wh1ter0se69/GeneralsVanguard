@@ -1833,7 +1833,7 @@ static void codeGuiRowScrollLayout( void )
 		}
 	}
 
-	// Moving a window does not move the keyboard focus (lobby-scroll r1 P2): a focused row parked off screen -
+	// Moving a window does not move the keyboard focus (lobby-scroll): a focused row parked off screen -
 	// the skirmish name field, say - would keep taking keys while invisible. Hand the focus back to the screen.
 	for( GameWindow *focus = TheWindowManager->winGetFocus(); focus != nullptr; focus = focus->winGetParent() )
 	{

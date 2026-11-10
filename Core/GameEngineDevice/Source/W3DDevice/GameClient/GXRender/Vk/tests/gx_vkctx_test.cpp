@@ -557,7 +557,7 @@ bool testFrameScopes(VkCtx& ctx, VkGpuTimer& timer, double* scopeMs, std::string
 }
 
 // ------------------------------------------------------------------------------------------- the submit thread (R19, rw3-V)
-// DESIGN_submit-thread.md §4. Every arm builds its starting state behind VkCtx::testHoldAt (the thread stops before a given
+// Every arm builds its starting state behind VkCtx::testHoldAt (the thread stops before a given
 // value) and ASSERTS it before acting; fail arms plant one defect through g_testMutants.
 
 double msSince(std::chrono::steady_clock::time_point t0)
@@ -690,7 +690,7 @@ RefusalObs runRefusal(VkCtx& ctx, VkResult result)
 	helper.join();
 	// a correct wait(N) returns through the execution sync and never enters vkWaitSemaphores; the waitnosync plant always does, on a
 	// value never signalled. COUNTED, not sampled, so no scheduling can hide or invent it; no spin on
-	// refusal() either - the nolatch plant never sets it (r4 P1-2)
+	// refusal() either - the nolatch plant never sets it
 	o.sawBlocked = ctx.testSemWaitEntries() > entries0;
 	o.waitN1 = gfx(ctx).wait(o.n + 1, 2000000000ull);
 	o.after = submitOne(ctx, pool.cmds[3]);
@@ -740,7 +740,7 @@ struct InflightObs
 	SubmitRefusal refusal;
 };
 
-// The integrator's shared case (PREREG_T A21 amendment 2 (1)): N-1 is held ON THE GPU behind a host gate and N is refused. A caller
+// The integrator's shared case (A21 amendment 2 (1)): N-1 is held ON THE GPU behind a host gate and N is refused. A caller
 // that tracks a resource by its LAST use waits on N; that wait may answer false only once N-1 has completed - the refusal's drain
 // runs before the latch is visible - so at its return completed() >= N-1 and the gate has opened. wait(N-1) is TRUE and both
 // retirements run after the gate.
@@ -759,7 +759,7 @@ InflightObs runLatchInflight(VkCtx& ctx)
 	o.prev = a;
 	ctx.retire(QueueKind::Graphics, a, [&o]() { o.retiredNs = nowNs(); });
 	ctx.retire(QueueKind::Graphics, b, [&o]() { o.refusedRetiredNs = nowNs(); });   // the shared resource: its last use is N
-	// N-1 ACCEPTED by the driver (not refused - a refused N-1 would drain and latch on its own) and held on the GPU (rw3V-code-r9 P2-2)
+	// N-1 ACCEPTED by the driver (not refused - a refused N-1 would drain and latch on its own) and held on the GPU
 	o.startQueued = a == base + 1 && b == base + 2 && ctx.waitExecuted(QueueKind::Graphics, a) && gfx(ctx).completed() < a;
 	ctx.testSet([&](TestMutants& m) { m.submitFailAt = b; });
 	std::atomic<bool> returned { false };
@@ -852,7 +852,7 @@ DrainObs runDrain(VkCtx& ctx, bool viaShutdown)
 		for (; i < 10000 && !observed.load() && (viaShutdown || ctx.testDrainWaiters() == 0); ++i)
 			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 		if (i == 10000)
-			safety.store(true);   // released on the safety limit, no boundary observed: the experiment is invalid (rw3V-code-r5 P2-5)
+			safety.store(true);   // released on the safety limit, no boundary observed: the experiment is invalid
 		ctx.testRelease();
 	});
 	if (viaShutdown)
@@ -1043,7 +1043,7 @@ SettleObs runSettle(VkCtx& ctx, double lateMs, bool noSettle, bool noStamps)
 
 const char* g_self = nullptr;   // argv[0]: the idle arms run this binary again as a child
 
-// The child of thread-idle-unproven / X-idle-unbounded (PREREG_T A21 amendment 2 (2)): a threaded context, a ring slot held ON THE
+// The child of thread-idle-unproven / X-idle-unbounded (A21 amendment 2 (2)): a threaded context, a ring slot held ON THE
 // GPU behind a gate that never opens, and every device idle answering VK_ERROR_OUT_OF_HOST_MEMORY. ring.shutdown()'s waitIdle must
 // END the process - exit 3 with the FATAL line on fd 2 - within its 2 s bound. Getting past it at all is a failure (exit 4).
 [[noreturn]] void idleChild(const Options& opt, bool unbounded, bool slowExit)
@@ -1056,7 +1056,7 @@ const char* g_self = nullptr;   // argv[0]: the idle arms run this binary again 
 		say("[GXVK] idle child: setup failed (%s)", why.c_str());
 		std::_Exit(5);
 	}
-	if (opt.validation && !ctx.validationEnabled()) {   // "no validation error" below is evidence only with the layer on (r5 P2-6)
+	if (opt.validation && !ctx.validationEnabled()) {   // "no validation error" below is evidence only with the layer on
 		say("[GXVK] idle child: validation was asked for but is not enabled");
 		std::_Exit(5);
 	}
@@ -1064,7 +1064,7 @@ const char* g_self = nullptr;   // argv[0]: the idle arms run this binary again 
 	SubmitDesc extra;
 	extra.waits.push_back(gate.wait());
 	const uint64_t v = f ? ring.end(extra) : 0;
-	// the starting state, asserted (rw3V-code-r5 P2-4): the frame was ACCEPTED by the driver on the thread, not refused, and is held
+	// the starting state, asserted: the frame was ACCEPTED by the driver on the thread, not refused, and is held
 	// on the GPU (unreached)
 	if (!v || !ctx.waitExecuted(QueueKind::Graphics, v) || ctx.refusal().value || ctx.queue(QueueKind::Graphics).timeline.completed() >= v) {
 		say("[GXVK] idle child: the held frame was not accepted-and-held (value %llu)", (unsigned long long)v);
@@ -1088,9 +1088,9 @@ struct IdleChildObs
 	int exitCode = -1;
 	double secs = 0;
 	// both on the CHILD's own clock, stamped when they happened, so the parent's scheduling can neither hide nor invent them:
-	double boundSecs = -1;     // t= on the failing loop's mark to t= on the FATAL line: the 2 s bound (rw3V-code-r7 P2)
+	double boundSecs = -1;     // t= on the failing loop's mark to t= on the FATAL line: the 2 s bound
 	double handoffSecs = -1;   // t= on the FATAL line to t= on the _Exit mark: the writer's 1 s allowance and anything before the
-	                           // exit (rw3V-code-r9 P2-3, r10 P2-1)
+	                           // exit
 	std::string why;
 };
 
@@ -1236,12 +1236,12 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		res.detected = res.expectDetected ? o.spawned && o.setupSeen && o.loopSeen && o.stopped && !o.fatalLine
 		                                  : !(o.spawned && o.setupSeen && o.loopSeen && !o.stopped && o.exitCode == 3 && o.fatalLine &&
 		                                        !o.validationError &&
-		                                        // the 2 s bound itself, by the child's own stamps (r6 P2-3, r7 P2): first failing
+		                                        // the 2 s bound itself, by the child's own stamps: first failing
 		                                        // answer to the deadline check, 1 ms polling plus scheduling slack
 		                                        o.boundSecs >= 2.0 && o.boundSecs <= 2.5 && handoffOk);
 		return res;
 	}
-	if (arm == "present-order") {   // D · native-windows-1 13/10/2026: DXVK's pickPresentMode order per (sync, dxvk.tearFree); no GPU
+	if (arm == "present-order") {   // DXVK's pickPresentMode order per (sync, dxvk.tearFree); no GPU
 		using M = std::vector<VkPresentModeKHR>;
 		const VkPresentModeKHR I = VK_PRESENT_MODE_IMMEDIATE_KHR, X = VK_PRESENT_MODE_MAILBOX_KHR, F = VK_PRESENT_MODE_FIFO_KHR,
 			R = VK_PRESENT_MODE_FIFO_RELAXED_KHR;
@@ -1429,7 +1429,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 			ctx.testSet([&](TestMutants& m) { m.submitFailResult = VK_ERROR_DEVICE_LOST; });
 			const uint64_t got = submitOne(ctx, pool.cmds[0]);
 			ctx.testRelease();
-			// slot 0 ACCEPTED and held on the GPU; the injected loss is n's, by name (rw3V-code-r10 P2-2: a refused predecessor would
+			// slot 0 ACCEPTED and held on the GPU; the injected loss is n's, by name (a refused predecessor would
 			// leave nothing gated for the shutdown to wait for)
 			startOk = a && got == n && ctx.waitExecuted(QueueKind::Graphics, a) && !ctx.waitExecuted(QueueKind::Graphics, n) &&
 			          ctx.refusal().value == n && ctx.refusal().result == VK_ERROR_DEVICE_LOST && ctx.deviceLost() &&
@@ -1640,7 +1640,7 @@ int main(int argc, char** argv)
 				     "X-thread-latchnodrain", "X-idle-unbounded", "X-idle-slowexit",
 				     "X-thread-latchnoretire", "X-ring-shutdown-noidle", "X-thread-nodrain", "X-thread-idlenodrain",
 				     "X-wait-fastpath-off-by-one" })
-				if (opt.validation || std::strcmp(a, "X-ring-shutdown-noidle") != 0)   // that plant needs the layer (r5 P1-3)
+				if (opt.validation || std::strcmp(a, "X-ring-shutdown-noidle") != 0)   // that plant needs the layer
 					arms.push_back(a);
 	} else {
 		arms.push_back(arm);

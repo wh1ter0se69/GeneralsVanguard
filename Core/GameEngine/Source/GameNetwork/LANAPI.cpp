@@ -2105,7 +2105,7 @@ void LANAPI::RequestGameOptions( AsciiString gameOptions, Bool isPublic, Unsigne
 		// join on `players >= slots`, so an inflated denominator is the browser inviting players
 		// into a lobby with no start position for them - and an over-capacity lobby is a KNOWN real
 		// failure here (surplus players get no start position and no Command Center; see the
-		// map-capacity preflight note in CLAUDE.md).
+		// map-capacity preflight note).
 		//
 		// What is counted, and why:
 		//   occupied = SLOT_PLAYER + the three AI states. A human cannot take an AI's seat without

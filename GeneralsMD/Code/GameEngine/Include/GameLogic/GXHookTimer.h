@@ -17,7 +17,7 @@
 */
 
 // GXHookTimer.h ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// GeneralsX: ai-wh1ter0se-econ (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7b, PREREG_common 4): the CPU bound of every
+// GeneralsX: ai-wh1ter0se-econ (7b, 4): the CPU bound of every
 // arm's new code - "never above 2 ms in one tick" - read from the code's OWN time, not inferred from [GXTICK]'s whole-tick cost.
 // GX_HOOK_TIMER("name") at the top of a hook's body (or GX_HOOK_TIMER_ON for several sites of one arm, below) times that scope with
 // this thread's CPU clock: what other processes on a shared box take is not the hook's cost (wall time is printed beside it).

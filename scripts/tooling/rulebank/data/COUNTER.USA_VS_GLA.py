@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule COUNTER.USA_VS_GLA (C·rb-data-15): USA Air Force / Superweapon meet GLA with an
+# GeneralsX: rule bank DATA rule COUNTER.USA_VS_GLA: USA Air Force / Superweapon meet GLA with an
 # early King Raptor opener and an earlier Colonel Burton (row 50: "a few early King Raptors; they shut down Technicals and force him into
 # Quad Cannons"; row 121: "As USA Superweapon always build Colonel Burton: at $1,200 he pays for himself with one Demo buggy kill";
 # Dominator: "make a few King Raptors, stop the initial technical"). This, per general:
@@ -101,7 +101,7 @@ TEAM_UNIT_WAIVERS = {'SupW_AmericaInfantryColonelBurton': 'INIZH: Barracks + Str
                      'team until they stand; it is a single-type team, so nothing else waits on it',
                      'AirF_AmericaInfantryColonelBurton': 'INIZH: Barracks + Strategy Center - as the Superweapon Burton'}
 RAPTOR_S, BURTON_S = 200, 350
-# rb-data-16: the reads moved BEFORE smoke14's games, from smoke13's POST-HOC result (HANDBACK_rb-data-15 section 3). The Air Force's
+# rb-data-16: the reads moved BEFORE smoke14's games, from smoke13's POST-HOC result. The Air Force's
 # Airfield stands at ~99 s and a King Raptor takes ~20 s: the first came at 121-162 s, so 150 s showed nothing and by 400 s stock wave 2's
 # Raptors buried the opener (7-8 vs 5-8); by 200 s ON had 2/3/3 vs OFF 1/1/0. The Superweapon Burton came at 273-310 s ON vs 376-412 s
 # OFF: by 400 s both arms have him, by 350 s only ON does.

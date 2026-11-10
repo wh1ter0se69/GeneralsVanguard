@@ -1,4 +1,4 @@
-// GeneralsX: WS-C week 2: the decode fallback (PLAN_native-renderer §1c).
+// GeneralsX: WS-C week 2: the decode fallback.
 //
 // A device without BC (Apple7/8 iPads may lack it; M3 = Apple9 has it, so the tests FORCE this path there) cannot sample the
 // game's DXT art. GxTexture then keeps the D3D8 contract - LockRect still hands out 4x4 blocks - and decodes each uploaded

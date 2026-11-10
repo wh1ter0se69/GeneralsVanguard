@@ -27,7 +27,7 @@
 # So on macOS and Linux the overlay is placed OUTSIDE the game folder, as a sibling
 # (<runtime>/../GeneralsXPatch), and GENERALSX_PATCH_PATH is exported by the run wrapper. That
 # reproduces the Windows topology, and it is the arrangement the dataID equality was actually
-# measured on (arm C1, docs/WORKDIR/evidence/patch-overlay-wiring-2026-08-12.md).
+# measured on (arm C1).
 
 # Absolute path to overlay-archives.txt, resolved from this file rather than from the caller's
 # location - the three scripts that source this live at different depths.
@@ -270,9 +270,9 @@ gx_overlay_verify() {
 # wrong: on macOS and Linux the game folder is also the executable directory, so an archive
 # present in both places is mounted twice - same bytes, right dataID, two copies of that
 # archive's directory table in memory for nothing.
-# overlay-archives.txt's dated exception (D · batch-0964 13/10/2026): mandatory to SHIP (gx_overlay_verify and the packagers still
+# overlay-archives.txt's dated exception: mandatory to SHIP (gx_overlay_verify and the packagers still
 # require it) but textures only - an install without it joins everyone (dataID unchanged), so readiness never fails on it.
-# E · look-packs-0965 17/10/2026: !!GXModelsHD.big (the rounded/relief W3D model pack) joins it - art only, the same dated
+# !!GXModelsHD.big (the rounded/relief W3D model pack) joins it - art only, the same dated
 # exception, measured not to move dataID; the name of the list predates it ("texture only" = "art only, no dataID").
 GX_OVERLAY_TEXTURE_ONLY=('!!GXPropsHD.big' '!!GXModelsHD.big')
 gx_overlay_texture_only() {

@@ -34,7 +34,7 @@ typedef void (*GXReplayDiagDeviceFn)( GXReplayDiagPutFn put );
 void gxReplayDiagSetDeviceFacts( GXReplayDiagDeviceFn fn );
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: TELEMETRY (wh1ter0se msg 3d92 + 238d): a per-second PERF row (fps, frame-time
+// GeneralsX: TELEMETRY: a per-second PERF row (fps, frame-time
 // percentiles, TPS, stall, hold, network, own CPU) on the same comment-record path, batched once per window. Bytes and arithmetic:
 // GXReplayDiagFormat.h. Nothing here is read by the simulation, sent on the wire or a CRC input.
 // ------------------------------------------------------------------------------------------------

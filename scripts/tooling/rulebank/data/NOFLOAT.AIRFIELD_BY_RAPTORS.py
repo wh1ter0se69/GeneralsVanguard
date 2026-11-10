@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule NOFLOAT.AIRFIELD_BY_RAPTORS (C·rb-data-11): Air Force builds its next Air Field
+# GeneralsX: rule bank DATA rule NOFLOAT.AIRFIELD_BY_RAPTORS: Air Force builds its next Air Field
 # only once its Raptors fill the ones it has. Stock Air Force Hard builds four fast ("USA Air Field - H" at the first supply centre, then
 # "Build Second / Third / Fourth Air Field - H" at 1000 cash and one Air Field fewer each; smoke8: Air Fields 2 and 3 at 98 and 139 s,
 # the 4th Raptor at 218-231 s). Here Air Field k (k = 2..4) also waits for raptors_per_airfield * (k - 1) own Raptors - or, at the latest,

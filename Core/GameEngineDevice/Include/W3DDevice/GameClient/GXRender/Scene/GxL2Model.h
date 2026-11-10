@@ -17,7 +17,7 @@
 */
 
 // GeneralsX: WS-G Task 5: the device-less model of the classic DX8Wrapper state machine
-// (CONTRACT_L2 §4.3 C5/C6 r9b; rw1-G/PLAN_model.md T2). ENGINE-FREE: no WW3D2 header, so scripts/test/l2-model-test.cpp drives it
+// (CONTRACT_L2 §4.3 C5/C6 r9b). ENGINE-FREE: no WW3D2 header, so scripts/test/l2-model-test.cpp drives it
 // with hand-made call streams. Every ported function cites the wrapper code it mirrors AT 3a59e5b2a (W/ = Core/Libraries/Source/
 // WWVegas/WW3D2/); scripts/test/l2-model-drift.sh pins those ranges, so a wrapper edit forces a re-port.
 //
@@ -72,7 +72,7 @@ struct Device {
 };
 
 // RenderStateStruct (W/dx8wrapper.h:300-326) - the LOGICAL state Apply sends from. Pointers are ids; a buffer carries the descriptor
-// Apply reads from the object (D3D handle, FVF size, FVF, vertex count - PLAN_model r1 #3).
+// Apply reads from the object (D3D handle, FVF size, FVF, vertex count).
 // render_state_changed (W/dx8wrapper.h:388-410)
 enum : uint32_t { WORLD_CHANGED = 1u << 0, VIEW_CHANGED = 1u << 1, LIGHT0_CHANGED = 1u << 2, LIGHTS_CHANGED = 0xFu << 2,
 	TEXTURE0_CHANGED = 1u << 6, MATERIAL_CHANGED = 1u << 14, SHADER_CHANGED = 1u << 15, VERTEX_BUFFER_CHANGED = 1u << 16,
@@ -117,7 +117,7 @@ struct State {
 	uint32_t wrapSkip;							// Wrap_Skip() mask
 	bool truthOn, captureOn;					// GxTruthOn / GxCaptureOn
 	Device dev;
-	unsigned unknown;							// > 0: an unmodelled access made every slot UNKNOWN (PLAN_model T1 RAW_ACCESS)
+	unsigned unknown;							// > 0: an unmodelled access made every slot UNKNOWN (RAW_ACCESS)
 };
 
 // The low-level sends, each the wrapper function it names. They return true when the call reached the device (not skipped).
@@ -136,7 +136,7 @@ void seed(State &s, const gxlog::Snapshot &sn);
 void shaderApply(State &s, uint32_t bits);
 
 // The logged inputs Apply consumes: a texture / material Apply is a function of GAME state, so its sends come from the call log (or, in
-// C5's boundary-replay arm, from the source PLAN_model T4 names) and are replayed through the send functions above.
+// C5's boundary-replay arm, from the source names) and are replayed through the send functions above.
 struct Inputs {
 	virtual ~Inputs() {}
 	virtual void textureApply(State &s, int stage, uint64_t tex) = 0;	// Textures[i]->Apply(i) or Apply_Null(i)
@@ -197,7 +197,7 @@ struct ReplayHooks {
 // replayed through its send function; TEXTURE / MATERIAL brackets are INPUTS (Inputs), never predicted.
 void replay(State &s, const gxlog::Log &log, ReplayHooks &h);
 
-// ---- C5 INVARIANCE (CONTRACT_L2 §4.3 C5; the boundary replay of §3.4 in its DrawRun form S1-DR, r10; PLAN_model T4) ---------------
+// ---- C5 INVARIANCE (CONTRACT_L2 §4.3 C5; the boundary replay of §3.4 in its DrawRun form S1-DR, r10) ---------------
 // A claimed run: its first / last TASK's classic seq (the ENTRY records' `a`), in flush order.
 struct Run { uint32_t first, last; };
 constexpr uint32_t kEntryTask = 0;	// an ENTRY record's `b` for a TASK: GxClassicDraw::TASK (W/dx8renderer.h:110; GxScene static_asserts it)

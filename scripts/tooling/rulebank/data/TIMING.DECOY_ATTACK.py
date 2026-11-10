@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule TIMING.DECOY_ATTACK (C·rb-data-11): Stealth throws a small, doomed Quad Cannon
+# GeneralsX: rule bank DATA rule TIMING.DECOY_ATTACK: Stealth throws a small, doomed Quad Cannon
 # wave at the enemy to keep it busy until its own Palace is up. Stock Stealth Hard keeps every Quad home for the first seven minutes
 # (smoke8: at most 2 of 10 ever farther than 1500 from its Command Center; Palace at ~321 s). This adds team "GX Decoy Quads" (decoy_quad_n
 # Quad Cannons, one at a time, re-formed when lost) once an own Arms Dealer stands and - with decoy_until_palace 1 - while the player owns

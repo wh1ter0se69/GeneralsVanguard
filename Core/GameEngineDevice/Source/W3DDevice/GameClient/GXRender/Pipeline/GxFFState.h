@@ -1,4 +1,4 @@
-// GxFFState.h - the fixed-function ubershader's state blocks and the D3D8 -> block packing (WS-D week 2, C · rw2-D, 11/10/2026).
+// GxFFState.h - the fixed-function ubershader's state blocks and the D3D8 -> block packing (WS-D week 2).
 //
 // One FF pipeline layout (owned by rw2-F1's GxRecordLayout, agreed 11/10):
 //   set 0 binding 0  UNIFORM_BUFFER_DYNAMIC  GxFFVsBlock   (vertex stage)    std140, matrices row_major
@@ -67,7 +67,7 @@ struct GxFFPsBlock {                     // set 0 binding 1
 	float       OwnZ0;                   // S7 A41 (offset 284): its ground plane z0; 0 with the mask off. The block has no spare word left:
 	                                     // the next per-draw consumer appends a 16-byte row under its own ruling (integrator 17/10 20:0xZ)
 };
-// GxFFPsBlock::DrawBits (D · dlss-integrator's ruling 17/10, PREREG_look-shadowmaps A20 a / A36 item 2): ONE per-draw bits word, read
+// GxFFPsBlock::DrawBits (ruling 17/10, A20 a / A36 item 2): ONE per-draw bits word, read
 // only by the key-on shader families (GLSL declares it under #if defined(GX_LOOK_SHADOWMAP) ...: key off has no such member). Bits 0-2
 // = S7 (the receiver's apply rule, written by the translator), 3-7 reserved for S7, 8+ for F-depth+'s readers (soft particles, water).
 enum GxDrawBit : uint32_t {

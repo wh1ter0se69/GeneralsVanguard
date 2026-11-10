@@ -1,4 +1,4 @@
-// GeneralsX: AI RULE BANK core (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.2, 2.2.4, 2.2.5, 2.2.8; rb-core
+// GeneralsX: AI RULE BANK core (2.2.2, 2.2.4, 2.2.5, 2.2.8; rb-core
 // plan D3/D4). Everything the bank decides that does not need the engine, as plain C++17 over a Registry: one AI player's configuration
 // (the three scb actions' clamp / unknown / tier / window / conflict rules), the unit-claim and money-reserve tables, the scheduler's
 // due-test, gxRuleHash, and the bank's save block over an abstract byte stream. No engine type, no global state, no I/O, no RNG;
@@ -910,7 +910,7 @@ inline bool seenAsDisguise(bool disguised, int disguiseOwner, int realOwnerToVie
 	return disguised && disguiseOwner >= 0 && realOwnerToViewer != REL_ALLIES;
 }
 
-// ---- SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1; gx-handoff ai/rulebank/core/NEXT_rb-sense-1.md, PLAN_rulebank.md 1.3) ----
+// ---- SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1; 1.3) ----
 // What one viewer fairly knows of another player's faction. A slot the lobby shows (its ORIGINAL template is not Random) is known at once,
 // general included. A Random slot is unknown until the viewer has fairly SEEN SENSE_SIGHT_TEMPLATES different templates of one base
 // faction owned (as seen) by that player and none of another: a sighting reads the template, never the owner's real side, and gives the

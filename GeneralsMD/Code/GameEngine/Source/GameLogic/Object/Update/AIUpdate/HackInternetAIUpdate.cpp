@@ -166,7 +166,7 @@ void HackInternetAIUpdate::aiDoCommand(const AICommandParms* parms)
 	// WHAT THIS COSTS, named rather than discovered later (cross-model review, 2026-08-11). This
 	// changes the frame CRC, so a replay recorded BEFORE this build that contains a hack order
 	// aimed at an already-hacking hacker will diverge at that frame on playback. That is in
-	// tension with AGENTS.md golden rule 6 ("original replays and mods must work") and was
+	// tension with golden rule 6 ("original replays and mods must work") and was
 	// accepted deliberately. The exposure is narrow: playback refuses a replay of another SimID
 	// (RecorderClass::replayMatchesGameVersion, every entry path since 01/10/2026), so cross-build
 	// playback is only reachable at all under the GX_REPLAY_XPLAT waiver - a diagnostic mode, off by

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G: the DRAW-TIME half of CONTRACT_L2.md §2 (E2, E4) and the effective-state id of §1.4,
+// GeneralsX: WS-G: the DRAW-TIME half of (E2, E4) and the effective-state id of §1.4,
 // judged from a draw's device-truth snapshot (DX8Wrapper::GxTruth*, captured at the task's own draw by GxScene.cpp). Engine-free so
 // scripts/test/l2-exec-test.cpp can plant a defect in each rule (GX_L2X_MUTANT=n) and see it caught. The D3D8 numbers are the
 // d3d8types.h ABI; GxScene.cpp static_asserts them against the real enums.

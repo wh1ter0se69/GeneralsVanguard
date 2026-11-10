@@ -226,7 +226,7 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 	h = fnv1aU32(h, lanMessageSize);
 	h = fnv1aU32(h, (UnsignedInt)MAX_PACKET_SIZE);
 	h = fnv1aU32(h, networkMessageLen);
-	// GeneralsX: The wrapper wire geometry (fixes/DESIGN_wrapper-memory-cap.md v16 section 2): every chunk
+	// GeneralsX: The wrapper wire geometry (v16 section 2): every chunk
 	// grew 8 bytes (wrapSeq, lowWater) and is acked only by NETCOMMANDTYPE_WRAPPERACK. A peer with the old layout would read each
 	// chunk 8 bytes short and never ack one, so the pair must refuse each other at join as ENGINE_DIFFERS instead of starting a
 	// match. sourceID moves as well (GameNetwork is digested); this makes the refusal explicit and independent of the digest.
@@ -424,7 +424,7 @@ struct SimIdLooseScan
 //
 // Covered here rather than by folding the two files into the XferCRC because m_iniCRC is half
 // of dataID: routing them through the parser's CRC would invalidate every existing .rep and
-// all 143 .crc baselines under docs/WORKDIR/evidence/. This route closes the same hole through
+// all 143 .crc baselines. This route closes the same hole through
 // the other half of dataID and leaves replay compatibility intact.
 //
 // The prefixes mirror INI::loadFileDirectory's own semantics exactly - it loads "X.ini" AND

@@ -4,7 +4,7 @@
 // format table constructor), restricted to the formats D3D8 has, so the native path samples the same texels and depth-tests
 // at the same precision as the CLASSIC path on the same device. Formats DXVK only reaches through a conversion shader
 // (L6V5U5, X8L8V8U8, W11V11U10) or not at all (R8G8B8, P8, A8P8, R3G3B2, A8R3G3B2, D32, D15S1, D24X4S4) are unsupported here:
-// the game never creates one (CENSUS_resources.md §2), and supports() answers "no" exactly where DXVK's CheckDeviceFormat does.
+// the game never creates one, and supports() answers "no" exactly where DXVK's CheckDeviceFormat does.
 #pragma once
 #include "VkCommon.h"
 #include <cstdint>
@@ -34,8 +34,8 @@ struct FormatCaps
 	uint32_t maxSamples = 0;  // 0 = the device's; else MSAA requests also clamp to this
 	uint32_t maxDim = 0;      // 0 = the device's maxImageDimension2D; else larger textures are refused below it
 	uint32_t maxSampledSamples = 0; // 0 = the device's sampledImageColorSampleCounts; else a SAMPLED MSAA colour target above
-	                                // this count is refused (RenderTargetDesc::sampled, E · rw3-L-2)
-	bool rgba16f = false;     // register GX_RGBA16F (the motion bridge's O, PREREG_T A35): only when GX_MOTION_UNITS=1, so key off
+	                                // this count is refused (RenderTargetDesc::sampled)
+	bool rgba16f = false;     // register GX_RGBA16F (the motion bridge's O, A35): only when GX_MOTION_UNITS=1, so key off
 	                          // probes and knows no new format
 };
 

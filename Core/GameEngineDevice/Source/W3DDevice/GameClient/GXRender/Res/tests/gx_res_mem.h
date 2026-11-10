@@ -1,4 +1,4 @@
-// GeneralsX: WS-C week 2: the phys_footprint A/B (PLAN_native-renderer §1b "+" row) - shared types.
+// GeneralsX: WS-C week 2: the phys_footprint A/B ("+" row) - shared types.
 #pragma once
 #include <cstdint>
 #include <string>

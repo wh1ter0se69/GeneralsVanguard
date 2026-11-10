@@ -680,7 +680,7 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	//      here and not only in the Online lobby. Do not re-derive "the LAN screen has no relay"
 	//      from a read of initRelay alone; the default is not "off", it is "bootstrap".
 	//
-	//      A separate branch (fix/lan-local-default) is making LAN genuinely local by default. When
+	//      A separate branch is making LAN genuinely local by default. When
 	//      it lands, this condition simply stops being true on a LAN-only lobby and the notice stops
 	//      appearing there - no change is needed here, because the predicate is already
 	//      isRelayEnabled() rather than "is this the LAN screen".

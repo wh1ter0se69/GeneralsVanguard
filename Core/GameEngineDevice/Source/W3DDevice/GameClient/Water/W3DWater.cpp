@@ -239,7 +239,7 @@ static Bool s_scriptSkyOff = FALSE;
 // static-initializer code the closure cannot tie to it, and then checks the whole file's initializer as region code (a GAP).
 static AsciiString *faceCur() { static AsciiString s_faceCur[5]; return s_faceCur; }
 
-// GeneralsX @bugfix skybox-1 12/10/2026 (skybox r10 P2): the latch rides the save (GameClient::xfer, a client chunk),
+// GeneralsX @bugfix skybox-1 12/10/2026 (skybox): the latch rides the save (GameClient::xfer, a client chunk),
 // so a map script's "sky off" survives a load; the engine reset ahead of the load (skyBoxMapReset) cleared it.
 Bool gxSkyScriptOff() { return s_scriptSkyOff; }
 void gxSetSkyScriptOff(Bool off) { s_scriptSkyOff = off; }
@@ -286,7 +286,7 @@ static Bool skyAlwaysOn()
 	return on;
 }
 
-// GeneralsX @bugfix skybox-1 12/10/2026 (skybox r10 P2): the always-on sky's far depth and widened far plane hold only
+// GeneralsX @bugfix skybox-1 12/10/2026 (skybox): the always-on sky's far depth and widened far plane hold only
 // while the mesh renderer is flushed inside them. A mesh the renderer defers - triangle-sorted (SORT, no static level) or
 // on a static sort list - is drawn after both are restored, where it can paint over the map or be clipped. Retail's
 // new_skybox is neither; a mod's that is gets the retail black instead (a script can still show it the retail way).
@@ -2185,7 +2185,7 @@ Matrix4x4 matProj, matView, matWW3D;
 	DX8Wrapper::_Get_DX8_Transform(D3DTS_VIEW, matView);
 	DX8Wrapper::_Get_DX8_Transform(D3DTS_PROJECTION, matProj);
 	// GeneralsX: the wave VS's own WVP gets the world pass's projection jitter (no-op on
-	// classic / outside the pass; DESIGN_motion.md §5, #3); matProj itself stays clean: it is restored below
+	// classic / outside the pass; #3); matProj itself stays clean: it is restored below
 	Matrix4x4 matProjVS = matProj;
 	GxWorldPassJitterProjection(W3DWorldSeam::worldPass(), (float *)&matProjVS);
 
@@ -3774,7 +3774,7 @@ void WaterRenderObjClass::drawTrapezoidWater(Vector3 points[4])
 			// GeneralsX: Unbind through the wrapper, not the raw device: resetShader just queued a wrapper
 			// Set_Texture(3, nullptr), but a raw SetTexture left the wrapper's D3D-texture cache naming the shroud while the device held
 			// nothing, so the next ShroudTextureShader::set whose caller had not applied state first had its shroud bind skipped as
-			// "already bound" and drew with stage 3 empty (RA3 water's sheen pass, D · water-ra3-2). The device state is the same.
+			// "already bound" and drew with stage 3 empty (RA3 water's sheen pass). The device state is the same.
 			DX8Wrapper::Set_DX8_Texture(3, nullptr);	//free possible reference to shroud texture
 			GxRawRS(DX8Wrapper::_Get_D3D_Device8(), D3DRS_ZFUNC, D3DCMP_EQUAL);
 		}

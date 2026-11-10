@@ -1,4 +1,4 @@
-// GeneralsX: L1: the native d3d8 resource objects (GxNativeDevice.h; DESIGN_l1-device.md §3, §6).
+// GeneralsX: L1: the native d3d8 resource objects (GxNativeDevice.h; §6).
 #include "GxNativeDevice.h"
 
 #include "GxD3D.h"

@@ -14,7 +14,7 @@
 //  * Anything recorded for submission V that reads a resource calls markUsed(V) on it (GxBuffer::bind / GxTexture::view do);
 //    a resource is freed through VkCtx::retire() at its last use, and a dynamic buffer slice is reused only once its last
 //    use has completed.
-//  * recordPendingFront (D · rw3-T-4): the same copies and barriers into a command buffer the submission runs BEFORE everything
+//  * recordPendingFront: the same copies and barriers into a command buffer the submission runs BEFORE everything
 //    else (the writer's init buffer), for the destinations nothing of the frame has touched yet - a static buffer that is not
 //    bound and not copied into by a recordPending since the frame's value came up (its touch stamp), an image whose lastUse is
 //    below it. Moving such a copy ahead of the frame's commands changes no order anyone sees: none of them reads or writes it.
@@ -69,7 +69,7 @@ struct GxDebug
 	bool unpublishedRetire = false;    // A23-B X-cs-unpublished-retire: that failure's cleanup takes the old path - drop pending + retire
 	bool reclaimByIndex = false;       // A23-B X-cs-reclaim-index: after reclaimIdle compacts, the current slice and every open lock's
 	                                   // slice are re-resolved by their OLD index (out of range: the lock's slice is lost, current = last)
-	// TEST-ONLY (A23-B arm 23 extended, r6 P2-4): the slice RECORD at each dynamic lock (0, front), each unlock's flush (1, front)
+	// TEST-ONLY (A23-B arm 23 extended): the slice RECORD at each dynamic lock (0, front), each unlock's flush (1, front)
 	// and each bind (2, worker) - the observer checks every flush against its lock and a NOOVERWRITE lock against the next bind
 	void (*sliceEvent)(void* user, int event, const void* buffer, const void* slice) = nullptr;
 	void* sliceEventUser = nullptr;
@@ -93,10 +93,10 @@ public:
 	const FormatInfo* format = nullptr;
 	uint32_t width = 0, height = 0, levels = 1;
 	VkSampleCountFlagBits samples = VK_SAMPLE_COUNT_1_BIT;
-	VkImageUsageFlags usage = 0;   // what create() asked for (D · look-fdepth-plus: logged and asserted unchanged with F-depth+ off)
+	VkImageUsageFlags usage = 0;   // what create() asked for (logged and asserted unchanged with F-depth+ off)
 	VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
 	uint64_t lastUse = 0;
-	// S7 (D · look-shadowmaps, PREREG_look-shadowmaps A1/A22): the shadow-map casters are replayed in the frame's INIT command buffer,
+	// S7 (A1/A22): the shadow-map casters are replayed in the frame's INIT command buffer,
 	// which runs BEFORE the frame's MAIN one. A caster that samples this image may be replayed only if no MAIN command of the open frame
 	// wrote it before the caster's draw (mainWrite) and the image ENTERS the frame sampleable (entryLayout). Both are stamped with the
 	// writer's open frame value; s_openFrame is that value while a frame is open (0 otherwise) - one device thread owns it.
@@ -110,7 +110,7 @@ public:
 	bool create(GxResources& res, const FormatInfo* f, uint32_t w, uint32_t h, uint32_t levels, VkSampleCountFlagBits samples,
 		VkImageUsageFlags usage, std::string* why);
 	void destroy(GxResources& res);   // retired at lastUse
-	// An image that was never recorded, queued or published (a creation that failed half way, A23-B §3.1 / rw3x r2 P1-1):
+	// An image that was never recorded, queued or published (a creation that failed half way, A23-B §3.1 / rw3x):
 	// freed at once, touching neither the pending lists nor VkCtx::retire - so a front-end creation never reaches worker state.
 	void destroyUnpublished(GxResources& res);
 	// Whole-image layout transition: everything before (any stage, any write) -> (stage, access) in the new layout.

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: ai-gym - a training ground on our own engine (ai/PROMPT_ai-gym.md): OBSERVE a match as
+// GeneralsX: ai-gym - a training ground on our own engine: OBSERVE a match as
 // NDJSON (GXGymObserve.cpp) and ACT for this peer's player from lines a training process writes (GXGymProtocol.h).
 //
 // HOW ACTING STAYS HONEST. Every action becomes the GameMessages the UI appends for the same click - MSG_CREATE_SELECTED_GROUP
@@ -35,7 +35,7 @@
 //                            without; every row visible), or player index i.
 //   GX_OBS_EXT=1             after each obs line also an "ext" line: height, heading, forward speed (negative = reversing),
 //                            AI state, goal object/position, a harvester's preferred dock and boxes carried, unmanned/moving/
-//                            idle bits, for every mobile object (scripts/ai/gym/SCHEMA.md). Analysis of decoded replays only.
+//                            idle bits, for every mobile object. Analysis of decoded replays only.
 //   GX_ACT=<file>            read action lines from this file as it grows (it must exist when the match starts).
 //   GX_ACT_SYNC=1            lock-step with the trainer: after each obs line the match waits for a "step" line.
 //   GX_ACT_APM=<n>           actions per minute of logic time, 1..6000, default 600 (GX_ORDERS' ceiling).
@@ -50,7 +50,7 @@
 // a REPLAY is allowed (a replay viewer sees everything anyway); acting in one is not.
 //
 // EVERY action line costs one unit of the GX_ACT_APM budget, refused or not, and one update reads at most MAX_LINES_PER_UPDATE
-// of them: validation is real work (a build search walks the object list), and a refusal is information (review r1 P2).
+// of them: validation is real work (a build search walks the object list), and a refusal is information.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -272,7 +272,7 @@ Bool onMap(Real x, Real y, Coord3D *out)
 /// The first button on this object's command bar that `match` accepts and that the bar shows: never a SCRIPT_ONLY button, never
 /// a general's power whose science the player lacks (ControlBarCommand.cpp populates the bar with the same two rules - but
 /// here whatever the button's NEED_SPECIAL_POWER_SCIENCE bit says, as the simulation gates the power (AIGroup): asking a
-/// SharedSyncedTimer power that is not owned yet whether it is ready would start its timer on this peer alone (review r2 P3).
+/// SharedSyncedTimer power that is not owned yet whether it is ready would start its timer on this peer alone.
 template <typename Match>
 const CommandButton *findButton(const Object *o, const Player *me, Match match)
 {
@@ -428,7 +428,7 @@ void selectGroup(const std::vector<Object *> &group)
 }
 
 /// NULL when the action was sent; otherwise why it was refused. `at` is set for a build: the spot chosen.
-/// GeneralsX: Track B scenario drills (PLAN_neural.md S2): the TRUSTED controller sets up a
+/// GeneralsX: Track B scenario drills (S2): the TRUSTED controller sets up a
 /// battle with the existing sandbox cheat orders - MSG_GX_CHEAT_SPAWN_UNIT / MSG_GX_CHEAT_DELETE_OBJECTS, whose
 /// handlers (GameLogicDispatch.cpp) refuse them in any match with more than one human. Off unless GX_GYM_SCENARIO=1;
 /// the Python side never lets a policy emit these two verbs.
@@ -478,7 +478,7 @@ const char *perform(const GXGymAction &a, const Player *me, Coord3D *at, Bool *p
 		if (o == nullptr)
 			return "not your live unit";
 		if (std::find(group.begin(), group.end(), o) == group.end())
-			group.push_back(o);		// once each: a click never selects one unit twice (review r1 P2)
+			group.push_back(o);		// once each: a click never selects one unit twice
 	}
 
 	switch (a.verb)
@@ -556,7 +556,7 @@ const char *perform(const GXGymAction &a, const Player *me, Coord3D *at, Bool *p
 			const SpecialPowerTemplate *sp = TheSpecialPowerStore->findSpecialPowerTemplate(AsciiString(a.tmpl));
 			if (sp == nullptr)
 				return "no such power";
-			// Not offered, because asking whether they may be used would change this peer alone (review ai-gym-2 r1 P2-1):
+			// Not offered, because asking whether they may be used would change this peer alone:
 			// battle plans (getCommandAvailability mints name keys: NAMEKEY + findUpdateModule), the vehicle disguise
 			// (canDoSpecialPowerAtObject, the same), a sneak attack (canDoSpecialPowerAtLocation -> isLocationLegalToBuild ->
 			// Object::getShroudedStatus).
@@ -794,7 +794,7 @@ Bool handleLine(const char *line, UnsignedInt frame)
 		writeRej(frame, "over GX_ACT_APM");
 		return FALSE;
 	}
-	s_budget -= 1.0f;		// before the checks: a refusal costs the same as an order (review r1 P2)
+	s_budget -= 1.0f;		// before the checks: a refusal costs the same as an order
 	Coord3D at;
 	Bool placed = FALSE;
 	const char *refused = perform(a, me, &at, &placed);
@@ -810,7 +810,7 @@ Bool handleLine(const char *line, UnsignedInt frame)
 
 /// Every complete line the trainer has written so far, at most MAX_LINES_PER_UPDATE of them. A line still being written stays
 /// pending. Read byte by byte: a line longer than MAX_LINE is refused WHOLE at its end (its tail is never run as a line of its
-/// own), and a NUL byte refuses its line (review r1 P3). TRUE when one was "step".
+/// own), and a NUL byte refuses its line. TRUE when one was "step".
 Bool drain(UnsignedInt frame)
 {
 	if (s_act == nullptr)
@@ -819,7 +819,7 @@ Bool drain(UnsignedInt frame)
 	Int lines = 0, bytes = 0;
 	clearerr(s_act);	// the trainer may have appended since we last met the end of the file
 	Int c;
-	// Bytes are capped too: a file with no newline would otherwise be read whole in one call (review r2 P3).
+	// Bytes are capped too: a file with no newline would otherwise be read whole in one call.
 	while (!stepped && lines < MAX_LINES_PER_UPDATE && bytes++ < MAX_LINES_PER_UPDATE * (MAX_LINE + 2)
 		&& (c = fgetc(s_act)) != EOF)
 	{
@@ -982,7 +982,7 @@ void gxGymUpdate()
 	UnsignedInt frame = TheGameLogic->getFrame();
 	if (frame + 1 < s_lastFrame)
 	{
-		disarm();		// the frame went back: a new match without a pass through the shell (review r1 P3)
+		disarm();		// the frame went back: a new match without a pass through the shell
 		arm();
 		if (!s_on)
 			return;

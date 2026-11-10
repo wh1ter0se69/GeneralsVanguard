@@ -906,7 +906,7 @@ void Player::initFromDict(const Dict* d)
 			qualifier.format("%d", m_mpStartIndex);
 			ScriptList *scripts = TheSidesList->getSkirmishSideInfo(skirmishNdx)->getScriptList()->duplicateAndQualify(
 						qualifier, qualTemplatePlayerName, pname);
-			// GeneralsX: rb-core: the TIER FILTER (GXRules/GXTierFilter.h, gx-handoff ai/rulebank/PLAN_rulebank.md
+			// GeneralsX: rb-core: the TIER FILTER (GXRules/GXTierFilter.h,
 			// 2.8): this player's own copy keeps the marked GXT.<tiers>.<name> entries of ITS tier, under the stock names, and drops every
 			// other marked entry - a Hard player gets exactly the stock list. A list with no marked name is returned untouched.
 			gxRuleLogTier(this);

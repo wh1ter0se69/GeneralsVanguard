@@ -131,7 +131,7 @@ Bool readConfig()
 	}
 	if (opm == 0.0)
 		return FALSE;		// 0 means off, like GX_STRESS=0
-	// A test-harness tool, never a bot switch in a player's game (lead C6, 01/10): only a command-line match - a
+	// A test-harness tool, never a bot switch in a player's game: only a command-line match - a
 	// -lanhost or -lanjoin role, which the harnesses always set (headless or rendered) and a GUI lobby never does.
 	if (TheGlobalData == nullptr || TheGlobalData->m_lanRole == LANROLE_NONE)
 	{

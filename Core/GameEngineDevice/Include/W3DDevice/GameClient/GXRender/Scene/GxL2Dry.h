@@ -16,8 +16,8 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G (gx-handoff render-seam/rw1-G/PLAN_statecheck.md Task 2): L2's DRY plan of one Flush -
-// the classic list (dx8renderer.h GxClassicDraw) turned into GxL2Contract.h's structs, classified (CONTRACT_L2.md §2), cut into runs
+// GeneralsX: WS-G (Task 2): L2's DRY plan of one Flush -
+// the classic list (dx8renderer.h GxClassicDraw) turned into GxL2Contract.h's structs, classified, cut into runs
 // (§3.1) and keys (§1.4), binned (planBins) - nothing taken, nothing drawn. At the flush start only the STATIC rules can be judged:
 // E2 (state known) and E4 (effective depth/blend/colour/stencil) are judged at each run in the state-check (Task 3); here E4 uses a
 // proxy decoded from the category's shader bits, and the census says so.

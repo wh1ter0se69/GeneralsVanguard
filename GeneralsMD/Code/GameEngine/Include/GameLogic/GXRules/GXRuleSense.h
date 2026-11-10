@@ -1,4 +1,4 @@
-// GeneralsX: AI RULE BANK sense layer (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.6, 4.3; rb-core plan D2): the
+// GeneralsX: AI RULE BANK sense layer (2.2.6, 4.3; rb-core plan D2): the
 // ONLY way a rule reads other players' objects. HARD and SENTIENT see what a human in that seat would see, BRUTAL sees the whole map:
 //   * collection is PARTITION ITERATION ONLY - never a walk of a player's object list. A rider of an enclosing container is taken out of
 //     the partition (OpenContain.cpp) and Object::getShroudedStatus answers CLEAR for an object with no partition data (Object.cpp), so
@@ -6,7 +6,7 @@
 //   * own sight (rb-sense-2): a FAIR viewer sees an object only when its OWN units and buildings see it - markOwnEyes - never through a
 //     granted reveal (map or script reveal, a Spy Satellite ping, an ally's or a spied unit's eyes);
 //   * fog: PartitionFilterFreeOfFog for the viewer, except BRUTAL, which drops only that filter - what Brutal's own whole-map lever
-//     sees (feat/ai-brutal-sharp's PartitionManager::setWholeMapPlayers makes every cell CLEAR for the Brutal player; stealth is
+//     sees ('s PartitionManager::setWholeMapPlayers makes every cell CLEAR for the Brutal player; stealth is
 //     untouched by it, and here too);
 //   * stealth: a stealthed, undetected enemy is not seen (the stock rule, PartitionFilterStealthedAndUndetected's, with the viewer);
 //   * identity: a disguised object counts as its DISGUISE (template and owner) unless its real owner is allied to the viewer -
@@ -45,7 +45,7 @@ public:
 	static const ThingTemplate *sightable(const ThingTemplate *t);
 	/// baseSideOf(sightable(t)): "" for anything the pass never records - the save check's catalog
 	std::string sightBaseOf(const ThingTemplate *t) const;
-	/// OWN SIGHT (GeneralsX 02/11/2026 rb-sense-2, gx-handoff ai/rulebank/data/HANDBACK_rb-data-15.md section 5): mark in *mark (one byte
+	/// OWN SIGHT (GeneralsX 02/11/2026 rb-sense-2): mark in *mark (one byte
 	/// per partition cell, row-major) every cell the CURRENT look of one of the viewer's own units or buildings reveals - an object it
 	/// controls, alive, whose template is sightable() and whose look (Object::friend_getPartitionLastLook) reveals for it, marked as
 	/// doShroudReveal touches cells (PartitionManager::markLookCells). A satellite ping, a parachute, a reveal marker, an ally's or a spied

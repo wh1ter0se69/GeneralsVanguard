@@ -67,7 +67,7 @@ template <typename Type, size_t Size> char (*ArraySizeHelper(Type(&)[Size]))[Siz
 // GeneralsX: GX_LOGIC_60HZ - opt-in 60 Hz simulation tick.
 //
 // DEFAULT IS 30 AND MUST STAY 30. This is the shipped rate, the rate the four-platform determinism
-// corpus in docs/WORKDIR/baseline-2026-08-04/ was captured at, and the rate every .rep recorded so
+// corpus was captured at, and the rate every .rep recorded so
 // far replays at. Flipping the default would silently invalidate all three.
 // [23/09/2026] Still true of the CMake OPTION default, but no longer "the shipped rate": every
 // shipping preset sets GX_LOGIC_60HZ=ON since 0b9bed517, so 60 Hz is what players run.
@@ -88,7 +88,7 @@ template <typename Type, size_t Size> char (*ArraySizeHelper(Type(&)[Size]))[Siz
 //     per-frame decays are square-root literals or sqrtf of the INI value (never powf); INI msec
 //     durations round on the retail 30 Hz grid. The full site table, and the handful left as owner
 //     calls (altitude controller, zero-delay script cadence, MIN_LOGIC_FRAMES / MIN_RUNAHEAD, the
-//     network history lengths), is docs/WORKDIR/LOGIC_60HZ_TIMERS_2026-09-23.md, and
+//     network history lengths), is, and
 //     scripts/test/audit/logic-frame-literals-lint.sh fails on any new raw frame literal.
 //   * [STILL TRUE] a network peer must RENDER at >= the tick rate, because canUpdateNetworkGameLogic
 //     has no time accumulator - so 60 Hz logic demands 60+ fps on EVERY peer.

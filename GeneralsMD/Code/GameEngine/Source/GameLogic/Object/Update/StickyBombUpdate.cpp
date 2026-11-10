@@ -289,7 +289,7 @@ void StickyBombUpdate::detonate()
 
 #if !RETAIL_COMPATIBLE_CRC
 // GeneralsX: TRUE when a live booby trap other than 'self' sits on 'victim' (not dying, not already
-// destroyed: disarming removes a trap with destroyObject, which leaves it in the list until the end of the frame, sec-r4 P2). A sticky bomb names
+// destroyed: disarming removes a trap with destroyObject, which leaves it in the list until the end of the frame). A sticky bomb names
 // the thing it is on as its producer (initStickyBomb), which is how Object::checkAndDetonateBoobyTrap finds it too.
 static Bool gxAnotherBoobyTrapOn( const Object *victim, const Object *self )
 {

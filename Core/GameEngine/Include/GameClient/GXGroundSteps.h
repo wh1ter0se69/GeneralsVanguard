@@ -1,5 +1,5 @@
-// GeneralsX: The REMASTERED ground's switch and quality steps (D · look-director-2, slice 1 of
-// look-director/HANDBACK_look-ground-2.md §5; wh1ter0se 14/10 "new ground looks better" = the direction, wh1ter0se 17/10: every look
+// GeneralsX: The REMASTERED ground's switch and quality steps (slice 1 of
+// wh1ter0se 14/10 "new ground looks better" = the direction, wh1ter0se 17/10: every look
 // feature ships with 2-4 quality steps a runtime governor can move).
 //
 // THE GROUND. W3DDevice/GameClient/TerrainTex.cpp draws EA's 2003 terrain tiles with height-aware edges, a baked sun relief
@@ -116,7 +116,7 @@ inline int gxGroundEnvState( const char *env )
 // This map's decision, and why. The order is the rule: GX_GROUND=off wins; then something must ask for the ground (a GX_GROUND
 // list, or the key); then one veto - a -headless peer has no renderer. The native renderer draws the ground like classic: its
 // three hand-assembled programs are catalogued (gx:ground-base / -mult / -mult-lite, GXRender/Pipeline/GxCustomCatalog.h; R-G1,
-// E · water-live-native-port 21/10/2026, which retired the native veto). Changing their tokens (GameClient/GXGroundPrograms.h) needs the
+// which retired the native veto). Changing their tokens (GameClient/GXGroundPrograms.h) needs the
 // catalogue regenerated (scripts/render/ws-E/gen_catalog.py) - gx_cs_test fails until it is, and a native device REFUSES unknown programs.
 enum GxGroundWhy
 {

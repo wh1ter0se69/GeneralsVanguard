@@ -262,7 +262,7 @@ bool GxFsr1::record(VkCommandBuffer cmd, uint32_t slot, Res::GxImage& src, VkIma
 	uint32_t easu[20];
 	// the input origin moves +0.5 (1 - k) texels per axis (k = input / output pixels): the world's D3D9 half-pixel convention is in
 	// RENDER pixels, so FSR 1's centre-to-centre mapping left a scaled world 0.5 (1/k - 1) output px right and down of native (the
-	// seam's composite makes the same correction; NOTE_hud-seam-halfpixel-offset.md). 0 at 1:1.
+	// seam's composite makes the same correction). 0 at 1:1.
 	const float kx = float(srcRect.extent.width) / float(dst.width), ky = float(srcRect.extent.height) / float(dst.height);
 	GxFsr1EasuConstants(easu, float(srcRect.extent.width), float(srcRect.extent.height), float(src.width), float(src.height),
 		float(dst.width), float(dst.height), float(srcRect.offset.x) + 0.5f * (1.0f - kx), float(srcRect.offset.y) + 0.5f * (1.0f - ky));

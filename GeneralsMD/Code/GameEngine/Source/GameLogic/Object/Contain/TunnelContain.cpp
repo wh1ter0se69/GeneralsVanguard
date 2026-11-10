@@ -44,7 +44,7 @@
 #include "GameLogic/PartitionManager.h"
 #if defined(GX_TEST_INSTRUMENTS)
 #include "GameLogic/AIPlayer.h"	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: gxAirWatchRadius, for the transition log below
-// GeneralsX: ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ, /#3/#5, r2 #7): EVERY move of a unit
+// GeneralsX: ai-wh1ter0se-econ T: EVERY move of a unit
 // into or out of an air-watching AI's tunnel network, whatever sent it (the guard's own pop, a team target, a tunnel goal, the AI's
 // Return), with the tunnel and the aircraft the network was last told about - the box readers time T's exits and returns from these.
 //   "[GXTAA] f=<frame> p=<player> ev=in|out unit=<id> tmpl=<template> tunnel=<id> nemesis=<stored id, 0 = none> x=<tunnel x> y=<y>"

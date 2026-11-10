@@ -1,5 +1,5 @@
 // GeneralsX: AI RULE BANK, the engine side - see GXRuleBank.h. Everything this file decides is GXRuleCore.h's
-// or GXTierFilter.h's (pure, unit-tested by scripts/test/gx-rulebank-test.cpp); this file adapts. Determinism (PLAN_rulebank.md 4.1): no
+// or GXTierFilter.h's (pure, unit-tested by scripts/test/gx-rulebank-test.cpp); this file adapts. Determinism: no
 // random draw, rules in id order, own objects in ObjectID order, no wall clock / env / file in a decision - the clocks, the env knobs and
 // every [GXRULE] line exist in test-instruments builds only.
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
@@ -452,7 +452,7 @@ Bool GXRuleBank::permitHook(int hook, const char *context)
 	}) ? TRUE : FALSE;
 }
 
-// ---- SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1; gx-handoff ai/rulebank/core/NEXT_rb-sense-1.md) ----
+// ---- SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1) ----
 // Determinism: the lobby half is each slot's ORIGINAL template (GameSlot::saveOriginalSetup, recorded before the random draw on every
 // peer, in a replay's header and in a skirmish save), the sighting half is the logic's own partition, shroud and stealth state, sampled
 // at frames fixed by the logic frame and the player index. Nothing reads the local player, the client's shroud or the UI.
@@ -1318,7 +1318,7 @@ int gxTierKeepSource(const gxrb::PlanRow &row)
 #endif
 	return row.src;
 }
-/// ONE implementation for both lists a player's copy holds at top level - its groups and its top-level scripts (r7 P2:
+/// ONE implementation for both lists a player's copy holds at top level - its groups and its top-level scripts (
 /// no general's list in the shipped scb has a top-level script, so only the group list can exercise this code, and it does: N3M's
 /// whole-group replacement and the keep_at red arm). Each kept row's entry, renamed, goes to `add` in plan order with its stock twin
 /// (the row's `at`); `keep` marks what stays, the caller frees the rest.

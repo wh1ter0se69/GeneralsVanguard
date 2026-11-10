@@ -11,7 +11,7 @@
 // Player::isPlayerActive). No clock, no network state, no UI state. Pure and engine-free so scripts/test/vote-kick-test.cpp can
 // hold every rule without a match.
 //
-// THE RULES (each one written down for the owner, fixes/PLAN_vote-kick.md):
+// THE RULES (each one written down for the owner):
 //  - Starter and electors are living humans. The target is a living human other than the starter, and never votes.
 //  - Electorate = living humans minus the target, and it must hold at least `minElectors` (2) at all times: in a 1v1 a kick would
 //    be a win for the starter, so the start is refused, and a vote whose electorate falls under two fails.

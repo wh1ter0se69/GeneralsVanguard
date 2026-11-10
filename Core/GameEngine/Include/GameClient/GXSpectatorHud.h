@@ -791,7 +791,7 @@ inline int pingShown( int pingMs, bool isRouterRow, bool localIsRouter, int loca
 	return localIsRouter ? 0 : (localPingMs >= 0 ? localPingMs : -1);
 }
 
-/// Board colour class of a figure: 0 = no figure (the neutral colour), 1 = good, 2 = warning, 3 = bad (lead C25 / owner
+/// Board colour class of a figure: 0 = no figure (the neutral colour), 1 = good, 2 = warning, 3 = bad (owner
 /// 06/10: "show ping in colors ... and same for fps"). Ping: < 100 ms good, < 200 warning, else bad. FPS: >= 50 good,
 /// >= 30 warning, else bad.
 inline int pingClass( int ms ) { return ms < 0 ? 0 : ms < 100 ? 1 : ms < 200 ? 2 : 3; }
@@ -799,7 +799,7 @@ inline int fpsClass( int fps ) { return fps < 0 ? 0 : fps >= 50 ? 1 : fps >= 30 
 
 /// The FPS cell, or -1 for "--": your own render rate, and anyone else's average whenever this machine has it -
 /// NetworkInterface::getSlotAverageFPS answers -1 for a figure it does not hold (today every peer but the router's own;
-/// feat/peer-fps makes every peer hold every player's), so no extra rule is needed here.
+/// makes every peer hold every player's), so no extra rule is needed here.
 inline int fpsShown( bool ownRow, int ownFps, int slotFps )
 {
 	if (ownRow)
@@ -814,7 +814,7 @@ enum GateMsg { GATE_PRESS, GATE_FOLLOW, GATE_WHEEL, GATE_POSITION };
 /// nothing reaches the windows, the selection or the camera under it (owner 06/10: "with tab opened i can play through the
 /// game"). A press that began on the world finishes on the world wherever it is released - the camera's rotate and the
 /// selection box clean up on their own release - and moves always pass, so edge scrolling and
-/// every hover keep their bookkeeping (r11 P2).
+/// every hover keep their bookkeeping.
 inline bool boardGateTakes( bool boardOpen, const Rect &board, int x, int y, int kind, bool pressOwnedByBoard )
 {
 	switch (kind)
@@ -988,7 +988,7 @@ inline Rect displayPanelHome( int screenW, int rowCount, float scale )
 	return Rect{ screenW - w - hudS( 100.0f, scale ), hudS( 160.0f, scale ), w, h };
 }
 
-/// The event toasts (wh1ter0se 03/11/2026, msg a8bf: "show up to 3 notifications under each other up to 3 seconds each fading in and
+/// The event toasts (wh1ter0se 03/11/2026, "show up to 3 notifications under each other up to 3 seconds each fading in and
 /// out; also fix the overlap" - the PLAYERS tab used to hang 11 px into the one toast). A stack hung under the PLAYERS tab, newest
 /// on top: the newest is always where the eye already looks, an arrival moves the stack (one motion, at the moment something
 /// happened) and a toast always leaves from the bottom (the oldest dies first), so nothing reflows when one simply expires.
@@ -1167,7 +1167,7 @@ inline int toastStack( const unsigned *born, const unsigned *seen, int n, unsign
 inline int toastHitId( unsigned bornMs, int ringSlot ) { return (int)((bornMs << 2) | (unsigned)(ringSlot & 3)); }
 
 /// The money prefix before a grouped figure: "+$" / "-$" for an income (owner 06/10: "add $ sign here"), "$" for an amount
-/// (owner 08/10: "Add $ next to their number like $180,424"; wh1ter0se 03/11 msg 9b3b: the bar's two team totals too), else none.
+/// (owner 08/10: "Add $ next to their number like $180,424"; wh1ter0se 03/11: the bar's two team totals too), else none.
 inline const wchar_t *cashPrefix( int v, bool plus, bool dollar )
 {
 	return plus ? (v < 0 ? L"-$" : L"+$") : (dollar ? L"$" : L"");
@@ -1177,7 +1177,7 @@ inline const wchar_t *cashPrefix( int v, bool plus, bool dollar )
 /// (Particle Cannon: its update module is active; Nuclear Missile / SCUD Storm: the silo doors are in their post-firing
 /// waiting-to-close / closing states) from the client's own timer walk (InGameUI::postDraw), so the simulation is never touched.
 /// A launch is the idle -> in-use edge. This is not the ready-frame jump: a Saboteur resets a ready weapon's timer without
-/// firing, and a ready-state edge needs the READY frame to have been rendered, which fast-forward skips (r1 P2).
+/// firing, and a ready-state edge needs the READY frame to have been rendered, which fast-forward skips.
 /// In use lasts seconds, so a skipped frame still sees it; the first sample is only a baseline, so a seek or a join in the
 /// middle of a launch announces nothing.
 struct SuperweaponWatch

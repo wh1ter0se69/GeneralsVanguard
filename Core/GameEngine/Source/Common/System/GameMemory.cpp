@@ -2243,10 +2243,10 @@ void DynamicMemoryAllocator::debugIgnoreLeaksForThisBlock(void* pBlockPtr)
 #endif
 
 //-----------------------------------------------------------------------------
-// FOREIGN BLOCKS - GeneralsX: A5 (ROADMAP_2027 M2, PROMPT_smooth-alloc-lock).
+// FOREIGN BLOCKS - GeneralsX: A5 (ROADMAP_2027 M2).
 // The replaced global operator new/delete send EVERY thread in the process through this allocator and its one
 // TheDmaCriticalSection: the graphics driver's shader-compile threads (DXVK, MoltenVK, SPIRV-Cross) too, which queue
-// on it during compile bursts (HANDBACK_s0-hitch-attribution finding 2), and so would helper threads and a render
+// on it during compile bursts, and so would helper threads and a render
 // thread. A block requested by any thread but the simulation thread is a FOREIGN block instead: a
 // MemoryPoolSingleBlock header on system memory whose owner is foreignBlob(), taken and given back with no lock.
 // The simulation thread's path, pool choice and allocation order are unchanged. freeBytes reads the header of the
@@ -3593,7 +3593,7 @@ void operator delete[](void * p, const char *, int)
 // GeneralsX: posix_memalign refuses (EINVAL) an alignment below sizeof(void*), but the C++
 // contract is any power of two: LLVM's allocate_buffer asks for alignof(T), as small as 1, through the nothrow form
 // (whose library default calls this one), so lavapipe/llvmpipe running inside the game got null and died with
-// "LLVM ERROR: out of memory ... Buffer allocation failed" (PERF_RENDER_WEAK_PEER_2026-08-18.md). Round the alignment
+// "LLVM ERROR: out of memory ... Buffer allocation failed". Round the alignment
 // up, and give size 0 a unique non-null block as operator new must.
 static void *alignedNew(size_t size, std::align_val_t alignment)
 {

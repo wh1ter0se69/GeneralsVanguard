@@ -41,7 +41,7 @@ find_path(GX_VULKAN_INCLUDE_DIR vulkan/vulkan_core.h
     ${GX_VKCTX_FIND_ROOT}
 )
 if(NOT GX_VULKAN_INCLUDE_DIR)
-    # D · render-line-0967 21/10/2026: macOS and Windows x64 compile the native renderer in BY DEFAULT now (GX_RENDER_NATIVE), so a
+    # macOS and Windows x64 compile the native renderer in BY DEFAULT now (GX_RENDER_NATIVE), so a
     # fresh checkout lands here unless the DXVK fork's Vulkan-Headers are checked out - say how, and how to build without it.
     message(FATAL_ERROR "gx_vkctx: no Vulkan headers (vulkan/vulkan_core.h). Run `git submodule update --init --recursive "
                         "references/fbraz3-dxvk`, set VULKAN_SDK, or pass -DGX_VULKAN_INCLUDE_DIR=<dir>. In the game, -DGX_RENDER_NATIVE=OFF "

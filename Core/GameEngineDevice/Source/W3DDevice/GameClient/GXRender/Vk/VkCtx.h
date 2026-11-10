@@ -8,13 +8,13 @@
 //
 // Threading (v0): one thread owns the context and submits. completed() and the validation counters may be read from any
 // thread. Render-only: nothing here is read by the simulation.
-// Submit thread (R19, E · rw3-V 12/10/2026, rw3-V/DESIGN_submit-thread.md): with VkCtxDesc::submitThread (or
+// Submit thread: with VkCtxDesc::submitThread (or
 // GX_VK_SUBMIT_THREAD=1) a "gx-vk-submit" thread owns the queues: submit() and present() enqueue (a submit's timeline value
 // is assigned at enqueue, in today's order) and the thread runs them FIFO with MoltenVK's own submits SYNCHRONOUS. A refused
 // submit first DRAINS the device on the thread (every earlier accepted batch completes; not for VK_ERROR_DEVICE_LOST) and only
 // then LATCHES the context: every op behind it is skipped, submit() returns 0, deviceLost() (= terminal) is true, and
 // Timeline::wait() of a value that never ran returns false - by then nothing accepted still runs, so a caller acting on that
-// false (a resource last used by the refused value) cannot race the GPU (PREREG_T A21 amendment 1 (1) / 2 (1)). A wait on an
+// false (a resource last used by the refused value) cannot race the GPU (A21 amendment 1 (1) / 2 (1)). A wait on an
 // earlier value stays a real wait (only a DRIVER loss turns waits into counter reads). After a drained latch every retirement
 // settles. Host waits first wait for the op to have executed. Every device-wide wait goes through waitIdle(), which drains first.
 #pragma once
@@ -147,7 +147,7 @@ struct SubmitRefusal
 	VkResult result = VK_SUCCESS;
 };
 
-// FG P0 H2 (render-dlss/DESIGN_dlss-fg-P0.md §5, rw3-T-7's shape): called just before and just after vkQueuePresentKHR, on the thread
+// FG P0 H2 (rw3-T-7's shape): called just before and just after vkQueuePresentKHR, on the thread
 // that calls it - the caller with the submit thread off (no lock held there, rw3-T-7 correction (a)), gx-vk-submit with it on (under
 // hostLock and the queue mutex). Only a present that reaches the driver calls it: a latched, stopped, skipped or TEST-injected present
 // calls neither. end gets the driver's answer. Neither may call into this VkCtx (submit / present / waitOp / waitIdle / quiesce) or take
@@ -291,7 +291,7 @@ public:
 	// under the GPU. It also settles the retirements a latch or a loss left, while the pools they free into still exist. Use it for
 	// EVERY device-wide wait.
 	void waitIdle();
-	// The process is ending with the device alive (DESIGN v4 §3.7, PREREG_T A21 am. 4): stops accepting, runs (or skips, once
+	// The process is ending with the device alive (DESIGN v4 §3.7, A21 am. 4): stops accepting, runs (or skips, once
 	// latched) every queued op, then JOINS gx-vk-submit. The context stays stopped: every later submit() answers 0 and every
 	// present() is skipped (DEVICE_LOST), neither reaching the driver. No device idle - nothing is freed. Idempotent; a no-op
 	// without the thread. Teardown stays shutdown().
@@ -312,11 +312,11 @@ public:
 	// TEST-ONLY (FG P0 H2 arm): gx-vk-submit's id (a default id without the thread) - the hook arms compare the
 	// thread their callbacks ran on with it, not with each other
 	std::thread::id testSubmitThreadId() const { return m_thread.get_id(); }
-	// TEST-ONLY boundaries (rw3V-code-r2 P2-5): threads now inside a blocking driver wait (Timeline::wait's vkWaitSemaphores,
+	// TEST-ONLY boundaries: threads now inside a blocking driver wait (Timeline::wait's vkWaitSemaphores,
 	// waitIdle's vkDeviceWaitIdle), and threads now blocked in waitIdle's drain of the submit thread.
 	int testBlockedWaits() const { return m_blockedWaits.load(); }
 	// TEST-ONLY: how many times any thread has ENTERED Timeline::wait's vkWaitSemaphores (monotone: an entry is never missed by a
-	// late sample - rw3V-code-r4 P2-4)
+	// late sample)
 	uint64_t testSemWaitEntries() const { return m_semWaitEntries.load(); }
 	int testDrainWaiters() const;
 	// TEST-ONLY: threads now blocked in quiesce()'s join; and whether the submit thread is still joinable (read it only from the

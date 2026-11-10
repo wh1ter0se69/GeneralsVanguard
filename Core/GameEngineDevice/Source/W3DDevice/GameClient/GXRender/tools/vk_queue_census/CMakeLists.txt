@@ -1,5 +1,5 @@
 # GeneralsX: VK_LAYER_GX_queue_census: TEST-ONLY Vulkan layer + its selftest (PREREG A39a,
-# modernize/render-dlss/DESIGN_dlss-fg-P0.md §6). Standalone, never part of the game build, outside every digested path.
+# ). Standalone, never part of the game build, outside every digested path.
 #
 #   cmake -S <this dir> -B <build> -G Ninja [-DGX_VULKAN_INCLUDE_DIR=<dir holding vulkan/vk_layer.h>]
 #   cmake --build <build>

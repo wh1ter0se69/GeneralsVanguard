@@ -2608,7 +2608,7 @@ AsciiString WorldHeightMap::getTerrainNameAt(Real x, Real y)
 // GeneralsX: THE AI'S PLACEMENT SPIKES. BuildAssistant's terrain test calls this through
 // TheTerrainVisual->getTerrainTile for every footprint sample - about 300 per candidate for a large structure, and a
 // skirmish AI's placement search tries up to ~3700 candidates. Each call copied the class name and then walked
-// TheTerrainTypes' whole list comparing strings (findTerrain): measured on the Mac Mini (W8, 27/09), the terrain test
+// TheTerrainTypes' whole list comparing strings (findTerrain): measured (W8, 27/09), the terrain test
 // was ~90% of the search's time at ~97 us per candidate, in AI ticks of 30-130 ms. The result depends only on
 // the texture class, whose name is fixed when the map loads, so each class resolves once and is remembered; the
 // answer is the same TerrainType* the uncached lookup returns, for every point.

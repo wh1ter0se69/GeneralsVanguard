@@ -277,7 +277,7 @@ public:
 
 	// GeneralsX: Allocate the cost index up front, from Pathfinder's constructor next to the
 	// cell-info pool, never inside a search, where the allocator throws instead of letting the insertion fall back to the
-	// walk. A failed allocation leaves the index off and the walks on (r2 P2).
+	// walk. A failed allocation leaves the index off and the walks on.
 	void allocateIndex();
 
 	Bool canReverseSort(PathfindCell& currentCell) const;

@@ -1,4 +1,4 @@
-# GeneralsX: L1 in the game: gx_device (the native d3d8 device, render-seam/DESIGN_l1-device.md) and
+# GeneralsX: L1 in the game: gx_device (the native d3d8 device) and
 # gx_native_test. Standalone: cmake -S <this dir> -B <build> -G Ninja -DGX_D3D8_INCLUDE=<DXVK include/native>. From the game:
 # Core/GameEngineDevice/CMakeLists.txt adds it when GX_RENDER_NATIVE=ON. Render-only, outside every digested path.
 cmake_minimum_required(VERSION 3.20)
@@ -82,7 +82,7 @@ if(GX_DEVICE_TESTS)
         target_compile_definitions(gx_proxy_test PRIVATE NOMINMAX)
     endif()
     # A23-B arm 26: the front-only results, built here with GX_A23B_FRONT and against the BASE device without it
-    # B · mac-upscaler-u2: GXGraphics::resolveUpscaler's table (header-only; tests/u2stub stands in for Common/GameDefines.h)
+    # GXGraphics::resolveUpscaler's table (header-only; tests/u2stub stands in for Common/GameDefines.h)
     add_executable(gx_upscaler_resolve_test tests/gx_upscaler_resolve_test.cpp)
     target_include_directories(gx_upscaler_resolve_test PRIVATE tests/u2stub ${CMAKE_CURRENT_SOURCE_DIR}/../../../../../../GameEngine/Include)
     add_executable(gx_cs_front_test tests/gx_cs_front_test.cpp)

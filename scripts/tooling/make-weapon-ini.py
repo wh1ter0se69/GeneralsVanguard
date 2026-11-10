@@ -32,7 +32,7 @@
 # the same bytes or joins are refused with DATA_DIFFERS. The output is deterministic, so every box
 # that runs this against the pinned archive produces the same file.
 #
-# THE EDIT: Toxin Tractor option 1 (docs/WORKDIR/STREAM_WEAPON_FPS_DESIGN_2026-09-23.md section 5,
+# THE EDIT: Toxin Tractor option 1 (
 # owner decision 24/09/2026), re-tuned 05/10/2026 for Generals Online fire timing: DelayBetweenShots
 # 40 -> 120 ms and twice the damage, on every ToxinTruckGun* weapon (GLA, Demolition, Stealth and Toxin
 # generals, all upgrades). Each shot creates and destroys a missile-class projectile Object, so fewer

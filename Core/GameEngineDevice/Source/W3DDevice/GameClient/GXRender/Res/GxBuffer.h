@@ -17,10 +17,10 @@
 // VkBuffer, so it also stamps the touch (GxResources::recordPendingFront): any reference of a static buffer by a frame's
 // commands - drawn, copied from, filled - goes through it.
 //
-// A23-B (D · rw3-X-2, perf-audit/DESIGN_A23_wide-ring.md v8.1 §3.6): the native device may split a buffer between its FRONT end
+// A23-B (v8.1 §3.6): the native device may split a buffer between its FRONT end
 // (the caller: locks, the shadow, slice choice and growth) and its worker (bind, uploads). lock()/unlock() are today's whole
 // bodies (direct: no worker, or an S body with the worker idle - they keep both current slices equal); lockFront()/unlockFront()
-// are the front halves, execUpload()/execRename() the worker's. Slices are identified by POINTER everywhere (r5 P2-2): each is a
+// are the front halves, execUpload()/execRename() the worker's. Slices are identified by POINTER everywhere: each is a
 // separately allocated record, appended and never moved.
 #pragma once
 #include "GxResources.h"
@@ -73,7 +73,7 @@ public:
 	// reuses a slice with no open lock that no queued command can still bind (freeAfter <= workerDone; the current one only once
 	// the worker ran everything queued) and the GPU finished (lastUse <= completed), else allocates one. *renamed = the slice the
 	// worker must switch to - the caller pushes Rename as the very next command (queue seq `queued` + 1). *sync = the lock must
-	// be S (drain, then lock()): a plain lock on a dynamic buffer, the slice threshold, a failed slice allocation (r3 P1-1), a
+	// be S (drain, then lock()): a plain lock on a dynamic buffer, the slice threshold, a failed slice allocation, a
 	// test plant on the slice path. nullptr with *sync false = INVALIDCALL (out of range), as lock().
 	void* lockFront(uint32_t offset, uint32_t bytes, uint32_t flags, uint64_t workerDone, uint64_t queued, Slice** renamed, bool* sync,
 		bool* allocFailed = nullptr);   // *allocFailed: the S is a failed slice allocation (the caller recovers storage first)

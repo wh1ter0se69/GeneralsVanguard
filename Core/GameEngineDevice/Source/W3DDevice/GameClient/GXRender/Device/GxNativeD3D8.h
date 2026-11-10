@@ -1,5 +1,5 @@
 // GeneralsX: L1 in the game: the IDirect3D8 proxy and the per-session native/classic decision
-// (render-seam/DESIGN_l1-device.md §1, §2, §5.2, §8.1; RW3_PLAN_1710 brief S).
+// (§2, §5.2, §8.1; RW3_PLAN_1710 brief S).
 //
 // GxNativeD3D8 wraps DXVK's own IDirect3D8. Every adapter query is forwarded, so caps / identity / modes / formats are DXVK's
 // answers by construction. Only CreateDevice differs: rows S2-S10 are evaluated in order; the first "no" tears down every
@@ -52,7 +52,7 @@ struct GxNativeSessionDebug
 	bool skipExtentRow = false;      // S9 does not compare the created swapchain's extent
 	bool skipMsaaParity = false;     // S4 does not compare DXVK's MSAA decode with what the device can grant
 	const char* fakeProcAddrImage = nullptr;   // S8 (before the device) sees the host's loader in this image instead of its own (bad provenance around a working loader)
-	bool s8InterposerAnyPath = false;  // B · dlss-streamline-1: S8 waives the loader checks for ANY procAddr module once an interposer is declared
+	bool s8InterposerAnyPath = false;  // S8 waives the loader checks for ANY procAddr module once an interposer is declared
 };
 
 // The decision's outcome, also returned by GxNativeDecideAndCreate for tests and tools.
@@ -89,13 +89,13 @@ struct GxLoaderFacts
 	// content when it has none, "path:<p>" = unreadable: only itself). Two paths with one build are ONE loader (the 0.9.63 bundle stages
 	// libvulkan.1.dylib and libvulkan.dylib as identical copies). Empty / a different size = every image is its own build (its path).
 	std::vector<std::string> builds;
-	// B · dlss-streamline-1 13/10/2026 (PREREG A36.2): the module of the ONE vetted interposer allowed to own the host's
+	// (PREREG A36.2): the module of the ONE vetted interposer allowed to own the host's
 	// vkGetInstanceProcAddr (NVIDIA Streamline's sl.interposer.dll, NVIDIA-signature-checked and loaded by full path by the host;
 	// it forwards to the process's vulkan-1.dll, which must still be the one loader build). Empty = none declared.
 	std::string interposerImage;
 	bool testInterposerAnyPath = false;   // TEST plant (GxNativeSessionDebug::s8InterposerAnyPath)
 };
-// requireLoader (D · native-windows-1, 13/10/2026): after creation off Apple - a loader must be loaded and be the host's, without
+// requireLoader: after creation off Apple - a loader must be loaded and be the host's, without
 // requiring MoltenVK. requireMoltenVK implies it.
 bool GxNativeQualifyLoader(const GxLoaderFacts& facts, bool requireMoltenVK, std::string* loaderPath, std::string* mvkPath,
 	std::string* why, bool requireLoader = false);

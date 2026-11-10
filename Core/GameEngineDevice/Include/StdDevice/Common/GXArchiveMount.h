@@ -136,7 +136,7 @@ inline bool isModArchive(const char* archiveName, const char* modBIG, const char
 {
 	// The engine stores a -mod DIRECTORY with a trailing backslash ("/g/mod\\", CommandLine parseMod) and the
 	// engine's paths mix '\\' and '/': off Windows a backslash is a separator here too, or realpath() cannot
-	// resolve the argument and no archive ever matches (measured on the Mini: every spelling without a trailing '/').
+	// resolve the argument and no archive ever matches (measured: every spelling without a trailing '/').
 	auto slashes = [](const char* p) {
 		std::string k(p != nullptr ? p : "");
 #ifndef _WIN32

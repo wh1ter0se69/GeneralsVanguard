@@ -3082,7 +3082,7 @@ Real OpenALAudioManager::getEffectiveVolume(AudioEventRTS* event, Bool applyShel
 			//
 			// Ports TheSuperHackers 58b1c1b0 (#2369) into the backend that actually ships. Upstream
 			// fixed this in MilesAudioManager, and AudioSettings.h + GameAudio.cpp carry the two
-			// settings it added - but docs/WORKDIR/AUDIO_BACKENDS.md records that ALL FOUR shipping
+			// settings it added - but records that ALL FOUR shipping
 			// platforms compile the Core OpenAL manager (Windows forces -DSAGE_USE_OPENAL=ON), so
 			// the fix landed in a backend nobody runs and the settings were parsed, documented and
 			// ignored.

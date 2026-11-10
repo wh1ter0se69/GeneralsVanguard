@@ -20,7 +20,7 @@
 //
 // One readback per screenshot, synchronous (a test switch): on the main thread with the d3d8 ring drained, RecordExternal hands
 // our recorder DXVK's execution command buffer with the bound depth/stencil surface in its default layout (the break path,
-// DESIGN_hybrid §1.2); the recorder copies the depth and stencil aspects into a host-visible buffer between two barriers and
+// ); the recorder copies the depth and stencil aspects into a host-visible buffer between two barriers and
 // returns the image to its layout; FlushRenderingCommands submits; the fork signals the packet's retire value when the GPU is done.
 #include "W3DDevice/GameClient/GxDepthShot.h"
 #include "W3DDevice/GameClient/GxInterop.h"
@@ -99,7 +99,7 @@ struct Capture_Ctx
 Capture_Ctx s_ctx;
 
 // Our buffer and interfaces go; the interfaces are re-asked on a new device. Capture's re-init calls only this, never the hook
-// chain (review r14 P3-5).
+// chain.
 void Drop_State()
 {
 	if (s_buffer != VK_NULL_HANDLE)
@@ -318,7 +318,7 @@ static bool Read_Once(unsigned n, const char *tag)
 	{
 		if (std::chrono::steady_clock::now() - t0 > std::chrono::seconds(20))
 		{
-			// the GPU or the CS thread may still own s_buffer / s_ctx: never reuse them (review r14 P3-5), and never destroy
+			// the GPU or the CS thread may still own s_buffer / s_ctx: never reuse them, and never destroy
 			// them either - the release hook runs before DXVK's device waits for idle. Trade-off: leaked on purpose,
 			// one readback buffer per process after a GPU timeout; a diagnostic that already failed.
 			fprintf(stderr, "[GXDSHOT] n=%u timed out waiting for the GPU - depth shots off for this process (buffer leaked)\n", n);

@@ -87,7 +87,7 @@ void GxL2Check_Capture(GxDrawState &s, unsigned prim, unsigned minIndex, unsigne
 	s.primCount = primCount;
 }
 
-// The relevance mask (CONTRACT_L2.md §4.3 C2): control fields always compared; a dependent field masked only when BOTH states'
+// The relevance mask (C2): control fields always compared; a dependent field masked only when BOTH states'
 // control fields disable it.
 struct GxMask
 {
@@ -223,7 +223,7 @@ int GxL2Check_CompareState(const GxDrawState &classic, const GxDrawState &l2, co
 	return GxL2Check_CompareStateM(classic, l2, prefix, printMax, 0);
 }
 
-// C8 (CONTRACT_L2.md §4.3): the generator above vs an independently written table of expected decisions on synthetic states.
+// C8: the generator above vs an independently written table of expected decisions on synthetic states.
 int GxL2Check_MaskOracle(int mutant)
 {
 	static GxDrawState a, b;	// large: static

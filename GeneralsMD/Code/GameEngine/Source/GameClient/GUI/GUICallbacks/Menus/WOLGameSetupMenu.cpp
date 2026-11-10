@@ -1244,7 +1244,7 @@ void InitWOLGameGadgets()
 		"GameSpyGameOptionsMenu.wnd:ButtonAccept%d",
 		"GameSpyGameOptionsMenu.wnd:GenericPing%d",
 	};
-	// The chat STAYS on this screen (lobby-scroll r1 P2): Start's refusals - missing map, too many players, too
+	// The chat STAYS on this screen (lobby-scroll): Start's refusals - missing map, too many players, too
 	// few teams - are written only to it, and this screen has no notice line. The rows scroll inside the authored band.
 	CodeGuiRowsScrollSetup( parentWOLGameSetup, wolSeatColumns, (Int)( sizeof( wolSeatColumns ) / sizeof( wolSeatColumns[ 0 ] ) ), MAX_SLOTS,
 													nullptr, 0, 0, listboxGameSetupChat );

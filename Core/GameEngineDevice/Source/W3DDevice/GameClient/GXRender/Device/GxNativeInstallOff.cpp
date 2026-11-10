@@ -4,7 +4,7 @@
 
 #include <cstdio>
 
-#include "GameClient/GXGraphicsSettings.h"	// D · render-line-0967: the renderer switch (Options.ini GXRenderer, GX_RENDERER over it)
+#include "GameClient/GXGraphicsSettings.h"	// the renderer switch (Options.ini GXRenderer, GX_RENDERER over it)
 
 namespace GxNative
 {

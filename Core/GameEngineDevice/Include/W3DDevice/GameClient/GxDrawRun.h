@@ -17,7 +17,7 @@
 */
 
 // GeneralsX: WS-X2: DrawRun - DXVK draws a claimed run of classic draws itself, at the run's own
-// position, through its own d3d9 entry points (render-seam/DESIGN_hybrid.md §13; the ABI in prose: rw1x/DRAWRUN_ABI.md).
+// position, through its own d3d9 entry points (the ABI in prose).
 //
 // GX_L2_DRAWRUN unset (default): nothing runs - no QueryInterface, no Device_Call, no arena. Render-only: nothing here is read by
 // the simulation.
@@ -28,7 +28,7 @@
 namespace GxDrawRun
 {
 	// Byte-identical to the fork's DxvkGxLightSet / DxvkGxTask (d3d9_interfaces.h; D3DLIGHT8 has D3DLIGHT9's layout). The
-	// semantics of every field: rw1x/DRAWRUN_ABI.md.
+	// semantics of every field.
 	struct LightSet
 	{
 		UINT enableMask;			// bit i (i < 4): slot i enabled, value lights[i]; a clear bit: LightEnable(i, FALSE)
@@ -58,11 +58,11 @@ namespace GxDrawRun
 
 	// Main thread, at a claimed run's position (after WS-G's PREPARE): copies the run into this frame's arena and records ONE
 	// Device_Call. On the device thread the fork's DrawRun draws it; if the fork refuses, the same per-task calls go through the
-	// d3d8 device instead (DESIGN_hybrid §13.4) - a run is never lost and the D3D stream is the same either way.
+	// d3d8 device instead - a run is never lost and the D3D stream is the same either way.
 	void Draw_Run(D3DPRIMITIVETYPE type, const Task *tasks, unsigned taskCount, const LightSet *sets, unsigned setCount);
 
 	// Main thread, WS-G's per-claim question: replace claimed runs with Draw_Run in THIS frame? Available(), and with the gate's toggle
-	// (GX_DRAWRUN_TOGGLE=k, PREREG_gate.md) only in its ON periods - the classic arm of the same run draws the OFF periods. Also the
+	// (GX_DRAWRUN_TOGGLE=k) only in its ON periods - the classic arm of the same run draws the OFF periods. Also the
 	// toggle's frame clock: call it at least once per render frame while claiming.
 	bool S1_On();
 

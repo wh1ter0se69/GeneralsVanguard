@@ -30,7 +30,7 @@ struct SwapchainDesc
 	uint32_t width = 0;  // drawable PIXELS (SDL_GetWindowSizeInPixels), used when the surface does not dictate its extent
 	uint32_t height = 0;
 	bool fullscreen = false;
-	// D · native-windows-1 13/10/2026 dxvk.tearFree as DXVK's pickPresentMode applies it: -1 Auto (today's order), 1 True (no sync:
+	// dxvk.tearFree as DXVK's pickPresentMode applies it: -1 Auto (today's order), 1 True (no sync:
 	// MAILBOX, never IMMEDIATE), 0 False (sync: FIFO_RELAXED first).
 	int8_t tearFree = -1;
 	uint32_t framesInFlight = 2; // acquire semaphores, one per VkFrameRing slot

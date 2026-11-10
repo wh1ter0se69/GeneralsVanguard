@@ -3,8 +3,8 @@
 //   set 0 = { b0 UNIFORM_BUFFER_DYNAMIC: the FF VS block (vertex), b1 UNIFORM_BUFFER_DYNAMIC: the FF PS block (fragment) }
 //   set 1 = { b0..b7 COMBINED_IMAGE_SAMPLER 2D: texture stages 0..7 (fragment) }
 //   push constants [0, 128) VERTEX|FRAGMENT = the FF spec block, pushed on EVERY FF draw (a specialised pipeline ignores it).
-// One layout for all, so switching generic <-> specialised never rebinds anything (DESIGN_pipeline-cache.md §3).
-// S7 (D · look-shadowmaps-2, PREREG_look-shadowmaps A20 c / A36 item 3): with look-feature bit 0 the layout gains
+// One layout for all, so switching generic <-> specialised never rebinds anything.
+// S7 (A20 c / A36 item 3): with look-feature bit 0 the layout gains
 //   set 2 = THE look frame set { b0 COMBINED_IMAGE_SAMPLER: the shadow atlas through an IMMUTABLE compare sampler (LESS_OR_EQUAL, LINEAR,
 //   clamp), b1 COMBINED_IMAGE_SAMPLER: the same atlas through an immutable NEAREST sampler, b2 UNIFORM_BUFFER_DYNAMIC: GxLookFrameUbo }
 //   (fragment stage). Later readers append b3+; there is no set 3. Without the bit the layout is exactly today's.

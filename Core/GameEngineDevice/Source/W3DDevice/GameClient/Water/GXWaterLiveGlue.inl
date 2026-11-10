@@ -89,7 +89,7 @@ static Bool gxWaterLiveWaterMoved()
 }
 
 // Foam only within this many cells (10 world units each) of dry ground: a shallow sea is "foam depth" everywhere (TournamentB:
-// 75,465 cells, the whole sea), and the shore is where foam belongs. Measured on the Mini 17/10.
+// 75,465 cells, the whole sea), and the shore is where foam belongs. Measured 17/10.
 static const Int kGxFoamShoreCells = 5;
 
 // Milliseconds on the wall clock (gxRenderNowMs is the GX_SHOT capture clock under capture, which stands still here).
@@ -465,7 +465,7 @@ static Bool gxWaterLivePart(Int part)
 // Device resources (ReAcquireResources / ReleaseResources, and the map load that reads the option), beside the retail three.
 // The two shaders exist ONLY while the option is on: off, the game creates exactly retail's bytecode. The native renderer picks
 // its ports by bytecode (GXRender/Pipeline/GxCustomCatalog.h) and draws both: water:glare / water:foam, gx_cs_ps.frag cases 16 / 17
-// (R-W1, E · water-live-native-port 21/10/2026). A change to either array (GameClient/GXWaterLive.h) needs the catalogue regenerated
+// (R-W1). A change to either array (GameClient/GXWaterLive.h) needs the catalogue regenerated
 // (scripts/render/ws-E/gen_catalog.py; gx_cs_test fails until it is): a native device REFUSES every draw with an unknown program.
 
 static void gxWaterLiveRelease();

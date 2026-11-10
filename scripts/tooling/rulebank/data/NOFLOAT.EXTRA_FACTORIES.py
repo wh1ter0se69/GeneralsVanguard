@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule NOFLOAT.EXTRA_FACTORIES (C·rb-data-10): Air Force spends spare money on War
+# GeneralsX: rule bank DATA rule NOFLOAT.EXTRA_FACTORIES: Air Force spends spare money on War
 # Factories, not on more Air Fields. Stock Air Force Hard builds up to four Air Fields fast ("USA Air Field - H" at the first supply
 # centre, then "Build Second / Third / Fourth Air Field - H" at 1000 cash each) and one War Factory (the High Money copy waits for 30000).
 # Here the Air Field scripts past airfields_max get the never-true condition "fewer than 0 own Air Fields", and one-shot scripts

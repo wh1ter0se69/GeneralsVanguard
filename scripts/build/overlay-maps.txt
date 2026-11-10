@@ -11,7 +11,7 @@ CraterRingZHv3|8920f86e74a566427522bc7b79b4058dbef5cef00bd9636f2aef33b18dfc1b46
 TwinRidgesZHv1|390717c56b54b6cc25faf973bd98ed850206d973075f8220bd8211b77e252f55
 TwinRidgesZHv2|bda0262e2e09e558a0ba369c7144e1885db98c38aa688751cf9655c031db7dc5
 # The three 32-start maps below need the 32-seat engine (16-bit pathfinder zones, MAX_SLOTS 34; 0.9.70 on): every older build
-# wraps their zone ids, so they ship from 0.9.70 and never to an older client (C. release-0970, lead C80 07/11/2026).
+# wraps their zone ids, so they ship from 0.9.70 and never to an older client (C. release-0970, 07/11/2026).
 Crown32ZHv1|2d33a097debcbd57f9243fbbfa22ba39d7d87902b14574f12328bfe939bc619b
 CrownFlat32ZHv1|45fedf40067075fcece9a2683fe127ffa895827661f72b3436e55ec042f1cd9f
 LastStand32ZHv1|7a9dccecb67af824df148b30119785af194bb545efe18fd0b9d8b708209572a1

@@ -1,4 +1,4 @@
-// GeneralsX: the GxNativeHost for the game's SDL3 window (DESIGN_l1-device §8.1). The window the
+// GeneralsX: the GxNativeHost for the game's SDL3 window. The window the
 // device receives as its HWND IS the SDL_Window* (SDL3Main.cpp:939), so the surface callbacks take it as `void* window`.
 #pragma once
 

@@ -1,5 +1,5 @@
 #version 450
-// GX: gx_fsr1_rcas.frag (D · render-hud-seam-1, 13/10/2026) - AMD FidelityFX FSR 1 RCAS (third_party/ffx, MIT, SOURCE.txt): the
+// GX: gx_fsr1_rcas.frag - AMD FidelityFX FSR 1 RCAS (third_party/ffx, MIT, SOURCE.txt): the
 // EASU output sharpened into the output target, the seam's ONE sharpener (DLSS_INTEGRATION ruling 01:08Z). Ours: the callbacks
 // (texelFetch clamped to the image - an edge tap would read past it), the push block and main(); FsrRcasF is ffx_fsr1.h's, untouched.
 #extension GL_GOOGLE_include_directive : require

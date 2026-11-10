@@ -1,4 +1,4 @@
-// GeneralsX: A23-B merge gate item 2: the STRICT VALUE SWEEP (PREREG_T A23-B amendment 5 (4)).
+// GeneralsX: A23-B merge gate item 2: the STRICT VALUE SWEEP (A23-B amendment 5 (4)).
 // TEST-ONLY. Every IDirect3DDevice8 entry point with NON-default argument values - the input list is review
 // rw3x-a23b-code-r10-oracle's "Separate checklist", taken whole - each followed by what depends on it (a draw, the whole back
 // buffer read back), and every result (HRESULT, out-parameter, pixels) handed to `obs`. Only deterministic results are observed

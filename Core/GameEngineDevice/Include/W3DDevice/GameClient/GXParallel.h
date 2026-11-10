@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: A render-side fork-join pool (modernize/render-split PLAN_pose-prepass,
+// GeneralsX: A render-side fork-join pool (modernize/render-split,
 // smooth/MT_DESIGN's "fixed-partition fork-join on std::thread"). gxParallelFor(count, chunk, fn, ctx) runs
 // fn(ctx, begin, end) over [0, count) in chunks of `chunk`, on persistent workers plus the calling thread, and returns
 // once every chunk has run; everything the jobs wrote is then visible to the caller (each finished chunk is counted

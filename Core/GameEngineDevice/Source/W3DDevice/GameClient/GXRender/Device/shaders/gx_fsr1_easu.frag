@@ -1,5 +1,5 @@
 #version 450
-// GX: gx_fsr1_easu.frag (D · render-hud-seam-1, 13/10/2026) - AMD FidelityFX FSR 1 EASU (third_party/ffx, MIT, SOURCE.txt) as a
+// GX: gx_fsr1_easu.frag - AMD FidelityFX FSR 1 EASU (third_party/ffx, MIT, SOURCE.txt) as a
 // full-screen fragment pass: the world target (texelFetch inside the camera's rect) upscaled into an output-size target. Ours: the callbacks,
 // the push block and main(); the algorithm is ffx_fsr1.h's FsrEasuF, untouched (32-bit path: no float16 dependency on MoltenVK).
 #extension GL_GOOGLE_include_directive : require

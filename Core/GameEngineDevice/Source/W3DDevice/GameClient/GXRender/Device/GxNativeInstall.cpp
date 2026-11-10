@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "Common/FileSystem.h"
-#include "GameClient/GXGraphicsSettings.h"	// B · dlss-streamline-1: GXUpscaler (the agreed key) decides whether Streamline loads
+#include "GameClient/GXGraphicsSettings.h"	// GXUpscaler (the agreed key) decides whether Streamline loads
 #include "Common/file.h"
 #include "WW3D2/dx8wrapper.h"
 #include "GxNativeD3D8.h"
@@ -22,7 +22,7 @@ namespace GxNative
 {
 bool Requested()
 {
-	return GXGraphics::nativeRendererRequested() != FALSE;	// D · render-line-0967: Options.ini GXRenderer, GX_RENDERER over it
+	return GXGraphics::nativeRendererRequested() != FALSE;	// Options.ini GXRenderer, GX_RENDERER over it
 }
 
 namespace
@@ -65,9 +65,9 @@ IDirect3D8 *Wrap(IDirect3D8 *dxvk)
 	}
 	// GeneralsX: (PREREG A36.2): NVIDIA Streamline (DLSS) only for GXUpscaler=dlss in a
 	// GX_STREAMLINE build on an NVIDIA adapter; otherwise the host is untouched and nothing of Streamline is in the process.
-	// B · dlss-fg-1 14/10/2026 (PREREG A39): GXReflex / GXFrameGen load it too (Reflex, DLSS Frame Generation), same gates.
+	// (PREREG A39): GXReflex / GXFrameGen load it too (Reflex, DLSS Frame Generation), same gates.
 	GxNativeLoadStreamline(dxvk, host, GXGraphics::upscaler() == GXGraphics::UPSCALER_DLSS, GXGraphics::reflex(), GXGraphics::frameGen());
-	// B · mac-upscaler-u2 18/10/2026 (U2): DLSS resolved in (a Streamline build) but Streamline did not load (not NVIDIA, DLLs missing):
+	// (U2): DLSS resolved in (a Streamline build) but Streamline did not load (not NVIDIA, DLLs missing):
 	// this runs at install, before the seam sizes anything, so the whole chain goes off. Here, not in GxNativeDlss.cpp, because that file
 	// is in gx_device and the standalone test exes do not link the settings.
 	if (GXGraphics::upscaler() == GXGraphics::UPSCALER_DLSS && host.streamline == nullptr)

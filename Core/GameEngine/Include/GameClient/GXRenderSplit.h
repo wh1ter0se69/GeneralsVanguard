@@ -1,4 +1,4 @@
-// GeneralsX: render-split step 1 (gx-handoff modernize/render-split/DESIGN.md): the tick window
+// GeneralsX: render-split step 1: the tick window
 // and the deferred render-command queue.
 //
 // The simulation calls 272 render-side entry points (scripts/test/audit/render-split-inventory.py). In a two-thread build
@@ -11,7 +11,7 @@
 //   * Two threads (later): the window is "on the simulation thread"; the replay runs in the sync phase, simulation parked.
 // Replaying is invisible today because nothing reads a converted entry point's state between the call and the end of the
 // window except the simulation itself, and an entry point is converted only after checking the simulation never reads
-// that state back (DESIGN.md 2.3 rule 1). A replayed body reads the logic frame through logicFrame(), which returns the
+// that state back (2.3 rule 1). A replayed body reads the logic frame through logicFrame(), which returns the
 // frame captured at the call, so timestamps and time-outs come out identical.
 //
 // RENDER-ONLY: no simulation code includes it. No engine includes, so scripts/test/audit/bench/render_split.cpp tests this
@@ -46,7 +46,7 @@ class GXRenderSplit
 public:
 	// Only state the DRAW reads needs a category here. State that only the sync phase reads (ControlBar's dirty flag, EVA's
 	// play requests: ControlBar::update and Eva::update run there, with the simulation parked) stays a direct write - the
-	// barrier already orders it (DESIGN.md 2.3).
+	// barrier already orders it.
 	// Step 3 (07/10/2026): superweapon timer entries, script named timers and the replay/spectator feed banners.
 	// Step 6 (08/10/2026): Particle = publishing a particle system created in the window and operations on published ones
 	// (ParticleSys.cpp); Fx = camera shakes, terrain scorch marks and light pulses (W3DView, BaseHeightMap, W3DDisplay).

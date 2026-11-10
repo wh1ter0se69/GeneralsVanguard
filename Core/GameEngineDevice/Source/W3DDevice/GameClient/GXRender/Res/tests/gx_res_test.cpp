@@ -42,7 +42,7 @@
 //   format-bc-either-wrong format-bc-decode with one block's colour indices inverted in the NATIVE upload only: that block must
 //                          match neither model (the NVIDIA model is no blanket pass) (R30)
 //   rt-sampled             RenderTargetDesc::sampled: x4 sampled per the device; under a forced no-sampled-MSAA cap refused, the
-//                          default (not sampled) still accepted (E · rw3-L-2)
+//                          default (not sampled) still accepted
 //   rt-sampled-unchecked   rt-sampled with the sample-count check planted away: the refusal must go missing
 //   instance-reuse-early   instance-dynamic with DISCARD reusing a slice still in flight: held draws read wrong records
 //                          (sync validation cannot see either: instance-rate reads are unchecked, host writes are no queue op)
@@ -837,7 +837,7 @@ bool armBufferDestroyPending(GxResources& res, std::string* d)
 	return true;
 }
 
-// PREREG_T A26 (perf-audit C11) + amendment 1: a resource destroyed while its uploads are still
+// A26 (perf-audit C11) + amendment 1: a resource destroyed while its uploads are still
 // queued takes exactly its own copies' bytes with it. Before the fix GxResources::dropPendingFor erased the copies but not their
 // bytes, so pendingBytes() stayed above the real queue for the rest of the session. A managed buffer with two partial unlocks and a
 // managed 3-level texture; exact pendingCount()/pendingBytes() after the queueing, after each deletion and after an empty record.
@@ -1531,7 +1531,7 @@ int maxDiff(const std::vector<uint8_t>& a, const std::vector<uint8_t>& b, size_t
 // native table and one of a FORCED no-BC table (decoded). Gates: (a) the decoded texture samples exactly what GxDecode computed
 // (the upload path); (b) GxDecode equals an independent CPU model of the format, exactly; (c) per 4x4 block the GPU's decode is
 // within kBcTol of the IDEAL model or of the NVIDIA model, and the constant blocks agree exactly.
-// R30 (D · native-windows-2 13/10/2026, render-integration-5 ruling): (c) used to compare the GPU with GxDecode directly, and NVIDIA
+// R30: (c) used to compare the GPU with GxDecode directly, and NVIDIA
 // interpolates BC1 green as 80/256 of the step (not 1/3): RTX 5090 read max |d| 5 against kBcTol 3. A second reference against
 // GxDecode itself would blind the check on NVIDIA, so the decoder is checked by (b) on the CPU and the GPU only validates the models.
 const int kBcTol = 3; // chosen before the first run: interpolant rounding differs by 1-2 across vendors; a decoder error is >> 3
@@ -1543,8 +1543,8 @@ const int kBcTol = 3; // chosen before the first run: interpolant rounding diffe
 // red/blue interpolated on the 5-bit endpoints ((2a+b)*22/8, midpoint (a+b)*33/8), green on the expanded 8-bit endpoints as
 // (256a + d/4 + 128 + 80d)/256 (midpoint 128d), d = b-a, C++ truncating division. BC3 alpha: kNvAlphaW below (measured; rgbcx has no NVIDIA BC4 rule).
 enum class BcModel { Ideal, NVidia };
-// NVIDIA BC3 alpha (R30 follow-up, E · native-windows-3 13/10/2026): rgbcx has no NVIDIA BC4 rule, so this one is MEASURED. A diagnostic dump of
-// every DXT5 texel's (a0, a1, index, GPU alpha) on the RTX 5090 (4096 texels; render-dlss/nw3/evidence/r30/win/r30d-dump-rtx.log) fits
+// NVIDIA BC3 alpha (R30 follow-up): rgbcx has no NVIDIA BC4 rule, so this one is MEASURED. A diagnostic dump of
+// every DXT5 texel's (a0, a1, index, GPU alpha) on the RTX 5090 (4096 texels) fits
 // alpha = (a0*(64-w) + a1*w + 32) >> 6 with 6-bit weights w per palette entry k (index 2..5 in 6-value mode a0 <= a1, 2..7 in 8-value mode a0 > a1):
 // 6-value {12, 24, 40, 52}/64 (IDEAL 12.8/25.6/38.4/51.2), 8-value {9, 18, 28, 36, 46, 55}/64 (IDEAL 9.1/18.3/27.4/36.6/45.7/54.9). Residual vs the
 // GPU on the 4096 texels: 3896 exact, the rest +-1; IDEAL differed by up to 6. Entries 0/1 and the 6-value 0/255 stay exact.
@@ -1880,7 +1880,7 @@ bool armForceCaps(GxResources& res, std::string* d)
 	return ok;
 }
 
-// RenderTargetDesc::sampled (E · rw3-L-2): an MSAA colour target asked for as SAMPLED gets SAMPLED usage when the device can
+// RenderTargetDesc::sampled: an MSAA colour target asked for as SAMPLED gets SAMPLED usage when the device can
 // sample that count and is REFUSED otherwise - shown with a forced cap (maxSampledSamples = 1: no sampled MSAA at all); the same
 // request without `sampled` (the default) is accepted under that cap, as before the flag existed. planted: the limit ignored.
 bool armRtSampled(GxResources& res, std::string* d, bool planted)
@@ -2016,7 +2016,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		posix_spawnattr_init(&sa);
 #if defined(__APPLE__)
 		// the child dies on purpose (SIGABRT): no exception port, so ReportCrash never sees it - no "quit unexpectedly" dialog on the
-		// owner's desk, no .ips (lead C43 18/10, as gx_native_test's runSelf 4c9d60fee). The kernel still delivers the signal: waitpid reads it.
+		// owner's desk, no .ips (18/10, as gx_native_test's runSelf 4c9d60fee). The kernel still delivers the signal: waitpid reads it.
 		posix_spawnattr_setexceptionports_np(&sa, EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC | EXC_MASK_CRASH |
 			EXC_MASK_CORPSE_NOTIFY, MACH_PORT_NULL, EXCEPTION_DEFAULT, THREAD_STATE_NONE);
 #endif
@@ -2059,7 +2059,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		return res;
 	}
 	if (opt.validation && (!ctx.validationEnabled() || !ctx.syncValidationEnabled())) {
-		// GX_VK_VALIDATION=core gives core checks only: the sync hazards these arms gate on would never be looked for (r3 P2)
+		// GX_VK_VALIDATION=core gives core checks only: the sync hazards these arms gate on would never be looked for
 		res.detail = "core+sync validation was asked for but is not fully enabled - no gate ran";
 		res.detected = !res.expectDetected;
 		return res;

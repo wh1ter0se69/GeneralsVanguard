@@ -1,5 +1,5 @@
 #version 450
-// gx_cs_vel.frag - gx:vel-ps (Pipeline/GxSyntheticPrograms.h; D · render-motion-units-1 13/10/2026, DESIGN_motion-units.md §2.7),
+// gx_cs_vel.frag - gx:vel-ps (Pipeline/GxSyntheticPrograms.h),
 // the object-velocity fragment program of the DLSS-track motion bridge. Its own module (not a case of gx_cs_ps.frag), so every
 // pre-existing custom pipeline keeps a byte-identical SPIR-V module. Same pipeline layout as every custom program; it reads only
 // the two varyings gx_cs_vel.vert writes (previous / current clip position pre-scaled to pixels, at the FF texcoord 6 / 7 locations).

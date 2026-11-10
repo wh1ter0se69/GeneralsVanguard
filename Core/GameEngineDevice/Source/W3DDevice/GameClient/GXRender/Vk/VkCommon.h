@@ -41,7 +41,7 @@ struct TestMutants
 	                                     // MoltenVK 1.4.2 does not - OBSERVED - so the WAIT guard is the static_assert in
 	                                     // VkGpuTimer::readPair - R26, r26-r4)
 
-	// The submit thread (R19, rw3-V DESIGN_submit-thread.md). The fields the THREAD reads (submitFail*, presentResult*,
+	// The submit thread (R19, rw3-V). The fields the THREAD reads (submitFail*, presentResult*,
 	// threadNoLatch, threadLatchLost, threadPresentFirst, skippedPresentOk) are written only through VkCtx::testSet (under the op
 	// lock) and snapshotted per op when the thread takes it; so are latchNoDrain, threadInitLast and idleResult (for the drain); the
 // rest are read by the producer that sets them.
@@ -70,7 +70,7 @@ struct TestMutants
 };
 extern TestMutants g_testMutants;
 // TEST-ONLY: called right after every volkLoadDevice (Record/tests/gx_cmd_tap.cpp swaps vkCmd* pointers for digesting shims,
-// PREREG_T A22's recorded-stream equality gate). Product code never sets it; kept out of TestMutants, which tests reset per arm.
+// A22's recorded-stream equality gate). Product code never sets it; kept out of TestMutants, which tests reset per arm.
 extern void (*g_testAfterLoadDevice)(VkDevice);
 
 inline VkDeviceSize alignUp(VkDeviceSize v, VkDeviceSize a) { return a > 1 ? (v + a - 1) / a * a : v; }

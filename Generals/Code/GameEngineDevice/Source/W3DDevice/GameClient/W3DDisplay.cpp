@@ -2823,7 +2823,7 @@ AGAIN:
 
 	// GeneralsX: ...but never in frozen time, where no logic frame passes: the simulation ends a
 	// camera-only freeze's move before its next update (GameLogic/ScriptedCamera.h), so the draw after the freeze is the one
-	// whose freeze loop shows it (a skipped one lost it: camera-sim-B r1 P2)
+	// whose freeze loop shows it (a skipped one lost it: camera-sim-B)
 	if (TheTacticalView->getTimeMultiplier()>1 && !freezeTime)
 	{
 		static Int timeMultiplierCounter = 1;

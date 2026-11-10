@@ -75,16 +75,16 @@ bool FillWin32Host(GXRender::Dev::GxNativeHost &host, const char **why)
 	const char *v = getenv("GX_VK_VALIDATION");
 	host.validation = v != nullptr && strcmp(v, "1") == 0;
 	host.pipelineCacheDir = getenv("GX_NATIVE_CACHE_DIR");
-	const char *g = getenv("GX_GPUTIME");   // PREREG_T A16: GPU time per frame, default OFF
+	const char *g = getenv("GX_GPUTIME");   // A16: GPU time per frame, default OFF
 	host.gpuTime = g != nullptr && strcmp(g, "1") == 0;
-	const char *mu = getenv("GX_MOTION_UNITS");   // PREREG_T A35: the object-velocity bridge (render-dlss/DESIGN_motion-units.md), default OFF
+	const char *mu = getenv("GX_MOTION_UNITS");   // A35: the object-velocity bridge, default OFF
 	host.motionUnits = mu != nullptr && strcmp(mu, "1") == 0;
-	const char *f = getenv("GX_NATIVE_FIF");   // PREREG_T A30 step 2 (TEST knob), read here too: rule 0 - every key FillSdlHost reads, the Win32 host reads
+	const char *f = getenv("GX_NATIVE_FIF");   // A30 step 2 (TEST knob), read here too: rule 0 - every key FillSdlHost reads, the Win32 host reads
 	host.framesInFlight = f == nullptr || strcmp(f, "2") == 0 ? 2u : strcmp(f, "3") == 0 ? 3u : 0u;   // 0: refused, 2 kept
 	host.requestedFrameGen = GXGraphics::frameGen();   // FG P0 §2 submit-thread guard: the REQUEST, not whether Streamline loaded
 	host.requestedReflex = GXGraphics::reflex();
 	host.requestedUpscaler = GXGraphics::upscaler();   // the render/dlss guard on the A23-B worker (GxNativeDevice.cpp)
-	host.lookFeatures = GXGraphics::lookFeatureMask();   // S7 (PREREG_look-shadowmaps A18/A20 e): every host reads the key
+	host.lookFeatures = GXGraphics::lookFeatureMask();   // S7 (A18/A20 e): every host reads the key
 	return true;
 }
 }

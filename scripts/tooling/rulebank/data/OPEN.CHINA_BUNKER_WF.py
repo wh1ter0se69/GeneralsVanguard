@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule OPEN.CHINA_BUNKER_WF (C·rb-data-6): the lean China opening - ONE Barracks, ONE
+# GeneralsX: rule bank DATA rule OPEN.CHINA_BUNKER_WF: the lean China opening - ONE Barracks, ONE
 # War Factory (Dominator stand-in, medium). Map of stock Hard (owners.txt, 14d03e02): the first Barracks ("China Barracks - H", CONDITION_TRUE)
 # and the first War Factory (after the first Supply Center) are the lean opening already. The extras are two plain build scripts:
 #   "China War Factory 2 - H"  (SkirmishChina, SkirmishChinaNukeGeneral): the instant a first War Factory stands

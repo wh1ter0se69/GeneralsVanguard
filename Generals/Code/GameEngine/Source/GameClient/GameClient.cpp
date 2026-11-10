@@ -1990,7 +1990,7 @@ void GameClient::xfer( Xfer *xfer )
 	}
 
 
-	// GeneralsX @bugfix skybox-1 12/10/2026 (skybox r10 P2): a map script that switched the sky off keeps it off after a
+	// GeneralsX @bugfix skybox-1 12/10/2026 (skybox): a map script that switched the sky off keeps it off after a
 	// load (W3DWater.cpp's latch; the engine reset before the load cleared it). Version 3 saves read as "not switched off".
 	if (version >= 4)
 	{

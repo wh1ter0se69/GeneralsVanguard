@@ -609,7 +609,7 @@ void Connection::processWrapperAck(UnsignedByte originalPlayerID, UnsignedInt wr
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// GeneralsX: THE WRAPPER SEND WINDOW (fixes/DESIGN_wrapper-memory-cap.md v16 section 3, sweep v-net-01).
+// GeneralsX: THE WRAPPER SEND WINDOW (v16 section 3, sweep v-net-01).
 //
 // A receiver reserves a whole command's buffer the moment the first chunk of a serialization arrives, and it may free one only
 // once it knows the serialization is over. Each serialization on this connection is numbered (wrapSeq), and every chunk carries
@@ -832,7 +832,7 @@ void Connection::doRetryMetrics() {
 
 // GeneralsX: The retry timer is what the stutter actually is.
 //
-// MEASURED, on live mac+linux peers with [GXSTALL] (evidence/stutter-rootcause-2026-08-06.md):
+// MEASURED, on live mac+linux peers with [GXSTALL]:
 // across four runs, 79% of ALL blocked time was 10 events, and every one of them lasted 1847-2016
 // ms. That is not a distribution, it is a constant - m_retryTime, set to 2000 in the constructor
 // and, until now, written nowhere else. The events pair across peers with retries>0 on the SENDING

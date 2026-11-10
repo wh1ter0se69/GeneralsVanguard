@@ -1,6 +1,6 @@
 // GeneralsX: S7 GPU sun shadow map: the light fit (pure math, no engine include).
 //
-// PREREG_look-shadowmaps.md A14 + A28 (N8); PLAN Task 5. Host-tested by scripts/test/sm-fit-test.sh.
+// A14 + A28 (N8); PLAN Task 5. Host-tested by scripts/test/sm-fit-test.sh.
 //
 // One orthographic light per cascade, looking along the map's sun direction t (object light 0 of the current time of day, from the
 // sun INTO the scene: W3DShadow.cpp:232-251 stores -t as the light position). The receivers are what the camera can see of the terrain
@@ -407,7 +407,7 @@ inline OwnLight unpackOwnLight(uint64_t packed)
 	o.packed = packed;
 	return o;
 }
-// A79 / A79a / A79b (E · look-shadowmaps-7): the OWN-LIGHT PULL's game-side half. The device replays a thin copy pulled toward L
+// A79 / A79a / A79b: the OWN-LIGHT PULL's game-side half. The device replays a thin copy pulled toward L
 // (GXRender Record/GxOwnPull.h: P(p) = L + (1 - eps)(p - L)) and its receivers look up pulled the same way; the class bound and eps
 // travel in the frame (GxShadowFrame::ownPull / ownPullAux), so THIS is the one product source of muMax.
 static constexpr float kOwnPullMuMax = 0.03f;   // A79b: "thin copies" - flattened to <= 3 % of their height, whatever the clamp's origin
@@ -455,7 +455,7 @@ inline void scaleMatrix(const OwnLight& o, float S[16])
 }
 inline Vec3 applyOwn(const OwnLight& o, Vec3 p) { return v3(p.x, p.y, o.z0 + o.mu * (p.z - o.z0)); }
 
-// ---- PREREG A44 (D · look-shadowmaps-4 18/10/2026): the OFF-SCREEN casters' selection --------------------------------------------
+// ---- PREREG A44: the OFF-SCREEN casters' selection --------------------------------------------
 // A caster can shadow a visible receiver only if it lies between L and that receiver - inside the light's clip volume through the
 // receivers' window. sphereOutsideClip tests a bounding sphere against THE matrix the device renders the cascade with (row-vector,
 // clip_j = sum_i p_i m[i*4+j] + m[12+j]; inside = |x| <= w, |y| <= w, z <= w), so one test serves the perspective fit and the TEST-ONLY
@@ -511,7 +511,7 @@ inline int effectiveLod(int parentLod, bool parentMatches, int ownLod, int lodCo
 	return parentLod < 0 ? 0 : (parentLod > hi ? hi : parentLod);
 #endif
 }
-// A61/A63 (D · look-shadowmaps-5): a SORTED caster mesh (SORT flag: dx8renderer.cpp:2130 sends it to the
+// A61/A63: a SORTED caster mesh (SORT flag: dx8renderer.cpp:2130 sends it to the
 // sorting renderer, past the CAST hook) is never captured by the scene's own draw, so the in-view skip does not apply to it: submitted
 // iff it is not outside the light volume, on or off screen. The glue calls only this predicate.
 inline OffscreenPick meshPick(bool lightOutside, bool sceneDrawsRoot, bool grownInside, bool sorted = false)

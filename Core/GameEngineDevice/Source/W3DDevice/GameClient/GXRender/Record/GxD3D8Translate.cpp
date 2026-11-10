@@ -682,12 +682,12 @@ bool GxD3D8Translate::drawIndexedUP(uint32_t t, uint32_t minIndex, uint32_t numV
 	return ok;
 }
 
-// S7 A44 (D · look-shadowmaps-4; integrator T5 (a)): a DRAWN caster is captured only when it tests and writes depth (p.depthTest &&
+// S7 A44 (integrator T5 (a)): a DRAWN caster is captured only when it tests and writes depth (p.depthTest &&
 // p.depthWrite -> GxPacketWriter.cpp captureCaster's caller); a CAST-ONLY draw is captured under the SAME two expressions on the same
 // render-state block, plus the CAST tag the visible path carries - so the off-screen caster set equals the on-screen one by construction.
 static bool casterZTest(const uint32_t* rs) { return rs[d3d8::RS_ZENABLE] != 0; }
 static bool casterZWrite(const uint32_t* rs) { return rs[RS_ZWRITEENABLE] != 0; }
-// S7 A61/A62 (D · look-shadowmaps-5; the integrator's A61 ruling (1)): SOLID is read HERE only, and only under CAST_ONLY (emit's sole
+// S7 A61/A62 (the integrator's A61 ruling (1)): SOLID is read HERE only, and only under CAST_ONLY (emit's sole
 // caller of this test): a sorted CAST_SHADOW caster - blended, no z write - is captured solid like 2003's volume. The drawn path's rule
 // (p.depthTest && p.depthWrite at GxPacketWriter.cpp:1148) never sees SOLID.
 bool GxD3D8Translate::castOnlyCaptures() const
@@ -756,7 +756,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 		return refuse(keep.emplace(why, why).first->second.c_str());
 	}
 
-	// S7 A23 (D · look-shadowmaps): a CAST-ONLY draw (an off-screen shadow caster) stops here. Its capture needs the vertex inputs,
+	// S7 A23: a CAST-ONLY draw (an off-screen shadow caster) stops here. Its capture needs the vertex inputs,
 	// buffers, topology and World only: no FF pack, no pipeline lookup or build, no viewport, nothing recorded into MAIN
 	// (GxPacketWriter::captureOnly). v0 replays fixed-function casters: a custom vertex program is not a cast-only caster yet.
 	if (m_shadowTags & kShadowTagCastOnly) {
@@ -894,7 +894,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 			label("ui");
 	}
 
-	// --- the structural key (DESIGN_pipeline-cache.md §2): topology class, fill, shading, blend, write mask, sample mask
+	// --- the structural key: topology class, fill, shading, blend, write mask, sample mask
 	key.s.topologyClass = t == PT_POINTLIST ? GxTopoPoints : t <= PT_LINESTRIP ? GxTopoLines : GxTopoTriangles;
 	key.s.polygonMode = rs[RS_FILLMODE] == FILL_POINT ? VK_POLYGON_MODE_POINT : rs[RS_FILLMODE] == FILL_WIREFRAME ?
 		VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL;
@@ -933,7 +933,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 	key.s.colorFormat = uint32_t(m_color.image->format->vk);
 	key.s.depthFormat = depthOk ? uint32_t(m_depth.image->format->vk) : 0u;
 	key.s.samples = uint8_t(m_color.image->samples);
-	// B · a2c-1 (A108, SCOPE_a2c.md; busy-region ruling DLSS_INTEGRATION.md:3798): alpha-to-coverage. One rule (GxAlphaToCoverage.h) sets
+	// (A108, busy-region ruling): alpha-to-coverage. One rule (GxAlphaToCoverage.h) sets
 	// the key's byte and, only when on, bit 3 of word 0 in a COPY of the spec block - getFF and the push read the copy, the cached pack
 	// stays as packed. Session off (key off, or no a2c shader family): this one test, no copy.
 	const GxFFSpecBlock* specUsed = &spec;
@@ -1177,7 +1177,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 		return refuse("the writer refused the packet");
 	++m_stats.drawn;
 	// the draw class as an index, from the expressions the per-draw string used to take (stats() names it); the zwrite bit only
-	// with the depth test - the text has three depth states (E · rw3-L-3's condition)
+	// with the depth test - the text has three depth states (condition)
 	const bool blendBit = m_debug.drawClassWrongBit ? p.depthWrite : b.enable;
 	++m_drawClassCount[((m_vs & d3d8::FVF_POSITION_MASK) == d3d8::FVF_XYZRHW ? 16u : 0u) | (blendBit ? 8u : 0u) | (p.depthTest ? 4u : 0u) |
 		(p.depthTest && p.depthWrite ? 2u : 0u) | (m_color.texture ? 1u : 0u)];

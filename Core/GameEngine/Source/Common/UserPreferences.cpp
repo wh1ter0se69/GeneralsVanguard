@@ -163,7 +163,7 @@ Bool UserPreferences::load(AsciiString fname)
 		{
 			// GeneralsX: A UTF-8 BOM (a hand edit in an older Notepad) is not part of the first key.
 			// Kept, it hid that key from the game while the launcher (gxio strip_bom) read it, so a first line
-			// "GXRenderer = native" showed the new renderer on in the launcher and ran classic (C · asm-0967).
+			// "GXRenderer = native" showed the new renderer on in the launcher and ran classic.
 			const char *start = buf;
 			if (firstLine && (unsigned char)buf[0] == 0xEF && (unsigned char)buf[1] == 0xBB && (unsigned char)buf[2] == 0xBF)
 				start = buf + 3;

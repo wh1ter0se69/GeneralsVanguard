@@ -36,7 +36,7 @@
 /// only feed them (census, plane_gone, engageable, auto_air, cover) - run unless GX_TAA_DIAG=0. Off changes no decision: those blocks
 /// read the game and write stderr (and a log-only list, m_gxAirPrevRaid, that nothing saves, CRCs or reads); the engageable scan's
 /// damage estimate also refreshes caches every reader refreshes itself (Weapon::getStatus's m_status, armor - not CRC'd;
-/// t2cheap-r1 P3). The [GXHOOK] timer stays on either way. A release build has none of this code.
+/// ). The [GXHOOK] timer stays on either way. A release build has none of this code.
 inline bool gxTaaDiagOn()
 {
 	static const bool on = []() { const char *v = getenv("GX_TAA_DIAG"); return !(v != nullptr && v[0] == '0' && v[1] == '\0'); }();
@@ -209,11 +209,11 @@ public: // AIPlayer interface, may be overridden by AISkirmishPlayer.  jba.
 	virtual void recruitSpecificAITeam(TeamPrototype *teamProto, Real recruitRadius); ///< Builds this team immediately.
 
 	virtual Bool isSkirmishAI() {return false;}
-	/// GeneralsX 22/10/2026 (ai-wh1ter0se-econ R, DESIGN.md 6): AI_PLAYER_FACE_FRONT turned on; the point the doors face (FALSE: none).
+	/// GeneralsX 22/10/2026 (ai-wh1ter0se-econ R, 6): AI_PLAYER_FACE_FRONT turned on; the point the doors face (FALSE: none).
 	void gxSetFaceFront(Bool on) { m_gxFaceFront = on; }
 	Bool gxFaceFront() const { return m_gxFaceFront; }
 	virtual Bool gxFrontPoint(Coord3D *out) { (void)out; return FALSE; }
-	/// GeneralsX 22/10/2026 (ai-wh1ter0se-econ T, DESIGN.md 7): AI_PLAYER_TUNNEL_AIR_WATCH's radius; 0 = off (stock).
+	/// GeneralsX 22/10/2026 (ai-wh1ter0se-econ T, 7): AI_PLAYER_TUNNEL_AIR_WATCH's radius; 0 = off (stock).
 	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): a NEGATIVE radius is the observe-only watch of the ablation arm T0 - the same AA team,
 	/// lifetime rule and [GXTAA] engageable lines, and no assignment, exit, attack or return order. gxAirWatchRadius() is the ACTING
 	/// radius (0 in T0, so every "watch on" test elsewhere stays T's); gxAirWatchScanRadius() is the radius both arms scan with.
@@ -240,7 +240,7 @@ public: // AIPlayer interface, may be overridden by AISkirmishPlayer.  jba.
 	/// GeneralsX 06/11/2026 base-layout (ADDENDUM_8 -> ADDENDUM_9): the point supply depots are ranked from and a supply centre is offset towards
 	/// (findSupplyCenter, buildBySupplies): the base centre, or a keyed skirmish list's STOCK centre (AISkirmishPlayer).
 	virtual const Coord3D &gxSupplyRef() const { return m_baseCenter; }
-	/// GeneralsX 30/10/2026 rb-core (gx-handoff ai/rulebank): this AI's rule bank - AISkirmishPlayer's; nullptr for a campaign AI
+	/// GeneralsX 30/10/2026 rb-core: this AI's rule bank - AISkirmishPlayer's; nullptr for a campaign AI
 	virtual GXRuleBank *gxRuleBank() { return nullptr; }
 	Int hoardThreshold();	///< GeneralsX: the bank above which this AI spends faster (0 = never; AIPlayer.cpp)
 	Bool isHoarding();		///< GeneralsX: the bank is above hoardThreshold()

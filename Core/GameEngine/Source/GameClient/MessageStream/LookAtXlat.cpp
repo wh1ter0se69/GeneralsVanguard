@@ -330,7 +330,7 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 			m_middleButtonDownTimeMsec = now;
 
 			// GeneralsX @feature camera-tilt 06/10/2026 Option/Alt + middle-drag tilts (pitch) instead of rotating.
-			// Client-only: the view is not simulated and no message is sent. See ui/camera-tilt/FINDING.md.
+			// Client-only: the view is not simulated and no message is sent.
 			m_isRotating = !( msg->getArgument( 1 )->integer & ( KEY_STATE_LALT | KEY_STATE_RALT ) );
 			m_isPitching = !m_isRotating;
 			m_anchor = msg->getArgument( 0 )->pixel;
@@ -481,7 +481,7 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 			m_lastMouseMoveTimeMsec = timeGetTime();
 
 			// GeneralsX: The wheel moves the camera by a FRACTION of its height, not a fixed
-			// 10 units. Measured on the Mini (gxscroll, real CGEvents): every wheel event reached here and moved the
+			// 10 units. Measured (gxscroll, real CGEvents): every wheel event reached here and moved the
 			// camera, but by 10 units a notch - 35 notches across the stock 100..448, 134 to 1444, 423 to the Debug
 			// menu's 4333, and a trackpad's 0.1-line events 1 unit each: "I need to do 03902932 scrolls for it to
 			// work". Now a notch is 10% of the height (in: /1.1, out: x1.1, so in-then-out returns exactly): at the

@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule COUNTER.GLA_VS_CHINA (C·rb-data-15): the Toxin general meets the China
+# GeneralsX: rule bank DATA rule COUNTER.GLA_VS_CHINA: the Toxin general meets the China
 # Infantry and Tank GENERALS without Scorpion waves (row 322: "Vs China Infantry: core army is Battle Buses, more Quads and Angry Mobs ...; cut
 # Scud Launchers ~80%"; row 324: "Vs China Tank Emperors: Gamma Battle Buses or Jarmen Kell; Buses beat Emperors"; Dominator: "It should
 # have been Battle Buses, more quads and more angry mobs"). Stock Hard Toxin sends Scorpion waves at everyone.

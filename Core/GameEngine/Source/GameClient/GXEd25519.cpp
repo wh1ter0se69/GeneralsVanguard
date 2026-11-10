@@ -4,7 +4,7 @@
  * GeneralsX: moved into the engine and de-Windowsed 11/08/2026
  *
  * WHY IT MOVED. This began beside the Windows launcher, where the only document anyone needed to
- * verify was the release manifest. Identity (docs/WORKDIR/FRIENDS_V2_SPEC.md section 2) makes the
+ * verify was the release manifest. Identity makes the
  * ENGINE a verifier too, on four platforms, and the Windows engine has no HTTPS to fetch with and
  * no OpenSSL to verify with - so one implementation has to serve both. Copying it would give a
  * security anchor two implementations that drift, which is the worst of the available outcomes;

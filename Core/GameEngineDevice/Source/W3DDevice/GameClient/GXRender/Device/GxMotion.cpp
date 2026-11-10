@@ -1,4 +1,4 @@
-// GeneralsX: GxMotion.h (DESIGN_motion.md rev 2: §4 depth, §5 jitter, §6.9 resolve).
+// GeneralsX: GxMotion.h (rev 2: §4 depth, §5 jitter, §6.9 resolve).
 #include "GxMotion.h"
 
 #include "shaders/gx_present.vert.h"

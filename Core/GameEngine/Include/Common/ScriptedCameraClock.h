@@ -103,7 +103,7 @@ namespace ScriptedCameraClock
 	enum { BLUR_MAX_COUNT = 60, BLUR_COUNT_STEP = 5 };
 
 	// A script's time multiplier, bounded: an interpolation between INT_MAX-sized ones leaves int range, and that float -> int
-	// conversion differs by CPU (arm64 saturates, x64 gives INT_MIN: camera-sim-B r3 P2), and a divider of thousands of
+	// conversion differs by CPU (arm64 saturates, x64 gives INT_MIN: camera-sim-B), and a divider of thousands of
 	// frames is no camera move anyone scripts. Symmetric, so every value <= 1 still means "no speed-up", as before.
 	enum { MAX_TIME_MULTIPLIER = 1000 };
 	inline int clampTimeMultiplier(int m)
@@ -141,7 +141,7 @@ namespace ScriptedCameraClock
 
 		bool setEaseTimes(float easeInTime, float easeOutTime)
 		{
-			// a NaN (a map's raw float) clamps like a negative: every comparison with it is false (camera-sim-B r4 P2)
+			// a NaN (a map's raw float) clamps like a negative: every comparison with it is false (camera-sim-B)
 			bool ok = true;
 			in = easeInTime;
 			if (!(in >= 0.0f && in <= 1.0f)) {
@@ -355,7 +355,7 @@ public:
 			const float before = m_path.elapsed;
 			m_path.elapsed += pathMs;
 			// ...or stops growing under a real step: past ~2^28 ms a float sum of 16.7 ms steps rounds back to itself, and a path of
-			// days never ended - the rendered freeze loop (W3DDisplay::draw) never returned (camera-sim-B r5 P2). A zero step
+			// days never ended - the rendered freeze loop (W3DDisplay::draw) never returned (camera-sim-B). A zero step
 			// (the halted draw's slice) is no stall.
 			if (m_path.elapsed > m_path.total || (pathMs > 0.0f && m_path.elapsed == before))
 			{
@@ -363,7 +363,7 @@ public:
 				m_freeze = false;
 				// its final multiplier, however the steps fell: W3DView kept the last one it sampled, which depends on the step's
 				// length - a frozen path run out at frameMs here and at the draw's slice in the view kept different ones
-				// (camera-sim-B r2 P2). A rotation's last sample (cur == num) is its end multiplier already.
+				// (camera-sim-B). A rotation's last sample (cur == num) is its end multiplier already.
 				m_multiplier = m_path.endMultiplier;
 				did |= ENDED_PATH;
 			}
@@ -421,7 +421,7 @@ public:
 	/// A camera-only freeze: no logic frame passes until its moves end, and no script runs meanwhile, so they end at once - in
 	/// the state stepping them out leaves (a rotation's or a path's end multiplier, its freeze cleared), without the steps: a
 	/// path of days stepped 16.7 ms at a time never ends once its float elapsed time stops growing (2^29 ms:
-	/// camera-sim-B r3 P2), and this loop would never return.
+	/// camera-sim-B), and this loop would never return.
 	void runToEnd()
 	{
 		if (m_moves & ROTATE)

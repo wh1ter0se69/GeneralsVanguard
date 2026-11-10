@@ -910,7 +910,7 @@ static_assert(offsetof(LANMessage, GameInfo.options) + m_lanMaxOptionsLength + 1
 	"the longest announce LANMessageWireSize can send must lie inside the struct and the lobby packet");
 
 // GeneralsX: THE RECEIVER TERMINATES ITS OWN STRINGS; it never trusts the
-// sender's terminator (review P3-1 of fix/codex-batch-misc).
+// sender's terminator.
 //
 // LANAPI::update blind-casts the receive slot to LANMessage. A datagram is usually SHORTER than
 // the struct (wireSize() sends the legacy extent, MSG_GAME_OPTIONS only its string), so every byte

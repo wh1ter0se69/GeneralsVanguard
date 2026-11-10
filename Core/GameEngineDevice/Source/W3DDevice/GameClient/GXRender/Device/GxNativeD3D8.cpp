@@ -1,4 +1,4 @@
-// GeneralsX: GxNativeD3D8: see GxNativeD3D8.h and render-seam/DESIGN_l1-device.md §1, §2.
+// GeneralsX: GxNativeD3D8: see GxNativeD3D8.h and, §2.
 #include "GxNativeD3D8.h"
 
 #include "GxCustomCatalog.h"
@@ -51,7 +51,7 @@ const GUID kIidD3D8 = { 0x1DD9E8DA, 0x1C77, 0x4D40, { 0xB0, 0xCF, 0x98, 0xFE, 0x
 
 std::string baseName(const std::string& p)
 {
-	const size_t s = p.find_last_of("/\\");   // D · native-windows-1: a Windows module path separates with '\\'
+	const size_t s = p.find_last_of("/\\");   // a Windows module path separates with '\\'
 	return s == std::string::npos ? p : p.substr(s + 1);
 }
 bool isMoltenVK(const std::string& p) { return baseName(p).find("MoltenVK") != std::string::npos; }
@@ -73,7 +73,7 @@ std::string quoteSafe(std::string s)
 	return s;
 }
 
-// C · native-ipad-1 13/10/2026: the swapchain's actual present mode for the session line (-1 = no swapchain)
+// the swapchain's actual present mode for the session line (-1 = no swapchain)
 const char* presentModeName(int m)
 {
 	switch (m) {
@@ -176,7 +176,7 @@ bool GxNativeQualifyLoader(const GxLoaderFacts& f, bool requireMoltenVK, std::st
 			loaderBuild[i] = haveBuilds && !f.builds[k].empty() ? f.builds[k] : "path:" + i;
 		}
 	}
-	// B · dlss-streamline-1 (A36.2): the declared interposer stands in front of the one loader (still required below), and only it
+	// (A36.2): the declared interposer stands in front of the one loader (still required below), and only it
 	const bool viaInterposer = !f.interposerImage.empty() && (f.procAddrImage == f.interposerImage || f.testInterposerAnyPath);
 	if (!viaInterposer && !f.procAddrImage.empty() && !isLoader(f.procAddrImage)) {
 		*why = "the host's vkGetInstanceProcAddr is in '" + f.procAddrImage + "', not a Vulkan loader (libvulkan*)";
@@ -269,7 +269,7 @@ GxLoaderFacts GxNativeLoaderFacts(PFN_vkGetInstanceProcAddr gipa, const void* in
 {
 	GxLoaderFacts f;
 #if defined(__APPLE__)
-	(void)interposerModule;   // B · dlss-streamline-1: Streamline (the only interposer) is Windows-only
+	(void)interposerModule;   // Streamline (the only interposer) is Windows-only
 	auto real = [](const char* p) {
 		char buf[PATH_MAX];
 		return std::string(::realpath(p, buf) ? buf : p);
@@ -351,7 +351,7 @@ GxLoaderFacts GxNativeLoaderFacts(PFN_vkGetInstanceProcAddr gipa, const void* in
 		if (f.procAddrImage.empty())
 			f.procAddrImage = "?";   // unattributable: never a loader
 	}
-	if (interposerModule)   // B · dlss-streamline-1: the same utf8(pathW()) as procAddrImage, so the two compare byte for byte
+	if (interposerModule)   // the same utf8(pathW()) as procAddrImage, so the two compare byte for byte
 		f.interposerImage = utf8(pathW(static_cast<HMODULE>(const_cast<void*>(interposerModule))));
 	HANDLE snap = INVALID_HANDLE_VALUE;
 	for (int attempt = 0; attempt < 8 && snap == INVALID_HANDLE_VALUE; ++attempt) {   // ERROR_BAD_LENGTH: the list changed, retry
@@ -396,7 +396,7 @@ bool GxNativeQualifyShaders(const GxNativeSessionHost& host, std::string* why)
 	for (size_t i = 0; i < count; ++i) {
 		const GxCsEntry& e = entries[i];
 		// unported: never loaded; water: compiled into the binary; gx: synthetic programs created by the game's own code
-		// (Pipeline/GxSyntheticPrograms.h, THE rule for every synthetic program - render-dlss/DLSS_INTEGRATION.md 13/10)
+		// (Pipeline/GxSyntheticPrograms.h, THE rule for every synthetic program - 13/10)
 		if (e.program == 0 || std::strncmp(e.files, "water:", 6) == 0 || std::strncmp(e.files, "gx:", 3) == 0)
 			continue;
 		std::string name = e.files;
@@ -558,7 +558,7 @@ private:
 		{
 			bool ok = false;
 #if (defined(__APPLE__) && (TARGET_OS_OSX || (TARGET_OS_IOS && !TARGET_OS_SIMULATOR && !TARGET_OS_MACCATALYST))) || (defined(_WIN32) && defined(_WIN64))
-			ok = true;   // D · native-windows-1 13/10/2026: Windows x64 qualifies (the MSVC build, GxNativeHostWin32); C · native-ipad-1 13/10/2026: iOS devices qualify (SDL3 UIKit host, MoltenVK bound directly: S8 below)
+			ok = true;   // Windows x64 qualifies (the MSVC build, GxNativeHostWin32); iOS devices qualify (SDL3 UIKit host, MoltenVK bound directly: S8 below)
 #endif
 			if (m_debug.platformUnqualified)
 				ok = false;
@@ -600,7 +600,7 @@ private:
 				return classic(6, forced(6) ? forcedReason(6) : why);
 		}
 		// S7 GeneralsX features the device does not draw: GX_SHADOW_GPU (W3DVolumetricShadow.cpp gxShadowGpuMode: '0'..'2' else the
-		// game's default). C · rw3-R11 13/10/2026: the default is the game's PLATFORM default, 1 on _WIN32 (it read 0 everywhere, so a
+		// game's default). the default is the game's PLATFORM default, 1 on _WIN32 (it read 0 everywhere, so a
 		// Windows session with the variable unset qualified and then had every GPU shadow draw refused: missing shadows, not classic).
 		{
 #if defined(_WIN32)
@@ -648,7 +648,7 @@ private:
 		m_deviceSelect = haveId ? id.Description : "";
 		GxNativeHost host = m_host;
 		host.samplerAnisotropy = cfg.samplerAnisotropy;
-		host.presentInterval = cfg.presentInterval;   // D · native-windows-1: the shipped Windows dxvk.conf's present keys
+		host.presentInterval = cfg.presentInterval;   // the shipped Windows dxvk.conf's present keys
 		host.tearFree = cfg.tearFree;
 		if (haveId && !m_debug.skipUuidRow)
 			host.requireDeviceUuid = reinterpret_cast<const uint8_t*>(&id.DeviceIdentifier);   // the device checks it right after VkCtx::init (S9)
@@ -698,7 +698,7 @@ private:
 #if defined(__APPLE__)
 			const bool requireMvk = true;
 #else
-			const bool requireMvk = false;   // D · native-windows-1: no MoltenVK off Apple; the loader is still required
+			const bool requireMvk = false;   // no MoltenVK off Apple; the loader is still required
 #endif
 			auto qualify = [&] { return GxNativeQualifyLoader(post, requireMvk, &loaderPath, &mvkPath, &w, true); };
 #endif
@@ -741,7 +741,7 @@ private:
 			quoteSafe(nd ? std::string(nd->ctx().properties().deviceName) : std::string()).c_str(), (uuid ? hex16(uuid) : std::string()).c_str(), loaderPath.c_str(), mvkPath.c_str(),
 			post.images.size(), unsigned(pp.MultiSampleType), fifo ? "FIFO" : cfg.tearFree == 1 ? "MAILBOX" : "IMMEDIATE", cfg.samplerAnisotropy,
 			quoteSafe(cfg.sources).c_str(), unsigned(pp.BackBufferWidth), unsigned(pp.BackBufferHeight),
-			nd ? presentModeName(nd->swapchainPresentMode()) : "none");   // C · native-ipad-1: the mode VkSwapchain chose, not the request
+			nd ? presentModeName(nd->swapchainPresentMode()) : "none");   // the mode VkSwapchain chose, not the request
 		s.line = line;
 		*outDev = dev;
 		return s;

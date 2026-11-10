@@ -2,7 +2,7 @@
 //
 // GeneralsX: What only the device layer knows, for the replay diagnostics block (GameClient/GXReplayDiag.h).
 //
-// Every native call the block needs lives here (AGENTS.md: platform code stays in the device layer). Of D3DADAPTER_IDENTIFIER8
+// Every native call the block needs lives here (platform code stays in the device layer). Of D3DADAPTER_IDENTIFIER8
 // only the model and the driver version leave: DeviceIdentifier is a GUID, SubSysId names the board, and Driver can be a path on
 // some stacks. None is needed to reproduce a report, and each says more about one machine than a replay strangers read should.
 // os.* and cpu.* are model strings; uname()'s nodename is the host name and is never touched.
@@ -199,7 +199,7 @@ static void gxReplayDiagDeviceFacts( GXReplayDiagPutFn put )
 	put( "gpu.vendor", buf );
 	snprintf( buf, sizeof( buf ), "%04X", (unsigned)id.DeviceId );
 	put( "gpu.device", buf );
-	// DXVK answers every adapter with one fixed number, 0x7FFFFFFFFFFFFFFF, which reads like a version and is none (measured on the Mini: 32767.65535.65535.65535).
+	// DXVK answers every adapter with one fixed number, 0x7FFFFFFFFFFFFFFF, which reads like a version and is none (measured: 32767.65535.65535.65535).
 	if( id.DriverVersion.HighPart == 0x7FFFFFFF && id.DriverVersion.LowPart == 0xFFFFFFFF )
 		put( "gpu.driver", "unknown" );
 	else
@@ -212,10 +212,10 @@ static void gxReplayDiagDeviceFacts( GXReplayDiagPutFn put )
 
 // GX-TEL-SAMPLER-BEGIN
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: TELEMETRY PHASE 2 (wh1ter0se msg 238d): the game's own CPU and memory beside the machine's,
-// for the PERF row (GXReplayDiagFormat.h kind 3), from a sampler thread. SPEC_replay-telemetry.md 2.4 is the table of sources. Phase 2
-// reads NO GPU and walks no thread: per-thread class CPU, process GPU and machine GPU are cut to a phase 2b on every platform (lead C69
-// 06/11), so cpu_render / cpu_audio / gpu_proc / sys_gpu are always UNKNOWN.
+// GeneralsX: TELEMETRY PHASE 2: the game's own CPU and memory beside the machine's,
+// for the PERF row (GXReplayDiagFormat.h kind 3), from a sampler thread. 2.4 is the table of sources. Phase 2
+// reads NO GPU and walks no thread: per-thread class CPU, process GPU and machine GPU are cut to a phase 2b on every platform,
+// so cpu_render / cpu_audio / gpu_proc / sys_gpu are always UNKNOWN.
 //
 // PRIVACY IS AN ALLOW-LIST here too. This span calls OS APIs only, never engine code. It reads THIS process's totals and the machine's;
 // no thread list, never another process's name, never a serial, UUID, PCI id, MAC, host or user name. It resolves and loads NOTHING at
@@ -225,7 +225,7 @@ static void gxReplayDiagDeviceFacts( GXReplayDiagPutFn put )
 // THE THREAD is detached and never joined: a join in stopRecording (GameLogic.cpp:6334) could wait on an in-flight OS query. Its
 // shared block is heap-allocated once and never freed, so neither exit nor static destruction can take a mutex out from under it. It
 // runs at NORMAL priority on purpose: it has to keep sampling when the machine is saturated, which is exactly when a lowest-priority
-// thread starves and the rows that matter would read "sampler late" (ruling, HANDBACK_replay-tel-3.md).
+// thread starves and the rows that matter would read "sampler late".
 //
 // PUBLICATION: the sampler builds a CUMULATIVE sample with no lock held and copies it in under `pub`; the main thread try_locks, copies
 // the newest two and unlocks. If the lock is held, or nothing new arrived, the row says UNKNOWN + sampler late (fillRow) - the main
@@ -311,11 +311,11 @@ inline void osDelta( const Raw &a, const Raw &b, GxTelOsSnapshot &out )
 	out.endNs = b.tNs;
 	out.beginNs = a.beginNs >= 0 && a.beginNs < a.tNs ? a.beginNs : a.tNs;
 	out.cpuProcMs = gxTelNarrowU16( perSecond( a.procNs, b.procNs, dt ) );
-	// Per-thread class CPU is cut to a phase 2b (lead C69 06/11): no thread is walked, so render and audio are always UNKNOWN
+	// Per-thread class CPU is cut to a phase 2b: no thread is walked, so render and audio are always UNKNOWN
 	out.cpuRenderMs = GX_TEL_U16_UNKNOWN;
 	out.cpuAudioMs = GX_TEL_U16_UNKNOWN;
 	out.cpuPcoreMs = gxTelNarrowU16( perSecond( a.pcoreNs, b.pcoreNs, dt ) );
-	// No GPU reader on any platform in phase 2 (cut to a phase 2b, lead C69 06/11): both GPU fields are always UNKNOWN
+	// No GPU reader on any platform in phase 2 (cut to a phase 2b, 06/11): both GPU fields are always UNKNOWN
 	out.gpuProcMs = GX_TEL_U16_UNKNOWN;
 	out.sysGpuPct = GX_TEL_U8_UNKNOWN;
 	long long x10 = -1;

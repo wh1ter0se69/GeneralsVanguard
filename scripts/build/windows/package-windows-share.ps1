@@ -174,7 +174,7 @@ if (-not $pyExe) {
 # variable the engine itself reads the retail data through (and run.cmd sets), and $Patch, the one
 # directory the archive staging below searches - so the generator tries at least what staging does.
 # Still not hardcoded: C:\dev\gxdata. It is this box's layout, recorded in
-# docs\WORKDIR\RUNBOOK_2026-08-24_ATOMIC_SHIP.md, not a default for anyone else's.
+# docs\WORKDIR\, not a default for anyone else's.
 #
 # Resolved up here, before anything is staged, so GX_OVERLAY_RESOLVE_ONLY=1 can answer "which
 # WindowZH.big would this read" without a run folder. scripts\test\overlay-gamedir-test.ps1 is the
@@ -593,7 +593,7 @@ because this build is not code-signed, not because anything is wrong with it.
 # ==================================================================================================
 # THE SPLIT
 #
-# GeneralsX: Design: docs/WORKDIR/DESIGN_2026-08-12_payload-granularity.md
+# GeneralsX:
 #
 # WHY. The manifest named ONE artifact, so every update was all-or-nothing: the owner downloaded
 # 112 MB to receive a 3.4 MB engine change. Measured on the published afa9a64b2 payload - 117.4 MB

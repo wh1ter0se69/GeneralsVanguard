@@ -985,7 +985,7 @@ void ScriptEngine::init()
 	curTemplate->m_uiStrings[2] = " nearest team ";
 	curTemplate->m_uiStrings[3] = ".";
 
-	// GeneralsX: ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6).
+	// GeneralsX: ai-wh1ter0se-econ R.
 	curTemplate = &m_actionTemplates[ScriptAction::AI_PLAYER_FACE_FRONT];
 	curTemplate->m_internalName = "AI_PLAYER_FACE_FRONT";
 	curTemplate->m_uiName = "Player_/AI/AI player turns production doors to its base front and defences outward.";
@@ -994,7 +994,7 @@ void ScriptEngine::init()
 	curTemplate->m_numUiStrings = 2;
 	curTemplate->m_uiStrings[0] = " ";
 	curTemplate->m_uiStrings[1] = " turns production doors to its base front.";
-	// GeneralsX: ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7).
+	// GeneralsX: ai-wh1ter0se-econ T.
 	curTemplate = &m_actionTemplates[ScriptAction::AI_PLAYER_TUNNEL_AIR_WATCH];
 	curTemplate->m_internalName = "AI_PLAYER_TUNNEL_AIR_WATCH";
 	curTemplate->m_uiName = "Player_/AI/AI player's tunnels watch for enemy aircraft within a radius (0 = off); the team guards in the tunnels.";
@@ -1008,7 +1008,7 @@ void ScriptEngine::init()
 	curTemplate->m_uiStrings[2] = "; ";
 	curTemplate->m_uiStrings[3] = " guards in the tunnels.";
 
-	// GeneralsX: rb-core: the AI RULE BANK's three actions (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.2,
+	// GeneralsX: rb-core: the AI RULE BANK's three actions (2.2.2,
 	// CONTRACT v1 2.6.1) - added once, then never another: every engine rule is configured through them, by rule id and key
 	// (GXRules/GXRuleTable.inl). A stock .scb never calls them.
 	curTemplate = &m_actionTemplates[ScriptAction::AI_PLAYER_GX_RULE];
@@ -4961,8 +4961,8 @@ void ScriptEngine::init()
 	curTemplate->m_uiStrings[0] = " ";
 	curTemplate->m_uiStrings[1] = " has free container slots.";
 
-	// GeneralsX: rb-sense-1: the AI rule bank's FAIR faction sensor (SENSE.ENEMY_FACTION; gx-handoff
-	// ai/rulebank/core/NEXT_rb-sense-1.md). A stock .scb never names it.
+	// GeneralsX: rb-sense-1: the AI rule bank's FAIR faction sensor (SENSE.ENEMY_FACTION;
+	// ). A stock .scb never names it.
 	curTemplate = &m_conditionTemplates[Condition::AI_PLAYER_GX_SENSE];
 	curTemplate->m_internalName = "AI_PLAYER_GX_SENSE";
 	curTemplate->m_uiName = "Player_/AI/GX rule bank: AI player fairly knows a player's faction (lobby, or 3 different units seen).";
@@ -4975,8 +4975,8 @@ void ScriptEngine::init()
 	curTemplate->m_uiStrings[1] = " knows that ";
 	curTemplate->m_uiStrings[2] = " is ";
 
-	// GeneralsX: rb-sense-2: the AI rule bank's FAIR enemy-object conditions (SENSE.FOG_CONDITIONS; gx-handoff
-	// ai/rulebank/core/PLAN_rb-sense-2.md) - the fair twins of PLAYER_HAS_OBJECT_COMPARISON and SKIRMISH_VALUE_IN_AREA, which read through
+	// GeneralsX: rb-sense-2: the AI rule bank's FAIR enemy-object conditions (SENSE.FOG_CONDITIONS;
+	// ) - the fair twins of PLAYER_HAS_OBJECT_COMPARISON and SKIRMISH_VALUE_IN_AREA, which read through
 	// fog. Only what the AI's own units and buildings see now counts. A stock .scb never names them.
 	curTemplate = &m_conditionTemplates[Condition::AI_PLAYER_GX_SEEN_COUNT];
 	curTemplate->m_internalName = "AI_PLAYER_GX_SEEN_COUNT";

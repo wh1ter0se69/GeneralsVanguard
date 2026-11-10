@@ -132,7 +132,7 @@ public:
 	AsciiString				m_side;						///< Name of the faction.
 	BuildListInfo*		m_buildList;				///< Build list for the faction.
 	AISideBuildList*	m_next;
-	// GeneralsX 04/11/2026 base-layout (gx-handoff ai/base-layout/PLAN_base-layout.md): this side's opt-ins, read from the data by side each time and never saved. Absent = the retail path.
+	// GeneralsX 04/11/2026 base-layout: this side's opt-ins, read from the data by side each time and never saved. Absent = the retail path.
 	Bool							m_gxTurnLayout;			///< GXTurnLayout: the list's spots AND angles turn rigidly to the base front (AISkirmishPlayer::adjustBuildList)
 	Bool							m_gxFrontDoors;			///< GXFrontDoors: with AI_PLAYER_FACE_FRONT on, the door rule, run-time doors and airfields (AIPlayer.cpp)
 	Real							m_gxRingRadius;			///< GXRingRadius: > 0: the defence ring's radius in place of m_baseRadius (AISkirmishPlayer::buildAIBaseDefenseStructure); 0: the base radius

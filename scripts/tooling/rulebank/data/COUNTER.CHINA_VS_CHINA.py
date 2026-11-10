@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule COUNTER.CHINA_VS_CHINA (C·rb-data-14): the Nuke general meets China with the
+# GeneralsX: rule bank DATA rule COUNTER.CHINA_VS_CHINA: the Nuke general meets China with the
 # "Nuke mix" - Overlords, ECM tanks and Gattlings (rows 212, 220, 248, 487, 497, 498, 1044, 1260, 1262, 1983; "it tends to be a battle of
 # helixes against overlords, ECMs and Gatlings mixed in ... the Nuke mix, there's very little China can do to break through"). Stock Hard
 # Nuke sends Battlemaster waves at everyone. This:

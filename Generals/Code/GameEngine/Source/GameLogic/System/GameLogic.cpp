@@ -967,7 +967,7 @@ static void populateRandomStartPosition( GameInfo *game )
 	// corrupt Player_9..12_Start values for a byte-identical map (rewritten by an 8-slot reader that
 	// shares the retail user-data folder) agreed on the random pick, took different FARTHEST picks
 	// and desynced at the first CRC check. See
-	// docs/WORKDIR/evidence/windows-desync-mapcache-2026-09-23.md.
+	//
 	//
 	// tryStartNewGame now calls this AFTER TheTerrainLogic->loadMap(), so these are the Waypoint objects
 	// built from the map file every peer loaded - the same ones placeNetworkBuildingsForPlayer()

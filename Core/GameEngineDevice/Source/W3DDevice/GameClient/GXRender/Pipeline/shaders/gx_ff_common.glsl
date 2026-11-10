@@ -1,4 +1,4 @@
-// gx_ff_common.glsl - the fixed-function ubershader's shared declarations (WS-D week 2, C · rw2-D, 11/10/2026).
+// gx_ff_common.glsl - the fixed-function ubershader's shared declarations (WS-D week 2).
 //
 // ADAPTED from DXVK 3.0 src/d3d9/shaders/d3d9_fixed_function_common.glsl (tag v3.0, commit 97fe0c66f; shaders/SOURCE.txt).
 // DXVK is Copyright (c) 2017 Philip Rebohle, (c) 2019 Joshua Ashton, (c) 2019 Robin Kertels, (c) 2023 Jeffrey Ellison, and is

@@ -1,5 +1,5 @@
 // GeneralsX: A23-B: the native device's command stream and its worker thread `gx-native-cs`
-// (perf-audit/DESIGN_A23_wide-ring.md v8 §2, §3.10, §5 - DXVK's CS model, dxvk_cs.h).
+// (v8 §2, §3.10, §5 - DXVK's CS model, dxvk_cs.h).
 //
 // One producer (the device's front end: the thread calling the device, one at a time) and one consumer (the worker). A command
 // is a by-value functor plus an optional payload of bytes copied at the call, laid out in one SPSC byte ring:

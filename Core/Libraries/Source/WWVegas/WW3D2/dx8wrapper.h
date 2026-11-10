@@ -340,8 +340,8 @@ struct RenderStateStruct
 	RenderStateStruct& operator= (const RenderStateStruct& src);
 };
 
-// GeneralsX: d3d8 call ring SPIKE (R-CPU step 3a, gx-handoff modernize/render-split/
-// PROMPT_d3d8-ring.md). GX_D3D8RING=1: inside Begin_Record/End_Record (RTS3DScene::Flush's opaque + occluded-object
+// GeneralsX: d3d8 call ring SPIKE (R-CPU step 3a,
+// ). GX_D3D8RING=1: inside Begin_Record/End_Record (RTS3DScene::Flush's opaque + occluded-object
 // flushes) the DX8Wrapper setters and draws are recorded into a byte ring, and a render thread replays them on the
 // device while the main thread keeps collecting. End_Record waits until everything is replayed, so the device is the
 // main thread's again before anything else touches it. GX_D3D8RING=3 records the same way and replays inline at
@@ -682,7 +682,7 @@ public:
 	// one costs a constant rebuild at the next draw. GX_WRAPSKIP is a bit mask, read once: 1 = lights already on the
 	// device are not re-flagged, 2 = a byte-identical material is not re-sent, 4 = a byte-identical world/view matrix is
 	// not re-sent, 8 = Set_Light_Environment skips rebuilding lights whose inputs are bit-identical to its last full pass
-	// while LightStateSerial has not moved (needs 1; C · rcpu-cuts-2). Default 15; GX_WRAPSKIP=0 is the old path, and
+	// while LightStateSerial has not moved (needs 1). Default 15; GX_WRAPSKIP=0 is the old path, and
 	// GX_WRAPSKIP=7 the 0.9.61 path, for the A/Bs. Each compare is against what the WRAPPER last
 	// sent, so it is only valid while nothing else sets that state: the shadow code's direct SetTransform calls
 	// Forget_Transforms(), Invalidate_Cached_Render_States and device creation forget all three, and no code outside the
@@ -845,7 +845,7 @@ public:
 	typedef IDirect3DDevice8 *(*DeviceWrapHook)(IDirect3DDevice8 *device, UINT adapter, D3DDEVTYPE type, DWORD behavior,
 		const D3DPRESENT_PARAMETERS *pp);
 	static DeviceWrapHook Device_Wrap_Hook;
-	// GeneralsX: L1 native device (render-seam/DESIGN_l1-device.md §1): called once in Init right
+	// GeneralsX: L1 native device: called once in Init right
 	// after Direct3DCreate8; a non-null result replaces D3DInterface for the whole session (the native proxy forwards every
 	// adapter query to DXVK's interface and decides in CreateDevice). nullptr = today's path.
 	typedef IDirect3D8 *(*InterfaceWrapHook)(IDirect3D8 *dxvk);
@@ -893,7 +893,7 @@ public:
 	static unsigned Get_Draw_Polygon_Low_Bound_Limit() { return DrawPolygonLowBoundLimit; }	// GeneralsX: WS-G seat: E1 (GxL2Dry)
 
 	// GeneralsX: WS-G: a read-only view of the wrapper's caches for the L2 state-check (GXRender/Scene,
-	// CONTRACT_L2.md §4): what the wrapper believes the device holds.
+	// ): what the wrapper believes the device holds.
 	struct GxShadowView
 	{
 		const unsigned *renderStates;							// [256], 0x12345678 = unknown (Invalidate_Cached_Render_States)
@@ -932,7 +932,7 @@ public:
 	// capture uses it where a zeroed cache would read as unknown.
 	static Matrix4x4						GxViewSent;
 	static bool								GxViewSentValid;
-	// D · render-motion-units-1 13/10/2026 (PREREG_T A35, render-dlss/DESIGN_motion-units.md §2.4/§2.6): the motion bridge records a
+	// (A35, /§2.6): the motion bridge records a
 	// moved draw with the viewport it ran with (Set_Viewport has no cache: kept only while GxCaptureOn, like the projection above),
 	// reads the wrapper's applied world/view and buffers, and forces its own constant upload past the cache (W3DTreeBuffer writes
 	// c4-c12 straight to the device, so the cache can claim values the device no longer holds).
@@ -944,7 +944,7 @@ public:
 	// A device Reset restores the device's default material / projection / texture matrices: the captured ones are unknown
 	// until sent again. WORLD/VIEW go with Invalidate_Cached_Render_States, which Reset_Device calls.
 	static void Gx_Capture_Forget() { GxMaterialSentValid = GxProjSentValid = GxViewSentValid = GxViewportSentValid = false; GxTexmValid = 0; }
-	// Device truth for the L2 contract's E2 (CONTRACT_L2.md r5 §2, rw1-G0): per render / texture-stage state, the value the DEVICE
+	// Device truth for the L2 contract's E2 (r5 §2, rw1-G0): per render / texture-stage state, the value the DEVICE
 	// holds and whether it is known. Seeded by reading the device (Gx_Truth_Enable; again after a Reset, which restores DXVK's
 	// ResetState values); every wrapper write that reaches the device updates it; Invalidate_Cached_Render_States leaves it alone
 	// (it only empties the cache); a raw writer behind the wrapper records the value it wrote (GxRawRS / GxRawTSS below, or
@@ -984,7 +984,7 @@ public:
 		return v;
 	}
 
-	// GeneralsX: WS-G Task 5: the `=2` call log (gxcalllog.h; render-seam/rw1-G/T1_HOOKS_BRIEF.md). The check
+	// GeneralsX: WS-G Task 5: the `=2` call log (gxcalllog.h). The check
 	// (GXRender/Scene) sets GxLogOn around a modelled flush only; off (the default) every hook is one predicted-false test of it.
 	static bool								GxLogOn;
 	static gxlog::Log *						GxLog;			// where records go (owned by the check)
@@ -1194,7 +1194,7 @@ protected:
 // shader system updates KJM v
 // GeneralsX: WS-G: a render / texture-stage state written behind the wrapper's cache. Records the value in the
 // device truth (DX8Wrapper::GxTruth*, CONTRACT_L2 r5 E2) and sends exactly what the raw call sent. Every audited raw writer uses these
-// (render-seam/rw1-G/RAWAUDIT.md); C9 (GXRender/Scene) compares the truth with the device and shows any writer the audit missed.
+// C9 (GXRender/Scene) compares the truth with the device and shows any writer the audit missed.
 // Off: one branch per call.
 inline HRESULT GxRawRS(IDirect3DDevice8 *dev, D3DRENDERSTATETYPE state, DWORD value)
 {

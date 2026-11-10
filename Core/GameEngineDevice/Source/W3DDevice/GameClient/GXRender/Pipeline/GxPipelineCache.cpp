@@ -1,4 +1,4 @@
-// GxPipelineCache.cpp - see GxPipelineCache.h and render-seam/DESIGN_pipeline-cache.md.
+// GxPipelineCache.cpp - see GxPipelineCache.h and
 #include "GxPipelineCache.h"
 #include "GxCustomCatalog.h"
 
@@ -458,7 +458,7 @@ VkPipeline GxPipelineCache::createPipeline(const GxPipelineKey& key, const GxFFS
 	const bool customKey = key.shader.kind == GxShaderCustom;
 	const uint8_t csPs = customKey ? key.shader.reserved[1] : 0;
 	VkShaderModule vsMod = m_shaders.vs, fsMod = s.flatShading ? m_shaders.fsFlat : m_shaders.fs;
-	// B · a2c-2 (A108; the integrator's ruling after DLSS_INTEGRATION.md:3876): the a2c family serves an alphaToCoverage = 1 key and
+	// (A108; the integrator's ruling after): the a2c family serves an alphaToCoverage = 1 key and
 	// nothing else - a plain key keeps today's module (in an A2C session too), so turning A2C off leaves every draw on today's pipelines
 	bool a2cMod = s.alphaToCoverage && m_shaders.fsA2c && m_shaders.fsFlatA2c;
 	if (g_gxPipeTestMutants.a2cModuleSwapOne && !customKey && !s.alphaToCoverage && m_shaders.fsA2c) {   // TEST-ONLY: one plain key swapped
@@ -509,7 +509,7 @@ VkPipeline GxPipelineCache::createPipeline(const GxPipelineKey& key, const GxFFS
 		si.dataSize = sizeof(specData);
 		si.pData = specData;
 		st[0].pSpecializationInfo = st[1].pSpecializationInfo = &si;
-		if (g_gxPipeTestMutants.specFs)   // TEST-ONLY: the identity gate's planted mutant (B · a2c-1: or the a2c family, flat for a flat key)
+		if (g_gxPipeTestMutants.specFs)   // TEST-ONLY: the identity gate's planted mutant (or the a2c family, flat for a flat key)
 			st[1].module = s.flatShading && g_gxPipeTestMutants.specFsFlat ? g_gxPipeTestMutants.specFsFlat : g_gxPipeTestMutants.specFs;
 	}
 
@@ -585,7 +585,7 @@ std::vector<GxPipelineKey> GxPipelineCache::retargetedKeys(uint8_t fromSamples, 
 	}
 	{
 		std::lock_guard<std::mutex> g(m_recordLock);
-		for (const GxPipelineKey& k : m_recorded)   // B · a2c-2: only what this session can build, as at startup
+		for (const GxPipelineKey& k : m_recorded)   // only what this session can build, as at startup
 			if (k.s.samples == fromSamples && (recordedBuildable(k) || g_gxPipeTestMutants.retargetNoBuildCheck))
 				known.push_back(k);
 	}
@@ -612,7 +612,7 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
                                  size_t configCount, unsigned workers, const std::vector<GxPipelineKey>* extra) {
 	waitPrebuild();
 	std::vector<GxPipelineKey> candidates;
-	std::vector<GxPipelineKey> plainTwins;   // B · a2c-2: a session without A2C: the plain twins of recorded A2C keys
+	std::vector<GxPipelineKey> plainTwins;   // a session without A2C: the plain twins of recorded A2C keys
 	uint32_t a2cSkipped = 0;
 	for (size_t c = 0; c < configCount; c++)
 		for (size_t i = 0; i < partCount; i++) {
@@ -629,14 +629,14 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 			VkShaderModule vs = VK_NULL_HANDLE, fs = VK_NULL_HANDLE;
 			std::string why;
 			// a velocity key recorded by a GX_MOTION_UNITS=1 session, now off (no gx:vel module): skipped silently, so key off prints
-			// nothing new (D · render-motion-units-1, PREREG_T A35)
+			// nothing new (A35)
 			if (k.shader.kind == GxShaderCustom && (k.shader.reserved[0] == GxCsVsVelRigid || k.shader.reserved[0] == GxCsVsVelSkin ||
 			                                        k.shader.reserved[1] == GxCsPsVelocity) && !m_custom.psVel)
 				continue;
 			bool plainTwin = false;
-			if (k.s.alphaToCoverage && !m_a2cTwins) {   // B · a2c-1: an earlier key-on session's A2C key - this session draws none
+			if (k.s.alphaToCoverage && !m_a2cTwins) {   // an earlier key-on session's A2C key - this session draws none
 				++a2cSkipped;
-				// B · a2c-2 (DLSS_INTEGRATION.md:3857 (1)): its PLAIN twin is what a draw of that state requests here - queued below
+				// its PLAIN twin is what a draw of that state requests here - queued below
 				// (alphaToCoverage 0 = today's module), never the A2C key itself, never a key that is already a candidate or built. It
 				// passes the custom-module check below like any recorded key (an unbuildable twin would fail the prebuild).
 				if (g_gxPipeTestMutants.noA2cPlainTwins)
@@ -660,7 +660,7 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 		}
 	}
 	const size_t recordedCount = candidates.size() - partCount * configCount;
-	// B · a2c-2 (DLSS_INTEGRATION.md:3857 (1) a): only a twin that is a NEW candidate (not a census or recorded key, not already built or
+	// ((1) a): only a twin that is a NEW candidate (not a census or recorded key, not already built or
 	// failed, not a twin of another recorded A2C key) joins the closure; it is COUNTED only when the claim below really queues it (
 	// a2c-code-r8 #4: a caller's get() may be compiling it - in flight, so not queued here)
 	const size_t plainBegin = candidates.size();
@@ -673,9 +673,9 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 	}
 	const size_t plainEnd = candidates.size();
 	uint32_t plainQueued = 0;
-	if (extra)   // B · a2c-1: an A2C Reset's retargeted keys (key off never passes any); their twins follow below
+	if (extra)   // an A2C Reset's retargeted keys (key off never passes any); their twins follow below
 		candidates.insert(candidates.end(), extra->begin(), extra->end());
-	// B · a2c-1 (A108): the A2C twin of every eligible candidate (census and recorded) - a twin that is already a candidate (recorded by an
+	// (A108): the A2C twin of every eligible candidate (census and recorded) - a twin that is already a candidate (recorded by an
 	// earlier key-on session) is a duplicate and the claim below skips it. A dynamic-A2C mask normalises the byte away: no twins needed.
 	uint32_t twins = 0;
 	if (m_a2cTwins && !(m_dynamicMask & GxDynAlphaToCov) && !g_gxPipeTestMutants.noA2cTwins) {
@@ -706,7 +706,7 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 			if (!m_inFlight.count(k) && !contains(k)) {
 				m_inFlight.insert(k);
 				m_queue.push_back(k);
-				plainQueued += i >= plainBegin && i < plainEnd ? 1u : 0u;   // B · a2c-2: a plain twin really queued
+				plainQueued += i >= plainBegin && i < plainEnd ? 1u : 0u;   // a plain twin really queued
 			}
 		}
 		queued = m_queue.size();
@@ -719,15 +719,15 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 		m_stats.a2cRecordedSkipped += a2cSkipped;
 		m_stats.a2cPlainTwins += plainQueued;
 		m_stats.prebuildRuns++;
-		m_prebuildFailedBase = m_stats.prebuildFailed;   // B · a2c-2: prebuildComplete() reads this prebuild's failures only
+		m_prebuildFailedBase = m_stats.prebuildFailed;   // prebuildComplete() reads this prebuild's failures only
 		m_prebuildFailedKeys.clear();
 	}
 	m_prebuildStart = std::chrono::steady_clock::now();
-	// B · a2c-1: the A2C fields only when they say something - a key-off session with no recorded A2C key prints today's line
+	// the A2C fields only when they say something - a key-off session with no recorded A2C key prints today's line
 	char a2c[96] = "";
 	if (m_a2cTwins)
 		std::snprintf(a2c, sizeof(a2c), " a2c_twins=%u", twins);
-	else if (a2cSkipped)   // DLSS_INTEGRATION.md:3857 (1) d: the skipped A2C keys AND the plain twins queued for them
+	else if (a2cSkipped)   // (1) d: the skipped A2C keys AND the plain twins queued for them
 		std::snprintf(a2c, sizeof(a2c), " a2c_recorded_skipped=%u a2c_plain_twins=%u", a2cSkipped, plainQueued);
 	if (extra && m_a2cTwins) {
 		const size_t n = std::strlen(a2c);
@@ -765,7 +765,7 @@ void GxPipelineCache::worker() {
 				m_stats.prebuilt++;
 			else {
 				m_stats.prebuildFailed++;
-				m_prebuildFailedKeys.push_back(key);   // B · a2c-2: dropPrebuildFailures()
+				m_prebuildFailedKeys.push_back(key);   // dropPrebuildFailures()
 				m_stats.failed += last && g_gxPipeTestMutants.failLastPrebuildKey ? 1 : 0;
 			}
 		}
@@ -791,7 +791,7 @@ bool GxPipelineCache::prebuildComplete() const {
 		return false;
 	{
 		std::lock_guard<std::mutex> g(m_statsLock);
-		// B · a2c-2: this prebuild's failures (one prebuild: the base is 0 - today's test exactly)
+		// this prebuild's failures (one prebuild: the base is 0 - today's test exactly)
 		if (m_stats.prebuildFailed != (g_gxPipeTestMutants.cumulativePrebuildFailed ? 0u : m_prebuildFailedBase))
 			return false;
 	}
@@ -843,7 +843,7 @@ size_t GxPipelineCache::dropPrebuildFailures() {
 	return dropped;
 }
 
-// B · a2c-1 (A108): a key a GxAlphaToCoverage.h draw can turn A2C on for - the pipeline-side half of that rule (the alpha test, depth
+// (A108): a key a GxAlphaToCoverage.h draw can turn A2C on for - the pipeline-side half of that rule (the alpha test, depth
 // and stencil state are not in the key: dynamic or in the spec block). gx:vel programs have their own PS without the ramp.
 bool GxPipelineCache::a2cTwinEligible(const GxPipelineKey& k)
 {
@@ -878,7 +878,7 @@ bool GxPipelineCache::customModules(const GxPipelineKey& key, VkShaderModule* vs
 		}
 	}
 	if (csPs) {
-		// B · a2c-2: an alphaToCoverage = 1 key takes the a2c build of gx_cs_ps (when the session loaded it), every other key today's
+		// an alphaToCoverage = 1 key takes the a2c build of gx_cs_ps (when the session loaded it), every other key today's
 		*fs = csPs == GxCsPsVelocity ? m_custom.psVel : csPs < GxCsPsCount ? (key.s.alphaToCoverage && m_custom.psA2c ? m_custom.psA2c : m_custom.ps)
 		    : VK_NULL_HANDLE;
 		if (*fs == VK_NULL_HANDLE || key.s.flatShading) {   // the ports are smooth-shaded only: a flat draw has no verified port
@@ -905,11 +905,11 @@ VkPipeline GxPipelineCache::buildCustom(const GxPipelineKey& key) {
 		std::lock_guard<std::mutex> g(m_statsLock);
 		m_stats.customBuilt++;
 		m_stats.customMs += ms;
-		if (!p && k.s.alphaToCoverage)   // B · a2c-2 (:3927 a)
+		if (!p && k.s.alphaToCoverage)   // (:3927 a)
 			m_stats.a2cFirstUseFailed++;
 	}
 	if (p && !g_gxPipeTestMutants.noCustomRecord)
-		recordMiss(k);   // the next session prebuilds it (DESIGN_l1-device §10.2 item 1: recorded custom keys)
+		recordMiss(k);   // the next session prebuilds it (item 1: recorded custom keys)
 	return insert(k, p);   // a failed build is published as NULL: never retried per draw
 }
 
@@ -971,7 +971,7 @@ VkPipeline GxPipelineCache::get(const GxPipelineKey& key, uint32_t frame) {
 		std::lock_guard<std::mutex> g(m_statsLock);
 		n = ++m_stats.genericMiss;
 		m_stats.missMs += ms;
-		if (!p && k.s.alphaToCoverage)   // B · a2c-2 (:3927 a): an A2C first-use failure - the draw is refused
+		if (!p && k.s.alphaToCoverage)   // (:3927 a): an A2C first-use failure - the draw is refused
 			m_stats.a2cFirstUseFailed++;
 	}
 	std::fprintf(stderr, "[GXPIPE] MISS n=%u frame=%u ms=%.2f key=%s\n", n, frame, ms, hexKey(k).c_str());

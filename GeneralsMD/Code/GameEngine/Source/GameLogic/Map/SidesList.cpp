@@ -1103,7 +1103,7 @@ void BuildListInfo::parseStructure(INI *ini, void *instance, void* /*store*/, co
 
 
 /**
- GeneralsX: base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md): GXFallbackLocation marks the fallback as the layout's, the one
+ GeneralsX: base-layout: GXFallbackLocation marks the fallback as the layout's, the one
  place m_gxLayoutFallback is set from data.
 */
 void BuildListInfo::parseGXFallbackLocation(INI *ini, void *instance, void *store, const void *userData)

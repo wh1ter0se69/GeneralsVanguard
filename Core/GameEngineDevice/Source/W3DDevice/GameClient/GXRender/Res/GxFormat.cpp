@@ -83,7 +83,7 @@ void FormatTable::init(VkPhysicalDevice pd, const FormatCaps& caps)
 	// GXRES-private HD-art formats (not D3D8): BC7 on desktop GPUs, ASTC 4x4 on Apple's (PLAN §1b "+").
 	m_formats.push_back(block(d3d::GX_BC7, "BC7", VK_FORMAT_BC7_UNORM_BLOCK, 16));
 	m_formats.push_back(block(d3d::GX_ASTC_4x4, "ASTC4x4", VK_FORMAT_ASTC_4x4_UNORM_BLOCK, 16));
-	// GXRES-private render target (not D3D8): the motion bridge's object-velocity image (D · render-motion-units-1), key on only.
+	// GXRES-private render target (not D3D8): the motion bridge's object-velocity image, key on only.
 	if (caps.rgba16f)
 		m_formats.push_back(colour(d3d::GX_RGBA16F, "RGBA16F", VK_FORMAT_R16G16B16A16_SFLOAT, 8));
 	m_formats.push_back(depth(d3d::D16, "D16", VK_FORMAT_D16_UNORM, 2, false));

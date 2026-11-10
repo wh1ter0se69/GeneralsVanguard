@@ -1797,7 +1797,7 @@ static void gxReadTurrets(const Object* obj, Real turrets[MAX_TURRETS][2])
 
 // GeneralsX: The pose every drawn-pose consumer starts from: a superweapon missile's visual flight
 // (MissileVisual.h) where it has one, else the logic transform. It is the interpolation snapshot's input, so the blend, the
-// bone carries and attached emitters all follow the visual flight between ticks (graphics/HANDBACK_interpolation.md).
+// bone carries and attached emitters all follow the visual flight between ticks.
 const Matrix3D *Drawable::getPoseBase() const
 {
 	const Matrix3D *visual = getVisualTransform();
@@ -1987,7 +1987,7 @@ Real Drawable::drawnPhase() const
 	// Asked outside the client's draw - in the middle of a logic update, where LaserUpdate::initLaser reads the muzzle
 	// bone of a unit that may just have moved (before m_frame++) - it is the logic pose, always. The snapshot belongs to
 	// the next draw, which takes this move as a tick: refreshing it here would count the move as "moved without a tick"
-	// and drop the previous pose, and the last draw's phase says nothing about now (interp-r11 P2).
+	// and drop the previous pose, and the last draw's phase says nothing about now.
 	if (getObject() == nullptr || !TheDisplay->isRenderPhase())
 		return 1.0f;
 	// Nothing to blend while the phase is pinned to 1 (every draw gets a tick) or GX_INTERP=0: no snapshot either, so those

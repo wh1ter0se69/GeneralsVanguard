@@ -217,7 +217,7 @@ Bool handleInGameSlashCommands(UnicodeString uText)
 	// The name as typed, else the one name equal to it ignoring case, else the one name it starts (ignoring case): LAN names
 	// are unique only case-sensitively, so "Alice" must never reach "ALICE". The GeneralsX Tab board's
 	// KICK button calls the same gxVoteKickStart; this is the way in that needs no UI. Never sent as chat. Every line below
-	// that carries a name goes out through messageNoFormat: a nickname may hold a printf directive (r2 P1).
+	// that carries a name goes out through messageNoFormat: a nickname may hold a printf directive.
 	if (token == "kick" || token == "votekick")
 	{
 		const WideChar *rest = uText.str() + 1;

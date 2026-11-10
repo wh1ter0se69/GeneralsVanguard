@@ -125,7 +125,7 @@ constexpr const UnsignedInt MAX_SAFE_PATH_CELL_COUNT = 2000;
 // expands every reachable cell on the map. A 5760x5760 map at PATHFIND_CELL_SIZE 10 is 331,776
 // cells against a 30,000-entry PathfindCellInfo pool, so one such call empties the pool by
 // construction and every OTHER allocation in that frame fails. Measured 2026-08-21, see
-// docs/WORKDIR/PATHFIND_POOL_MEASURED_2026-08-21.md: free fell 24,102 -> 0 -> 24,155 inside one
+// free fell 24,102 -> 0 -> 24,155 inside one
 // 60-frame window with standing occupancy unmoved, and all 1,696 allocation failures of the run
 // came from this one function and no other site.
 //
@@ -183,7 +183,7 @@ constexpr const UnsignedInt MAX_CLOSEST_PATH_INFO_COUNT = 5000;
 // GeneralsX: internalFindPath is the SECOND A* in this file with no bound
 // on how much of the pool it may hold, and once e22363ac8 bounded findClosestPath it became the
 // ONLY site that still fails. Measured on GXCauldron12ZHv1, seed 12345, 20,000 frames, 12 players
-// (docs/WORKDIR/PATHFIND_FIX_MEASURED_2026-08-25.md): with the findClosestPath bound in, bucket 5
+// with the findClosestPath bound in, bucket 5
 // GXPATH_CLOSEST went 840 -> 0 and bucket 1 GXPATH_INTERNAL_FIND went 1,593 -> 2,081 - every one of
 // the 2,081 remaining failures - and `low`, the free-list watermark, still reached 0 in both arms.
 // A ceiling on what one search TAKES is not a floor under what the pool HAS: the reserve
@@ -318,7 +318,7 @@ static inline Bool gxPathTraceEnabled()
 // GeneralsX: GX_PATHIDXCHECK: every indexed open-list insertion is also walked
 // and the two landing points compared (idxbad= in [GXPATH], which needs GX_PATHTRACE to print). Observation
 // only, like GX_PATHTRACE, and kept apart from it so a timing run does not pay for the walk.
-// Test builds only (-DGX_TEST_INSTRUMENTS=ON; lead C55 29/10/2026): a shipping build's idxbad= is always 0.
+// Test builds only (-DGX_TEST_INSTRUMENTS=ON; 29/10/2026): a shipping build's idxbad= is always 0.
 static Int s_gxPathIdxCheckOn = -1;
 
 static inline Bool gxPathIdxCheckEnabled()
@@ -6798,7 +6798,7 @@ Bool Pathfinder::adjustToLandingDestination(Object *obj, Coord3D *dest)
 // GeneralsX: (H03) GX_H03_CHECK=1: run the fallback adjustDestination skips anyway and report whether it
 // would have found a destination or moved *dest. A test switch: with the claim above true it changes nothing; a mismatch
 // line means the skip changed the game. Counts every 1,000 skips and every mismatch at once.
-// Test builds only (-DGX_TEST_INSTRUMENTS=ON; lead C55 29/10/2026).
+// Test builds only (-DGX_TEST_INSTRUMENTS=ON; 29/10/2026).
 static void gxH03CheckSkippedFallback(Pathfinder *pf, Object *obj, const LocomotorSet &locomotorSet, const Coord3D *dest)
 {
 	static const Bool s_on = getenv("GX_H03_CHECK") != nullptr && getenv("GX_H03_CHECK")[0] == '1';
@@ -7431,7 +7431,7 @@ void Pathfinder::processPathfindQueue()
 	// GeneralsX PF27 checker report (GX_PF27=check only). bad is never reset: one mismatch anywhere stays visible.
 	// GeneralsX: The [GXPF27] counter line (fprintf + fflush) only when asked for: the kernel is the
 	// default now, and a blocking stderr write on every busy frame is the hitch the headless CRC walk taught us
-	// (CLAUDE.md, "the headless peer runs a per-frame CRC walk"). Check mode, a trace, or GX_PF27_REPORT=1.
+	// ("the headless peer runs a per-frame CRC walk"). Check mode, a trace, or GX_PF27_REPORT=1.
 	static const Bool s_pf27Report = getenv("GX_PF27_REPORT") != nullptr;
 	if (m_pf27Mode == PF27_CHECK || (m_pf27Mode == PF27_NEW && (s_pf27Report || pf27TraceLevel() != 0)))
 		pf27ReportCounters();

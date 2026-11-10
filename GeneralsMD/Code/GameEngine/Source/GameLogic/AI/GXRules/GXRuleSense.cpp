@@ -263,7 +263,7 @@ Int GXRuleSense::enemyValueNear(const Object *ownAnchor, Real r) const
 	return value;
 }
 
-// ---- SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1, gx-handoff ai/rulebank/core/NEXT_rb-sense-1.md) ----
+// ---- SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1) ----
 /// what the sighting pass may record (one rule for the pass and the save check): a unit or building - STRUCTURE,
 /// INFANTRY, VEHICLE or AIRCRAFT, never a PROJECTILE - judged on the template's FINAL override (StealthUpdate::xfer restores a disguise as the
 /// template before its map.ini override; the uninterrupted game held the override)
@@ -405,7 +405,7 @@ Int GXRuleSense::collectSightings(PlayerMaskType track, std::vector<std::vector<
 	return f.fogTests();
 }
 
-// ---- SENSE.FOG_CONDITIONS (GeneralsX 02/11/2026 rb-sense-2, gx-handoff ai/rulebank/core/PLAN_rb-sense-2.md) ----
+// ---- SENSE.FOG_CONDITIONS (GeneralsX 02/11/2026 rb-sense-2) ----
 namespace
 {
 /// a unit or building of another player, as the viewer sees its owner and template (the snapshot's own cheap test; the partition filters
@@ -1619,7 +1619,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 	}
 	if (strcmp(which, "own_sight") == 0)
 	{
-		// GeneralsX 02/11/2026 rb-sense-2 (gx-handoff ai/rulebank/data/HANDBACK_rb-data-15.md section 5: stock USA's Spy Satellite fed the
+		// GeneralsX 02/11/2026 rb-sense-2 (stock USA's Spy Satellite fed the
 		// sensor at f28): the sight path counts only what the viewer's OWN units and buildings see. Three GLA templates of E at a spot the
 		// viewer does not see; then each reveal that is NOT an own unit's look - a granted reveal (doShroudReveal for the viewer, as a map or
 		// script reveal does), a viewer-owned Spy Satellite ping, an ALLY's unit - must add no sighting and no value for a FAIR viewer (want

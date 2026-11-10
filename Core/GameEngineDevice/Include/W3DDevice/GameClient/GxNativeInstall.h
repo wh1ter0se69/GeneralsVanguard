@@ -1,4 +1,4 @@
-// GeneralsX: L1 native device, game side (render-seam/DESIGN_l1-device.md §1, §8.1, §12).
+// GeneralsX: L1 native device, game side (§8.1, §12).
 //
 // Options.ini GXRenderer = native (or GX_RENDERER=native, TEST-ONLY, over it: GameClient/GXRendererKey.h) asks for the native d3d8
 // device; GxNative::Install() (W3DDisplay::init, right after GxCap::Install and before WW3D::Init creates the device) sets
@@ -16,7 +16,7 @@ namespace GxNative
 bool Requested();
 void Install();
 bool SessionLive();	///< GeneralsX: a native session really started; Requested() alone can still end up classic (the replay diagnostics block)
-// DESIGN_l1-device §2.3 (E · rw3-L-3): the native session's "[GXNATIVE] stats final ... end=exit" line when its device is still
+// the native session's "[GXNATIVE] stats final ... end=exit" line when its device is still
 // alive at process exit (a leaked child keeps it; the device prints end=teardown itself when it is destroyed). The game ends in
 // _exit() (SDL3Main), which runs no atexit handler - call this before shutdownMemoryManager(): the line allocates. No-op otherwise.
 void FlushFinalStats();

@@ -230,7 +230,7 @@ void presentLoadResult( SaveCode result, const AsciiString &filename )
 //   * the game mode (CHUNK_GameStateMap: version byte, save map, pristine map, Int mode (v2+)): a save
 //     made during a LAN or online match was a SIGSEGV on load, not an error - GameStateMap::xfer restores
 //     GAME_LAN/GAME_INTERNET, no network session supplies TheGameInfo, and the multiplayer load screen
-//     dereferenced the null game (fix/incompatible-save-refusal);
+//     dereferenced the null game;
 //   * the save file type (CHUNK_GameState: version byte, Int SaveFileType (v2+));
 //   * the identity trailer, accepted only where SG_EOF ends exactly that many bytes before end of file;
 //   * `crash`: the loads MEASURED to crash or hang, each found by loading a mutated real save with -loadsave

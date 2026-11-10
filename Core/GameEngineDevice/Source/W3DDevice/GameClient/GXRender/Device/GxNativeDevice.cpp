@@ -1,4 +1,4 @@
-// GeneralsX: L1: the native d3d8 device (GxNativeDevice.h; render-seam/DESIGN_l1-device.md).
+// GeneralsX: L1: the native d3d8 device (GxNativeDevice.h).
 // DXVK cites are references/fbraz3-dxvk 954c5c692, the CLASSIC path this device must be indistinguishable from.
 #include "GxNativeDevice.h"
 
@@ -15,7 +15,7 @@
 #include "gx_ff.frag.h"
 #include "gx_ff.vert.h"
 #include "gx_ff_flat.frag.h"
-// S7 P2 (PREREG_look-shadowmaps A18/A36): the key-on receiver family, loaded when the look mask has bit 0
+// S7 P2 (A18/A36): the key-on receiver family, loaded when the look mask has bit 0
 #include "gx_cs_ps.sm.frag.h"
 #include "gx_cs_trees.sm.vert.h"
 #include "gx_cs_wave.sm.vert.h"
@@ -23,7 +23,7 @@
 #include "gx_ff.sm.frag.h"
 #include "gx_ff.sm.vert.h"
 #include "gx_ff_flat.sm.frag.h"
-#include "gx_cs_ps.a2c.frag.h"      // B · a2c-1 (A108): the alpha-to-coverage family (regen.sh @A2C / @SMA2C)
+#include "gx_cs_ps.a2c.frag.h"      // (A108): the alpha-to-coverage family (regen.sh @A2C / @SMA2C)
 #include "gx_ff.a2c.frag.h"
 #include "gx_ff_flat.a2c.frag.h"
 #include "gx_cs_ps.sm.a2c.frag.h"
@@ -131,9 +131,9 @@ size_t funcLen(const DWORD* f)
 
 const uint64_t kIdleUploadFlushBytes = 32ull << 20;
 
-// A23-B: the worker's default - ON for the timing series (PREREG_T A23-B: X runs with GX_NATIVE_CS unset; GX_NATIVE_CS=0 is
+// A23-B: the worker's default - ON for the timing series (A23-B: X runs with GX_NATIVE_CS unset; GX_NATIVE_CS=0 is
 // today's direct path). The branch MERGES with it ON only after step 1, step 1b, the wh1ter0se's-PC ABBA, the Mini default-camera guard,
-// the iGPU + iPad arms and the Windows CRT-exit check (render-integration-5, 13/10). Its ring (PREREG_T A23-B amendment 1 (5):
+// the iGPU + iPad arms and the Windows CRT-exit check (render-integration-5, 13/10). Its ring (A23-B amendment 1 (5):
 // 32 MiB until step 1b sizes it; iOS capped at 64 MiB).
 constexpr bool kNativeCsDefault = true;
 
@@ -165,18 +165,18 @@ GxNativeDevice* g_exitDevice = nullptr;   // the live device that still owes its
 }
 
 // atexit: the final line of a device the process never destroyed (end=exit). Also the game's FlushFinalStats before its _exit
-// (SDL3Main.cpp), and called by gx_native_test. FIRST it quiesces gx-vk-submit (DESIGN v4 §3.7, PREREG_T A21 am. 4): no Vulkan call
+// (SDL3Main.cpp), and called by gx_native_test. FIRST it quiesces gx-vk-submit (DESIGN v4 §3.7, A21 am. 4): no Vulkan call
 // may run on that thread while the process ends - through exit()'s atexit handlers and static destructors (the Vulkan library's
 // were registered when initVulkan loaded it, before init() registered this hook, so they run after it), or through the game's
 // window teardown and memory-manager shutdown. The final line then counts every op the thread ran.
-// LIMIT of that premise (E · seam-worker-2 / dlss-integrator 18/10): a FUNCTION-LOCAL static first built after init() - e.g. on a
+// LIMIT of that premise (dlss-integrator 18/10): a FUNCTION-LOCAL static first built after init() - e.g. on a
 // renderer thread inside the validation layer's first vkCmdCopyImageToBuffer check - registers its destructor AFTER this hook, so
 // exit() destroys it BEFORE the hook parks the worker (LIFO): a worker still recording at that moment uses a destroyed static
 // (gx_native_test's child-exit-crt: SIGSEGV in VVL). The game never meets it (it parks, then _exit; the validation layer is debug-only).
 namespace {
-// A60 (PREREG_RF A60 am. 2): UCRT runs every atexit handler under its exit lock (__acrt_exit_lock), and a renderer thread that meets a
+// A60 (A60 am. 2): UCRT runs every atexit handler under its exit lock (__acrt_exit_lock), and a renderer thread that meets a
 // first-time static with a destructor (the validation layer's, a driver's, ours) blocks registering it on that same lock while this hook
-// waits for it - a deadlock (Windows, dlss-fg-2: 2 in 22, render-dlss/NOTE_a23b-windows-exit-deadlock.md). The quiesce stays complete and
+// waits for it - a deadlock (Windows, dlss-fg-2: 2 in 22). The quiesce stays complete and
 // unbounded: it is what keeps Vulkan calls off the process while exit() destroys the Vulkan library's statics (§3.7). At the CRT exit a
 // watchdog thread watches it, and when no command completes and no stage passes for the limit it prints one line and ENDS the process -
 // never a return into a CRT that would go on destroying statics under running renderer threads.
@@ -246,7 +246,7 @@ private:
 	std::thread m_t;
 };
 
-// crtExit: called by the CRT's exit (the atexit hook below) rather than explicitly (the game's own shutdown, tests) - PREREG_RF A60
+// crtExit: called by the CRT's exit (the atexit hook below) rather than explicitly (the game's own shutdown, tests) - A60
 void flushFinalStatsAtExit(bool crtExit)
 {
 	std::lock_guard<std::mutex> g(g_exitLock);
@@ -313,7 +313,7 @@ GxNativeDevice::~GxNativeDevice()
 	drainDestroys();
 	m_dropCandidates.clear();
 	if (m_sceneInit)
-		m_scene.shutdown(m_writer);   // D · look-fdepth-plus: disarm, copies and probe - before the writer and GXRES go
+		m_scene.shutdown(m_writer);   // disarm, copies and probe - before the writer and GXRES go
 	m_sceneInit = false;
 	shadowMapShutdown();   // S7: after the device idled above; before the writer that points at its caster list
 	if (m_gpuDump) {   // S7 A92
@@ -328,7 +328,7 @@ GxNativeDevice::~GxNativeDevice()
 	m_worldResolve.shutdown();   // render-hud-seam-1 ResolveLinear
 	m_fsr1.shutdown();           // render-hud-seam-1 Upscale(FSR1)
 	m_motion.shutdown();         // render-motion-1
-	dlssShutdown();   // B · dlss-streamline-1: its output image and slShutdown, before GxResources and the device go
+	dlssShutdown();   // its output image and slShutdown, before GxResources and the device go
 	m_motionInit = false;
 	if (m_capBuf)
 		vmaDestroyBuffer(m_ctx.allocator(), m_capBuf, m_capAlloc);
@@ -336,7 +336,7 @@ GxNativeDevice::~GxNativeDevice()
 	if (m_ctx.initialized()) {
 		for (VkShaderModule* m : { &m_ffShaders.vs, &m_ffShaders.fs, &m_ffShaders.fsFlat, &m_csShaders.ps, &m_csShaders.vsTrees,
 			     &m_csShaders.vsWave, &m_csShaders.vsVelRigid, &m_csShaders.vsVelSkin, &m_csShaders.psVel, &m_csShaders.vsShadow,
-			     &m_ffShaders.fsA2c, &m_ffShaders.fsFlatA2c, &m_csShaders.psA2c })   // B · a2c-2: the a2c family (null with A2C off)
+			     &m_ffShaders.fsA2c, &m_ffShaders.fsFlatA2c, &m_csShaders.psA2c })   // the a2c family (null with A2C off)
 			if (*m)
 				vkDestroyShaderModule(m_ctx.device(), *m, nullptr);
 	}
@@ -374,7 +374,7 @@ HRESULT GxNativeDevice::QueryInterface(REFIID riid, void** pp)
 		*pp = static_cast<IDirect3DDevice8*>(this);
 		return S_OK;
 	}
-	if (isIID(riid, IID_GxShadowMap)) {   // D · look-shadowmaps (S7): key ON only (PREREG A18) - key off answers as before
+	if (isIID(riid, IID_GxShadowMap)) {   // (S7): key ON only (PREREG A18) - key off answers as before
 		if (!m_shadowMapOn) {
 			*pp = nullptr;
 			return E_NOINTERFACE;
@@ -390,7 +390,7 @@ HRESULT GxNativeDevice::QueryInterface(REFIID riid, void** pp)
 		*pp = static_cast<IGxWorldPass*>(&m_worldPass);
 		return S_OK;
 	}
-	if (isIID(riid, IID_GxSceneTap) && m_sceneInit) {   // D · look-fdepth-plus: F-depth+ (GxSceneTap.h), seam on or off
+	if (isIID(riid, IID_GxSceneTap) && m_sceneInit) {   // F-depth+ (GxSceneTap.h), seam on or off
 		m_sceneTap.dev = this;
 		AddRef();
 		*pp = static_cast<IGxSceneTap*>(&m_sceneTap);
@@ -458,7 +458,7 @@ void GxNativeDevice::logFinalStats(const char* end)
 
 // GX_GPUTIME: the frames read since the last line - GPU ms per frame from the start of the frame's command buffer to its end (MoltenVK:
 // first encoder start to last encoder end), per frame ring slot. A frame is read 8 frames after it ran; an unavailable one is miss.
-// The graphics timeline wait; with `us` (GX_NATIVE_WAITS, PREREG_T A30 [GXWAIT]) its host time is added there - without it no clock
+// The graphics timeline wait; with `us` (GX_NATIVE_WAITS, A30 [GXWAIT]) its host time is added there - without it no clock
 // is read, as before.
 void GxNativeDevice::waitTimed(uint64_t value, uint64_t* us)
 {
@@ -547,7 +547,7 @@ void GxNativeDevice::logGpu(uint64_t presents)
 		part[k] = at(m_gpuMs, 0.5);
 		complete = m_gpuMs.size();
 	}
-	// no complete frame in this line: the parts are UNKNOWN, printed as na - never as 0 ms (A17 r2 P2)
+	// no complete frame in this line: the parts are UNKNOWN, printed as na - never as 0 ms (A17)
 	char parts[128];
 	if (complete)
 		std::snprintf(parts, sizeof(parts), "pass=%.4f present=%.4f other=%.4f np=%.1f", part[0], part[1], part[2], part[3]);
@@ -717,7 +717,7 @@ GxNativeValidation GxNativeDevice::validation()
 
 // VkCtx's / GXRES's log lines: printed as before (host.log or stderr), and a GXRES ERROR counted - GXRES reports a failed operation
 // (a staging or upload failure under memory pressure) only by this line while the d3d8 call returns D3D_OK, so the count is what
-// makes it visible to the game's stats and to gxcap-replay --native (C · rw3-P-2's ask; gxcap-replay-vk counts the same).
+// makes it visible to the game's stats and to gxcap-replay --native (ask; gxcap-replay-vk counts the same).
 // Called on the device's thread for GXRES (its calls are device calls).
 void GxNativeDevice::vkLog(V::LogLevel level, const char* line, void* user)
 {
@@ -774,7 +774,7 @@ bool GxNativeDevice::testReadSwapchain(std::vector<uint8_t>* out, uint32_t* widt
 
 bool GxNativeDevice::testReadPresent(std::vector<uint8_t>* out, uint32_t* width, uint32_t* height)
 {
-	// A23-B §3.1: an inspection accessor - S (the worker wrote m_capW / m_capH in its Present). E · seam-worker-2: an S body, not a bare
+	// A23-B §3.1: an inspection accessor - S (the worker wrote m_capW / m_capH in its Present). an S body, not a bare
 	// csSync - endFrameForHost below is an ownership boundary, and a drain alone (m_inline 0) counted it as a front recording at CS1
 	std::optional<SScope> sc;
 	if (m_debug.accessorBareSync)
@@ -826,7 +826,7 @@ bool GxNativeDevice::ensureCapture()
 bool GxNativeDevice::initVulkan(std::string* why)
 {
 	V::VkCtxDesc d;
-	d.getInstanceProcAddr = dlssLoaderRoot();   // B · dlss-streamline: m_host's, or with Streamline its slShutdown-first root
+	d.getInstanceProcAddr = dlssLoaderRoot();   // m_host's, or with Streamline its slShutdown-first root
 	d.instanceExtensions = m_host.instanceExtensions;
 	if (m_host.createSurface)
 		d.deviceExtensions.push_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
@@ -841,7 +841,7 @@ bool GxNativeDevice::initVulkan(std::string* why)
 	if ((m_host.requestedFrameGen > 0 || reflexRequested(m_host) > 0 || m_host.streamline) && !m_host.testNoFgThreadGuard) {
 		// FG P0 §2: its PCL present markers sit around presentToSwapchain on the producer thread; the thread stays off until the
 		// thread=1 census. VkCtx lets Off beat an explicit GX_VK_SUBMIT_THREAD=1.
-		// E · seam-worker-2 (dlss-integrator's ruling 18/10, seam2 design r1 P1): ANY loaded Streamline too - DLSS SR alone and
+		// (dlss-integrator's ruling 18/10, seam2 design): ANY loaded Streamline too - DLSS SR alone and
 		// GX_STREAMLINE_FORCE_LOAD=1 included. Streamline 2.14.1's sl.common plugin hooks Vulkan present (presentCommon: the non-atomic
 		// ctx.currentFrame, garbage collection); on gx-vk-submit those hooks ran unordered with slEvaluateFeature (documented
 		// non-thread-safe) on the producer. With the thread off, present and evaluate are on one thread, in stream order.
@@ -899,7 +899,7 @@ bool GxNativeDevice::initVulkan(std::string* why)
 				logLine("[GXGPU] TEST-ONLY dump=%s (logic slot ms shadow_ms|-1|miss; a missing frame: logic - miss miss)", dp);
 	}
 	Res::FormatCaps caps = m_host.testFormatCaps ? *m_host.testFormatCaps : Res::FormatCaps();
-	caps.rgba16f = m_host.motionUnits;   // PREREG_T A35: the motion bridge's O format exists only with its key on
+	caps.rgba16f = m_host.motionUnits;   // A35: the motion bridge's O format exists only with its key on
 	VkDeviceSize staging = 64ull << 20;   // GX_NATIVE_STAGING_KIB: TEST only (A23-B arms 28, 29 force a dedicated staging buffer)
 	if (const char* k = std::getenv("GX_NATIVE_STAGING_KIB"))
 		if (const unsigned long v = std::strtoul(k, nullptr, 10))
@@ -907,7 +907,7 @@ bool GxNativeDevice::initVulkan(std::string* why)
 	if (!m_gx.init(m_ctx, staging, why, caps))
 		return false;
 	m_gx.setAllocPolicy(&m_allocPolicy);   // A23-B §3.8 (the staging ring's dedicated overflow included)
-	// PREREG_T A30 step 2: frames in flight, ONE value for the writer here and the swapchain's slots (buildOnSurface's frames)
+	// A30 step 2: frames in flight, ONE value for the writer here and the swapchain's slots (buildOnSurface's frames)
 	// FG P0 (dlss-integrator + render-integration-5, 14/10): while FrameGen / Reflex is requested, frames in flight stay 2 and the line says
 	// so, until a census runs at FIF 3 - the rule that keeps gx-vk-submit off (the knob's 3 is refused then, like any other value)
 	const bool fgFif = (m_host.requestedFrameGen > 0 || reflexRequested(m_host) > 0) && !m_host.testNoFifGuard;
@@ -929,7 +929,7 @@ bool GxNativeDevice::initVulkan(std::string* why)
 			logLine("[GXSHADOWMAP] state=off reason=\"%s\" (the game keeps today's stencil shadows)", sw.c_str());
 		}
 	}
-	// B · a2c-1 (A108): bit 1 (GXAlphaToCoverage) acts only on a multisampled creation - else it is cleared here and the session is today's
+	// (A108): bit 1 (GXAlphaToCoverage) acts only on a multisampled creation - else it is cleared here and the session is today's
 	if (m_lookFeatures & 2u) {
 		m_a2cOn = m_createSamples >= 2;
 		if (!m_a2cOn) {
@@ -949,8 +949,8 @@ bool GxNativeDevice::initVulkan(std::string* why)
 	m_writer.setAllocPolicy(&m_allocPolicy);
 	if (m_gpuOn)
 		m_writer.setGpuTimer(&m_gpuTimer, kGpuSets);
-	dlssInit();   // B · dlss-streamline-1: a no-op without Streamline (m_host.streamline null)
-	{   // D · look-fdepth-plus: F-depth+ - nothing is made until a reader asks, except the TEST-ONLY probe's pipeline
+	dlssInit();   // a no-op without Streamline (m_host.streamline null)
+	{   // F-depth+ - nothing is made until a reader asks, except the TEST-ONLY probe's pipeline
 		uint32_t probe = m_host.fdepthProbe;
 		if (const char* e = std::getenv("GX_FDEPTH_PROBE"))
 			probe |= !std::strcmp(e, "depth") ? GX_SCENE_DEPTH : !std::strcmp(e, "colour") ? GX_SCENE_COLOUR :
@@ -983,7 +983,7 @@ bool GxNativeDevice::initVulkan(std::string* why)
 		module(spv_gx_ff_flat_frag, sizeof(spv_gx_ff_flat_frag));
 	m_ffShaders.layout = m_writer.layout().pipeline;
 	m_csShaders.ps = sm ? module(spv_gx_cs_ps_sm_frag, sizeof(spv_gx_cs_ps_sm_frag)) : module(spv_gx_cs_ps_frag, sizeof(spv_gx_cs_ps_frag));
-	// B · a2c-2 (A108; the integrator's ruling after DLSS_INTEGRATION.md:3876): today's fragment modules above serve every plain key; with
+	// (A108; the integrator's ruling after): today's fragment modules above serve every plain key; with
 	// A2C on the a2c family is made IN ADDITION, and the cache uses it for an alphaToCoverage = 1 key only (vertex shaders are the same
 	// either way). A module that cannot be made turns A2C off for the session - never the device.
 	if (m_a2cOn) {
@@ -1008,14 +1008,14 @@ bool GxNativeDevice::initVulkan(std::string* why)
 		module(spv_gx_cs_trees_vert, sizeof(spv_gx_cs_trees_vert));
 	m_csShaders.vsWave = sm ? module(spv_gx_cs_wave_sm_vert, sizeof(spv_gx_cs_wave_sm_vert)) :
 		module(spv_gx_cs_wave_vert, sizeof(spv_gx_cs_wave_vert));
-	m_csShaders.vsShadow = sm ? module(spv_gx_cs_shadow_sm_vert, sizeof(spv_gx_cs_shadow_sm_vert)) :   // C · rw3-R11: GX_SHADOW_GPU
+	m_csShaders.vsShadow = sm ? module(spv_gx_cs_shadow_sm_vert, sizeof(spv_gx_cs_shadow_sm_vert)) :   // GX_SHADOW_GPU
 		module(spv_gx_cs_shadow_vert, sizeof(spv_gx_cs_shadow_vert));
 	if (!m_ffShaders.vs || !m_ffShaders.fs || !m_ffShaders.fsFlat || !m_csShaders.ps || !m_csShaders.vsTrees || !m_csShaders.vsWave ||
 		!m_csShaders.vsShadow) {
 		*why = "shader module creation failed";
 		return false;
 	}
-	if (m_host.motionUnits) {   // PREREG_T A35 (D · render-motion-units-1): key off creates none of them
+	if (m_host.motionUnits) {   // A35: key off creates none of them
 		m_csShaders.vsVelRigid = module(spv_gx_cs_vel_vert, sizeof(spv_gx_cs_vel_vert));
 		m_csShaders.vsVelSkin = module(spv_gx_cs_vel_skin_vert, sizeof(spv_gx_cs_vel_skin_vert));
 		m_csShaders.psVel = module(spv_gx_cs_vel_frag, sizeof(spv_gx_cs_vel_frag));
@@ -1029,9 +1029,9 @@ bool GxNativeDevice::initVulkan(std::string* why)
 		return false;
 	}
 	m_cache.setCustomShaders(m_csShaders);
-	m_cache.setA2CTwins(m_a2cOn);   // B · a2c-1 (A108): prebuild() adds the A2C twin of every eligible key (no first-use compile)
+	m_cache.setA2CTwins(m_a2cOn);   // (A108): prebuild() adds the A2C twin of every eligible key (no first-use compile)
 	m_writer.setPipelineCache(&m_cache);
-	// S7 (D · look-shadowmaps, PREREG A18): the shadow map (created above, before the writer) goes live only with the effective mask
+	// S7 (PREREG A18): the shadow map (created above, before the writer) goes live only with the effective mask
 	if (m_lookFeatures & 1u)
 		shadowMapAttach();
 	// MoltenVK reports no triangle fans (portability subset); the game draws none (census) - a fan is refused by name.
@@ -1039,7 +1039,7 @@ bool GxNativeDevice::initVulkan(std::string* why)
 	m_tr.setBuildCustomOnMiss(true);
 	m_tr.setAnisotropyOverride(m_host.samplerAnisotropy);
 	m_tr.setReceivers((m_lookFeatures & 1u) != 0);   // S7 P2: DrawBits per draw (key off: the word is never written)
-	m_tr.setAlphaToCoverage(m_a2cOn);   // B · a2c-1 (A108): key off = no draw examined
+	m_tr.setAlphaToCoverage(m_a2cOn);   // (A108): key off = no draw examined
 	return true;
 }
 
@@ -1059,7 +1059,7 @@ bool GxNativeDevice::createSwapchainObjects(const D3DPRESENT_PARAMETERS& pp, std
 			m_host.drawableSize(window, &w, &h);
 		// the d3d8 interval (d3d8_d3d9_util.h:108-124): windowed = IMMEDIATE unless COPY_VSYNC (= ONE). `fullscreen` only picks
 		// VkSwapchain's mode (IMMEDIATE > MAILBOX > FIFO vs FIFO), so it carries "interval >= 1".
-		// D · native-windows-1 13/10/2026: dxvk.conf d3d9.presentInterval >= 0 replaces the interval (d3d9_swapchain.cpp:139-140)
+		// dxvk.conf d3d9.presentInterval >= 0 replaces the interval (d3d9_swapchain.cpp:139-140)
 		const bool fifo = m_host.presentInterval >= 0 ? m_host.presentInterval > 0 : (!pp.Windowed || pp.SwapEffect == D3DSWAPEFFECT_COPY_VSYNC);
 		const uint32_t frames = m_fif;   // A30: the writer's count (was V::SwapchainDesc()'s default 2)
 		// a Reset after a SURFACE_LOST that no Present has recovered yet replaces the surface too
@@ -1112,7 +1112,7 @@ bool GxNativeDevice::createSwapchainObjects(const D3DPRESENT_PARAMETERS& pp, std
 		rd.height = pp.BackBufferHeight;
 		rd.format = pp.AutoDepthStencilFormat;
 		rd.samples = pp.MultiSampleType;
-		rd.depthSampled = m_debug.motionSampledAlways;   // the auto depth is never the world's (DESIGN_motion §4); plant only
+		rd.depthSampled = m_debug.motionSampledAlways;   // the auto depth is never the world's; plant only
 		if (!ds->init(m_gx, rd, why))
 			return false;
 		m_autoDepth = new GxNativeSurface(*this, GxNativeSurface::Kind::Depth, std::move(ds), pp.AutoDepthStencilFormat,
@@ -1157,7 +1157,7 @@ void GxNativeDevice::destroySwapchainObjects()
 
 bool GxNativeDevice::init(const D3DPRESENT_PARAMETERS& pp, std::string* why)
 {
-	m_createSamples = std::max<uint32_t>(1u, uint32_t(pp.MultiSampleType));   // B · a2c-1: initVulkan's A2C family choice
+	m_createSamples = std::max<uint32_t>(1u, uint32_t(pp.MultiSampleType));   // initVulkan's A2C family choice
 	if (!initVulkan(why) || !createSwapchainObjects(pp, why))
 		return false;
 	m_tr.renderState(D3DRS_ZENABLE, pp.EnableAutoDepthStencil ? D3DZB_TRUE : D3DZB_FALSE);   // d3d9 ResetState at creation
@@ -1169,7 +1169,7 @@ bool GxNativeDevice::init(const D3DPRESENT_PARAMETERS& pp, std::string* why)
 		}
 		m_cache.prebuild(kGxGenericParts, kGxGenericPartCount, configs.data(), configs.size(), 2);
 		m_cache.waitPrebuild();
-		// B · a2c-2 (the integrator's ruling after DLSS_INTEGRATION.md:3876): A2C only ever turns ITSELF off. A prewarm that failed with A2C
+		// (the integrator's ruling after): A2C only ever turns ITSELF off. A prewarm that failed with A2C
 		// on (an A2C twin, or a plain key) switches A2C off for the session and runs today's prebuild: the failed keys are dropped, so a
 		// plain key the first pass failed gets today's one attempt here. Only that plain-only closure can fail init - the parent's failure.
 		// Key off: this branch is never taken (one prebuild, as today).
@@ -1178,7 +1178,7 @@ bool GxNativeDevice::init(const D3DPRESENT_PARAMETERS& pp, std::string* why)
 			m_cache.prebuild(kGxGenericParts, kGxGenericPartCount, configs.data(), configs.size(), 2);
 			m_cache.waitPrebuild();
 		}
-		// B · a2c-1: the GRANTED count the configurations carry (8 asked on the Mini = 4 granted), what keys are made at
+		// the GRANTED count the configurations carry (8 asked on the Mini = 4 granted), what keys are made at
 		m_a2cPrewarmedSamples = 1;
 		for (const GxAttachConfig& c : configs)
 			m_a2cPrewarmedSamples = std::max<uint32_t>(m_a2cPrewarmedSamples, c.samples);
@@ -1187,7 +1187,7 @@ bool GxNativeDevice::init(const D3DPRESENT_PARAMETERS& pp, std::string* why)
 			return false;
 		}
 	}
-	if (m_a2cOn)   // B · a2c-1: the state line names the back buffer's GRANTED samples (and the request)
+	if (m_a2cOn)   // the state line names the back buffer's GRANTED samples (and the request)
 		logLine("[GXA2C] state=on samples=%u requested=%u", m_bbStore.empty() ? 0u : uint32_t(m_bbStore.front()->image().samples),
 			m_createSamples);
 	m_initOk = true;
@@ -1196,25 +1196,25 @@ bool GxNativeDevice::init(const D3DPRESENT_PARAMETERS& pp, std::string* why)
 	reseedMirror();
 	m_wRt = m_rt;
 	m_wDs = m_ds;
-	resetPressureBound();   // §3.6 seed (r5 P2-3): GxPacketWriter::init staged its dummy texture
+	resetPressureBound();   // §3.6 seed: GxPacketWriter::init staged its dummy texture
 	{
 		const char* e = std::getenv("GX_NATIVE_CS");
 		bool want = e ? std::strcmp(e, "0") != 0 : kNativeCsDefault;
-		// render/dlss x A23-B (D · dlss-fg-2, the forward merge of render/integration c14f14881): the world/HUD seam (GXUpscaler not off),
+		// render/dlss x A23-B (the forward merge of render/integration c14f14881): the world/HUD seam (GXUpscaler not off),
 		// motion units, DLSS and Streamline's per-frame Reflex / frame-generation calls record from the CALLER through device entry
 		// points that A23-B never routed through the worker (WorldPass, worldBegin/End, slPresentBegin and the present hook live in presentDirect / presentToSwapchain only).
 		// While any of them is requested the worker stays off - today's render/dlss device, exactly - and the line says why; it beats
 		// GX_NATIVE_CS=1 like the FG guard beats GX_VK_SUBMIT_THREAD=1. Lifted per feature once its entry points are S bodies or queued.
-		// E · seam-worker-1 (tier 1, DESIGN_seam-worker-1.md): the seam's recording entry points (worldBegin/End/ObjectVelocity,
+		// (tier 1): the seam's recording entry points (worldBegin/End/ObjectVelocity,
 		// ResolveLinear, Upscale, HudBegin) are S bodies now, so the worker stays ON for the SPATIAL kinds a reachable device runs: the
 		// request u maps to kind u - 1 (W3DWorldSeam: c.kind = s.upscaler - 1). Still forced off: DLSS and XeSS (Windows-only, no Windows
 		// arm yet), the temporal kinds and motion units (phase 2 lifted them: below), frame generation and Reflex (present path),
 		// and ANY loaded Streamline (its present hooks and slFrameEnd run in the Present body: GX_STREAMLINE_FORCE_LOAD=1 with nothing
 		// requested used to leave the worker on under them - dlss-integrator's ruling 17/10 23:3xZ; Windows only, owed a Windows run).
-		// E · seam-worker-2 (phase 2, DESIGN_seam-worker-2.md): motion units and the temporal kinds a Mac reaches (FSR3, MetalFX temporal)
+		// (phase 2): motion units and the temporal kinds a Mac reaches (FSR3, MetalFX temporal)
 		// keep the worker ON too - worldBegin/End/ObjectVelocity are S bodies, the bridge's other calls are ordinary queued d3d8 calls, and a
 		// temporal backend dispatches inside Upscale's S. DLSS stays forced: with SR alone the submit thread stays on and Streamline's
-		// sl.common present hooks run on gx-vk-submit, unordered with a front-side evaluate (seam2 design r1 P1) - its own fix first.
+		// sl.common present hooks run on gx-vk-submit, unordered with a front-side evaluate (seam2 design) - its own fix first.
 		const int upKind = m_host.requestedUpscaler - 1;
 		const bool upLifted = m_host.requestedUpscaler == 0 || upKind == GX_UPSCALE_BILINEAR || upKind == GX_UPSCALE_FSR1 ||
 		                      upKind == GX_UPSCALE_METALFX || upKind == GX_UPSCALE_FSR3 || upKind == GX_UPSCALE_METALFX_TEMPORAL;
@@ -1290,7 +1290,7 @@ bool nativeBuildable(const D3DPRESENT_PARAMETERS& pp, const char** why)
 
 } // namespace
 
-// E · seam-worker-2 (TESTS): whether this gx_device was compiled with GX_STREAMLINE (a define private to gx_device) - fgguard-streamline
+// (TESTS): whether this gx_device was compiled with GX_STREAMLINE (a define private to gx_device) - fgguard-streamline
 // injects a fake host.streamline, which only the stubs of a non-Streamline build never dereference
 bool GxNativeDevice::streamlineBuilt()
 {
@@ -1562,7 +1562,7 @@ void GxNativeDevice::settleAtExit()
 	m_ctx.quiesce();
 	if (m_haveSwapchain)   // the thread is joined: the hook is the producer - as teardown, the last present's answer is in the final line
 		applyPresentStatus(m_swapchain.takePresentStatus());
-	// and, as teardown (DESIGN §3.9 r2 P2-13), the device idle: no GPU work of ours is still completing after the line. Enqueues
+	// and, as teardown (DESIGN §3.9), the device idle: no GPU work of ours is still completing after the line. Enqueues
 	// nothing (the thread is joined).
 	m_ctx.waitIdle();
 	// and no pipeline worker after the line: the drained commands can miss the cache and queue specialised compiles, and a process
@@ -1606,7 +1606,7 @@ void GxNativeDevice::syncTopInto(char* out, size_t cap, bool byNs) const
 	}
 }
 
-// E · seam-worker-2 (seam2 design r2 P2-2): what the motion entry points did, cumulative since the device started - printed only while
+// (seam2 design): what the motion entry points did, cumulative since the device started - printed only while
 // motion is initialised (key off: no line). A refused object registration (the bridge ignores SetObjectVelocity's return) shows here.
 void GxNativeDevice::logMotionCounters(uint64_t presents)
 {
@@ -1618,7 +1618,7 @@ void GxNativeDevice::logMotionCounters(uint64_t presents)
 	        (unsigned long long)c.objAccepted, (unsigned long long)c.objRefused);
 }
 
-// E · seam-worker-1: the seam's S reasons ("seam <entry point>") since the last such line, per reason count + drain ms - printed only in a
+// the seam's S reasons ("seam <entry point>") since the last such line, per reason count + drain ms - printed only in a
 // stats period where one was noted (key-off logs unchanged; the dlss-integrator's condition), from the front at the period's Present
 void GxNativeDevice::logSeamDrains(uint64_t presents)
 {
@@ -1728,7 +1728,7 @@ GxNativeDevice::AllocPolicy::Decision GxNativeDevice::AllocPolicy::failed(const 
 		d.recoverStorage(false, site);
 		return Decision::Retry;
 	}
-	if (d.m_inline > 0) {   // inside an S body: its first in-scope failure recovers, once per S transition (r7 P1-1)
+	if (d.m_inline > 0) {   // inside an S body: its first in-scope failure recovers, once per S transition
 		if (d.m_sRecovered || d.m_debug.csSbodyNoRecover)
 			return Decision::Fail;
 		d.m_sRecovered = true;
@@ -1833,7 +1833,7 @@ void* GxNativeDevice::lockBuffer(R::GxBuffer& b, uint32_t offset, uint32_t bytes
 		if (allocFailed && m_debug.csDiscardNoRetry)
 			return nullptr;   // the plant: the failed attempt answers INVALIDCALL
 		SScope sc(*this, allocFailed ? "buffer DISCARD slice retry" : (flags & D3DLOCK_DISCARD) ? "buffer DISCARD" : "buffer plain lock");
-		if (allocFailed) {   // r3 P1-1 / §3.8: a failed slice allocation returns what it can first, then today's lock body
+		if (allocFailed) {   // / §3.8: a failed slice allocation returns what it can first, then today's lock body
 			m_sRecovered = true;
 			recoverStorage(true, "slice");
 		}
@@ -1977,7 +1977,7 @@ void GxNativeDevice::reseedMirror()
 	m_mirror.viewport = f.viewport;
 }
 
-// §3.4 mirror-check mode (GX_NATIVE_CS_MIRRORCHECK=1, its own test mode, r2 P2-19): after each Present and at each S point (before
+// §3.4 mirror-check mode (GX_NATIVE_CS_MIRRORCHECK=1, its own test mode): after each Present and at each S point (before
 // the re-seed) the worker is drained and every mirrored field compared with the translator's; each field that differs counts.
 void GxNativeDevice::mirrorCheck(const char* where)
 {
@@ -2054,7 +2054,7 @@ HRESULT GxNativeDevice::GetDeviceCaps(D3DCAPS8* caps)
 	const HRESULT hr = m_parent->GetDeviceCaps(m_adapter, m_type, caps);
 	if (SUCCEEDED(hr)) {   // the DEVICE's answer (d3d9_device.cpp:391-397): 256 blend matrices under software vertex processing
 		caps->MaxVertexBlendMatrixIndex = m_swvp ? 255 : 8;
-		// C · rw3-R11 13/10/2026: the vertex-shader constants this device implements - the translator holds c0-c95 and a custom
+		// the vertex-shader constants this device implements - the translator holds c0-c95 and a custom
 		// vs reads them from the first 1536 B of the VS block (GxD3D8Translate m_vsConst). DXVK says 256; d3d8's vs.1.1 floor is
 		// 96. The one reader that sizes by it, GX_SHADOW_GPU (W3DVolumetricShadow.cpp gxShadowGpuSlots), then packs 21 volumes a
 		// draw instead of 61: same triangles in the same order, about 3x its draws.
@@ -2124,7 +2124,7 @@ HRESULT GxNativeDevice::ValidateDevice(DWORD* passes)
 // A23-B §3.8: creation runs on the front. With the worker running, an allocation ATTEMPT comes first - GXRES init only: no
 // `creates` count, no refusal, no log, nothing left behind on failure (destroyUnpublished). It succeeds: today's bookkeeping
 // once. It fails: the call becomes S - the queued Destroys run, what the GPU finished is freed - and runs today's WHOLE create
-// body, which counts and refuses exactly as today (r3 P2-2). Direct: today's body.
+// body, which counts and refuses exactly as today. Direct: today's body.
 #define GX_CREATE_ATTEMPT(name, initCall, onSuccess)                                                                          \
 	std::unique_ptr<SScope> retry;                                                                                               \
 	if (!csDirect()) {                                                                                                           \
@@ -2314,7 +2314,7 @@ HRESULT GxNativeDevice::CreateDepthStencilSurface(UINT w, UINT h, D3DFORMAT fmt,
 	rd.height = h;
 	rd.format = uint32_t(fmt);
 	rd.samples = uint32_t(ms);
-	rd.depthSampled = m_nextDepthSampled || m_debug.motionSampledAlways;   // DESIGN_motion §4: the world depth only
+	rd.depthSampled = m_nextDepthSampled || m_debug.motionSampledAlways;   // the world depth only
 	m_nextDepthSampled = false;
 	auto made = [&] {
 		csLedger(m_csIssued, 5, { uint64_t(w), uint64_t(h), uint64_t(fmt), uint64_t(ms) });
@@ -2513,7 +2513,7 @@ HRESULT GxNativeDevice::copyRect(GxNativeSurface* src, const RECT& sr, GxNativeS
 			const uint32_t fmt = src->d3dFormat();
 			if (csDirect())
 				return copyHostToDefaultInline(dst, fmt, r, dr, bytes.data());
-			// copyFrom's remaining checks with the twin as the source (r3 P2-4): the twin is the whole SYSTEMMEM level of the
+			// copyFrom's remaining checks with the twin as the source: the twin is the whole SYSTEMMEM level of the
 			// source's format at origin 0 - always made, always valid - so the destination rect decides; refused as today:
 			// the level still noted written, the idle flush still at its position, INVALIDCALL
 			R::GxTexture& t = dst->texture()->gx();
@@ -2731,7 +2731,7 @@ HRESULT GxNativeDevice::CopyRects(IDirect3DSurface8* srcI, const RECT* srcRects,
 }
 
 // d3d9_device.cpp:1100-1175 (D3D8 forwards): SYSTEMMEM -> DEFAULT only; mip alignment; the source's level-0 dirty box per mip.
-// A23-B §3.5: S - no live caller (CENSUS §3c), today's body inline keeps its retry-on-failure dirty box (r2 P1-7).
+// A23-B §3.5: S - no live caller (CENSUS §3c), today's body inline keeps its retry-on-failure dirty box.
 HRESULT GxNativeDevice::UpdateTexture(IDirect3DBaseTexture8* srcB, IDirect3DBaseTexture8* dstB)
 {
 	SScope sc(*this, "UpdateTexture");
@@ -2859,7 +2859,7 @@ HRESULT GxNativeDevice::BeginScene()
 	if (m_inScene)
 		return D3DERR_INVALIDCALL;
 	m_inScene = true;
-	slSceneBegin();   // B · dlss-fg-1: no-op without Streamline
+	slSceneBegin();   // no-op without Streamline
 	return D3D_OK;
 }
 
@@ -2897,7 +2897,7 @@ HRESULT GxNativeDevice::Clear(DWORD count, const D3DRECT* rects, DWORD flags, D3
 HRESULT GxNativeDevice::Present(const RECT*, const RECT*, HWND, const RGNDATA*)
 {
 	m_nextDepthSampled = false;   // NextTargetsAreWorld lives for the frame that announced it
-	m_sceneTapped = false;        // D · look-fdepth-plus: OpaqueDone may run once in the next frame
+	m_sceneTapped = false;        // OpaqueDone may run once in the next frame
 	struct AfterPresent   // §3.4 mirror-check mode: after each Present, whichever way it returns
 	{
 		GxNativeDevice& d;
@@ -2913,7 +2913,7 @@ HRESULT GxNativeDevice::Present(const RECT*, const RECT*, HWND, const RGNDATA*)
 		return hr;
 	}
 	// A23-B §3.9, in today's order. 1: lost -> PresentLost (the worker's lostTerminal: the open frame ended, FATAL once), fenced
-	// like any Present (r4 P2-6), DEVICELOST
+	// like any Present, DEVICELOST
 	const bool lost = (m_presentDead || m_presentLost || m_ctx.deviceLost()) && !m_debug.presentIgnoresDeviceLoss &&
 		!m_debug.csLossUnpublished;
 	if (lost) {
@@ -2931,7 +2931,7 @@ HRESULT GxNativeDevice::Present(const RECT*, const RECT*, HWND, const RGNDATA*)
 		return D3DERR_DEVICELOST;
 	}
 	// 3-4: the drawable size on the CALLER (SDL wants main); any recovery condition -> S: today's whole Present inline, the caller
-	// the producer (recreation, surfaces and the retry acquire never run on the worker - r2 P1-10)
+	// the producer (recreation, surfaces and the retry acquire never run on the worker)
 	uint32_t w = m_pp.BackBufferWidth, h = m_pp.BackBufferHeight;
 	if (m_haveSwapchain) {
 		if (m_host.drawableSize && !m_debug.ignoreDrawableSize) {
@@ -2993,8 +2993,8 @@ GxNativeDevice::FrontCounters GxNativeDevice::frontCounters()
 		syncTopInto(f.syncTop, sizeof(f.syncTop), false);
 		syncTopInto(f.drainTop, sizeof(f.drainTop), true);
 		m_frameBytesMax = 0;
-		logSeamDrains(m_stats.presents);   // E · seam-worker-1: front state, printed here (the worker prints the stats line later)
-		logMotionCounters(m_stats.presents);   // E · seam-worker-2: front state too; only while motion is initialised
+		logSeamDrains(m_stats.presents);   // front state, printed here (the worker prints the stats line later)
+		logMotionCounters(m_stats.presents);   // front state too; only while motion is initialised
 	}
 	return f;
 }
@@ -3017,7 +3017,7 @@ void GxNativeDevice::execPresent(uint32_t w, uint32_t h, const FrontCounters& f)
 		m_ctx.simulateDeviceLost();
 	}
 	if (m_sceneInit)
-		m_scene.presented(m_writer);   // D · look-fdepth-plus: this frame's copies end; the next frame's world scopes resolve again
+		m_scene.presented(m_writer);   // this frame's copies end; the next frame's world scopes resolve again
 	if (m_haveSwapchain)
 		presentToSwapchain(w, h);   // its DEVICELOST answers are latched (m_presentDead / m_presentLost / the context)
 	else
@@ -3032,7 +3032,7 @@ void GxNativeDevice::execPresent(uint32_t w, uint32_t h, const FrontCounters& f)
 		if (m_shadowMapOn)
 			shadowMapReport(f.s.presents);   // S7
 		if (m_a2cOn)
-			a2cReport(f.s.presents);   // B · a2c-1 (A108)
+			a2cReport(f.s.presents);   // (A108)
 		if (m_host.waitStats)   // A30 [GXWAIT] under the worker: the ring and present-slot waits are the worker's own (it runs
 			// ensureFrame and presentToSwapchain), the presents label is the front's captured count, as the lines above
 			logLine("[GXWAIT] presents=%llu fif=%u ring_us=%llu present_us=%llu", (unsigned long long)f.s.presents, m_fif,
@@ -3060,9 +3060,9 @@ HRESULT GxNativeDevice::presentDirect()
 	}
 	dropManaged();
 	if (m_sceneInit)
-		m_scene.presented(m_writer);   // D · look-fdepth-plus: this frame's copies end; the next frame's world scopes resolve again
+		m_scene.presented(m_writer);   // this frame's copies end; the next frame's world scopes resolve again
 	HRESULT hr = D3D_OK;
-	slPresentBegin();   // B · dlss-fg-1: the HUD-less tag + PCL render-submit end (no-op without Streamline)
+	slPresentBegin();   // the HUD-less tag + PCL render-submit end (no-op without Streamline)
 	if (m_haveSwapchain)
 		hr = presentToSwapchain(0, 0);   // PCL present start / end: in its present hook (FG P0 H3)
 	else
@@ -3070,17 +3070,17 @@ HRESULT GxNativeDevice::presentDirect()
 	rotateBackBuffers();
 	syncTarget();   // a back buffer bound as the target now has other storage
 	++m_stats.presents;
-	slFrameEnd();   // B · dlss-fg-1: DLSS-G state for the frame just presented, then the next frame's Reflex sleep
+	slFrameEnd();   // DLSS-G state for the frame just presented, then the next frame's Reflex sleep
 	if (m_stats.presents % kStatsEveryPresents == 0) {
 		logStats("periodic");
 		logSceneStats();
-		logMotionCounters(m_stats.presents);   // E · seam-worker-2: the direct path too (GX_NATIVE_CS=0: arm X) - review seam2 code r1 P2-1
+		logMotionCounters(m_stats.presents);   // the direct path too (GX_NATIVE_CS=0: arm X) - review seam2 code
 		if (m_gpuOn)
 			logGpu(m_stats.presents);
 		if (m_shadowMapOn)
 			shadowMapReport(m_stats.presents);   // S7
 		if (m_a2cOn)
-			a2cReport(m_stats.presents);   // B · a2c-1 (A108)
+			a2cReport(m_stats.presents);   // (A108)
 		if (m_host.waitStats)   // A30: its own line (the integrator: the [GXNATIVE] stats line is shared by other branches)
 			logLine("[GXWAIT] presents=%llu fif=%u ring_us=%llu present_us=%llu", (unsigned long long)m_stats.presents, m_fif,
 				(unsigned long long)m_writer.ringWaitMicros(), (unsigned long long)m_presentWaitUs);
@@ -3120,7 +3120,7 @@ bool GxNativeDevice::ensurePresentTarget(const R::GxImage& src, bool* shader, bo
 {
 	const VkExtent2D ext = m_swapchain.extent();
 	*shader = src.samples != VK_SAMPLE_COUNT_1_BIT || ext.width != src.width || ext.height != src.height;
-	// rw3-W lever (2) W-a (PREREG_T A20): a 1:1 present draws DXVK's present shader straight into the swapchain image - no
+	// rw3-W lever (2) W-a (A20): a 1:1 present draws DXVK's present shader straight into the swapchain image - no
 	// window-sized target, no clear, no blit. Same shader, same spec constants, same format: the same bytes. The format test is
 	// defensive (nativeBuildable admits only 8888 back buffers, VkSwapchain only 8-bit RGBA layouts): its one reachable else, a BGRA
 	// back buffer on a non-BGRA swapchain (MoltenVK offers BGRA first), takes the old path. The vkCmdResolveImage / LINEAR-blit test
@@ -3248,7 +3248,7 @@ HRESULT GxNativeDevice::presentToSwapchain(uint32_t cmdW, uint32_t cmdH)
 {
 	const bool guard = m_cs.onWorker();   // A23-B §3.9 step 5: the worker never recreates - it ends the frame unshown
 	// R19: the previous present ran on the submit thread - its answer is applied here, before anything touches the swapchain,
-	// where today's inline handling left its state (DESIGN_submit-thread 3.5)
+	// where today's inline handling left its state
 	V::VkSwapchain::Status prev = m_swapchain.takePresentStatus();
 	if (m_debug.presentDropsPresentStatus)
 		prev = V::VkSwapchain::Status::Ok;   // the plant: the answer is taken and ignored
@@ -3271,7 +3271,7 @@ HRESULT GxNativeDevice::presentToSwapchain(uint32_t cmdW, uint32_t cmdH)
 	};
 	const bool fifo = m_host.presentInterval >= 0 ? m_host.presentInterval > 0 : (!m_pp.Windowed || m_pp.SwapEffect == D3DSWAPEFFECT_COPY_VSYNC);
 	uint32_t w = m_pp.BackBufferWidth, h = m_pp.BackBufferHeight;
-	if (guard && !m_debug.csWorkerDrawable) {   // the caller read it (the worker calls no host callback but the log, r2 P1-10)
+	if (guard && !m_debug.csWorkerDrawable) {   // the caller read it (the worker calls no host callback but the log)
 		w = cmdW;
 		h = cmdH;
 	} else if (m_host.drawableSize && !m_debug.ignoreDrawableSize) {
@@ -3572,7 +3572,7 @@ HRESULT GxNativeDevice::Reset(D3DPRESENT_PARAMETERS* pp)
 	//    DEVICELOST + NotReset (:604-608)
 	endFrameForHost();
 	m_ctx.waitIdle();
-	// D · look-fdepth-plus: F-depth+'s copies, its arming and its once-per-frame flag go with the targets they came from; a format
+	// F-depth+'s copies, its arming and its once-per-frame flag go with the targets they came from; a format
 	// that failed before is tried again. S body: the worker is idle, the GPU too.
 	m_sceneTapped = false;
 	if (m_sceneInit)
@@ -3606,7 +3606,7 @@ HRESULT GxNativeDevice::Reset(D3DPRESENT_PARAMETERS* pp)
 		return D3DERR_INVALIDCALL;
 	}
 	m_tr.renderState(D3DRS_ZENABLE, pp->EnableAutoDepthStencil ? D3DZB_TRUE : D3DZB_FALSE);
-	// B · a2c-1 (A108): an A2C session Reset to ANOTHER MSAA prewarms the new attachment configurations and their A2C
+	// (A108): an A2C session Reset to ANOTHER MSAA prewarms the new attachment configurations and their A2C
 	// twins before Reset returns - else an alpha-tested draw, whose A2C key differs from the opaque draw's, would compile on first use. This
 	// is an S body (the worker and the GPU are idle). A session without A2C (key off, or created at 1x) does nothing here: today's Reset.
 	if (m_a2cOn && m_host.prebuildGenericSet && m_a2cPrewarmedSamples != 0) {
@@ -3630,7 +3630,7 @@ HRESULT GxNativeDevice::Reset(D3DPRESENT_PARAMETERS* pp)
 				if (complete)
 					m_a2cPrewarmedSamples = s;
 				logLine("[GXA2C] reset prewarm samples=%u queued=%zu complete=%d", s, q, int(complete));
-				// B · a2c-2 (the integrator's ruling after DLSS_INTEGRATION.md:3876): a failed prewarm turns A2C off for
+				// (the integrator's ruling after): a failed prewarm turns A2C off for
 				// the session - the Reset itself succeeds, the failed keys are dropped (a later draw takes today's first-use path)
 				if (!complete && !m_debug.a2cNoFallback)
 					a2cOff("prewarm-failed", "reset");
@@ -3669,12 +3669,12 @@ HRESULT GxNativeDevice::SetTransform(D3DTRANSFORMSTATETYPE s, const D3DMATRIX* m
 	float* slot = t == D3DTS_WORLD ? m_mirror.world : t == D3DTS_VIEW ? m_mirror.view : t == D3DTS_PROJECTION ? m_mirror.projection :
 		t >= D3DTS_TEXTURE0 && t <= D3DTS_TEXTURE7 ? m_mirror.texture[t - D3DTS_TEXTURE0] : nullptr;
 	if (!slot)
-		return D3D_OK;   // a type the translator does not model: today's body returns before reading the matrix (§3.2, r3 P2-3)
+		return D3D_OK;   // a type the translator does not model: today's body returns before reading the matrix (§3.2)
 	struct Matrix { float f[16]; } mat;
 	std::memcpy(mat.f, &m->_11, 64);
 	std::memcpy(slot, mat.f, 64);   // the front mirror keeps what the caller set: the CLEAN matrix (GetTransform)
-	// E · render-motion-1: inside a jittering world pass the translator gets the jittered projection; the clean one stays front state
-	// (DESIGN_motion §5 rev 2). Motion never initialised (key off) = exactly as before. With the A23-B worker on (seam-worker-1) the
+	// inside a jittering world pass the translator gets the jittered projection; the clean one stays front state
+	// (rev 2). Motion never initialised (key off) = exactly as before. With the A23-B worker on (seam-worker-1) the
 	// jittered matrix travels BY VALUE in the queued command: m_motion is front state, changed only here and in the S bodies of
 	// worldBegin/End, so the worker applies exactly what an inline body would have.
 	if (t == D3DTS_PROJECTION && m_motionInit)
@@ -3968,7 +3968,7 @@ HRESULT GxNativeDevice::SetIndices(IDirect3DIndexBuffer8* ib, UINT baseVertex)
 }
 
 // d3d8_device.cpp GetIndices, exactly. A supported getter since L2's whole-run fallback reads the binding (rw3-G-3,
-// rw3G-l2design-r4 P3: it was counted and logged as a method the game never calls).
+// it was counted and logged as a method the game never calls).
 HRESULT GxNativeDevice::GetIndices(IDirect3DIndexBuffer8** pp, UINT* baseVertex)
 {
 	if (pp)
@@ -4329,9 +4329,9 @@ HRESULT GxNativeDevice::DrawIndexedPrimitiveUP(D3DPRIMITIVETYPE t, UINT minIndex
 
 namespace GXRender { namespace Dev {
 
-// E · render-motion-1 13/10/2026 (DESIGN_motion.md rev 2): IGxWorldPass::Begin/End bodies. Front side only, except the resolve,
+// (rev 2): IGxWorldPass::Begin/End bodies. Front side only, except the resolve,
 // which is one outside-scope command at End (its arguments are this frame's front state, carried by value in GxMotion).
-// E · seam-worker-1 (tier 1): with motion running, Begin/End/ObjectVelocity are A23-B S bodies (drain, inline, re-seed) - they move the
+// (tier 1): with motion running, Begin/End/ObjectVelocity are A23-B S bodies (drain, inline, re-seed) - they move the
 // translator's projection, record outside a scope, use GxMotion's GPU objects and read a texture's lazy attachment view, all worker
 // state. Their key-off tests stay first and read front state only (m_motionInit; a standalone depth's sample view, made at creation).
 void GxNativeDevice::worldRelease(bool depthToo)
@@ -4360,7 +4360,7 @@ void GxNativeDevice::worldBegin(const GxMotionBegin& b, IDirect3DSurface8* colou
 	if (!view && !m_motionInit)
 		return;   // key off (the depth was never made sampleable): nothing changes
 	std::optional<SScope> sc;
-	if (!m_debug.seamNoSBegin)   // (the plant: X-seam-begin - E · seam-worker-2)
+	if (!m_debug.seamNoSBegin)   // (the plant: X-seam-begin)
 		sc.emplace(*this, "seam worldBegin");
 	csOwnerCheck("worldBegin");   // the boundary the S protects (no ensureFrame below): an S dropped here counts
 	if (!m_motionInit) {
@@ -4410,7 +4410,7 @@ void GxNativeDevice::worldEnd()
 	if (!m_motionInit)
 		return;
 	std::optional<SScope> sc;   // worldEnd WHOLE in one S: the outsideScope's &ok needs it synchronous (render-seam 09:13Z (2))
-	if (!m_debug.seamNoSEnd)    // (the plant: X-seam-end - E · seam-worker-2)
+	if (!m_debug.seamNoSEnd)    // (the plant: X-seam-end)
 		sc.emplace(*this, "seam worldEnd");
 	csOwnerCheck("worldEnd");
 	bool rec = false;
@@ -4429,7 +4429,7 @@ void GxNativeDevice::worldEnd()
 			m_writer.gpuEnd(gpu);
 		}, touched, n);
 		m_motion.published(ok);
-		++m_motionCount.passes;   // E · seam-worker-2: front state, inside this S
+		++m_motionCount.passes;   // front state, inside this S
 		if (ok) {
 			++m_motionCount.published;
 			if (m_motion.isPublished() && (m_motion.frame().flags & GXMF_HAS_OBJECT_MV))
@@ -4450,7 +4450,7 @@ HRESULT GxNativeDevice::worldObjectVelocity(IDirect3DSurface8* oI)
 	if (!m_motionInit)
 		return S_OK;   // key off: nothing to merge into
 	std::optional<SScope> sc;   // o->attachmentView() is created lazily, also by the worker (SetRenderTarget -> syncTarget)
-	if (!m_debug.seamNoSVelocity)   // (the plant: X-mv-object-late - E · seam-worker-2)
+	if (!m_debug.seamNoSVelocity)   // (the plant: X-mv-object-late)
 		sc.emplace(*this, "seam ObjectVelocity");
 	csOwnerCheck("worldObjectVelocity");
 	if (m_worldObject) {   // a replacement or a cancellation drops the previous registration
@@ -4472,7 +4472,7 @@ HRESULT GxNativeDevice::worldObjectVelocity(IDirect3DSurface8* oI)
 	const bool fourChannels = f == VK_FORMAT_R16G16B16A16_SFLOAT || f == VK_FORMAT_B8G8R8A8_UNORM || f == VK_FORMAT_R8G8B8A8_UNORM;
 	if (!img || !view || !fourChannels || img->samples != VK_SAMPLE_COUNT_1_BIT || !d || img->width != d->width ||
 		img->height != d->height) {
-		++m_motionCount.objRefused;   // E · seam-worker-2: [GXMOTION] device obj_refused
+		++m_motionCount.objRefused;   // [GXMOTION] device obj_refused
 		return E_INVALIDARG;
 	}
 	++m_motionCount.objAccepted;
@@ -4484,7 +4484,7 @@ HRESULT GxNativeDevice::worldObjectVelocity(IDirect3DSurface8* oI)
 
 bool GxNativeDevice::testReadMotion(std::vector<uint8_t>* out, uint32_t* width, uint32_t* height)
 {
-	// E · seam-worker-2 (phase 2: the motion arms run with the worker ON at CS1): an inspection accessor - an S body (endFrameForHost and
+	// (phase 2: the motion arms run with the worker ON at CS1): an inspection accessor - an S body (endFrameForHost and
 	// readImage are worker state; a bare csSync would leave endFrameForHost's ownership check counting)
 	SScope sc(*this, "test read-back");
 	if (!m_motionInit || !m_motion.mvImage().image)
@@ -4497,8 +4497,8 @@ bool GxNativeDevice::testReadMotion(std::vector<uint8_t>* out, uint32_t* width, 
 
 }} // namespace GXRender::Dev
 
-// ------------------------------------------------------------------------------------------------- S7 shadow map (D · look-shadowmaps)
-// PREREG_look-shadowmaps.md (A18, A20, A21, A23, A30); PLAN Task 4. The atlas: one D16 4096x2048 image (two 2048^2 cascades side by
+// ------------------------------------------------------------------------------------------------- S7 shadow map
+// (A18, A20, A21, A23, A30); PLAN Task 4. The atlas: one D16 4096x2048 image (two 2048^2 cascades side by
 // side), created once at device init with the key on - a step change only moves the cascades' sub-rectangles (no reallocation,
 // S14). Cleared to 1.0 and left in DEPTH_STENCIL_READ_ONLY_OPTIMAL, the layout every pass returns it to.
 static_assert(GX_SHADOW_TAG_RECEIVE == GXRender::Rec::kShadowTagReceive && GX_SHADOW_TAG_CAST == GXRender::Rec::kShadowTagCast &&
@@ -4675,7 +4675,7 @@ HRESULT GxNativeDevice::ShadowMap::SetShadowTags(uint32_t tags)
 	return D3D_OK;
 }
 
-// S7 A41 (D · look-shadowmaps-3, integrator A40 T4): a clamped instance's own light, queued with an owned 8-byte argument exactly like
+// S7 A41 (integrator A40 T4): a clamped instance's own light, queued with an owned 8-byte argument exactly like
 // the tags, executed in the worker's exec half in stream order with the draws it applies to
 HRESULT GxNativeDevice::ShadowMap::SetOwnLight(uint64_t packed)
 {
@@ -4692,7 +4692,7 @@ HRESULT GxNativeDevice::ShadowMap::SetOwnLight(uint64_t packed)
 	return D3D_OK;
 }
 
-// B · a2c-2 (the integrator's ruling after DLSS_INTEGRATION.md:3876): A2C turns ITSELF off for the rest of the session - at init or in a
+// (the integrator's ruling after): A2C turns ITSELF off for the rest of the session - at init or in a
 // Reset (an S body: no worker, no GPU work, no prebuild running). What the failed prewarm left (null keys) is dropped, the cache queues no
 // more twins and the translator examines no draw: every later draw requests a plain key - today's modules (GxGenericShaders) and path.
 void GxNativeDevice::a2cOff(const char* reason, const char* at)
@@ -4707,7 +4707,7 @@ void GxNativeDevice::a2cOff(const char* reason, const char* at)
 	logLine("[GXA2C] state=off reason=%s at=%s dropped=%zu (today's modules and path for the rest of the session)", reason, at, dropped);
 }
 
-// B · a2c-1 (A108; the integrator's ruling DLSS_INTEGRATION.md:3798 (1)): the translator's draws since the last line, A2C on and off by
+// (A108; the integrator's ruling (1)): the translator's draws since the last line, A2C on and off by
 // reason (GxAlphaToCoverage.h), so every gate run shows which guard excludes what - e.g. whether the trees are "on".
 void GxNativeDevice::a2cReport(uint64_t presents)
 {
@@ -4721,7 +4721,7 @@ void GxNativeDevice::a2cReport(uint64_t presents)
 			(unsigned long long)(t.a2cOff[i] - m_a2cPrev[i]));
 		m_a2cPrev[i] = t.a2cOff[i];
 	}
-	// B · a2c-2 (DLSS_INTEGRATION.md:3927 a): A2C keys that failed on FIRST USE in this window (their draws were refused - a stated limit;
+	// (a): A2C keys that failed on FIRST USE in this window (their draws were refused - a stated limit;
 	// any key-on gate / picture / A108 run with one goes to the integrator before it is scored or shown)
 	const uint32_t fu = m_cache.a2cFirstUseFailed();
 	if (n > 0 && size_t(n) < sizeof(buf))

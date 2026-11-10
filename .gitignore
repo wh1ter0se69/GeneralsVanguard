@@ -51,7 +51,7 @@ thumbs.db
 
 ## AI assistant config (user-specific), EXCEPT the skills
 #
-# GeneralsX: The skills are tracked, for the same reason /CLAUDE.md is:
+# GeneralsX: The skills are tracked, for the same reason is:
 # they are not user-specific, they hold the working protocol the sessions depend on, and sessions
 # run on Mac, Linux and Windows machines. Ignored, a clone elsewhere has none of it.
 #
@@ -68,7 +68,7 @@ thumbs.db
 !/.claude/skills/
 !/.claude/skills/**
 # GeneralsX: The SKILLS are not user-specific and are tracked, for the
-# same reason /CLAUDE.md below is: they hold the working protocol - which resource a session may
+# same reason below is: they hold the working protocol - which resource a session may
 # claim, why a claim is proven both directions, how a handback is typed - and sessions run on
 # Mac, Linux and Windows machines. Ignored, a clone elsewhere has none of it.
 #
@@ -79,12 +79,12 @@ thumbs.db
 # no amount of checking will see it.
 !/.claude/skills/
 !/.claude/skills/**
-# GeneralsX: /CLAUDE.md is deliberately NOT ignored any more.
+# GeneralsX: is deliberately NOT ignored any more.
 # It was listed here as "user-specific", but this project's copy holds engineering rules the
 # work depends on - lockstep limits, atomic four-peer rebuilds, digest path lists, shell traps -
 # and sessions run on Mac, Linux and Windows machines. Leaving it untracked means a
 # clone on another machine has none of them, which is how a session there rebuilt against the
-# wrong assumptions. Personal preferences belong in the operator's own ~/.claude/CLAUDE.md.
+# wrong assumptions. Personal preferences belong in the operator's own ~/.claude/.
 
 ## IntelliJ, CLion, etc.
 /.idea

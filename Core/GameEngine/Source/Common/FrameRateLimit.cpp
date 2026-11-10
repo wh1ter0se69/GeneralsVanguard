@@ -90,7 +90,7 @@ HANDLE createFrameTimer()
 // What this replaces: sleep to 2 ms short of the target, then spin on the clock until the target
 // arrives. That guard band is an ABSOLUTE 2 ms against a target that is not - at the 8x network
 // floor the target is 1/480 = 2.083 ms, so sleepSeconds was negative on essentially every frame
-// and the limiter degenerated into a pure busy-wait. PERF_LOCAL_FRAMETIME_2026-08-13.md measured
+// and the limiter degenerated into a pure busy-wait. measured
 // exactly that: at a 480 cap, nanosleep 0.00% of the main thread and the clock_gettime spin
 // 33.46%; at a 60 cap the spin still cost 0.69 ms of every 16.67 ms frame, 19% on top of all the
 // CPU the game actually uses. On a weak CPU that is a core-slice spent watching a clock, and it

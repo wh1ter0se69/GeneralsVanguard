@@ -1151,7 +1151,7 @@ void ScriptActions::doBuildSupplyCenter(const AsciiString& player, const AsciiSt
 //-------------------------------------------------------------------------------------------------
 /** doBuildObjectNearestTeam */
 //-------------------------------------------------------------------------------------------------
-/** AI_PLAYER_FACE_FRONT (GeneralsX 22/10/2026, gx-handoff ai/wh1ter0se-econ/DESIGN.md 6): from now on this skirmish AI turns each new
+/** AI_PLAYER_FACE_FRONT (GeneralsX 22/10/2026, 6): from now on this skirmish AI turns each new
 	barracks / war factory / arms dealer so its door points at its base front, and each new base defence away from its base centre.
 	Opt-in per player, so a focal test can turn it on for one general; a stock .scb never calls it. */
 //-------------------------------------------------------------------------------------------------
@@ -1164,7 +1164,7 @@ void ScriptActions::doAIPlayerFaceFront( const AsciiString& playerName )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** AI_PLAYER_GX_RULE / _TEMPLATE / _TEAM (GeneralsX 30/10/2026 rb-core, gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.2): configure one
+/** AI_PLAYER_GX_RULE / _TEMPLATE / _TEAM (GeneralsX 30/10/2026 rb-core, 2.2.2): configure one
 	rule of this skirmish AI's rule bank. The bank decides (clamp, unknown rule or key, tier, configuration window, conflicts); a player
 	with no bank (a human, a campaign AI) is refused. A stock .scb never calls them. */
 //-------------------------------------------------------------------------------------------------
@@ -1197,7 +1197,7 @@ void ScriptActions::doAIPlayerGxRuleTeam( const AsciiString& playerName, Int rul
 }
 
 //-------------------------------------------------------------------------------------------------
-/** AI_PLAYER_TUNNEL_AIR_WATCH (GeneralsX 22/10/2026, gx-handoff ai/wh1ter0se-econ/DESIGN.md 7): this skirmish AI's tunnels name an incoming
+/** AI_PLAYER_TUNNEL_AIR_WATCH (GeneralsX 22/10/2026, 7): this skirmish AI's tunnels name an incoming
 	enemy aircraft within 'radius' as their nemesis, so its anti-air guards inside pop out at it and go back in once it has gone.
 	0 = off (the default; a stock .scb never calls it). */
 //-------------------------------------------------------------------------------------------------

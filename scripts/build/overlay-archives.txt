@@ -14,7 +14,7 @@
 #
 # MEASURED 2026-08-12, leave-one-out over the six non-retail archives the fleet carries, each
 # arm read from the engine's own '[SIMID] local' line (evidence:
-# docs/WORKDIR/evidence/patch-overlay-wiring-2026-08-12.md):
+# ):
 #
 #   fleet, all six mounted                       data=FA018128   <- the value to preserve
 #   minus !HotkeysLeikezeIndicatorsZH.big        data=9F59E16C   MOVED -> load-bearing
@@ -59,7 +59,7 @@
 # Data\INI\CommandButton.ini. It is '!!'-prefixed so it resolves ahead of !HotkeysLeikeze*, which
 # is what lets it win CommandButton.ini without that archive being removed.
 #
-# The four measured arms (docs/WORKDIR/ARCHIVE_COMMANDBUTTON_TRAP.md, 2026-08-20):
+# The four measured arms:
 #     Leikeze in  / HD out  ->  B913936B   the fleet before this
 #     Leikeze in  / HD in   ->  2505C0C6   THIS
 #     Leikeze out / HD in   ->  2505C0C6   identical, so removing it buys nothing
@@ -110,7 +110,7 @@
 500_900_CommunityPatch_CoreINI.big
 
 # GeneralsX: A DATED EXCEPTION to this file's rule: !!GXPropsHD.big does NOT move dataID
-# and is listed anyway. It is the HD (2x) texture pack for multiplayer-map props, vehicles and trees (E · look-hd-1, batches
+# and is listed anyway. It is the HD (2x) texture pack for multiplayer-map props, vehicles and trees (batches
 # A+B, 2228 DDS; EA-derived art, never in git), and the owner wants it in every install with no toggle (wh1ter0se 11/10/2026:
 # "ship it by default without anything else to toggle"; 13/10/2026: "KEEP HD"). overlay-optional.txt would make it a launcher
 # switch; this list is the only "everyone gets it" path the packagers have, so the exception is deliberate, not a drift.
@@ -118,16 +118,16 @@
 #         (zipped 182.7 MB) - it must be in GX_PATCH_SRC on EVERY packaging and deploy host before this line reaches them,
 #         or the bundlers and gx_overlay_verify refuse ("missing: !!GXPropsHD.big").
 # MEASURED 13/10/2026 on the Mac Mini, one binary (batch round 2, 760d25641), three APFS clones of one app whose only
-# difference is the overlay or data named, each run headless to its [SIMID] local line (release/batch0964/hd/):
+# difference is the overlay or data named, each run headless to its [SIMID] local line (hd/):
 #     A  the 0.9.63 overlay set                       data=3B9B6471  data-ini=3008C91C  data-loose=B4519AFA  asset=3067EDFE
 #     B  A + !!GXPropsHD.big                           data=3B9B6471  data-ini=3008C91C  data-loose=B4519AFA  asset=7C8EF803
 #     P  A + Set A's Multiplayer.ini (control)         data=EE95602C  data-ini=E83C5416  data-loose=B4519AFA  asset=3067EDFE
 # B == A on dataID (assetID moves: a peer without the pack posts the "different set of game archives" chat line and still
-# joins); P shows the same measurement does see a data change. iOS ships it too (lead C35 13/10): MEASURED on wh1ter0se's iPad
+# joins); P shows the same measurement does see a data change. iOS ships it too: MEASURED on wh1ter0se's iPad
 # Air M3 (8 GB), same G4 replay, in-process phys_footprint: peak 2.23 GB without it, 2.96 GB with it (+0.73 GB, paid at
-# load), per-app limit 5.37 GB, no jetsam (release/batch0964/ipad/). A smaller iPad would need a memory-gated mount.
+# load), per-app limit 5.37 GB, no jetsam (ipad/). A smaller iPad would need a memory-gated mount.
 # GeneralsX: THE SAME FILE NAME, NEW CONTENTS FOR 0.9.65: the 71 HD smoke/fire/explosion particle
-# textures (E · look-fire, 13/10, ~/gx-hd/fx/members71.txt; wh1ter0se 17/10 "yes all green": ship) are folded INTO !!GXPropsHD.big, so no
+# textures (13/10, ~/gx-hd/fx/members71.txt; wh1ter0se 17/10 "yes all green": ship) are folded INTO !!GXPropsHD.big, so no
 # list entry, launcher list or download artifact is added. They join as Art\Textures\*.dds next to the 2228 prop textures; no name was in
 # both (the four shared ones, exgrid/extnkmzl01/muzzflsh_front/muzzflsh_side, were already left out of the fx set), and the packer refuses
 # a duplicate. The 13/10 line above is the 0.9.64 file; THIS is the one packaging hosts need for 0.9.65 (the release step replaces it in
@@ -145,14 +145,14 @@
 !!GXPropsHD.big
 # GeneralsX: THE SAME FILE NAME, NEW CONTENTS FOR 0.9.66 (wh1ter0se 18/10/2026 "more hd yes"): the 0.9.65
 # pack above (ef240ccf, 2299 entries) + 194 HD textures of the ORIGINAL art, made sharper, never restyled (Real-ESRGAN x4plus, palette-locked;
-# EA-derived, never in git; recipe and evidence: gx-handoff modernize/look-models/hd-batch/):
+# EA-derived, never in git; recipe):
 #   - 4 tank/tyre track decals (extiretrack, extiretrack2, extiretrack03, extnktrack; 4x). The track strip samples with WRAP, so they are
 #     upscaled as periodic textures (model, back-projection and alpha all on the 3x3 tiling): no seam at a segment joint.
 #   - 90 tree-buffer images as Art\Terrain\<name>.tga at 2x - the path W3DTreeBuffer opens (it never substitutes .dds, so the 0.9.64 HD tree
 #     .dds files above are not what trees draw). Built mip-exact: every 2x2 block averages to the stock texel under the engine's box filter,
 #     so on macOS/iOS every mip level below the top is byte-identical to stock and only a magnified tree can look different. Windows/Linux
 #     build these mips with GLI's non-box filter (d3dx8_compat.cpp), where distant trees differ slightly (a far smaller gap than the
-#     existing Mac-vs-Windows one; modernize/look-models/NOTE_gli-mips-windows-linux.md).
+#     existing Mac-vs-Windows one).
 #   - 100 tech-building textures (oil derricks, refineries, hospital, repair bay, reinforcement pad, caves + damage/snow/night; 2x, 4x for <= 64 px),
 #     each keeping its DDS format and EA's own mip chain under the new top level(s).
 #   file  !!GXPropsHD.big  356,434,771 B  sha256 2e19e211d8195eec35e23ac695316073795d286d2b7646d09df8f1c90c54c016  (gzip -6 206.3 MB,
@@ -181,7 +181,7 @@
 #   file  !!GXModelsHD.big  724,077,483 B  sha256 88f1b06fe815fe8d17114194c3fd85f682ab809d202c423f8ee3f052229cb964  (gzip -6 396,155,325 B)
 #         3,347 entries = 3,346 W3D models + Art\Textures\pmbarbwire.dds. Like the HD pack above it must be in GX_PATCH_SRC (and
 #         GX_OVERLAY_SRC on Linux) on every packaging and deploy host before this line reaches them, or gx_overlay_verify refuses.
-# THE CONSTRUCTION GUARANTEE (lead C42 17/10/2026) - why no ID needs to see this archive's content. dataID hashes INI + scb + the loose
+# THE CONSTRUCTION GUARANTEE - why no ID needs to see this archive's content. dataID hashes INI + scb + the loose
 #   allow-list; assetID hashes only the sorted archive BASENAMES (ArchiveFileSystem::computeMountedArchiveFingerprint - sizes and
 #   content deliberately not), so NO join-time ID sees any .w3d byte, here or in retail W3DZH.big. The pack is therefore sim-neutral by
 #   construction: modernize/look-models/lp65/tools/compose_pack.py refuses any file whose top-level non-MESH chunks (HIERARCHY = the
@@ -205,7 +205,7 @@
 #   the logic tick also rose in every piece (4.73-4.82 -> 4.89-4.92 ms) and footprint by ~100 MB (2.38 -> 2.48 GB); 60 TPS held.
 #   Memory, wh1ter0se's iPad Air M3 (LP6 to f100000, peak phys_footprint): without 2.670 / 2.671 GB, with 2.841 / 2.808 GB; limit 5.369 GB.
 #   Both runs with it mounted it from the app bundle, data=6CA2CCD9, and played LP6 to f100000 with 0 REPLAY_CRC_MISMATCH (arm64 iOS).
-# TRANSPORT (lead C42 17/10/2026). Windows: the archive is its OWN required artifact, gxmdl_<content id>.zip, platform "any"
+# TRANSPORT. Windows: the archive is its OWN required artifact, gxmdl_<content id>.zip, platform "any"
 #   (package-windows-share.ps1), because every shipped Windows updater abandons a single download over 512 MiB (gxlaunch.c
 #   MAX_DOWNLOAD_BYTES) and a gxreq carrying it is ~618 MB. MEASURED end to end on wh1ter0se's PC with the SHIPPED 0.9.64
 #   GeneralsXUpdate.exe in a scratch copy of his install, against a staged localhost document (since deleted):

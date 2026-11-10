@@ -94,8 +94,8 @@ namespace CatchUpPolicy
 	//    with a shorter next frame, so the raw sum stays within the wake error.
 	// A pass longer than CatchUpDebtFrames + 1 periods (a load, a minimised window) is a hitch, credited at the retail rate
 	// and not repaid - the bound pacerStep keeps on the network path. Debt above CatchUpDebtFrames periods is forgiven. At
-	// most one tick per call: never faster than real time. Plan and reviews: gx-handoff modernize/render-split/
-	// PLAN_catchup-regular-path.md.
+	// most one tick per call: never faster than real time.
+	//
 	inline bool regularStep(float &carry, float elapsed, float period, bool tickEveryIteration, bool catchUp)
 	{
 		if (!catchUp)
@@ -153,7 +153,7 @@ namespace CatchUpPolicy
 	//
 	// Nothing kept survives an ineligible pass (a pause, frozen time, a menu, fast forward): the debt is dropped to 0, and
 	// only if catch-up kept some, so a run that never used catch-up (GX_CATCHUP=0, a -headless peer, base Generals) is the
-	// retail gate bit for bit (review r1 P3-4, r2 P3-4).
+	// retail gate bit for bit.
 	inline void regularDrop(float &carry, float &kept)
 	{
 		if (kept > 0.0f)
@@ -166,7 +166,7 @@ namespace CatchUpPolicy
 	// One gate pass with a logic rate above 0. Ineligible: drop, then the retail gate at retailPeriod. Eligible: a FRESH
 	// pass (catch-up just turned on, or its period changed - the replay strip's 0.5x <-> 1x) starts from a zero carry and is
 	// credited at the retail rate, since the elapsed it carries was measured under other rules (a load's fade, a half-speed
-	// period) and must not become debt (review r2 P3-3); every later pass is regularStep with catch-up.
+	// period) and must not become debt; every later pass is regularStep with catch-up.
 	inline bool regularGate(float &carry, float &kept, float elapsed, float retailPeriod, float catchUpPeriod,
 		bool tickEveryIteration, bool eligible)
 	{

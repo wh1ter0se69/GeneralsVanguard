@@ -1,4 +1,4 @@
-// GxPipelineCache.h - the native renderer's pipeline cache (WS-D; render-seam/DESIGN_pipeline-cache.md §4).
+// GxPipelineCache.h - the native renderer's pipeline cache (WS-D).
 //
 // Holds every VkPipeline the session creates, keyed by GxPipelineKey, over one VkPipelineCache persisted per device + driver.
 // The GENERIC set (census draw parts x the session's attachment configurations, plus every key this machine missed before)
@@ -38,7 +38,7 @@ struct GxGenericShaders {
 	VkShaderModule   fs = VK_NULL_HANDLE;
 	VkShaderModule   fsFlat = VK_NULL_HANDLE;
 	VkPipelineLayout layout = VK_NULL_HANDLE;
-	// B · a2c-2 (A108; the integrator's ruling after DLSS_INTEGRATION.md:3876): the alpha-to-coverage family (gx_ff[_flat][.sm].a2c.frag),
+	// (A108; the integrator's ruling after): the alpha-to-coverage family (gx_ff[_flat][.sm].a2c.frag),
 	// null unless the session runs A2C. createPipeline() uses it for a key with alphaToCoverage = 1 and ONLY for one: every other key
 	// keeps fs / fsFlat (today's module), so a plain draw in an A2C session is today's pipeline exactly.
 	VkShaderModule   fsA2c = VK_NULL_HANDLE;
@@ -54,13 +54,13 @@ struct GxCustomShaders {
 	VkShaderModule ps = VK_NULL_HANDLE;
 	VkShaderModule vsTrees = VK_NULL_HANDLE;
 	VkShaderModule vsWave = VK_NULL_HANDLE;
-	// D · render-motion-units-1 (A35): the motion bridge's synthetic programs (GxSyntheticPrograms.h); null unless the host's
+	// (A35): the motion bridge's synthetic programs (GxSyntheticPrograms.h); null unless the host's
 	// motionUnits key is on, and then a gx:vel-* draw has no module (refused like any custom program without one)
 	VkShaderModule vsVelRigid = VK_NULL_HANDLE;   // gx_cs_vel.vert
 	VkShaderModule vsVelSkin = VK_NULL_HANDLE;    // gx_cs_vel.vert -DGX_VEL_SKIN
 	VkShaderModule psVel = VK_NULL_HANDLE;        // gx_cs_vel.frag (GxCsPsVelocity: its own module, not gx_cs_ps.frag)
-	VkShaderModule vsShadow = VK_NULL_HANDLE;   // gx_cs_shadow.vert (C · rw3-R11): the GX_SHADOW_GPU shadow-volume vs
-	VkShaderModule psA2c = VK_NULL_HANDLE;      // B · a2c-2: gx_cs_ps[.sm].a2c.frag - `ps` for an alphaToCoverage = 1 key only (null: no A2C)
+	VkShaderModule vsShadow = VK_NULL_HANDLE;   // gx_cs_shadow.vert: the GX_SHADOW_GPU shadow-volume vs
+	VkShaderModule psA2c = VK_NULL_HANDLE;      // gx_cs_ps[.sm].a2c.frag - `ps` for an alphaToCoverage = 1 key only (null: no A2C)
 	uint32_t       psMutate = 0;   // TEST-ONLY: program id passed as constant 41 (0 = none); ps must be the mutant module
 };
 
@@ -69,11 +69,11 @@ struct GxPipeStats {
 	uint32_t prebuilt = 0;         // created by the prebuild workers
 	uint32_t recordedLoaded = 0;   // keys this machine missed (or built custom) in earlier sessions, loaded from the keys file
 	uint32_t recordedSkipped = 0;  // recorded CUSTOM keys this session's module set cannot build (an older build's): not queued
-	uint32_t a2cTwins = 0;         // B · a2c-1 (A108): A2C twins prebuild() added (setA2CTwins on)
-	uint32_t a2cRecordedSkipped = 0; // B · a2c-1: recorded A2C keys a session WITHOUT A2C skipped (an earlier key-on session's): not queued
-	uint32_t a2cPlainTwins = 0;    // B · a2c-2 (DLSS_INTEGRATION.md:3857 (1)): ...of them, the PLAIN twins queued instead (new candidates only)
-	uint32_t prebuildRuns = 0;     // B · a2c-2 (the integrator's condition a): prebuild() calls - a key-off session makes exactly one
-	uint32_t a2cFirstUseFailed = 0; // B · a2c-2 (DLSS_INTEGRATION.md:3927 a): an alphaToCoverage = 1 key whose pipeline failed OUTSIDE a
+	uint32_t a2cTwins = 0;         // (A108): A2C twins prebuild() added (setA2CTwins on)
+	uint32_t a2cRecordedSkipped = 0; // recorded A2C keys a session WITHOUT A2C skipped (an earlier key-on session's): not queued
+	uint32_t a2cPlainTwins = 0;    // ...of them, the PLAIN twins queued instead (new candidates only)
+	uint32_t prebuildRuns = 0;     // (the integrator's condition a): prebuild() calls - a key-off session makes exactly one
+	uint32_t a2cFirstUseFailed = 0; // (a): an alphaToCoverage = 1 key whose pipeline failed OUTSIDE a
 	                                // prebuild (a draw-time get() miss, buildCustom): its draw is refused - a stated limit, counted
 	uint32_t failed = 0;           // vkCreateGraphicsPipelines errors or refused keys (any path)
 	uint32_t prebuildFailed = 0;   // of them, prebuild keys: the session must not start native rendering with any
@@ -110,22 +110,22 @@ struct GxPipeTestMutants {
 	bool syncCustom = false;          // get() compiles a custom (WS-E) miss on the CALLER (replay tools only: production prebuilds)
 	bool syncSpec = false;            // getFF() compiles a new specialised variant on the CALLER (the cold-cache fail arm)
 	VkShaderModule specFs = VK_NULL_HANDLE; // every specialised pipeline uses this FS (the identity gate's mutant arm)
-	VkShaderModule specFsFlat = VK_NULL_HANDLE; // B · a2c-1: ...and a FLAT-shaded key this one when set (gx_ff_test --a2c-family)
+	VkShaderModule specFsFlat = VK_NULL_HANDLE; // ...and a FLAT-shaded key this one when set (gx_ff_test --a2c-family)
 	bool specCorrupt = false;         // the specialised pipeline gets stage 0's colour op with bit 0 flipped while the pushed key
 	                                  // stays right: if it still matched, the specialisation constants would not be in force
 	bool specCorruptVs = false;       // ...the same for a VS-only word (HasColor0): proves the VERTEX stage's constants apply
 	bool failKeysRewrite = false;     // rewriteKeysFile() fails as if no replacement could be created (keys-repair-fail)
 	bool noCustomRecord = false;      // buildCustom() does not record its key (custom-record's fail arm)
 	unsigned keysAppendShortBy = 0;   // recordMiss() appends a record this many bytes short and sees the failure (keys-append-short)
-	bool noA2cTwins = false;          // B · a2c-1: prebuild() adds no A2C twin although setA2CTwins is on (a2c-twins-none: A2C draws miss)
-	bool noA2cPlainTwins = false;     // B · a2c-2: a session WITHOUT A2C queues no plain twin of a recorded A2C key (a2c-plain-twin-none: 1 miss)
-	std::atomic<bool> failA2cKeys { false };   // B · a2c-2: createPipeline() fails every alphaToCoverage = 1 key (the A2C prewarm-failure
+	bool noA2cTwins = false;          // prebuild() adds no A2C twin although setA2CTwins is on (a2c-twins-none: A2C draws miss)
+	bool noA2cPlainTwins = false;     // a session WITHOUT A2C queues no plain twin of a recorded A2C key (a2c-plain-twin-none: 1 miss)
+	std::atomic<bool> failA2cKeys { false };   // createPipeline() fails every alphaToCoverage = 1 key (the A2C prewarm-failure
 	                                  // plant; atomic - a specialised compile worker may read it while a test clears it)
 	std::atomic<unsigned> failA2cHits { 0 };   // ...and counts every key it refused (the native arms' evidence that the plant was reached)
-	bool a2cModuleSwapOne = false;    // B · a2c-2: the FIRST plain FF key created takes the a2c module (a2c-modules-swap must catch it)
-	bool cumulativePrebuildFailed = false; // B · a2c-2: prebuildComplete() reads every prebuild's failures again (prebuild-again's X-)
-	bool plainTwinNoCustomCheck = false; // B · a2c-2: a recorded custom A2C key's plain twin is queued WITHOUT the custom-module check
-	bool retargetNoBuildCheck = false;   // B · a2c-2: retargetedKeys() returns keys this session cannot build (a2c-retarget-unbuildable-nocheck)
+	bool a2cModuleSwapOne = false;    // the FIRST plain FF key created takes the a2c module (a2c-modules-swap must catch it)
+	bool cumulativePrebuildFailed = false; // prebuildComplete() reads every prebuild's failures again (prebuild-again's X-)
+	bool plainTwinNoCustomCheck = false; // a recorded custom A2C key's plain twin is queued WITHOUT the custom-module check
+	bool retargetNoBuildCheck = false;   // retargetedKeys() returns keys this session cannot build (a2c-retarget-unbuildable-nocheck)
 	                                     // (a2c-recorded-custom-nocheck: an unbuildable twin then fails the prebuild)
 };
 extern GxPipeTestMutants g_gxPipeTestMutants;
@@ -158,10 +158,10 @@ public:
 
 	// Queues parts x configs (normalised, de-duplicated) + this machine's recorded misses for `workers` threads; returns the
 	// number queued. Returns at once. A key already built or claimed (in flight) is skipped.
-	// B · a2c-1: every key this cache has published (non-null) or recorded at `fromSamples`, re-made for each of
+	// every key this cache has published (non-null) or recorded at `fromSamples`, re-made for each of
 	// `configs` drawn at `toSamples` with the same depth presence (custom shader identity kept) - what an A2C session's Reset to another MSAA
 	// hands prebuild() as `extra` (whose A2C twins follow), so a key the session already drew is never compiled on first use again.
-	// B · a2c-2: a recorded key this session cannot build (recordedBuildable) is not re-made - startup skipped it too.
+	// a recorded key this session cannot build (recordedBuildable) is not re-made - startup skipped it too.
 	std::vector<GxPipelineKey> retargetedKeys(uint8_t fromSamples, uint8_t toSamples, const GxAttachConfig* configs, size_t configCount);
 	size_t prebuild(const GxDrawPart* parts, size_t partCount, const GxAttachConfig* configs, size_t configCount,
 	                unsigned workers, const std::vector<GxPipelineKey>* extra = nullptr);
@@ -170,11 +170,11 @@ public:
 	// because a caller's get() had already failed them or was still compiling them. False = do not start native
 	// rendering (DESIGN §4). A worker counts a failure BEFORE its decrement, so once the remaining count reads 0 (acquire) the
 	// failure count is final. Latched once true (pipelines are never removed before shutdown); prebuild() clears the latch.
-	// B · a2c-2: it reads the failures of the LAST prebuild() only (a session with one prebuild - every key-off
+	// it reads the failures of the LAST prebuild() only (a session with one prebuild - every key-off
 	// session - reads exactly what it read before; a later prebuild is not failed forever by an earlier one's key).
 	bool prebuildComplete() const;
 	void waitPrebuild();
-	// B · a2c-2 (the integrator's ruling after DLSS_INTEGRATION.md:3876): after waitPrebuild(), un-publish the keys the LAST prebuild's
+	// (the integrator's ruling after): after waitPrebuild(), un-publish the keys the LAST prebuild's
 	// workers failed (still null), so nothing of a failed A2C prewarm stays behind: a later draw of such a key takes today's first-use path
 	// (get() compiles it) instead of a stale null. Returns how many were dropped. Never called in a key-off session.
 	size_t dropPrebuildFailures();
@@ -188,7 +188,7 @@ public:
 	// came back. The FF key must also be pushed (GxFFState.h): the generic pipeline reads it.
 	// WS-E. The module set createPipeline() uses for a GxShaderCustom key (key.shader.reserved[0] = GxCsVsId, [1] = GxCsPsId).
 	void setCustomShaders(const GxCustomShaders& c) { m_custom = c; }
-	// B · a2c-1 (A108): the session runs alpha-to-coverage (the device's a2c family is loaded). Then prebuild() also queues the A2C twin
+	// (A108): the session runs alpha-to-coverage (the device's a2c family is loaded). Then prebuild() also queues the A2C twin
 	// (alphaToCoverage = 1) of every candidate a GxAlphaToCoverage.h draw can turn on - multisampled, blending off, colour writes on, not a
 	// gx:vel program - so no A2C draw compiles on first use. Off (the default): recorded A2C keys are skipped and counted, never built.
 	void setA2CTwins(bool on) { m_a2cTwins = on; }
@@ -196,7 +196,7 @@ public:
 	// Blocking build + publish of one custom key (the sanctioned way to get a custom pipeline: at load, before the first draw).
 	// Returns the published pipeline, NULL on failure. A custom key never has a generic stand-in, so get() on a key nobody built
 	// is a counted miss that draws nothing. A key built here is RECORDED in the keys file, so the next session's prebuild builds
-	// it before the first frame (DESIGN_l1-device §10.2 item 1); a recorded custom key this session's modules cannot build is
+	// it before the first frame; a recorded custom key this session's modules cannot build is
 	// skipped there (recordedSkipped), never queued, so it can never fail the prebuild.
 	VkPipeline buildCustom(const GxPipelineKey& key);
 	VkPipeline getFF(const GxPipelineKey& key, const GxFFSpecBlock& spec, uint32_t frame, bool* specialised = nullptr);
@@ -205,7 +205,7 @@ public:
 
 	bool save();
 	GxPipeStats stats() const;
-	// B · a2c-2 (DLSS_INTEGRATION.md:3927 a): stats().a2cFirstUseFailed alone - the device's periodic [GXA2C] line reads it on the present
+	// (a): stats().a2cFirstUseFailed alone - the device's periodic [GXA2C] line reads it on the present
 	// path (a plain locked getter, like stats(); its own name so the render-seam lint never reads it as a draining device accessor)
 	uint32_t a2cFirstUseFailed() const;
 	const std::string& cachePath() const { return m_path; }
@@ -244,7 +244,7 @@ private:
 	void recordMiss(const GxPipelineKey& key);
 	// The modules a GxShaderCustom key names (unchanged for a stage it does not name); false + why = this session cannot build it.
 	bool customModules(const GxPipelineKey& key, VkShaderModule* vs, VkShaderModule* fs, std::string* why) const;
-	// B · a2c-2: what prebuild() checks of a RECORDED key before queuing it - a velocity key needs this session's
+	// what prebuild() checks of a RECORDED key before queuing it - a velocity key needs this session's
 	// gx:vel modules, a custom key its program's modules. False = queuing it would fail the closure.
 	bool recordedBuildable(const GxPipelineKey& key) const;
 	bool limitsOk(std::string* why) const;
@@ -253,9 +253,9 @@ private:
 	GxGenericShaders m_shaders;
 	GxCustomShaders m_custom;
 	uint32_t m_dynamicMask = 0;
-	bool m_a2cTwins = false;   // B · a2c-1 (A108)
-	uint32_t m_prebuildFailedBase = 0;           // B · a2c-2: m_stats.prebuildFailed when the last prebuild() started (m_statsLock)
-	std::vector<GxPipelineKey> m_prebuildFailedKeys;   // B · a2c-2: the keys the last prebuild's workers failed (m_statsLock)
+	bool m_a2cTwins = false;   // (A108)
+	uint32_t m_prebuildFailedBase = 0;           // m_stats.prebuildFailed when the last prebuild() started (m_statsLock)
+	std::vector<GxPipelineKey> m_prebuildFailedKeys;   // the keys the last prebuild's workers failed (m_statsLock)
 	std::string m_path, m_keysPath, m_loadNote;
 	VkPipelineCache m_cache = VK_NULL_HANDLE;
 

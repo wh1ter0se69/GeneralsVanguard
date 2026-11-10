@@ -630,14 +630,14 @@ bool caseLightSlots(Env& e, std::string* d)
 // rw3-T cut 3a: stats().drawClasses is built from per-draw class counters. It must name exactly what the old per-draw string build
 // named: each drawn packet's class is recomputed here with that formula and compared with the map's change over the case - both
 // "no-ztest" states (ZWRITEENABLE on and off), ztest+zwrite and ztest, blend, a not pre-transformed draw, an rt-texture target,
-// and a refused draw that must count nothing (E · rw3-L-3's identity conditions).
+// and a refused draw that must count nothing (identity conditions).
 struct VtxXyz
 {
 	float x, y, z;
 	uint32_t c;
 };
 
-// B · a2c-1 (A108, SCOPE_a2c.md, busy-region ruling DLSS_INTEGRATION.md:3798): alpha-to-coverage. On a 4x target with the session's A2C
+// (A108, busy-region ruling): alpha-to-coverage. On a 4x target with the session's A2C
 // on, a depth-tested alpha-tested opaque draw gets the key's alphaToCoverage byte AND bit 3 of spec word 0 (the shader's ramp); every
 // guard alone turns both off; a 1x target and a session-off translator never set either. EVERY observed packet must have byte == bit
 // (the consistency rule: a pipeline with A2C and no ramp dithers, a ramp with no A2C loses the test). S7: a receiver under A2C keeps
@@ -787,7 +787,7 @@ bool caseA2c(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// S7 P2 (D · look-shadowmaps-2, PREREG_look-shadowmaps A2/A3/A29/A36 item 6): with receivers on, every draw's PS block carries DrawBits
+// S7 P2 (A2/A3/A29/A36 item 6): with receivers on, every draw's PS block carries DrawBits
 // (offset 276): RECEIVE tag + not pre-transformed -> Receive; + not a modulate pass (DESTCOLOR src / SRCCOLOR dst) -> ApplyRgb; + blending
 // off -> ApplyAlpha. Receivers OFF (key off): the word stays 0 whatever the tag. X-: ApplyRgb on a modulate pass (darkened twice).
 bool caseSmBits(Env& e, std::string* d)
@@ -874,7 +874,7 @@ bool caseSmBits(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// S7 A41 (D · look-shadowmaps-3, PREREG A41, integrator A40 T1/T2): a clamped instance's own light. With receivers on and the RECEIVE tag,
+// S7 A41 (PREREG A41, integrator A40 T1/T2): a clamped instance's own light. With receivers on and the RECEIVE tag,
 // a draw under SetOwnLight carries DrawBits bit 3 and OwnScale / OwnZ0 (offsets 280 / 284); with it cleared, none of them (no stale own
 // light); with the tag off, nothing. KEY OFF (receivers off): the words stay 0 whatever the own light, and the pack-check (which compares
 // them with the mask off) sees no mismatch. X-sm-own (plant smOwnMaskOff: the words written with the mask off) must be caught there.
@@ -1084,7 +1084,7 @@ bool caseDrawClasses(Env& e, std::string* d)
 	return ok;
 }
 
-// rw3-T cut 3b (E · rw3-L-3's conditions 1 + 3): the translator reuses GxPackFF's last output while none of its inputs changed. A
+// rw3-T cut 3b (conditions 1 + 3): the translator reuses GxPackFF's last output while none of its inputs changed. A
 // repeat draw must reuse it; a change through EVERY setter that reaches a GxPackFF input must make the next draw pack again; and
 // every draw's blocks must equal a fresh GxPackFF of the state that draw saw (state() holds the derived fields it packed with).
 // Each step changes a value that changes the packed bytes, so a setter that fails to invalidate shows as stale blocks.
@@ -1442,7 +1442,7 @@ bool casePackCustomVs(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// E · water-live-native-port (R-W1 + R-G1, 21/10/2026; + RA3 water's sheen, D · water-ra3-2 24/10/2026): live water's two programs, the
+// (R-W1 + R-G1, 21/10/2026; + RA3 water's sheen): live water's two programs, the
 // remastered ground's three and RA3 water's one, created from
 // the catalogue's bytes (gx_cs_test proves those are the game's own arrays, byte for byte), each drawn once: a CUSTOM draw with the
 // entry's program id (the gx_cs_ps.frag case that ports it), the five constants the game sets in PS-block stages 0-4, and no
@@ -1453,8 +1453,8 @@ bool caseLivePrograms(Env& e, std::string* d)
 	bool ok = true;
 	static const struct { const char* file; uint8_t id; } want[] = { { "water:glare", GxCsPsWaterGlare }, { "water:foam", GxCsPsWaterFoam },
 		{ "gx:ground-base", GxCsPsGroundBase }, { "gx:ground-mult", GxCsPsGroundMult }, { "gx:ground-mult-lite", GxCsPsGroundMultLite },
-		{ "water:ra3", GxCsPsWaterRA3 },   // D · water-ra3-2 24/10/2026: RA3 water's sheen
-		{ "water:ra3river", GxCsPsWaterRA3River } };   // C · water-ra3-3 25/10/2026: its river program
+		{ "water:ra3", GxCsPsWaterRA3 },   // RA3 water's sheen
+		{ "water:ra3river", GxCsPsWaterRA3River } };   // its river program
 	size_t n = 0;
 	const GxCsEntry* es = GxCsEntries(&n);
 	begin(e, e.argb, nullptr);
@@ -1536,13 +1536,13 @@ const Case kCases[] = {
 	{ "pack-world", casePackWorld, &GxTranslateDebug::packWorldStale },
 	{ "pack-custom", casePackCustom, &GxTranslateDebug::packOverlayInCache },
 	{ "pack-custom-vs", casePackCustomVs, &GxTranslateDebug::packVsOverlayInCache },
-	// S7 P2 (D · look-shadowmaps-2): the receiver bits; the plant must break the MODULATE step
+	// S7 P2: the receiver bits; the plant must break the MODULATE step
 	{ "sm-bits", caseSmBits, &GxTranslateDebug::smBitsIgnoreBlend, "[modulate DESTCOLOR/ZERO" },
-	// S7 A41 (D · look-shadowmaps-3): the own light - its words only with the mask on (the plant writes them with it off: the pack-check
+	// S7 A41: the own light - its words only with the mask on (the plant writes them with it off: the pack-check
 	// must catch it), and the capture world World x S (the plant captures the plain World)
 	{ "sm-own", caseSmOwn, &GxTranslateDebug::smOwnMaskOff, "[mask off" },
 	{ "sm-own-cast", caseSmOwnCast, &GxTranslateDebug::smOwnNoCaster, "[own light: the capture world is not World x S]" },
-	// B · a2c-1 (A108): one case, two plants - each must break its own step
+	// (A108): one case, two plants - each must break its own step
 	{ "a2c-derive", caseA2c, &GxTranslateDebug::a2cIgnoreBlend, "[blended: a2c on" },
 	{ "a2c-consistent", caseA2c, &GxTranslateDebug::a2cSpecBitOff, "[consistency" },
 	{ "cs-live-programs", caseLivePrograms, &GxTranslateDebug::psCatalogMiss, ": not drawn as one custom draw]" },

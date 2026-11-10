@@ -1,4 +1,4 @@
-// GeneralsX: A23-B arm 26 (DESIGN_A23_wide-ring.md v8.1 §7, r5 P2-6 / r6 P2-6): the front-only
+// GeneralsX: A23-B arm 26 (v8.1 §7): the front-only
 // results. Every F entry point of the native device and its resources is called with valid, null and out-of-range arguments,
 // between setters that make the state non-default; each call's HRESULT and outputs are hashed - COM pointers as the object's
 // identity (first-seen order; aliases therefore compare), lock pointers as (allocation identity, offset), every other byte

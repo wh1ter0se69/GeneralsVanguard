@@ -30,7 +30,7 @@ layout(location = 9) out vec4 out_Color0;
 layout(location = 10) out vec4 out_Color1;
 layout(location = 11) out float out_Fog;
 #ifdef GX_LOOK_SHADOWMAP
-// GX S7 (D · look-shadowmaps-2, PREREG_look-shadowmaps A20/A36, PLAN P2): the key-on family (regen.sh "@SM") writes the WORLD position the
+// GX S7 (A20/A36, PLAN P2): the key-on family (regen.sh "@SM") writes the WORLD position the
 // receiver's shadow-map lookup needs (the key-on fragment shader reads location 12; every vertex shader it pairs with writes it).
 layout(location = 12) out vec3 out_WorldPos;
 #endif

@@ -26,7 +26,7 @@
 // Player_9_Start and whatever bytes follow into 10..12, and the next rewrite persists that. The map
 // file is untouched, so the size/CRC/timestamp test keeps passing forever. Measured on a desyncing
 // peer: Player_9_Start == InitialCameraPosition and Player_10..12_Start == 0,0 for all three of its
-// 12-player maps. See docs/WORKDIR/evidence/windows-desync-mapcache-2026-09-23.md.
+// 12-player maps.
 //
 // The rule is deliberately narrow - a legitimate entry that trips it is re-scanned on EVERY launch:
 //   * numPlayers < 2: never judged. A map with no start waypoints is reported as 1 player.

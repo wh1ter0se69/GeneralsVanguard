@@ -1,4 +1,4 @@
-// GeneralsX: CLEARER WATER, a client-only look option (look S8a, PLAN_look 5.1; wh1ter0se 13/10:
+// GeneralsX: CLEARER WATER, a client-only look option (look S8a, 5.1; wh1ter0se 13/10:
 // "actual water ... invisible/white water compared to the blue one"). It is ON by default from 0.9.66 (gxWaterClearOptionOn
 // below): Options.ini GXWaterClear = no turns it off; GX_WATER_CLEAR=0/1 overrides the key for A/B arms.
 //
@@ -30,7 +30,7 @@
 #include <stdlib.h>
 
 // ---------------------------------------------------------------------------------------------------------------------------
-// The look at strength 1. Starting values from the look director (PLAN_look 5.1); pictures tune them, and the GX_WATER_CLEAR_*
+// The look at strength 1. Starting values from the look director; pictures tune them, and the GX_WATER_CLEAR_*
 // variables below override them per run without a rebuild.
 
 static constexpr float kGxWaterClearMinOpacity = 0.6f;	// deep-water opacity cap (stock Water.ini: 1.0, opaque)
@@ -111,7 +111,7 @@ inline GxWaterClearValues gxWaterClearApply(float depth, float minOpacity, float
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
-// The Options.ini key. GeneralsX: ON BY DEFAULT from 0.9.66 (lead C44 for wh1ter0se, who chose this water
+// The Options.ini key. GeneralsX: ON BY DEFAULT from 0.9.66 (for wh1ter0se, who chose this water
 // from the look-water-3 pictures, where clearer and live water were on together): an Options.ini without GXWaterClear draws
 // clearer water, and GXWaterClear = no turns it off.
 static const bool kGxWaterClearDefaultOn = true;

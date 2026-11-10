@@ -1,4 +1,4 @@
-// GxCustomCatalog.h - the custom-shader catalogue (WS-E, rw2-E, 11/10/2026; PLAN §3 WS-E, DESIGN_pipeline-cache.md "custom").
+// GxCustomCatalog.h - the custom-shader catalogue (WS-E, rw2-E, 11/10/2026; PLAN §3 WS-E, "custom").
 //
 // The game loads its .pso/.vso bytecode through the file system (W3DShaderManager.cpp LoadAndCreateD3DShader), so a mod can
 // replace terrain.pso under the same name. The native renderer therefore never trusts a NAME: a port is selected by the
@@ -29,7 +29,7 @@ enum GxCsPsId : uint8_t {
 	GxCsPsCount
 };
 enum GxCsVsId : uint8_t { GxCsVsNone = 0, GxCsVsTrees, GxCsVsWave, GxCsVsVelRigid, GxCsVsVelSkin,   // VelRigid/VelSkin: gx_cs_vel.vert
-	GxCsVsShadow = 5,   // gx:shadowvol (GxShadowVolumeVS.h, C · rw3-R11): 5, not 3 - render/ws-motion-units appends 3/4 (gx:vel-*)
+	GxCsVsShadow = 5,   // gx:shadowvol (GxShadowVolumeVS.h): 5, not 3 - render/ws-motion-units appends 3/4 (gx:vel-*)
 	GxCsVsCount };
 
 struct GxCsEntry {

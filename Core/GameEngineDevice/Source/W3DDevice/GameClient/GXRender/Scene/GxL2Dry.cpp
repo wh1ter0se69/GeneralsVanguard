@@ -37,7 +37,7 @@
 #include <cstring>
 #include <unordered_map>
 
-// GxL2Contract.h's FlushSite and dx8renderer.h's GxFlushSite are one list (CONTRACT_L2.md §1.1).
+// GxL2Contract.h's FlushSite and dx8renderer.h's GxFlushSite are one list.
 static_assert(gxl2::SITE_UNSET == GXFS_UNSET && gxl2::SITE_MAIN_OPAQUE == GXFS_MAIN_OPAQUE
 	&& gxl2::SITE_OCCL_TRANSL_PRE == GXFS_OCCL_TRANSL_PRE && gxl2::SITE_OCCL_TRANSL_STENCIL == GXFS_OCCL_TRANSL_STENCIL
 	&& gxl2::SITE_OCCL_BUCKET == GXFS_OCCL_BUCKET && gxl2::SITE_OCCL_OTHERS == GXFS_OCCL_OTHERS
@@ -78,7 +78,7 @@ void GxL2Dry_FillCat(DX8TextureCategoryClass *cat, DX8PolygonRendererClass *pr, 
 	const ShaderClass sh = cat->Get_Shader();
 	c.shader.bits = sh.Get_Bits();
 	// PROXY from the bits, for the static census only: E4 proper is decoded from the effective post-Apply state at the run
-	// (CONTRACT_L2.md §2 E4, contract r2 #3), which a raw write can make differ from these bits.
+	// (E4, contract r2 #3), which a raw write can make differ from these bits.
 	c.shader.blendOff = sh.Get_Src_Blend_Func() == ShaderClass::SRCBLEND_ONE && sh.Get_Dst_Blend_Func() == ShaderClass::DSTBLEND_ZERO;
 	c.shader.zEnable = true;
 	c.shader.depthWrite = sh.Get_Depth_Mask() == ShaderClass::DEPTH_WRITE_ENABLE;
@@ -119,7 +119,7 @@ void GxL2Dry_FillTask(MeshClass *mesh, DX8PolygonRendererClass *pr, int batch, g
 			if (le->isPointLight(l)) t.lightPoint |= (uint8_t)(1u << l);
 	}
 	t.vbOverflow = batch > 0;
-	// No bounds are copied at collection yet (CONTRACT_L2.md §3.6), so every task is tie-capable with every other one.
+	// No bounds are copied at collection yet, so every task is tie-capable with every other one.
 	t.bounds.lo = gxl2::Vec3{ -FLT_MAX, -FLT_MAX, -FLT_MAX };
 	t.bounds.hi = gxl2::Vec3{ FLT_MAX, FLT_MAX, FLT_MAX };
 }

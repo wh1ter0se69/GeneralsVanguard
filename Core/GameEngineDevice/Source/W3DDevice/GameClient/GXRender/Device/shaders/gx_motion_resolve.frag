@@ -1,7 +1,7 @@
 #version 450
 
 // gx_motion_resolve.frag - GeneralsX: camera motion vectors from the world depth
-// (modernize/render-dlss/DESIGN_motion.md §6.9). One fragment per world pixel p: the un-jittered position of the surface the
+// One fragment per world pixel p: the un-jittered position of the surface the
 // jittered raster put at p is u = p - jitter; its clip position (NDC from the world viewport, z from the depth buffer) goes
 // through clipToPrevClip; mv = previous pixel - u = CURRENT -> PREVIOUS in render pixels, +x right / +y down (GxMotionFrame.h).
 

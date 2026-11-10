@@ -1,5 +1,5 @@
 // GeneralsX: THE REMASTERED GROUND's three ps.1.1 programs, created by W3DDevice/GameClient/TerrainTex.cpp
-// (gxgEnsureDevice). Moved here from TerrainTex.cpp by E · water-live-native-port 21/10/2026 (R-G1) so the native
+// (gxgEnsureDevice). Moved here from TerrainTex.cpp by (R-G1) so the native
 // renderer's catalogue test (GXRender/Pipeline/tests/gx_cs_test.cpp) compares its ports with these COMPILED arrays, as it does for
 // live water's (GXWaterLive.h) - a text reader of a .cpp can be fooled by an #if 0 copy or a commented-out token, a compiler cannot.
 // The native catalogue ports them as gx:ground-base / -mult / -mult-lite (GxCustomCatalog.h, gx_cs_ps.frag cases 18-20): a change

@@ -62,7 +62,7 @@ static UnsignedInt theGameLogicSeed[6] =
 	0xf22d0e56L, 0x883126e9L, 0xc624dd2fL, 0x702c49cL, 0x9e353f7dL, 0x6fdf3b64L
 };
 
-// GeneralsX: render-split step 2 (gx-handoff modernize/render-split/DESIGN.md): the simulation's
+// GeneralsX: render-split step 2: the simulation's
 // COSMETIC stream. Twenty-one lines of tick code drew the CLIENT stream for values that only place or time effects - particle
 // offsets, a scorch mark, rotor wash, toppling-building bursts, floating-text jitter, the stealth shimmer phase. The client
 // stream already differs from peer to peer (a rendered peer draws its particles from it), so none of those values was ever

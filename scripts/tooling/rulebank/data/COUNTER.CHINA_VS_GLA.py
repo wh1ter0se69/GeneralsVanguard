@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule COUNTER.CHINA_VS_GLA (C·rb-data-13): China fights GLA with Flamers and Gattlings
+# GeneralsX: rule bank DATA rule COUNTER.CHINA_VS_GLA: China fights GLA with Flamers and Gattlings
 # (rows 165: "vs GLA keep both War Factories spamming: Flamers from one, Gats from the other", 169, 262; RULE_BRIEFS 7 COUNTER-PICK). Stock
 # Hard vanilla and Tank China send Battlemaster waves at everyone and field no Dragon before wave 5. This, per general:
 #   MATCHUP 'GLA': the SHARED latch (rb.matchup, group "GX Matchup") sets gxrb_mu_gla once AI_PLAYER_GX_SENSE says my enemy is GLA - from

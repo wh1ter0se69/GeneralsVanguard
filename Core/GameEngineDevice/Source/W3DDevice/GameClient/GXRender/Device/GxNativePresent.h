@@ -1,4 +1,4 @@
-// GeneralsX: the native device's present = DXVK's swapchain blitter (DESIGN_l1-device §8.2).
+// GeneralsX: the native device's present = DXVK's swapchain blitter.
 //
 // DXVK draws the game's back buffer onto the window with its present shaders (dxvk_swapchain_blitter.cpp, references/
 // fbraz3-dxvk 954c5c692): a single-sample back buffer at the window's size is copied as is (the "no redundant conversion"

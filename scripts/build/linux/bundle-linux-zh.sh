@@ -27,7 +27,7 @@ OUTPUT_TARBALL="${PROJECT_ROOT}/GeneralsXZH-linux-x86_64.tar.gz"
 #
 # NOT HARDCODED: /root/gamedata. The harness host keeps the retail data and the mandatory archives
 # there, and release 85f9a6650 needed GX_OVERLAY_SRC=/root/gamedata to package on it. That is one
-# host's layout, so it is recorded in docs/WORKDIR/RUNBOOK_2026-08-24_ATOMIC_SHIP.md, not baked in.
+# host's layout, so it is recorded, not baked in.
 #
 # GX_OVERLAY_SRC, NOT GX_PATCH_SRC, and that disagreement with the macOS bundler is left exactly as
 # it was found. Renaming either one is a breaking change for whoever sets it on a packaging box, and
@@ -406,7 +406,7 @@ if [[ ${#gx_missing_required[@]} -eq 0 ]]; then
     done
     : > "${GX_PATCH_STAGE}/required.txt"
     gx_overlay_archives >> "${GX_PATCH_STAGE}/required.txt" || exit 1
-    # SCOPE, decided (launcher-maps r2 P1): the Flatpak (flatpak/*.yml, build-linux-flatpak.yml) carries
+    # SCOPE, decided (launcher-maps): the Flatpak (flatpak/*.yml, build-linux-flatpak.yml) carries
     # no GeneralsXPatch overlay at all today (grep -c GeneralsXPatch = 0 in all three), so it ships none of the
     # overlay archives either; the maps ride with the overlay and gain nothing there that dataID does not
     # already lose. A Flatpak player still gets the maps by lobby transfer.
@@ -486,8 +486,8 @@ if [[ ${#gx_missing_required[@]} -gt 0 || ${#gx_missing_optional[@]} -gt 0 ]]; t
     fi
 fi
 
-# GeneralsX: THE LOOSE DATA EVERY OTHER PLATFORM SHIPS (on
-# feat/next-batch-defaults). Data/INI/Multiplayer.ini (the sixteen colours) and Data/INI/Weapon.ini (the
+# GeneralsX: THE LOOSE DATA EVERY OTHER PLATFORM SHIPS.
+# Data/INI/Multiplayer.ini (the sixteen colours) and Data/INI/Weapon.ini (the
 # Toxin Tractor change, cut by scripts/tooling/make-weapon-ini.py from the CoreINI staged above) both go
 # through the INI parser, so both are in iniCRC -> dataID: a tarball without them is refused by every
 # Mac, iPad and Windows peer with DATA_DIFFERS. This tarball never carried the colour pair either.

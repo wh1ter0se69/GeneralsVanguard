@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G: the S1 DrawRun seat's engine-free logic (rw1-G/PLAN_seat.md D1, D4, D5; CONTRACT_L2 §3.2
+// GeneralsX: WS-G: the S1 DrawRun seat's engine-free logic (D1, D4, D5; CONTRACT_L2 §3.2
 // S1-DR, §3.4 under DrawRun). GxScene.cpp drives it from the category task loop; scripts/test/l2-seat-test.cpp drives it by hand.
 
 #pragma once
@@ -51,7 +51,7 @@ unsigned lightSets(const LightKey *k, size_t n, unsigned *index, unsigned *first
 // D5 (rw1-X2-2 r17 #2/#4 simplification): the C2b digest bracket at GX_DRAWRUN_DIGEST=2 holds the run's OWN draws only, in both toggle
 // states, never nested: open before PREPARE; in ON closed right after the CARRY-OUT's Apply (runEnd); in OFF / refused closed before
 // right after the run's last own wrapper draw is RECORDED (drawDone; or at the next run's open / the frame's end). There is no successor draw, so no
-// bracket closes early. mark(begin, tag) is called back in stream order; only the close's tag names the bracket (DRAWRUN_ABI.md DigestMark).
+// bracket closes early. mark(begin, tag) is called back in stream order; only the close's tag names the bracket (DigestMark).
 struct Digest {
 	void (*mark)(void *ctx, bool begin, unsigned long long tag) = nullptr;
 	void *ctx = nullptr;

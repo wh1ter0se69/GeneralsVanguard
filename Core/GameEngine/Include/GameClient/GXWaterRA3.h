@@ -3,7 +3,7 @@
 // DEFAULT ON for every player since wh1ter0se's yes, 04/11/2026: GXWaterRA3 = no turns it off; GX_WATER_RA3=0/1 overrides the key
 // and GX_WATER_RA3_TUNE=<name:value,...> tunes it per run (A/B arms, picture pieces).
 //
-// WHAT RA3 DOES, AND WHAT WE DO INSTEAD (modernize/water-ra3/STUDY_water-ra3.md). EA's own Ocean.fx draws the water OPAQUE
+// WHAT RA3 DOES, AND WHAT WE DO INSTEAD. EA's own Ocean.fx draws the water OPAQUE
 // over a refraction copy of the scene, with two scrolling normal maps, a planar reflection and a cube map; its turquoise
 // shallows are the painted sea floor seen through that copy. Our classic renderer (D3D8 through DXVK) has no mid-frame copy,
 // but retail Generals already has something better for the shallows: real depth. Every terrain tile near a shore is drawn a
@@ -70,13 +70,13 @@ struct GxWaterRA3Tune
 	float div;			// and each one's own drift, + for tiling A, - for B (RA3's octave divergence): they counter-scroll
 	float bump;			// the normal map's RMS slope (one tiling): how rough the ripples are
 	float cells;		// the normal map's coarsest noise lattice, cells across one tiling (then 2x and 4x): its ripple size
-	// PHASE 3, RIVERS (C · water-ra3-3, 25/10; wh1ter0se approved phase 2's motion as it is, so nothing above changes):
+	// PHASE 3, RIVERS (25/10; wh1ter0se approved phase 2's motion as it is, so nothing above changes):
 	float river;		// >= 0.5: rivers take the deep colour, the smooth surface and the sheen too; below: retail rivers (phase 2)
 	float riverOpacity;	// the river surface's alpha (retail TWWater01's is 194/255 everywhere; phase 3 kept that 0.76, phase 3b 0.90:
 						// less of the bed - snow or sand already tinted cyan by the tint pass - shows through)
 	float riverSpeed;	// the river tilings' common drift DOWNSTREAM, world units a second (retail's texture flows ~6-12 a second);
 						// each tiling's own +-div is standing water's
-	// PHASE 3b, DEEPER RIVERS (D · water-ra3-4, 25/10; wh1ter0se on phase 3's pictures: "the light blue is too light blue ngl"). River-only:
+	// PHASE 3b, DEEPER RIVERS (25/10; wh1ter0se on phase 3's pictures: "the light blue is too light blue ngl"). River-only:
 	// the lakes and the sea (approved) read neither field.
 	float riverShade;	// x the river's lit deep colour (1 = the lakes' colour, phase 3); its alpha byte (retail's sparkle weight) kept
 	float riverSky;		// x `sky` for the river sheen only (the light-blue sky reflection; 1 = phase 3, 0 = the glints alone)

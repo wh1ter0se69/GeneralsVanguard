@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule OPEN.GLA_SUPPLY_COUNT (C·rb-data): how many supply stashes GLA opens with, and
+# GeneralsX: rule bank DATA rule OPEN.GLA_SUPPLY_COUNT: how many supply stashes GLA opens with, and
 # an early Technical raid. Stock Hard GLA builds one stash at 2 workers; more come only from the escalation-gated, gift-carrying Base
 # Expansion Check (frozen). Its one early raider, the "GLA H 1ST Wave Supply Hunters" team, is queued while _ATTACK_WAVE <= 1 - and every
 # _ATTACK_WAVE writer gates on _ESCALATION, which stock raises for enemy tech: an enemy read through fog. So:

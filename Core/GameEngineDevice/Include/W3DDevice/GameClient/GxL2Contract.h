@@ -1,4 +1,4 @@
-// GeneralsX: L2 data contract, reference rules (render-seam/CONTRACT_L2.md, WS-G0).
+// GeneralsX: L2 data contract, reference rules (WS-G0).
 //
 // Which classic mesh-renderer draws the L2 scene renderer may take over in the HYBRID (L2 drawing inside DXVK's device at
 // the original DX8MeshRendererClass::Flush points), and the bin key / per-instance split for the ones it takes. Header-only
@@ -6,7 +6,7 @@
 // PolyRenderTaskClass's MeshClass, the flush site and pass state); scripts/test/l2-binkey-test.cpp drives it on hand-made
 // states. Nothing here is compiled into the game yet, and nothing the simulation reads is touched.
 //
-// The section numbers (§) are CONTRACT_L2.md's. Every rule names the classic line it mirrors (base render/integration
+// The section numbers (§) are 's. Every rule names the classic line it mirrors (base render/integration
 // 92a850536). GX_L2_MUTANT=<n> plants one defect per number, for the test's fail arms (l2-binkey-test.sh).
 #pragma once
 

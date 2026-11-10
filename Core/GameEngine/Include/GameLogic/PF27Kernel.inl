@@ -1,5 +1,5 @@
 // GeneralsX: PF27 - the new A* kernel for Pathfinder::internalFindPath.
-// Design, contract and proof plan: fixes/pathfinding-2027/DESIGN.md (gx-handoff). Included at the END of
+// Design, contract and proof. Included at the END of
 // AIPathfind.cpp because it uses that file's statics (the info pool gauges, s_gxMoveGen, the cost constants).
 //
 // WHAT IT IS. The same search as the legacy loop in internalFindPath + examineNeighboringCells +
@@ -32,7 +32,7 @@ static Int pf27ModeFromEnv()
 	static Int s_mode = -1;
 	if (s_mode < 0)
 	{
-		// GeneralsX: The new kernel is the DEFAULT (lead C24, 0.9.59): path-identical to the
+		// GeneralsX: The new kernel is the DEFAULT: path-identical to the
 		// legacy loop on Mac, Linux and Windows (fixes/pathfinding-2027 identity runs); GX_PF27=legacy keeps the old loop,
 		// GX_PF27=check runs both and compares. Peers may differ in this choice - the paths do not. Builds whose retail
 		// pathfinding switches are on still run legacy (PF27Kernel::prepare refuses the kernel there).

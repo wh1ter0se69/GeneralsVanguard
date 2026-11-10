@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# regen.sh - compiles gx_res_test's GLSL to SPIR-V headers (build-time SPIR-V, lead C31 ruling; rw1-D's Pipeline/shaders pattern).
+# regen.sh - compiles gx_res_test's GLSL to SPIR-V headers (build-time SPIR-V, rw1-D's Pipeline/shaders pattern).
 # Dev-only: the generated headers are committed, so no build needs glslang. Run after editing a .vert/.frag.
 set -euo pipefail
 cd "$(dirname "$0")"

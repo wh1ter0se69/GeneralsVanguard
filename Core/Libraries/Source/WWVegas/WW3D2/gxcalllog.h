@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G Task 5: the `=2` call log's record format (CONTRACT_L2 §4.1, r9b; rw1-G/PLAN_model.md T1).
+// GeneralsX: WS-G Task 5: the `=2` call log's record format (CONTRACT_L2 §4.1, r9b).
 // Header-only and ENGINE-FREE on purpose: the wrapper's check-mode hooks write it (T1), the device-less model in GXRender/Scene reads
 // it (GxL2Model.h), and scripts/test/l2-model-test.cpp builds logs by hand. Nothing here runs unless the check is on.
 
@@ -61,7 +61,7 @@ enum Op : uint16_t {
 	VSHADER,				// Apply's Set_Vertex_Shader: a = FVF
 	XFORM_RAW,				// Set_Transform's raw PROJECTION / TEXTUREn send (no cache): a = transform, payload = Mat4 - replayed for
 							// state, never compared at call level
-	// markers and device-access provenance (PLAN_model r1 #1/#2, r2 #1/#3, r3 #1)
+	// markers and device-access provenance
 	ENTRY = 64,				// a = classic list seq, b = GxClassicDraw::Kind - appended BEFORE the entry's setters
 	CAT_BEGIN,				// payload = u64 category id
 	TASK_END,				// a = seq, after the task's epilogue (NORMALIZENORMALS FALSE)
@@ -82,7 +82,7 @@ struct Material { float diffuse[4], ambient[4], specular[4], emissive[4], power;
 static_assert(sizeof(Light) == 104 && sizeof(Material) == 68, "D3D8 layouts");
 
 // RenderStateStruct (W/dx8wrapper.h:300-326) - the LOGICAL state Apply sends from. Pointers are ids; a buffer carries the descriptor
-// Apply reads from the object (D3D handle, FVF size, FVF, vertex count - PLAN_model r1 #3).
+// Apply reads from the object (D3D handle, FVF size, FVF, vertex count).
 enum : uint32_t { BT_DX8 = 0, BT_SORTING = 1, BT_DYNAMIC_DX8 = 2, BT_DYNAMIC_SORTING = 3, BT_INVALID = 4 };	// W/dx8wrapper.h:82-88
 struct VbDesc { uint32_t type; uint64_t obj, d3d; uint32_t fvfSize, fvf, vertexCount; };
 struct IbDesc { uint32_t type; uint64_t obj, d3d; };
@@ -105,7 +105,7 @@ struct SortBind { uint64_t vb, ib; uint32_t fvfSize, fvf, vbOffset, ibOffset; };
 struct DrawRec { DrawArgs args; uint32_t lowBound; uint8_t trianglesOn, hasSort, pad[2]; SortBind sb; };
 
 // What ShaderClass::Apply reads besides its bits and its cache (ZW/shader.cpp:409-1060; ZW = GeneralsMD/Code/Libraries/Source/WWVegas/
-// WW3D2/), copied into the flush-start snapshot by the call log (PLAN_model T1; MODEL_RESEARCH MH4).
+// WW3D2/), copied into the flush-start snapshot by the call log (MODEL_RESEARCH MH4).
 struct ShaderGlobals {
 	bool fogAllowed;			// ShaderClass::Is_Fog_Allowed() / the caps' fog support as Apply tests it
 	bool fogEnable;				// DX8Wrapper FogEnable (Set_Fog, W/dx8wrapper.h:1238-1252)
@@ -119,7 +119,7 @@ struct ShaderGlobals {
 	uint32_t npatchesLevel;		// WW3D::Get_NPatches_Level() (ZW/shader.cpp:1053; 1 at start, ZW/ww3d.cpp:217)
 };
 
-// The flush-start snapshot (PLAN_model T1): every wrapper static the model needs, by value. DX8Wrapper::Gx_Log_Snapshot fills it;
+// The flush-start snapshot: every wrapper static the model needs, by value. DX8Wrapper::Gx_Log_Snapshot fills it;
 // gxl2m::seed() turns it into the model's State. Device bindings are not in it: no static says what the device has bound.
 struct Snapshot {
 	Logical rs; uint32_t changed;

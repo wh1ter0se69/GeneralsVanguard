@@ -1374,7 +1374,7 @@ ParticleSystem::~ParticleSystem()
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
-// GeneralsX: render-split step 6 (DESIGN.md 2.3, GXRenderSplit.h). Each operation below is written
+// GeneralsX: render-split step 6 (2.3, GXRenderSplit.h). Each operation below is written
 // as an `apply` that does what the method always did, then `if (!gxDefer(apply)) apply(this);`. Inside the tick window a
 // PUBLISHED system - one the draw walks - gets the operation queued by ID, its arguments copied at the call, and replayed in
 // call order when the window closes. Anything else applies at once: outside the window, GX_RSPLIT=0, or a system still
@@ -3356,7 +3356,7 @@ void ParticleSystemManager::init()
 void ParticleSystemManager::reset()
 {
 	// GeneralsX: render-split step 6: always direct, even inside the tick window - a game can end
-	// and reset inside a tick (InGameUI::reset), and a lifecycle call runs at once (DESIGN.md 2.1). Operations still queued
+	// and reset inside a tick (InGameUI::reset), and a lifecycle call runs at once. Operations still queued
 	// for the systems deleted here are dropped at the replay (the epoch), and staged systems go with the listed ones.
 	++m_gxEpoch;
 	while (!m_gxStaged.empty())

@@ -1,5 +1,5 @@
 // GeneralsX: WS-X hybrid spike - see W3DDevice/GameClient/GxInterop.h and
-// ~/Developer/gx-handoff/2026-09-28/modernize/render-seam/DESIGN_hybrid.md (§1 protocol, §4 measurement, §8 gates).
+// (§1 protocol, §4 measurement, §8 gates).
 //
 // Threads: Begin_Site / the flush boundaries run on the main thread and only queue work; DX8Wrapper::Device_Call runs the d3d8 part on the
 // thread that owns the device at that point of the stream (the d3d8 ring's consumer inside the object-flush bracket, the
@@ -215,7 +215,7 @@ int s_equalTest = 0;
 // as its next pass's load op and wipes them.
 bool s_clearTest = false;
 // In-pass mode (the fork's DXVK_GX_INPASS=1, read by the fork at device creation): an insertion inside a pass DXVK has bound
-// records only its draws - no barrier, no rendering instance, no tile store (DESIGN_hybrid §12). s_inPassAsked mirrors the
+// records only its draws - no barrier, no rendering instance, no tile store. s_inPassAsked mirrors the
 // switch so the rows can count which insertions really ran in-pass and which fell back to the break path.
 bool s_inPassAsked = false;
 int s_split = 1;	// GX_RENDER_HYBRID_SPLIT (1..1024; PACKETS covers 1024/frame x DXVK's frames in flight)
@@ -237,7 +237,7 @@ bool s_interleave = false;
 // the end of the same init buffer, which covers ours. =2 uploads the DRAW ARGUMENTS instead (vkCmdDrawIndirect, barrier
 // TRANSFER -> DRAW_INDIRECT): a D3D9 front end never reads a buffer at DRAW_INDIRECT, so no barrier of DXVK's covers that read
 // and noupbarrier must fire there. Fail arm inpassupload: the upload and its barrier recorded INSIDE DXVK's open pass (the
-// forbidden-inside rule, DESIGN_hybrid §12) - core validation must reject it. =3 uploads the cube's VERTICES (a per-vertex
+// forbidden-inside rule) - core validation must reject it. =3 uploads the cube's VERTICES (a per-vertex
 // binding) instead of the instances: INFERRED from val3 (WUPX, the break-path noupbarrier arm, did not fire either) that
 // synchronization validation does not check instance-rate vertex reads - =3 against =1 under noupbarrier tests that.
 int s_uploadTest = 0;
@@ -672,7 +672,7 @@ const VkAccessFlags2 COLOUR_ACCESS = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_
 
 // One insertion: a rendering instance on the bound attachments with LOAD/STORE at their real formats and sample count,
 // one instanced draw, and every image back in the layout it came in, its writes available to what DXVK expects
-// (DESIGN_hybrid.md §1.2 step 4). Runs on DXVK's CS thread (P-L) or the device thread into our own buffer (P-Q).
+// (step 4). Runs on DXVK's CS thread (P-L) or the device thread into our own buffer (P-Q).
 void Record_Test(const DxvkGxRecordInfo *info, void *user)
 {
 	const uint64_t t0 = Now_Ns();

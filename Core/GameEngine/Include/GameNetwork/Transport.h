@@ -446,7 +446,7 @@ public:
 	// Measured on this hardware 2026-08-08 (scripts/tooling/p2p-spike.js): a LAN pair paid
 	// 124.96 ms median through the relay in France and 0.95 ms direct - 131x - and the upgrade
 	// completed 102 ms after the peer started. The design and its bounds are in
-	// docs/WORKDIR/DESIGN_2026-08-08_direct-p2p-with-relay-fallback.md; read section 3 before
+	// read section 3 before
 	// quoting any of that at a player, because commands travel a STAR through the packet router
 	// and lockstep runs at the worst remaining link.
 	//
@@ -682,7 +682,7 @@ private:
 	// replies sat in the pending buffer, complete and unread, until the NEXT query went out a full
 	// browse interval later. At WOLLobbyMenu's 3 s cadence that is 3 s of pure latency stacked on top
 	// of the 0-3 s wait for the poll itself, which is where the documented "3-6 s" comes from
-	// (docs/WORKDIR/LOBBY_PRESENTATION_FINDINGS.md §1.2 root-caused it on 2026-08-12 and fixed only
+	// (root-caused it on 2026-08-12 and fixed only
 	// the teardown half). The poll interval was never the dominant term.
 	//
 	// The old comment justified it as "the strongest completion signal available without changing the

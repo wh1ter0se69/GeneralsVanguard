@@ -1,5 +1,5 @@
 // GeneralsX: depth, camera motion vectors and jitter for the temporal upscalers
-// (modernize/render-dlss/DESIGN_motion.md rev 2).
+// (rev 2).
 //
 // Between IGxWorldPass::Begin and End (the world pass of a frame) the device:
 //  * jitters the projection on the FRONT side: SetTransform(PROJECTION, M) hands the translator M + wcol(M) * jitterNdc, so

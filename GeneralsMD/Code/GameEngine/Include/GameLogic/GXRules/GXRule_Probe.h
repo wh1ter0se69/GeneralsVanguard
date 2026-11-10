@@ -1,4 +1,4 @@
-// GeneralsX: AI RULE BANK rule 1, PROBE (gx-handoff ai/rulebank/PLAN_rulebank.md 2.4 N2): the bank's test rule.
+// GeneralsX: AI RULE BANK rule 1, PROBE (2.4 N2): the bank's test rule.
 // It issues nothing and changes nothing; it exercises every path a real rule uses (a param, a ref, the scheduler, the sense layer, a
 // saved state block) and logs what it sees, so "PROBE on" vs its NO_OP control proves the bank itself is free (per-frame CRC identical).
 // Its pure decision: when does a tick print its [GXRULE] ev=probe line. Pure: no engine type; scripts/test/gx-rulebank-test.cpp tests it.

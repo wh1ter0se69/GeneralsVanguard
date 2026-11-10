@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule NOFLOAT.CLONE_GATES (C·rb-data): never float a bank - keep adding producers
+# GeneralsX: rule bank DATA rule NOFLOAT.CLONE_GATES: never float a bank - keep adding producers
 # (rows 22, 65, 148). Stock Hard adds a 2nd Barracks / War Factory / Air Field only at $15,000 (the recipe's RICH1 clones) or $30,000.
 # For USA, the Air Force and China vanilla (China Tank and Nuke stay EXEMPT: the recipe's NO_SPEND, their clones hurt them):
 #   clone_cash   -> the RICH1 clones' credit gate (their _ESCALATION gate is left exactly as it is);

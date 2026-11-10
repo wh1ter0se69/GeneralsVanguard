@@ -220,7 +220,7 @@ class ScriptEngine : public SubsystemInterface,
 
 public:
 	// GeneralsX: rb-core: 1024 counters and flags (retail 256). A clocked GLA rule tier uses ~20 per player, so 256
-	// fit 13 players, not the 14-slot lobby (C · rb-data); 1024 covers 32. Saves write the counters IN USE (m_numCounters), the CRC walks
+	// fit 13 players, not the 14-slot lobby; 1024 covers 32. Saves write the counters IN USE (m_numCounters), the CRC walks
 	// the ones in use, and only reset()/newMap() touch the whole array - a game using <= 256 saves and CRCs exactly as before. A
 	// RETAIL_COMPATIBLE_XFER_SAVE build keeps retail's 256: its saves must load in retail, whose loader refuses a larger count
 	// - ScriptEngine.cpp static_asserts it.

@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule ARMY.CHINA_AIRFIELD_SCALE (C·rb-data-10): China Infantry adds Air Fields as its
+# GeneralsX: rule bank DATA rule ARMY.CHINA_AIRFIELD_SCALE: China Infantry adds Air Fields as its
 # MiG count grows. An Air Field parks 4 MiGs, and stock Infantry Hard builds one ("China Air Field - H"; the build list holds one, the
 # RICH copies wait for 15000+ cash), so its MiG teams stall at 4. Here one-shot scripts "GX Air Field <k> - H", k = 2..airfield_max, each
 # build Air Field k once the player owns k-1 Air Fields and mig_per_airfield * (k-1) MiGs, the way the stock RICH scripts place an extra

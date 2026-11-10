@@ -75,7 +75,7 @@ public:
 	NetCommandRef * processAck(NetCommandMsg *msg);
 	NetCommandRef * processAck(UnsignedShort commandID, UnsignedByte originalPlayerID);
 
-	// GeneralsX: The wrapper send window (DESIGN_wrapper-memory-cap v16 section 3; see the .cpp).
+	// GeneralsX: The wrapper send window (v16 section 3; see the .cpp).
 	void processWrapperAck(UnsignedByte originalPlayerID, UnsignedInt wrapSeq, UnsignedInt chunkNumber);
 	/// A replay obligation: a full copy of a recorded command (source, wrapSeq) owed to this connection's peer. Never dropped.
 	void enqueueObligation(NetCommandMsg *msg, RelayMaskType relay, Int source, UnsignedInt wrapSeq);

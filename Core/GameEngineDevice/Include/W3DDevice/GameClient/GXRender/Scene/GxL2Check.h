@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-G (render-seam/rw1-G/PLAN_statecheck.md Task 3, CONTRACT_L2.md §4.3): the state one classic
+// GeneralsX: WS-G (Task 3): the state one classic
 // draw uses, as the device truth holds it (dx8wrapper.h GxTruth*), and C2's comparison of two such states under the contract's
 // relevance mask - the classic draw's against L2's prediction for it. C8 checks the mask generator against a hand-written table.
 
@@ -46,7 +46,7 @@ void GxL2Check_Capture(GxDrawState &s, unsigned prim, unsigned minIndex, unsigne
 
 // C2: every relevant field of `classic` vs `l2`. Returns the number of differing fields; the first `printMax` are written as
 // "[GXL2CHK] ... kind=STATE field=<f> classic=<v> l2=<v>" with the given prefix. An unknown classic slot that the pipeline reads is
-// a difference (CONTRACT_L2.md §4.3 C2).
+// a difference (C2).
 void GxL2Check_PrintFieldHist();	// "[GXL2CHK] state_fields=<field>:<n>,..." - every C2 mismatch so far, by field
 int GxL2Check_CompareState(const GxDrawState &classic, const GxDrawState &l2, const char *prefix, int printMax);
 int GxL2Check_CompareStateM(const GxDrawState &classic, const GxDrawState &l2, const char *prefix, int printMax, int mutant);

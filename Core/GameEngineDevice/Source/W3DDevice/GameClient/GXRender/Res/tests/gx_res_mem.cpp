@@ -1,4 +1,4 @@
-// GeneralsX: WS-C week 2: the phys_footprint A/B of PLAN_native-renderer §1b "+" - native
+// GeneralsX: WS-C week 2: the phys_footprint A/B of "+" - native
 // upload-then-drop vs classic DXVK MANAGED on the SAME texture set, one arm per process (macOS only: task_vm_info).
 //
 //   gx_res_mem --arm classic|classic-empty|native-drop|native-keep|native-empty --dir <dir of .dds/.tga> [--settle S]

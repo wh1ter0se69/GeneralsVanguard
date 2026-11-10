@@ -4,7 +4,7 @@
 # GeneralsXLauncher.exe, and two different programs have carried that name: the retired C# loader
 # (scripts/build/windows/loader, ~60 MB .NET single-file, defaults WINDOWED) and the Tauri launcher
 # (~12 MB, defaults FULLSCREEN). The published win32 tier carried Tauri while these scripts still
-# built and staged the C# one (docs/WORKDIR/PRESENT_PATH_2026-09-23.md section 1), so a name and a
+# built and staged the C# one, so a name and a
 # size check proved nothing. This checks the bytes, with the same markers that probe used.
 #
 # Windows PowerShell 5.1 compatible: it runs under `powershell -File`.

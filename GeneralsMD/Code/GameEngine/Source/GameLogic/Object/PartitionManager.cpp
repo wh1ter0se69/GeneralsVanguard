@@ -962,7 +962,7 @@ class PartitionContactList
 {
 private:
 
-	// GeneralsX: fix/fps-contact-flat (D · fps-profile). Measured by B · pathfinding-perf-3 on
+	// GeneralsX: fix/fps-contact-flat. Measured by on
 	// probe/pf-contact (Windows, pinned): 2,000 infantry under one order = 208k pair attempts and 87k unique pairs per
 	// frame, 13.9 ms mean logic tick; a macOS sample put most of addToContactList in the chain walk's cache misses and
 	// ~14% of it in the node pool's mutex. So the pairs now live in ONE flat array reused across frames, and "is this
@@ -1787,7 +1787,7 @@ ObjectShroudStatus PartitionData::getShroudedStatus(Int playerIndex)
 			// while FOGGED survives a later recompute that the "enemy building never seen" refinement above turns into SHROUDED
 			// (e.g. a derrick fogged while neutral, then captured by an enemy unseen): previous became SHROUDED, so retail's
 			// "== FOGGED" never freed it, and the stale clone stayed in the scene for good - a destroyed building drawn standing
-			// over its rubble (wh1ter0se 14/10, proven in gameplay/NOTE_ghost-leak-proof-wh1ter0se-bugs-1015-live.md). A save written
+			// over its rubble (wh1ter0se 14/10, proven). A save written
 			// by a leaking build can hold such a snapshot with previous CLEAR. freeSnapShot touches only
 			// the client's scene and snapshot list; m_shroudedness, m_everSeenByPlayer and m_shroudednessPrevious are written
 			// exactly as before. Freeing at the refinement instead would make a fogged building vanish from the fog when an
@@ -2142,7 +2142,7 @@ void PartitionData::addPossibleCollisions(PartitionContactList *ctList)
 	// tractors and the other projectiles around it, and each such pair cost a hash walk and a pooled node
 	// here, only for processContactList() to drop it on collidesWith() (measured on the 180-tractor
 	// fixture: ~87% of projectile x vehicle attempts never touch). Option 3 of
-	// docs/WORKDIR/STREAM_WEAPON_FPS_DESIGN_2026-09-23.md.
+	//
 	//
 	// Why the outcome is identical, not just similar: processContactList() does nothing at all with a
 	// pair whose collidesWith() is false (it `continue`s before onCollide and before makeDirty), so
@@ -4716,7 +4716,7 @@ void PartitionManager::doShroudReveal(Real centerX, Real centerY, Real radius, P
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX: rb-sense-2 (gx-handoff ai/rulebank/core/PLAN_rb-sense-2.md): the AI rule bank's own-sight test.
+// GeneralsX: rb-sense-2: the AI rule bank's own-sight test.
 // markLookCells marks the cells one look reveals - doShroudReveal's centre cell, radius (shroudRadius cap, at least one cell),
 // gridCircleRadius and DiscreteCircle, clipped as hLineAddLooker clips - so a cell is marked iff that look adds a looker to it.
 namespace

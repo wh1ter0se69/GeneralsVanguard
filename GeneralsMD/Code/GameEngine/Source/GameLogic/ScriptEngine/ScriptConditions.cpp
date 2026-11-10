@@ -2215,8 +2215,8 @@ Bool ScriptConditions::evaluateSkirmishPlayerIsFaction(Parameter *pSkirmishPlaye
 }
 
 //-------------------------------------------------------------------------------------------------
-/** AI_PLAYER_GX_SENSE (GeneralsX 01/11/2026 rb-sense-1, gx-handoff ai/rulebank/core/NEXT_rb-sense-1.md): the FAIR replacement for
-	SKIRMISH_PLAYER_FACTION on an enemy, which compares the RESOLVED side and so leaks a Random slot's draw (PLAN_rulebank.md 1.3). TRUE
+/** AI_PLAYER_GX_SENSE (GeneralsX 01/11/2026 rb-sense-1): the FAIR replacement for
+	SKIRMISH_PLAYER_FACTION on an enemy, which compares the RESOLVED side and so leaks a Random slot's draw. TRUE
 	iff the skirmish AI's rule bank knows the player's faction - from the lobby when its slot was not Random, else from 3 different templates
 	of one faction it has fairly seen that player own - and it is the faction named: a BASE side (USA, China, GLA), or the lobby's own side
 	(America, ChinaTankGeneral, ...) when the lobby showed it. FALSE for a player without a rule bank (a human, a campaign AI) as the asker,
@@ -2236,9 +2236,9 @@ Bool ScriptConditions::evaluateAIPlayerGxSense(Parameter *pAiPlayerParm, Paramet
 }
 
 //-------------------------------------------------------------------------------------------------
-/** AI_PLAYER_GX_SEEN_COUNT / AI_PLAYER_GX_SEEN_VALUE (GeneralsX 02/11/2026 rb-sense-2, SENSE.FOG_CONDITIONS; gx-handoff
-	ai/rulebank/core/PLAN_rb-sense-2.md): the FAIR twins of PLAYER_HAS_OBJECT_COMPARISON and SKIRMISH_VALUE_IN_AREA, which count another
-	player's objects through fog (PLAN_rulebank.md 1.3). COUNT compares how many of the player's units and buildings of the OBJECT_TYPE the
+/** AI_PLAYER_GX_SEEN_COUNT / AI_PLAYER_GX_SEEN_VALUE (GeneralsX 02/11/2026 rb-sense-2, SENSE.FOG_CONDITIONS;
+	): the FAIR twins of PLAYER_HAS_OBJECT_COMPARISON and SKIRMISH_VALUE_IN_AREA, which count another
+	player's objects through fog. COUNT compares how many of the player's units and buildings of the OBJECT_TYPE the
 	skirmish AI's own units and buildings see now; VALUE compares the build cost of the player's armed units (neither dozers nor
 	harvesters) they see now inside the TRIGGER_AREA (resolved as SKIRMISH_VALUE_IN_AREA resolves it, so [Skirmish]MyInnerPerimeter
 	works). Owner and template are what a human in the AI's seat sees (a disguise counts as its disguise). FALSE for a player without a

@@ -269,7 +269,7 @@ Int NetCommandWrapperList::getPercentComplete(Int source, UnsignedInt wrapSeq)
 	return (it->second.node != nullptr) ? it->second.node->getPercentComplete() : 100;
 }
 
-// GeneralsX: THE RECEIVER, BOUNDED BY THE SENDER'S WINDOW (fixes/DESIGN_wrapper-memory-cap.md v16
+// GeneralsX: THE RECEIVER, BOUNDED BY THE SENDER'S WINDOW (v16
 // section 4, sweep v-net-01). A serialization is keyed by (the slot its chunks ARRIVED from, that slot's wrapSeq) - nothing a chunk
 // claims about who wrapped it can spend another slot's budget. Every chunk stamps lowWater: the sender has had everything of its
 // own below it acked, chunk by chunk (WRAPPERACK names the exact chunk), so all of it here is finished or a forger's and is freed.

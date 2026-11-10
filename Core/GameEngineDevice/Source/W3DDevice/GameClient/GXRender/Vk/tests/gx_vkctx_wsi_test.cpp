@@ -251,7 +251,7 @@ void recordScene(VkCommandBuffer cmd, const Scene& s)
 		VK_ACCESS_2_TRANSFER_READ_BIT);
 }
 
-// FG P0 H2 (DESIGN_dlss-fg-P0.md §5, rw3-T-7's shape): a counting present hook. What it records answers the arms' questions - every
+// FG P0 H2 (rw3-T-7's shape): a counting present hook. What it records answers the arms' questions - every
 // present that reached the driver called start then end once, on ONE thread (the caller at thread 0, gx-vk-submit at thread 1, there with
 // the queue mutex held), end saw the driver's answer, and no other present called either.
 struct HookProbe
@@ -699,7 +699,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 			w.swapchain.extent().width, w.swapchain.extent().height, VkSwapchain::modeName(w.swapchain.presentMode()),
 			presented, secs > 0 ? presented / secs : 0.0, recreates, skipped);
 	}
-	if (w.ctx.initialized()) {   // R19: the last present's answer and every queued op are in before the verdict (rw3V-code-r1 P2-8)
+	if (w.ctx.initialized()) {   // R19: the last present's answer and every queued op are in before the verdict
 		w.ctx.waitIdle();
 		const VkSwapchain::Status fin = w.swapchain.takePresentStatus();
 		if (hookArm && pendingToken)

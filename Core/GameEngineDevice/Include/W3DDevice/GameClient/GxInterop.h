@@ -1,4 +1,4 @@
-// GeneralsX: WS-X hybrid spike (render-seam/DESIGN_hybrid.md): external Vulkan recording
+// GeneralsX: WS-X hybrid spike: external Vulkan recording
 // inside DXVK's own device, inserted after the L2 producer flushes of RTS3DScene.
 //
 // GX_RENDER_HYBRID = 0 (default: nothing runs, no QueryInterface, no Vulkan call, no flush hook), 1 = P-L (record inside DXVK's
@@ -34,6 +34,6 @@ namespace GxInterop
 	// Once, from RTS3DScene's constructor beside WS-G's GxScene_Install. With GX_RENDER_HYBRID set it installs
 	// DX8MeshRendererClass::GxBoundary: inside every mesh-renderer flush WS-G tags as an L2 producer site (dx8renderer.h
 	// GxFlushSite, mapped to Site above) it inserts after the rigid lists and after the delayed passes when that segment drew
-	// something (native rigid work keeps its place ahead of classic skins and decals - DESIGN_hybrid.md §4). Unset: nothing.
+	// something (native rigid work keeps its place ahead of classic skins and decals). Unset: nothing.
 	void Install();
 }

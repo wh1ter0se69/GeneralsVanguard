@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule OIL.COUNT_GATES, CHINA PART (C·rb-data): China's Helix teams wait until the
+# GeneralsX: rule bank DATA rule OIL.COUNT_GATES, CHINA PART: China's Helix teams wait until the
 # Capture Building research (Upgrade_InfantryCaptureBuilding) is done - research capture before the Helix, WITHOUT awaiting captures
 # (Dominator's answer, 31/10; rb-data-4 rewrote the gate from "own derricks >= oils_before_helix"). oils_before_helix is now an on/off
 # switch (0 = stock, any other value = gate on the research); the oil_wait_s clock floor still opens the gate if the research never lands. Stock Hard China builds its Helix teams from the

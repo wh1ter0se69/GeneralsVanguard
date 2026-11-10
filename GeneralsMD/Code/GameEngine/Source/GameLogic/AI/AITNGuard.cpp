@@ -242,7 +242,7 @@ AITNGuardMachine::~AITNGuardMachine()
 }
 
 //--------------------------------------------------------------------------------------
-// GeneralsX: ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7): with the owner's air watch on, an AIRCRAFT
+// GeneralsX: ai-wh1ter0se-econ T: with the owner's air watch on, an AIRCRAFT
 // network nemesis is taken only by a guard that can attack it - the test the damaged-tunnel path of lookForInnerTarget already makes - so
 // a Scorpion stays in (or keeps going in) for a MiG. Watch off, or any other nemesis: stock (taken).
 // GeneralsX 23/10/2026 ai-wh1ter0se-econ T: is a watched plane ENGAGEABLE by this guard - within its weapon range + 50, or within 250 more and
@@ -518,7 +518,7 @@ StateReturnType AITNGuardInnerState::update()
 	}
 
 	Object* owner = getMachineOwner();
-	// GeneralsX: ai-wh1ter0se-econ T (DESIGN.md 7, "hide back instantly"): with the owner's air watch on, a guard
+	// GeneralsX: ai-wh1ter0se-econ T (7, "hide back instantly"): with the owner's air watch on, a guard
 	// whose nemesis is an aircraft it cannot engage (gxAirEngageable - the rule the return state turns back by) gives up at once - a
 	// stateless test each update (nothing to save) - and the Return state takes it back into the nearest tunnel.
 	if (nemesis && nemesis->isKindOf(KINDOF_AIRCRAFT) && gxAirWatchOn(ownerPlayer))
@@ -672,7 +672,7 @@ StateReturnType AITNGuardOuterState::onEnter()
 		DEBUG_LOG(("Unexpected null nemesis in AITNGuardOuterState."));
 		return STATE_SUCCESS;
 	}
-	// GeneralsX: ai-wh1ter0se-econ T (DESIGN.md 7, "hide back instantly"): with the owner's air watch on, an
+	// GeneralsX: ai-wh1ter0se-econ T (7, "hide back instantly"): with the owner's air watch on, an
 	// aircraft is never chased outside - the inner state gave it up because it left weapon range, and both of the inner state's exits
 	// lead here (this pursued it again with a fresh chase timer). On to the crate check and the Return state.
 	if (nemesis->isKindOf(KINDOF_AIRCRAFT) && getMachineOwner()->getControllingPlayer()

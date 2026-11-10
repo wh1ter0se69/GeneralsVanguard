@@ -1,4 +1,4 @@
-# GeneralsX: rule bank, DATA half: the refusals (C·rb-data; gx-handoff ai/rulebank/PLAN_rulebank.md 1.3, 2.2.9).
+# GeneralsX: rule bank, DATA half: the refusals.
 # Run after EACH module on the scb it left behind, against the scb it was given; every refusal names the module, the script and why.
 #  scope       only the entry's generals' lists and the teams they own move; nothing outside the script lists and ScriptTeams
 #  difficulty  a changed stock script must be a Hard script (a 011 one is listed as normal_also); a new script is Hard-only; no stock
@@ -19,7 +19,7 @@
 #  actions     no money action, no action that picks its target by enemy value, no SIDE other than <This Player>, no write of _GX_CLOCK;
 #              a stock script that writes tainted state is never changed, one gated by another player's state gets no new effect;
 #              no team gains an enemy-sighted / all-clear hook (stock uses none: they fire on undetected stealthed enemies)
-#  scope of a STOCK dependency (PLAN_rulebank 1.3, 4.3): a rule may KEEP a stock gate's enemy input - the copied stock gate, a changed
+#  scope of a STOCK dependency: a rule may KEEP a stock gate's enemy input - the copied stock gate, a changed
 #              own-state threshold beside it, a stock action whose engine code searches the map unfiltered (ENGINE_READS: listed in
 #              the manifest for rb-sentient, whose job is making stock Hard's omniscience fair) - and may never ADD one
 #  leaves      every added leaf has the stock signature and no cached fields; no qualified name aliases another once an index is appended

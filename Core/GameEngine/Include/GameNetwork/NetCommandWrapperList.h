@@ -83,7 +83,7 @@ protected:
 
 };
 
-// GeneralsX: What processWrapper decided about one chunk (DESIGN_wrapper-memory-cap v16 section 4).
+// GeneralsX: What processWrapper decided about one chunk (v16 section 4).
 // ACK: admitted (or a stale duplicate / a copy) - the caller sends its WRAPPERACK. REFUSE: outside the sender's window, malformed
 // stamp, or a new serialization from a source over its relay soft cap - never acked, the sender retries it. DROP: no connected source.
 enum GXWrapVerdict CPP_11(: Int) { GXWRAP_ACK, GXWRAP_REFUSE, GXWRAP_DROP };

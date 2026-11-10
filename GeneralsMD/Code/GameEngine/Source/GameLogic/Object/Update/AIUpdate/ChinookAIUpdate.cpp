@@ -1417,7 +1417,7 @@ void ChinookAIUpdate::aiDoCommand(const AICommandParms* parms)
 	// case of their own they ended in "break", so a VALID enter skipped the default case and a landed Chinook started AI_ENTER
 	// on the ground instead of taking off first; and first, so an enter they refuse changes
 	// nothing at all - not the healing airfield, not the guard post to resume, not a command waiting for take-off or landing
-	// to finish (sec-r4 P2).
+	// to finish.
 	if (parms->m_cmd == AICMD_ENTER)
 	{
 		// TheSuperHackers @bugfix Stubbjax 12/08/2026 Ignore the command if we are told to enter ourselves (we can be in the same group).

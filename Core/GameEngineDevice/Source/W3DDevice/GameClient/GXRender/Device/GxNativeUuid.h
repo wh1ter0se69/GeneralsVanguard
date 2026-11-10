@@ -5,7 +5,7 @@
 #include <d3d8.h>
 
 #if defined(_MSC_VER)
-// D · native-windows-1 13/10/2026: MSVC's __uuidof is the compiler's own. The DirectX 8 SDK headers (min-dx8-sdk d3d8.h) declare the
+// MSVC's __uuidof is the compiler's own. The DirectX 8 SDK headers (min-dx8-sdk d3d8.h) declare the
 // IIDs with DEFINE_GUID but attach no uuid to the interfaces, so the same values are attached here; IUnknown has its own (unknwn.h).
 struct __declspec(uuid("7385E5DF-8FE8-41D5-86B6-D7B48547B6CF")) IDirect3DDevice8;
 struct __declspec(uuid("1B36BB7B-09B7-410A-B445-7D1430D7B33F")) IDirect3DResource8;

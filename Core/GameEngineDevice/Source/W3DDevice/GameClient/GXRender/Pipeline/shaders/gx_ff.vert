@@ -2,7 +2,7 @@
 #extension GL_GOOGLE_include_directive : enable
 #extension GL_EXT_spirv_intrinsics : require
 
-// gx_ff.vert - the fixed-function vertex ubershader (WS-D week 2, C · rw2-D, 11/10/2026).
+// gx_ff.vert - the fixed-function vertex ubershader (WS-D week 2).
 // ADAPTED from DXVK 3.0 src/d3d9/shaders/d3d9_fixed_function_vert.vert (tag v3.0, commit 97fe0c66f; zlib/libpng licence,
 // notice in gx_ff_common.glsl and shaders/SOURCE.txt). ALTERED by GeneralsX (marked "GX:"): set 0 binding 0 std140 uniform
 // block GxFFVs (GxFFState.h GxFFVsBlock); the FF VS key read from the push block (vsData0-11) instead of the uniform buffer;
@@ -44,7 +44,7 @@ layout(location = 9) out vec4 out_Color0;
 layout(location = 10) out vec4 out_Color1;
 layout(location = 11) out float out_Fog;
 #ifdef GX_LOOK_SHADOWMAP
-// GX S7 (D · look-shadowmaps-2, PREREG_look-shadowmaps A20/A36, PLAN P2): the key-on family (regen.sh "@SM") writes the WORLD position the
+// GX S7 (A20/A36, PLAN P2): the key-on family (regen.sh "@SM") writes the WORLD position the
 // receiver's shadow-map lookup needs (the key-on fragment shader reads location 12; every vertex shader it pairs with writes it).
 layout(location = 12) out vec3 out_WorldPos;
 #endif
@@ -378,7 +378,7 @@ Vertex transformVertex() {
         // GX: two steps, (v x WorldView) x Projection, exactly as DXVK 2.6 - the classic path players get today
         // (references/fbraz3-dxvk d3d9_fixed_function.cpp:1049/1077, emitVectorTimesMatrix = the same fma order as dp4).
         // DXVK 3.0 used the CPU-premultiplied WorldViewProj (for Railroad Tycoon 3), which rounds differently and moved MSAA
-        // edge coverage: E · rw2-F1-2 measured the G2 capV f600 drawable subset at 99.8555% -> 99.9974% identical to the
+        // edge coverage: measured the G2 capV f600 drawable subset at 99.8555% -> 99.9974% identical to the
         // classic replay with this change alone (render-seam/rw2-F1/farm/draw-wvpx/).
         result.coord = vecTimesMat4(result.coord, data.WorldView);
         result.transformed = vecTimesMat4(result.coord, data.Projection);

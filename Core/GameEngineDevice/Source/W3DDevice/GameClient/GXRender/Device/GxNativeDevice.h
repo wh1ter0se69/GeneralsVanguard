@@ -1,4 +1,4 @@
-// GeneralsX: L1 in the game: the native d3d8 device (render-seam/DESIGN_l1-device.md).
+// GeneralsX: L1 in the game: the native d3d8 device.
 //
 // GxNativeDevice implements IDirect3DDevice8 over GXRender: VkCtx (+ VkSwapchain when there is a window), GXRES resources,
 // the FF/custom pipeline cache, GxPacketWriter and GxD3D8Translate (which holds the d3d8 state). Textures, surfaces and
@@ -8,7 +8,7 @@
 //
 // Threading: the device is called by one thread at a time (the d3d8 ring hands it between main and its render thread with
 // its own synchronisation - DESIGN §9); nothing here is thread-affine. Render-only: nothing the simulation reads.
-// A23-B (perf-audit/DESIGN_A23_wide-ring.md v8.1): every entry point is a FRONT half (validation, bindings, refcounts, the
+// A23-B (v8.1): every entry point is a FRONT half (validation, bindings, refcounts, the
 // getter mirror, host copies, creation) run on the caller and an EXEC half (translator, writer, GXRES uploads, recording,
 // acquire, present) run on the device's own worker `gx-native-cs` in call order (GX_NATIVE_CS=1, the default), or inline right
 // after the front half (GX_NATIVE_CS=0 = today's path, and inside every S point - §3.10).
@@ -16,7 +16,7 @@
 
 #include <d3d8.h>
 #if defined(_MSC_VER)
-typedef BOOL WINBOOL;   // D · native-windows-1 13/10/2026: Wine/DXVK's spelling of BOOL (DXVK windows_base.h:38); the Windows SDK has only BOOL
+typedef BOOL WINBOOL;   // Wine/DXVK's spelling of BOOL (DXVK windows_base.h:38); the Windows SDK has only BOOL
 #endif
 
 #include "GxBuffer.h"
@@ -31,10 +31,10 @@ typedef BOOL WINBOOL;   // D · native-windows-1 13/10/2026: Wine/DXVK's spellin
 #include "GxPacketWriter.h"
 #include "GxPipelineCache.h"
 #include "GxRenderTarget.h"
-#include "GxSceneCopy.h"   // D · look-fdepth-plus: F-depth+ (GxSceneTap.h, the game's side)
+#include "GxSceneCopy.h"   // F-depth+ (GxSceneTap.h, the game's side)
 #include "GxTexture.h"
 #include "GxWorldPass.h"   // render-hud-seam-1: Core/GameEngineDevice/Include/W3DDevice/GameClient (the seam's device interface)
-#include "GxShadowMap.h"   // D · look-shadowmaps (S7): the shadow-map device interface (same folder)
+#include "GxShadowMap.h"   // (S7): the shadow-map device interface (same folder)
 #include "GxShadowCasters.h"
 #include "VkCtx.h"
 #include "VkGpuTimer.h"
@@ -48,7 +48,7 @@ typedef BOOL WINBOOL;   // D · native-windows-1 13/10/2026: Wine/DXVK's spellin
 #include <string>
 #include <vector>
 
-namespace GXRender { namespace Upscale { class Streamline; } }   // B · dlss-streamline-1 (GXRender/Upscale/GxStreamline.h)
+namespace GXRender { namespace Upscale { class Streamline; } }   // (GXRender/Upscale/GxStreamline.h)
 
 namespace GXRender { namespace Dev {
 
@@ -71,13 +71,13 @@ struct GxNativeHost
 	const char* pipelineCacheDir = nullptr;   // per-machine VkPipelineCache + recorded keys ("" / null = none)
 	void (*log)(const char* line) = nullptr;   // null: stderr
 	bool orderCheck = false;              // TOOLS/TESTS: GxOrderCheck installed before any pipeline + the writer's check mode
-	bool gpuTime = false;                 // GX_GPUTIME=1 (PREREG_T A16, default OFF): GPU time per frame on a VALIDATED VkGpuTimer
-	bool motionUnits = false;             // GX_MOTION_UNITS=1 (PREREG_T A35, default OFF): create the motion bridge's gx:vel-* modules
-	// S7 (PREREG_look-shadowmaps A18/A20(b)): the look feature MASK every host fills once from GXGraphics - bit 0 = GXShadowMap.
+	bool gpuTime = false;                 // GX_GPUTIME=1 (A16, default OFF): GPU time per frame on a VALIDATED VkGpuTimer
+	bool motionUnits = false;             // GX_MOTION_UNITS=1 (A35, default OFF): create the motion bridge's gx:vel-* modules
+	// S7 (A18/A20(b)): the look feature MASK every host fills once from GXGraphics - bit 0 = GXShadowMap.
 	// 0 = today's device exactly: nothing of S7 is created, IID_GxShadowMap is not answered, the writer has no caster list.
-	// B · a2c-1 (A108): bit 1 = GXAlphaToCoverage - the a2c shader family + prebuilt A2C twins, only when the creation MSAA is >= 2.
+	// (A108): bit 1 = GXAlphaToCoverage - the a2c shader family + prebuilt A2C twins, only when the creation MSAA is >= 2.
 	uint32_t lookFeatures = 0;
-	// GX_NATIVE_FIF=2|3 (PREREG_T A30 step 2, TEST knob): frames in flight, ONE value for the writer's ring and the swapchain's slots.
+	// GX_NATIVE_FIF=2|3 (A30 step 2, TEST knob): frames in flight, ONE value for the writer's ring and the swapchain's slots.
 	// Default 2 = today. 0 = a refused value (anything but 2 or 3): the device logs it and keeps 2.
 	uint32_t framesInFlight = 2;
 	bool waitStats = false;               // GX_NATIVE_WAITS=1 (A30): a [GXWAIT] line (frame-ring + present-slot wait) per 120 presents
@@ -90,7 +90,7 @@ struct GxNativeHost
 	bool testNoFifGuard = false;         // TESTS: X-fifguard-*'s plant - FIF 3 kept although FG/Reflex is requested (creation-time)
 	bool testShadowMapCreateFails = false;   // TESTS (S7 P2, A36 item 5): the atlas creation fails -> a key-off session (sm-create-fail)
 	bool testShadowMapFailKeepsBit = false;  // TESTS: X-sm-create-fail's plant - the look bit is kept after that failure (creation-time)
-	bool testA2cNoFallback = false;          // TESTS (B · a2c-2): X-a2c-prewarm-fail's plant - a failed init prewarm with A2C on fails init
+	bool testA2cNoFallback = false;          // TESTS: X-a2c-prewarm-fail's plant - a failed init prewarm with A2C on fails init
 	                                         // (the "A2C turns itself off" fallback removed; creation-time)
 	bool testSwapchainInterposed = false;  // TESTS (FG P0 H3): the swapchain images may be proxies, as with DLSS-G loaded (creation-time)
 	uint32_t testSwapchainDropUsage = 0;   // TESTS (FG P0 H3): VkImageUsageFlags the swapchain does NOT request - the planted proxy
@@ -112,30 +112,30 @@ struct GxNativeHost
 	// getInstanceProcAddr is then its interposer's (S8 accepts loaderInterposer = its HMODULE).
 	Upscale::Streamline* streamline = nullptr;
 	bool testFifWriterStays2 = false;   // TESTS: X-fif-effective's plant - the writer keeps 2 while the knob says 3 (read at creation)
-	// D · look-fdepth-plus (F-depth+, GxSceneCopy.h), TEST-ONLY, read at creation and OR'd with the environment:
+	// (F-depth+, GxSceneCopy.h), TEST-ONLY, read at creation and OR'd with the environment:
 	uint32_t fdepthProbe = 0;            // GX_FDEPTH_PROBE=depth|colour|both: the dummy reader's GxSceneNeed bits (0 = none)
 	bool fdepthForcePass = false;        // GX_FDEPTH_RESOLVE=pass: never the in-scope resolve (the A/B's other arm)
 };
 
-// B · dlss-streamline-1 (GxNativeDlss.cpp, PREREG A36.2): fills host.streamline / getInstanceProcAddr / loaderInterposer when
+// (GxNativeDlss.cpp, PREREG A36.2): fills host.streamline / getInstanceProcAddr / loaderInterposer when
 // wantDlss (the player's GXUpscaler=dlss), this is a GX_STREAMLINE build, DXVK's default adapter is NVIDIA and NVIDIA's signed
 // Streamline loads from GX_STREAMLINE_DIR or <exe dir>\Streamline. Otherwise the host is untouched and nothing of it loads.
 // One line on stderr either way when wantDlss.
-// B · dlss-fg-1 14/10/2026 (PREREG A39): reflex = GXReflex 0-2, frameGen = GXFrameGen 0-4 (generated frames per real one); either one
+// (PREREG A39): reflex = GXReflex 0-2, frameGen = GXFrameGen 0-4 (generated frames per real one); either one
 // loads Streamline too (Reflex / DLSS Frame Generation), with the same NVIDIA-adapter + signed-DLL gates.
 void GxNativeLoadStreamline(IDirect3D8* dxvk, GxNativeHost& host, bool wantDlss, int reflex = 0, int frameGen = 0);
-// B · dlss-fg-1 (PREREG A39b): the game's Windows message loop reports every message here (any thread may call it: atomics only).
+// (PREREG A39b): the game's Windows message loop reports every message here (any thread may call it: atomics only).
 // PCL Stats' latency ping and a left click (the Reflex flash) become PCL markers on the device's next frame. No-op without Reflex.
 void GxNativeNoteWindowsMessage(unsigned message);
 
 // TEST-ONLY plants (gx_native_test's X- arms); all false in the product.
 struct GxNativeDebug
 {
-	bool a2cResetNoPrewarm = false;          // B · a2c-1 (A108): an A2C session's Reset to another MSAA skips the re-prewarm (a2c-reset must fail)
-	bool a2cResetNoRetarget = false;         // B · a2c-1: ...prewarms the census parts but not the keys the session already drew (a2c-reset-draw)
-	bool a2cNoFallback = false;              // B · a2c-2: a failed A2C prewarm does NOT turn A2C off (X-a2c-prewarm-fail[-reset]; the init arm
+	bool a2cResetNoPrewarm = false;          // (A108): an A2C session's Reset to another MSAA skips the re-prewarm (a2c-reset must fail)
+	bool a2cResetNoRetarget = false;         // ...prewarms the census parts but not the keys the session already drew (a2c-reset-draw)
+	bool a2cNoFallback = false;              // a failed A2C prewarm does NOT turn A2C off (X-a2c-prewarm-fail[-reset]; the init arm
 	                                         // hands it to host.testA2cNoFallback for the device it creates)
-	// E · render-motion-1 (DESIGN_motion.md §12): GxMotion's plants, copied into it at every world Begin
+	// GxMotion's plants, copied into it at every world Begin
 	bool motionSampledAlways = false;        // depth gets SAMPLED with the key off (motion-off must fail)
 	bool motionIdentityReprojection = false; // clipToPrevClip = identity (mv-camera must fail)
 	bool motionJitterInVelocity = false;     // the resolve keeps the jitter in the vectors (mv-zoom-jitter must fail)
@@ -143,7 +143,7 @@ struct GxNativeDebug
 	bool motionJitterAfterEnd = false;       // End leaves the jittered projection in force (jitter-scope must fail)
 	bool motionIgnoreObject = false;         // the resolve never reads the object vectors (mv-object must fail)
 	bool motionAbandonKeepsJitter = false;   // an abandoned pass leaves its jittered projection (jitter-abandon must fail)
-	// D · look-fdepth-plus (F-depth+): GxSceneCopy's plants, copied into it at every OpaqueDone
+	// (F-depth+): GxSceneCopy's plants, copied into it at every OpaqueDone
 	bool fdepthTapWithoutReader = false;     // OpaqueDone takes the copies with no reader on (fdepth-off must fail)
 	bool fdepthSecondTap = false;            // a second OpaqueDone in one frame takes them again (fdepth-once must fail)
 	bool fdepthFallbackNothing = false;      // the pass / copy path records nothing but publishes (fdepth-1x / -pass must fail)
@@ -172,7 +172,7 @@ struct GxNativeDebug
 	bool resetSkipsD3D8Checks = false; // Reset accepts parameters d3d8 refuses (windowed interval, COPY + 2 buffers)
 	bool configFirstLineWins = false;  // GxNativeConfigDebug::firstLineWins (gx_native_test's config cases)
 	bool configIgnoresUnknown = false; // GxNativeConfigDebug::ignoreUnknownKeys
-	bool configIgnoresPresentKeys = false; // GxNativeConfigDebug::ignorePresentKeys (D · native-windows-1)
+	bool configIgnoresPresentKeys = false; // GxNativeConfigDebug::ignorePresentKeys
 	bool uuidGateUnwired = false;      // gx_native_test: the S9 UUID is not handed to the device (the gate never runs)
 	bool lockDropsDiscard = false;     // a buffer Lock passes DISCARD on as NOOVERWRITE (writes into the slice a draw reads)
 	bool presentSkipsTransition = false; // the present copy reads the back buffer without moving it to TRANSFER_SRC (the one-pass
@@ -232,7 +232,7 @@ struct GxNativeDebug
 	bool resetPhasesCollapsed = false; // Reset's late (recreation) checks run before the unbinding
 	bool copyDecodedAsBlocks = false; // a decoded DXT level read back from the GPU is copied as if it were blocks
 	bool resetDropsRetainedStorage = false; // Reset destroys the storage of a back buffer the caller still holds (code-r6 #2)
-	bool resourceErrorsUncounted = false; // GXRES error lines are printed but not counted (C · rw3-P-2's ask)
+	bool resourceErrorsUncounted = false; // GXRES error lines are printed but not counted (ask)
 	bool copyNoAliasLayout = false;   // a GPU copy between two levels of one texture transitions the image twice
 	bool forgetDropsPendingClear = false; // destroying an attachment of the writer's pass drops its pending clear
 	bool csRingOverwrite = false;     // A23-B: one command stream push skips its room check (overwrites an unread record)
@@ -380,7 +380,7 @@ struct GxNativeDebug
 	                                  // run (the worker drained) and the device idled before the caller goes on (both modes); the
 	                                  // caller also sets g_gxPipeTestMutants.syncSpec (getFF waits for its specialised build)
 	bool vsConstCapsFromDxvk = false; // GetDeviceCaps passes DXVK's 256 vertex-shader constants through (the translator holds 96; rw3-R11)
-	// rw3-W lever (2) W-a, the one-pass present (PREREG_T A20)
+	// rw3-W lever (2) W-a, the one-pass present (A20)
 	bool presentDirectOff = false;    // TEST control, not a plant: the one-pass present is not taken (the old path, inside an arm)
 	bool presentDirectAverage = false; // the one-pass present averages MSAA samples as stored values, not in linear light
 	bool presentDirectAnyExtent = false; // the one-pass present is taken although the window is not the back buffer's size
@@ -389,14 +389,14 @@ struct GxNativeDebug
 	bool presentDirectIgnoresUsage = false; // FG P0 H3: X-present-direct-usage / -interposed's marker - the harness hands it to
 	                                        // host.testPresentDirectIgnoresUsage BEFORE creation (the views are made with the swapchain)
 	bool capturePresent = false;      // TESTS: every present also copies the swapchain image into a host buffer (testReadPresent)
-	// E · seam-worker-1 (tier 1, DESIGN_seam-worker-1.md): each drops ONE seam entry point's SScope - its body then records on the front
+	// (tier 1): each drops ONE seam entry point's SScope - its body then records on the front
 	// while the A23-B worker runs (the ownership counter must catch it)
 	bool seamNoSResolve = false;      // X-seam-resolve: WorldPass::ResolveLinear without its S
 	bool seamNoSUpscale = false;      // X-seam-fsr1 / X-seam-rcas: WorldPass::Upscale without its S
-	// E · seam-worker-2: X-own-present-read - testReadPresent / testReadSceneProbe drain with a bare csSync again (m_inline stays 0, so
+	// X-own-present-read - testReadPresent / testReadSceneProbe drain with a bare csSync again (m_inline stays 0, so
 	// their endFrameForHost counts as a front recording at CS1): the gx_native_test runner's ownership gate must fail the clean case
 	bool accessorBareSync = false;
-	// E · seam-worker-2 (phase 2, DESIGN_seam-worker-2.md): the motion entry points' S, one each
+	// (phase 2): the motion entry points' S, one each
 	bool seamNoSBegin = false;        // X-seam-begin: worldBegin without its S
 	bool seamNoSEnd = false;          // X-seam-end: worldEnd without its S
 	bool seamNoSVelocity = false;     // X-mv-object-late: worldObjectVelocity without its S
@@ -445,7 +445,7 @@ class GxNativeTexture;
 
 // ---------------------------------------------------------------------------------------------------------- resource objects
 
-// DXVK's d3d8 device-child protocol (d3d8_device_child.h:23-53, DESIGN_l1-device §3): an atomic PUBLIC count (the game's) and an
+// DXVK's d3d8 device-child protocol (d3d8_device_child.h:23-53): an atomic PUBLIC count (the game's) and an
 // atomic PRIVATE count (bindings, device ownership). Public 0 -> 1 takes one private reference and AddRefs the device; public
 // 1 -> 0 (compare-exchange, clamped at 0) drops it and Releases the device. The object is destroyed only when PRIVATE reaches 0:
 // one counter decides, so the main thread's AddRef/Release and the d3d8 ring thread's queued Release cannot race a destruction.
@@ -510,7 +510,7 @@ public:
 	Res::GxImage* image() const;
 	Res::GxRenderTarget* renderTarget() const;   // RenderTarget / Depth / BackBuffer
 	VkImageView attachmentView() const;
-	// Any thread: the immutable description fixed at construction (A23-B §3.1 front desc; r2 P2-9 - requested AND actual samples)
+	// Any thread: the immutable description fixed at construction (A23-B §3.1 front desc; requested AND actual samples)
 	uint32_t d3dFormat() const { return m_front.format; }
 	uint32_t width() const { return m_front.width; }
 	uint32_t height() const { return m_front.height; }
@@ -868,7 +868,7 @@ public:
 		*h = m_swapchain.extent().height;
 		return true;
 	}
-	// C · native-ipad-1 13/10/2026: the present mode VkSwapchain actually chose (VkPresentModeKHR), -1 without a swapchain
+	// the present mode VkSwapchain actually chose (VkPresentModeKHR), -1 without a swapchain
 	int swapchainPresentMode() const { return m_haveSwapchain ? int(m_swapchain.presentMode()) : -1; }
 	// Ends the writer frame if one is open: what a synchronous GXRES read-back or restore needs (GxPacketWriter header).
 	void endFrameForHost();
@@ -894,30 +894,30 @@ public:
 	void unnoteManaged(GxNativeTexture* t);
 	Res::GxRenderTarget* backBufferStorage(uint32_t index) const;   // worker (or direct): reads the rotation
 	size_t backBufferCount() const { return m_bbStore.size(); }   // any: changes only inside S bodies
-	// E · render-motion-1 (DESIGN_motion.md rev 2): the world pass. colour/depth = the bound world targets (GxNativeSurface).
+	// (rev 2): the world pass. colour/depth = the bound world targets (GxNativeSurface).
 	void worldBegin(const GxMotionBegin& b, IDirect3DSurface8* colour, IDirect3DSurface8* depth);
 	void worldEnd();
 	void worldJitter(float ndc[2]) const { m_motion.jitterNdc(ndc); }
 	HRESULT worldObjectVelocity(IDirect3DSurface8* o);   // IGxWorldPass::SetObjectVelocity (render-motion-units-1's target; null cancels)
 	// IGxWorldPass::NextTargetsAreWorld: under GXWP_TEMPORAL the NEXT depth-stencil surface created gets SAMPLED + a DEPTH-aspect
-	// view (one-shot: only the world depth; DESIGN_motion.md §4). Without it every depth image is created exactly as before.
+	// view (one-shot: only the world depth). Without it every depth image is created exactly as before.
 	void worldNextTargets(uint32_t flags) { m_nextDepthSampled = (flags & GXWP_TEMPORAL) != 0; }
 	// A temporal upscaler backend that will consume the jitter (GxMotion::setJitterConsumer); call before the first world pass.
 	void setTemporalConsumer(bool on) { m_motion.setJitterConsumer(on); }
 	// The upscalers' inputs of the last world pass; null while motion never ran (GxMotionFrame.h).
 	const GxMotionFrame* motionFrame() const { return m_motionInit && m_motion.isPublished() ? &m_motion.frame() : nullptr; }
-	// B · dlss-streamline-1 (GxNativeDlss.cpp): IGxWorldPass::Supports / Upscale for GX_UPSCALE_DLSS. FALSE / E_NOTIMPL without
+	// (GxNativeDlss.cpp): IGxWorldPass::Supports / Upscale for GX_UPSCALE_DLSS. FALSE / E_NOTIMPL without
 	// Streamline (the seam then draws bilinear).
 	bool dlssSupported() const;
-	static bool streamlineBuilt();   // TESTS (E · seam-worker-2): gx_device compiled with GX_STREAMLINE
+	static bool streamlineBuilt();   // TESTS: gx_device compiled with GX_STREAMLINE
 	HRESULT dlssUpscale(const GxUpscaleCall& c);
-	// D · look-fdepth-plus (F-depth+, GxSceneCopy.h): IGxSceneTap's bodies. Front side; OpaqueDone's work is one async command.
+	// (F-depth+, GxSceneCopy.h): IGxSceneTap's bodies. Front side; OpaqueDone's work is one async command.
 	HRESULT sceneSetReader(const char* name, uint32_t needs);
 	bool sceneWanted() const { return m_sceneInit && m_scene.readers().needs() != 0; }
 	HRESULT sceneOpaqueDone();
 	// FRONT: something will sample the world depth after this point of the frame - motion-1's End-of-pass resolve, or an F-depth+
 	// depth reader (whose mid-frame copy needs the depth stored at its split). Lever 2b (W-b, depth DONT_CARE at the last scope)
-	// must keep the depth while this is true (PREREG_T A20s note 2; the integrator 17/10: W-b wires it, whichever lands second).
+	// must keep the depth while this is true (A20s note 2; the integrator 17/10: W-b wires it, whichever lands second).
 	bool depthReadAfterPass() const { return m_motionInit || (m_scene.readers().needs() & GX_SCENE_DEPTH) != 0; }
 	// TESTS: F-depth+'s state (probe texel / timing, frame(), stats()) and the probe's last value (depth, r, g, b)
 	GxSceneCopy& testScene() { return m_scene; }
@@ -1009,8 +1009,8 @@ private:
 	bool frontColourHasImage() const;   // the colour target bound on the FRONT has an image (Clear reads its rects only then)
 	void noteSync(const char* why, uint64_t ns);
 	void syncTopInto(char* out, size_t cap, bool byNs) const;   // the top 3 S reasons by count (cs_sync_top) or drain ns (cs_drain_top)
-	void logSeamDrains(uint64_t presents);   // E · seam-worker-1: [GXSEAM] cs drains - the seam S reasons since the last line, if any
-	void logMotionCounters(uint64_t presents);   // E · seam-worker-2: [GXMOTION] device - m_motionCount, while motion is initialised
+	void logSeamDrains(uint64_t presents);   // [GXSEAM] cs drains - the seam S reasons since the last line, if any
+	void logMotionCounters(uint64_t presents);   // [GXMOTION] device - m_motionCount, while motion is initialised
 	void csFlushReorder();   // the csReorder plant only
 	void csDrawn();          // after a draw: the csReorder plant, then publish the stream
 	void csLedger(uint64_t position, uint32_t kind, std::initializer_list<GxCsArg> a);   // §7.1 TEST-ONLY: the creation ledger
@@ -1095,7 +1095,7 @@ private:
 	std::vector<GxNativeSurface*> m_bbSurfaces;   // standalone device children, held privately
 	uint32_t m_rot = 0;
 	GxNativePresent m_present;                          // DXVK's present shaders (GxNativePresent.h)
-	struct Dlss;                                        // B · dlss-streamline-1 (GxNativeDlss.cpp); null without Streamline
+	struct Dlss;                                        // (GxNativeDlss.cpp); null without Streamline
 	Dlss* m_dlss = nullptr;
 	PFN_vkGetInstanceProcAddr dlssLoaderRoot() const;   // initVulkan's VkCtx root: m_host's, or Streamline::loaderRoot()
 	// FG P0 H3: DLSS-G is loaded (or TESTS say so): every swapchain is a Streamline proxy whose images' usage is unknowable
@@ -1103,13 +1103,13 @@ private:
 	bool m_interposedLogged = false;
 	void dlssInit();                                    // end of initVulkan
 	void dlssShutdown();                                // destructor: before GxResources and the device go (slShutdown first)
-	// B · dlss-fg-1 (GxNativeDlss.cpp, DESIGN_dlss-fg-P0.md §4): the per-frame contract - one Streamline frame per presented frame.
+	// (GxNativeDlss.cpp): the per-frame contract - one Streamline frame per presented frame.
 	// No-ops without Streamline. slSceneBegin: the frame's first BeginScene (simulation ends, rendering starts); slPresentBegin: before
 	// presentToSwapchain (the HUD-less tag, eRenderSubmitEnd); slPresentHook: the present hook (FG P0 H3) - ePresentStart / ePresentEnd
 	// around vkQueuePresentKHR alone, on the presenting thread, for this frame's token (false: no hook); slFrameEnd: after the present is
 	// counted - DLSS-G state, then the next frame begins.
 	void slSceneBegin();
-	void fgHudBegin();      // B · dlss-fg-1 (PREREG A39c, TEST-ONLY GX_FG_HUDLESS=1): WorldPass::HudBegin - the scene without HUD, copied
+	void fgHudBegin();      // (PREREG A39c, TEST-ONLY GX_FG_HUDLESS=1): WorldPass::HudBegin - the scene without HUD, copied
 	void fgHudlessTag();    // slPresentBegin: that copy resolved like the present and tagged as DLSS-G's HUD-less colour
 	void slPresentBegin();
 	bool slPresentHook(Vk::PresentHook* out);
@@ -1126,7 +1126,7 @@ private:
 	GxNativeSurface* m_worldColour = nullptr;           // the world pass's targets, held (private refs) Begin..End
 	GxNativeSurface* m_worldDepth = nullptr;            // ... and kept until the next Begin: the published frame names it
 	GxNativeSurface* m_worldObject = nullptr;           // SetObjectVelocity's target, held until End records from it
-	GxSceneCopy m_scene;                                // D · look-fdepth-plus: F-depth+ (front registry + exec copies)
+	GxSceneCopy m_scene;                                // F-depth+ (front registry + exec copies)
 	bool m_sceneInit = false;
 	bool m_sceneTapped = false;                         // FRONT: OpaqueDone ran in this frame (cleared at Present)
 	void worldRelease(bool depthToo);                   // drops those refs (End: colour + object; Begin/Reset/teardown: all)
@@ -1205,7 +1205,7 @@ private:
 		HRESULT STDMETHODCALLTYPE OpaqueDone() override { return dev->sceneOpaqueDone(); }
 	};
 	SceneTap m_sceneTap;
-	// S7 (D · look-shadowmaps): the shadow-map interface (QueryInterface(IID_GxShadowMap), key on only), its atlas and caster list
+	// S7: the shadow-map interface (QueryInterface(IID_GxShadowMap), key on only), its atlas and caster list
 	struct ShadowMap final : public IGxShadowMap
 	{
 		GxNativeDevice* dev = nullptr;
@@ -1237,16 +1237,16 @@ private:
 	uint32_t m_lookFeatures = 0;   // S7 P2: the effective look mask (the host's, bit 0 cleared when the atlas could not be made)
 	uint32_t m_smFilter = 0;       // GX_SHADOWMAP_FILTER=hard (TEST-ONLY, the cost table): one compare tap
 	uint64_t m_smRcvPrev[7] = {};  // the translator's receiver class counts (+ A44 castOnlyDropped, A61 castOnlySolid) at the last periodic line
-	// B · a2c-1 (A108): alpha-to-coverage for the session = look bit 1 AND a multisampled creation (init's present parameters); then the
+	// (A108): alpha-to-coverage for the session = look bit 1 AND a multisampled creation (init's present parameters); then the
 	// a2c module family is loaded, the translator decides per draw and the cache prebuilds A2C twins. Off = today's device exactly.
 	uint32_t m_createSamples = 1;  // init(pp)'s MultiSampleType (>= 1), read by initVulkan's family choice
 	uint32_t m_a2cPrewarmedSamples = 0;   // the MSAA the generic set + its A2C twins were last prebuilt for
 	bool m_a2cOn = false;
-	uint32_t m_a2cOffCount = 0;   // B · a2c-2: times A2C turned itself off (a failed prewarm or module; at most once per session in practice)
-	void a2cOff(const char* reason, const char* at);   // B · a2c-2: A2C off for the rest of the session (init or a Reset's S body)
+	uint32_t m_a2cOffCount = 0;   // times A2C turned itself off (a failed prewarm or module; at most once per session in practice)
+	void a2cOff(const char* reason, const char* at);   // A2C off for the rest of the session (init or a Reset's S body)
 	void a2cReport(uint64_t presents);   // the periodic [GXA2C] line: the translator's draws on / off by reason since the last one
 	uint64_t m_a2cPrev[1 + GXRender::GxA2C_WhyCount] = {};
-	uint32_t m_a2cFirstUsePrev = 0;   // B · a2c-2: the cache's a2cFirstUseFailed at the last periodic line
+	uint32_t m_a2cFirstUsePrev = 0;   // the cache's a2cFirstUseFailed at the last periodic line
 public:
 	// TEST-ONLY (gx_native_test sm-*): the S7 state as the device holds it
 	bool testShadowMapOn() const { return m_shadowMapOn; }
@@ -1257,8 +1257,8 @@ public:
 	void testSetLogicFrame(uint32_t frame);
 	const Res::GxImage& testSmScratch() const { return m_smScratch; }   // S7 A92: replay-k's scratch image (null image when k = 1)
 	uint32_t testLookFeatures() const { return m_lookFeatures; }   // S7 P2: the EFFECTIVE look mask (a create failure clears bit 0)
-	bool testA2COn() const { return m_a2cOn; }   // B · a2c-1 (A108): the a2c family is loaded and the translator decides per draw
-	uint32_t testA2COffCount() const { return m_a2cOffCount; }   // B · a2c-2: [GXA2C] state=off reason=... lines printed by the fallback
+	bool testA2COn() const { return m_a2cOn; }   // (A108): the a2c family is loaded and the translator decides per draw
+	uint32_t testA2COffCount() const { return m_a2cOffCount; }   // [GXA2C] state=off reason=... lines printed by the fallback
 	GxPipeStats testCacheStats() const { return m_cache.stats(); }   // S7 P2 A11: every compile counter
 	const Rec::GxPacketWriter& testWriter() const { return m_writer; }
 	bool testShadowLastOnWorker() const { return m_shadowLastOnWorker; }
@@ -1338,8 +1338,8 @@ private:
 	uint64_t m_stagedSum = 0;
 	struct SyncWhy { const char* why; uint64_t n, ns; };
 	std::vector<SyncWhy> m_csSyncWhy;   // front: per reason, count + drain ns (S is rare; a short list)
-	std::vector<SyncWhy> m_seamSyncAt;  // front (E · seam-worker-1): the "seam *" reasons' totals at the last [GXSEAM] cs drains line
-	// front (E · seam-worker-2), bumped inside the world* S bodies: resolves recorded / published / with object vectors; registrations
+	std::vector<SyncWhy> m_seamSyncAt;  // front: the "seam *" reasons' totals at the last [GXSEAM] cs drains line
+	// front, bumped inside the world* S bodies: resolves recorded / published / with object vectors; registrations
 	struct MotionCounters { uint64_t passes = 0, published = 0, withObject = 0, objAccepted = 0, objRefused = 0; };
 	MotionCounters m_motionCount;
 };

@@ -580,7 +580,7 @@ void LANAPI::OnGameStart()
 		// getActualFramesPerSecondLimit() returned UncappedFpsValue - the render loop ran unbounded
 		// from the first frame to the last. Measured at ~540 iterations/second against a 30 Hz
 		// logic rate, 18x, on a sample where the logic frame was still ADVANCING at 29/s, so this
-		// was never limited to the blocked case (evidence/gxpace-2026-08-02-network.txt).
+		// was never limited to the blocked case.
 		//
 		// The stated reason was that peers agree the logic rate between themselves and a local cap
 		// must not fight it. That conflates the render rate with the logic rate. The negotiated

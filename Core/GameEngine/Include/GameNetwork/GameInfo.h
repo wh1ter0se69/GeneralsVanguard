@@ -428,7 +428,7 @@ void        GameInfo::setOldFactionsOnly( Bool oldFactionsOnly ) { m_oldFactions
 enum { GX_REPLAY_OPTIONS_MAX = 4095 };	///< RecorderClass::readAsciiString's buffer, less its NUL
 // GeneralsX: forReplayFile: the string a replay FILE keeps (RecorderClass::startRecording, its only
 // caller that passes TRUE). Replays get sent around and posted, so it holds no network address of anyone: no NP=, and each
-// human slot's IP and port are placeholders (wh1ter0se 04/11, msg 5a19; names stay). See buildGameInfoAsciiString.
+// human slot's IP and port are placeholders (wh1ter0se 04/11, names stay). See buildGameInfoAsciiString.
 AsciiString GameInfoToAsciiString( const GameInfo *game, Int maxLength = 0, Bool forReplayFile = FALSE );
 Bool ParseAsciiStringToGameInfo( GameInfo *game, AsciiString options );
 

@@ -40,7 +40,7 @@
 //                                           so leaving it absolute is what deepens the worst case;
 //                                           (5 * LOGICFRAMES_PER_SECOND) / 30 == 10 would keep
 //                                           retail's 1/6. Unchanged pending an owner call - see
-//                                           docs/WORKDIR/LOGIC_60HZ_TIMERS_2026-09-23.md.
+//
 //   MAX_FRAMES_AHEAD  128 frames = 4.27 s - the frame-data ring. Scaled, because FRAME_DATA_LENGTH
 //                                           and FRAMES_TO_KEEP derive from it and FRAMES_TO_KEEP is
 //                                           the tolerance for a briefly-late peer (2.17 s). Halving

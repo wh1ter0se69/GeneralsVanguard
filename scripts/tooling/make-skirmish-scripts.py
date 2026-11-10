@@ -18,7 +18,7 @@
 # IT MOVES dataID: SimulationId.cpp computeLooseDataID hashes the .scb bundles, so every peer must carry the
 # same bytes or the join is refused with DATA_DIFFERS.
 #
-# THE EDITS (evidence: ai/NOTE_wh1ter0se-ai-economy.md, ai/data/t6-t8-ab.txt in gx-handoff; wh1ter0se 2026-09-29):
+# THE EDITS (wh1ter0se 2026-09-29):
 #  1. Easy-plus (B-ai-overhaul, "Easy plays a real game"): sets the Easy flag on the Hard/Normal alert, upgrade,
 #     generals-power and invasion-alert scripts. Only flag bytes change.
 #  2. Spend patch (B-ai-economy): Hard AI keeps its scripted cash gifts (wh1ter0se: KEEP) but turns money into army:
@@ -56,7 +56,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RETAIL_MEMBER = "Data/Scripts/SkirmishScripts.scb"
 SOURCE_SHA256 = "8f93862b751f289b052206b87170cc840044cb66660fbf6ae30d5782c1d73776"
 BASE_SHA256 = "cc302b0941cc009d950d82e60e863c2833d50ca50feede99fd0e4f6f062b7be4"     # the recipe's own output - the rule bank compiles over it; USA_SD (the last step; off = USA_SD_OFF_SHA256); before it: T2C on integration 6afae411ea (06/11/2026): TUNNEL_AA (T2, on R) then LASER_POWER (fix S, the last step); off = LASER_POWER_OFF_SHA256 (db81fa2f, T2C's package: TUNNEL_AA on all four GLA generals, Laser off); both off = TUNNEL_AA_OFF_SHA256 (14d03e02, the 0.9.68-0.9.69 package = R: FACE_FRONT on; TUNNEL_AA off with Laser on = 990834a2, integration 6afae411ea's package); FACE_FRONT off too = FACE_FRONT_OFF_SHA256 (14414fcd, the 0.9.67 package); with the China package NO_SPEND + NUKE_GENOME (without: 752d52a6, 0.9.64-0.9.66; without SW_FIRE_READY too: cf4a7600, 0.9.60-0.9.63; without EXPAND_NO_DEFENCE too: 67eb7669, 0.9.54-0.9.59)
-OUTPUT_SHA256 = "cc302b0941cc009d950d82e60e863c2833d50ca50feede99fd0e4f6f062b7be4"   # = BASE_SHA256 (no promoted ruleset); T2: merge of T2 (feat/ai-ke-tunnel-aa3) with the rule bank, t2-fix 01/11/2026; db81fa2f after the bank ENGINE (t2-fix-2: AI_PLAYER_TUNNEL_AIR_WATCH moved 345 -> 348 behind the three GX_RULE actions; was d0e6d8ce, the registered T2-ALL); C-laser-power on top of it, 06/11/2026
+OUTPUT_SHA256 = "cc302b0941cc009d950d82e60e863c2833d50ca50feede99fd0e4f6f062b7be4"   # = BASE_SHA256 (no promoted ruleset); T2: merge of T2 with the rule bank, t2-fix 01/11/2026; db81fa2f after the bank ENGINE (t2-fix-2: AI_PLAYER_TUNNEL_AIR_WATCH moved 345 -> 348 behind the three GX_RULE actions; was d0e6d8ce, the registered T2-ALL); C-laser-power on top of it, 06/11/2026
 # OUTPUT_SHA256 pins what --out / --root / every packager writes: BASE + rulebank/shipped_ruleset.json once a tuned ruleset is promoted
 # (plan 4.4 step 2: then OUTPUT_SHA256 and dataID move, BASE_SHA256 does not). Without that file the two are equal.
 SHIPPED_RULESET = os.path.join(HERE, "rulebank", "shipped_ruleset.json")
@@ -73,7 +73,7 @@ WAVES = 3                                 # teamMaxInstances for the Hard 4TH/5T
 WAVES5 = 6                                # ... and for the 5TH wave
 WAVE_RX = r'^(USA|China|GLA) H (4TH|5TH) Wave'
 WAVE5_RX = r'^(USA|China|GLA) H 5TH Wave'
-LAUNCH_FIXES = True                       # the four retail launch fixes (launch_fixes below; C·ai-pressure-3); False = the recipe without them
+LAUNCH_FIXES = True                       # the four retail launch fixes (launch_fixes below); False = the recipe without them
 PTYPES = ['INT', 'REAL', 'SCRIPT', 'TEAM', 'COUNTER', 'FLAG', 'COMPARISON', 'WAYPOINT', 'BOOLEAN', 'TRIGGER_AREA', 'TEXT_STRING', 'SIDE', 'SOUND', 'SCRIPT_SUBROUTINE', 'UNIT', 'OBJECT_TYPE', 'COORD3D', 'ANGLE', 'TEAM_STATE', 'RELATION', 'AI_MOOD', 'DIALOG', 'MUSIC', 'MOVIE', 'WAYPOINT_PATH', 'LOCALIZED_TEXT', 'BRIDGE', 'KIND_OF_PARAM', 'ATTACK_PRIORITY_SET', 'RADAR_EVENT_TYPE', 'SPECIAL_POWER', 'SCIENCE', 'UPGRADE', 'COMMANDBUTTON_ABILITY', 'BOUNDARY', 'BUILDABLE', 'SURFACES_ALLOWED', 'SHAKE_INTENSITY', 'COMMAND_BUTTON', 'FONT_NAME', 'OBJECT_STATUS', 'COMMANDBUTTON_ALL_ABILITIES', 'SKIRMISH_WAYPOINT_PATH', 'COLOR', 'EMOTICON', 'OBJECT_PANEL_FLAG', 'FACTION_NAME', 'OBJECT_TYPE_LIST', 'REVEALNAME', 'SCIENCE_AVAILABILITY', 'LEFT_OR_RIGHT', 'PERCENT', 'NUM_ITEMS']
 
 import struct, re
@@ -204,7 +204,7 @@ def easy_plus(scb):
 
 PROD = re.compile(r'(WarFactory|Barracks|Airfield|ArmsDealer)$')
 # GeneralsX: China Tank + China Nuke without the spend patch (box week J2, 19/10: the recipe-step
-# ablation, ai/bw/j2 in gx-handoff). Each step was taken out for one general at a time (that general's list + owned teams from
+# ablation, ai/bw/j2). Each step was taken out for one general at a time (that general's list + owned teams from
 # the recipe without the step, everything else stock) and played 1v1 against stock: only two removals helped, both of the
 # spend patch, both China (Tank +3.7 points, Holm 0.016; Nuke +8.4, Holm 1e-9). NO_SPEND names those ScriptList owners: spend_patch
 # leaves their scripts and the teams they own as the earlier steps left them. Its donors still come from the whole file, so
@@ -341,7 +341,7 @@ def spend_patch(scb, no_spend=None):
     return added, tech, waves
 
 
-# GeneralsX: Four retail launch bugs park Hard attack teams at home for the whole match (C·ai-pressure-3,
+# GeneralsX: Four retail launch bugs park Hard attack teams at home for the whole match (
 # wh1ter0se: "attacks while preparing attacks"). Every Hard wave team leaves base through a team script that fires on the attack
 # pulse while the team is inside its own base; these teams could not:
 #  1. plain China "China Attack Sequence Back" tests TEAM_OUTSIDE_AREA_ENTIRELY(MyOuterPerimeter); every other copy (the three
@@ -405,14 +405,14 @@ def launch_fixes(scb):
     return edits
 
 
-# GeneralsX: A Hard AI never expands to the supplies near its base on 12-seat maps (C·ai-economy-4,
+# GeneralsX: A Hard AI never expands to the supplies near its base on 12-seat maps (
 # wh1ter0se: "expand to their nearby supplies"). "<Side> Base Expand Start - H" asks SUPPLY_SOURCE_SAFE(25000) and builds with
 # AI_PLAYER_BUILD_SUPPLY_CENTER(.., 25000). AIPlayer::findSupplyCenter takes the CLOSEST unserved source holding >= that cash
 # and halves the amount only when NO source qualifies; the caller then tests just that one source (isLocationSafe). Crater
 # Ring and Cauldron put a $30,000 dock in every base plus unmined centre docks, so the pick is a neighbour's base dock or the
 # contested centre - unsafe - while the $3,750 piles 690-830 from the AI's own dock never qualify. EXPAND_MIN lets the closest
 # unserved pile be the pick. Hard-only scripts (diff 001); Normal/Easy keep 25000.
-EXPAND_NEARBY = True                      # C·ai-economy-4: expand_nearby below; False = the recipe without it (pin 1e46dc84)
+EXPAND_NEARBY = True                      # expand_nearby below; False = the recipe without it (pin 1e46dc84)
 EXPAND_MIN = 3000                         # < a full SupplyPileSmall ($3,750), so a nearly-drained pile is not worth a supply centre
 EXPAND_RX = r'^(USA|China|GLA) Base Expand Start - H$'
 
@@ -445,7 +445,7 @@ def expand_nearby(scb):
     return edits
 
 
-# Capture from home (D·ai-map-economy, 02/10/2026; wh1ter0se: "the oil splits bottom left weren't even taken ... top right and
+# Capture from home (wh1ter0se: "the oil splits bottom left weren't even taken ... top right and
 # left were both taken by the AI on the front"). Every '<side> Tech Building Capture Orders' script first runs
 # TEAM_MOVE_TOWARDS_NEAREST_OBJECT_TYPE(<team>, Tech Buildings, CombatZone): a walk to the tech building nearest the team
 # INSIDE the map's CombatZone (any owner), and only then TEAM_HUNT_WITH_COMMAND_BUTTON(capture), which takes the nearest
@@ -510,7 +510,7 @@ def expand_no_defence(scb):
 # superweapon script pair ("... Fire ... - H" fires, then hands over to "... AI - H", which re-arms it) ANDs SKIRMISH_SPECIAL_POWER_READY
 # with FLAG(_LAUNCH_ATTACK, true). That flag is the AI's attack-wave pulse: up for ~2 frames every 30-45 s, so a ready SCUD Storm,
 # Particle Cannon or Neutron Missile sat at 0:00 for up to ~40 s before it fired (measured on 0.9.62 and 0.9.63 alike: ai/scud-fire
-# in gx-handoff). Easy/Normal fire the moment the weapon is ready, and so does the Superweapon General's cannon on every difficulty.
+# ). Easy/Normal fire the moment the weapon is ready, and so does the Superweapon General's cannon on every difficulty.
 # This drops the flag condition from those 22 scripts, so the Hard pair works as the Normal pair does; the general powers keep their
 # wave sync (an air strike or a paradrop that lands with the army is the point of it).
 SW_FIRE_READY = True                      # sw_fire_ready below; False = the recipe without it (pin cf4a7600, 0.9.60-0.9.63)
@@ -546,9 +546,9 @@ def sw_fire_ready(scb):
     return len(removed)
 
 
-# GeneralsX: China Nuke's W-NUK-12 genome (box week J4, 20-21/10, ai/bw/j4 in gx-handoff). A registered
+# GeneralsX: China Nuke's W-NUK-12 genome (box week J4, 20-21/10, ai/bw/j4). A registered
 # grid of single-gene moves and three forge champions' genomes, built on China Nuke's NO_SPEND scripts by the forge's pack builder
-# (forge_pack.py BUILDER 'forge-pack-5', feat/ai-forge), screened, then re-played on 12 held-out maps: variant 12 (the Air Force
+# (forge_pack.py BUILDER 'forge-pack-5'), screened, then re-played on 12 held-out maps: variant 12 (the Air Force
 # champion's three moves) won +9.6 points 1v1 vs stock (435 better / 182 worse of 2,640 pairs, sign p 4e-25, better on 10 of 12
 # maps) and mirror games still end. Its genes: PLAYER_HAS_CREDITS gates of the Hard base-building scripts x1.435, the _ESCALATION
 # threshold of the Hard defence-building ones x0.898, unit counts of the Hard 4TH/5TH wave teams x1.161 (each value
@@ -657,7 +657,7 @@ def nuke_genome(scb, no_spend=None):
     return edits
 
 
-# GeneralsX: ai-wh1ter0se-econ opt-in steps (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6/7): an engine behaviour that is OFF
+# GeneralsX: ai-wh1ter0se-econ opt-in steps: an engine behaviour that is OFF
 # until a player's scripts call its action - so a stock .scb plays as before, and a FOCAL box arm turns it on for ONE general (generals=).
 # Each adds, per chosen general list, one group "<group>" holding one Hard-only one-shot script whose condition is CONDITION_TRUE and
 # whose single action is the new engine action (its int read from Scripts.h at run time); nothing else in the file changes.
@@ -751,7 +751,7 @@ def opt_in_selftest(base, out, group, script_name_, action, generals=None):
         assert script_flags(g.kids[0])[0] == [1, 1, 0, 0, 1, 0]
     print("  %s: +1 Hard one-shot script in %d lists, nothing else (on: %s)" % (group, len(want), sha256(out)))
 
-# GeneralsX: ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6; wh1ter0se 22/10: "building rotation should always be
+# GeneralsX: ai-wh1ter0se-econ R (6; wh1ter0se 22/10: "building rotation should always be
 # rotated to where it matters"): every Hard general calls AI_PLAYER_FACE_FRONT once - its barracks / war factory / arms dealer doors face
 # its base front, its base defences face out. Engine-gated by the action (a stock .scb never calls it).
 FACE_FRONT = True                         # False = the 0.9.67 package (FACE_FRONT_OFF_SHA256)
@@ -931,7 +931,7 @@ def gx_arm_selftest(base, out, owners, label):
     print("  %s: +1 group in %d lists, +%d team bytes, +%d chunk names, nothing else (on: %s)" % (
         label, len(want), len(tb) - len(ta), len(b.toc) - len(a.toc), sha256(out)))
 
-# GeneralsX: ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7; wh1ter0se 22/10: "keeping gla troops like 4-6 in the
+# GeneralsX: ai-wh1ter0se-econ T (7; wh1ter0se 22/10: "keeping gla troops like 4-6 in the
 # tunnel mostly should be anti air units like quads to pop when it detects incoming airplanes/migs/raptors and then hide back instantly").
 # Per GLA general (Hard only):
 #  * "GX Tunnel AA Watch <side>" (one-shot): AI_PLAYER_TUNNEL_AIR_WATCH(700) - the engine names incoming aircraft as the tunnels' nemesis;
@@ -1033,7 +1033,7 @@ def tunnel_resize_selftest(base, resized, owners):
     return n
 
 
-# GeneralsX 27/10/2026 ai-pro-rules-2 T2 (gx-handoff ai/pro-rules/PREREG_T2.md): the engine now gates the team itself (built only while a
+# GeneralsX 27/10/2026 ai-pro-rules-2 T2: the engine now gates the team itself (built only while a
 # HOSTILE player - any of them, also in FFA - owns an airfield, reinforced only while that or an aircraft seen in the last 180 s holds,
 # released when neither does: AIPlayer::gxAirTeamAllowed / AISkirmishPlayer::gxAirLifetime), so the production condition keeps only "own
 # tunnel network" (the old "<This Player's Enemy> owns a 'GX AA Threats' airfield" saw the current enemy only). watch=False is the
@@ -1074,7 +1074,7 @@ def tunnel_aa(scb, generals=None, watch=None):
         changed += 1
     return changed
 
-# GeneralsX @bugfix C-laser-power 04/11/2026 (gx-handoff ai/laser-power/PLAN_laser-power.md; wh1ter0se's $200k games): Crusader and Paladin are the
+# GeneralsX @bugfix C-laser-power 04/11/2026 (wh1ter0se's $200k games): Crusader and Paladin are the
 # only units in the game that draw power, so a Laser General under power disables its whole tank army, and the tanks cannot leave a door or
 # go and fight, so the AI has no way to lower the load. A plant is forced only into an empty build-list slot (Laser has 6), and past that the
 # only source is "USA 7+ Power Plants Flank/Front - H", whose SKIRMISH_BUILD_STRUCTURE_* walks an arc shared with base defences that runs out
@@ -1140,7 +1140,7 @@ def laser_power_selftest(base, out):
     print("  laser_power: +1 AI_PLAYER_BUILD_SUPPLY_CENTER(%s) in %d Laser scripts, every other byte unchanged (on: %s)" % (LASER_POWER_PLANT, len(changed), sha256(out)))
 
 
-# USA Search and Destroy (USA_SD, ai/usa-sd/PLAN_usa-search-destroy.md): every USA general's "USA Use Battle Plans" picks Hold the Line for good, and the
+# USA Search and Destroy (USA_SD): every USA general's "USA Use Battle Plans" picks Hold the Line for good, and the
 # pro plan is Search and Destroy (+20% ground range and sight, stealth detection at the Strategy Center). That one script is diff=111 and only Hard is
 # ever measured, so stock keeps Easy + Normal and a Hard copy, named USA_SD_HARD, carries the button. Delay 0, not stock's 5 or 3: the plan then waits
 # only for its 7 s unpack, and it must be 0: a script with a delay draws from the shared logic RNG at map load (ScriptEngine.cpp, setFrameToEvaluate), so

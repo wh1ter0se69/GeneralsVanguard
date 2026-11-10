@@ -4,14 +4,14 @@
 // executed as d3d8 bytecode - the native device draws it with the GLSL port named beside it. The classic path never creates these.
 // scripts/render/ws-E/gen_catalog.py reads the `static const uint32_t gx...[]` arrays below (by name) into GxCustomCatalog.inc as
 // 'gx:<name>' entries; GxNativeQualifyShaders skips 'gx:' names because they are built into the binary (no shaders\ file).
-// One header for every synthetic program, append-only (render-dlss/DLSS_INTEGRATION.md ruling 13/10).
+// One header for every synthetic program, append-only.
 #pragma once
 
 #include <cstdint>
 
 namespace GXRender {
 
-// --- render-motion-units-1 bridge: object velocity (modernize/render-dlss/DESIGN_motion-units.md §2.7) -------------------------
+// --- render-motion-units-1 bridge: object velocity -------------------------
 // gx:vel-rigid  vs  -> gx_cs_vel.vert           v0 = position (FLOAT3)
 // gx:vel-skin   vs  -> gx_cs_vel.vert -DGX_VEL_SKIN   v0 = current position, v1 = previous position (FLOAT3 each, world space)
 // gx:vel-ps     ps  -> gx_cs_vel.frag (GxCsPsVelocity, its own module): (prevPx - curPx, 0, 1)

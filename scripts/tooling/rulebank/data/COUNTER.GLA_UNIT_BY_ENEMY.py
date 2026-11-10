@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule COUNTER.GLA_UNIT_BY_ENEMY (C·rb-data-16): GLA picks its follow-up tank by the
+# GeneralsX: rule bank DATA rule COUNTER.GLA_UNIT_BY_ENEMY: GLA picks its follow-up tank by the
 # China GENERAL it meets (row 1893: "Pick the follow-up by enemy: ... Quads vs vanilla China, Scorpions (after rocket upgrade) vs Nuke or Tank
 # China"; rows 1874-1875: "Do not build Scorpions against China Infantry ... build mostly Quad Cannons"). Stock Hard GLA sends Scorpion
 # waves at everyone. This, per general:

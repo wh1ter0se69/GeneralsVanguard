@@ -131,7 +131,7 @@ protected:
 	UnsignedInt m_frameEnemyReviewed;	///< GeneralsX: when the enemy was last chosen or re-scored; like m_frameToCheckEnemy, not saved
 	Player			*m_currentEnemy;
 	GXRuleBank		*m_gxRules;	///< GeneralsX 30/10/2026 rb-core: the AI rule bank (GXRules/GXRuleBank.h); saved in xfer's own block
-	// GeneralsX 06/11/2026 base-layout (gx-handoff ai/base-layout/ADDENDUM_9.md): a keyed list's STOCK base centre, the centroid of the stock spots its
+	// GeneralsX 06/11/2026 base-layout: a keyed list's STOCK base centre, the centroid of the stock spots its
 	// entries fall back to, placed as retail places the stock list: exactly the m_baseCenter the stock list gives. Set only when every entry carries
 	// a layout fallback (GXTurnLayout lists from make-aidata-layouts.py); FALSE for every other list, which then ranks from m_baseCenter as before.
 	Coord3D			m_gxStockCenter;

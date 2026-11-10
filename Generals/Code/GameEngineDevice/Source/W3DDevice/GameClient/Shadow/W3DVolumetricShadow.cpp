@@ -913,7 +913,7 @@ void W3DShadowGeometryMesh::buildPolygonNeighbors()
 
 	}
 
-	// GeneralsX: The base game's twin of Zero Hour's fix (B · perf-ipad-0969,
+	// GeneralsX: The base game's twin of Zero Hour's fix (
 	// GeneralsMD's W3DVolumetricShadow.cpp). The 2003 search below tested every polygon against every other one (O(n^2) pair tests).
 	// The base game runs it eagerly, from W3DShadowGeometry::initFromHLOD/initFromMesh, the first time a model's shadow geometry is
 	// loaded: while a map loads, or inside the frame the first object of a new model is created.

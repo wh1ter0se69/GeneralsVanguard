@@ -1680,7 +1680,7 @@ ObjectShroudStatus PartitionData::getShroudedStatus(Int playerIndex)
 			// while FOGGED survives a later recompute that the "enemy building never seen" refinement above turns into SHROUDED
 			// (e.g. a derrick fogged while neutral, then captured by an enemy unseen): previous became SHROUDED, so retail's
 			// "== FOGGED" never freed it, and the stale clone stayed in the scene for good - a destroyed building drawn standing
-			// over its rubble (wh1ter0se 14/10, proven in gameplay/NOTE_ghost-leak-proof-wh1ter0se-bugs-1015-live.md). A save written
+			// over its rubble (wh1ter0se 14/10, proven). A save written
 			// by a leaking build can hold such a snapshot with previous CLEAR. freeSnapShot touches only
 			// the client's scene and snapshot list; m_shroudedness, m_everSeenByPlayer and m_shroudednessPrevious are written
 			// exactly as before. Freeing at the refinement instead would make a fogged building vanish from the fog when an

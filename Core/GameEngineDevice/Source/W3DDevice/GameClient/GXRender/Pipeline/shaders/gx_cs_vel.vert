@@ -1,6 +1,6 @@
 #version 450
-// gx_cs_vel.vert - the object-velocity vertex program of the DLSS-track motion bridge (D · render-motion-units-1, 13/10/2026;
-// modernize/render-dlss/DESIGN_motion-units.md §2.7). Synthetic catalogue programs gx:vel-rigid (this file) and gx:vel-skin
+// gx_cs_vel.vert - the object-velocity vertex program of the DLSS-track motion bridge.
+// Synthetic catalogue programs gx:vel-rigid (this file) and gx:vel-skin
 // (-DGX_VEL_SKIN): the game re-draws a moved rigid or skinned draw into the object-velocity image O at world End, depth-tested
 // LESSEQUAL against the world depth, and gx_cs_vel.frag (gx:vel-ps) writes (prevPx - curPx, 0, 1).
 //

@@ -1,4 +1,4 @@
-// GeneralsX: GXCAP game glue (GXCap.h; recorder core GXCapRecorder.cpp; DESIGN_gxcap.md).
+// GeneralsX: GXCAP game glue (GXCap.h; recorder core GXCapRecorder.cpp).
 // GXCAP=<frame>[,...] (1-16 ascending), GXCAP_SPAN=<updates> (1-16, default 3), GXCAP_DIR=<dir> (default ./gxcap).
 // A window opens at the first in-match draw whose logic frame reaches the next GXCAP frame. It closes at the first draw
 // entry after GXCAP_SPAN updates AND, when GX_SHOT is set, after a screenshot was recorded inside it (DXVK rotates two

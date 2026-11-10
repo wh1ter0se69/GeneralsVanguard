@@ -1,6 +1,6 @@
-// A23-B (D · rw3-X-2 13/10/2026): GX_EXEC_DIGEST=<file> writes each arm's EXEC digest and creation ledger there, one line per
+// A23-B: GX_EXEC_DIGEST=<file> writes each arm's EXEC digest and creation ledger there, one line per
 // arm, for the suite-level equality gate (run the suite with GX_NATIVE_CS=0, again 0, then 1 and compare the files).
-// GeneralsX: gx_proxy_test: the IDirect3D8 proxy and the session rows S2-S10 (DESIGN_l1-device.md §2),
+// GeneralsX: gx_proxy_test: the IDirect3D8 proxy and the session rows S2-S10,
 // offscreen, on a stub "DXVK" parent that counts the calls forwarded to it. One case per row; every case has an X- arm that turns
 // on the matching GxNativeSessionDebug plant in the PRODUCT proxy and must make exactly that case fail.
 //
@@ -236,7 +236,7 @@ bool classicAt(const Run& r, int row, const char* needle, std::string* d)
 	return ok;
 }
 
-void setEnvVar(const char* k, const char* v)   // D · native-windows-1: MSVC has no setenv
+void setEnvVar(const char* k, const char* v)   // MSVC has no setenv
 {
 #if defined(_WIN32)
 	_putenv_s(k, v);
@@ -519,7 +519,7 @@ bool caseS8(GxNativeSessionDebug& p, std::string* d)
 		&& why.find("uuid:aaaa") != std::string::npos && why.find("uuid:bbbb") != std::string::npos && why.find("libvulkan.dylib") != std::string::npos, ("two builds accepted / reason lacks the paths and UUIDs: " + why).c_str());
 	two.builds = { "uuid:aaaa", "uuid:aaaa" };   // a builds vector of the wrong size = every image its own build (paths)
 	CHECK(!GxNativeQualifyLoader(two, false, nullptr, nullptr, &why), "mismatched builds vector accepted two paths");
-	// C · native-ipad-1: S8 where there is no loader (iOS). Good = one MoltenVK framework holding the host's entry point.
+	// S8 where there is no loader (iOS). Good = one MoltenVK framework holding the host's entry point.
 	GxLoaderFacts io;
 	io.procAddrImage = "/b/GeneralsXZH.app/Frameworks/MoltenVK.framework/MoltenVK";
 	io.images = { io.procAddrImage };
@@ -554,7 +554,7 @@ bool caseS8(GxNativeSessionDebug& p, std::string* d)
 }
 void plantS8(GxNativeSessionDebug& p) { p.skipLoaderRow = true; }
 
-// B · dlss-streamline-1 (PREREG A36.2): the ONE declared interposer (NVIDIA Streamline's sl.interposer.dll) may own the host's
+// (PREREG A36.2): the ONE declared interposer (NVIDIA Streamline's sl.interposer.dll) may own the host's
 // vkGetInstanceProcAddr in front of the process's one loader build; any other non-loader module is still refused.
 bool caseS8Interposer(GxNativeSessionDebug& p, std::string* d)
 {

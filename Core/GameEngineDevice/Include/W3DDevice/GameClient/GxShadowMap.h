@@ -1,5 +1,5 @@
 // GeneralsX: S7 GPU sun shadow map: the native device's private shadow-map interface
-// (modernize/look-director/d2/PREREG_look-shadowmaps.md; PLAN_look-shadowmaps.md Task 4).
+// (Task 4).
 //
 // Game code asks the device for it once per device with QueryInterface(IID_GxShadowMap). DXVK, the GXCAP proxy, and the native device
 // with the key OFF (GXShadowMap = off, read once at device init: PREREG A18) answer E_NOINTERFACE - and then the game draws today's
@@ -39,14 +39,14 @@ struct GxShadowFrame
 	uint32_t shadowColor;			// ARGB, the map's (WorldHeightMap's lighting chunk; W3DShadowManager::getShadowColor)
 	uint32_t step;					// 0..3 (3 = off: no capture, no pass; the game draws the stencil volumes)
 	uint32_t cascades;				// 0, 1 or 2
-	// P2 (D · look-shadowmaps-2): what the receivers need beyond the replay (the device packs them into set 2's frame UBO)
+	// P2: what the receivers need beyond the replay (the device packs them into set 2's frame UBO)
 	float depthRangeWU[2];			// per cascade: the light depth range in world units (the fit's zFar - zNear)
 	float texelWU[2];				// per cascade: one texel in world units (extent / res; at the axis centre since A39)
 	uint32_t guard;					// the step's guard band, texels per side
-	// A39 (D · look-shadowmaps-3): the map is a PERSPECTIVE projection from 2003's point light L (lightViewProj carries it)
+	// A39: the map is a PERSPECTIVE projection from 2003's point light L (lightViewProj carries it)
 	float tanTexel[2];				// per cascade: one texel in tangent units (x the axis distance from L = world units)
 	float nearFar[2][2];			// per cascade: near / far axis distances from L (the receivers linearise depth with them)
-	// A79 (E · look-shadowmaps-7): the own-light pull (GXRender Record/GxOwnPull.h) - L.xyz and eps (0 = no pull); muMax, noRecv (TEST-ONLY:
+	// A79: the own-light pull (GXRender Record/GxOwnPull.h) - L.xyz and eps (0 = no pull); muMax, noRecv (TEST-ONLY:
 	// gx_native_test's frame only - the game writes 0 always), 0, 0
 	float ownPull[4];
 	float ownPullAux[4];

@@ -30,7 +30,7 @@ namespace
 	Int s_reflex = 0;
 	Bool s_shadowMap = FALSE;          // S7 GXShadowMap
 	Int s_shadowMapStepPin = -1;      // S7 GX_SHADOWMAP_STEP (TEST-ONLY)
-	Bool s_alphaToCoverage = FALSE;   // B · a2c-1 GXAlphaToCoverage
+	Bool s_alphaToCoverage = FALSE;   // GXAlphaToCoverage
 
 	const char *const s_upscalerNames[GXGraphics::UPSCALER_COUNT] =
 		{ "off", "bilinear", "fsr1", "fsr3", "dlss", "metalfx", "metalfx-temporal", "xess" };
@@ -103,7 +103,7 @@ namespace
 		fprintf(stderr, "[GXREFLEX] reflex=%d (%s)\n", (int)s_reflex, srcR);
 	}
 
-	// S7 (D · look-shadowmaps, PREREG A18): GXShadowMap off|on + the TEST-ONLY step pin
+	// S7 (PREREG A18): GXShadowMap off|on + the TEST-ONLY step pin
 	void loadShadowMap(const UserPreferences &prefs)
 	{
 		const char *src = "default";
@@ -116,7 +116,7 @@ namespace
 			(int)s_shadowMapStepPin);
 	}
 
-	// B · a2c-1 (PREREG A108): GXAlphaToCoverage yes|no - the spellings GXShadowMap takes
+	// (PREREG A108): GXAlphaToCoverage yes|no - the spellings GXShadowMap takes
 	void loadAlphaToCoverage(const UserPreferences &prefs)
 	{
 		const char *src = "default";

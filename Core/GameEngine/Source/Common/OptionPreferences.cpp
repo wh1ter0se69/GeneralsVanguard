@@ -294,10 +294,10 @@ static UnsignedInt parseVirtualIP(AsciiString value, UnsignedInt defaultIP)
 // got "No server configured", could not chat ("not connected to a relay room"), never populated the
 // roster, and - if they hosted - was never advertised, because Transport::setGameAdvertisement
 // bails when m_relayRoom is empty. Observed on a new player's machine 15/08/2026; the design note
-// in DESIGN_2026-08-08_lobby-master.md had already predicted exactly this client: "the only hard
+// had already predicted exactly this client: "the only hard
 // failure is a client that has never had a manifest and has no RelayAddress".
 //
-// WHY A COMPILED-IN DEFAULT IS NOT A COMPILED-IN RELAY LIST. CLAUDE.md's rule - "adding a relay
+// WHY A COMPILED-IN DEFAULT IS NOT A COMPILED-IN RELAY LIST. 's rule - "adding a relay
 // must not require updating clients" - is about the LIST, and it still holds: the fetched, signed
 // relay list overrides this, and an explicit RelayAddress in Options.ini overrides it too. This is
 // only the bootstrap, which is the role the design doc already assigns it ("RelayAddress stays as

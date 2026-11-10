@@ -1477,9 +1477,9 @@ static size_t gxShadowGpuBudget()	// bytes the copy store may hold (GX_SHADOW_GP
 }
 
 // The vertex shader (vs.1.1) and its declaration: GxShadowVolumeVS.h, the one copy the native renderer's catalogue also reads
-// (GeneralsX C · rw3-R11 13/10/2026; it was assembled here by macros, the header holds that block's dwords byte for byte).
+// (GeneralsX; it was assembled here by macros, the header holds that block's dwords byte for byte).
 #include "W3DDevice/GameClient/GxShadowVolumeVS.h"
-#include "W3DDevice/GameClient/GXShadowMapHooks.h"   // D · look-shadowmaps S7: GxShadowMapActive
+#include "W3DDevice/GameClient/GXShadowMapHooks.h"   // S7: GxShadowMapActive
 #include "W3DDevice/GameClient/GXShadowMapFit.h"     // S7 A39: the own light
 #include "W3DDevice/GameClient/GXShadowDropSpec.h"   // S7 A60/A73: TEST-ONLY drop specs
 
@@ -4577,7 +4577,7 @@ void W3DVolumetricShadowManager::renderStencilShadows()
 
 void W3DVolumetricShadowManager::renderShadows( Bool forceStencilFill )
 {
-	// GeneralsX: S7 (PREREG_look-shadowmaps 2.3): with the shadow map on this frame, no volume
+	// GeneralsX: S7: with the shadow map on this frame, no volume
 	// is updated or drawn and no darkening quad: the map's receivers darken instead (step 3 = off brings all of this back)
 	if (GxShadowMapActive)
 		return;
@@ -5297,7 +5297,7 @@ Bool W3DVolumetricShadowManager::gxShadowDropMesh(const char *meshName, Bool map
 
 // GeneralsX: S7 (W3DVolumetricShadow.h). The same enable test renderShadows applies; the root is
 // the top of the render object's container chain (user data and the mesh tag live there, PREREG A7).
-// A39/A41 (D · look-shadowmaps-3): with the map on, renderShadows returns before any Update(), so 2003's one-shot runtime clamp
+// A39/A41: with the map on, renderShadows returns before any Update(), so 2003's one-shot runtime clamp
 // (updateOptimalExtrusionPadding) is run HERE under exactly Update()'s conditions - geometry present, the transform set (not the
 // origin), inside the visible-terrain box grown by the object's extent, grounded (|z - ground| < AIRBORNE_UNIT_GROUND_DELTA: a building
 // under construction sits below the terrain and waits), padding still 0 - in the same frame, so it computes the same value 2003 would

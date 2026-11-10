@@ -69,13 +69,13 @@
 #include "W3DDevice/GameClient/W3DShaderManager.h"
 
 //=============================================================================
-// GeneralsX: THE REMASTERED GROUND, slice 1 (D · look-director-2; productised from C · look-ground-2's
-// test/look-ground-2 4fe7f0db9, itself grown from B · look-ground-plan's per-pixel relief; wh1ter0se 14/10 "new ground looks
+// GeneralsX: THE REMASTERED GROUND, slice 1 (productised from
+// test/look-ground-2 4fe7f0db9, itself grown from per-pixel relief; wh1ter0se 14/10 "new ground looks
 // better"). The switch, its A/B override, the vetoes and the governor steps are GameClient/GXGroundSteps.h: Options.ini
 // GXGround = yes (absent = kGxGroundKeyDefault: ON since wh1ter0se 17/10), GX_GROUND = off | "shade,blend,detail,macro,noise". OFF = today's ground byte for byte: nothing
 // is built, nothing is drawn, no device call differs. Client-only: this file is outside the SimID digest
 // (resources/gitinfo/simdigest_exclusions.txt), and nothing here is read by the simulation.
-// The 2003 ground read as flat wallpaper for four reasons (look-director/HANDBACK_look-ground-plan.md): one light value per
+// The 2003 ground read as flat wallpaper for four reasons: one light value per
 // 10 m vertex, soft 10 m linear fades between terrain types, two blurry grey multiply layers (cloud x macro noise, the "dirty
 // smudge"), and the same tiles repeating every 40-200 m. When on, this draws the same 2003 tiles differently, in two ps.1.1
 // passes over the same vertex buffers:
@@ -107,7 +107,7 @@
 // logic frame on (0 = stock, 1-3 = preset; default 1) for one-run tuning sweeps; GX_GROUND_BAKE="depth,shadow,cavity" (texels x10,
 // percent, x100; default 120,80,160); GX_GROUND_FLIP=1 bakes the lights from the opposite side (fail arm).
 // UV axes (WorldHeightMap::getUVForTileIndex + HeightMap updateVB): +u = world +X, +v (atlas rows down) = world -Y.
-// Known limits (HANDBACK_look-ground-2 §3; later slices): cells with a 3rd texture (renderExtraBlendTiles, drawn after) show it
+// Known limits (later slices): cells with a 3rd texture (renderExtraBlendTiles, drawn after) show it
 // stock where its alpha reaches 1, and roads stay stock; cliff cells whose UVs AdjustCliffTextures remaps along the slope are
 // shaded with the flat-tile axes; the detail and macro layers are projected straight down, so they stretch on steep cliffs; the
 // native renderer has no port (GXGroundSteps.h vetoes it).

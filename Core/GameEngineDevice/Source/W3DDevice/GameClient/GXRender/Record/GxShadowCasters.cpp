@@ -187,7 +187,7 @@ void GxShadowCasters::record(VkCommandBuffer cmd)
 				double(clamp));
 		clamp = 0.f;
 	}
-	// A79 (E · look-shadowmaps-7, GxOwnPull.h): a thin own-light copy (0 < mu <= muMax) is replayed pulled toward L - world x (P x lightVP[c]),
+	// A79 (GxOwnPull.h): a thin own-light copy (0 < mu <= muMax) is replayed pulled toward L - world x (P x lightVP[c]),
 	// P x lightVP built once per cascade; every other record keeps world x lightVP[c]. eps 0 = no pull (key default until D79's policy)
 	const float eps = m_pass.ownPull[3], muMax = m_pass.ownPullAux[0];
 	float pull[16];

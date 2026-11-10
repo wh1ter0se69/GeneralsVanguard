@@ -226,7 +226,7 @@ void ScriptedCamera::logicFrame()
 	const unsigned did = m_timeline.stepLogicFrame();
 	// a blur's TRUE ending can make a camera freeze in flight hold - the only way one starts after the update's own frozen
 	// check: GameEngine::updateLogic re-reads it after the client step, the rendered peer's draw loop runs the move out, and
-	// it ends before the next update's scripts here as well (camera-sim-B r2 P2: the next update's scripts read FALSE)
+	// it ends before the next update's scripts here as well (camera-sim-B: the next update's scripts read FALSE)
 	if ((did & ScriptedCameraTimeline::BLUR_ENDED) && TheGameEngine != nullptr && TheGameEngine->isTimeFrozen()
 		&& !TheScriptEngine->isTimeFrozenScript() && !TheScriptEngine->isTimeFrozenDebug())
 		m_freezePending = TRUE;

@@ -190,7 +190,7 @@ void writeFatal(const char* line, size_t len)
 	if (pthread_create(&t, nullptr, writeOwnLine, l) != 0)
 		return;   // no thread, no line: the exit code still says it
 	pthread_detach(t);
-	const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(1);   // wall time, not a count of sleeps (r6 P2-2)
+	const auto end = std::chrono::steady_clock::now() + std::chrono::seconds(1);   // wall time, not a count of sleeps
 	while (!l->done.load() && std::chrono::steady_clock::now() < end)
 		std::this_thread::sleep_for(std::chrono::milliseconds(1));
 #endif
@@ -1028,7 +1028,7 @@ void VkCtx::collect()
 		return;
 	const uint64_t done[2] = { queue(QueueKind::Graphics).timeline.completed(), queue(QueueKind::Transfer).timeline.completed() };
 	// a refused / skipped value never completes; its retirements run once the latch's drain has PROVED the device idle - then no
-	// accepted batch still runs, so nothing a refused op shared with an earlier batch is freed under it (PREREG_T A21 am. 2 (1))
+	// accepted batch still runs, so nothing a refused op shared with an earlier batch is freed under it (A21 am. 2 (1))
 	bool settleAll = false;
 	if (m_threaded && !g_testMutants.latchNoRetire) {
 		std::lock_guard<std::mutex> g(m_opMutex);
@@ -1206,7 +1206,7 @@ void VkCtx::runOp(SubmitOp& op)
 		std::lock_guard<std::mutex> g(m_queueMutex);
 		r = submitDriver(q, op.desc, op.value);
 	}
-	// A refusal first DRAINS the device - every earlier ACCEPTED batch completes - and only then becomes visible (PREREG_T A21
+	// A refusal first DRAINS the device - every earlier ACCEPTED batch completes - and only then becomes visible (A21
 	// amendment 1 (1) / 2 (1); DXVK dxvk_queue.cpp:207-208): a caller whose resource was last used by the refused value, and before
 	// it by a batch still on the GPU, cannot act on the refusal while that batch runs (GxNativeDevice::endFrameForHost ignores its
 	// wait's answer). The latch is terminal (deviceLost() true, Present answers DEVICELOST) but publishes no driver loss.
@@ -1237,7 +1237,7 @@ void VkCtx::runOp(SubmitOp& op)
 	if (r != VK_SUCCESS)
 		m_doneCv.notify_all();
 	// ONE log call per refusal, where the synchronous path makes its own (VkCtx::submit's noteResult, VkCtx.cpp:881 @33d36f1cc): the
-	// thread adds no blocking point the synchronous path lacks (PREREG_T A21 am. 2 (6); stderr liveness itself is process-wide, R24).
+	// thread adds no blocking point the synchronous path lacks (A21 am. 2 (6); stderr liveness itself is process-wide, R24).
 	// Not "FATAL": the device's own FATAL line names this refusal (one FATAL line per session).
 	if (r != VK_SUCCESS && (r != VK_ERROR_DEVICE_LOST || first)) {
 		char what[160];
@@ -1350,7 +1350,7 @@ bool VkCtx::waitExecuted(QueueKind kind, uint64_t value) const
 // returns it). Vulkan also allows OUT_OF_HOST/DEVICE_MEMORY; freeing what the GPU may still read is worse than waiting, so such an
 // answer is retried - for at most 2 s of WALL time from the first one (a driver that keeps answering it
 // must not hang Reset or teardown). Then the device is terminal and its idle cannot be proven: the process ENDS (integrator
-// ruling 13/10, PREREG_T A21 am. 2 (2)) - keeping every object instead would need a guard at each of ~60 destroy/free sites, which
+// ruling 13/10, A21 am. 2 (2)) - keeping every object instead would need a guard at each of ~60 destroy/free sites, which
 // cannot be shown complete. COST: std::_Exit skips the game's own shutdown and atexit handlers, so a replay being recorded or a
 // log still queued in the stderr pump's ring may be cut short; the FATAL line itself goes straight to fd 2 (writeFatal: unbuffered,
 // best effort, never held for more than 1 s). A driver call that never RETURNS is not bounded here (no Vulkan call can be).
@@ -1381,7 +1381,7 @@ void VkCtx::idleDevice(VkResult inject)
 		const auto now = std::chrono::steady_clock::now();
 		if (answers == 1) {
 			firstFail = now;
-			if (inject != VK_SUCCESS) {   // TEST: the child arms' proof that the failing loop was entered (rw3V-code-r5 P2-4)
+			if (inject != VK_SUCCESS) {   // TEST: the child arms' proof that the failing loop was entered
 				// t= is this process's steady_clock at the first failing answer: the arm measures the bound from it, not from when it
 				// happens to read the line
 				char mark[160];
@@ -1398,9 +1398,9 @@ void VkCtx::idleDevice(VkResult inject)
 				static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count()));
 			if (n > 0)
 				writeFatal(line, static_cast<size_t>(std::min(n, static_cast<int>(sizeof(line)) - 1)));
-			if (g_testMutants.idleSlowExit)   // TEST plant (rw3V-code-r9 P2-3): the handoff to _Exit overruns its allowance
+			if (g_testMutants.idleSlowExit)   // TEST plant: the handoff to _Exit overruns its allowance
 				std::this_thread::sleep_for(std::chrono::seconds(4));
-			if (inject != VK_SUCCESS) {   // TEST: the child arms time the handoff on THIS clock, at the _Exit itself (rw3V-code-r10 P2-1)
+			if (inject != VK_SUCCESS) {   // TEST: the child arms time the handoff on THIS clock, at the _Exit itself
 				char exitMark[96];
 				const int e = std::snprintf(exitMark, sizeof(exitMark), "[GXVK] TEST idle: _Exit t=%lld\n",
 					static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(
@@ -1426,7 +1426,7 @@ void VkCtx::waitIdle()
 	}
 	idleDevice(g_testMutants.idleResult);
 	// idle is proven here: each owner settles the retirements a latch or a loss left, while the pools they free into still exist
-	// (rw3V-design-r1 P1-2)
+	//
 	if (!g_testMutants.latchNoRetire) {
 		bool latched;
 		{

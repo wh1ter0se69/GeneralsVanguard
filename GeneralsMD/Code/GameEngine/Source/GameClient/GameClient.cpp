@@ -781,7 +781,7 @@ static Bool gxPaceSample( void )	// TRUE when it printed: [GXGFX] closes its win
 	// GeneralsX: The logic rate is a delta on UnsignedInt, so any frame
 	// counter RESET - returning to the menu, starting a match - makes it negative and it prints as
 	// ~3.2e9 or ~7e7 rather than a rate. Observed twice in one run, both times on the first sample
-	// of a new match (docs/WORKDIR/evidence/gxpace-2026-08-02-network.txt carries logic=70032935.4).
+	// of a new match (carries logic=70032935.4).
 	//
 	// The rate genuinely IS unknown for the window the reset lands in: nothing here records WHERE
 	// inside that second the counter went back to 0, so any number we computed would be invented.
@@ -1105,7 +1105,7 @@ static void gxPerfVerdictToast( void )
 	}
 }
 
-// GeneralsX: GX_OBSERVE_PLAYER=<player index> (E · rcpu-census, R-CPU roadmap step 2): in a
+// GeneralsX: GX_OBSERVE_PLAYER=<player index> (R-CPU roadmap step 2): in a
 // replay or as an observer, view the match as that player from logic frame 1 - the observer bar's "view as player",
 // so the shroud, ghosts and fogged objects draw as that player sees them. The census needs it: the G0 replay is an
 // observer view (nothing shrouded), and a player's view adds the shroud material pass to every object that is not
@@ -1796,8 +1796,8 @@ static void gxFastForwardSchedule()
 	}
 }
 
-// GeneralsX: GX_REPLAY_PAUSE="<frame>:<seconds>" - render-split gate G0 (gx-handoff
-// modernize/render-split/DESIGN.md): the draw-only ceiling of a late-game scene. In a replay played through the client
+// GeneralsX: GX_REPLAY_PAUSE="<frame>:<seconds>" - render-split gate G0:
+// the draw-only ceiling of a late-game scene. In a replay played through the client
 // (-loadreplay: no network, so a paused game halts - GameEngine::isGameHalted, FramePacer::getActualLogicTimeScaleFps),
 // pause the logic at <frame> for <seconds> of wall time while the client keeps drawing that world, then resume once.
 // Compare [GXPACE] rfps and [GXGFX] spans inside the window with the same scene running on either side. setGamePaused also
@@ -1806,7 +1806,7 @@ static void gxFastForwardSchedule()
 // frame. Ignored outside a replay; one window per process; never with GX_REPLAY_SEEK or a strip click (both unpause).
 // Run uncapped (-noFPSLimit), or the window measures the frame cap. Inside the window the per-drawable and ghost updates
 // are skipped too (GameClient::update freezeTime): that is the draw-only ceiling, not the running frame minus the tick.
-// With tick catch-up for single player (feat/catchup-regular), rfps outside the window also counts logic-only passes and there
+// With tick catch-up for single player, rfps outside the window also counts logic-only passes and there
 // are none inside it (paused = ineligible): compare frames DRAWN, [GXPACE] iters - cu, or run with GX_CATCHUP=0.
 static void gxReplayPauseSchedule()
 {
@@ -2561,7 +2561,7 @@ static void gxTestEnterQueueScript( CommandTranslator *xlat )
 }
 #endif
 
-// GeneralsX: H02 (ROADMAP_2027 M2, modernize/smooth-input/H02_DESIGN.md): translate this update's
+// GeneralsX: H02 (ROADMAP_2027 M2): translate this update's
 // input and queue the orders on the network BEFORE the draw and its blocking Present, instead of after them in
 // GameEngine::update. An order used to wait a whole draw (iPad ~8 ms, most of it Present) before it was even queued, and
 // its local feedback (selection, move hint) was first drawn one update later; so did every frame's command-count packet.
@@ -2784,7 +2784,7 @@ void GameClient::update()
 	// refresh the identity. Ticked from the engine rather than from the lobby screen that started
 	// it, because a login outlives that screen - the player can walk back to the main menu while
 	// the browser is still open, and a pump hung off a UI callback goes deaf the moment they do.
-	// That is the same defect the LANAPI pump had, and the lesson is in tasks/lessons.md.
+	// That is the same defect the LANAPI pump had, and the lesson is.
 	GXLoginFlow::update();
 
 	// update the video player
@@ -3916,7 +3916,7 @@ void GameClient::xfer( Xfer *xfer )
 	}
 
 
-	// GeneralsX @bugfix skybox-1 12/10/2026 (skybox r10 P2): a map script that switched the sky off keeps it off after a
+	// GeneralsX @bugfix skybox-1 12/10/2026 (skybox): a map script that switched the sky off keeps it off after a
 	// load (W3DWater.cpp's latch; the engine reset before the load cleared it). Version 3 saves read as "not switched off".
 	if (version >= 4)
 	{

@@ -178,14 +178,14 @@ set(GAMEENGINEDEVICE_SRC
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2Dry.cpp
     Source/W3DDevice/GameClient/GXRender/Scene/GxScene.cpp
     Source/W3DDevice/GameClient/W3DShaderManager.cpp
-    # GeneralsX: WS-X hybrid spike (render-seam/DESIGN_hybrid.md). Not digested: this file is
+    # GeneralsX: WS-X hybrid spike. Not digested: this file is
     # outside simsourcedigest_watcher.cmake's lists, so listing a render source here leaves the SimID alone.
     Include/W3DDevice/GameClient/GxInterop.h
     Source/W3DDevice/GameClient/GXRender/Interop/GxInterop.cpp
     # GeneralsX: GX_RENDERER=native switch (GxNativeInstall.h); not digested
     Include/W3DDevice/GameClient/GxNativeInstall.h
     Source/W3DDevice/GameClient/GXRender/Device/GxNativeInstallOff.cpp
-    # GeneralsX: WS-X2: DrawRun (DESIGN_hybrid §13) - not digested, like GxInterop.
+    # GeneralsX: WS-X2: DrawRun - not digested, like GxInterop.
     Include/W3DDevice/GameClient/GxDrawRun.h
     Source/W3DDevice/GameClient/GXRender/Interop/GxDrawRun.cpp
     Include/W3DDevice/GameClient/GxDepthShot.h
@@ -447,10 +447,10 @@ if(RTS_BUILD_OPTION_FFMPEG)
     endif()
 endif()
 
-# GeneralsX: native renderer device layer (PLAN_native-renderer WS-B): gx_vkctx + its
+# GeneralsX: native renderer device layer (WS-B): gx_vkctx + its
 # self-test. Render-only, outside the digested paths; OFF until the session switch (WS-J) wires a backend to it. It also
 # builds standalone in minutes: cmake -S Core/GameEngineDevice/Source/W3DDevice/GameClient/GXRender/Vk -B <dir>.
-# GeneralsX: L1 in the game (render-seam/DESIGN_l1-device.md §12): GX_RENDER_NATIVE=ON links
+# GeneralsX: L1 in the game: GX_RENDER_NATIVE=ON links
 # GXRender/{Vk,Res,Pipeline,Record,Device} into the game and compiles the GX_RENDERER=native session switch. OFF (default)
 # = today's binary. Not digested (outside simsourcedigest_watcher.cmake).
 # GeneralsX: the DEFAULT is ON for macOS
@@ -513,7 +513,7 @@ if(GX_RENDER_NATIVE)
     target_sources(corei_gameenginedevice_private INTERFACE
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/W3DDevice/GameClient/GXRender/Device/GxNativeInstall.cpp
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/W3DDevice/GameClient/GXRender/Device/${_gx_native_host}
-        # D · render-motion-units-1 (A35): the object-velocity bridge, game side; native only (it includes GXRender/Pipeline headers)
+        # (A35): the object-velocity bridge, game side; native only (it includes GXRender/Pipeline headers)
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/W3DDevice/GameClient/GXRender/Scene/GxMotionUnits.cpp)
     # In the game, <d3d8.h> resolves through the game's CompatLib windows.h -> windows_compat.h, which includes WWLib's bittype.h.
     foreach(_gxt gx_device gx_record gx_pipeline gx_res gx_vkctx)
@@ -523,7 +523,7 @@ if(GX_RENDER_NATIVE)
     endforeach()
     # GeneralsX: MSVC's RelWithDebInfo (the shipped Windows config) is /O2 /Ob1: only
     # functions marked inline are inlined, while clang -O2 on the Mac inlines freely. The GXRender libraries alone get /Ob2 (the last /Ob
-    # wins); game sources compile exactly as before. Measured (PREREG_T A38 am.1, wh1ter0se's PC, ABAB n=2+2): native per-draw main-thread
+    # wins); game sources compile exactly as before. Measured (A38 am.1, wh1ter0se's PC, ABAB n=2+2): native per-draw main-thread
     # CPU -5.9..-8.1% in every cross-pair; an n=3+3 confirmation is owed before any "faster" claim.
     if(MSVC)
         foreach(_gxt gx_device gx_record gx_pipeline gx_res gx_vkctx)
@@ -536,7 +536,7 @@ if(GX_RENDER_NATIVE)
     target_compile_definitions(gx_device PRIVATE GX_RENDER_NATIVE=1)
     target_link_libraries(corei_gameenginedevice_public INTERFACE gx_device)
     target_compile_definitions(corei_gameenginedevice_public INTERFACE GX_RENDER_NATIVE=1)
-    # GeneralsX: GX_STREAMLINE (default OFF; PREREG A36; DLSS_INTEGRATION.md rule 5a: test
+    # GeneralsX: GX_STREAMLINE (default OFF; PREREG A36; rule 5a: test
     # builds only until the lead + wh1ter0se document a licence basis): NVIDIA Streamline (DLSS SR) behind the seam, Windows x64. Headers
     # from GX_STREAMLINE_SDK at build time; NVIDIA's DLLs are never in the tree or the zip. The define is gx_device's alone: no game
     # source compiles differently.
@@ -546,7 +546,7 @@ if(GX_RENDER_NATIVE)
         add_subdirectory(Source/W3DDevice/GameClient/GXRender/Upscale)
         target_link_libraries(gx_device PRIVATE gx_streamline)
         target_compile_definitions(gx_device PRIVATE GX_STREAMLINE=1)
-        # B · mac-upscaler-u2 18/10/2026 (dlss-integrator ruling 18/10 13:0xZ): GXGraphicsSettings.cpp resolves GXUpscaler=dlss to off in a
+        # (dlss-integrator ruling 18/10 13:0xZ): GXGraphicsSettings.cpp resolves GXUpscaler=dlss to off in a
         # build without Streamline, so it needs to know this build has it. A SOURCE property on that one file only, set once the game's
         # engine targets exist (they are made after Core is processed); no other game source compiles differently.
         function(gx_u2_streamline_define_for_settings)

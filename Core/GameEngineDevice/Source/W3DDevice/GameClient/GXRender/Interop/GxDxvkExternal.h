@@ -15,7 +15,7 @@ static const GUID GX_IID_ID3D9VkInteropDevice =
 // {d56344f5-8d35-46fd-806d-94c351b472c1}
 static const GUID GX_IID_ID3D9VkInteropTexture =
 	{ 0xd56344f5, 0x8d35, 0x46fd, { 0x80, 0x6d, 0x94, 0xc3, 0x51, 0xb4, 0x72, 0xc1 } };
-// {703eff94-9fbc-4fce-a0aa-ed0a25773e95} (...93 until DrawRun + GetRunStats, DESIGN_hybrid §13; ...92 until DxvkGxRecordInfo
+// {703eff94-9fbc-4fce-a0aa-ed0a25773e95} (...93 until DrawRun + GetRunStats, ...92 until DxvkGxRecordInfo
 // gained initCmd + inPass: design-r10 #4)
 static const GUID GX_IID_IDxvkGxExternal =
 	{ 0x703eff94, 0x9fbc, 0x4fce, { 0xa0, 0xaa, 0xed, 0x0a, 0x25, 0x77, 0x3e, 0x95 } };
@@ -70,7 +70,7 @@ struct DxvkGxDeviceInfo {
 	VkBool32                timelineSemaphore;
 };
 
-// DrawRun (render-seam/rw1x/DRAWRUN_ABI.md is the prose definition): D3DLIGHT8 has D3DLIGHT9's layout.
+// DrawRun (is the prose definition): D3DLIGHT8 has D3DLIGHT9's layout.
 struct DxvkGxLightSet {
 	UINT                    enableMask;
 	UINT                    reserved;

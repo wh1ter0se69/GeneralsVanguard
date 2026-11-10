@@ -29,7 +29,7 @@
 //   P     the logic position; b the terminal blend, 1 by the time the logic dies, so the missile is drawn exactly where
 //         the simulation detonates it, on the frame it does.
 //
-// THE PHYSICS (sources: gx-handoff 2026-09-28/missiles/PHYSICS_SOURCES.md). A 2D point mass, gravity 1: thrust along a
+// THE PHYSICS (sources). A 2D point mass, gravity 1: thrust along a
 // pitch program (vertical, then a linear pitch-over to `pitchEnd` at burnout) with the thrust-to-weight ratio growing as
 // propellant burns (rocket equation mass loss), then a coast under gravity, with drag in an exponential atmosphere. It is
 // integrated once per profile and normalised to range 1, time 1. The profiles were tuned (proto in the missiles folder)

@@ -1,4 +1,4 @@
-// GxAlphaToCoverage.h - which draws get alpha-to-coverage (B · a2c-1, 20/10/2026; modernize/render-dlss/SCOPE_a2c.md + PLAN_a2c-1.md).
+// GxAlphaToCoverage.h - which draws get alpha-to-coverage.
 // One pure rule, read by the translator per draw (it sets the pipeline key's alphaToCoverage byte AND bit 3 of FF spec word 0 from the
 // same answer) and unit-tested in gx_ffstate_test. A2C is on iff every condition holds; any one alone turns it off:
 //   the session (GXAlphaToCoverage on and the device loaded the a2c shader family); a multisampled colour target; an ORDERED alpha test

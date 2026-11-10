@@ -1,4 +1,4 @@
-// gx_ffstate_test - GxPackFF's key rules without a GPU (WS-D week 2, C · rw2-D, 11/10/2026). Each check is written so that it
+// gx_ffstate_test - GxPackFF's key rules without a GPU (WS-D week 2). Each check is written so that it
 // can fail: the "differs" checks prove the key sees a live field, the "equal" checks prove a dead field is normalised away.
 // With GX_FF_HAVE_D3D8_HEADERS it also static_asserts GxFFState.h's D3D8 numbers against d3d8.h (rw1-C's d3d-values pattern).
 #include "GxFFState.h"
@@ -174,7 +174,7 @@ int main() {
 		CHECK(vs.PointSize == 0.0f && vs.PointSizeMin == 0.0f && vs.PointSizeMax == 8191.875f, "point sizes clamped [0, 8191.875], NaN -> 0");
 	}
 
-	// PREREG_T A25 pack-inputs (a FALSIFIER of GxPackFFReadsRS/TSS, design r1; the proof is the source audit + check mode): over
+	// A25 pack-inputs (a FALSIFIER of GxPackFFReadsRS/TSS, design r1; the proof is the source audit + check mode): over
 	// deliberately ACCEPTED states, perturbing an RS / TSS index the table does NOT list must leave acceptance and all three blocks
 	// byte-identical; every LISTED index must change acceptance or a block in at least one state and value (the table is not padded).
 	{
@@ -286,7 +286,7 @@ int main() {
 		CHECK(unseen.empty(), "pack-inputs: every listed RS/TSS moves the output in some state");
 	}
 
-	// B · a2c-1 (SCOPE_a2c.md): the alpha-to-coverage rule. The eligible base is a world alpha-tested draw (WW3D's GE 0x60 on a 4x target,
+	// the alpha-to-coverage rule. The eligible base is a world alpha-tested draw (WW3D's GE 0x60 on a 4x target,
 	// blend off, RGB writes, LEQUAL depth, no stencil); each input flipped ALONE must give its own reason - so a guard that stops
 	// testing its input, or answers for another, fails here.
 	{

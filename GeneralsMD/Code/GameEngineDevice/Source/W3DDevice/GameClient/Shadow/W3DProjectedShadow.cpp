@@ -111,7 +111,7 @@ int	nShadowDecalVertsInBatch=0;
 int SHADOW_DECAL_VERTEX_SIZE=32768;
 int SHADOW_DECAL_INDEX_SIZE=65536;
 
-// GeneralsX: GX_DECALHOLD (E · rcpu-census, R-CPU step 2): one lock per decal ring per
+// GeneralsX: GX_DECALHOLD (R-CPU step 2): one lock per decal ring per
 // flush, not two per decal. The [GXCENSUS] census of the G0 whole-map replay counted ~3,800 NOOVERWRITE locks a frame in
 // the trees span alone (every visible tree queues a ground-shadow decal: W3DTreeBuffer::drawTrees) and ~1,100 more for
 // unit shadow decals, for a handful of draws: queueDecal locked the shared decal VB and IB once EACH per decal and

@@ -2725,7 +2725,7 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 			m_blockedFrames = 1;
 #else
 			// GeneralsX: a blocked unit that stands still keeps counting, so the 1 s pass-through
-			// (blockedBy) and the 2 s blocked repath (AIInternalMoveToState::update) can fire - CATALOG_pathfinding.md H-27.
+			// (blockedBy) and the 2 s blocked repath (AIInternalMoveToState::update) can fire - H-27.
 			// The locomotor reports "not blocked" both when it may accelerate and when its blocked branch needs no turn
 			// (Locomotor::locoUpdate_moveTowardsPosition), and this reset took either as progress. A column parked on a
 			// bridge deck, every unit facing its path point behind a unit that is not idle and not moving away, was handed
@@ -4835,7 +4835,7 @@ void AIUpdateInterface::setLastCommandSource( CommandSourceType source )
 	// GeneralsX: Issue TheSuperHackers #45, after their PR #3170 (Stubbjax, open). A harvester leaving
 	// its supply centre carries a "force wanting" latch (SupplyCenterProductionExitUpdate) that outranked the next player
 	// order: it went back to gathering once the order ended. Measured in 1,000 top-player Generals Online games (B ·
-	// pathfinding-hunt, CATALOG_pathfinding.md U-45): the highest per-order stuck rate of any unit, 16x the base.
+	// pathfinding-hunt, U-45): the highest per-order stuck rate of any unit, 16x the base.
 	// Cleared HERE, when a player order takes over the unit, not when it arrives (PR #3170 clears in aiDoCommand): every
 	// command handler stamps its source only past the checks that refuse it untouched (privateEnter's canEnterObject,
 	// privateGetRepaired's canGetRepairedAt, isAllowedToRespondToAiCommands), right after it clears the state machine.

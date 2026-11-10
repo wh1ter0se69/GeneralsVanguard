@@ -18,10 +18,10 @@
 
 // GeneralsX: S1-3 relay-list-v2: THE ENGINE READS THE SIGNED RELAY LIST.
 //
-// WHY. "Adding a relay must not require updating clients" (CLAUDE.md, "The goal"). Until this file the
+// WHY. "Adding a relay must not require updating clients" ("The goal"). Until this file the
 // signed list in the release manifest reached only the Windows launcher; Mac, Linux and the launcher-less
 // iPad dialled the compiled-in bootstrap name, so a relay could move only by DNS and a standby could never
-// exist (modernize/PLAN_smooth-1.md §1a #4-#6, §2). This is the engine half of S1-3: it finds the newest
+// exist (#4-#6, §2). This is the engine half of S1-3: it finds the newest
 // verified list, and OptionPreferences::getRelayAddress() uses its HOME when the player has pinned nothing.
 //
 // THE DOCUMENT is the release manifest's wire form, "<payload>|<sig>" (scripts/tooling/gx-manifest.py):
@@ -73,7 +73,7 @@
 //   3. GXUPD to the compiled-in bootstrap ALWAYS, plus the held home and every standby, on a background
 //      thread started at the Online lobby. A reply is taken only from one of those addresses. Without the
 //      bootstrap leg a hostile list naming only hostile relays would trap a launcher-less iPad for ever
-//      (§3.5, review r1 P1-3).
+//      (§3.5).
 //   Nothing verifiable anywhere: the compiled-in bootstrap, no standby - today's behaviour.
 //
 // THE HOME IS LATCHED FOR THE PROCESS. The first home() call fixes it; a better list found later is cached

@@ -59,7 +59,7 @@ enum ConnectionNumbers CPP_11(: Int)
 	// GeneralsX: Raised 7 -> 11: 12 lobby slots. The Player-object
 	// budget is the real lid (MAX_PLAYER_COUNT = 16 total, minus neutral, minus the always-added
 	// ReplayObserver, minus up to 2 map civilian sides = 12 with margin). See
-	// docs/WORKDIR/PLAYER_CEILING.md for the full derivation.
+	// for the full derivation.
 	// GeneralsX: Raised 11 -> 13: 14 lobby slots = 12 players + 2 observers
 	// (the World Series spike measured 15; two observer seats is the owner's ask). Observer slots share
 	// the ReplayObserver (PlayerCapacity.h slotTakesPlayer), so the Player budget above still holds 12
@@ -321,13 +321,13 @@ enum NetCommandType CPP_11(: Int) {
 	NETCOMMANDTYPE_LATENCYREPORT,
 
 	// GeneralsX: The ack of ONE wrapper chunk, naming (original player, wrapSeq, chunk number)
-	// rather than the 16-bit ID that wraps within seconds during a transfer (DESIGN_wrapper-memory-cap v16 section 2).
+	// rather than the 16-bit ID that wraps within seconds during a transfer (v16 section 2).
 	// Appended after LATENCYREPORT for the same two reasons: outside the DISCONNECTSTART..DISCONNECTEND sentinels, and no
 	// existing type renumbers. Connection-scoped: never relayed, applied only when it arrived direct from the acker.
 	NETCOMMANDTYPE_WRAPPERACK,
 };
 
-// GeneralsX: The wrapper send window (DESIGN_wrapper-memory-cap v16 section 3). Per connection, a
+// GeneralsX: The wrapper send window (v16 section 3). Per connection, a
 // sender never has more than GX_WRAP_WINDOW serializations from its lowWater to its next wrapSeq, nor more than GX_WRAP_BYTES
 // claimed bytes in that interval; the receiver refuses (unacked) anything outside it, so it never holds more per source.
 // GX_RELAY_SOFTCAP_* bound what a router queues for one relayed originator (distinct commands, and their body bytes).

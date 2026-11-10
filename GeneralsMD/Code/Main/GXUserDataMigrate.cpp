@@ -310,7 +310,7 @@ bool readAll(const fs::path &p, std::string &out)
 // first key - the rule the game (UserPreferences::load) and the launcher (gxio strip_bom) read Options.ini by. mergeByKey read
 // through it: a BOM-first key in the new file counted as absent, so the old value was appended after it and the game (the last
 // line wins) ran the old one while the launcher showed the new; and a BOM-first old line carried its BOM into the middle of the
-// new file (C · asm-0967). The keys are compared, and the old lines copied, past it; the new file keeps its own.
+// new file. The keys are compared, and the old lines copied, past it; the new file keeps its own.
 std::string withoutLeadingBom(const std::string &s)
 {
 	if (s.size() >= 3 && (unsigned char)s[0] == 0xEF && (unsigned char)s[1] == 0xBB && (unsigned char)s[2] == 0xBF)
@@ -584,12 +584,12 @@ void mergeByKey(const fs::path &oldIni, const fs::path &newIni, Tally &t, bool g
 		if (!merged.empty() && merged.back() != '\n')
 			merged += "\r\n";
 		// Appended to an EMPTY file, the old lines become its start: the old file's own leading BOM goes first, so a second
-		// BOM in it stays data rather than becoming the file's (C · asm-0967). Not SagePatch.ini (gameData): the
+		// BOM in it stays data rather than becoming the file's. Not SagePatch.ini (gameData): the
 		// engine's INI::load does not skip a BOM, so "<BOM>GameData" would be an unknown block that stops the game.
 		if (!gameData && merged.empty() && withoutLeadingBom(old).size() != old.size())
 			merged = old.substr(0, 3);
 		// Nor may a BOM that was DATA in the old file (not its first bytes - after a blank first line the loop skips) become
-		// the new file's first bytes: a line break goes first (asm0967 r5 P3).
+		// the new file's first bytes: a line break goes first (asm0967).
 		if (!gameData && merged.empty() && withoutLeadingBom(add).size() != add.size())
 			merged = "\r\n";
 		merged += gameData ? "GameData\r\n" + add + "End\r\n" : add;

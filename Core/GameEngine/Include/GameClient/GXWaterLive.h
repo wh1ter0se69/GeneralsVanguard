@@ -125,7 +125,7 @@ inline float gxWaterLiveClamp(float v, float lo, float hi)
 	return v < lo ? lo : (v > hi ? hi : v);
 }
 
-// The Options.ini key. GeneralsX: ON BY DEFAULT from 0.9.66 (lead C44 for wh1ter0se, who chose this water
+// The Options.ini key. GeneralsX: ON BY DEFAULT from 0.9.66 (for wh1ter0se, who chose this water
 // from the look-water-3 pictures, clearer and live water on together): an Options.ini without GXWaterLive draws live water, and
 // GXWaterLive = no turns it off.
 static const bool kGxWaterLiveDefaultOn = true;

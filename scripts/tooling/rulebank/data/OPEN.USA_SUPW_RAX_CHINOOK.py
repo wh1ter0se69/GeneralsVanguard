@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule OPEN.USA_SUPW_RAX_CHINOOK (C·rb-data-10): USA Superweapon opens on two
+# GeneralsX: rule bank DATA rule OPEN.USA_SUPW_RAX_CHINOOK: USA Superweapon opens on two
 # Barracks. Stock Superweapon Hard builds one ("USA Barracks - H"; the build list holds one, the High Money copy waits for big cash). Here
 # one-shot scripts "GX Barracks <k> - H", k = 2..rax_n, each place Barracks k once the first is complete, the player owns k-1 and holds 1500,
 # the way the stock RICH scripts place an extra building (AI_PLAYER_BUILD_SUPPLY_CENTER, minimum 1000 - ENGINE_READS, listed in the

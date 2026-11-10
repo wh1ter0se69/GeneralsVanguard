@@ -430,7 +430,7 @@ static Bool retireSidecar( const AsciiString& name, std::vector<GXRetiredSidecar
 
 // The transfer did not complete: every retired sidecar goes back to its own spelling, newest first, so the map loads what
 // it loaded before. First every copy active under one of those names NOW - a received one, in any
-// spelling - is retired the same way, so the restored files are the only ones the file system can find (r12 P2: a received
+// spelling - is retired the same way, so the restored files are the only ones the file system can find (a received
 // "map.ini" shadowed a restored "Map.ini" on Linux). Nothing is deleted.
 static void restoreRetiredSidecars( const std::vector<GXRetiredSidecar>& retired )
 {

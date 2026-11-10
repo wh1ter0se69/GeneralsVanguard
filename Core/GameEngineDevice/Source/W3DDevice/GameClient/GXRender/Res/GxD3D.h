@@ -18,11 +18,11 @@ enum : uint32_t {
 	DXT1 = 0x31545844, DXT2 = 0x32545844, DXT3 = 0x33545844, DXT4 = 0x34545844, DXT5 = 0x35545844,
 };
 
-// GXRES-private formats - NOT D3D8, never handed to d3d8: the ENHANCED HD-art formats (PLAN_native-renderer §1b "+", §1c),
+// GXRES-private formats - NOT D3D8, never handed to d3d8: the ENHANCED HD-art formats ("+", §1c),
 // as FOURCCs no D3D8 format uses ('GBC7', 'GA44'). The d3d-values arm checks only the D3D8 numbers above.
 enum : uint32_t { GX_BC7 = 0x37434247, GX_ASTC_4x4 = 0x34344147 };
-// D · render-motion-units-1 13/10/2026: the object-velocity image O of the DLSS-track motion bridge ('GXRA', R16G16B16A16_SFLOAT;
-// Pipeline/GxSyntheticPrograms.h GX_FOURCC_RGBA16F, render-dlss/DESIGN_motion-units.md). A colour target, never a game texture.
+// the object-velocity image O of the DLSS-track motion bridge ('GXRA', R16G16B16A16_SFLOAT;
+// Pipeline/GxSyntheticPrograms.h GX_FOURCC_RGBA16F). A colour target, never a game texture.
 enum : uint32_t { GX_RGBA16F = 0x41525847 };
 
 enum : uint32_t { POOL_DEFAULT = 0, POOL_MANAGED = 1, POOL_SYSTEMMEM = 2, POOL_SCRATCH = 3 };

@@ -386,7 +386,7 @@ const WideChar *gxFastForwardRefusal()
 		return L"no match is running";
 	// Frame 0 is still the start: a LAN match is "in game" before its map loads, the roster asked below can still be the
 	// last match's, and GameLogic::tryStartNewGame then resets the speed anyway. Measured: a speed set there was logged
-	// and then ran at 1x (C · fast-forward, Mini rec10, 30/09).
+	// and then ran at 1x (Mini rec10, 30/09).
 	if (TheGameLogic->getFrame() == 0)
 		return L"the match has not started yet";
 	if (TheGlobalData->m_headless)

@@ -1443,7 +1443,7 @@ Real Drawable::drawnPhase() const
 	// Asked outside the client's draw - in the middle of a logic update, where LaserUpdate::initLaser reads the muzzle
 	// bone of a unit that may just have moved (before m_frame++) - it is the logic pose, always. The snapshot belongs to
 	// the next draw, which takes this move as a tick: refreshing it here would count the move as "moved without a tick"
-	// and drop the previous pose, and the last draw's phase says nothing about now (interp-r11 P2).
+	// and drop the previous pose, and the last draw's phase says nothing about now.
 	if (getObject() == nullptr || !TheDisplay->isRenderPhase())
 		return 1.0f;
 	// Nothing to blend while the phase is pinned to 1 (every draw gets a tick) or GX_INTERP=0: no snapshot either, so those

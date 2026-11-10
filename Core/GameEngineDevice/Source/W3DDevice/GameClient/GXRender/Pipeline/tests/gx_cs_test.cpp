@@ -15,9 +15,9 @@
 #include "../shaders/gx_cs_shadow.vert.h"
 #include "../shaders/gx_cs_shadow.mut.vert.h"
 #include "../../../../../../Include/W3DDevice/GameClient/GxShadowVolumeVS.h"   // the bytes the game creates (rw3-R11)
-#include "../../../../../../../GameEngine/Include/GameClient/GXWaterLive.h"   // live water's two ps.1.1 programs (E · water-live-native-port)
+#include "../../../../../../../GameEngine/Include/GameClient/GXWaterLive.h"   // live water's two ps.1.1 programs
 #include "../../../../../../../GameEngine/Include/GameClient/GXGroundPrograms.h"   // the remastered ground's three (R-G1, the same session)
-#include "../../../../../../../GameEngine/Include/GameClient/GXWaterRA3.h"   // RA3 water's sheen (D · water-ra3-2 24/10/2026) and its river sheen (C · water-ra3-3 25/10/2026)
+#include "../../../../../../../GameEngine/Include/GameClient/GXWaterRA3.h"   // RA3 water's sheen and its river sheen
 
 #include <cctype>
 #include <cstdio>
@@ -151,7 +151,7 @@ int main(int argc, char** argv) {
 			CHECK(GxCsResolvePixel(v.data(), v.size()).verdict == GxCsUnknown, "water:ra3 with token %zu flipped is UNKNOWN", k);
 		}
 	}
-	// ---- RA3 water's river sheen (GXWaterRA3.h kGxWaterRA3RiverSheenShader, C · water-ra3-3 25/10/2026): the same, as water:ra3river, ps 22
+	// ---- RA3 water's river sheen (GXWaterRA3.h kGxWaterRA3RiverSheenShader): the same, as water:ra3river, ps 22
 	{
 		const std::vector<uint32_t> t(kGxWaterRA3RiverSheenShader, kGxWaterRA3RiverSheenShader + sizeof(kGxWaterRA3RiverSheenShader) / 4);
 		CHECK(GxCsPsWaterRA3River == 22 && GxCsPsCount == 23, "water:ra3river is ps 22, after water:ra3 (no id moved)");
@@ -187,7 +187,7 @@ int main(int argc, char** argv) {
 				CHECK(cases & (1u << es[i].program), "ps %u (%s) has a case in gx_cs_ps.frag's switch", unsigned(es[i].program), es[i].files);
 	}
 
-	// ---- the motion bridge's synthetic programs (GxSyntheticPrograms.h, D · render-motion-units-1 A35): the game's own arrays resolve as
+	// ---- the motion bridge's synthetic programs (GxSyntheticPrograms.h, A35): the game's own arrays resolve as
 	// the catalogue's gx: entries with their declarations, and map to the inputs gx_cs_vel.vert reads
 	{
 		const GxCsResolved ps = GxCsResolvePixel(gxVelPs, sizeof(gxVelPs) / 4);
@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
 		CHECK(sk.inputs[3].semantic == GxSemTex0 && sk.inputs[3].offset == 28 && sk.inputs[3].format == GxFmtFloat2, "v7 -> Tex0 @28");
 		CHECK(!GxCsVertexInputs(*tv, d.data(), d.size(), &sk, &why), "a changed declaration yields no inputs (%s)", why.c_str());
 	}
-	{	// C · rw3-R11: gx:shadowvol = the bytes the game creates (GxShadowVolumeVS.h), not a copy that could drift
+	{	// gx:shadowvol = the bytes the game creates (GxShadowVolumeVS.h), not a copy that could drift
 		const GxCsEntry* sv = byFile("gx:shadowvol");
 		const size_t nv = sizeof(kGxShadowVS) / 4, nd = sizeof(kGxShadowDecl) / 4;
 		CHECK(sv && sv->program == GxCsVsShadow && GxCsVsShadow == 5 && !sv->pixel, "gx:shadowvol is vertex program 5 (3/4 = gx:vel-*)");

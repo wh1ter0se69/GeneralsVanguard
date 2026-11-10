@@ -1025,7 +1025,7 @@ static void populateRandomStartPosition( GameInfo *game )
 	// corrupt Player_9..12_Start values for a byte-identical map (rewritten by an 8-slot reader that
 	// shares the retail user-data folder) agreed on the random pick, took different FARTHEST picks
 	// and desynced at the first CRC check. See
-	// docs/WORKDIR/evidence/windows-desync-mapcache-2026-09-23.md.
+	//
 	//
 	// tryStartNewGame now calls this AFTER TheTerrainLogic->loadMap(), so these are the Waypoint objects
 	// built from the map file every peer loaded - the same ones placeNetworkBuildingsForPlayer()
@@ -1424,7 +1424,7 @@ static void populateRandomStartPosition( GameInfo *game )
 				// Once HeadlessMatch refuses an over-capacity lobby this branch is unreachable in
 				// any legal match, so a re-run of an existing soak must diff byte-for-byte against
 				// its committed baseline. Reassigning, wrapping to 0 or sharing a position would
-				// move the frame-0 world CRC and break both docs/WORKDIR/evidence/ and, with
+				// move the frame-0 world CRC and break both and, with
 				// RETAIL_COMPATIBLE_CRC defaulting to 1, retail 1.04 replay compatibility.
 				if (farthestIndex >= 0)
 				{
@@ -3447,7 +3447,7 @@ void GameLogic::loadMapINI( AsciiString mapName, Bool refusable )
 	//
 	// That is worse than the bug it followed. A map that fails to load is obvious; a map that loads
 	// WITHOUT its map.ini runs different rules from the same map on another platform, and this is a
-	// lockstep game - AGENTS.md's determinism rule is explicit that map-derived data must be
+	// lockstep game - 's determinism rule is explicit that map-derived data must be
 	// identical on every peer.
 	//
 	// Raised by a cross-model review of the merge candidate, then confirmed here: loadMapINI called
@@ -3678,7 +3678,7 @@ void GameLogic::processCommandList( CommandList *list )
 			//
 			// MEASURED, not theorised. A healthy three-peer LAN match was killed at frame 5211 with
 			// "Game has detected a mismatch" while EVERY peer that reported held the IDENTICAL value
-			// 1D351145 (evidence: docs/WORKDIR/evidence/desync-2026-08-05-2204/{mac,linux,win}.err).
+			// 1D351145 (linux,win}.err).
 			// One peer's CRC message simply had not arrived within the interval. The simulations
 			// never disagreed about anything.
 			//
@@ -4903,7 +4903,7 @@ static void gxVictoryProbe(UnsignedInt frame)
 
 #if defined(GX_TEST_INSTRUMENTS)
 // GeneralsX: rb-core: ported from 584f24dc9a (PROBE ai-smartcheap), now compiled into TEST-INSTRUMENTS builds only - the
-// autotuner's role-coverage gate (gx-handoff ai/rulebank/PLAN_rulebank.md 3.7) needs it in every campaign binary; a release build has none of it.
+// autotuner's role-coverage gate needs it in every campaign binary; a release build has none of it.
 // GeneralsX @test PROBE ai-smartcheap (never ships): GX_AICOMP=<n> prints every n logic frames the army COMPOSITION of
 // every player that owns a live unit, for the "smarter, not fewer" strength gate (role coverage) and ai-autotune's
 // fitness: "[GXAICOMP] f= p<i>=u/inf/veh/air/aa/ai/av/tr/trl/pas/gar/cap/det" = live units (not structures), infantry,
@@ -6128,7 +6128,7 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 	// GeneralsX @diag /07/2026 Per-object CRC trace, scoped to a narrow frame window.
 	//
 	// Frames 0-8 are byte-identical between Mac and Windows and frame 9 is the first divergence
-	// (mac=9C17AE57 win=E3C73FFE, docs/WORKDIR/evidence/gxcrc-*.txt), so dumping the running CRC
+	// (mac=9C17AE57 win=E3C73FFE), so dumping the running CRC
 	// after every object across a few frames around it names the exact object that differs. The
 	// window keeps the volume sane - unscoped this would emit one line per object per frame for a
 	// whole match.

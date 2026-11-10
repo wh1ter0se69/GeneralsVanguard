@@ -884,7 +884,7 @@ struct NetPacketWrapperCommandData
 		UnsignedInt dataOffset;
 		// GeneralsX: Appended (wire order: append only). wrapSeq = the wrapping hop's per-connection
 		// serialization number; lowWater = min(oldest wrapSeq with an unacked chunk on that connection, wrapSeq), so always
-		// <= wrapSeq. The receiver frees everything of this source below lowWater (DESIGN_wrapper-memory-cap v16 section 2).
+		// <= wrapSeq. The receiver frees everything of this source below lowWater (v16 section 2).
 		UnsignedInt wrapSeq;
 		UnsignedInt lowWater;
 	};

@@ -1,4 +1,4 @@
-// GeneralsX: the look governor (S14, PLAN_look; wh1ter0se 17/10: "if someone's PC struggles in a big
+// GeneralsX: the look governor (S14, wh1ter0se 17/10: "if someone's PC struggles in a big
 // fight we lower stuff to compensate, then raise it back").
 //
 // WHAT. A per-peer, render-only controller. Every look feature registers a few quality STEPS (step 0 = full quality). Once
@@ -200,7 +200,7 @@ inline int gxGovTargetFps( int cfg, int tickFps, int netFps, int refreshHz )
 
 // A GX_SHOT capture (the capture clock, gxShotCaptureOn in GameClient.h) compares one logic frame across runs byte for byte, and the
 // governor steps from wall-clock timings: two runs under different machine load could draw that frame at different steps (
-// ls1017-r1 P2, now that the governor is on by default). While a capture runs the governor holds full quality, unless GX_GOVERNOR names
+// now that the governor is on by default). While a capture runs the governor holds full quality, unless GX_GOVERNOR names
 // it (an arm that tests the governor) or GX_GOVERNOR_FORCE pins its steps (the render-only proofs).
 inline bool gxGovHoldsForCapture( bool captureOn, bool envNamesGovernor, bool forced )
 {

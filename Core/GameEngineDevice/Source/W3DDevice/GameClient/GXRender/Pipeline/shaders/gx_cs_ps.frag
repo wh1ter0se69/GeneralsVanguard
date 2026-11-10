@@ -148,7 +148,7 @@ vec4 gxCustomPs() {
         r0.rgb *= t3.rgb;
         break;
     }
-    // Live water (GameClient/GXWaterLive.h, E · water-live-native-port 21/10/2026): the source text is beside each array there. No
+    // Live water (GameClient/GXWaterLive.h): the source text is beside each array there. No
     // register clamp between instructions, as DXVK compiles ps.1.x (dxso_compiler.h emitDstStore: _x4 multiplies, only _sat clamps), so
     // the glints' squared x4 peaks may exceed 1 until the constants scale them back; the render target clamps the output, as classic's.
     case 16u: { // water:glare 29f8fbf7ffd0: tex t1..t3; mul r1,t1,t2; mul_x4 r1,r1,r1; mad r1.rgb,t2,c2,r1; mul r1.rgb,r1,c1; mul r0.rgb,r1,t3; +mov r0.a,c1
@@ -202,7 +202,7 @@ vec4 gxCustomPs() {
         r0 = t0 * r1;                                                         // mul r0, t0, r1
         break;
     }
-    // RA3 water's sheen (GameClient/GXWaterRA3.h, D · water-ra3-2 24/10/2026): the source text is beside the array there. As DXVK
+    // RA3 water's sheen (GameClient/GXWaterRA3.h): the source text is beside the array there. As DXVK
     // compiles it: `_bx2` = fma(x, 2, -1) (emitSrcOperandPostSwizzleModifiers), the add then `_d2` = x 0.5 (emitDstStore), dp3 = the
     // three products summed in order (emitDot), `_sat` clamps to [0,1], mad = a mul then an add (emitMad); c0/c1 clamped to [-1,1].
     case 21u: { // water:ra3 fe4234069f19: tex t0,t1,t3; add_d2 r1,t0_bx2,t1_bx2; dp3_sat r0,r1,c0; mul r0,r0,r0 (x3); mad r0.rgb,r0,c1,v0; mul r0.rgb,r0,t3
@@ -219,7 +219,7 @@ vec4 gxCustomPs() {
         r0.rgb *= t3.rgb;                                         // mul r0.rgb, r0, t3
         break;
     }
-    // RA3 water's sheen on RIVERS (the same header, C · water-ra3-3 25/10/2026): case 21's program with t3 swapped for v0.a - the
+    // RA3 water's sheen on RIVERS (the same header): case 21's program with t3 swapped for v0.a - the
     // bank fade x the shroud per vertex. Compiled exactly as case 21; the last instruction reads the replicated vertex alpha.
     case 22u: { // water:ra3river 383ecb43fb6a: tex t0,t1; add_d2 r1,t0_bx2,t1_bx2; dp3_sat r0,r1,c0; mul r0,r0,r0 (x3); mad r0.rgb,r0,c1,v0; mul r0.rgb,r0,v0.a
         vec4 t0 = gxPsTex(0u), t1 = gxPsTex(1u);

@@ -774,7 +774,7 @@ public:
 #if defined(GX_TEST_INSTRUMENTS)
 //-----------------------------------------------------------------------------
 // GeneralsX: GX_HUNT_CHECK=1 (test builds only,
-// -DGX_TEST_INSTRUMENTS=ON; lead C55 29/10/2026): the equivalence harness for HuntPriorityVisitor. After each
+// -DGX_TEST_INSTRUMENTS=ON; 29/10/2026): the equivalence harness for HuntPriorityVisitor. After each
 // attack-priority search it runs the retail search too and compares the winner and "no candidates"; prints cumulative
 // "[GXHUNT] f= q= diff= stopped=" every 600 logic frames. Off (the default) it costs one static flag test per search.
 // On, it walks the whole range again (the retail cost), so it is for audits, never for timing.

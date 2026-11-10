@@ -9,7 +9,7 @@
 // State survives command buffers (a write in frame N still needs a barrier before a read in frame N+1: queue order is an
 // execution order, not a memory dependency). When something else changed the image (its GxImage::layout or VkImage differs
 // from what the tracker last saw - GXRES recordPending / resolveTo / readImage), the tracker assumes an unknown write, except
-// for the GXRES contract case (GXRES_v0.md "The contract" #2): an image GXRES left in SHADER_READ_ONLY_OPTIMAL has its copy
+// for the GXRES contract case ("The contract" #2): an image GXRES left in SHADER_READ_ONLY_OPTIMAL has its copy
 // writes already visible to sampling and transfer reads at every stage.
 #pragma once
 
@@ -38,7 +38,7 @@ GxImageUse depthAttachment(bool discard);
 GxImageUse sampled();
 GxImageUse transferSrc();
 GxImageUse transferDst(bool discard);
-// F-depth+ (D · look-fdepth-plus): the single-sample target of a render-pass multisample resolve. The spec runs every resolve,
+// F-depth+: the single-sample target of a render-pass multisample resolve. The spec runs every resolve,
 // depth/stencil too, in COLOR_ATTACHMENT_OUTPUT with COLOR_ATTACHMENT_WRITE; a depth target also names the fragment-test stages
 // and depth write (a superset: right under either reading). Always a discard - the resolve writes the whole render area.
 GxImageUse resolveTarget(bool depth);
@@ -50,7 +50,7 @@ public:
 	// TEST-ONLY plant (the missing-barrier fail arm): an attachment -> sampled hand-off records its layout change with an
 	// EMPTY source scope, i.e. without waiting for the attachment writes. Synchronization validation must report it.
 	bool plantSampledNoSrc = false;
-	// TEST-ONLY plant (D · rw3-T-4, X-hoist-stalelayout): state() ignores a layout someone else changed (a hoisted copy's in the
+	// TEST-ONLY plant (X-hoist-stalelayout): state() ignores a layout someone else changed (a hoisted copy's in the
 	// init buffer) and keeps its own - the next barrier names a stale old layout. Validation must report it.
 	bool plantStaleLayout = false;
 

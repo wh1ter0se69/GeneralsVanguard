@@ -703,7 +703,7 @@ void ConnectionManager::relayDatagramCommand(NetCommandRef *cmd) {
 	}
 }
 
-// GeneralsX: ONE REASSEMBLED SERIALIZATION (fixes/DESIGN_wrapper-memory-cap.md v16 section 5).
+// GeneralsX: ONE REASSEMBLED SERIALIZATION (v16 section 5).
 // Its chunks were acked hop by hop (WRAPPERACK); the command itself is acked as base acks any command - to the hop it came from,
 // the source, as ackCommand acks a datagram's sender. Then:
 //  - From its own sender (source == sender): as base, processNetCommand and, unless it says no, sendRemoteCommand, which re-wraps
@@ -2179,7 +2179,7 @@ void ConnectionManager::ackCommand(NetCommandRef *ref, UnsignedInt localSlot, Un
 		// disconnect catch-up and FRAMERESENDREQUEST), which the RESENDER sends direct with the original slot as its
 		// player. The resender then heard only when it was the router itself, or when this ack happened to inherit a
 		// mask naming it (an ack has no relay field) and the router forwarded it; when this peer WAS the router, never.
-		// It retransmitted the frame for the rest of the match (HANDOFF_2026-09-24_fix-net-forged-ack-and-resend.md
+		// It retransmitted the frame for the rest of the match (
 		// section 5; net-kill-gates.sh honest-handover). The misrouted ack also cancelled whatever REAL command shared its
 		// (ID, slot) on the router's queue to us, or on the named slot's queue to us when we route - and a resent
 		// FRAMEINFO's ID comes from the resender's counter, which runs about in step with every other peer's. So: ack whoever
@@ -2391,7 +2391,7 @@ static int64_t gxMonoNs( void )
 // GeneralsX: [GXSTALL], the event-level companion to [GXNET].
 //
 // WHY A SECOND PROBE. The first live measurement (18,000 frames, mac+linux, evidence/
-// stutter-rootcause-2026-08-06.md) killed the packet-loss hypothesis: total retransmissions were
+// ) killed the packet-loss hypothesis: total retransmissions were
 // 5 and 6, while the ~1.7 s stall clusters carried ZERO retries. So the stalls are real and the
 // wire is not losing anything. That leaves two possibilities that a 1 Hz aggregate CANNOT tell
 // apart, and this probe exists solely to separate them:

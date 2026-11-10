@@ -80,11 +80,11 @@
 #include "W3DDevice/GameClient/W3DScene.h"
 #include "W3DDevice/GameClient/W3DDynamicLight.h"
 #include "W3DDevice/GameClient/W3DShadow.h"
-#include "W3DDevice/GameClient/GXShadowMapHooks.h"	// D · look-shadowmaps-4 S7 A49: GxShadowMapFireArmed
+#include "W3DDevice/GameClient/GXShadowMapHooks.h"	// S7 A49: GxShadowMapFireArmed
 #include "W3DDevice/GameClient/W3DStatusCircle.h"
 #include "W3DDevice/GameClient/W3DCustomScene.h"
 #include "W3DDevice/GameClient/W3DShroud.h"
-#include "W3DDevice/GameClient/W3DWorldSeam.h"	// D · look-fdepth-plus: F-depth+'s mid-frame tap
+#include "W3DDevice/GameClient/W3DWorldSeam.h"	// F-depth+'s mid-frame tap
 #include "WW3D2/camera.h"
 #include "WW3D2/dx8renderer.h"
 #include "WW3D2/sortingrenderer.h"
@@ -429,7 +429,7 @@ Bool RTS3DScene::castRay(RayCollisionTestClass & raytest, Bool testAll, Int coll
 }
 
 //=============================================================================
-// GeneralsX: [GXDRAWCHECK] (E · wh1ter0se-bugs-1015-live, lead C40's GO). On 14/10 wh1ter0se saw two
+// GeneralsX: [GXDRAWCHECK] (GO). On 14/10 wh1ter0se saw two
 // destroyed oil derricks drawn standing in a live 0.9.64 game. The game had them dead, and no replay or live test of ours
 // reproduced it. So the client now watches for the two ways a building can be drawn in a state the game does not have,
 // and says so once in the log:
@@ -447,7 +447,7 @@ Bool RTS3DScene::castRay(RayCollisionTestClass & raytest, Bool testAll, Int coll
 // A report needs the same finding on consecutive passes, with its first and latest sightings GXDC_HOLD_FRAMES apart (5 s
 // at 60 Hz) and frames rendered in between, so a transition, an allow-to-finish animation or a flush still pending never
 // reports; a real leak stays for good.
-// COST (lead C40: the first version cost up to 0.99 ms on one frame every 2 s): a pass starts every GXDC_INTERVAL logic
+// COST (the first version cost up to 0.99 ms on one frame every 2 s): a pass starts every GXDC_INTERVAL logic
 // frames and is spread over 8-64 rendered frames; each frame checks one slice (a hash of the ghost object or the drawable
 // id, so an item is in the same slice on every pass) and adds no walk of its own - the culling loop walks the scene
 // anyway. The slice count follows the last pass's item count, about GXDC_ITEMS_PER_SLICE items per frame. Nothing but ids
@@ -864,7 +864,7 @@ static Int gxDrawCheckFrame()
 		{
 			// GeneralsX: Measured, not just timed: the stats print (an fprintf + fflush, a pipe write
 			// into the stderr log on Windows) was inside this frame's timed span, so every 15th pass reported ~120-270 us that
-			// a player - who never sets GX_DRAWCHECK_STATS - never pays (lead C40, batch-0965 r3d). Its time is left out.
+			// a player - who never sets GX_DRAWCHECK_STATS - never pays. Its time is left out.
 			const std::chrono::steady_clock::time_point p0 = std::chrono::steady_clock::now();
 			gxDrawCheckPassStats(frame);
 			if (gxDrawCheckStats())
@@ -1148,7 +1148,7 @@ static void gxCensusObject(RenderInfoClass &rinfo, RenderObjClass *robj, Bool sh
 //=============================================================================
 void RTS3DScene::renderOneObject(RenderInfoClass &rinfo, RenderObjClass *robj, Int localPlayerIndex)
 {
-	GxFlushScope gxProf(GxFlushProf::SUBMIT);	// D·dxvk-palette GX_FLUSHPROF: inside the object-flush bracket only
+	GxFlushScope gxProf(GxFlushProf::SUBMIT);	// GX_FLUSHPROF: inside the object-flush bracket only
 	GxObjPrep p;
 	if (prepareOneObject(robj, localPlayerIndex, p))
 		renderPreparedObject(rinfo, robj, p, FALSE);
@@ -1594,7 +1594,7 @@ void RTS3DScene::renderPreparedObject(RenderInfoClass &rinfo, RenderObjClass *ro
 void RTS3DScene::Flush(RenderInfoClass & rinfo)
 {
 	gxGfxSubStart();	// [GXGFXF]: Flush can run without Customized_Render before it
-	// GeneralsX: WS-G: the L2 contract's pass context (CONTRACT_L2.md §1.1) - the same test as DoShadows' below
+	// GeneralsX: WS-G: the L2 contract's pass context - the same test as DoShadows' below
 	GxL2Dry_SetPass(m_customPassMode == SCENE_PASS_DEFAULT && Get_Extra_Pass_Polygon_Mode() == EXTRA_PASS_DISABLE);
 	// TheSuperHackers @bugfix Now always prepares shadows to guarantee correct state before doing any
 	// shadow draw calls. Originally just drawing shadows for trees would not properly prepare shadows.
@@ -1881,7 +1881,7 @@ void RTS3DScene::Render(RenderInfoClass & rinfo)
 /** Custom render method for the RTS3DScene, custom render properties for our
   * particular game go here */
 //=============================================================================
-// GeneralsX: R-CPU pose pre-pass (modernize/render-split PLAN_pose-prepass). Rebuilding
+// GeneralsX: R-CPU pose pre-pass (modernize/render-split). Rebuilding
 // skeletal poses was ~8% of the main thread in a running 6v6 (Mini profile, HLodClass::Update_Sub_Object_Transforms
 // inclusive), one object at a time inside Render. Here, after visibility and every On_Frame_Update and before anything
 // renders, each visible ROOT HLOD whose pose Render would rebuild now (Animatable3DObjClass::Pose_Needs_Build: the same
@@ -2104,7 +2104,7 @@ void RTS3DScene::Customized_Render( RenderInfoClass &rinfo )
 
 	// GeneralsX: R-CPU pose pre-pass, see above. Only in the plain scene pass: the alpha-mask, extra-polygon and
 	// mirrored (water reflection) passes render objects whose poses the plain pass has already made current, and a
-	// pose they still need is rebuilt by Render as before (review r1 P3: the walk is not free).
+	// pose they still need is rebuilt by Render as before (the walk is not free).
 	if (m_customPassMode == SCENE_PASS_DEFAULT && Get_Extra_Pass_Polygon_Mode() == EXTRA_PASS_DISABLE
 		&& !ShaderClass::Is_Backface_Culling_Inverted())
 		gxPrebuildPoses(RenderList);
@@ -2379,8 +2379,8 @@ static void gxOcclFlush( int64_t *also = nullptr, bool plain = false )
 	++s_gxOccl.flushes;
 }
 
-// GeneralsX: R-CPU 1f parallel object collection (modernize/PLAN_multithreading-roadmap
-// §1.1, render-split/PLAN_mt-collect-1f.md). flushOccludedObjectsIntoStencil renders nearly every object when building
+// GeneralsX: R-CPU 1f parallel object collection (
+// §1.1). flushOccludedObjectsIntoStencil renders nearly every object when building
 // occlusion is on, each one lit and linked into the mesh renderer's shared lists by renderOneObject on the main thread.
 // Here those objects are first prepared on the main thread in the order the function renders them (prepareOneObject:
 // the drawable reads and the shroud query, which writes simulation caches), then the plain ones - drawable, no tint,
@@ -2394,7 +2394,7 @@ static void gxOcclFlush( int64_t *also = nullptr, bool plain = false )
 // serial records are the ones replayed; 3 = 2 with the workers perturbed on purpose (the check's negative control);
 // 4 = 1 plus a deliberate data race in the jobs (the ThreadSanitizer lane's mutant). GX_COLLECTSTATS=1: [GXCOLL] lines.
 // Unset or empty = GX_COLLECTPAR_DEFAULT.
-// GeneralsX: On by default where it gains (E · hcanim-default): macOS - the Mini, G2 R1 frame time
+// GeneralsX: On by default where it gains: macOS - the Mini, G2 R1 frame time
 // -0.758 ms (n=6+6, fully separated, 0.9.62 round 36). Windows stays OFF: wh1ter0se's PC overlapped on 0.9.61 (+0.248 ms) and was not
 // re-timed on 0.9.62. iOS and Linux were never measured. GX_COLLECTPAR=0 turns it off, =1 on.
 // scripts/test/collectpar-default-test.sh compiles this per platform.

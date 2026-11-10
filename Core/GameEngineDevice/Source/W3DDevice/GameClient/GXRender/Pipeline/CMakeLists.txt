@@ -3,7 +3,7 @@
 # Standalone (minutes):  cmake -S <this dir> -B <build> -G Ninja [-DGX_VKCTX_DIR=<a gx_vkctx source dir>] && cmake --build <build>
 # From the game: Core/GameEngineDevice/CMakeLists.txt adds it next to ../Vk when GX_RENDER_VK=ON. Render-only, outside every
 # digested path. The generic shaders are SPIR-V compiled at build time by shaders/regen.sh and committed (no glslang in a
-# game build, no runtime GLSL compiler - lead C31). GxGenericSet.inc is generated from the census (scripts/render/dxvk-census).
+# game build, no runtime GLSL compiler). GxGenericSet.inc is generated from the census (scripts/render/dxvk-census).
 cmake_minimum_required(VERSION 3.20)
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)

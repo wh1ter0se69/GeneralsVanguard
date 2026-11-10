@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX: WS-X2 - see W3DDevice/GameClient/GxDrawRun.h and render-seam/DESIGN_hybrid.md §13.
+// GeneralsX: WS-X2 - see W3DDevice/GameClient/GxDrawRun.h and
 //
 // Threads: Available / Draw_Run run on the main thread and only queue work; DX8Wrapper::Device_Call runs Run_On_Device on the
 // thread that owns the d3d8 device at that point of the stream (the d3d8 ring's consumer inside the object-flush bracket, the
@@ -94,13 +94,13 @@ GxIDxvkGxExternal *s_ext = nullptr;			// not AddRef'd: a member of DXVK's d3d9 d
 
 // Main thread: counters of what was asked; device thread: what ran how.
 int s_mutantTruth = 0;
-unsigned long long s_runs = 0, s_tasks = 0, s_badSets = 0;	// s_badSets: tasks naming a light set the run lacks (a seat bug; review r14 P3-6)
+unsigned long long s_runs = 0, s_tasks = 0, s_badSets = 0;	// s_badSets: tasks naming a light set the run lacks (a seat bug)
 std::atomic<unsigned long long> s_devRuns(0), s_devTasks(0), s_fbRuns(0), s_fbTasks(0);
 std::mutex s_statsLock;
 unsigned long long s_fork[8] = {};			// the fork's GetRunStats, refreshed by the device thread
 unsigned s_lastPrint = 0;
 
-// Two per-frame arenas used alternately (DESIGN_hybrid §13.4): a run's bytes are overwritten one whole frame after the bracket that
+// Two per-frame arenas used alternately: a run's bytes are overwritten one whole frame after the bracket that
 // consumed them ended (End_Record drains the ring; outside the bracket Device_Call runs inline).
 struct Arena
 {
@@ -155,7 +155,7 @@ struct RunHeader
 	// then Task[taskCount], LightSet[setCount]
 };
 
-// The fallback (DESIGN_hybrid §13.4) and the test's =1 arm: the same per-task calls through the d3d8 device, in the classic per-task
+// The fallback and the test's =1 arm: the same per-task calls through the d3d8 device, in the classic per-task
 // order. The d3d8 base vertex is restored at the end, as DrawRun leaves it untouched.
 void Issue_Classic(IDirect3DDevice8 *dev, D3DPRIMITIVETYPE type, const Task *tasks, unsigned n, const LightSet *sets, unsigned m)
 {
@@ -555,7 +555,7 @@ void Print_Stats(unsigned frame, bool final)
 		s_truthChecked[1].load(), s_truthMismatch[1].load(), s_truthUncreated[0].load(), s_truthUncreated[1].load(), final ? " final=1" : "");
 }
 
-// ---- the gate's in-run toggle (render-seam/rw1x/PREREG_gate.md; DESIGN_hybrid §13.6) ----
+// ---- the gate's in-run toggle ----
 // GX_DRAWRUN_TOGGLE=k: render frames in periods of k, OFF / ON alternating (odd periods ON); the first GX_DRAWRUN_TOGGLE_DROP (3)
 // frames of every period are dropped (frames in flight). GX_DRAWRUN_TOGGLE_WHAT:
 //   s1 (default) - ON: S1_On() is true, WS-G replaces its claimed runs with Draw_Run; OFF: classic. Clause (d).
@@ -671,7 +671,7 @@ void Tog_Frame()
 
 void Queue_Run(D3DPRIMITIVETYPE type, const Task *tasks, unsigned taskCount, const LightSet *sets, unsigned setCount, unsigned flags);
 
-// ---- GX_HYBRID_DRAWRUN_TEST: the synthetic identity test (DESIGN_hybrid §13.7) ----
+// ---- GX_HYBRID_DRAWRUN_TEST: the synthetic identity test ----
 // One run of 12 lit cubes per frame at fixed screen positions (own VIEW = identity and PROJECTION, restored by a state block): three
 // light sets (incl. a disabled middle slot and a point light), per-task ambient, scaled tasks with the NORMALIZENORMALS bracket, two
 // base vertices and two start indices. =1 issues the calls through the d3d8 device (Issue_Classic), =2 through Draw_Run (the

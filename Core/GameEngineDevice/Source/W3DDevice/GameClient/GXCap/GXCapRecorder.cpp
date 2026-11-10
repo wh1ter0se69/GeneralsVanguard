@@ -1,4 +1,4 @@
-// GeneralsX: GXCAP recorder core (WS-I, gx-handoff modernize/render-seam/DESIGN_gxcap.md).
+// GeneralsX: GXCAP recorder core (WS-I).
 // A recording IDirect3DDevice8 proxy installed on DX8Wrapper::D3DDevice right after CreateDevice (DX8Wrapper::
 // Device_Wrap_Hook, set by GXCap.cpp), plus wrappers for the textures, surfaces and buffers it hands out. Everything that
 // reaches DXVK goes through that one pointer - the raw _Get_D3D_Device8() holders, DX8CALL users, the DX8Wrapper statics,

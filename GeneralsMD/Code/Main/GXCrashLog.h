@@ -22,7 +22,7 @@
 //
 // Before this, per platform (read on 13c750034):
 //   Windows  a minidump in <userdata>\CrashDumps\ (MiniDumper.cpp) - ours, but not readable.
-//   iOS      a backtrace appended to Documents/generals-stderr.log, which the next launch rotates.
+//   iOS      a backtrace appended to, which the next launch rotates.
 //   Linux    the handlers in SDL3Main.cpp were compiled but never INSTALLED (the only call was
 //            inside the iOS block), so a crash left the kernel's one dmesg line.
 //   macOS    no handler at all: the only record was the OS's .ips report under

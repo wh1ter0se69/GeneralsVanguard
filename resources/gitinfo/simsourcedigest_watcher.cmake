@@ -437,7 +437,7 @@ set(SIMDIGEST_PATHS_CODE_G
 # Not digested on purpose: audio length and music-finished - only the SPEECH/AUDIO/MUSIC script conditions read them,
 # and Determinism-1 classifies those client-local; and the GameEngineDevice CMakeLists.txt, which add render files
 # weekly and set no codegen flag - a swap of WHICH copy of a listed file compiles there needs a list edit here anyway.
-# THE BOUNDARY IS A CHECKED RULE (lead C11 03/10/2026): the digested code must be CLOSED - everything it
+# THE BOUNDARY IS A CHECKED RULE: the digested code must be CLOSED - everything it
 # reaches (inlined code, calls and globals, pointers in its tables, overrides of its virtuals) is digested here, or
 # named in resources/gitinfo/simdigest_exclusions.txt with the reason the simulation does not read it. Check it with
 #   scripts/build/simid-closure.py <a -g build dir>
@@ -474,7 +474,7 @@ set(SIMDIGEST_PATHS_REGION_G
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DInGameUI.cpp
 )
 
-# GeneralsX: the guard lead C11 asked for: what each region file's
+# GeneralsX: the guard asked for: what each region file's
 # markers MUST hold - the simulation-facing definitions found by the 02-03/10 call-graph search. "<file>|<Class::fn>" is a
 # definition, every overload; "<file>|=<text>" a literal, no semicolon - CMake would split the entry there. Checked by
 # SimDigestCheckRegionFunctions on every build.

@@ -284,7 +284,7 @@ static bool gxOpenLogFile(const char *dir)
 
 #if defined(_WIN32)
 
-// GeneralsX: The tee is bounded (render-seam INTEGRATION.md residual R24).
+// GeneralsX: The tee is bounded (render-seam residual R24).
 // The pump used to WriteFile() the tee itself. A tee whose reader never drains - an ssh channel nobody reads, a
 // stalled console, a parent that stopped reading its pipe - blocked the pump in that WriteFile; the 64 KB stderr pipe
 // then filled and every fprintf(stderr) in the process blocked with it: the main thread, DXVK's logger, the native
@@ -516,7 +516,7 @@ static bool gxHookStderr(void)
 
 	s_pipeRead = hRead;
 
-	// The tee thread first (D · native-windows-1): without it the pump falls back to no tee at all, never to a blocking one
+	// The tee thread first: without it the pump falls back to no tee at all, never to a blocking one
 	if (s_teeHandle != INVALID_HANDLE_VALUE)
 	{
 		InitializeCriticalSection(&s_teeLock);
@@ -557,7 +557,7 @@ void GXStderrLog_Settle(void)
 	// stream lock, and a crash reporter that can deadlock is worse than one
 	// that loses a line.
 	Sleep(150);
-	// D · native-windows-1 13/10/2026: the tee writes from its own thread now. Give it the same kind of bounded
+	// the tee writes from its own thread now. Give it the same kind of bounded
 	// moment, at most 150 ms more, to empty its ring and finish the write in flight - never blocking: TryEnter only, because the
 	// faulting thread may be the one holding the lock. A reader that does not drain loses the tail, as it would have stalled before.
 	if (s_teeWake != NULL)

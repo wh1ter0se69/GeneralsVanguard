@@ -326,7 +326,7 @@ static Int layoutObserverList( const Int *groupSizes, Int groupCount )
 	// The plate: what grew past the .wnd's own column, one row gap around it.
 	const Int gap = max( 1, s_grid.pitchY - b0.h );
 	// Only where the art backs a single strip (ControlBar Pro, labels parked): a retail grid shrinks inside its own art, and a
-	// third retail column may poke past the authored labels by a few pixels without needing a plate (review r2 P2).
+	// third retail column may poke past the authored labels by a few pixels without needing a plate.
 	s_plate.lo.x = s_plate.hi.x = 0;
 	if( plate.hi.x > plate.lo.x && !s_labelsInList )
 	{

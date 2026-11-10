@@ -1,5 +1,5 @@
-// GeneralsX: AI RULE BANK tier filter (gx-handoff ai/rulebank/PLAN_rulebank.md 2.8; mark grammar agreed with
-// C · rb-data 30/10, lead C58). Hard, Sentient and Brutal run ONE script list, so a tuned script or team cannot simply be edited: the
+// GeneralsX: AI RULE BANK tier filter (2.8; mark grammar agreed with
+// 30/10). Hard, Sentient and Brutal run ONE script list, so a tuned script or team cannot simply be edited: the
 // recipe leaves every stock entry byte-identical and adds each replacement or new entry under a MARKED name, and this filter gives each
 // player its own list at game start, where Player::initFromDict copies its side's scripts and teams (Player.cpp).
 //   mark:  "GXT.<T>.<name>", <T> exactly one of SENTIENT, BRUTAL, SENTIENT+BRUTAL; the tier token runs to the next '.', the rest is the

@@ -1,4 +1,4 @@
-// GxPipelineKey.h - the native renderer's pipeline key (WS-D; render-seam/DESIGN_pipeline-cache.md).
+// GxPipelineKey.h - the native renderer's pipeline key (WS-D).
 //
 // A pipeline = GxStructKey (what Vulkan bakes and the session cannot set per draw) + GxShaderKey (which shaders). Depth/stencil,
 // cull, front face, depth-bias enable, vertex stride and topology within its class are DYNAMIC (Vulkan 1.3 core) and never part

@@ -17,7 +17,7 @@
 */
 
 // GeneralsX: WS-X2: the depth and stencil half of CONTRACT_L2's C7 picture contract (render-seam/rw1x/
-// PREREG_gate.md (b)). GX_DSHOT=1: every screenshot (GX_SHOT's frames) also reads back the device's depth/stencil surface - through
+// (b)). GX_DSHOT=1: every screenshot (GX_SHOT's frames) also reads back the device's depth/stencil surface - through
 // the fork's IDxvkGxExternal::RecordExternal (DXVK's own command list, the break path) - and prints
 // "[GXDSHOT] n= w= h= fmt= depth_fnv= stencil_fnv= file=" (raw bytes in GX_DSHOT_DIR, default the working directory). Single-sample
 // depth only (the oracle renders AntiAliasing = 0). Unset: nothing runs. Render-only: nothing here is read by the simulation.

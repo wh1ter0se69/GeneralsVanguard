@@ -1,5 +1,5 @@
 // GeneralsX: NVIDIA Streamline (DLSS Super Resolution) for the native renderer.
-// Windows x64 only, behind GX_STREAMLINE (default OFF); PREREG A36 (render-seam/rw3-T/PREREG_T.md).
+// Windows x64 only, behind GX_STREAMLINE (default OFF); PREREG A36.
 //
 // Licence (render-dlss research R8, binding): nothing of NVIDIA's is in this tree or in our zip. The Streamline headers (MIT) are
 // read at BUILD time from the SDK folder named by GX_STREAMLINE_SDK. At RUN time the user's own copy of NVIDIA's signed DLLs
@@ -128,7 +128,7 @@ public:
 	// "sl=2.14.1 ngx=x.y.z" for the run's log line ("" before load).
 	std::string versions();
 
-	// dlss-fg-1 (DESIGN_dlss-fg-P0.md §4): ONE id per rendered frame, ONE sl::FrameToken for it. Reflex's sleep and markers, the
+	// dlss-fg-1: ONE id per rendered frame, ONE sl::FrameToken for it. Reflex's sleep and markers, the
 	// common constants, the tags and DLSS's evaluate all name the frame begun here, so DLSS-G can match its inputs to the present.
 	// frameBegin: a new token for id; with Reflex loaded, slReflexSleep then eSimulationStart. False + why when Streamline refuses.
 	bool frameBegin(uint32_t id, std::string* why);

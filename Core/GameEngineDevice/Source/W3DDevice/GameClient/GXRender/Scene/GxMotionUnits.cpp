@@ -1,5 +1,5 @@
 // GeneralsX: The object-velocity bridge - see GxMotionUnits.h and
-// modernize/render-dlss/DESIGN_motion-units.md (PREREG_T A35). Game side: it drives the device only through DX8Wrapper (whose caches
+// (A35). Game side: it drives the device only through DX8Wrapper (whose caches
 // and DX8Ring stay consistent) plus three direct calls after a ring drain (shader / texture creation, SetObjectVelocity).
 #include "W3DDevice/GameClient/GXRender/Scene/GxMotionUnits.h"
 #include "W3DDevice/GameClient/GXRender/Scene/GxMotionHistory.h"
@@ -457,7 +457,7 @@ void GxMotionUnits::Begin(IGxWorldPass *wp, const GxWorldPassBegin &b)
 	s.wp = wp;
 	s.open = true;
 	++s.pass;
-	static bool said = false;   // the key-off evidence (PREREG_T A35 key OFF (c)): a key-off run never prints this; a key-on run does at once
+	static bool said = false;   // the key-off evidence (A35 key OFF (c)): a key-off run never prints this; a key-on run does at once
 	if (!said) {
 		std::fprintf(stderr, "[GXMOTION] units on (GX_MOTION_UNITS=1, temporal world pass): the object-velocity bridge is active\n");
 		said = true;

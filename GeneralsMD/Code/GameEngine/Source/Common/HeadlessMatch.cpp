@@ -494,7 +494,7 @@ static Int playableFaction(const AsciiString &faction, const char *where)
 /// GeneralsX: Refuse a lobby holding more players than the map has start
 /// positions. This is a GUARD ONLY: it never reassigns or clamps anything, because start positions
 /// decide where every player's opening units are placed and are therefore part of the frame-0 world
-/// CRC. Moving them would invalidate every .crc baseline in docs/WORKDIR/evidence/ and, since this
+/// CRC. Moving them would invalidate every .crc baseline and, since this
 /// engine defaults RETAIL_COMPATIBLE_CRC to 1, retail 1.04 replay compatibility with it.
 ///
 /// What it prevents: populateRandomStartPosition caps positions at md->m_numPlayers
@@ -1179,7 +1179,7 @@ Bool HeadlessMatch::driveLobby()
 			}
 			if (starts != nullptr)
 			{
-				// Split by hand: AsciiString::nextToken merges empty tokens, so "0,,1" would pin slots 0 and 1 (review r1 P3).
+				// Split by hand: AsciiString::nextToken merges empty tokens, so "0,,1" would pin slots 0 and 1.
 				const MapMetaData *md = TheMapCache->findMap(game->getMap());
 				const Int positions = (md != nullptr) ? md->m_numPlayers : 0;
 				// GeneralsX: scale32: 64 bits - a 34-start map has positions 32 and 33, and `1u << 32` is undefined

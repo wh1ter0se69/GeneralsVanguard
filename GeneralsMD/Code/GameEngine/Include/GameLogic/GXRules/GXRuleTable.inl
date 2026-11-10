@@ -1,4 +1,4 @@
-// GeneralsX: AI RULE BANK registry (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.1, CONTRACT v1 2.6). THE
+// GeneralsX: AI RULE BANK registry (2.2.1, CONTRACT v1 2.6). THE
 // SOURCE OF TRUTH: scripts/ai/rulebank/gen-rule-ids.py generates rule_ids.json from these rows, and GXRuleSpec.h / GXRuleBank.cpp expand
 // GX_RULE_TABLE in place (a macro, never an #include inside an initializer: scripts/build/simid-closure.py refuses that). The rows sit in
 // ONE macro: every row line ends with " \", NO comment inside it (a // comment would swallow the line splice), and the blank line after

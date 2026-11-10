@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule ARMY.CHINA_GENERAL_MIX (C·rb-data-4): Dominator's answer - Nuke: mostly
+# GeneralsX: rule bank DATA rule ARMY.CHINA_GENERAL_MIX: Dominator's answer - Nuke: mostly
 # Battlemasters and Gattling Tanks; Tank: Battlemaster + Gattling + ECM, Emperors stay rare (in this game version Subliminal does not
 # boost the Emperor). The Nuke and Tank generals' Hard wave tank teams keep their total of Battlemasters + Emperors, T, and re-split it:
 #   Gattlings G = round(T * gattling_share_pm / 1000), Emperors E = min(stock Emperors, round(T * emperor_share_pm / 1000)),

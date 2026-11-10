@@ -94,7 +94,7 @@ void FramePacer::update(Bool (*betweenDraws)())
 	// GeneralsX: Tick catch-up: a logic-only pass drew nothing, and the cap is a cap on DRAWS, so
 	// it is not held. The uncapped wait holds nothing and re-seeds the grid, so the next draw is paced from here. Held to
 	// the cap instead, a pass at a 60 cap would last a whole tick period and could never repay the draw it skipped.
-	// ...and only if it ticked: a pass whose frame did not come (rare since framesOwed) moved no game time (review r2 P3).
+	// ...and only if it ticked: a pass whose frame did not come (rare since framesOwed) moved no game time.
 	m_lastIterationCatchUpPass = m_catchUpPass && TheGameLogic != nullptr && TheGameLogic->getFrame() != m_catchUpPassFrame;
 	if (m_catchUpPass)
 	{
@@ -466,7 +466,7 @@ Bool FramePacer::isCatchUpDrawSkip()
 	else if (regular)
 	{
 		// the frames the gate owes with this iteration's elapsed (it credits the same m_updateTime after this draw); 0 on
-		// the pass it starts fresh, so that draw is never skipped (review r2 P3-3)
+		// the pass it starts fresh, so that draw is never skipped
 		const Int rate = getRegularCatchUpRate();
 		m_catchUpPassFrame = TheGameLogic->getFrame();
 		m_catchUpPass = CatchUpPolicy::skipDraw(m_catchUp,
@@ -487,7 +487,7 @@ Bool FramePacer::isCatchUpDrawSkip()
 // keeps debt, and owed draws become logic-only passes, only while nothing else owns the pace - the network branch's
 // conditions above, plus the replay fast mode (the gate bypasses itself there). GameEngine::canUpdateRegularGameLogic asks
 // this too, so the gate keeps debt exactly when a draw may be skipped to repay it. The freeze/halt flags are the ones the
-// gate set last iteration: the first pass of a freeze may still be a logic-only pass (review r1 P3-6, accepted - the
+// gate set last iteration: the first pass of a freeze may still be a logic-only pass (accepted - the
 // simulation is unaffected, the camera steps as in fast forward).
 // ...and only if the gate ran on the previous iteration: an iteration that ran this pacer without it (iOS inactive outside
 // a network match returns before GameEngine::update; a load's fade loop) leaves an elapsed the gate never credited, which
@@ -503,7 +503,7 @@ Bool FramePacer::isRegularCatchUpEligible() const
 
 // The regular gate's catch-up tick rate: the logic time scale, but never above the render cap. With the scale off (render
 // cap <= tick rate, FpsLimitPolicy::needsLogicTimeScale) getActualLogicTimeScaleFps reads UncappedFpsValue and the gate
-// ticks once per iteration: the cap is the rate it keeps (review r1 P1-1). 0 = no usable rate.
+// ticks once per iteration: the cap is the rate it keeps. 0 = no usable rate.
 Int FramePacer::getRegularCatchUpRate() const
 {
 	const Int scale = getActualLogicTimeScaleFps(IgnoreFrozenTime);

@@ -96,7 +96,7 @@ void compare(const gxlog::Log &L, const std::vector<Inv> &pred, const std::vecto
 }
 
 // One input Apply as the log holds it: which bracket of which classic entry's Apply, for which object, and the Apply's record range
-// (C5's boundary replay takes its input brackets from these - PLAN_model T4).
+// (C5's boundary replay takes its input brackets from these).
 struct Src { uint32_t seq; uint8_t bracket; int stage; uint64_t obj; size_t b, e; };
 
 // An Apply's logged INPUT brackets (texture / material Apply outputs) between b and e.
@@ -259,7 +259,7 @@ void replay(State &s, const gxlog::Log &L, ReplayHooks &h)
 	h.end(s);
 }
 
-// ---- C5 INVARIANCE (PLAN_model T4; CONTRACT_L2 §4.3 C5, §3.4 under DrawRun S1-DR r10) ---------------------------------------------
+// ---- C5 INVARIANCE (CONTRACT_L2 §4.3 C5, §3.4 under DrawRun S1-DR r10) ---------------------------------------------
 namespace {
 
 // Arm B's hooks: the boundary replay's invocations have no logged counterpart (MODEL_CALL is C6's, on arm A), so it hears nothing.
@@ -270,8 +270,8 @@ bool inBracket(const gxlog::Record &r, uint8_t bracket, int stage)
 	return r.bracket == bracket && (bracket != gxlog::BR_TEXTURE || r.stage == stage) && isLow(r.op);
 }
 
-// The input brackets of a boundary-replay Apply (PLAN_model T4): the classic Apply of the SAME object at the corresponding task, or
-// the nearest earlier one in the run. No source = c5_unsourced, an INVARIANCE failure (PLAN_model r2 #4), never a skip.
+// The input brackets of a boundary-replay Apply: the classic Apply of the SAME object at the corresponding task, or
+// the nearest earlier one in the run. No source = c5_unsourced, an INVARIANCE failure, never a skip.
 struct SrcIn : Inputs {
 	const gxlog::Log &L; const std::vector<Src> &src; uint32_t seq; C5Sink &h5; C5Counts &n;
 	SrcIn(const gxlog::Log &l, const std::vector<Src> &s, uint32_t q, C5Sink &h, C5Counts &c) : L(l), src(s), seq(q), h5(h), n(c) {}

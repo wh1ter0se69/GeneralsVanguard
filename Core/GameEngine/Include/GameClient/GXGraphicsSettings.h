@@ -40,7 +40,7 @@ namespace GXGraphics
 	typedef void (*RemasteredChangedFn)(Bool on);
 	void setOnRemasteredChanged(RemasteredChangedFn fn);
 
-	// GeneralsX: THE UPSCALER KEYS (modernize/render-dlss/DLSS_INTEGRATION.md "Settings
+	// GeneralsX: THE UPSCALER KEYS ("Settings
 	// keys", agreed with dlss-streamline-1 + fsr-metalfx-1). Same file, read once with the rest; each key has a TEST-ONLY env twin
 	// (GX_UPSCALER, GX_UPSCALE_QUALITY, GX_RENDER_SCALE, GX_UPSCALE_SHARPNESS, GX_FRAMEGEN) that wins over the file. Render-only, like
 	// GXRemastered: nothing the simulation reads may depend on them. Upscaler values are GxUpscaleKind + 1 (GxWorldPass.h).
@@ -52,7 +52,7 @@ namespace GXGraphics
 	Int upscaleSharpness();				///< GXUpscaleSharpness 0-100
 	Int frameGen();						///< GXFrameGen 0-4
 	// GeneralsX: GXReflex (env twin GX_REFLEX, TEST-ONLY): NVIDIA Reflex 0 off / 1 on / 2 on + boost,
-	// default 0 (DLSS_INTEGRATION.md keys table). Frame generation needs Reflex on: GXFrameGen > 0 runs it at 1 at least.
+	// default 0 (keys table). Frame generation needs Reflex on: GXFrameGen > 0 runs it at 1 at least.
 	Int reflex();						///< GXReflex 0-2
 	// GeneralsX: upscaler() returns the RESOLVED value - a
 	// backend this build really has, else OFF for the whole chain (scale 100%, msaa as configured, no motion pass). Real backends:
@@ -75,13 +75,13 @@ namespace GXGraphics
 	Int requestedUpscaler();			///< the key as written (before resolveUpscaler), for logs
 	void demoteUpscaler(const char *why);	///< a run-time backend failure: resolved -> OFF at scale 100, logged once; the next frame draws native
 	Bool upscalerIsTemporal(Int u);	///< fsr3, dlss, metalfx-temporal, xess: 1x world targets, sampleable depth (render-motion-1)
-	// GeneralsX: S7 GPU sun shadow map (modernize/look-director/d2/PREREG_look-shadowmaps.md
+	// GeneralsX: S7 GPU sun shadow map (
 	// A18): GXShadowMap = off | on (default OFF), env twin GX_SHADOWMAP (TEST-ONLY), read ONCE with the rest: the native device
 	// picks its look feature mask at creation (a change needs a restart). Classic ignores it (one log line). GX_SHADOWMAP_STEP
 	// (TEST-ONLY) pins the runtime step 0..3; -1 = not pinned (the governor's, or 0 until the governor lands on this base).
 	Bool shadowMap();
 	Int shadowMapStepPin();
-	// GeneralsX: alpha-to-coverage under the existing MSAA (modernize/render-dlss/SCOPE_a2c.md, PREREG A108):
+	// GeneralsX: alpha-to-coverage under the existing MSAA (PREREG A108):
 	// GXAlphaToCoverage = yes | no (default YES, wh1ter0se 21/10/2026), env twin GX_A2C (TEST-ONLY), read ONCE with the rest. The native device acts on it only
 	// when the session is multisampled at creation (MSAA 2x and above); classic ignores it.
 	Bool alphaToCoverage();

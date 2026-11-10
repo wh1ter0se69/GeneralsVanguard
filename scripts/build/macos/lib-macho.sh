@@ -105,7 +105,7 @@ gx_macho_id() {
 # then failed with "Permission denied" behind `2>/dev/null || true`. So 0.9.61 and 0.9.62 shipped
 # Homebrew 1.4.357.0 for SDL next to LunarG SDK 1.4.357.1 for DXVK. That works only while the two
 # loaders agree on the layout of an instance (the same release today). Measured:
-# gx-handoff/2026-09-28/modernize/render-seam/gxmvk/REPORT_gxmvk.md.
+#
 
 # gx_macho_uuids <file> - one "<arch> <LC_UUID>" line per slice; fails closed on a slice without one.
 gx_macho_uuids() {

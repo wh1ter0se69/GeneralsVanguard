@@ -59,7 +59,7 @@ const Real DEFAULT_MASS = 1.0f;
 // the steady state is v = a/f: with a per-frame^2 (x1/4) and f halved, v is exactly half per
 // frame, i.e. the SAME wall-clock terminal speed. The exponent would instead keep only the
 // free-decay half-life and lower every terminal speed (AerodynamicFriction 7/s: -6%). For small f
-// the two agree to first order; see docs/WORKDIR/LOGIC_60HZ_TIMERS_2026-09-23.md.
+// the two agree to first order.
 //
 // The SHOCK_* values are radians PER FRAME, not factors: they seed m_yawRate/m_pitchRate/m_rollRate
 // (:386-392) which are consumed once per logic frame by Rotate_Z/Y/X (:750-752). Same seed at twice

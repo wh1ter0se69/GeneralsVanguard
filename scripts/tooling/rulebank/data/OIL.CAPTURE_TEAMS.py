@@ -1,4 +1,4 @@
-# GeneralsX: rule bank DATA rule OIL.CAPTURE_TEAMS (C·rb-data): take the oil early and in numbers. Stock Hard
+# GeneralsX: rule bank DATA rule OIL.CAPTURE_TEAMS: take the oil early and in numbers. Stock Hard
 # captures tech buildings only when one lies within 500 of its inner perimeter (the cached "<S> Tech Building Detect" test), with ONE
 # team of 2 capturers (GLA: 1). This, per general:
 #   capture_radius   -> the Detect test's distance (a tech building near MY area, cached at its first evaluation: map layout);

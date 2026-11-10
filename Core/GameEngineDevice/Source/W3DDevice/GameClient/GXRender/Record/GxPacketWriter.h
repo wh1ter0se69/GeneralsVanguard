@@ -10,7 +10,7 @@
 //    or copied since its last barrier - dynamic rendering allows no barrier inside), and when a resource has a queued GXRES
 //    upload (recordPending runs outside a scope: the census' SAMEFRAME locks), and for outsideScope() work (copies, resolves);
 //    a closed scope resumes with LOAD after its own attachment barrier;
-//  * an upload whose destination the frame has not touched yet does NOT close the scope (D · rw3-T-4, DXVK's init-buffer
+//  * an upload whose destination the frame has not touched yet does NOT close the scope (DXVK's init-buffer
 //    pattern): GXRES records it into the frame slot's init command buffer, which the submission runs before everything the
 //    frame recorded (GxResources::recordPendingFront) - on a tiler a split is a store + reload of the 4x MSAA colour and depth;
 //  * a render-target TEXTURE (GxAttachment::sampledLater, e.g. the 256x256 water reflection) is handed to its readers when
@@ -116,7 +116,7 @@ struct GxDrawPacket
 	uint32_t first = 0;                    // first vertex or first index
 	int32_t vertexOffset = 0;              // indexed: D3D8 BaseVertexIndex
 	uint32_t instances = 1, firstInstance = 0;
-	// S7 (D · look-shadowmaps, PREREG_look-shadowmaps A1/A21/A23): 0 = an ordinary draw; 1 = also a shadow-map CASTER (drawn and
+	// S7 (A1/A21/A23): 0 = an ordinary draw; 1 = also a shadow-map CASTER (drawn and
 	// captured); 2 = CAST-ONLY (captured, never recorded into MAIN: off-screen casters, PREREG A4/A23). world = the draw's World
 	// matrix (16 floats, D3D element order) for the caster replay; null = not a caster the replay can place.
 	uint8_t cast = 0;
@@ -138,16 +138,16 @@ struct GxWriterStats
 	std::map<std::string, uint64_t> refusedWhy;
 };
 
-// TEST-ONLY, process-wide (PREREG_T A22's recorded-stream equality gate; set by tests/gx_cmd_tap.cpp from the environment,
+// TEST-ONLY, process-wide (A22's recorded-stream equality gate; set by tests/gx_cmd_tap.cpp from the environment,
 // never by product code): exactSlowPaths takes the pre-A22 path for each of the writer's four per-draw skips; the plant makes
 // the translator's world refresh keep the VS block's stamp (a stale block must change the recorded stream).
 struct GxRecTestGlobals
 {
 	bool exactSlowPaths = false;
 	bool plantWorldKeepsGen = false;
-	bool plantPassNameOnce = false;   // the pass counter is resolved once per pass, whatever its name's bytes do (the a22-r1 P1)
-	bool a25SlowP1 = false;           // PREREG_T A25: every RS/TSS change invalidates the translator's pack (pre-A25)
-	bool a25SlowP3 = false;           // PREREG_T A25: the stencil group records each face separately (pre-A25)
+	bool plantPassNameOnce = false;   // the pass counter is resolved once per pass, whatever its name's bytes do
+	bool a25SlowP1 = false;           // A25: every RS/TSS change invalidates the translator's pack (pre-A25)
+	bool a25SlowP3 = false;           // A25: the stencil group records each face separately (pre-A25)
 	std::atomic<uint64_t> packCheckMismatches{ 0 };   // every translator's check-mode mismatches (GX_TR_PACK_CHECK=1 only; a device a
 	                                  // test replaces or releases is counted too; atomic: translators may record
 	                                  // on other threads - r3. Read it once the arm's recording has completed)
@@ -196,7 +196,7 @@ struct GxRecDebug   // TEST-ONLY plants; each has a gx_record_test arm that must
 	                                 // draw does, so the clean arm needs the production re-send on drivers that keep state too
 };
 
-// GeneralsX: F-depth+ (look-director/d2/PLAN_fdepth-plus.md): a multisample RESOLVE the
+// GeneralsX: F-depth+: a multisample RESOLVE the
 // world's own scopes carry. While armed and not suspended, every scope that opens with depthAtt as its depth attachment resolves it
 // (VK_RESOLVE_MODE_SAMPLE_ZERO, depth and stencil) into depthTarget at its end, and its multisample colour attachment (AVERAGE) into
 // colourTarget when that matches it in size and format. On a tile GPU the resolve rides the store the scope does anyway: the only
@@ -247,9 +247,9 @@ public:
 	bool beginFrame();                                      // false: the slot wait failed (device lost / timeout)
 	uint64_t endFrame(const Vk::SubmitDesc& extra = Vk::SubmitDesc());   // 0 on failure
 	bool frameOpen() const { return m_open; }
-	// GX_GPUTIME (B · rw3-T-3 12/10/2026, PREREG_T A16; default OFF): one "frame" scope per writer frame on a VALIDATED VkGpuTimer
+	// GX_GPUTIME (A16; default OFF): one "frame" scope per writer frame on a VALIDATED VkGpuTimer
 	// initialised with `sets` (>= framesInFlight) frame sets; a set is read when it comes round again. Between frames; nullptr = off.
-	// slot = the frame ring slot of the frame measured; ms = the whole frame; PREREG_T A17: passMs / passes = its render-pass
+	// slot = the frame ring slot of the frame measured; ms = the whole frame; A17: passMs / passes = its render-pass
 	// scopes (each from just before vkCmdBeginRendering to just after vkCmdEndRendering), presentMs = its "present" scope
 	// refused = scopes of THIS frame the timer had no room for: its parts are partial, its whole-frame ms is not (A17 P2)
 	// S7 A92 (PREREG A27; the integrator's P4 ruling 03:2xZ 19/10): under GX_GPUTIME the set is reset and `frame` begins at the TOP of the
@@ -273,7 +273,7 @@ public:
 	uint64_t gpuInitUnstamped() const { return m_gpuInitUnstamped; }
 	void gpuEnd(int scope);
 	uint64_t frameValue() const { return m_frameValue; }
-	uint32_t framesInFlight() const { return m_ring.framesInFlight(); }   // PREREG_T A30: the effective count (tests)
+	uint32_t framesInFlight() const { return m_ring.framesInFlight(); }   // A30: the effective count (tests)
 	uint32_t frameSlot() const { return m_slot; }                          // the descriptor-pool slot of the current / last frame
 	uint64_t ringWaitMicros() const { return m_ring.waitMicrosTotal(); }   // [GXWAIT]: host time spent in the frame-ring wait
 	VkCommandBuffer cmd() const { return m_cmd; }

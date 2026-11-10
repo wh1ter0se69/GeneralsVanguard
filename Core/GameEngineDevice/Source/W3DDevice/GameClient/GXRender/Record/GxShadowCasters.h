@@ -1,6 +1,6 @@
 // GeneralsX: S7 GPU sun shadow map: the caster list and its replay.
 //
-// PREREG: modernize/look-director/d2/PREREG_look-shadowmaps.md (A1, A21, A22, A23, A30); PLAN Task 2.
+// PREREG: (A1, A21, A22, A23, A30); PLAN Task 2.
 //
 // The shadow map is drawn INSIDE the A23-B device worker, never from the caller: caster draws are CAPTURED by GxPacketWriter
 // while the frame records (after each draw's normal prologue - uploads flushed, buffers/textures bound, i.e. marked used and
@@ -53,7 +53,7 @@ struct GxShadowPassDesc
 	float nearFar[2][2] = {};                 // A39: per cascade, the perspective map's near / far axis distances from 2003's light
 	uint32_t guard = 0;                       // the step's guard band (texels per side)
 	uint32_t filter = 0;                      // 0 = the step's filter, 1 = hard (GX_SHADOWMAP_FILTER=hard, TEST-ONLY)
-	// A79 (E · look-shadowmaps-7): the own-light pull (GxOwnPull.h). ownPull = L.xyz (2003's light), eps (0 = no pull); ownPullAux = muMax,
+	// A79: the own-light pull (GxOwnPull.h). ownPull = L.xyz (2003's light), eps (0 = no pull); ownPullAux = muMax,
 	// noRecv (TEST-ONLY: the receivers' eps written 0 - set by gx_native_test's frame only, the game writes 0), 0, 0
 	float ownPull[4] = {};
 	float ownPullAux[4] = {};

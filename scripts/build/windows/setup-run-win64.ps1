@@ -70,7 +70,7 @@ $zh    = "$build\GeneralsMD\RelWithDebInfo"
 #     still refuses anything but the Tauri launcher, so this cannot ship the wrong one.
 # Staleness: remote-build-windows.ps1 leaves GeneralsXLauncher-Setup-<commit9>.exe beside the exe,
 # so the commit it was built at is printed and compared with this checkout's HEAD. A difference is
-# a warning, not a refusal - RUNBOOK_2026-08-24_ATOMIC_SHIP.md ships launchers built at another
+# a warning, not a refusal - ships launchers built at another
 # commit on purpose - but it is now on screen instead of silent.
 . (Join-Path $PSScriptRoot "launcher-kind.ps1")
 # The engine's own inputs, also before anything is copied: a build missing one must not half-replace
@@ -219,7 +219,7 @@ if (Test-Path $mapsSrc) {
 }
 
 # GeneralsX: Data\INI\Weapon.ini, the Toxin Tractor balance change, in the RUN
-# folder (on feat/next-batch-defaults). go.bat launches from $run, and Win32LocalFileSystem opens
+# folder. go.bat launches from $run, and Win32LocalFileSystem opens
 # a relative loose file in the working directory first, so a peer launched here without it computes a
 # dataID every packaged peer refuses (DATA_DIFFERS). Cut from the CoreINI this peer mounts by
 # scripts\tooling\make-weapon-ini.py --root, which follows the engine's mount order: the asset root, then

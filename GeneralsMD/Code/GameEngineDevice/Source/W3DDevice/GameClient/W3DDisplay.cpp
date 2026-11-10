@@ -2147,7 +2147,7 @@ void W3DDisplay::init()
 			// drawable with the back buffer INSIDE Set_Render_Device. SDL3Main creates the window at a placeholder 1024x768
 			// points and SDL3_ApplyWindowModeForRenderConfig below sizes it only after the device exists, so a windowed
 			// launch at any other resolution was refused native: "extent 1024x768 != back buffer 1920x1080" row=S9
-			// (release-0967, measured on the Mini). Size the window first. WINDOWED only: a fullscreen or borderless back
+			// (release-0967, measured). Size the window first. WINDOWED only: a fullscreen or borderless back
 			// buffer follows the window's own size on SDL3 (dx8wrapper Resolve_Present_BackBuffer_Size), which is why those
 			// modes already qualified. And only for a NATIVE request, so a classic launch keeps today's order byte for byte;
 			// the call after the device runs either way and is idempotent for the size it is given.
@@ -3807,7 +3807,7 @@ AGAIN:
 
 	// GeneralsX: ...but never in frozen time, where no logic frame passes: the simulation ends a
 	// camera-only freeze's move before its next update (GameLogic/ScriptedCamera.h), so the draw after the freeze is the one
-	// whose freeze loop shows it (a skipped one lost it: camera-sim-B r1 P2)
+	// whose freeze loop shows it (a skipped one lost it: camera-sim-B)
 	if (TheTacticalView->getTimeMultiplier()>1 && !freezeTime)
 	{
 		timeMultiplierCounter--;
@@ -4104,7 +4104,7 @@ AGAIN:
 //
 // WHY IT EXISTS. The two peers where a render win is actually worth something - a GTX 1080 through
 // DXVK and an older mobile GPU - are the two we cannot get our hands on, and the survey in
-// docs/WORKDIR/PERF_RENDER_WEAK_PEER_2026-08-18.md is therefore full of UNKNOWN magnitudes that no
+// is therefore full of UNKNOWN magnitudes that no
 // amount of source reading will close. Draw calls, batch sizes and how much geometry goes through
 // the CPU sorter are NOT properties of the GPU: a frame that submits N draws submits N everywhere.
 // So they can be counted on hardware we have and reasoned about for hardware we do not, which is
@@ -4280,7 +4280,7 @@ Bool W3DDisplay::isLetterBoxed()
 /** Create a "light pulse" which is a dynamic light that grows, decays
 	* and vanishes over several frames */
 //=============================================================================
-// GeneralsX: S9 step 1, light pulses on the classic renderer (modernize/look-director/d2/DESIGN_fx-light-classic.md).
+// GeneralsX: S9 step 1, light pulses on the classic renderer.
 // Retail drops every pulse whose reach is under 2 cells + 1 (the jba test in createLightPulse), and 26 of the 65 shipped LightPulse FX -
 // nearly every machine-gun, gatling, tank-gun and flamethrower muzzle flash (Radius 15) - fall under it: they light nothing today.
 // Options.ini GXFxLight = yes (default no; GX_FX_LIGHT=0/1 overrides) gives every pulse 30% more reach, same colour and timing, and lets
@@ -5477,7 +5477,7 @@ void W3DDisplay::preloadModelAssets( AsciiString model )
 //-------------------------------------------------------------------------------------------------
 // GeneralsX: A2: the warm-up lives in the patched Apple DXVK (references/fbraz3-dxvk,
 // D3D9DeviceEx::GxWarmPipelines). MoltenVK has no VK_EXT_graphics_pipeline_library, so every pipeline is compiled
-// whole at its first draw - the mid-match stops in modernize/HANDBACK_s0-hitch-attribution.md. Resolved by dlsym:
+// whole at its first draw - the mid-match stops. Resolved by dlsym:
 // a DXVK without the export (Linux's prebuilt one) and Windows simply have no warm-up. GX_PIPELINE_WARMUP=0 turns
 // it off (the A/B fail arm, and a player's escape hatch).
 UnsignedInt W3DDisplay::warmPipelines()

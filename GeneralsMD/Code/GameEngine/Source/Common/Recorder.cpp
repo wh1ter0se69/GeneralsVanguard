@@ -996,7 +996,7 @@ void RecorderClass::writeToFile(GameMessage * msg) {
 
 	// GeneralsX: A moderator's kick rides MSG_SELF_DESTRUCT as a signed ticket naming the kicked player's relay
 	// address, the room and the moderator (GXKickTicket.h). The FILE keeps argument 0, the one the simulation reads, and nothing after it: a
-	// replay carries no address (wh1ter0se 04/11, msg 5a19), and playback never shows a kick (gxKickShowLine). The message itself is untouched.
+	// replay carries no address (wh1ter0se 04/11), and playback never shows a kick (gxKickShowLine). The message itself is untouched.
 	if (type == GameMessage::MSG_SELF_DESTRUCT && msg->getArgumentCount() > 1)
 	{
 		const GameMessageArgumentDataType firstType = msg->getArgumentDataType(0);
@@ -2133,7 +2133,7 @@ void RecorderClass::readArgument(GameMessageArgumentDataType type, GameMessage *
 		}
 		case ARGUMENTDATATYPE_BOOLEAN: {
 			// GeneralsX: The file's byte, normalised: reading 0x02 straight into a bool is undefined,
-			// so a crafted replay could play differently per compiler (as NetPacket::readGameMessage, batch0958 r1 P2).
+			// so a crafted replay could play differently per compiler (as NetPacket::readGameMessage, batch0958).
 			UnsignedByte thebyte = 0;
 			m_file->read(&thebyte, sizeof(thebyte));
 			const Bool thebool = (thebyte != 0);

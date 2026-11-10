@@ -1,4 +1,4 @@
-// GeneralsX: THE WORLD/HUD SEAM (modernize/render-dlss/DESIGN_hud-seam.md).
+// GeneralsX: THE WORLD/HUD SEAM.
 //
 // W3DView::draw brackets its world pass with push/pop. While GXUpscaler is off (the default) both are one branch and the frame
 // issues exactly today's device calls. Otherwise push redirects the world into a private target at GXRenderScale of the current
