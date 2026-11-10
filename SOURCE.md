@@ -1,8 +1,9 @@
 # GeneralsX 0.9.71 — source
 
 This repository is the source code of **GeneralsX 0.9.71**, the release published on 9 November 2026
-(game for Windows, Linux and macOS, the GeneralsX Launcher and the Windows installer; the iOS/iPadOS build in this
-source is in testing and has no public download).
+(the game for Windows, Linux and macOS and the Windows installer; the iOS/iPadOS build in this source is in testing
+and has no public download). The GeneralsX Launcher and its updater, which ship with the release, are separate
+programs and are not part of this repository.
 
 It is a snapshot of commit `bfeca14d0223e62b936141e1f22a2e37b1bd68c5` of the GeneralsX development
 repository, published as one commit, with comments edited for publication. Every statement and string
@@ -29,7 +30,6 @@ and launcher find an existing install; `scripts/get-assets.sh` fetches the files
 | `Patches/` | patches applied to third-party code at build time (DXVK for Apple) |
 | `ios/` | the iOS/iPadOS app wrapper |
 | `scripts/build/` | build, bundle and packaging scripts for every platform, the Windows installer (`windows/installer/GeneralsX.iss`) |
-| `scripts/launcher-rs/`, `design/launcher/` | the GeneralsX Launcher (Rust + Tauri) and its interface |
 | `scripts/tooling/`, `GeneralsZH/Data/`, `scripts/test/maps/` | generators and inputs for the data the packages ship (AI scripts, INI files, the bundled maps) |
 | `scripts/legal/` | generates `THIRD_PARTY_NOTICES.txt` |
 
@@ -43,7 +43,10 @@ checkouts of other projects are not part of the released programs and are not in
 * Linux: [docs/BUILD/LINUX.md](docs/BUILD/LINUX.md) and `scripts/build/linux/`.
 * Windows: the `win64` preset in `CMakePresets.json`; packaging and the installer are
   `scripts/build/windows/package-windows-share.ps1` and `scripts/build/windows/installer/`.
-* The launcher: `scripts/build/launcher/package-launcher-{macos,linux,windows}.sh`.
+* The game builds and runs without the launcher: `scripts/build/windows/setup-run-win64.ps1` stages a Windows build
+  into a runnable folder without one. `scripts/build/windows/package-windows-share.ps1`, which assembles the players'
+  Windows download with the launcher and its updater, checks both against the development repository and does not
+  run from this tree.
 
 The Apple builds compile DXVK from the one submodule, pinned to the exact commit 0.9.71 used:
 
@@ -61,13 +64,9 @@ Some packaging scripts build on a remote machine and read its address from `scri
 A binary you build embeds this repository's commit id, not `bfeca14d02`, so it reports a different
 build id than the published 0.9.71 files.
 
-The launcher's unit tests (`cargo test` in `scripts/launcher-rs`) read development files that are not
-included (a CI workflow, test fixtures and test sources under `scripts/test`), so they do not compile from
-this snapshot. `cargo build` and the packaging scripts do not use them.
-
 ## What differs from the shipped commit
 
-The publication edited 143 files of `bfeca14d02` and added this one. The edits are:
+For the `v0.9.71` tag, the publication edited 143 files of `bfeca14d02` and added this one. The edits are:
 
 * comments: a personal name replaced by the `wh1ter0se` handle, profanity reworded, a few quoted log
   values paraphrased;

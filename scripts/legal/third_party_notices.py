@@ -4,6 +4,7 @@
   third_party_notices.py generate                 write THIRD_PARTY_NOTICES.txt at the repo root
   third_party_notices.py check                    fail when that file is not exactly what `generate` would write, or
                                                   when crates.json no longer matches scripts/launcher-rs/Cargo.lock
+                                                  (skipped when the launcher's source is not in the tree)
   third_party_notices.py check-path [--no-host-versions] [--platform P] PATH..  like check-listing, on a built payload: a directory, .zip, .tar.gz or
                                                   .app/.AppDir tree (run by the packagers on what they produced)
   third_party_notices.py check-listing [--platform P] LISTING..  fail when a library-like file in a payload listing (one path per
@@ -304,9 +305,12 @@ def cmd_generate():
     print("wrote", OUTFILE, os.path.getsize(OUTFILE), "bytes")
 
 
+CARGO_LOCK = os.path.join(ROOT, "scripts", "launcher-rs", "Cargo.lock")
+
+
 def cargo_lock_external():
     pk, name, ver, src = set(), None, None, None
-    for line in open(os.path.join(ROOT, "scripts", "launcher-rs", "Cargo.lock"), encoding="utf-8"):
+    for line in open(CARGO_LOCK, encoding="utf-8"):
         line = line.strip()
         if line == "[[package]]":
             if name and src:
@@ -325,10 +329,13 @@ def cargo_lock_external():
 
 def cmd_check():
     _, crates, _ = load()
-    have_c, lock = {(c["name"], c["version"]) for c in crates}, cargo_lock_external()
-    if have_c != lock:
-        sys.exit("FAIL: crates.json differs from scripts/launcher-rs/Cargo.lock (missing from notices: %s; no longer in the lock: %s); "
-                 "re-run collect_third_party_data.py crates" % (sorted(lock - have_c)[:8], sorted(have_c - lock)[:8]))
+    if os.path.exists(CARGO_LOCK):
+        have_c, lock = {(c["name"], c["version"]) for c in crates}, cargo_lock_external()
+        if have_c != lock:
+            sys.exit("FAIL: crates.json differs from scripts/launcher-rs/Cargo.lock (missing from notices: %s; no longer in the lock: %s); "
+                     "re-run collect_third_party_data.py crates" % (sorted(lock - have_c)[:8], sorted(have_c - lock)[:8]))
+    else:
+        print("SKIP: crates.json vs scripts/launcher-rs/Cargo.lock (the launcher's source is not in this tree)")
     want = gen()
     have = open(OUTFILE, encoding="utf-8").read() if os.path.exists(OUTFILE) else None
     if have != want:

@@ -1,3 +1,0 @@
-[workspace]
-members = ["gxcore", "gxio", "gxlauncher"]
-resolver = "2"

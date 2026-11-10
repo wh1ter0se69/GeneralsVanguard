@@ -16,8 +16,8 @@ Fighter19 → fbraz3 → ammaarreshi line (`c5c8c4d3`), and otherwise this fork.
 
 Of this fork's 331,804 engine lines, 45,529 are vendored third-party code (Vulkan Memory Allocator, volk, AMD
 FidelityFX FSR 1, dr_wav/dr_mp3), 29,676 are SPIR-V shader bytecode generated into headers, 34,839 are tests, and
-221,760 are hand-written engine code. Outside the engine C/C++, most lines are this fork's: the launcher, the build
-and packaging scripts, the data generators, and the generated [`THIRD_PARTY_NOTICES.txt`](../THIRD_PARTY_NOTICES.txt).
+221,760 are hand-written engine code. Outside the engine C/C++, most lines are this fork's: the build and packaging
+scripts, the data generators, and the generated [`THIRD_PARTY_NOTICES.txt`](../THIRD_PARTY_NOTICES.txt).
 
 To reproduce, fetch the base commits (all public) and run the script:
 

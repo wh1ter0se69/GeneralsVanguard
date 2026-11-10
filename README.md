@@ -27,7 +27,6 @@ Downloads and release notes: [wh1ter0se.dev/generals](https://wh1ter0se.dev/gene
 | Replays record graphics settings and a once-a-second log of frame rate and game speed, and store no network address. `GXReplayTelemetry = full \| perf \| off` in `Options.ini`. | [`GXReplayDiag.h`](GeneralsMD/Code/GameEngine/Include/GameClient/GXReplayDiag.h) |
 | Online lobby with chat, friends and private messages; sign-in with Discord or a GeneralsX account. Only the game client's side is here; the account and lobby services are not. | [`GXLobbyPresence.cpp`](Core/GameEngine/Source/GameClient/GXLobbyPresence.cpp), [`GXRelayAuth.h`](Core/GameEngine/Include/GameClient/GXRelayAuth.h) |
 | The 2003 Direct3D 8 renderer runs through DXVK to Vulkan, and MoltenVK to Metal on Apple. An optional new Vulkan renderer (`GXRenderer = native` in `Options.ini`; classic is the default) is in development. | [`GXRendererKey.h`](Core/GameEngine/Include/GameClient/GXRendererKey.h), [`GXRender/`](Core/GameEngineDevice/Source/W3DDevice/GameClient/GXRender) |
-| The GeneralsX Launcher (Rust, Tauri 2): finds your Zero Hour data, holds the game's options and key bindings, and updates the game. | [`scripts/launcher-rs/`](scripts/launcher-rs), [`design/launcher/`](design/launcher) |
 | Skirmish AI additions: a rule bank in the engine and generated AI scripts. | [`GXRules/`](GeneralsMD/Code/GameEngine/Source/GameLogic/AI/GXRules), [`scripts/tooling/`](scripts/tooling) |
 
 ## Where it comes from
@@ -115,8 +114,8 @@ cmake --build --preset win64 --target z_generals   # RelWithDebInfo, the configu
 ```
 
 `scripts/build/windows/setup-run-win64.ps1` stages the build into its own folder and leaves your Steam install
-untouched; packaging and the installer are in `scripts/build/windows/`. The launcher is built with
-`scripts/build/launcher/package-launcher-{macos,linux,windows}.sh`.
+untouched; packaging and the installer are in `scripts/build/windows/`. The GeneralsX Launcher and its updater are
+separate programs and are not part of this repository; the game builds and runs without them.
 
 A game built from the `v0.9.71` tag cannot play with the published 0.9.71: publishing edited comments in files the
 simulation's source id is computed from, so the two refuse each other. [SOURCE.md](SOURCE.md) has the numbers and
@@ -126,8 +125,8 @@ how to check that only comments differ; from the next release on, the tag is the
 
 GPL-3.0-or-later, with the additional terms EA attached to its release of the original source: see
 [LICENSE.md](LICENSE.md). Third-party components and their licences: [THIRD_PARTY_NOTICES.txt](THIRD_PARTY_NOTICES.txt).
-Each release tag here is the corresponding source of the binaries published with that version. The game's art,
-audio, maps and data belong to Electronic Arts and are not covered by this licence.
+Each release tag here is the corresponding source of the game and installer binaries published with that version.
+The game's art, audio, maps and data belong to Electronic Arts and are not covered by this licence.
 
 ## Reporting a problem
 
