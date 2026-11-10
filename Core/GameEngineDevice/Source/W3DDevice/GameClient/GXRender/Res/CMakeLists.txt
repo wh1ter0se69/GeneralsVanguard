@@ -1,4 +1,4 @@
-# GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: D3D8-semantics textures, buffers and render targets over VkCtx v0.
+# GeneralsX: WS-C GXRES v0: D3D8-semantics textures, buffers and render targets over VkCtx v0.
 # Render-only and outside every digested path (resources/gitinfo/simsourcedigest_watcher.cmake): never list these sources in
 # a WW3D2 CMakeLists. Standalone: cmake -S <this dir> -B <dir> -G Ninja && cmake --build <dir>  ->  libgx_res.a + gx_res_test.
 cmake_minimum_required(VERSION 3.20)

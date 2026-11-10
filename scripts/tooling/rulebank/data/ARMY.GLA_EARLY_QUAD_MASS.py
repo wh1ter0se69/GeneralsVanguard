@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule ARMY.GLA_EARLY_QUAD_MASS (C·rb-data-10): Stealth GLA masses Quad Cannons
+# GeneralsX: rule bank DATA rule ARMY.GLA_EARLY_QUAD_MASS (C·rb-data-10): Stealth GLA masses Quad Cannons
 # very early. Stock Stealth Hard's first wave holds 4 Quads: "1ST Wave Supply Hunters. 2" and "1W Guard Combat Zone. 2", 2 each. Here the
 # two teams share early_quad_count between them (the Supply Hunters take the odd one), minimum = maximum, so wave 1 waits for the whole
 # mass. Team counts only: the Quad is the team's own unit (Arms Dealer), the wave gate stays stock. early_quad_count = 4 is stock.

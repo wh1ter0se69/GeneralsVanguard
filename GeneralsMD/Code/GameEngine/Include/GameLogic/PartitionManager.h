@@ -73,10 +73,10 @@
 
 const Real HUGE_DIST = 1000000.0f;
 
-// GeneralsX @performance Claude 06/10/2026 an object's owner tag (PartitionData::friend_getOwnerTag) is its controlling
+// GeneralsX: an object's owner tag (PartitionData::friend_getOwnerTag) is its controlling
 // player's index, or PARTITION_OWNER_NONE without a team; PartitionManager::m_cellOwnerMask has bit (1 << tag) per tag present in a cell.
 enum { PARTITION_OWNER_NONE = MAX_PLAYER_COUNT, PARTITION_OWNER_TAGS };
-// GeneralsX @feature Claude 06/11/2026 64-bit: MAX_PLAYER_COUNT 40 needs 41 owner tags. Client/sim-side cache only (the
+// GeneralsX: 64-bit: MAX_PLAYER_COUNT 40 needs 41 owner tags. Client/sim-side cache only (the
 // mask only lets a search skip cells; it is never saved or hashed), so its width cannot change a result.
 typedef UnsignedInt64 PartitionOwnerMask;
 inline constexpr PartitionOwnerMask gxOwnerTagBit(Int tag) { return (PartitionOwnerMask)1 << tag; }
@@ -402,7 +402,7 @@ private:
 	Int													m_coiArrayCount;					///< number of COIs allocated (may be more than are in use)
 	Int													m_coiInUseCount;					///< number of COIs that are actually in use
 	CellAndObjectIntersection		*m_coiArray;							///< The array of COIs
-	Int64												m_doneFlag;							///< GeneralsX: 64-bit (gcoIterFlag never wraps; a skipped cell leaves old flags, Codex guardscan-adv-r1)
+	Int64												m_doneFlag;							///< GeneralsX: 64-bit (gcoIterFlag never wraps; a skipped cell leaves old flags)
 	Int													m_ownerTag;							///< GeneralsX: the owner tag its COIs are counted under in their cells
 	Coord3D											m_fillPos;						///< GeneralsX: the Object's position when its cells were last filled (updateCellsTouched)
 	DirtyStatus									m_dirtyStatus;
@@ -528,16 +528,16 @@ public:
 	void invalidateShroudedStatusForPlayer(Int playerIndex);
 	void invalidateShroudedStatusForAllPlayers();
 
-	// GeneralsX @feature Claude 26/09/2026 Is any cell this object covers CLEAR for the player? Exactly the condition
+	// GeneralsX: Is any cell this object covers CLEAR for the player? Exactly the condition
 	// under which getShroudedStatus answers CLEAR or PARTIAL_CLEAR, but a pure read: it touches neither m_shroudedness,
 	// m_everSeenByPlayer nor the ghost snapshots, which simulation code reads back. For client questions (WAYPOINT ENTER).
 	Bool isAnyCellClearForPlayer( Int playerIndex ) const;
 	ObjectShroudStatus getShroudedStatus(Int playerIndex);
-	/// GeneralsX @feature Claude 02/11/2026 rb-sense-2: TRUE iff one of the cells this object touches is marked in `mark` (a
+	/// GeneralsX: rb-sense-2: TRUE iff one of the cells this object touches is marked in `mark` (a
 	/// PartitionManager::markLookCells grid) and CLEAR for playerIndex - getShroudedStatus's CLEAR (any touched cell clear), limited to the
 	/// marked cells. Read only.
 	Bool touchesMarkedClearCell(Int playerIndex, const std::vector<UnsignedByte> &mark) const;
-	// GeneralsX @bugfix Claude 02/10/2026 Is the object in the SHROUD for the player - off the map, or every cell it
+	// GeneralsX: Is the object in the SHROUD for the player - off the map, or every cell it
 	// covers never explored? The cells alone, a pure read: unlike getShroudedStatus it has no ghost-object, seen-before
 	// or relationship refinement, so every peer answers alike. For logic that must not depend on the lazy cache.
 	Bool isFullyShroudedForPlayer( Int playerIndex ) const;
@@ -580,7 +580,7 @@ public:
 	// (note, if we ever use other bits in this, smarten this up...)
 	Int64 friend_getDoneFlag() { return m_doneFlag; }
 	void friend_setDoneFlag(Int64 i) { m_doneFlag = i; }
-	/// GeneralsX @performance Claude 06/10/2026 the owner tag its COIs are counted under (PartitionManager::m_cellOwnerMask). The
+	/// GeneralsX: the owner tag its COIs are counted under (PartitionManager::m_cellOwnerMask). The
 	/// Object's controlling player changed: Object::setOrRestoreTeam and TeamPrototype call friend_updateOwnerTag to recount.
 	Int friend_getOwnerTag() const { return m_ownerTag; }
 	void friend_updateOwnerTag();
@@ -634,7 +634,7 @@ class PartitionFilter
 public:
 	virtual Bool allow(Object *objOther) = 0;
 	/**
-		GeneralsX @performance Claude 06/10/2026 a superset of the owner tags (PartitionManager::m_cellOwnerMask) of every object
+		GeneralsX: a superset of the owner tags (PartitionManager::m_cellOwnerMask) of every object
 		allow() could pass. getClosestObjects asks only the FIRST filter in its list and skips any cell holding none of
 		those tags: the walk it replaces would have rejected each of that cell's objects at this filter, calling no other.
 		So a filter that returns less than PARTITION_OWNERS_ALL here must have an allow() without side effects.
@@ -647,7 +647,7 @@ public:
 
 //=====================================
 /**
-	GeneralsX @performance Claude 30/09/2026 PartitionManager::visitObjectsNearToFar's visitor. visit() gets every object
+	GeneralsX: PartitionManager::visitObjectsNearToFar's visitor. visit() gets every object
 	that passes the distance test and the filters, in exactly the order iterateObjectsInRange would have inserted them.
 	After each ring of cells the walk asks whether it may stop: every object not visited yet has its centre farther than
 	minCentreDist from the query position and a bounding circle radius of at most maxRadius (canStopAfter), and an
@@ -1314,9 +1314,9 @@ private:
 	Int							m_cellCountY;			///< number of cells, y
 	Int							m_totalCellCount;	///< x * y
 	PartitionCell*	m_cells;					///< array of cells
-	// GeneralsX @performance Claude 06/10/2026 per cell (same index as m_cells): the owner tags of the objects whose COIs are
+	// GeneralsX: per cell (same index as m_cells): the owner tags of the objects whose COIs are
 	// in it (bit 1 << tag, see PARTITION_OWNER_NONE), and per cell and tag how many COIs carry it (32-bit: 16 wrapped at
-	// 65,536 stacked objects, Codex guardscan-adv-r1). Beside the cells, not in PartitionCell: a guard scan reads one mask
+	// 65,536 stacked objects). Beside the cells, not in PartitionCell: a guard scan reads one mask
 	// for each of ~14,000 cells, so a dense array is what makes skipping a cell cheap, and PartitionCell keeps its size for
 	// the shroud and everything else that walks cells (fps-profile-2: counts inside the cell cost more than they saved).
 	PartitionOwnerMask*		m_cellOwnerMask;
@@ -1329,18 +1329,18 @@ private:
 #ifdef FASTER_GCO
 	Int							m_maxGcoRadius;
 	RadiusVec				m_radiusVec;
-	// GeneralsX @performance Claude 07/11/2026 per cell offset (dx + m_cellCountX - 1, dy + m_cellCountY - 1; row-major,
+	// GeneralsX: per cell offset (dx + m_cellCountX - 1, dy + m_cellCountY - 1; row-major,
 	// 2 * m_cellCountX - 1 wide): where getClosestObjects' ring walk meets that offset (its index in m_radiusVec read ring by
 	// ring), or -1 when no ring holds it. iterateObjectsInRangePure orders its objects by it.
 	std::vector<Int>	m_walkRank;
 #endif
-	// GeneralsX @performance Claude 30/09/2026 the largest bounding circle radius any Object has had when its cells were
+	// GeneralsX: the largest bounding circle radius any Object has had when its cells were
 	// filled (PartitionData::updateCellsTouched) since the last reset. Only ever grows, so it bounds every object in the
 	// partition (visitObjectsNearToFar's early stop).
 	Real						m_maxObjectRadius;
-	// GeneralsX @performance Claude 30/09/2026 the farthest any Object has been from the position its cells were filled at
+	// GeneralsX: the farthest any Object has been from the position its cells were filled at
 	// without being marked dirty (isPosDifferent ignores moves of <= 0.005 per call, and those add up), since the last
-	// reset. Only ever grows. visitObjectsNearToFar's early stop widens its bound by it (Codex sc-hunt-r2).
+	// reset. Only ever grows. visitObjectsNearToFar's early stop widens its bound by it.
 	Real						m_maxDrift;
 
 protected:
@@ -1436,7 +1436,7 @@ public:
 	/// A convenience function to reveal shroud at some location
 	// Queuing does not give you control of the timestamp to enforce the queue.  I own the delay, you don't.
 	void doShroudReveal( Real centerX, Real centerY, Real radius, PlayerMaskType playerMask);
-	/// GeneralsX @feature Claude 02/11/2026 rb-sense-2: mark 1 in `mark` (m_cellCountX * m_cellCountY bytes, row-major; resized and cleared
+	/// GeneralsX: rb-sense-2: mark 1 in `mark` (m_cellCountX * m_cellCountY bytes, row-major; resized and cleared
 	/// when its size differs) every cell doShroudReveal(look.m_where, look.m_howFar) adds a looker to - the same centre, radius, cap and
 	/// circle. Nothing for an invalid look. Touches no cell (the AI rule bank's own-sight test).
 	void markLookCells(const SightingInfo &look, std::vector<UnsignedByte> &mark) const;
@@ -1527,7 +1527,7 @@ public:
 	);
 
 	/**
-		GeneralsX @performance Claude 07/11/2026 the iterator iterateObjectsInRange(obj, ...) returns, same objects in the same
+		GeneralsX: the iterator iterateObjectsInRange(obj, ...) returns, same objects in the same
 		order. When maxDist reaches every ring (REALLY_FAR, HUGE_DIST), it walks the object list instead of every cell offset
 		(4x the map's cells, per call): each object goes where the ring walk would have met it first. The filters are then
 		called in object-list order, so every filter in the list must have an allow() without side effects.

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @security Claude 25/09/2026 THIS CLIENT'S ADMIN KEY: the private half that signs its cheat orders when the
+// GeneralsX: THIS CLIENT'S ADMIN KEY: the private half that signs its cheat orders when the
 // relay proves it an admin for a match (Common/GXAdminOrder.h says why a signature and not the sender field).
 //
 // ONE KEY PER MATCH. The client always holds a CURRENT key and offers its public half to the relay on its game socket
@@ -98,7 +98,7 @@ inline bool gxAdminKeyIsCurrent( const unsigned char stamped[32] )
 /// `gameSeed` the match's seed - the one every order's payload binds. When `stamped` is our current key - and not one
 /// already used for a match - that key becomes the match key (sequence numbers restart) and is marked used.
 ///
-/// GeneralsX @bugfix Claude 25/09/2026 (Codex batch-r9) ...OR IT IS STILL THE LAST MATCH KEY. The fresh key goes to the
+/// GeneralsX: ...OR IT IS STILL THE LAST MATCH KEY. The fresh key goes to the
 /// relay on the lobby socket (GXAKEY, resent on the keepalive), so a rematch started before it lands - or after it was
 /// lost - is stamped with the previous match's key, which every peer's own relay confirms, and the admin could not sign
 /// a thing all match. What one key per match protects is that no order signed in one match verifies in another, and a

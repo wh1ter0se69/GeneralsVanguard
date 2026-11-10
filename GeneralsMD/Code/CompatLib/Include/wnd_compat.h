@@ -1,5 +1,5 @@
 #pragma once
-// GeneralsX @build BenderAI 10/02/2026 - Need Win32 types
+// GeneralsX: Need Win32 types
 #include "types_compat.h"
 #include "tchar_compat.h"
 #define GWL_STYLE 1
@@ -41,7 +41,7 @@ typedef enum eSetWindowPosFlags
 void SetWindowPos(HWND hWnd, HWND hWndInsertAfter, int X, int Y, int cx, int cy, UINT uFlags);
 void GetWindowRect(HWND hWnd, RECT *pRect);
 
-// GeneralsX @build fbraz 12/02/2026 BenderAI - Window state query API
+// GeneralsX @build fbraz 12/02/2026 - Window state query API
 // IsIconic: Check if window is minimized (Windows API -> BOOL)
 // Linux stub: Always return 0 (not minimized) - rendering not gated on minimized state in SDL3
 #ifndef _WIN32
@@ -84,7 +84,7 @@ typedef enum eMessageBoxResult
 
 int MessageBox(HWND hWnd, LPCTSTR lpText, LPCTSTR lpCaption, UINT uType);
 
-// GeneralsX @build BenderAI 12/02/2026 Add MessageBoxW/A stubs for Linux
+// GeneralsX: Add MessageBoxW/A stubs for Linux
 // Windows: Use real Win32 API (via namespace resolution ::MessageBoxW/A)
 // Linux: Stub returns safe default value
 #ifndef _WIN32

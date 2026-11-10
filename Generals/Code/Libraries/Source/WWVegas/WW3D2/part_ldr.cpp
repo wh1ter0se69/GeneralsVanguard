@@ -1194,7 +1194,7 @@ ParticleEmitterDefClass::Save_User_Data (ChunkSaveClass &chunk_save)
 	// Begin a chunk that contains user information
 	if (chunk_save.Begin_Chunk (W3D_CHUNK_EMITTER_USER_DATA) == TRUE) {
 
-		// GeneralsX @build Copilot 11/05/2026 Keep osdep macro path active on non-Windows by avoiding explicit ::lstrlen.
+		// GeneralsX: Keep osdep macro path active on non-Windows by avoiding explicit ::lstrlen.
 		DWORD string_len = m_pUserString ? (lstrlen (m_pUserString) + 1) : 0;
 
 		// Fill the header structure
@@ -1623,7 +1623,7 @@ ParticleEmitterDefClass::Read_Extra_Info (ChunkLoadClass &chunk_load)
 	// Assume error
 	WW3DErrorType ret_val = WW3D_ERROR_LOAD_FAILED;
 
-	// GeneralsX @bugfix Copilot 11/05/2026 Read optional emitter extra metadata when present.
+	// GeneralsX: Read optional emitter extra metadata when present.
 	::memset (&m_ExtraInfo, 0, sizeof (m_ExtraInfo));
 	if (chunk_load.Read (&m_ExtraInfo, sizeof (m_ExtraInfo)) == sizeof (m_ExtraInfo)) {
 		ret_val = WW3D_ERROR_OK;

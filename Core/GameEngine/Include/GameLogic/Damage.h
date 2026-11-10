@@ -238,7 +238,7 @@ const DeathTypeFlags DEATH_TYPE_FLAGS_NONE = 0x00000000;
 
 static_assert(DEATH_NUM_TYPES <= 32, "DeathTypeFlags has 32 bits");
 
-// GeneralsX @bugfix Claude 21/10/2026 Upstream #3559: shift by dt, not dt - 1. DEATH_NORMAL (0) shifted by -1, which is
+// GeneralsX: Upstream #3559: shift by dt, not dt - 1. DEATH_NORMAL (0) shifted by -1, which is
 // undefined behaviour - each compiler may fold it differently, a desync risk between platforms. Every mask is built and
 // read only through these three helpers (INI::parseDeathTypeFlags, DieMuxData::isDieApplicable) and none is saved, so
 // moving each type down one bit changes no data. Keeps 1U (32-bit, the width of DeathTypeFlags) where upstream writes

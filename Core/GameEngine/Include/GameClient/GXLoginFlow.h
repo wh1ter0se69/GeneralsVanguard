@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/08/2026 Discord login, in the engine, on every platform.
+// GeneralsX: Discord login, in the engine, on every platform.
 //
 // ================================================================================================
 // THE FLOW, WHICH IS ONE CLICK

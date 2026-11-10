@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0: the one include every GXRender/Vk file starts with.
+// GeneralsX: WS-B VkCtx v0: the one include every GXRender/Vk file starts with.
 //
 // Entry points come from volk (VK_NO_PROTOTYPES): nothing links a Vulkan loader, VkCtx resolves vkGetInstanceProcAddr
 // from the library the process already uses. VK_ENABLE_BETA_EXTENSIONS is set by the build for
@@ -31,7 +31,7 @@ struct TestMutants
 	bool presentSkipTransition = false;  // VkSwapchain::recordPresent leaves the image out of PRESENT_SRC layout
 	bool presentStretch = false;         // VkSwapchain::recordPresent ignores the pillarbox fit rect
 	VkDeviceSize uploadForceAtom = 0;    // not a defect: VkUploadRing treats its memory as non-coherent with this atom
-	bool uploadIgnoreAtom = false;       // VkUploadRing packs ranges ignoring the non-coherent atom (the pre-Codex-r1 code)
+	bool uploadIgnoreAtom = false;       // VkUploadRing packs ranges ignoring the non-coherent atom (the earlier code)
 	bool waitDeviceLost = false;         // Timeline::wait sees VK_ERROR_DEVICE_LOST from vkWaitSemaphores
 	bool gpuTimerNoSettle = false;       // VkGpuTimer's validation probes read their stamps once, without the settle window (R26)
 	double gpuTimerLateMs = 0;           // not a defect: a probe's stamps read as unavailable until this long after its first read
@@ -39,7 +39,7 @@ struct TestMutants
 	bool gpuTimerNoStamps = false;       // not a defect: the validation probes reset their queries but never write the stamps (a
 	                                     // genuinely unwritten query: a conformant driver's WAIT read would block on it forever;
 	                                     // MoltenVK 1.4.2 does not - OBSERVED - so the WAIT guard is the static_assert in
-	                                     // VkGpuTimer::readPair - R26, Codex r26-r2 #2, r26-r4)
+	                                     // VkGpuTimer::readPair - R26, r26-r4)
 
 	// The submit thread (R19, rw3-V DESIGN_submit-thread.md). The fields the THREAD reads (submitFail*, presentResult*,
 	// threadNoLatch, threadLatchLost, threadPresentFirst, skippedPresentOk) are written only through VkCtx::testSet (under the op

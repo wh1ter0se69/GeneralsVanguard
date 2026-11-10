@@ -589,7 +589,7 @@ HRESULT STDMETHODCALLTYPE CSimplePlayer::OnStatus(
             {
                 WCHAR wszURL[ 0x1000 ];
 
-                // GeneralsX @bugfix copilot 19/04/2026 Use explicit wide specifiers for POSIX/MSVC parity.
+                // GeneralsX: Use explicit wide specifiers for POSIX/MSVC parity.
                 swprintf( wszURL, L"%ls&filename=%ls&embedded=false", pValue, pwszEscapedURL );
 
                 hr = LaunchURL( wszURL );

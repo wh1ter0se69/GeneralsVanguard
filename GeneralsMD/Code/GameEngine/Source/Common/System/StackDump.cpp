@@ -33,7 +33,7 @@
 
 #include "WWLib/DbgHelpLoader.h"
 
-// GeneralsX @bugfix Claude 27/07/2026 x86-only register access lives behind this header now.
+// GeneralsX: x86-only register access lives behind this header now.
 // It supplies GX_CTX_PC/SP/FP (Eip/Esp/Ebp at x86, Rip/Rsp/Rbp at x64), the native StackWalk
 // machine type, and GXCaptureContextRegisters(), which replaces the MSVC __asm blocks that the
 // x64 compiler rejects outright ("error C4235: '__asm' keyword not supported on this
@@ -163,7 +163,7 @@ HANDLE process = GetCurrentProcess();
 
 memset(&gsContext, 0, sizeof(CONTEXT));
 gsContext.ContextFlags = CONTEXT_FULL;
-// GeneralsX @bugfix Claude 27/07/2026 Seed the context from the registers we were handed.
+// GeneralsX: Seed the context from the registers we were handed.
 // It used to be zeroed and then never filled, which was harmless while StackWalk got a null
 // ContextRecord and followed the x86 frame-pointer chain. At x64 there is no frame-pointer chain
 // and StackWalk64 works from the context, so an all-zero record would produce no frames at all.
@@ -257,7 +257,7 @@ void GetFunctionDetails(void *pointer, char*name, char*filename, unsigned int* l
 		*address = 0xFFFFFFFF;
 	}
 
-	// GeneralsX @bugfix Claude 27/07/2026 The two dbghelp calls below want different widths:
+	// GeneralsX: The two dbghelp calls below want different widths:
 	// SymGetSymFromAddr64 takes a PDWORD64 displacement, SymGetLineFromAddr64 keeps a plain PDWORD.
 	// One shared ULONG could not satisfy both once the wrappers were widened.
 	DWORD_PTR symDisplacement = 0;
@@ -568,7 +568,7 @@ void DumpExceptionInfo( unsigned int u, EXCEPTION_POINTERS* e_info )
 	/*
 	** Dump the registers.
 	*/
-	// GeneralsX @bugfix Claude 27/07/2026 The general-purpose register names differ per
+	// GeneralsX: The general-purpose register names differ per
 	// architecture, so the dump has to as well. Segment registers and EFlags exist in both
 	// CONTEXT layouts and are printed either way.
 #if defined(_M_X64) || defined(_M_AMD64)

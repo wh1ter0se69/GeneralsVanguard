@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 10/10/2026 WS-X hybrid spike - see W3DDevice/GameClient/GxInterop.h and
+// GeneralsX: WS-X hybrid spike - see W3DDevice/GameClient/GxInterop.h and
 // ~/Developer/gx-handoff/2026-09-28/modernize/render-seam/DESIGN_hybrid.md (§1 protocol, §4 measurement, §8 gates).
 //
 // Threads: Begin_Site / the flush boundaries run on the main thread and only queue work; DX8Wrapper::Device_Call runs the d3d8 part on the
@@ -133,7 +133,7 @@ const int QSLOTS = 16;
 
 struct Packet
 {
-	// Ownership (Codex rw1x-code-r1): a slot is free when its last packet is DONE (refused, or consumed by P-Q's device
+	// Ownership: a slot is free when its last packet is DONE (refused, or consumed by P-Q's device
 	// thread) or, in P-L, when its retire value retired on the GPU. epoch = the Present count when it was queued: a busy
 	// slot of the current epoch is never waited for (its work cannot be submitted before this frame's Present).
 	std::atomic<int> done;
@@ -223,7 +223,7 @@ int s_split = 1;	// GX_RENDER_HYBRID_SPLIT (1..1024; PACKETS covers 1024/frame x
 // PROJ_SHADOW, the flush on the MAIN thread outside the ring's bracket, where Device_Call runs the insertion inline (render-integration
 // 10/10: its own per-switch number).
 unsigned s_siteMask = ~0u;
-// GX_RENDER_HYBRID_INTERLEAVE=1 (P-L toggle runs; Codex rw1x-design-r10 #3): after every insertion, on the device thread, one
+// GX_RENDER_HYBRID_INTERLEAVE=1 (P-L toggle runs): after every insertion, on the device thread, one
 // classic draw re-issues the device's CURRENT state - one triangle of the vertex buffer the segment's last classic draw bound, no
 // state change - so DXVK re-binds its whole state after each insertion, as Mode A's native/classic alternation makes it do. The
 // OFF periods issue the same classic draws at the same points without the insertions, so ON - OFF = the insertions + DXVK's
@@ -876,7 +876,7 @@ void Capture_State(IDirect3DDevice8 *dev, Packet *pk)
 	dev->GetViewport(&pk->viewport);
 }
 
-// Every option a producer-side decision reads, parsed on the MAIN thread before Device_Init is queued (Codex code-r1 #4).
+// Every option a producer-side decision reads, parsed on the MAIN thread before Device_Init is queued.
 static const char *const s_mutantNames[] = { "none", "nobarrier", "noprep", "noout", "earlyreuse", "depthbias", "nofeature",
 	"stencilclear", "noupbarrier", "inpassupload" };
 void Parse_Options()
@@ -1079,7 +1079,7 @@ void Device_Insert_PL(IDirect3DDevice8 *dev, void *ctx)
 		// Every frame, at its 5th insertion (in stream order), the texture is refilled with the frame's colour: the cubes of
 		// insertions 0-2 (drawn earlier in this command list) must still show the PREVIOUS frame's colour, 4-7 the new one,
 		// and 3 its untextured vertex colours.
-		// A DXVK that hoisted the upload into its init buffer (a new tracking epoch per insertion, Codex rw1x-design-r1 #2;
+		// A DXVK that hoisted the upload into its init buffer (a new tracking epoch per insertion,
 		// fork fail arm DXVK_GX_NEW_EPOCH=1) shows the new colour on all eight.
 		static const uint32_t colours[6] = { 0xFFFF0000, 0xFF00FF00, 0xFF0000FF, 0xFFFFFF00, 0xFF00FFFF, 0xFFFF00FF };
 		if (s_texFills == 0 || pk->indexInFrame == 4)
@@ -1434,7 +1434,7 @@ void Thread_Account(unsigned frame)
 	{
 		std::map<uint64_t, uint64_t> now;
 		Thread_Times(now);
-		const bool on = (s_thrPeriod & 1) != 0;	// the NOMINAL state: a null arm's "ON" periods stay its control (Codex rw1x-code-r11)
+		const bool on = (s_thrPeriod & 1) != 0;	// the NOMINAL state: a null arm's "ON" periods stay its control
 		for (std::map<uint64_t, uint64_t>::const_iterator t = now.begin(); t != now.end(); ++t)
 		{
 			std::map<uint64_t, uint64_t>::const_iterator st = s_thrStart.find(t->first);
@@ -1546,7 +1546,7 @@ bool Slot_Free(const Packet *pk)
 }
 
 // One insertion at a flush boundary whose classic segment drew something: the census upper bound of where L2 would
-// have native work (a native-only segment would have no classic draws - Codex rw1x-design-r1 #9: this is the census,
+// have native work (a native-only segment would have no classic draws: this is the census,
 // reported beside the insertions, not L2's executable predicate).
 // One insertion at boundary 'boundary' of the current site (the per-insertion half of Boundary).
 void Insert_One(int boundary, unsigned frame)
@@ -1562,7 +1562,7 @@ void Insert_One(int boundary, unsigned frame)
 	++s_frameIns;
 
 	// A slot (packet + descriptor set) is reused only once the GPU finished the command list that read it. Values are per
-	// packet and monotonic (Codex r1 #5). P-Q retires through its own fences, so only P-L waits; earlyreuse is the planted
+	// packet and monotonic. P-Q retires through its own fences, so only P-L waits; earlyreuse is the planted
 	// premature reuse (descriptor sets updated while in use - validation must say so).
 	const uint64_t retire = ++s_nextRetire;
 	Packet *pk = &s_packets[retire % PACKETS];
@@ -1570,7 +1570,7 @@ void Insert_One(int boundary, unsigned frame)
 	{
 		if (pk->epoch == DX8Wrapper::Get_Present_Count())
 		{
-			// queued since the last Present: it cannot be submitted before this frame's Present (Codex r1 #6, code-r1 #3)
+			// queued since the last Present: it cannot be submitted before this frame's Present
 			--s_nextRetire;
 			--s_insertions;
 			--s_frameIns;

@@ -114,7 +114,7 @@ void userMemoryManagerInitPools()
 
 	// since we're called prior to main, the cur dir might not be what
 	// we expect. so do it the hard way.
-	// GeneralsX @bugfix Claude 25/07/2026 buf was uninitialized and the result of
+	// GeneralsX: buf was uninitialized and the result of
 	// GetModuleFileName() was ignored. The Apple implementation (module_compat.cpp, via
 	// _NSGetExecutablePath) leaves the buffer untouched when it fails, so the code below
 	// would parse and concatenate onto stack garbage. Nothing else happens in this function,
@@ -126,7 +126,7 @@ void userMemoryManagerInitPools()
 	if (buf[0] == 0)
 		return;
 
-	// GeneralsX @bugfix Claude 25/07/2026 this split only on '\\'. On macOS/iOS the executable
+	// GeneralsX: this split only on '\\'. On macOS/iOS the executable
 	// path is a POSIX path, so strrchr() returned null, the executable filename was never
 	// stripped, and the Windows-style "\\Data\\INI\\MemoryPools.ini" was appended to the *file*
 	// name. fopen() then failed silently, which made MemoryPools.ini inert on every Apple
@@ -163,7 +163,7 @@ void userMemoryManagerInitPools()
 #endif
 
 	FILE* fp = fopen(buf, "r");
-	// GeneralsX @bugfix Claude 25/07/2026 the executable directory is not the install root
+	// GeneralsX: the executable directory is not the install root
 	// in every supported layout, so the separator fix above still left this file unreachable
 	// for the bundled macOS build: bundle-macos-zh.sh puts the binary in
 	// <app>/Contents/Resources/bin while the game data stays in the user's Zero Hour
@@ -186,7 +186,7 @@ void userMemoryManagerInitPools()
 		{
 			if (buf[0] == ';')
 				continue;
-			// GeneralsX @bugfix Claude 25/07/2026 unbounded "%s" wrote into poolName[256] from a
+			// GeneralsX: unbounded "%s" wrote into poolName[256] from a
 			// line of up to _MAX_PATH (1024) bytes, so any long token in MemoryPools.ini smashed
 			// the stack. Bound the conversion to the buffer size (255 chars + terminator).
 			if (sscanf(buf, "%255s %d %d", poolName, &initial, &overflow ) == 3)

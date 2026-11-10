@@ -95,7 +95,7 @@ void ProneUpdate::goProne( const DamageInfo *damageInfo )
 	Bool wasProne = (m_proneFrames > 0);
 	Int damageTaken = damageInfo->out.m_actualDamageDealt;
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 DamageToFramesRatio is authored in 30 Hz frames per point of damage: x2 (exact).
+	// GeneralsX: DamageToFramesRatio is authored in 30 Hz frames per point of damage: x2 (exact).
 	m_proneFrames += damageTaken * (getProneUpdateModuleData()->m_damageToFramesRatio * 2.0f);
 #else
 	m_proneFrames += damageTaken * getProneUpdateModuleData()->m_damageToFramesRatio;

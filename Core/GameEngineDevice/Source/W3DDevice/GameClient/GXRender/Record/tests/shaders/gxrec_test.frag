@@ -1,5 +1,5 @@
 #version 450
-// GeneralsX @test E · rw2-F1 11/10/2026: gx_record_test's fragment shader: the vertex colour, or texture stage 0.
+// GeneralsX: gx_record_test's fragment shader: the vertex colour, or texture stage 0.
 layout(location = 0) in vec4 inColor;
 layout(location = 1) in vec2 inUv;
 layout(set = 1, binding = 0) uniform sampler2D tex0;

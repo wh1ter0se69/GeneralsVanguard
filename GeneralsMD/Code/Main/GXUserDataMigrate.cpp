@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 23/09/2026 - see GXUserDataMigrate.h for what is moved and the rules.
+// GeneralsX: see GXUserDataMigrate.h for what is moved and the rules.
 #include "GXUserDataMigrate.h"
 
 #include <cstdio>
@@ -128,7 +128,7 @@ bool isSkirmishIni(const std::basic_string<C> &name)
 // Copy src to dst only if dst does not exist. The copy lands in <dst>.gxpart and is renamed into
 // place, so an interrupted copy never leaves a truncated dst that every later pass would then skip
 // as already there.
-// ponytail: one fixed .gxpart name, here and in mergeByKey and writeMarker. Two instances in the same
+// Trade-off: one fixed .gxpart name, here and in mergeByKey and writeMarker. Two instances in the same
 // first start (-multiinstance only; the single-instance mutex covers a normal start) share it, and
 // nothing here stops one renaming the other's half-written file in and settling it. Per-process
 // part names if -multiinstance first starts ever matter.
@@ -224,13 +224,13 @@ void copySave(const fs::path &src, const fs::path &dst, Tally &t)
 // One folder of Maps or Replays, file by file. Each folder is opened here, so one that cannot be is
 // a failure, never "empty" (review of 6ee23a741, P2). A folder behind a link - a symlink or an NTFS
 // junction - is opened like any other: recursive_directory_iterator yielded the link and never went
-// in, and the pass went done without its files (Codex r3 on 43e8ace8d).
+// in, and the pass went done without its files.
 //
 // `inside` is the chain of folders being walked. A link back to one of them would never end, and
 // what it leads to is being copied already, so it is left out. Only a link is compared: a plain
 // folder cannot start a loop, and equivalent() is not asked of a filesystem that never needed it.
 //
-// Nor is a link to a folder that holds `to` (Fable P3): a link to Documents, to GeneralsX\ or to the
+// Nor is a link to a folder that holds `to`: a link to Documents, to GeneralsX\ or to the
 // new Maps itself walks into the folder being written and copies it into itself, a level deeper each
 // time round, until the path is too long - a runaway copy that can fill the disk. `to`'s parents are
 // the output and every folder above it, and each exists: this call's caller created them.
@@ -270,7 +270,7 @@ void copyDir(const fs::path &from, const fs::path &to, std::vector<fs::path> &in
 	{
 		const fs::path &p = it->path();
 		// kindOf, not is_directory/is_regular_file: those answer false on a status error, and the
-		// entry was skipped as if it were neither (Codex r2 on 2e58215c0).
+		// entry was skipped as if it were neither.
 		const fs::file_type type = kindOf(p, t);
 		if (type == fs::file_type::directory)
 			copyDir(p, to / p.filename(), inside, t, saves);
@@ -306,11 +306,11 @@ bool readAll(const fs::path &p, std::string &out)
 	return !ec && !f.bad() && out.size() == size;
 }
 
-// GeneralsX @bugfix Claude 22/10/2026 A UTF-8 BOM at the start of a file (a hand edit in an older Notepad) is not part of its
+// GeneralsX: A UTF-8 BOM at the start of a file (a hand edit in an older Notepad) is not part of its
 // first key - the rule the game (UserPreferences::load) and the launcher (gxio strip_bom) read Options.ini by. mergeByKey read
 // through it: a BOM-first key in the new file counted as absent, so the old value was appended after it and the game (the last
 // line wins) ran the old one while the launcher showed the new; and a BOM-first old line carried its BOM into the middle of the
-// new file (C · asm-0967, Codex r2 P2). The keys are compared, and the old lines copied, past it; the new file keeps its own.
+// new file (C · asm-0967). The keys are compared, and the old lines copied, past it; the new file keeps its own.
 std::string withoutLeadingBom(const std::string &s)
 {
 	if (s.size() >= 3 && (unsigned char)s[0] == 0xEF && (unsigned char)s[1] == 0xBB && (unsigned char)s[2] == 0xBF)
@@ -550,7 +550,7 @@ void mergeByKey(const fs::path &oldIni, const fs::path &newIni, Tally &t, bool g
 	else
 	{
 		// gameData: the new file's keys count only inside its GameData blocks too. A same-named key in
-		// another block is not the old value's key (Codex r2 on 2e58215c0).
+		// another block is not the old value's key.
 		std::set<std::string> have;
 		{
 			std::istringstream in(withoutLeadingBom(merged));
@@ -584,12 +584,12 @@ void mergeByKey(const fs::path &oldIni, const fs::path &newIni, Tally &t, bool g
 		if (!merged.empty() && merged.back() != '\n')
 			merged += "\r\n";
 		// Appended to an EMPTY file, the old lines become its start: the old file's own leading BOM goes first, so a second
-		// BOM in it stays data rather than becoming the file's (C · asm-0967, Codex r3 P3). Not SagePatch.ini (gameData): the
-		// engine's INI::load does not skip a BOM, so "<BOM>GameData" would be an unknown block that stops the game (Codex r4 P2).
+		// BOM in it stays data rather than becoming the file's (C · asm-0967). Not SagePatch.ini (gameData): the
+		// engine's INI::load does not skip a BOM, so "<BOM>GameData" would be an unknown block that stops the game.
 		if (!gameData && merged.empty() && withoutLeadingBom(old).size() != old.size())
 			merged = old.substr(0, 3);
 		// Nor may a BOM that was DATA in the old file (not its first bytes - after a blank first line the loop skips) become
-		// the new file's first bytes: a line break goes first (Codex asm0967 r5 P3).
+		// the new file's first bytes: a line break goes first (asm0967 r5 P3).
 		if (!gameData && merged.empty() && withoutLeadingBom(add).size() != add.size())
 			merged = "\r\n";
 		merged += gameData ? "GameData\r\n" + add + "End\r\n" : add;
@@ -653,7 +653,7 @@ bool writeMarker(const fs::path &newDir, const fs::path &oldDir, const Marker &m
 			fprintf(fp, "settled: %s\n", name.c_str());
 		if (result != nullptr)
 			fprintf(fp, "result: %s\n", result);
-		// Never "delete this file" (Fable P3): until it is here, both launchers keep their settings in
+		// Never "delete this file": until it is here, both launchers keep their settings in
 		// the old folder (release.rs windows_settings_dir, OwnedPaths.UserDataDir), and whatever they
 		// saved there meanwhile lost to this folder's keys at the re-run. A deletion also forgets every
 		// settled line above. Without the result line, the next start runs Maps, Replays and Save again.
@@ -714,7 +714,7 @@ GXMigrateResult migrate(const fs::path &oldDir, const fs::path &newDir)
 	std::vector<std::string> skirmish;	// owns the names files points at
 	{
 		fs::directory_iterator it(oldDir, ec);
-		// The name first, so only a Skirmish*.ini whose type cannot be read is a failure (Codex r2).
+		// The name first, so only a Skirmish*.ini whose type cannot be read is a failure.
 		for (; !ec && it != fs::directory_iterator(); it.increment(ec))
 			if (isSkirmishIni(it->path().filename().native()) && kindOf(it->path(), t) == fs::file_type::regular)
 				skirmish.push_back(it->path().filename().string());
@@ -754,11 +754,11 @@ GXMigrateResult migrate(const fs::path &oldDir, const fs::path &newDir)
 		fprintf(stderr, "[gxmigrate] could not write the marker in %s\n", show(newDir).c_str());
 		++t.failed;
 		// Nothing this pass settled is on record, so the next start would copy again whatever this
-		// session deletes, undoing a sign-out or an identity reset (Codex r2 on 2e58215c0). The
+		// session deletes, undoing a sign-out or an identity reset. The
 		// sign-in and identity this pass copied are taken back - an identity taken back returns
 		// IDENTITY_PENDING below, so none is minted - and the next start that can write the marker
 		// brings both. Other files stay: taking them back would let this session's defaults win.
-		// ponytail: one settled as ALREADY THERE this pass is not ours to take back, so a sign-out of
+		// Trade-off: one settled as ALREADY THERE this pass is not ours to take back, so a sign-out of
 		// it this session is still undone. A second place to record the marker would close that.
 		for (const char *f : { kIdentity, kLogin })
 			if (copiedNow.count(f) != 0)
@@ -817,7 +817,7 @@ GXMigrateResult gxMigrateUserData(const char *oldDir, const char *newDir)
 	catch (...)
 	{
 		// Whether GXPlayer.ini is across is unknown here, so no identity may be minted over it: PARTIAL
-		// let WinMain mint one, and every retry then found it already there (Codex r2 on 2e58215c0).
+		// let WinMain mint one, and every retry then found it already there.
 		fprintf(stderr, "[gxmigrate] stopped by an unexpected error - it runs again on the next start\n");
 		return GX_MIGRATE_IDENTITY_PENDING;
 	}

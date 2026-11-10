@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 22/09/2026 - a match's LIVE per-player numbers and its RESULT, as a peer
+// GeneralsX: a match's LIVE per-player numbers and its RESULT, as a peer
 // tells the relay: "GXSTAT" and "GXEND".
 //
 //   GXSTAT <room> <memberIp> sq=<n> mid=<8 hex> f=<frame> [rs=<slot>] p<slot>=<cells> ...   1 Hz
@@ -54,12 +54,12 @@
 
 enum
 {
-	// GeneralsX @feature Claude 25/09/2026 14 slots (12 players + 2 observers). An observer slot sends
+	// GeneralsX: 14 slots (12 players + 2 observers). An observer slot sends
 	// no group (it is the ReplayObserver, which has no slot of its own), but a 14-slot lobby on a map
 	// with no named civilian sides can seat 14 players, so the group count is MAX_SLOTS and the lines
 	// grew to hold fourteen worst-case groups: GXSTAT 100 + 14 x 66 + 13 = 1037, GXEND 100 + 14 x 47
 	// + 13 = 771. 1100 is MAX_UDP_PAYLOAD_SIZE, so neither datagram fragments.
-	// GeneralsX @feature Claude 06/11/2026 scale32: 34 slots (32 players + 2 observers): GXSTAT is up to 2377 B and GXEND
+	// GeneralsX: scale32: 34 slots (32 players + 2 observers): GXSTAT is up to 2377 B and GXEND
 	// 1731 B at 34 groups, so GX_STAT_LINE_MAX 1100 -> 2560 and GX_END_LINE_MAX 800 -> 2048 (the relay accepts exactly these).
 	// Both are control datagrams, bounded by GX_CONTROL_DATAGRAM_MAX (3200), no longer by MAX_UDP_PAYLOAD_SIZE.
 	GX_STAT_SLOTS_MAX = 34,		///< MAX_SLOTS, and relay.js SEATS_PER_LOBBY

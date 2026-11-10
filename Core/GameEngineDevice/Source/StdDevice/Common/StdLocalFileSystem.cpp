@@ -65,7 +65,7 @@ static std::filesystem::path fixFilenameFromWindowsPath(const Char *filename, In
 	std::filesystem::path path(std::move(fixedFilename));
 
 #ifndef _WIN32
-	// GeneralsX @bugfix Claude 24/09/2026 GeneralsX's own loose data lives in a directory GeneralsX
+	// GeneralsX: GeneralsX's own loose data lives in a directory GeneralsX
 	// owns, and a relative READ looks there FIRST.
 	//
 	// The macOS .app used to copy Data/INI/Multiplayer.ini and Data/English/Generals.csf INTO the
@@ -80,7 +80,7 @@ static std::filesystem::path fixFilenameFromWindowsPath(const Char *filename, In
 	// dataID does not move: m_iniCRC hashes INI line content (INI.cpp, xferUser of each line), not
 	// the path a file was found at. Reads only - a WRITE never lands in the overlay.
 	//
-	// ponytail: by-name opens only (openFile/doesFileExist/getFileInfo). getFileListInDirectory
+	// Trade-off: by-name opens only (openFile/doesFileExist/getFileInfo). getFileListInDirectory
 	// still enumerates the cwd alone, so a file the engine only ever finds by enumerating a
 	// directory cannot ride here. Exact case only: the lowercase CSF spelling in SDL3Main resolves
 	// on the default case-insensitive APFS, not on a case-sensitive volume.
@@ -115,7 +115,7 @@ static std::filesystem::path fixFilenameFromWindowsPath(const Char *filename, In
 			}
 
 			#ifdef __linux__
-			// GeneralsX @bugfix BenderAI 11/05/2026 Linux: resolve case-insensitive paths from asset root.
+			// GeneralsX: Linux: resolve case-insensitive paths from asset root.
 			// Some cursor files are lowercase on disk (e.g. sccpointer.ani) while INI references mixed-case names.
 			// The existing case-insensitive traversal below only checks cwd, not the asset root fallback.
 			std::filesystem::path assetRootFixed = s_assetFallbackPath;
@@ -208,7 +208,7 @@ static std::filesystem::path fixFilenameFromWindowsPath(const Char *filename, In
 					return std::filesystem::path();
 				}
 
-				// GeneralsX @bugfix Claude 10/08/2026 Keep the accumulated path and take this component
+				// GeneralsX: Keep the accumulated path and take this component
 				// verbatim. This assigned `pathFixed = p` - which DISCARDED the whole accumulated prefix
 				// and left the bare component - and then fell into the `pathFixed /= pathFixedPart` below
 				// with pathFixedPart still EMPTY, which libc++ turns into a trailing separator. So an
@@ -344,7 +344,7 @@ void StdLocalFileSystem::getFileListInDirectory(const AsciiString& currentDirect
 	std::replace(fixedDirectory.begin(), fixedDirectory.end(), '\\', '/');
 #endif
 
-	// GeneralsX @bugfix Claude 23/09/2026 Search each directory at most once per top-level call.
+	// GeneralsX: Search each directory at most once per top-level call.
 	// A subdirectory is recursed into by its BARE name, so what gets searched is always
 	// originalDirectory + <some name>, and a name seen again is a directory already searched. A map
 	// unzipped into its own folder (Maps/X/X) or two folders naming each other (Maps/A/B, Maps/B/A)
@@ -477,7 +477,7 @@ AsciiString StdLocalFileSystem::normalizePath(const AsciiString& filePath) const
 	std::string nonNormalized(filePath.str());
 #ifndef _WIN32
 	// Replace backslashes with forward slashes on non-Windows platforms
-	// GeneralsX @bugfix BenderAI 13/02/2026 Fixed typo: unNormalized → nonNormalized
+	// GeneralsX: Fixed typo: unNormalized → nonNormalized
 	std::replace(nonNormalized.begin(), nonNormalized.end(), '\\', '/');
 #endif
 	std::filesystem::path pathNonNormalized(nonNormalized);

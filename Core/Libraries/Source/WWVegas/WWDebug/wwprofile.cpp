@@ -352,8 +352,8 @@ WWProfileHierarchyNodeClass	*	WWProfileManager::CurrentRootNode = &WWProfileMana
 int									WWProfileManager::FrameCounter = 0;
 __int64								WWProfileManager::ResetTime = 0;
 
-// GeneralsX @bugfix BenderAI 24/02/2026 Phase 5 - ThreadID type must match THREAD_ID on all platforms
-// GeneralsX @bugfix Claude 27/07/2026 thread_compat.h is the POSIX threading shim in
+// GeneralsX: Phase 5 - ThreadID type must match THREAD_ID on all platforms
+// GeneralsX: thread_compat.h is the POSIX threading shim in
 // CompatLib/Include; that directory is deliberately kept off the Windows include path because its
 // windows.h shadowed the real Windows SDK. Win32 already has ::GetCurrentThreadId() returning DWORD,
 // so no shim is needed there - match the stock upstream declaration instead. Same guard style as

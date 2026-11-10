@@ -30,7 +30,7 @@
 #include "internal_except.h"
 #include <windows.h>
 #include <commctrl.h>
-// GeneralsX @bugfix Claude 27/07/2026 GX_CTX_PC and friends - the x86 CONTEXT field names used
+// GeneralsX: GX_CTX_PC and friends - the x86 CONTEXT field names used
 // below (Eip/Esp/Ebp/Eax/.../FloatSave) do not exist in the x64 CONTEXT layout.
 #include "Utility/cpu_context_compat.h"
 
@@ -121,7 +121,7 @@ void DebugExceptionhandler::LogRegisters(Debug &dbg, struct _EXCEPTION_POINTERS 
 {
   struct _CONTEXT &ctx=*exptr->ContextRecord;
 
-  // GeneralsX @bugfix Claude 27/07/2026 The general-purpose register names are architecture
+  // GeneralsX: The general-purpose register names are architecture
   // specific; the segment registers and EFlags exist in both CONTEXT layouts.
   dbg << Debug::FillChar('0')
       << Debug::Hex()
@@ -173,7 +173,7 @@ void DebugExceptionhandler::LogFPURegisters(Debug &dbg, struct _EXCEPTION_POINTE
     return;
   }
 
-  // GeneralsX @bugfix Claude 27/07/2026 x87 state is x86-only. The x64 CONTEXT has no FloatSave
+  // GeneralsX: x87 state is x86-only. The x64 CONTEXT has no FloatSave
   // member - it carries an XMM_SAVE_AREA32 named FltSave, laid out differently - and x64 code does
   // its floating point in SSE, so dumping the x87 stack there would say nothing about the crash.
 #if !defined(_M_IX86)
@@ -227,7 +227,7 @@ static char regInfo[1024],verInfo[256];
 // and this saves us from doing a stack walk twice
 static DebugStackwalk::Signature sig;
 
-// GeneralsX @bugfix Claude 27/07/2026 DLGPROC returns INT_PTR, not BOOL. They are the same width
+// GeneralsX: DLGPROC returns INT_PTR, not BOOL. They are the same width
 // at 32-bit, which is why this went unnoticed; at x64 INT_PTR is 64-bit and the function pointer no
 // longer converts ("cannot convert argument 4 ... to DLGPROC").
 static INT_PTR CALLBACK ExceptionDlgProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)

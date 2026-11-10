@@ -31,7 +31,7 @@ void main() {
 
   // GX: the four fetches clamped to the source rect. DXVK fetches past the last texel at the right / bottom edge (with a weight
   // of 0 or more); on macOS its device enables no robustImageAccess2 (dxvk_adapter.cpp:472-475) and ours no robustImageAccess,
-  // so that read is undefined - clamped here it is the edge texel (Codex rw3L-code-r6 #1).
+  // so that read is undefined - clamped here it is the edge texel.
   ivec2 lim = src_offset + src_extent - 1;
 
   // Manually interpolate in the correct color space

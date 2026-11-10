@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 08/08/2026 Durable per-install player identity. See the header for the
+// GeneralsX: Durable per-install player identity. See the header for the
 // design and for the exact reason this is a bearer token rather than a keypair.
 //
 // DIGEST: GameClient/ is not in simsourcedigest_watcher.cmake's path list, so nothing in this file
@@ -99,12 +99,12 @@ AsciiString identityFilePath()
 Bool               s_verifiedLoaded = FALSE;
 GXAssertionClaims  s_claims = { { 0 }, { 0 }, 0, 0, GX_ROLE_PLAYER };
 Bool               s_verified = FALSE;
-// GeneralsX @bugfix Claude 23/09/2026 Set by a sign-out, cleared by a sign-in or reset(). While set, the bot
+// GeneralsX: Set by a sign-out, cleared by a sign-in or reset(). While set, the bot
 // reload in loadVerified() does not run: clearVerifiedIdentity() leaves s_assertionText empty, so a bot
 // file the sign-out could not delete - or one the host's timer wrote afterwards - always "differs" from it
 // and would sign the bot straight back in within a minute (review P3-2).
 Bool               s_signedOut = FALSE;
-// GeneralsX @feature Claude 11/08/2026 The raw assertion line, kept so the relay handshake can send
+// GeneralsX: The raw assertion line, kept so the relay handshake can send
 // the bytes rather than re-reading and re-parsing the file on the network path.
 //
 // WRITTEN ONLY ON GX_ASSERT_OK and cleared on every other status, so a document that did not verify
@@ -128,7 +128,7 @@ char               s_assertionText[GX_ASSERTION_MAX + 1] = { 0 };
 // The second is lifecycle: friends are forever and an assertion expires in thirty days. Deleting
 // the login must not risk the friend list, and it does not if they are not the same file.
 //
-// GeneralsX @feature Claude 23/09/2026 BOT MODE. Set only by our harness and a headless host's start
+// GeneralsX: BOT MODE. Set only by our harness and a headless host's start
 // script, never by a player's client. When set, this file IS the identity and ONLY a bot assertion is
 // accepted from it: a bot file dropped into a player's data dir does nothing (the player path verifies
 // under the identity key only), and Discord cannot write into a bot's run dir (GXLoginFlow::start
@@ -161,7 +161,7 @@ AsciiString assertionFilePath()
 // reload's cheap "did the bytes change" test, and NOTHING ELSE: the bytes a relay is sent are the ones
 // the loader verified (loadFile's `text`), never a second read of the file (review P3-1).
 //
-// GeneralsX @bugfix Claude 18/09/2026 With a stream buffer that is OURS, and wiped, for the reason
+// GeneralsX: With a stream buffer that is OURS, and wiped, for the reason
 // GXIdentityAssertion::loadFileWithKey gives: stdio's own would be freed at fclose still holding
 // the whole sign-in.
 void readFirstLine(const char *path, char *out, size_t cap)
@@ -194,11 +194,11 @@ void loadVerified()
 	// the same instant rather than a clock that moved between two of them.
 	const long long nowS = (long long)time(NULL);
 
-	// GeneralsX @feature Claude 23/09/2026 A bot's file is renewed underneath a running process (the host's
+	// GeneralsX: A bot's file is renewed underneath a running process (the host's
 	// 6-hourly timer). At most once a minute, and a full re-verify only when the BYTES changed; bot mode only -
 	// a player's file changes only through GXLoginFlow, which reloads explicitly (refreshVerifiedIdentity).
 	// gxDeclareIdentityIfChanged then re-declares the new assertion, because its fingerprint moved.
-	// GeneralsX @bugfix Claude 23/09/2026 The decision is GXIdentityAssertion::botRecheckDue/botReloadNeeded,
+	// GeneralsX: The decision is GXIdentityAssertion::botRecheckDue/botReloadNeeded,
 	// pure, so gxidtest drives it (review P2) - and it re-verifies a held login that has EXPIRED with the
 	// file unchanged, so that is refused and logged rather than declared until the process exits (review P3).
 	static long long s_botCheckedAt = 0;
@@ -214,7 +214,7 @@ void loadVerified()
 	if (s_verifiedLoaded)
 		return;
 	s_verifiedLoaded = TRUE;
-	// GeneralsX @feature Claude 20/09/2026 THE CHAT EXEMPTION IS CLEARED FIRST, so every path out of
+	// GeneralsX: THE CHAT EXEMPTION IS CLEARED FIRST, so every path out of
 	// this function that is not "a verified admin" leaves it off - absent, expired, malformed, wrong
 	// signer, and a reload that used to succeed and no longer does. Set only on the GX_ASSERT_OK
 	// branch below. ChatRateLimit.h explains why a client may hold this at all (it is pacing, not
@@ -224,10 +224,10 @@ void loadVerified()
 	const AsciiString path = assertionFilePath();
 
 	// Bot mode accepts ONLY a bot assertion, the player path ONLY a production one - never either.
-	// GeneralsX @bugfix Claude 23/09/2026 The loader hands back the line it VERIFIED, on OK only. This used to
+	// GeneralsX: The loader hands back the line it VERIFIED, on OK only. This used to
 	// re-read the file for the bytes, and a bot's file is replaced under a running process: a swap between
 	// the two reads held - and sent - bytes nothing had checked (review P3-1).
-	// GeneralsX @bugfix Claude 23/09/2026 INTO LOCALS, adopted only on OK: a bot reload that is refused must
+	// GeneralsX: INTO LOCALS, adopted only on OK: a bot reload that is refused must
 	// not throw away a held login that is still valid - see the refusal below (review P3).
 	GXAssertionClaims claims = { { 0 }, { 0 }, 0, 0, GX_ROLE_PLAYER };
 	char text[GX_ASSERTION_MAX + 1];
@@ -238,7 +238,7 @@ void loadVerified()
 
 	if (st == GX_ASSERT_OK)
 	{
-		// GeneralsX @bugfix Claude 18/09/2026 THE WHOLE BUFFER, not the first byte: a SHORTER assertion than
+		// GeneralsX: THE WHOLE BUFFER, not the first byte: a SHORTER assertion than
 		// the one held before would otherwise leave the rest of the previous token behind the terminator -
 		// the same tail GXLobbyIdentity::set clears for the lobby copy.
 		gxSecureClear(s_assertionText);
@@ -253,7 +253,7 @@ void loadVerified()
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 23/09/2026 A REFUSED BOT RELOAD KEEPS A HELD LOGIN THAT IS STILL VALID (review
+	// GeneralsX: A REFUSED BOT RELOAD KEEPS A HELD LOGIN THAT IS STILL VALID (review
 	// P3). One unreadable, missing or bad read at the minute check used to drop a login with up to 24 h left;
 	// gxDeclareIdentityIfChanged then sent the relay a clear, and under enforcement the host was dropped. The
 	// held bytes are the ones verified when they were adopted, so nothing unchecked is sent; the next minute
@@ -353,11 +353,11 @@ Bool mintPlayerId(char *out)
 	return TRUE;
 }
 
-// GeneralsX @bugfix Claude 22/10/2026 What the read found. ONLY a file that is not there (ENOENT) is a first start.
+// GeneralsX: What the read found. ONLY a file that is not there (ENOENT) is a first start.
 // Every other failure - no read permission, a sharing violation, a OneDrive placeholder that cannot be fetched, a
 // directory in its place, a read error part way - used to look exactly like one: ensureLoaded() minted a new id and
-// save() moved a file holding only that over the player's, and their identity and every friend were gone (Codex
-// uow-r1 P1). Such a file is now left exactly as it is and the session has no identity, as a CSPRNG failure gives.
+// save() moved a file holding only that over the player's, and their identity and every friend were gone.
+// Such a file is now left exactly as it is and the session has no identity, as a CSPRNG failure gives.
 enum StoreRead
 {
 	STORE_LOADED,
@@ -547,7 +547,7 @@ Bool GXPlayerIdentity::isFriend(const char *id)
 	return s_friends.find(AsciiString(id)) != s_friends.end() ? TRUE : FALSE;
 }
 
-// GeneralsX @feature Claude 08/08/2026 See the header. This exists because the lobby can now
+// GeneralsX: See the header. This exists because the lobby can now
 // resolve a room slot to an id, so "what do I call this person" is finally a lookup BY ID rather
 // than the name-against-name scan every caller used to have to do.
 const char *GXPlayerIdentity::getFriendNickById(const char *id)
@@ -650,7 +650,7 @@ Bool GXPlayerIdentity::save()
 	if (s_playerId[0] == '\0' || s_storeUnreadable)
 		return FALSE;	// nothing worth writing, and writing an empty id would poison the file
 
-	// GeneralsX @bugfix Claude 23/09/2026 Written beside the file and swapped into place. Truncating
+	// GeneralsX: Written beside the file and swapped into place. Truncating
 	// the live file first means a crash or a full disk between here and the last fprintf leaves an
 	// EMPTY identity file, and ensureLoaded() would then mint a new player id - the player loses
 	// who they are and every friend. On Windows it lives under Documents, which OneDrive syncs.
@@ -691,7 +691,7 @@ void GXPlayerIdentity::reset()
 	s_verifiedLoaded = FALSE;
 	s_verified = FALSE;
 	s_signedOut = FALSE;
-	// GeneralsX @feature Claude 20/09/2026 ...and the chat exemption with it. Clearing
+	// GeneralsX: ...and the chat exemption with it. Clearing
 	// s_verifiedLoaded means loadVerified() will re-run and clear this anyway, but only at the next
 	// call that happens to need the identity - and a chat send does not. Cleared HERE so the window
 	// between reset() and that call cannot exist at all.
@@ -727,7 +727,7 @@ const char *GXPlayerIdentity::getVerifiedName()
 	return s_verified ? s_claims.name : "";
 }
 
-// GeneralsX @feature Claude 11/08/2026 See the note by s_assertionText. "" when there is no
+// GeneralsX: See the note by s_assertionText. "" when there is no
 // verified identity, so a caller that forgets to check hasVerifiedIdentity() sends nothing rather
 // than something stale.
 const char *GXPlayerIdentity::getVerifiedAssertionText()
@@ -786,13 +786,13 @@ GXSignInRemoval GXPlayerIdentity::clearVerifiedIdentity()
 {
 	const AsciiString path = assertionFilePath();
 
-	// GeneralsX @bugfix Claude 18/09/2026 The file half lives in GXSignOutFiles.h, pure, so a test
+	// GeneralsX: The file half lives in GXSignOutFiles.h, pure, so a test
 	// can hold its properties against real files: the interrupted write's .tmp goes too (a bearer
 	// token on disk, even if nothing reads it), a file that was ALREADY absent counts as gone rather
 	// than as a failure, and a surviving main file is told apart from a surviving copy - only the
 	// first signs the player back in next launch, so only the first may be reported that way.
 	//
-	// GeneralsX @bugfix Claude 23/09/2026 NOT IN BOT MODE (review P3). GX_IDENTITY_FILE is the operator's,
+	// GeneralsX: NOT IN BOT MODE (review P3). GX_IDENTITY_FILE is the operator's,
 	// and the harnesses hand ONE path to every peer, so one GUI /logout deleted every peer's login. The
 	// in-memory sign-out below still holds (s_signedOut); the file stays, so the next launch signs the bot
 	// in again - which is exactly what GX_SIGNIN_FILE_SURVIVED tells the player.
@@ -806,7 +806,7 @@ GXSignInRemoval GXPlayerIdentity::clearVerifiedIdentity()
 	s_verified = FALSE;
 	s_signedOut = TRUE;		// and stays out: see s_signedOut - the bot reload would undo it
 	/*
-	 * GeneralsX @bugfix Claude 20/09/2026 THE CHAT EXEMPTION GOES ON SIGN-OUT, and it has to be done
+	 * GeneralsX: THE CHAT EXEMPTION GOES ON SIGN-OUT, and it has to be done
 	 * HERE rather than left to loadVerified().
 	 *
 	 * This function sets s_verifiedLoaded = TRUE deliberately - the line above - so that
@@ -818,14 +818,14 @@ GXSignInRemoval GXPlayerIdentity::clearVerifiedIdentity()
 	 */
 	ChatRate::setSharedExempt(false);
 	memset(&s_claims, 0, sizeof(s_claims));
-	// GeneralsX @bugfix Claude 18/09/2026 The raw assertion too. getVerifiedAssertionText() already
+	// GeneralsX: The raw assertion too. getVerifiedAssertionText() already
 	// refuses to return it once s_verified is FALSE, so this was unreachable rather than exposed -
 	// but it was the bearer token itself, still sitting in process memory after a sign-out.
 	memset(s_assertionText, 0, sizeof(s_assertionText));
 	return removed;
 }
 
-// GeneralsX @feature Claude 11/08/2026 See the header. One CSPRNG byte per character, masked to
+// GeneralsX: See the header. One CSPRNG byte per character, masked to
 // five bits - wasteful of entropy and trivially uniform, which is the right trade for a nonce.
 Bool GXPlayerIdentity::mintNonce( char *out, Int chars )
 {

@@ -288,7 +288,7 @@ protected:
 	virtual void loadPostProcess() override;
 
 private:
-	// GeneralsX @fix Claude 23/09/2026 30 Hz frames: every use (the throttle and both resets) goes
+	// GeneralsX: 30 Hz frames: every use (the throttle and both resets) goes
 	// through GX_FRAMES30, or units re-path a moving goal twice as often per second at 60 Hz.
 	enum { MIN_REPATH_TIME = 10 };										///< minimum # of frames must elapse before re-pathing
 protected:
@@ -472,7 +472,7 @@ protected:
 
 private:
 
-	enum { MIN_RECOMPUTE_TIME = 10 };	// 30 Hz frames; used through GX_FRAMES30 (GeneralsX @fix Claude 23/09/2026)
+	enum { MIN_RECOMPUTE_TIME = 10 };	// 30 Hz frames; used through GX_FRAMES30 (GeneralsX:)
 
 	StateReturnType updateInternal();
 
@@ -521,7 +521,7 @@ protected:
 
 private:
 
-	enum { MIN_RECOMPUTE_TIME = 10 };	// 30 Hz frames; used through GX_FRAMES30 (GeneralsX @fix Claude 23/09/2026)
+	enum { MIN_RECOMPUTE_TIME = 10 };	// 30 Hz frames; used through GX_FRAMES30 (GeneralsX:)
 
 	StateReturnType updateInternal();
 

@@ -279,9 +279,9 @@ void reallySaveReplay()
 	if (oldFilename == filename)
 		return;
 
-	// GeneralsX @bugfix Claude 22/10/2026 Copied beside the saved replay and swapped in whole (GXReplaceFile.h). The
+	// GeneralsX: Copied beside the saved replay and swapped in whole (GXReplaceFile.h). The
 	// replay being replaced used to be DELETED first, so a copy that then failed - LastReplay.rep unreadable or gone,
-	// a full disk - had already lost it (file-wipe class, Codex fwc-r1). On any failure it is exactly as it was.
+	// a full disk - had already lost it (file-wipe class). On any failure it is exactly as it was.
 	if (!gxCopyAndReplace(oldFilename.str(), filename.str()))
 	{
 		wchar_t buffer[1024];

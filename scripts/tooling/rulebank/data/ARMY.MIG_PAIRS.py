@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 31/10/2026 rule bank DATA rule ARMY.MIG_PAIRS (C·rb-data-5): vanilla China keeps its MiGs in pairs. Stock Hard
+# GeneralsX: rule bank DATA rule ARMY.MIG_PAIRS (C·rb-data-5): vanilla China keeps its MiGs in pairs. Stock Hard
 # vanilla China's air waves ("3RD Wave Air" up to 4, "4TH Wave Air B" up to 2) and the 3rd/4th/5th-wave Guard Combat Zone teams (up to 2)
 # all have a MiG minimum of 0, so a lone MiG is a whole team and flies alone. Here every such team's MiG minimum becomes
 # min(mig_team_size, its own maximum): the team is not formed until a pair (or a team of that size) exists. Maximums, the 2nd-wave guard

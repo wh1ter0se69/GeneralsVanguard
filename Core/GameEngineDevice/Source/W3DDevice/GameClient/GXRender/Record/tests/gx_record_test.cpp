@@ -1,4 +1,4 @@
-// GeneralsX @test E · rw2-F1 11/10/2026 WS-F1 gates: gx_record_test - GxPacketWriter v1 and its pass graph.
+// GeneralsX: WS-F1 gates: gx_record_test - GxPacketWriter v1 and its pass graph.
 //
 //   gx_record_test [--arm NAME[,NAME...]|all] [--msaa N] [--no-validation] [--device SEL] [--loader PATH]
 //
@@ -24,26 +24,26 @@
 //                     GxOrderCheck (sync validation cannot see instance reads) and by pixels
 //   vertex-order      the same with the per-vertex buffer rewritten
 //   clear-outside     a pass whose whole clear is still its pending load op, read by outsideScope() work: the copy sees
-//                     the clear (Codex rw2-F1-r1 #1)
-//   upload-then-clear a copy into a render-target texture, then a whole clear of it: the clear wins (Codex rw2-F1-r2 #1)
+//                     the clear
+//   upload-then-clear a copy into a render-target texture, then a whole clear of it: the clear wins
 //   rt-mips           a CLEAR of level 0 keeps level 1: the barrier's old layout is not UNDEFINED, level 1 reads back
-//                     (Codex rw2-F1-r2 #2)
+//
 //   upload-then-pass-clear  a copy into a render-target texture, then a NEW pass on it whose load op clears: the clear wins,
-//                     in a clear-only frame and with a draw (Codex rw2-F1-r3 #1)
+//                     in a clear-only frame and with a draw
 //   forget-before-flush a barrier queued for an image, then forget() before any flush: no queued barrier names the image
-//                     (its handle may be freed before endFrame records them - Codex rw2-F1-r5 #1)
+//                     (its handle may be freed before endFrame records them)
 //   outside-unknown-write  outsideScope() work clears a texture and leaves it SHADER_READ_ONLY with nothing made visible; the
-//                     next sampled use must queue a barrier - the tracker's own answer is the detector (Codex rw2-F1-r15 #2)
+//                     next sampled use must queue a barrier - the tracker's own answer is the detector
 //   texture-refusal   a draw with a texture that has no image is refused before the tracker sees it; the same draw with a
-//                     real texture is drawn (Codex rw2-F1-r14 #2: a null view is never written to a descriptor)
+//                     real texture is drawn (a null view is never written to a descriptor)
 //   stride-limits     keyed FF draws with a stride equal to the attribute extent (drawn), below it (UP and a stream: refused
-//                     before anything is recorded) and 0 (drawn) (Codex rw2-F1-r9 #1)
+//                     before anything is recorded) and 0 (drawn)
 //   hoist-*           upload hoisting (D · rw3-T-4, PREREG_T A18), at the run's --msaa: an upload into a resource the frame has
 //                     not touched is recorded into the frame's init command buffer (no split, new bytes); touched by a draw,
 //                     a main-buffer copy or a copy FROM it, it splits as before; WAR across frames in flight; textures the
 //                     tracker knows / has never seen, hoisted and sampled later in the frame - armHoist() lists them
 //   sampler-limits    samplers with a D3D LOD bias of +-100: created within the device's maxSamplerLodBias, and 0 on a
-//                     portability device without samplerMipLodBias (Codex rw2-F1-r6 #1); MIRRORONCE on this device, then
+//                     portability device without samplerMipLodBias; MIRRORONCE on this device, then
 //                     with the feature assumed absent: the MIRRORED_REPEAT fallback is taken and counted (r7 #1) - core
 //                     validation must stay clean
 // Fail arms (PASS = the named detector fires):
@@ -69,22 +69,22 @@
 //                     (listed unless GX_VK_SUBMIT_THREAD=0; the clean proof is every hoist arm passing with GX_VK_SUBMIT_THREAD=1)
 //   X-foreign-submit  check mode OFF: a GXRES immediate() inside an open frame -> counted (production aborts) (review P2):
 //                     between two draws (the draw-time check) and after the last draw (endFrame's check alone, review r2 P3 #3)
-//   X-order-units     GxOrderCheck's own regression cases (Codex rw2-F1-r1/r2/r3): a partial buffer barrier, two insufficient
+//   X-order-units     GxOrderCheck's own regression cases: a partial buffer barrier, two insufficient
 //                     dependencies, a host-signalled wait, a signal whose stage mask excludes the producer, a colour-only
 //                     barrier after a depth store, two barriers of ONE command forming a "chain", a barrier on mip level 1
 //                     after a level-0 store, a destroyed image's history meeting its handle's next image (writer forget), an
 //                     UpdateBuffer ordered by a CLEAR (not COPY) barrier as the Khronos layer has it, a chain through an ALL_COMMANDS destination, a wait
-//                     on an old signal widened by a later barrier (Codex rw2-F1-r4), a stencil store behind a depth
-//                     DONT_CARE in one D24S8 instance, then a stencil LOAD (Codex rw2-F1-r5 #2), an ALL_GRAPHICS
-//                     destination "chained" to a COMPUTE_SHADER source (Codex rw2-F1-r6 #2), chains through a
+//                     on an old signal widened by a later barrier, a stencil store behind a depth
+//                     DONT_CARE in one D24S8 instance, then a stencil LOAD, an ALL_GRAPHICS
+//                     destination "chained" to a COMPUTE_SHADER source, chains through a
 //                     PRE_RASTERIZATION_SHADERS and a TOP_OF_PIPE destination (valid) and a BOTTOM_OF_PIPE one (none, r7 #2);
 //                     coverage (render-integration's bar): a fill inside a SECONDARY, a SUSPENDING/RESUMING pair (one
 //                     instance) and a new instance after it, a v1 vkCmdPipelineBarrier, vkCmdCopyBuffer2 writes, a v1
 //                     vkQueueSubmit counted as unchecked; a DONT_CARE store as a write, a depth LOAD ordered by a dependency
-//                     to EARLY_FRAGMENT_TESTS (Codex rw2-F1-r8); a dynamic-rendering resolve and a primary recorded
-//                     before install() are COUNTED as unchecked (Codex rw2-F1-r9); a command buffer begun before install()
+//                     to EARLY_FRAGMENT_TESTS; a dynamic-rendering resolve and a primary recorded
+//                     before install() are COUNTED as unchecked; a command buffer begun before install()
 //                     and finished after is unchecked, a timeline wait a host value already satisfied credits no GPU signal
-//                     (Codex rw2-F1-r10); a command buffer observed before an uninstall and re-recorded while uninstalled is
+//                     a command buffer observed before an uninstall and re-recorded while uninstalled is
 //                     unchecked, a destroyed semaphore's signals never credit the new semaphore reusing its handle (r11); a
 //                     signal credits only the pieces of a split write in its scope, a pre-reinstall pipeline is unknown (r12);
 //                     a STORE_OP_NONE instance counts as a write (r13); a buffer recorded before forget() and submitted late
@@ -1039,7 +1039,7 @@ void colourImageBarrier(VkCommandBuffer cmd, VkImage img, uint32_t mip, VkPipeli
 	vkCmdPipelineBarrier2(cmd, &d);
 }
 
-// X-order-units: GxOrderCheck's own regression cases (Codex rw2-F1-r1 #2-#5). Each case plants an incomplete dependency the
+// X-order-units: GxOrderCheck's own regression cases. Each case plants an incomplete dependency the
 // pre-r1 checker accepted, next to its correctly synchronised control; the arm PASSES when every case moves the right
 // counter by exactly its expected amount. (The planted ones are real hazards on purpose: the layer's verdict is reported only.)
 bool armOrderUnits(Env& e, std::string* d)
@@ -1103,7 +1103,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		ctx.waitIdle();
 		const uint64_t got = GxOrderCheck::counts().*field - before;
 		const uint32_t vvl = ctx.validation().syncHazards - vvlBefore;   // the layer's view of the same case (reported only)
-		// the case's unordered write must not carry into the next case (CLAUDE-ONLY review P3 #6): one global barrier orders it
+		// the case's unordered write must not carry into the next case: one global barrier orders it
 		if (w.beginFrame()) {
 			w.outsideScope([](VkCommandBuffer cmd) {
 				memoryBarrier(cmd, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, VK_ACCESS_2_MEMORY_WRITE_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
@@ -1211,7 +1211,7 @@ bool armOrderUnits(Env& e, std::string* d)
 			memoryBarrier(cmd, FRAG, 0, VAI, VAR);
 		}, noSync);
 	});
-	// Codex r4 #2 claimed vkCmdUpdateBuffer is a COPY-stage write. The Khronos layer says CLEAR ("TRANSFER_WRITE at
+	// claimed vkCmdUpdateBuffer is a COPY-stage write. The Khronos layer says CLEAR ("TRANSFER_WRITE at
 	// VK_PIPELINE_STAGE_2_CLEAR_BIT", VVL 1.4.357, per-vertex reads it can see): a CLEAR-source barrier orders it, a COPY-source one
 	// does not. The layer's hazard count is printed next to each case and must agree with the checker (control 0, plant > 0).
 	auto vbBuf = [&]() { return vb.bind(w.frameValue()).buffer; };
@@ -1357,7 +1357,7 @@ bool armOrderUnits(Env& e, std::string* d)
 	};
 	runCase("suspend-resume (control)", &GxOrderCheck::Counts::attachmentViolations, 0, [&] { suspendResume(false); });
 	runCase("suspend-resume-then-load", &GxOrderCheck::Counts::attachmentViolations, 1, [&] { suspendResume(true); });
-	// Codex rw3-P-ordercheck-r1 #1: TOP_OF_PIPE / BOTTOM_OF_PIPE widen only the EXECUTION scope (sync2: empty access scope) - a
+	// TOP_OF_PIPE / BOTTOM_OF_PIPE widen only the EXECUTION scope (sync2: empty access scope) - a
 	// BOTTOM source with MEMORY_WRITE makes nothing available, a TOP destination makes nothing visible
 	runCase("bottom-src-memwrite", &GxOrderCheck::Counts::instanceViolations, 1, [&] {
 		oneFrame([&](VkCommandBuffer cmd) {
@@ -1414,7 +1414,7 @@ bool armOrderUnits(Env& e, std::string* d)
 	runCase("clear-after-store-no-write-visibility", &GxOrderCheck::Counts::attachmentViolations, 1, [&] { clearTwice(0); });
 	runCase("clear-after-store (control)", &GxOrderCheck::Counts::attachmentViolations, 0,
 		[&] { clearTwice(VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT); });
-	// Codex rw3-P-oc-r1 #1: MEMORY_WRITE covers the attachment write, MEMORY_READ does not
+	// MEMORY_WRITE covers the attachment write, MEMORY_READ does not
 	runCase("clear-after-store-memwrite (control)", &GxOrderCheck::Counts::attachmentViolations, 0,
 		[&] { clearTwice(VK_ACCESS_2_MEMORY_WRITE_BIT); });
 	runCase("clear-after-store-memread-only", &GxOrderCheck::Counts::attachmentViolations, 1,
@@ -1614,7 +1614,7 @@ bool armOrderUnits(Env& e, std::string* d)
 		s3.waits.push_back({ gpuSem, 4, VAI });
 		oneFrame([](VkCommandBuffer) {}, s3);
 	});
-	// Codex rw3-P-oc-r1 #2: a wait at TOP_OF_PIPE waits for every command and makes every device access visible (not a barrier's
+	// a wait at TOP_OF_PIPE waits for every command and makes every device access visible (not a barrier's
 	// empty TOP access scope)
 	runCase("signalled-wait-top (control)", &GxOrderCheck::Counts::instanceViolations, 0, [&] {
 		Vk::SubmitDesc s1;
@@ -2006,7 +2006,7 @@ bool armOrderUnits(Env& e, std::string* d)
 }
 
 // clear-outside: a whole-attachment clear that is still the pending load op must land before outsideScope() work reads the
-// attachment (Codex rw2-F1-r1 #1). The copy-out reads the cleared colour.
+// attachment. The copy-out reads the cleared colour.
 bool armClearOutside(Env& e, std::string* d)
 {
 	GxPacketWriter& w = *e.writer;
@@ -2079,7 +2079,7 @@ bool hostAndTarget(Env& e, uint32_t w, uint32_t h, uint32_t levels, uint32_t arg
 }
 
 // upload-then-clear: a copy into the render-target texture queued BEFORE a whole clear of it must land before the clear
-// (Codex rw2-F1-r2 #1): copy red, clear blue -> blue.
+// copy red, clear blue -> blue.
 bool armUploadThenClear(Env& e, std::string* d)
 {
 	GxPacketWriter& w = *e.writer;
@@ -2116,7 +2116,7 @@ bool armUploadThenClear(Env& e, std::string* d)
 }
 
 // upload-then-pass-clear: a copy into a render-target texture queued BEFORE a NEW pass on it (another attachment was current)
-// whose load op clears must land before that clear (Codex rw2-F1-r3 #1): copy red, beginPass(clear blue) -> blue, (a) in a
+// whose load op clears must land before that clear: copy red, beginPass(clear blue) -> blue, (a) in a
 // clear-only frame (endFrame executes the clear) and (b) with a green quad drawn in the pass (the draw's recordUploads).
 bool armUploadThenPassClear(Env& e, std::string* d)
 {
@@ -2172,7 +2172,7 @@ bool armUploadThenPassClear(Env& e, std::string* d)
 }
 
 // forget-before-flush: a barrier queued for an image (need() without a flush), then forget() - as before destroying it. No
-// queued barrier may still name the image: a never-submitted image can be freed before endFrame records them (Codex rw2-F1-r5 #1).
+// queued barrier may still name the image: a never-submitted image can be freed before endFrame records them.
 bool armForgetBeforeFlush(Env& e, std::string* d)
 {
 	GxPacketWriter& w = *e.writer;
@@ -2197,7 +2197,7 @@ bool armForgetBeforeFlush(Env& e, std::string* d)
 
 // outside-unknown-write: outsideScope() work writes a texture (a clear) and leaves it in SHADER_READ_ONLY_OPTIMAL WITHOUT making
 // the write visible (dst access 0). The tracker must treat it as an unknown write, not as GXRES' upload guarantee that the layout
-// alone would imply: the next sampling draw gets a barrier, and sync validation stays clean (Codex rw2-F1-r15 #2).
+// alone would imply: the next sampling draw gets a barrier, and sync validation stays clean.
 bool armOutsideUnknownWrite(Env& e, std::string* d)
 {
 	GxPacketWriter& w = *e.writer;
@@ -2267,8 +2267,8 @@ bool armOutsideUnknownWrite(Env& e, std::string* d)
 }
 
 // texture-refusal: a texture with no image (here: never initialised) must be refused before the tracker or a descriptor sees it
-// (Codex rw2-F1-r14 #2); a real texture in the same slot is drawn.
-// pass-draws (PREREG_T A22 (a); Codex a22-r1 P1, r4 #7): the writer's per-pass draw counts equal the parent's - the pass name is
+// a real texture in the same slot is drawn.
+// pass-draws (PREREG_T A22 (a); r4 #7): the writer's per-pass draw counts equal the parent's - the pass name is
 // read at EVERY draw (the caller may rewrite the borrowed bytes after beginPass), and a pass with no draw makes no entry.
 // X-pass-draws-stale plants the r1 defect (the counter resolved once per pass): the same checks must fail.
 bool armPassDraws(Env& e, std::string* d)
@@ -2352,7 +2352,7 @@ bool armTextureRefusal(Env& e, std::string* d)
 
 // stride-limits: a keyed FF draw (position FLOAT3 + colour + uv = 24-byte extent on binding 0) with stride 24 is drawn; with a
 // nonzero stride below the extent (UP 4, a stream 8) it must be REFUSED before anything is recorded - core validation would
-// report VUID-vkCmdBindVertexBuffers2-pStrides-06209 otherwise; stride 0 is valid and drawn (Codex rw2-F1-r9 #1).
+// report VUID-vkCmdBindVertexBuffers2-pStrides-06209 otherwise; stride 0 is valid and drawn.
 bool armStrideLimits(Env& e, std::string* d)
 {
 	GxPacketWriter& w = *e.writer;
@@ -2414,7 +2414,7 @@ bool armStrideLimits(Env& e, std::string* d)
 }
 
 // sampler-limits: D3D lets a stage ask any LOD bias; the device takes |bias| <= maxSamplerLodBias, and a portability device
-// without samplerMipLodBias takes none (Codex rw2-F1-r6 #1). D3DTADDRESS_MIRRORONCE needs samplerMirrorClampToEdge: on this
+// without samplerMipLodBias takes none. D3DTADDRESS_MIRRORONCE needs samplerMirrorClampToEdge: on this
 // device as it is, then with the feature assumed absent (the fallback must be taken and counted - r7 #1). Core validation is
 // the detector for the invalid samplers (the arm runs with it on).
 bool armSamplerLimits(Env& e, std::string* d)
@@ -2445,7 +2445,7 @@ bool armSamplerLimits(Env& e, std::string* d)
 	return ok && f2 - f1 == 1;
 }
 
-// rt-mips: a CLEAR (discard) on a render-target texture's level 0 must not drop its other levels (Codex rw2-F1-r2 #2). Checked
+// rt-mips: a CLEAR (discard) on a render-target texture's level 0 must not drop its other levels. Checked
 // on the barrier itself (an UNDEFINED old layout drops every level; drivers may keep the bytes, so pixels alone cannot
 // prove it) and on level 1's pixels.
 bool armRtMips(Env& e, std::string* d)
@@ -2594,7 +2594,7 @@ bool armGpuTime(Env& e, std::string* d, bool plantNoEnd)
 	return got.size() + missing == kReads && missing <= 1 && inRange == got.size() && onePass == got.size();
 }
 
-// gputime-lost / X-gputime-lost (Codex gpu-r1 P2): a frame whose submission fails never runs its query reset, so its set must
+// gputime-lost / X-gputime-lost: a frame whose submission fails never runs its query reset, so its set must
 // count as MISSING and never be read - reading it 8 frames later returns the stamps of the frame before (stale, but "available").
 // 16 frames run, the device idles, VkCtx::simulateDeviceLost() makes every later submission fail, 16 more frames: 16 samples (the
 // frames that ran) + 16 missing. S7 A101 (host reset): a failed frame stays MISSING by two layers - endFrame disarms its set, and its
@@ -2657,7 +2657,7 @@ bool armGpuTimeLost(Env& e, std::string* d, int mode)
 	return got.size() == 2 * kSets && missing == kFrames && failedSubmits == kFrames;
 }
 
-// gputime-full (Codex A17 P2): a frame that runs out of scopes carries its refusal with its OWN sample, read 8 frames later. The
+// gputime-full (A17 P2): a frame that runs out of scopes carries its refusal with its OWN sample, read 8 frames later. The
 // runner's timer has 4 scopes; each frame takes the frame scope and 3 named scopes, so its clear-only pass is refused: every sample
 // must say refused >= 1 and keep a valid whole-frame ms.
 bool armGpuTimeFull(Env& e, std::string* d)
@@ -3537,7 +3537,7 @@ bool armGpuTimeInit(Env& e, std::string* d, int mode)
 		shadowNone += g.shadow == GxPacketWriter::ShadowNone && g.shadowMs < 0.f;
 		if (g.logicFrame >= 1000) {
 			const uint32_t odd = (g.logicFrame - 1000) & 1;
-			fr[odd].push_back(g.ms);   // by the frame's own id (Codex p4-code-r1 #5's rule)
+			fr[odd].push_back(g.ms);   // by the frame's own id
 			srcWrong += g.frameFromInit != (odd && mode != 2);   // A101: INIT frames read frame_init, the others MAIN
 			if (odd && g.mainMs >= 0.f) {
 				overMain.push_back(g.ms - g.mainMs);
@@ -3579,7 +3579,7 @@ bool armGpuTimeInit(Env& e, std::string* d, int mode)
 	return true;
 }
 
-// gputime-initcast / X-gputime-casterhook (A101 r6a, Codex p4b-design-r1 #1): INIT opened ONLY by the caster pass (key on, no uploads).
+// gputime-initcast / X-gputime-casterhook (A101 r6a): INIT opened ONLY by the caster pass (key on, no uploads).
 // 48 frames with the casters on. Pass: >= 16 reads, EVERY sample's frame read from frame_init (frameFromInit), no unstamped INIT, the
 // shadow pair read in every sample and inside it (frame >= shadow). X- (gpuCasterBypass: the caster pass opens INIT past initCmdGpu): no
 // frame_init - every frame MISSING, counted unstamped (returns true when that symptom is seen).
@@ -3809,7 +3809,7 @@ bool armGpuTimeShadow(Env& e, std::string* d, bool planted)
 		*d += "(frame reads missing) ";
 		return false;
 	}
-	if (planted) {   // Codex p4-code-r3 #2: only the PLANTED outcome detects - every expected shadow MISSING and its time recovered under
+	if (planted) {   // only the PLANTED outcome detects - every expected shadow MISSING and its time recovered under
 		             // present, with the no-pass control intact; any other failure (plain unavailability) is not a detection
 		if (miss[0] == n[0] && present[0] == n[0] && none[1] == n[1] && present[1] == 0) {
 			++e.wrong;
@@ -3853,7 +3853,7 @@ bool armGpuTimeShadowUpload(Env& e, std::string* d)
 	bool ok = true;
 	const uint64_t copies0 = e.res->stats().bufferCopies;
 	for (uint32_t i = 0; i < 2 * kPairs && ok; ++i) {
-		w.setLogicFrame(2000 + i);   // Codex p4-code-r1 #5: each read classified by its own frame id, never by its position
+		w.setLogicFrame(2000 + i);   // each read classified by its own frame id, never by its position
 		ok = f.frame(e, true, (i & 1) ? &big : nullptr, &bytes);
 	}
 	w.setLogicFrame(0);
@@ -3888,7 +3888,7 @@ bool armGpuTimeShadowUpload(Env& e, std::string* d)
 	return true;
 }
 
-// S7 (Codex code-p0b-r1): sm-two-cascades = two cascade rects in ONE atlas (128x64), the same caster replayed into both: both
+// S7: sm-two-cascades = two cascade rects in ONE atlas (128x64), the same caster replayed into both: both
 // rects must hold its depth, sync validation silent (X-: the barrier between the two rendering instances removed - the
 // detector is GxOrderCheck's attachment order: sync validation reports no hazard for disjoint render areas of one image).
 // sm-stride = a cast-only caster whose stride (8) is below its float3 position: skipped as a format skip, nothing replayed.
@@ -3996,7 +3996,7 @@ bool armShadowMisc(Env& e, std::string* d, const std::string& arm)
 //   sm-bias-clamp: the device's own feature - with it the offset is 8 +- 3 and the clamp was sent; without it, the guard's case below.
 //   sm-bias-guard: Debug.noBiasClampFeature (behave as a device without depthBiasClamp) - offset >= 800, clamp 0 sent, one drop counted.
 //   X-sm-bias-guard: the same + Debug.noBiasGuard (the clamp sent anyway): sm-bias-guard's probe must read the CLAMPED offset (8 +- 3),
-//   validation silent. Only on a device whose enabled depthBiasClamp is true (Codex a73-design-r1 #5): without it the plant would send an
+//   validation silent. Only on a device whose enabled depthBiasClamp is true: without it the plant would send an
 //   invalid clamp, so the arm reports the precondition and is NOT DETECTED.
 bool armShadowBias(Env& e, std::string* d, const std::string& arm)
 {
@@ -4004,7 +4004,7 @@ bool armShadowBias(Env& e, std::string* d, const std::string& arm)
 	R::GxResources& res = *e.res;
 	const bool feature = e.ctx->features().depthBiasClamp;
 	const bool asNone = arm != "sm-bias-clamp" || !feature;   // the guard must drop the clamp
-	if (arm == "X-sm-bias-guard" && !feature) {   // Codex a73-code-r1 #1: never send the plant's clamp to a device without the feature
+	if (arm == "X-sm-bias-guard" && !feature) {   // never send the plant's clamp to a device without the feature
 		*d += "precondition: the device lacks depthBiasClamp - the plant cannot run; ";
 		return false;
 	}
@@ -4229,7 +4229,7 @@ bool fillTexture(R::GxTexture& t, uint32_t argbColor)
 //   hoist-texture   hoisted and sampled later in the same frame: a MANAGED texture sampled in an earlier frame (the tracker
 //                   knows it in SHADER_READ_ONLY), one uploaded for the first time, and a render-target texture frame 0 left
 //                   in COLOR_ATTACHMENT layout (the tracker must resync to the SHADER_READ_ONLY the init buffer left: a
-//                   stale layout would queue a wrong barrier = a sample split and a validation error) (Codex uphoist-r1 #2)
+//                   stale layout would queue a wrong barrier = a sample split and a validation error)
 //   hoist-drawn     vb2 drawn earlier this frame -> NOT hoisted (split): draw 1 old bytes, draw 2 new  (X-: frontIgnoresTouch)
 //   hoist-maincopy  vb2's previous upload was recorded in this frame's main buffer (beginFrame) -> NOT hoisted, or the front
 //                   copy would run before it and lose                                                (X-: mainCopyNoTouch)
@@ -4237,13 +4237,13 @@ bool fillTexture(R::GxTexture& t, uint32_t argbColor)
 //                                                                                                     (X-: bindNoTouch)
 //   hoist-texdrawn  a texture sampled earlier this frame -> NOT hoisted: draw 1 old texels, draw 2 new (X-: frontIgnoresTouch)
 //   hoist-mixed     ONE batch of four: vb2 and tx1 used earlier this frame (kept: the main-path split) with vb3 and tx2
-//                   untouched (hoisted) - every upload lands and in order (Codex uphoist-r2 #3: a partition that dropped the
+//                   untouched (hoisted) - every upload lands and in order (a partition that dropped the
 //                   kept copies passed every other arm)
 //   (X-hoist-inflight: hoist-inflight with GXRES' pre-copy barrier narrowed to COPY: sync validation must report the WAR)
 //   (X-hoist-stalelayout: hoist-texture with the tracker keeping rt3's stale attachment layout: validation must report the draw's
-//    image layout - VUID-vkCmdDraw-None-09600, OBSERVED with the resync condition deleted, Codex uphoist-r1 #2)
+//    image layout - VUID-vkCmdDraw-None-09600, OBSERVED with the resync condition deleted)
 // A planted arm counts only when the experiment ran (every step succeeded, every check its plant does not touch held -
-// env.hoistValid) and the plant took the hoist path; then its own probe must move (Codex uphoist-r1 #1).
+// env.hoistValid) and the plant took the hoist path; then its own probe must move.
 bool armHoist(Env& e, std::string* d, const std::string& arm)
 {
 	GxPacketWriter& w = *e.writer;
@@ -4258,7 +4258,7 @@ bool armHoist(Env& e, std::string* d, const std::string& arm)
 	struct Reset { R::GxResources& r; ~Reset() { r.debug().frontIgnoresTouch = r.debug().mainCopyNoTouch = r.debug().bindNoTouch =
 		r.debug().preBarrierCopyOnly = false; } } reset = { res };
 	// hoist-inflight holds frame N-1 on a host-signalled timeline semaphore; EVERY exit releases it (a held submission left
-	// unreleased hangs the teardown's device idle - Codex uphoist-r1 #3)
+	// unreleased hangs the teardown's device idle)
 	struct Hold
 	{
 		Vk::VkCtx* ctx;
@@ -4272,7 +4272,7 @@ bool armHoist(Env& e, std::string* d, const std::string& arm)
 			si.value = 1;
 			if (vkSignalSemaphore(ctx->device(), &si) != VK_SUCCESS) {
 				// the held frame can never run: every later wait (this arm's, the teardown's device idle) would never
-				// return - end the run here, failed (Codex uphoist-r2 #2)
+				// return - end the run here, failed
 				std::fprintf(stderr, "[GXREC] FATAL: hoist-inflight: the host signal releasing the held frame failed\n");
 				std::fflush(stderr);
 				std::_Exit(3);
@@ -4383,7 +4383,7 @@ bool armHoist(Env& e, std::string* d, const std::string& arm)
 	}
 	const GxWriterStats s0 = w.stats();
 	const uint64_t resyncs0 = w.tracker().externalResyncs();
-	RawBuffer hbuf;   // hoist-copysrc: what the copy read (freed on every exit - Codex uphoist-r2 #4)
+	RawBuffer hbuf;   // hoist-copysrc: what the copy read (freed on every exit)
 	if (mode == "hoist-copysrc" && (!hbuf.init(res.allocator(), bd.bytes, VK_BUFFER_USAGE_TRANSFER_DST_BIT) || !hbuf.cpu)) {
 		*d = "host buffer failed";
 		return false;
@@ -4533,14 +4533,14 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 	desc.deviceSelect = opt.device;
 	desc.loaderPath = opt.loader;
 	// R19: order-units' refused-submit case needs a context that survives a refused submit (under the submit thread a refusal is
-	// terminal, so the case's later draw could not run): this arm keeps the synchronous context in every mode (Codex rw3V-design-r2 P2-6)
+	// terminal, so the case's later draw could not run): this arm keeps the synchronous context in every mode
 	if (arm == "order-units" || arm == "X-order-units")
 		desc.submitThread = Vk::SubmitThreadMode::Off;
 	if (arm == "X-thread-initlast")   // its plant lives in the submit thread (GX_VK_SUBMIT_THREAD=0 still turns it off: no gate)
 		desc.submitThread = Vk::SubmitThreadMode::On;
 	std::string why;
 	const bool initOk = ctx.init(desc, &why);
-	const bool threaded = initOk && ctx.submitThreaded();   // read now: shutdown() below clears it (Codex rw3V-code-r4 P2-3)
+	const bool threaded = initOk && ctx.submitThreaded();   // read now: shutdown() below clears it
 	if (!initOk) {
 		res.detail = "VkCtx init failed: " + why;
 		res.detected = !res.expectDetected;
@@ -4764,7 +4764,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 	else if (arm == "X-gputime-lost")
 		res.detected = ok;   // the failed frames' sets were read   // each case counted by its own check
 	else if (arm == "X-gputime-init")   // S7 A101: every INIT frame MISSING, none a number - AND validation named THE reset-order VUID first
-		// (Codex p4b-code-r1 #1: any error would do otherwise; an unrelated earlier error reads NOT DETECTED, never DETECTED)
+		// (any error would do otherwise; an unrelated earlier error reads NOT DETECTED, never DETECTED)
 		res.detected = ok && (!opt.validation ||
 			(vc.errors > 0 && vc.firstError.compare(0, 37, "VUID-vkCmdWriteTimestamp2-None-03864:") == 0));
 	else if (arm == "X-gputime-frameinit" || arm == "X-gputime-casterhook" || arm == "X-gputime-noinit")
@@ -4776,7 +4776,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 	else if (arm == "X-vert-nobarrier")
 		res.detected = oc.vertexViolations > 0 && vc.syncHazards > 0;
 	else if (arm.compare(0, 8, "X-hoist-") == 0 || arm == "X-thread-initlast") {
-		// the plant's own detector fired, through the hoist path, and NOTHING else did (Codex uphoist-r2 #1): the experiment ran
+		// the plant's own detector fired, through the hoist path, and NOTHING else did: the experiment ran
 		// (hoistValid), no order / ledger / coverage counter moved, and validation reported exactly the plant's one error or none
 		const bool quiet = env.hoistValid && env.hoisted > 0 && oc.total() == 0 && retire == 0 && oc.unknownPipelineDraws == 0 &&
 			oc.unknownAttachmentViews == 0 && oc.uncheckedSubmits == 0 && oc.uncheckedCommandBuffers == 0 && oc.uncheckedResolves == 0;
@@ -4848,7 +4848,7 @@ int main(int argc, char** argv)
 			if (q > p)
 				arms.push_back(armList.substr(p, q - p));
 		}
-	if (arms.empty()) {   // an empty selection must not read as a passing run (Codex rw2-F1-r8 #3)
+	if (arms.empty()) {   // an empty selection must not read as a passing run
 		std::fprintf(stderr, "no arm selected (--arm '%s')\n", armList.c_str());
 		return 2;
 	}

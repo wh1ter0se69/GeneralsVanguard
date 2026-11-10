@@ -68,7 +68,7 @@ public:
 
 protected:
 	AsciiString m_filename;
-	// GeneralsX @bugfix Claude 22/10/2026 TRUE when the last load() found the file but could not read it (any fopen
+	// GeneralsX: TRUE when the last load() found the file but could not read it (any fopen
 	// failure but "not there", or a read error part way). write() then refuses: what this object holds came from a read
 	// that failed, and writing it would replace the player's whole file. load() fills and returns exactly as before.
 	Bool m_unreadable;

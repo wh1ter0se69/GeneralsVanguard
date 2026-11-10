@@ -99,7 +99,7 @@ OCLUpdateModuleData::OCLUpdateModuleData()
   p.add(dataFieldParse);
 }
 
-// GeneralsX @bugfix Claude 07/11/2026 THE OWNER IS A PLAYER, NOT A COLOUR. An ownership change used to be found by comparing
+// GeneralsX: THE OWNER IS A PLAYER, NOT A COLOUR. An ownership change used to be found by comparing
 // player colours, so a capture between two players in one colour went unseen: the timer kept running and its random number was
 // never drawn. Two players can share a colour: a 32-seat game on fewer colours reuses them ([GXCAP] in GameLogic.cpp).
 // A version 1 save holds only the colour. Its index stays OCL_OWNER_UNKNOWN until the first ownership check, which adopts the
@@ -326,7 +326,7 @@ void OCLUpdate::xfer( Xfer *xfer )
 	xfer->xferBool( &m_isFactionNeutral );
 
 	// current owning player. The colour stays in version 2: a version 1 owner that no check has resolved yet (the building
-	// was disabled) has nothing else, and a save and load in that state must not turn it into a false change (Codex ocl-owner-r1).
+	// was disabled) has nothing else, and a save and load in that state must not turn it into a false change.
 	xfer->xferInt( &m_currentPlayerColor );
 	if( version >= 2 )
 		xfer->xferInt( &m_currentPlayerIndex );

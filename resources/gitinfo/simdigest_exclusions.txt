@@ -1,5 +1,5 @@
 # simdigest_exclusions.txt - what the SimID digest may REACH without digesting it, each entry with its reason.
-# GeneralsX @feature Claude 03/10/2026 det-codex-fixes, the boundary rule lead C11 asked for.
+# GeneralsX: the boundary rule lead C11 asked for.
 #
 # scripts/build/simid-closure.py walks every digested object of a build - inlined code, calls and globals, overrides
 # of digested virtuals - and requires each file it reaches to be digested (resources/gitinfo/simsourcedigest_watcher.cmake)
@@ -15,8 +15,8 @@
 #
 # Not a boundary question, so on no list: NameKey ORDINALS. Every name interned earlier shifts a key minted later, GUI names
 # included (ControlBar::init, window layouts); only the science range is bracketed into the identity (GameEngine::init). An
-# ordinal that travels the wire raw - a map-added upgrade in MSG_QUEUE/CANCEL_UPGRADE - is the open code item 4c (Codex
-# det-codex-r17): its fix is a stable wire id or a bracketed range, not digesting every layout that interns a name.
+# ordinal that travels the wire raw - a map-added upgrade in MSG_QUEUE/CANCEL_UPGRADE - is the open code item 4c:
+# its fix is a stable wire id or a bracketed range, not digesting every layout that interns a name.
 
 @Third-party code. Its version is pinned by vcpkg.json / vcpkg-lock.json and cmake/*.cmake, which the digest's BUILD list hashes.
 build/*/vcpkg_installed/*
@@ -437,7 +437,7 @@ sym:Drawable::getTransformMatrix	the drawable's transform for FX at fire (Weapon
 */W3DDevice/GameClient/W3DAssetManagerExposed.cpp	texture reload for a debug script action: render.
 Core/GameEngine/Include/GameClient/Display.h	the display's own virtuals (size, bit depth, windowed, views, cinematic text, min-spec test): the screen. Its average fps sets only the network frame rate.
 
-# ---- det-codex-3: the vtable slots of region files (r15). Each class's virtuals the simulation might call through its
+# ----: the vtable slots of region files (r15). Each class's virtuals the simulation might call through its
 # ---- vtable; the ones that create, reset or step what it reads became regions (W3DTerrainVisual init/reset, the
 # ---- terrain render object's reset/freeMapResources/adjustTerrainLOD, GameClient reset/setTimeOfDay and parts of
 # ---- init/update, ControlBar's override removal, the game-client factory; W3DGameClient is digested whole).

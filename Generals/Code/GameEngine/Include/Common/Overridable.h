@@ -66,7 +66,7 @@ class Overridable : public MemoryPoolObject
 
 		// set the next override on this object. This currently makes no attempt to prevent leaks.
 		// it probably shouldn't because doing so could cause infinite loops
-		// GeneralsX @bugfix Claude 09/10/2026 But it refuses a link that would close a loop: getFinalOverride would never
+		// GeneralsX: But it refuses a link that would close a loop: getFinalOverride would never
 		// return, and every peer that loaded such a map.ini hung at the template's first use. Links are made here, at INI
 		// load, and a copy keeps its own (ThingTemplate::copyFrom), so no chain is cyclic and this walk ends. The throw
 		// leaves a map start through the damaged-map refusal (GameLogic::tryStartNewGame).
@@ -80,7 +80,7 @@ class Overridable : public MemoryPoolObject
 			m_nextOverride = nextOverridable;
 		}
 
-		// GeneralsX @bugfix Claude 09/10/2026 For ThingTemplate::copyFrom: its place in its own override chain is not data,
+		// GeneralsX: For ThingTemplate::copyFrom: its place in its own override chain is not data,
 		// so a copy of another template's fields puts it back.
 		void friend_restoreOverrideLink(Overridable *nextOverride, Bool isOverride)
 		{
@@ -116,7 +116,7 @@ class Overridable : public MemoryPoolObject
 			m_isOverride = true;
 		}
 
-		// GeneralsX @bugfix Claude 25/09/2026 TRUE for one a map INI created: the next reset() deletes it.
+		// GeneralsX: TRUE for one a map INI created: the next reset() deletes it.
 		// The save gate (SaveLoadFeedback.cpp) asks, because a load resets the factory before it reads objects.
 		Bool isOverride() const
 		{

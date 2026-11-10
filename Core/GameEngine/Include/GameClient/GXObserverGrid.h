@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 02/10/2026 The observer player list's grid: where each player's button goes when a match has
+// GeneralsX: The observer player list's grid: where each player's button goes when a match has
 // more players than ControlBar.wnd has buttons.
 //
 // ControlBar.wnd ships ButtonPlayer0..7 - retail lays them out as two columns of four (icon + name), ControlBar Pro as

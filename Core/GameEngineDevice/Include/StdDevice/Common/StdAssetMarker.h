@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @test Claude 09/09/2026 The asset-marker scan, extracted so it can be RUN.
+// GeneralsX: The asset-marker scan, extracted so it can be RUN.
 //
 // WHY THIS IS A HEADER. The refusal in StdBIGFileSystem.cpp decides whether the game starts at
 // all, and it was written with no way to execute it: the logic was a file-static inside a

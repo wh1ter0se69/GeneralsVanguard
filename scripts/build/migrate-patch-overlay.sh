@@ -1,5 +1,5 @@
 #!/bin/bash
-# GeneralsX @feature Claude 12/08/2026 One-time migration: move the overlay archives out of a
+# GeneralsX: One-time migration: move the overlay archives out of a
 # game folder and into the GeneralsX-owned sibling directory the run wrapper points at.
 #
 #   scripts/build/migrate-patch-overlay.sh [<runtime-dir>] [--dry-run]

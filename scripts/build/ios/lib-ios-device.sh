@@ -1,6 +1,6 @@
 # lib-ios-device.sh - deterministic selection of the iOS install target.
 #
-# GeneralsX @bugfix Claude 07/08/2026
+# GeneralsX:
 #
 # Source this, do not execute it:
 #     . "$(dirname "$0")/lib-ios-device.sh"

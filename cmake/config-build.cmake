@@ -14,7 +14,7 @@ option(RTS_BUILD_OPTION_FFMPEG "Enable FFmpeg support" OFF)
 option(SAGE_USE_SDL3 "Use SDL3 for windowing/input (Linux/macOS)" OFF)
 option(SAGE_USE_OPENAL "Use OpenAL for audio backend (Linux/macOS)" OFF)
 
-# GeneralsX @feature BenderAI 21/04/2026 In-game update checker via GitHub Releases API (SDL3+libcurl builds only)
+# GeneralsX: In-game update checker via GitHub Releases API (SDL3+libcurl builds only)
 # Default ON when SDL3 is enabled, but only if the user has not explicitly set SAGE_UPDATE_CHECK.
 # An explicit -DSAGE_UPDATE_CHECK=OFF on the cmake command line is always respected.
 if(NOT DEFINED CACHE{SAGE_UPDATE_CHECK})
@@ -89,7 +89,7 @@ endif()
 if(UNIX)
     target_compile_definitions(core_config INTERFACE _UNIX)
 
-    # GeneralsX @bugfix Claude 28/07/2026 DETECT these instead of assuming them.
+    # GeneralsX: DETECT these instead of assuming them.
     #
     # This previously defined HAVE_STRLCPY/HAVE_STRLCAT/HAVE_WCSLCPY/HAVE_WCSLCAT unconditionally
     # for every UNIX, with a comment saying "Ubuntu 24.04+ and macOS have" them. That is wrong on
@@ -153,7 +153,7 @@ if(SAGE_USE_OPENAL)
     message(STATUS "OpenAL audio backend enabled")
 endif()
 
-# GeneralsX @feature Claude 05/08/2026 Opt-in 60 Hz simulation tick.
+# GeneralsX: Opt-in 60 Hz simulation tick.
 #
 # Defined here rather than edited into WWCommon.h so that a 60 Hz build is a reproducible build
 # switch and the two rates share one source tree. That matters for identity: sourceID is a hash of
@@ -162,7 +162,7 @@ endif()
 # refuses to join with ENGINE_DIFFERS rather than desyncing on contact. Do not "fix" that by adding
 # the flag to the digested path; engineID is the correct gate and it already works.
 #
-# GeneralsX @bugfix Claude 17/08/2026 THIS IS WHAT SHIPS, and the presets now say so.
+# GeneralsX: THIS IS WHAT SHIPS, and the presets now say so.
 #
 # The option defaults OFF, but every deployed build has it ON - verified on all four platforms:
 # macos-vulkan, ios-vulkan, win64/win64-openal and linux64-deploy all carried
@@ -186,7 +186,7 @@ if(GX_LOGIC_60HZ)
     message(WARNING "GX_LOGIC_60HZ: simulation tick is 60 Hz. Incompatible with 30 Hz peers (refused at engineID) and with the 30 Hz determinism corpus.")
 endif()
 
-# GeneralsX @test Claude 19/09/2026 The GX_TEST_FORGE network instrument, compiled in only on request.
+# GeneralsX: The GX_TEST_FORGE network instrument, compiled in only on request.
 #
 # Network::gxTestForge makes a peer SEND forged or out-of-turn kill-path orders for
 # scripts/test/net-kill-gates.sh. Dormant is not safe enough to ship: from the packet router its
@@ -199,7 +199,7 @@ if(GX_TEST_INSTRUMENTS)
     message(WARNING "GX_TEST_INSTRUMENTS: GX_TEST_FORGE is compiled in. Never ship this build.")
 endif()
 
-# GeneralsX @test Claude 01/10/2026 The A* cost overflow counter (cmax=/cwrap= on [GXPATH], audit S10-F10),
+# GeneralsX: The A* cost overflow counter (cmax=/cwrap= on [GXPATH], audit S10-F10),
 # compiled in only for a measurement build: it sits in the A* cell-expansion path. Observation only - it changes
 # no simulation state - but a shipping tick does not pay for a counter nobody reads. OFF in every preset.
 option(GX_PATHCOST_COUNT "Compile in the A* cost overflow counter (cmax=/cwrap= on [GXPATH]) - measurement builds only" OFF)
@@ -207,7 +207,7 @@ if(GX_PATHCOST_COUNT)
     target_compile_definitions(core_config INTERFACE GX_PATHCOST_COUNT=1)
 endif()
 
-# GeneralsX @feature BenderAI 21/04/2026 Update check compile definition
+# GeneralsX: Update check compile definition
 if(SAGE_UPDATE_CHECK)
     target_compile_definitions(core_config INTERFACE SAGE_UPDATE_CHECK)
     message(STATUS "In-game update checker enabled")
@@ -219,7 +219,7 @@ if(SAGE_USE_GLM)
 endif()
 
 # macOS MoltenVK detection (Phase 5)
-# GeneralsX @build BenderAI 24/02/2026 - Phase 5 macOS port
+# GeneralsX: Phase 5 macOS port
 if(APPLE AND SAGE_USE_MOLTENVK)
     find_package(Vulkan REQUIRED COMPONENTS MoltenVK)
     if(NOT Vulkan_FOUND)
@@ -240,7 +240,7 @@ if(APPLE AND SAGE_USE_MOLTENVK)
             "-framework UIKit"
         )
 
-        # GeneralsX @bugfix Claude 06/08/2026 The iPad black-screened because libMoltenVK.a was on
+        # GeneralsX: The iPad black-screened because libMoltenVK.a was on
         # the link line and contributed NOTHING. A static archive only yields the members that
         # something references, and no engine translation unit calls Vulkan directly - SDL3 and
         # DXVK both reach it at runtime. So the archive was silently dropped and the executable

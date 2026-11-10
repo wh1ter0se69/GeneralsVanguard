@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-hud-seam-1 13/10/2026 GxFsr1.h. Vulkan plumbing patterned on GxNativePresent.cpp (dynamic
+// GeneralsX: GxFsr1.h. Vulkan plumbing patterned on GxNativePresent.cpp (dynamic
 // rendering, a full-screen triangle from DXVK's present vertex shader, a combined image sampler at set 0 binding 0, push constants).
 #include "GxFsr1.h"
 
@@ -266,7 +266,7 @@ bool GxFsr1::record(VkCommandBuffer cmd, uint32_t slot, Res::GxImage& src, VkIma
 	const float kx = float(srcRect.extent.width) / float(dst.width), ky = float(srcRect.extent.height) / float(dst.height);
 	GxFsr1EasuConstants(easu, float(srcRect.extent.width), float(srcRect.extent.height), float(src.width), float(src.height),
 		float(dst.width), float(dst.height), float(srcRect.offset.x) + 0.5f * (1.0f - kx), float(srcRect.offset.y) + 0.5f * (1.0f - ky));
-	// the camera's rect, first and last texel: the shader clamps every tap into it (Codex hud-seam-code-r1 P1-3)
+	// the camera's rect, first and last texel: the shader clamps every tap into it
 	easu[16] = uint32_t(srcRect.offset.x);
 	easu[17] = uint32_t(srcRect.offset.y);
 	easu[18] = uint32_t(srcRect.offset.x) + srcRect.extent.width - 1;

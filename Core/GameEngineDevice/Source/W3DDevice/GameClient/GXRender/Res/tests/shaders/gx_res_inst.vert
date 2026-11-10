@@ -1,4 +1,4 @@
-// GeneralsX @test E · rw2-C 11/10/2026 gx_res_test's vertex-input reader: one POINT per instance (or per vertex), at pixel
+// GeneralsX: gx_res_test's vertex-input reader: one POINT per instance (or per vertex), at pixel
 // (base + index) of a width x height target, carrying the uvec4 record it read through the vertex input unchanged.
 #version 450
 layout(location = 0) in uvec4 inRecord;

@@ -72,7 +72,7 @@ static Bool scrollDir[4] = { false, false, false, false };
 
 // GeneralsX @feature camera-tilt 06/10/2026 Player tilt is limited to the Options slider's own 20..60 degrees
 // (View::getPrefCameraPitch), so a tilt can never show more map than a player can already choose in Options.
-// ponytail: the two feel knobs live here; make them settings if they ever need to.
+// Trade-off: the two feel knobs live here; make them settings if they ever need to.
 // The player range lives in GameClient/TiltRange.h (pure, unit-tested).
 static const Real GX_TILT_PER_WHEEL_NOTCH = DEG_TO_RADF(2.0f);
 
@@ -480,14 +480,14 @@ GameMessageDisposition LookAtTranslator::translateGameMessage(const GameMessage 
 		{
 			m_lastMouseMoveTimeMsec = timeGetTime();
 
-			// GeneralsX @bugfix Claude 26/09/2026 The wheel moves the camera by a FRACTION of its height, not a fixed
+			// GeneralsX: The wheel moves the camera by a FRACTION of its height, not a fixed
 			// 10 units. Measured on the Mini (gxscroll, real CGEvents): every wheel event reached here and moved the
 			// camera, but by 10 units a notch - 35 notches across the stock 100..448, 134 to 1444, 423 to the Debug
 			// menu's 4333, and a trackpad's 0.1-line events 1 unit each: "I need to do 03902932 scrolls for it to
 			// work". Now a notch is 10% of the height (in: /1.1, out: x1.1, so in-then-out returns exactly): at the
 			// lowest camera that is today's 10 units, and 100 to 448 takes 16 notches, 100 to 4333 takes 40. A
 			// fractional spin (trackpad, Magic Mouse) scales the same way, so smooth scrolling stays proportional.
-			const Real WheelZoomStep = 1.1f;	// ponytail: the one feel knob; a player setting if it ever needs one
+			const Real WheelZoomStep = 1.1f;	// Trade-off: the one feel knob; a player setting if it ever needs one
 			const Real spin = msg->getArgument( 1 )->real;
 			if (TheKeyboard != nullptr && TheKeyboard->isAlt())
 			{

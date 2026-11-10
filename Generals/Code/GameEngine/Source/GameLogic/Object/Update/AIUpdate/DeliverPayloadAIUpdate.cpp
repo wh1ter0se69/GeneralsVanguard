@@ -198,7 +198,7 @@ UpdateSleepTime DeliverPayloadAIUpdate::update()
 				//SHOOT!!
 				const Coord3D *velocity = getObject()->getPhysics()->getVelocity();
 #if GX_LOGIC_60HZ
-				if( velocity->z < 2.5f )	// GeneralsX @fix Claude 23/09/2026 per-frame speed, halved
+				if( velocity->z < 2.5f )	// GeneralsX: per-frame speed, halved
 #else
 				if( velocity->z < 5.0f )
 #endif

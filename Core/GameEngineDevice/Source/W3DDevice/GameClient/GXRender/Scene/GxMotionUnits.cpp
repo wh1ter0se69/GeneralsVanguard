@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-motion-units-1 13/10/2026 The object-velocity bridge - see GxMotionUnits.h and
+// GeneralsX: The object-velocity bridge - see GxMotionUnits.h and
 // modernize/render-dlss/DESIGN_motion-units.md (PREREG_T A35). Game side: it drives the device only through DX8Wrapper (whose caches
 // and DX8Ring stay consistent) plus three direct calls after a ring drain (shader / texture creation, SetObjectVelocity).
 #include "W3DDevice/GameClient/GXRender/Scene/GxMotionUnits.h"
@@ -24,7 +24,7 @@ using namespace GXRender;
 static_assert(sizeof(Matrix3D) == 12 * sizeof(float), "Matrix3D is 3 rows of 4 floats");
 static_assert(sizeof(Matrix4x4) == 16 * sizeof(float), "Matrix4x4 is 4 rows of 4 floats");
 
-const unsigned kSkinBufferVertices = 65535;   // DX8VertexBufferClass counts and Set_Index_Buffer's base are 16-bit (codex r1 #1)
+const unsigned kSkinBufferVertices = 65535;   // DX8VertexBufferClass counts and Set_Index_Buffer's base are 16-bit
 
 struct Rec
 {
@@ -32,8 +32,8 @@ struct Rec
 	IndexBufferClass *ib;      // static IB, AddRef'd
 	unsigned short base;       // the base vertex the draw had (rigid: index_base_offset + vba_offset; skin: index_base_offset)
 	unsigned prim, minVertex, vertexCount, startIndex, polyCount;
-	D3DVIEWPORT8 vp;           // the draw's viewport and depth range (binding O resets them; codex r1 #10)
-	unsigned cull, zbias;      // the draw's culling and z bias, so the replay rasterises what the draw did (codex r1 #15)
+	D3DVIEWPORT8 vp;           // the draw's viewport and depth range (binding O resets them)
+	unsigned cull, zbias;      // the draw's culling and z bias, so the replay rasterises what the draw did
 	bool skin;
 	float c[GX_VEL_CONSTANTS][4];
 };
@@ -51,7 +51,7 @@ struct State
 	float jitter[2] = { 0.0f, 0.0f };
 	GxRigidHistory rigid;
 	GxSkinHistory skin;
-	// rigid: scoped to one mesh task (rigidBegin .. rigidEnd; codex r1 #4)
+	// rigid: scoped to one mesh task (rigidBegin .. rigidEnd)
 	bool pending = false;
 	float pendingCur[16], pendingPrev[16];   // this task's world as Set_Transform stores it / its previous world (both D3D layout)
 	// skin
@@ -158,12 +158,12 @@ void onDraw(unsigned prim, unsigned minVertex, unsigned vertexCount, unsigned st
 	const RenderStateStruct &rs = DX8Wrapper::Gx_Render_State();
 	const bool skinDraw = s.skinBuffer >= 0 && rs.vertex_buffer_types[0] == BUFFER_TYPE_DYNAMIC_DX8;
 	if (!skinDraw && !(s.pending && std::memcmp(&rs.world, s.pendingCur, 64) == 0))
-		return;   // not a candidate: nothing else is read or done for this draw (codex units-code-r3 #4)
-	// Only draws that test AND write depth carry a surface's motion (codex units-code-r1 #1): a no-depth-write pass (blended, or the
+		return;   // not a candidate: nothing else is read or done for this draw
+	// Only draws that test AND write depth carry a surface's motion: a no-depth-write pass (blended, or the
 	// heat-vision-only pass W3DScene.cpp:920 draws instead of a stealthed unit's base pass) would overwrite what is behind it.
 	// The wrapper cache can say "unknown" (0x12345678) after Invalidate_Cached_Render_States: ShaderClass re-sends ZWRITEENABLE
 	// before every shaded draw, so an unknown ZWRITE is not recorded; ZENABLE is never re-sent (the game leaves it on), so unknown
-	// counts as on (codex units-code-r2 #1, r3 #4: no device query).
+	// counts as on (r3 #4: no device query).
 	const unsigned *rsCache = DX8Wrapper::Gx_Shadows().renderStates;
 	if (rsCache[D3DRS_ZWRITEENABLE] != TRUE || rsCache[D3DRS_ZENABLE] == FALSE)
 		return;
@@ -185,7 +185,7 @@ void onDraw(unsigned prim, unsigned minVertex, unsigned vertexCount, unsigned st
 		r.skin = true;
 		++s.nSkin;
 	} else {   // the pending rigid mesh's draw (its applied world matched above)
-		if (!staticIB || rs.vertex_buffer_types[0] != BUFFER_TYPE_DX8) {   // dynamic contents are gone by End (codex r1 #6)
+		if (!staticIB || rs.vertex_buffer_types[0] != BUFFER_TYPE_DX8) {   // dynamic contents are gone by End
 			++s.nSkipped;
 			return;
 		}
@@ -263,7 +263,7 @@ void skinBatch(bool open)
 	s.batchVertices = 0;
 	if (n == 0 || !s.havePrevCam)
 		return;
-	// one retained buffer per batch per pass, each <= 65535 vertices, never grown mid-frame (codex r1 #1, #2)
+	// one retained buffer per batch per pass, each <= 65535 vertices, never grown mid-frame
 	if (s.skinBuffersUsed == s.skinBuffers.size())
 		s.skinBuffers.push_back(NEW_REF(DX8VertexBufferClass, (D3DFVF_XYZ | D3DFVF_NORMAL, (unsigned short)kSkinBufferVertices,
 			DX8VertexBufferClass::USAGE_DYNAMIC)));
@@ -339,7 +339,7 @@ void dropPass()
 	releaseRecords();
 	s.wp = nullptr;
 	// the dropped pass already stamped the pose histories with its own poses: its camera becomes the previous one too, so the
-	// next pass pairs poses and camera from the same pass (codex units-code-r1 #3)
+	// next pass pairs poses and camera from the same pass
 	std::memcpy(s.prevView, s.view, 64);
 	std::memcpy(s.prevProj, s.proj, 64);
 }
@@ -347,12 +347,12 @@ void dropPass()
 void replay()
 {
 	IDirect3DSurface8 *rt = nullptr, *ds = nullptr;
-	DX8Wrapper::Apply_Render_State_Changes();   // the game's pending state lands first, so it cannot undo ours (codex r1 #8)
-	DX8Wrapper::Get_Render_Target_Pair(rt, ds);   // both AddRef'd: released below (codex r1 #13)
+	DX8Wrapper::Apply_Render_State_Changes();   // the game's pending state lands first, so it cannot undo ours
+	DX8Wrapper::Get_Render_Target_Pair(rt, ds);   // both AddRef'd: released below
 	const D3DVIEWPORT8 vpIn = DX8Wrapper::GxViewportSent;
 	const bool vpInValid = DX8Wrapper::GxViewportSentValid;
 	// what the replay changes, saved as the DEVICE holds it (the wrapper cache may say "unknown") and restored exactly afterwards,
-	// so neither the device nor the wrapper's / ShaderClass's caches change (codex units-code-r1 #5)
+	// so neither the device nor the wrapper's / ShaderClass's caches change
 	static const D3DRENDERSTATETYPE kStates[] = { D3DRS_ZENABLE, D3DRS_ZWRITEENABLE, D3DRS_ZFUNC, D3DRS_ALPHABLENDENABLE,
 		D3DRS_ALPHATESTENABLE, D3DRS_FOGENABLE, D3DRS_STENCILENABLE, D3DRS_SHADEMODE, D3DRS_COLORWRITEENABLE, D3DRS_CULLMODE,
 		D3DRS_ZBIAS };
@@ -362,14 +362,14 @@ void replay()
 		if (FAILED(dev->GetRenderState(kStates[i], &saved[i])))
 			saved[i] = DX8Wrapper::Get_DX8_Render_State(kStates[i]);
 	// Shader handles: the DEVICE's binding is read here and restored through DX8Wrapper, exactly as the seam's composite does after End
-	// (W3DWorldSeam.cpp saveState / restoreState; dlss-integrator ruling on codex units-code-r4 #4). A raw device binder (water's
+	// (W3DWorldSeam.cpp saveState / restoreState; dlss-integrator ruling on). A raw device binder (water's
 	// SetVertexShader(FVF), W3DWater.cpp:2031; W3DShaderManager.cpp, HeightMap.cpp) can leave the device and the wrapper's cache apart at
 	// End; key off, the composite collapses them to the device's value, so restoring that value here makes key on end in the same state.
-	// Dropping the VB binding below makes the next wrapper draw re-apply its own FVF (codex units-code-r3 #3). Arm: the HUD drawn
+	// Dropping the VB binding below makes the next wrapper draw re-apply its own FVF. Arm: the HUD drawn
 	// after End is 0 px between key on and key off (units-pics.sh on vs offt). Every programmable draw sets its own handles AND
 	// constants right before it draws - trees W3DTreeBuffer.cpp:1787-1822, waves W3DWater.cpp:1948-1996 - and turns them off after,
 	// :1853-1854 / :2030-2031; only HUD draws follow world End, so c0-c13 are not restored: no later draw reads them before
-	// re-uploading (codex units-code-r2 #3).
+	// re-uploading.
 	DWORD vsIn = 0, psIn = 0;
 	dev->GetVertexShader(&vsIn);
 	dev->GetPixelShader(&psIn);
@@ -519,7 +519,7 @@ void GxMotionUnits::End()
 void GxMotionUnits::Release()
 {
 	if (!s.open && !s.programs && s.skinBuffers.empty() && !s.oTex && s.rigid.size() == 0 && s.skin.size() == 0)
-		return;   // never active (e.g. GX_MOTION_UNITS=1 on the classic renderer): nothing to release, no device call (codex units-code-r3 #2)
+		return;   // never active (e.g. GX_MOTION_UNITS=1 on the classic renderer): nothing to release, no device call
 	if (s.open)
 		dropPass();   // a reset inside a world pass: never replay into a device about to reset
 	for (VertexBufferClass *vb : s.skinBuffers)

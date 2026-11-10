@@ -1,6 +1,6 @@
 // FILE: GXReplayDiag.cpp /////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 03/11/2026 See GXReplayDiag.h, and GXReplayDiagFormat.h for the bytes and why they are where they are.
+// GeneralsX: See GXReplayDiag.h, and GXReplayDiagFormat.h for the bytes and why they are where they are.
 //
 // PRIVACY IS AN ALLOW-LIST. Players share replays and this repo is public, so nothing here reads a host name, an IP, a user
 // name, an install path, a machine id, a serial or a MAC address. Options.ini holds addresses (IPAddress, RelayAddress,
@@ -314,7 +314,7 @@ GXDiagIter readIter( void )
 
 /// What only the engine's globals and the OS can say, on a row GxTelPerf closed (it began at rowStartNs). Every value narrowed; unreadable =
 /// UNKNOWN. The sampler's CPU and GPU fields are ms per wall second (its interval is not the row's, so a rate is the only honest unit);
-/// cpu_main keeps phase 1's meaning, main-thread CPU ms IN the row, which the reader divides by the row's length (Codex replay-tel-3-r2).
+/// cpu_main keeps phase 1's meaning, main-thread CPU ms IN the row, which the reader divides by the row's length.
 void fillRow( GxTelPerfRow &r, const GXDiagIter &it, long long rowStartNs )
 {
 	if( TheNetwork != NULL )
@@ -382,7 +382,7 @@ void startTelWindow( const GXDiagIter &it, bool dropTicks )
 		s_lastRetries = TheGxNetRetries;
 		s_lastRecvDrops = TheGxNetRecvDrops;
 		s_lastCpuMainNs = threadCpuNs();
-		// the load these restarts drop is OS work too: no snapshot that began before now fills a row (Codex replay-tel-5-r8); an ordinary
+		// the load these restarts drop is OS work too: no snapshot that began before now fills a row; an ordinary
 		// ten-second window boundary (dropTicks false) keeps the barrier where it was
 		s_osNotBeforeNs = (long long)gxPerfMonoNs();
 	}

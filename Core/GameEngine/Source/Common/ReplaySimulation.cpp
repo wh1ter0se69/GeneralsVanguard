@@ -27,7 +27,7 @@
 #include "GameLogic/GameLogic.h"
 #include "GameClient/GameClient.h"
 
-// GeneralsX @build BenderAI 12/02/2026 Cross-platform executable path retrieval
+// GeneralsX: Cross-platform executable path retrieval
 #ifndef _WIN32
 #ifdef __linux__
 #include <unistd.h>  // readlink
@@ -71,7 +71,7 @@ int ReplaySimulation::simulateReplaysInThisProcess(const std::vector<AsciiString
 		// If we are not in headless mode, we need to run the replay in the engine.
 		for (; s_replayIndex < s_replayCount; ++s_replayIndex)
 		{
-			// GeneralsX @bugfix Claude 01/10/2026 The result was ignored, so a replay playbackFile refused (unreadable, or
+			// GeneralsX: The result was ignored, so a replay playbackFile refused (unreadable, or
 			// another simulation's - Recorder.cpp replayMatchesGameVersion) ran the engine anyway and counted as a pass.
 			s_startRefused = false;
 			if (!TheRecorder->playbackFile(filenames[s_replayIndex]))
@@ -83,7 +83,7 @@ int ReplaySimulation::simulateReplaysInThisProcess(const std::vector<AsciiString
 			TheGameEngine->execute();
 			if (s_startRefused)
 				printf("Replay refused to start - see [GXREFUSE] on stderr\n");
-			// GeneralsX @bugfix Claude 18/10/2026 A replay whose next frame value was refused (#3090) stopped early: an error.
+			// GeneralsX: A replay whose next frame value was refused (#3090) stopped early: an error.
 			if (TheRecorder->sawInvalidNextFrame())
 				printf("Replay stopped on an invalid frame value - see [GXREPLAY] on stderr\n");
 			if (TheRecorder->sawCRCMismatch() || s_startRefused || TheRecorder->sawInvalidNextFrame())
@@ -130,7 +130,7 @@ int ReplaySimulation::simulateReplaysInThisProcess(const std::vector<AsciiString
 					break;
 				}
 			}
-			// GeneralsX @bugfix Claude 18/10/2026 A replay whose next frame value was refused (#3090) stopped early: an error.
+			// GeneralsX: A replay whose next frame value was refused (#3090) stopped early: an error.
 			if (TheRecorder->sawInvalidNextFrame())
 			{
 				printf("Replay stopped on an invalid frame value - see [GXREPLAY] on stderr\n");
@@ -141,7 +141,7 @@ int ReplaySimulation::simulateReplaysInThisProcess(const std::vector<AsciiString
 				printf("Replay refused to start - see [GXREFUSE] on stderr\n");
 				numErrors++;
 				// The refusal set quitting (GameLogic::startNewGame, for a scripted run with no lobby). Nothing here reads
-				// it, but the next replay's updateLoadProgress would throw QuitGameException mid-load (Codex r2) - the
+				// it, but the next replay's updateLoadProgress would throw QuitGameException mid-load - the
 				// rendered loop above clears it after every replay for the same reason.
 				TheGameEngine->setQuitting(FALSE);
 			}
@@ -173,7 +173,7 @@ int ReplaySimulation::simulateReplaysInWorkerProcesses(const std::vector<AsciiSt
 {
 	DWORD totalStartTimeMillis = GetTickCount();
 
-	// GeneralsX @build BenderAI 12/02/2026 Cross-platform executable path retrieval
+	// GeneralsX: Cross-platform executable path retrieval
 #ifdef _WIN32
 	WideChar exePath[1024];
 	GetModuleFileNameW(nullptr, exePath, ARRAY_SIZE(exePath));

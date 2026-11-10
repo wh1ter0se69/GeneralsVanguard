@@ -18,7 +18,7 @@
 
 #pragma once
 
-// GeneralsX @bugfix BenderAI 20/02/2026 Include stdint.h for fixed-width integer types
+// GeneralsX: Include stdint.h for fixed-width integer types
 // TGA binary structs use int32_t to ensure correct 4-byte size on all platforms
 // (Linux 64-bit: long=8 bytes, Windows: long=4 bytes)
 #include <stdint.h>
@@ -136,7 +136,7 @@ typedef struct _TGAHeader
  * RsvdChar  - Reserved character, must be ASCII "." (period)
  * BZST      - Binary Zero String Terminator.
  */
-// GeneralsX @bugfix BenderAI 20/02/2026 Use int32_t instead of long for file offsets
+// GeneralsX: Use int32_t instead of long for file offsets
 // long is 4 bytes on Windows but 8 bytes on Linux 64-bit, corrupting TGA2 footer reads.
 // The TGA 2.0 spec defines these fields as 32-bit values. sizeof(TGA2Footer) must == 26.
 typedef struct _TGA2Footer
@@ -223,7 +223,7 @@ typedef struct _TGA2Ratio
  * ScanLine    - Scan line table offset.
  * Attributes  - Alpha channel attributes. (Set defines below)
  */
-// GeneralsX @bugfix BenderAI 20/02/2026 Use int32_t instead of long for file offsets/colors
+// GeneralsX: Use int32_t instead of long for file offsets/colors
 // Same long-size issue: TGA 2.0 spec defines all these fields as 32-bit values.
 typedef struct _TGA2Extension
 	{

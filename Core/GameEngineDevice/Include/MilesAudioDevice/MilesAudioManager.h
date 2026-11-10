@@ -237,7 +237,7 @@ class MilesAudioManager : public AudioManager
 		virtual void setDeviceListenerPosition() override;
 		const Coord3D *getCurrentPositionFromEvent( AudioEventRTS *event );
 		Bool isOnScreen( const Coord3D *pos ) const;
-		// GeneralsX @feature Claude 10/09/2026 applyShellMapScale=FALSE yields the volume WITHOUT
+		// GeneralsX: applyShellMapScale=FALSE yields the volume WITHOUT
 		// the shell map attenuation, for the m_minVolume cull in processPlayingList() - which
 		// releases a sound rather than lowering it, so it must decide on an unattenuated basis.
 		// Every gain-write caller takes the default and therefore gets the scale.

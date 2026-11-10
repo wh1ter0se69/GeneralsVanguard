@@ -180,7 +180,7 @@ GameFont *FontLibrary::getFont( AsciiString name, Int pointSize, Bool bold )
 {
 	// TheSuperHackers @fix No longer creates fonts with zero size and clamps oversized fonts.
 	// The upper bound caps glyph buffer memory when a resolution-scaled point size gets very large.
-	// GeneralsX @bugfix Claude 24/09/2026 Ported by hand from upstream PR #3051 (620a173c6), which lifted
+	// GeneralsX: Ported by hand from upstream PR #3051 (620a173c6), which lifted
 	// the old "anything over 100 is probably wrong" cap, together with the 512 clamp upstream added in
 	// PR #3268 (b57adac01). The cap made this return nullptr above 100, so such a font never loaded. The
 	// lift is only safe with the variable-length FontCharsBuffer (render2dsentence.h), which is why the

@@ -54,7 +54,7 @@ enum AIDebugOptions CPP_11(: Int);
 constexpr const Int MAX_GLOBAL_LIGHTS = 3;
 constexpr const Int SIMULATE_REPLAYS_SEQUENTIAL = -1;
 
-// GeneralsX @feature Claude 28/07/2026 Headless LAN host/join. Declared here rather than in
+// GeneralsX: Headless LAN host/join. Declared here rather than in
 // HeadlessMatch.h so GlobalData can hold the parsed command line without including it.
 enum LanRole CPP_11(: Int)
 {
@@ -142,7 +142,7 @@ public:
 	// Run game without graphics, input or audio.
 	Bool m_headless;
 
-	// GeneralsX @feature BenderAI 21/04/2026 Opt-out toggle for the in-game update checker.
+	// GeneralsX: Opt-out toggle for the in-game update checker.
 	Bool m_checkForUpdates;
 
 	Bool m_windowed;
@@ -384,14 +384,14 @@ public:
 	std::vector<AsciiString> m_simulateReplays; ///< If not empty, simulate this list of replays and exit.
 	Int m_simulateReplayJobs; ///< Maximum number of processes to use for simulation, or SIMULATE_REPLAYS_SEQUENTIAL for sequential simulation
 
-	// GeneralsX @feature Claude 28/07/2026 Headless LAN host/join. See Common/HeadlessMatch.h.
+	// GeneralsX: Headless LAN host/join. See Common/HeadlessMatch.h.
 	// These are set only from the command line and only ever read by HeadlessMatch.
 	LanRole m_lanRole;								///< LANROLE_NONE unless -lanhost or -lanjoin was given
 	UnicodeString m_lanGameName;			///< -lanhost <name>
 	UnsignedInt m_lanJoinIP;					///< -lanjoin <ip>, in host byte order
 	AsciiString m_lanMap;							///< -lanmap <mapname>
 	UnicodeString m_lanPlayerName;		///< -lanname <name>; falls back to the LAN preferences name
-	// GeneralsX @feature Claude 16/08/2026 -lanlobby <name>; the lobby's DISPLAY name, which is not
+	// GeneralsX: -lanlobby <name>; the lobby's DISPLAY name, which is not
 	// the player's and not the game's identity key. Empty means an unnamed lobby, which is the
 	// pre-existing behaviour for every harness that does not pass it.
 	UnicodeString m_lanLobbyName;		///< -lanlobby <name>; the lobby's display title
@@ -402,7 +402,7 @@ public:
 	Int m_lanSeed;									///< -lanseed <n>: force the match seed, 0 = use the random one
 	Bool m_lanListGames;							///< -lanlist: ask the relay what games exist, print them, exit
 	Bool m_lanOverfill;								///< -lanoverfill: allow more players than the map has start positions
-	// GeneralsX @feature Claude 24/09/2026 Headless observer seats (World Series 15 seats: observers share the
+	// GeneralsX: Headless observer seats (World Series 15 seats: observers share the
 	// ReplayObserver). -lanobserver: this peer takes an OBSERVER seat, host or joiner. -lanwaitobservers <n>:
 	// of the -lanwait peers the host holds seats for, n will be observers - so its early start-position
 	// check does not count them as players; the final check counts the real slot list either way.
@@ -418,7 +418,7 @@ public:
 	AsciiString m_shellMapName;				///< Holds the shell map name
 	Bool m_shellMapOn;								///< User can set the shell map not to load
 	Real m_shellMapSoundVolumeScale;	///< Extra attenuation applied to shell map world SFX only (1.0 = retail). Menu music and UI sounds are never affected.
-	// GeneralsX @bugfix Claude 10/09/2026 Camera height limits as parsed from the FIRST GameData
+	// GeneralsX: Camera height limits as parsed from the FIRST GameData
 	// block, before SagePatch.ini, a loose Data\INI\GameData, Options.ini (View::init) or the Extras
 	// and Debug menus move them. Used for the shell map only. Runtime-only: not INI keys, not CRC'd,
 	// not xfer'd, and deliberately absent from BOTH field parse tables.
@@ -644,7 +644,7 @@ private:
 
 	static const FieldParse s_GlobalDataFieldParseTable[];
 
-	// GeneralsX @bugfix Claude 27/07/2026 Restricted field table for SagePatch.ini.
+	// GeneralsX: Restricted field table for SagePatch.ini.
 	//
 	// SagePatch.ini is auto-created in the user data directory and opens a "GameData" block, which
 	// meant it could set ANY field in s_GlobalDataFieldParseTable - including simulation constants.

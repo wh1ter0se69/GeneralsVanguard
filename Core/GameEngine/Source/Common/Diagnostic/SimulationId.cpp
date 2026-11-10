@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 27/07/2026 Join-time SimID compatibility check.
+// GeneralsX: Join-time SimID compatibility check.
 // Apple targets (macOS arm64, iOS arm64) only in this pass. Places that will need
 // work before a Windows peer can be trusted are marked "WINDOWS HOOK".
 
@@ -109,7 +109,7 @@ static const UnsignedInt FNV_SEED = 2166136261u;
 //    silent desync would be hardest to attribute. See references/generals-online-client,
 //    where WWSyncPerSecond = 60 sits behind GENERALS_ONLINE_HIGH_FPS_SERVER.
 // ---------------------------------------------------------------------------
-// GeneralsX @feature Claude 06/11/2026 the two lobby-wire inputs are parameters, so a replay can be checked against the
+// GeneralsX: the two lobby-wire inputs are parameters, so a replay can be checked against the
 // engineID this build had before 34 slots grew them (SimIdReplayLegacyEngineID). Every other input is this build's own.
 static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt networkMessageLen )
 {
@@ -120,7 +120,7 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 
 	// The 17 PRESERVE_* switches from GameDefines.h, in declaration order except bit 15.
 	//
-	// GeneralsX @bugfix Claude 01/08/2026 PRESERVE_SNIPING_EMPTY_STINGER_SITES was declared at
+	// GeneralsX: PRESERVE_SNIPING_EMPTY_STINGER_SITES was declared at
 	// GameDefines.h:83 but never hashed here, so two peers built with different values of it
 	// computed the SAME engineID, passed the join and then diverged - the exact silent-desync
 	// failure the LOGICFRAMES_PER_SECOND note above describes. It was latent rather than live
@@ -157,7 +157,7 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 		| SIMBIT(14, PRESERVE_RETAIL_SCRIPTED_CAMERA)
 		// Out of declaration order ON PURPOSE - do not "tidy" this into position. See above.
 		| SIMBIT(15, PRESERVE_SNIPING_EMPTY_STINGER_SITES)
-		// GeneralsX @info Claude 14/09/2026 Added with PRESERVE_RETAIL_PARTICLES in the same
+		// GeneralsX: Added with PRESERVE_RETAIL_PARTICLES in the same
 		// commit, per the rule above.
 		//
 		// NOT for the same reason bit 15 was appended - an earlier draft of this comment said
@@ -176,7 +176,7 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 		// over 'isUsingSmudge|ParticleSystem' as the positive control) - so it is hashed to
 		// honour the rule, not because a desync from it has been demonstrated.
 		| SIMBIT(16, PRESERVE_RETAIL_PARTICLES)
-		// GeneralsX @info Claude 21/09/2026 Added with the nuke-missile outer-radius switches in
+		// GeneralsX: Added with the nuke-missile outer-radius switches in
 		// the same commit, per the rule above. Both default to 0, so engineID does not move for a
 		// default build - the bits only matter once somebody sets a switch.
 		| SIMBIT(17, PRESERVE_RETAIL_NUKE_MISSILE_OUTER_RADIUS_SEARCH)
@@ -209,7 +209,7 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 #if defined(USE_DETERMINISTIC_MATH)
 	engineWord |= (1u << 10);
 #endif
-	// GeneralsX @info Claude 21/09/2026 RETAIL_COMPATIBLE_DATA, appended at the first free bit.
+	// GeneralsX: RETAIL_COMPATIBLE_DATA, appended at the first free bit.
 	// 11 and not 7: the SIMBIT() run above stops at 6, but the WORD does not - bits 7 to 10 are
 	// taken by the four #if arms right above this line. Reusing 7 would make a release build with
 	// RETAIL_COMPATIBLE_DATA=1 hash identically to a debug build with it 0.
@@ -226,7 +226,7 @@ static UnsignedInt computeEngineIDWith( UnsignedInt lanMessageSize, UnsignedInt 
 	h = fnv1aU32(h, lanMessageSize);
 	h = fnv1aU32(h, (UnsignedInt)MAX_PACKET_SIZE);
 	h = fnv1aU32(h, networkMessageLen);
-	// GeneralsX @security Claude 06/10/2026 The wrapper wire geometry (fixes/DESIGN_wrapper-memory-cap.md v16 section 2): every chunk
+	// GeneralsX: The wrapper wire geometry (fixes/DESIGN_wrapper-memory-cap.md v16 section 2): every chunk
 	// grew 8 bytes (wrapSeq, lowWater) and is acked only by NETCOMMANDTYPE_WRAPPERACK. A peer with the old layout would read each
 	// chunk 8 bytes short and never ack one, so the pair must refuse each other at join as ENGINE_DIFFERS instead of starting a
 	// match. sourceID moves as well (GameNetwork is digested); this makes the refusal explicit and independent of the digest.
@@ -243,7 +243,7 @@ static UnsignedInt computeEngineID( void )
 	return computeEngineIDWith( (UnsignedInt)sizeof(LANMessage), (UnsignedInt)MAX_NETWORK_MESSAGE_LEN );
 }
 
-// GeneralsX @feature Claude 06/11/2026 sizeof(LANMessage) and MAX_NETWORK_MESSAGE_LEN before 34 slots (integration 5487db2f5b and
+// GeneralsX: sizeof(LANMessage) and MAX_NETWORK_MESSAGE_LEN before 34 slots (integration 5487db2f5b and
 // every 12/14-slot build back to 14/08/2026): 763 and 1100. They are lobby-wire sizes, not simulation inputs, so a replay
 // recorded with them is the same simulation engine; joins still compare the real engineID (SimIdCompare).
 enum { GX_SIMID_PRE34_LANMESSAGE_SIZE = 763, GX_SIMID_PRE34_NETWORK_MESSAGE_LEN = RETAIL_COMPATIBLE_NETWORKING ? 1024 : 1100 };
@@ -353,7 +353,7 @@ static UnsignedInt computePlatformID( void )
 //   * .ini in general. Already in m_iniCRC, and hashing it twice buys nothing. The
 //     CommandButton/CommandSet exception below is exactly that - an exception, because
 //     those files never reach m_iniCRC at all.
-//   * GameLOD.ini and GameLODPresets.ini. GeneralsX @bugfix Claude 17/08/2026: written down
+//   * GameLOD.ini and GameLODPresets.ini. GeneralsX: written down
 //     because these were very nearly added, and the reasoning for keeping them out is not
 //     obvious. They pass the usual test for an exception - GameLODManager::init loads both
 //     with a nullptr Xfer (GameLOD.cpp:307,310 in GeneralsMD, :310,313 in Generals), so like
@@ -412,7 +412,7 @@ struct SimIdLooseScan
 	                                    ///< only if it equals prefix + ".ini" or begins prefix + "/".
 };
 
-// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#80
+// GeneralsX: TheSuperHackers/GeneralsGameCode#80
 //
 // ControlBar::init loads the command buttons and command sets with a nullptr Xfer
 // (ControlBar.cpp:1082-1086), so their bytes never enter m_iniCRC - while CommandButton's
@@ -446,7 +446,7 @@ static const char *const SIMID_ALLOW_COMMANDBAR[] =
 	nullptr
 };
 
-// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#80 (second door)
+// GeneralsX: TheSuperHackers/GeneralsGameCode#80 (second door)
 //
 // Every file the engine opens BY NAME rather than by enumerating a directory. These have to be
 // probed explicitly, because discovery and loading do not resolve the same way:
@@ -721,7 +721,7 @@ static SimulationId &mutableInstance( void )
 	// safe to "cannot join" rather than to "compatible".
 	try
 	{
-		// GeneralsX @bugfix Claude 01/08/2026 Was (UnsignedInt)GitRevision. See SimulationId.h
+		// GeneralsX: Was (UnsignedInt)GitRevision. See SimulationId.h
 		// for the three measured ways a commit count fails to order two builds. The narrowing
 		// cast is lossless: time_t is 64-bit signed on every deployed target, a 2026 timestamp
 		// is ~1.79e9, and UnsignedInt holds up to 4.29e9 - it overflows in 2106, not 2038.
@@ -747,7 +747,7 @@ static SimulationId &mutableInstance( void )
 	DEBUG_LOG(("SimID: valid=%d built=%u engine=%08X source=%08X data=%08X ordinal=%08X parse=%08X asset=%08X platform=%08X",
 		(int)id.valid, id.buildTime, id.engineID, id.sourceID, id.dataID, id.ordinalID, id.parseID, id.assetID, id.platformID));
 
-	// GeneralsX @feature Claude 27/07/2026 Release-surviving SimID trace.
+	// GeneralsX: Release-surviving SimID trace.
 	//
 	// The DEBUG_LOG above is ((void)0) in every shipping preset: DEBUG_LOGGING is only
 	// defined via ALLOW_DEBUG_UTILS (Debug.h:66-77), which needs RTS_DEBUG, and the Apple
@@ -770,7 +770,7 @@ static SimulationId &mutableInstance( void )
 	fflush(stderr);
 }
 
-// GeneralsX @feature Claude 27/07/2026 Verdict names, so a refusal reads as a cause
+// GeneralsX: Verdict names, so a refusal reads as a cause
 // rather than an integer. Kept beside SimIdCompare, which owns the precedence order.
 const char *SimIdVerdictName( SimIdVerdict v )
 {
@@ -788,7 +788,7 @@ const char *SimIdVerdictName( SimIdVerdict v )
 	return "UNKNOWN";
 }
 
-// GeneralsX @feature Claude 27/07/2026 One place that prints both identities field by
+// GeneralsX: One place that prints both identities field by
 // field and marks every one that differs, so "which field" never has to be eyeballed
 // out of two hex rows. Callers supply which side they are and who the peer is.
 void SimIdLogMismatch( const char *side, const char *peerAddr, SimIdVerdict verdict, const SimIdWire &peer )
@@ -854,8 +854,8 @@ SimIdVerdict SimIdCompare( const SimIdWire &peer )
 	if (!me.valid)                       return SIMID_LOCAL_INVALID;
 	if (peer.tag != SIMID_WIRE_TAG)      return SIMID_PEER_SILENT;
 	if (peer.engineID  != me.engineID)   return SIMID_ENGINE_DIFFERS;
-	// 0 is the reserved "no provenance" sentinel; it is never comparable. GeneralsX @feature Claude 01/10/2026 M1
-	// Determinism-1 (Codex roadmap-r19/r20 P1): such a pair is REFUSED now. It used to play with only
+	// 0 is the reserved "no provenance" sentinel; it is never comparable. GeneralsX: M1
+	// Determinism-1: such a pair is REFUSED now. It used to play with only
 	// SIMID_WARN_SOURCE_UNKNOWN, so a no-git build - an older or external one, or a source copy - could join a match whose
 	// simulation it may not share, and every determinism certificate assumed it could not. Release legs are already
 	// refused a 0 by verify-4platform; this is the same rule at the join.

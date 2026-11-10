@@ -241,7 +241,7 @@ target_compile_definitions(g_ww3d2 PRIVATE
     $<$<BOOL:${IS_VS6_BUILD}>:WINVER=0x0500>
 )
 
-# GeneralsX @build Copilot 11/05/2026 Keep PCH only on Windows to avoid non-Windows header-order instability in CompatLib/DXVK builds.
+# GeneralsX: Keep PCH only on Windows to avoid non-Windows header-order instability in CompatLib/DXVK builds.
 if(WIN32)
     target_precompile_headers(g_ww3d2 PRIVATE
         [["Utility/CppMacros.h"]] # Must be first, to be removed when abandoning VC6

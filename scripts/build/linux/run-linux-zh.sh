@@ -6,7 +6,7 @@ set -e
 LOG_FILE="logs/run_zh.log"
 
 # Runtime directory
-# GeneralsX @feature BenderAI 01/04/2026 Prefer GeneralsZH for user-facing Zero Hour runtime path with GeneralsMD fallback.
+# GeneralsX: Prefer GeneralsZH for user-facing Zero Hour runtime path with GeneralsMD fallback.
 PREFERRED_GAME_DIR="${HOME}/GeneralsX/GeneralsZH"
 LEGACY_GAME_DIR="${HOME}/GeneralsX/GeneralsMD"
 GAME_DIR="${PREFERRED_GAME_DIR}"
@@ -39,7 +39,7 @@ if [[ ! -f "${GAME_DIR}/libdxvk_d3d8.so" ]]; then
     exit 1
 fi
 
-# GeneralsX @feature Claude 12/08/2026 Community-patch overlay - see scripts/build/lib-overlay.sh.
+# GeneralsX: Community-patch overlay - see scripts/build/lib-overlay.sh.
 #
 # Pointed at by environment rather than left to the engine's <exe dir>/GeneralsXPatch default:
 # on Linux the executable lives IN the game folder, so that default path sits inside the asset
@@ -67,7 +67,7 @@ export DXVK_WSI_DRIVER="SDL3"
 export DXVK_LOG_LEVEL="${DXVK_LOG_LEVEL:-info}"  # Override with 'debug' if needed
 export DXVK_HUD="${DXVK_HUD:-devinfo,fps}"       # Show GPU info + FPS overlay; override with DXVK_HUD=0 to disable
 
-# GeneralsX @bugfix BenderAI 06/03/2026 - Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
+# GeneralsX: Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
 # libvulkan_lvp.so (LLVMpipe) crashes during static initialization with LLVM 20.x.
 # Filter hardware-only ICDs via VK_DRIVER_FILES to prevent loading the crashing library.
 # User can override by setting VK_DRIVER_FILES or VK_ICD_FILENAMES before running.

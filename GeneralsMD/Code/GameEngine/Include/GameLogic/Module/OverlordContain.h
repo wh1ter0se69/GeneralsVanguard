@@ -89,7 +89,7 @@ public:
 	virtual void onRemoving( Object *obj ) override;			///< object no longer contains 'obj'
 	virtual UpdateSleepTime update() override;
 	virtual void containReactToTransformChange() override;
-	// GeneralsX @bugfix copilot 20/04/2026 Issue #95: skip redeployOccupants for PORTABLE_STRUCTURE riders
+	// GeneralsX: Issue #95: skip redeployOccupants for PORTABLE_STRUCTURE riders
 	virtual void redeployOccupants() override;
 
 private:

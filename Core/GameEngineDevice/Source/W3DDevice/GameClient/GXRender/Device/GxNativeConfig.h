@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-L-2 11/10/2026 L1: the EFFECTIVE DXVK configuration a native session must reproduce (DESIGN_l1-device
+// GeneralsX: L1: the EFFECTIVE DXVK configuration a native session must reproduce (DESIGN_l1-device
 // §5.2, row S5). DXVK reads $DXVK_CONFIG_FILE (else ./dxvk.conf), then the $DXVK_CONFIG string split at ';', later lines winning
 // (references/fbraz3-dxvk 954c5c692 util/config/config.cpp getUserConfig + parseUserConfigLine). The game writes DXVK_CONFIG itself
 // before the device (GeneralsMD W3DDisplay.cpp:1804-1838). Render-only.

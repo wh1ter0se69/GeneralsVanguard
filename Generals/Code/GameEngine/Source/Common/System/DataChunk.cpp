@@ -37,7 +37,7 @@
 // If verbose, lots of debug logging.
 #define not_VERBOSE
 
-// GeneralsX @bugfix claude 25/07/2026 Sanity ceiling for the uncompressed size a compressed
+// GeneralsX: Sanity ceiling for the uncompressed size a compressed
 // chunk file claims in its wrapper header. The biggest shipped .map is a couple of MB, so this
 // is ~40x headroom for legitimate content while still rejecting nonsense sizes. See the use
 // site in CachedFileInputStream::open() for why an unbounded value was dangerous.
@@ -76,7 +76,7 @@ Bool CachedFileInputStream::open(AsciiString path)
 		Int uncompLen = CompressionManager::getUncompressedSize(m_buffer, m_size);
 		//DEBUG_LOG(("CachedFileInputStream::open() - file %s is compressed!  It should go from %d to %d", path.str(),
 		//	m_size, uncompLen));
-		// GeneralsX @bugfix claude 25/07/2026 uncompLen is read verbatim out of bytes 4-7 of the
+		// GeneralsX: uncompLen is read verbatim out of bytes 4-7 of the
 		// file's compression wrapper, so it is entirely file-controlled and was passed straight to
 		// NEW char[]. A negative value became a ~4GB size_t; a large positive one made map
 		// enumeration - which walks every .map on disk at startup, including peer-transferred maps
@@ -380,7 +380,7 @@ void DataChunkOutput::writeAsciiString( const AsciiString& theString )
 
 void DataChunkOutput::writeUnicodeString( UnicodeString theString )
 {
-	// GeneralsX @bugfix BenderAI 20/02/2026 File format uses UTF-16 (2 bytes/char, Windows wchar_t).
+	// GeneralsX: File format uses UTF-16 (2 bytes/char, Windows wchar_t).
 	// On Linux sizeof(WideChar)==4; always write 2 bytes/char for cross-platform compatibility.
 	UnsignedShort len = theString.getLength();
 	::fwrite( (const char *)&len, sizeof(UnsignedShort) , 1, m_tmp_file );
@@ -563,7 +563,7 @@ void DataChunkTableOfContents::write( OutputStream &s )
 // Append symbols to table
 void DataChunkTableOfContents::read( ChunkInputStream &s)
 {
-	// GeneralsX @bugfix claude 25/07/2026 count and len used to be left uninitialized here.
+	// GeneralsX: count and len used to be left uninitialized here.
 	// ChunkInputStream::read() returns 0 and does NOT touch the caller's buffer once the stream
 	// is exhausted, so a truncated file (e.g. one containing nothing but the "CkMp" tag) left
 	// count as stack garbage and the loop below allocated that many pooled Mappings - a jetsam
@@ -586,7 +586,7 @@ void DataChunkTableOfContents::read( ChunkInputStream &s)
 		count = 0;	// short read - buffer was not written, don't trust it
 	}
 
-	// GeneralsX @bugfix claude 25/07/2026 Every read below is now checked, which bounds the loop
+	// GeneralsX: Every read below is now checked, which bounds the loop
 	// by what the file actually contains (each entry costs at least 5 bytes) instead of by the
 	// declared count. Bail out on the first short read and free the half-built mapping.
 	for( i=0; i<count; i++ )
@@ -626,7 +626,7 @@ void DataChunkTableOfContents::read( ChunkInputStream &s)
 		if (m->id > maxID)
 			maxID = m->id;
 	}
-	// GeneralsX @bugfix claude 25/07/2026 A truncated table must not report itself as opened for
+	// GeneralsX: A truncated table must not report itself as opened for
 	// read; i < count means we broke out above, so the symbol table is incomplete and any chunk
 	// ids that follow cannot be resolved. Without this, a partially read table would still let
 	// DataChunkInput::parse() run against a half-populated symbol list.
@@ -807,13 +807,13 @@ AsciiString DataChunkInput::openDataChunk(DataChunkVersionType *ver )
 	if (headerBytes == 0 && this->atEndOfFile()) {
 		return AsciiString::TheEmptyString;	// no header at all: the end of the file
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 A header cut short by the end of the file is a truncated file, and a full
+	// GeneralsX: A header cut short by the end of the file is a truncated file, and a full
 	// header is judged below BEFORE the end-of-file return further down - that return used to come first, so a file
-	// ending right after a header that promised a payload parsed as complete (Codex mlv-r2 #3).
+	// ending right after a header that promised a payload parsed as complete.
 	if (headerBytes != (Int)(sizeof(UnsignedInt) + sizeof(DataChunkVersionType) + sizeof(Int))) {
 		throw ERROR_CORRUPT_FILE_FORMAT;
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 A chunk's size is file data like any other, and readChunkBytes and the readers'
+	// GeneralsX: A chunk's size is file data like any other, and readChunkBytes and the readers'
 	// own size checks all trust dataLeft: a header advertising more than what holds it let a reader size an allocation
 	// from bytes that are not there (an 800 MB boundary list from a chunk of a few bytes), and a child larger than its
 	// parent read on into the parent's next sibling. A chunk must fit inside its parent, or at the top inside the file
@@ -942,7 +942,7 @@ void DataChunkInput::decrementDataLeft( Int size )
 	// The sizes of the parent chunks on the stack are adjusted in closeDataChunk.
 }
 
-// GeneralsX @bugfix Claude 06/10/2026 Every read below used to check the chunk's remaining size only in a
+// GeneralsX: Every read below used to check the chunk's remaining size only in a
 // DEBUG_ASSERTCRASH (compiled out of release) and to ignore the stream's short read, which leaves the caller's buffer
 // untouched - so past the end of a chunk a reader got the next chunk's bytes, and past the end of the file it got the
 // uninitialised local it had declared. Every "count, then that many records" reader of a map (sides, teams, build
@@ -1004,7 +1004,7 @@ Dict DataChunkInput::readDict()
 {
 	UnsignedShort len = 0;
 	readChunkBytes( &len, sizeof(UnsignedShort) );
-	// GeneralsX @bugfix Claude 06/10/2026 len is an entry count, and Dict(len) reserves that many pairs up front: every
+	// GeneralsX: len is an entry count, and Dict(len) reserves that many pairs up front: every
 	// entry is at least five bytes (key and type, then a one-byte bool), so a count the chunk cannot hold is damage.
 	if ((Int)len * 5 > m_chunkStack->dataLeft) {
 		throw ERROR_CORRUPT_FILE_FORMAT;
@@ -1067,7 +1067,7 @@ AsciiString DataChunkInput::readAsciiString()
 
 UnicodeString DataChunkInput::readUnicodeString()
 {
-	// GeneralsX @bugfix BenderAI 20/02/2026 File format uses UTF-16 (2 bytes/char, Windows wchar_t).
+	// GeneralsX: File format uses UTF-16 (2 bytes/char, Windows wchar_t).
 	// On Linux sizeof(WideChar)==4; reading len*sizeof(WideChar) bytes over-consumed file data,
 	// corrupting chunk dataLeft and preventing PlayerScriptsList from being parsed (no scripts/camera).
 	UnsignedShort len = 0;

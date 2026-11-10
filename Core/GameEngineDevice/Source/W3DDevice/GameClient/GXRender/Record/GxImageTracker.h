@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: per-image access state and the precise barriers the pass graph needs.
+// GeneralsX: WS-F1: per-image access state and the precise barriers the pass graph needs.
 //
 // GXRES' own GxImage::transition is a full barrier (everything -> one use): right for its rare copies, too blunt for a frame
 // that hands a render target to its readers. The writer asks need(image, use) before every attachment, sampled or transfer

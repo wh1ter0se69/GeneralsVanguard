@@ -172,7 +172,7 @@ void setEnabledButtons()
 //-------------------------------------------------------------------------------------------------
 // sets the appropriate campaign for the chosen general
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 01/10/2026 Returns FALSE, having changed nothing, when the general's player template name is unknown (modded data): the caller must not start
+// GeneralsX: Returns FALSE, having changed nothing, when the general's player template name is unknown (modded data): the caller must not start
 // the game with an empty slot 0. Idea from Generals Online 3e6a7186c, reimplemented.
 Bool setGeneralCampaign( Int buttonIndex )
 {

@@ -49,7 +49,7 @@
 #include "Common/Registry.h"
 #include "W3DDevice/GameClient/W3DFileSystem.h"
 
-// GeneralsX @bugfix BenderAI 13/02/2026AI - io.h is Windows-specific, use unistd.h on Linux
+// GeneralsX:AI - io.h is Windows-specific, use unistd.h on Linux
 #ifdef _WIN32
 #include <io.h>
 #else
@@ -318,7 +318,7 @@ char const * GameFileClass::Set_Name( char const *filename )
 
 	}
 
-	// GeneralsX @bugfix BenderAI 18/02/2026 - Cross-extension fallback for TGA/DDS mismatches.
+	// GeneralsX: Cross-extension fallback for TGA/DDS mismatches.
 	// Some regional game installs (e.g. Brazilian Steam) store textures with a different
 	// extension than what the W3D/INI data requests (.tga vs .dds or vice versa).
 	// If all lookups above failed, retry with the alternate extension so both cases work.

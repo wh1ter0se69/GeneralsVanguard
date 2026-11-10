@@ -733,15 +733,15 @@ set(GAMEENGINE_SRC
     # adding them does not move sourceID and costs no coordinated four-platform rebuild. Measured
     # before and after: ZH=0xB7CAADDD G=0xF72105F0, unchanged.
     Source/GameClient/GXEd25519.cpp
-    # GeneralsX @feature Claude 24/08/2026 Host-authoritative camera height limits. GameClient/ and
+    # GeneralsX: Host-authoritative camera height limits. GameClient/ and
     # this CMakeLists.txt are both outside simsourcedigest_watcher.cmake's path list, so adding it
     # does not move sourceID and costs no coordinated four-platform rebuild.
     Source/GameClient/GXHostCamera.cpp
     Source/GameClient/GXIdentityAssertion.cpp
-    # GeneralsX @feature Claude 19/09/2026 In-match kick: the red line. Outside the digest like its
+    # GeneralsX: In-match kick: the red line. Outside the digest like its
     # neighbours; the decision it calls is Include/Common/GXKickTicket.h, which is inside it.
     Source/GameClient/GXKick.cpp
-    # GeneralsX @feature Claude 11/08/2026 Discord login. UNCONDITIONAL, on every platform,
+    # GeneralsX: Discord login. UNCONDITIONAL, on every platform,
     # including Windows - which is the point of the loopback design. The browser makes every
     # network request; the engine opens a socket, opens a URL and verifies a signature, and all
     # three exist everywhere. The previous revision fetched over HTTPS and therefore could not
@@ -750,7 +750,7 @@ set(GAMEENGINE_SRC
     Source/GameClient/GXLoginFlow.cpp
     Source/GameClient/GXLoopback.cpp
     Source/GameClient/GXLobbyPresence.cpp
-    # GeneralsX @feature Claude 29/10/2026 S1-3: the signed relay list, read by the engine on every platform.
+    # GeneralsX: S1-3: the signed relay list, read by the engine on every platform.
     # GameClient/ and this file are outside simsourcedigest_watcher.cmake's paths; the digested OptionPreferences.cpp
     # calls it, so it is named in resources/gitinfo/simdigest_exclusions.txt ("@Lobby, identity and local files").
     Source/GameClient/GXRelayList.cpp
@@ -1283,7 +1283,7 @@ if(MINGW)
     target_link_libraries(corei_gameengine_public INTERFACE reactos_atl)
 endif()
 
-# GeneralsX @feature BenderAI 21/04/2026 UpdateChecker shared implementation (SAGE_UPDATE_CHECK builds only)
+# GeneralsX: UpdateChecker shared implementation (SAGE_UPDATE_CHECK builds only)
 # Compiled into both g_gameengine and z_gameengine via INTERFACE source propagation.
 if(SAGE_UPDATE_CHECK)
     target_sources(corei_gameengine_private INTERFACE
@@ -1296,7 +1296,7 @@ endif()
 # SDL_OpenURL) can find SDL3/SDL.h even though gameengine does not otherwise depend on the device
 # layer.
 #
-# GeneralsX @bugfix Claude 11/08/2026 This linkage used to live inside the if(SAGE_UPDATE_CHECK)
+# GeneralsX: This linkage used to live inside the if(SAGE_UPDATE_CHECK)
 # block above, which coupled it to the wrong feature: SDL3 is what provides SDL_OpenURL, libcurl is
 # what the update checker needs, and the two are independent. The iOS preset sets SAGE_USE_SDL3=ON
 # with SAGE_UPDATE_CHECK=OFF, so the iPadOS build got no SDL include directory at all and failed to

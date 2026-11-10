@@ -145,7 +145,7 @@ void Money::triggerAudioEvent(const AudioEventRTS& audioEvent)
 // ------------------------------------------------------------------------------------------------
 void Money::crc( Xfer *xfer )
 {
-	// GeneralsX @feature Claude 01/10/2026 Determinism-1 (ROADMAP_2027 M1 item 1, CA-29): every live field, including
+	// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 1, CA-29): every live field, including
 	// the income buckets that RETAIL_COMPATIBLE_XFER_SAVE's version-1 save leaves out. m_playerIndex is fixed per player.
 	xfer->xferUnsignedInt( &m_money );
 	xfer->xferUser( m_incomeBuckets, sizeof( m_incomeBuckets ) );

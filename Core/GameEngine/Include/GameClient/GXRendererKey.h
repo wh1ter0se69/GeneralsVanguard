@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-line-0967 21/10/2026 THE RENDERER SWITCH (wh1ter0se 21/10: the native renderer ships OPT-IN in 0.9.67,
+// GeneralsX: THE RENDERER SWITCH (wh1ter0se 21/10: the native renderer ships OPT-IN in 0.9.67,
 // classic stays the default; native as the default is a 0.9.68 decision). The decision only - pure, no engine, unit-tested by
 // scripts/test/renderer-key-test.sh. Its one reader is GXGraphics::nativeRendererRequested (GXGraphicsSettings.cpp).
 //

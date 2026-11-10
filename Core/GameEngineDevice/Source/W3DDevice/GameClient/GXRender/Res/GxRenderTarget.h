@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: render-target and depth-stencil SURFACES (D3D8 CreateRenderTarget /
+// GeneralsX: WS-C GXRES v0: render-target and depth-stencil SURFACES (D3D8 CreateRenderTarget /
 // CreateDepthStencilSurface / the implicit back buffer and auto depth). Render-target TEXTURES are GxTexture with
 // d3d::USAGE_RENDERTARGET (water reflection 256x256, pillarbox offscreen, shader-manager filter target - CENSUS §4).
 //
@@ -51,7 +51,7 @@ public:
 	// The sample count DXVK would use for a D3D8 multisample type on this device.
 	// maxSamples: FormatCaps::maxSamples (0 = no extra cap) - a forced reduced-capability device.
 	static VkSampleCountFlagBits clampSamples(const VkPhysicalDeviceLimits& limits, uint32_t d3dSamples, uint32_t maxSamples = 0);
-	// The largest power of two <= cap, at most 64 (Vulkan's largest count): a huge cap would wrap a doubling loop (Codex rw3L-code-r8 #4).
+	// The largest power of two <= cap, at most 64 (Vulkan's largest count): a huge cap would wrap a doubling loop.
 	static uint32_t capPow2(uint32_t cap);
 
 private:

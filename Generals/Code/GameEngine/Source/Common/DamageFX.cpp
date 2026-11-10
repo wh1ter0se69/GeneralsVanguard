@@ -164,7 +164,7 @@ static void parseCommonStuff(
 	}
 	else
 	{
-		// GeneralsX @bugfix Claude 24/09/2026 An unknown DamageType name now fails the INI parse (INI_INVALID_DATA) instead of indexing with -1.
+		// GeneralsX: An unknown DamageType name now fails the INI parse (INI_INVALID_DATA) instead of indexing with -1.
 		// Upstream reference: xezon, PR #3344
 		// https://github.com/TheSuperHackers/GeneralsGameCode/pull/3344
 		damageFirst = (DamageType)INI::scanIndexList(damageName, DamageTypeFlags::getBitNames());
@@ -306,7 +306,7 @@ void DamageFXStore::init()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/10/2026 Undo exactly what a map.ini did, ArmorStore::reset's way: the pristine values go back INTO the
+// GeneralsX: Undo exactly what a map.ini did, ArmorStore::reset's way: the pristine values go back INTO the
 // existing node, so every body module's pointer to it stays valid, and the DamageFX a map invented leave. That erase is safe
 // for Armor's reason: only module data and live bodies hold a DamageFX pointer, live objects are gone (resetSubsystems resets
 // TheGameLogic first), a startup template cannot name a DamageFX that did not exist at startup, and the map.ini's own
@@ -334,7 +334,7 @@ void DamageFXStore::update()
 	const char *c = ini->getNextToken();
 	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
 
-	// GeneralsX @bugfix Claude 10/10/2026 A map.ini cleared and re-parsed the DamageFX IN PLACE and nothing put it back, so the
+	// GeneralsX: A map.ini cleared and re-parsed the DamageFX IN PLACE and nothing put it back, so the
 	// map's values outlived it for the rest of the process. Record what it is about to overwrite (ArmorStore's pattern): find()
 	// first, since operator[] below creates a new name's entry; one backup per name per match, never the map's own first block.
 	if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)

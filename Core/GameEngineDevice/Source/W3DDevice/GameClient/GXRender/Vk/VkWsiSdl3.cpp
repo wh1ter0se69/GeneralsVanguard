@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B WSI - SDL3 glue, see VkWsi.h. Uses only SDL 3.2 API (the game ships 3.4.2).
+// GeneralsX: WS-B WSI - SDL3 glue, see VkWsi.h. Uses only SDL 3.2 API (the game ships 3.4.2).
 #include "VkWsi.h"
 
 #include <SDL3/SDL.h>

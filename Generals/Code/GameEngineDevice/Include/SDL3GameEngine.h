@@ -94,7 +94,7 @@ public:
 	virtual ModuleFactory *createModuleFactory(void);
 	virtual ThingFactory *createThingFactory(void);
 	virtual FunctionLexicon *createFunctionLexicon(void);
-	// GeneralsX @bugfix Copilot 15/04/2026 Match upstream GameEngine pure-virtual signatures after sync.
+	// GeneralsX: Match upstream GameEngine pure-virtual signatures after sync.
 	virtual Radar *createRadar(Bool dummy);
 	virtual WebBrowser *createWebBrowser(void);
 	virtual ParticleSystemManager* createParticleSystemManager(Bool dummy);

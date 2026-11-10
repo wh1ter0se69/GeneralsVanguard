@@ -29,7 +29,7 @@
 #pragma once
 
 #include "gamespy/gstats/gpersist.h"
-// GeneralsX @bugfix Claude 25/09/2026 gamespy's gsplatformutil.h defines min/max as function macros; drop them
+// GeneralsX: gamespy's gsplatformutil.h defines min/max as function macros; drop them
 // so they cannot shadow BaseType.h's min/max templates or break a later <chrono> (libstdc++).
 #undef min
 #undef max

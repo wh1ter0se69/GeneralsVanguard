@@ -61,7 +61,7 @@ static GameWindow *sliderDrawDistance = nullptr;
 
 static OptionPreferences *pref = nullptr;
 
-// GeneralsX @bugfix Claude 25/09/2026 What Accept does with the camera pitch: store it only if the player moved
+// GeneralsX: What Accept does with the camera pitch: store it only if the player moved
 // the slider, remove it after Defaults, and otherwise leave the file alone - see View::setPrefCameraPitch.
 enum PitchEdit { PITCH_UNTOUCHED, PITCH_MOVED, PITCH_DEFAULTS };
 static PitchEdit s_pitchEdit = PITCH_UNTOUCHED;
@@ -92,13 +92,13 @@ void ExtrasMenuInit(WindowLayout *layout, void *userData)
 		Int val = (Int)pref->getMinCameraHeight();
 		GadgetSliderSetPosition(sliderMinCameraHeight, val);
 	}
-	// GeneralsX @bugfix Claude 25/09/2026 Pitch through View's resolver, rounded (the default 37.5 opens as 38).
+	// GeneralsX: Pitch through View's resolver, rounded (the default 37.5 opens as 38).
 	s_pitchEdit = PITCH_UNTOUCHED;
 	if (sliderCameraPitch) {
 		Int val = (Int)(View::getPrefCameraPitch(*pref) + 0.5f);
 		GadgetSliderSetPosition(sliderCameraPitch, val);
 	}
-	// GeneralsX @bugfix Claude 25/09/2026 Round, never truncate: 1.05f * 100.0f is 104.99999, so the
+	// GeneralsX: Round, never truncate: 1.05f * 100.0f is 104.99999, so the
 	// shipped 1.05 opened as 104 and every Accept stepped 106 -> 105 -> 104 (scroll speed likewise).
 	// Draw distance goes through View's resolver, not the pref getter: the file may still hold the
 	// percent this menu used to write, which the getter reads as 2.0.
@@ -111,7 +111,7 @@ void ExtrasMenuInit(WindowLayout *layout, void *userData)
 		GadgetSliderSetPosition(sliderDrawDistance, val);
 	}
 
-	// GeneralsX @bugfix Claude 24/08/2026 A control that accepts input and does nothing is how a
+	// GeneralsX: A control that accepts input and does nothing is how a
 	// player concludes the game is broken.
 	//
 	// While a networked match is running under host-authoritative camera limits (GXHostCamera),
@@ -140,9 +140,9 @@ void ExtrasMenuInit(WindowLayout *layout, void *userData)
 			sliderMinCameraHeight->winEnable( FALSE );
 		}
 	}
-	// GeneralsX @bugfix Claude 26/09/2026 The same for a pair the Debug menu saved past this screen's range (its mark,
+	// GeneralsX: The same for a pair the Debug menu saved past this screen's range (its mark,
 	// View::getPrefDebugCameraHeights): these sliders stop at 1000 / 50, so they could only show it clamped, and an
-	// Accept for any other setting would have written the clamp over it (Codex dbgcam-r4 P2). Greyed, left alone.
+	// Accept for any other setting would have written the clamp over it. Greyed, left alone.
 	else if (View::getPrefDebugCameraHeights(*pref)) {
 		if (sliderMaxCameraHeight)
 			sliderMaxCameraHeight->winEnable( FALSE );
@@ -201,7 +201,7 @@ static void saveExtras()
 
 	Int val;
 
-	// GeneralsX @bugfix Claude 24/08/2026 THIS GUARD IS NOT COSMETIC. ExtrasMenuInit parks the two
+	// GeneralsX: THIS GUARD IS NOT COSMETIC. ExtrasMenuInit parks the two
 	// camera-height sliders on the HOST's values while an override is in force, so without this,
 	// pressing Accept would write the host's limits into the player's own Options.ini and overwrite
 	// the preference they set themselves - permanently, and for every future game. Disabling a
@@ -225,7 +225,7 @@ static void saveExtras()
 		(*pref)["MinCameraHeight"] = prefString;
 	}
 
-	// GeneralsX @bugfix Claude 25/09/2026 Through View's one writer, and only for a slider the player moved or
+	// GeneralsX: Through View's one writer, and only for a slider the player moved or
 	// reset: an untouched one used to save its truncated position ("37") on every Accept. The live view takes
 	// the resolved pitch below; TheGlobalData's pitch stays the data default (see View::init).
 	val = GadgetSliderGetPosition(sliderCameraPitch);
@@ -246,18 +246,18 @@ static void saveExtras()
 	val = GadgetSliderGetPosition(sliderDrawDistance);
 	if (val > 0) {
 		TheWritableGlobalData->m_terrainDrawDistanceScale = val / 100.0f;
-		// GeneralsX @bugfix Claude 25/09/2026 The real, as the Debug menu has written it since
+		// GeneralsX: The real, as the Debug menu has written it since
 		// 26/07/2026. "%d" wrote the percent, which every reader clamps to the 2.0 maximum.
 		AsciiString prefString;
 		prefString.format("%.2f", val / 100.0f);
 		(*pref)["TerrainDrawDistanceScale"] = prefString;
 	}
 
-	// GeneralsX @bugfix Claude 27/07/2026 Push the camera settings into the live view. Same defect
+	// GeneralsX: Push the camera settings into the live view. Same defect
 	// as the Debug menu sliders: the view caches the height limits and the default pitch at
 	// construction and never re-reads TheGlobalData, so writing the global here did nothing until
 	// the next game start re-created the view. See DebugMenu.cpp for the full note.
-	// GeneralsX @bugfix Claude 26/09/2026 Keep the height, pinned into the new limits, and put a moved pitch live -
+	// GeneralsX: Keep the height, pinned into the new limits, and put a moved pitch live -
 	// setZoom(getZoom()) lifted the camera ~44% past the limit on every Accept at 16:9. See DebugMenu.cpp.
 	if (TheTacticalView != nullptr) {
 		TheTacticalView->setCameraHeightAboveGroundLimitsToDefault();
@@ -277,7 +277,7 @@ static void saveExtras()
 //-------------------------------------------------------------------------------------------------
 static void setDefaults()
 {
-	// GeneralsX @bugfix Claude 24/08/2026 Defaults must not move a greyed slider. Moving it would
+	// GeneralsX: Defaults must not move a greyed slider. Moving it would
 	// show a number that is not in force, on a control the player cannot touch, and Accept would
 	// then correctly ignore it - which is the same silent no-op in a different costume.
 	const Bool hostOwnsCameraHeights = GXHostCamera::isOverrideInForce() || (pref != nullptr && View::getPrefDebugCameraHeights(*pref));
@@ -286,7 +286,7 @@ static void setDefaults()
 		GadgetSliderSetPosition(sliderMaxCameraHeight, 500);
 	if (sliderMinCameraHeight && !hostOwnsCameraHeights)
 		GadgetSliderSetPosition(sliderMinCameraHeight, 80);
-	// GeneralsX @bugfix Claude 25/09/2026 Show the data default, rounded, and have Accept remove the choice. The
+	// GeneralsX: Show the data default, rounded, and have Accept remove the choice. The
 	// old 37 was stored as a choice below the default, in the larger LOW_ANGLE terrain window.
 	if (sliderCameraPitch) {
 		GadgetSliderSetPosition(sliderCameraPitch, (Int)(TheGlobalData->m_cameraPitch + 0.5f));
@@ -347,7 +347,7 @@ WindowMsgHandledType ExtrasMenuSystem(GameWindow *window, UnsignedInt msg,
 			break;
 		}
 
-		// GeneralsX @bugfix Claude 25/09/2026 A pitch the player moved, as opposed to one Accept merely finds
+		// GeneralsX: A pitch the player moved, as opposed to one Accept merely finds
 		// there. The slider gadget reports every move it makes (drag, click, arrow key) to its owner, this
 		// window; a programmatic GadgetSliderSetPosition moves it without a report.
 		case GSM_SLIDER_TRACK:

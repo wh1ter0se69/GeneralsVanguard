@@ -21,7 +21,7 @@
 //////////////////////////////////////////////////////////////////////
 
 #include "framgrab.h"
-// GeneralsX @build BenderAI 10/02/2026 - guard Windows-only header
+// GeneralsX: guard Windows-only header
 #ifdef _WIN32
 #include <io.h>
 #endif

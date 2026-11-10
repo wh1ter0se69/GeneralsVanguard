@@ -3,7 +3,7 @@
 // Client-only: the view is not simulated, nothing here reaches the network or the digest.
 #pragma once
 
-// ponytail: the one feel knob. Full 20..60 degree range in ~1.3 s.
+// Trade-off: the one feel knob. Full 20..60 degree range in ~1.3 s.
 static const float GX_THUMB_TILT_RAD_PER_SEC = 0.5236f;	// 30 deg/s
 static const float GX_THUMB_TILT_MAX_DT = 0.1f;				// a hitch must not become a jump
 

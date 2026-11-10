@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 02/10/2026 - prefer the V-cache CCD on X3D CPUs. See GXCpuSets.h.
+// GeneralsX: prefer the V-cache CCD on X3D CPUs. See GXCpuSets.h.
 #include "GXCpuSets.h"
 
 #include <algorithm>

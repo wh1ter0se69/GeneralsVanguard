@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 24/09/2026 One number parser for INI data on every platform.
+// GeneralsX: One number parser for INI data on every platform.
 //
 // INI values feed the simulation, so every peer must turn the same text into the same bits. INI.cpp used
 // std::from_chars on Windows and Linux but sscanf on Apple, because Apple's libc++ only ships float

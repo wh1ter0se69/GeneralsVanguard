@@ -213,7 +213,7 @@ private:
 
 	PlayerTemplateVector m_playerTemplates;
 
-	// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#1972
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#1972
 	//
 	// reset() is a deliberate no-op - "we want to retain this info" - which is right for the
 	// templates parsed at startup and wrong for the ones a map.ini overwrites, because an

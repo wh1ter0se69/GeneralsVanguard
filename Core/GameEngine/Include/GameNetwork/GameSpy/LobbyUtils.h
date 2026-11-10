@@ -32,7 +32,7 @@ class GameWindow;
 
 GameWindow *GetGameListBox();
 
-// GeneralsX @bugfix Claude 07/08/2026 Re-proportion the 8 browser columns; the shipped .wnd gives
+// GeneralsX: Re-proportion the 8 browser columns; the shipped .wnd gives
 // two of them zero width and squeezes the ping cell. See the definition for why this is done in
 // code rather than by overriding the .wnd.
 void RelayFixGameListColumns( GameWindow *listbox );

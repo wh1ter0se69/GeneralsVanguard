@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @bugfix Claude 24/08/2026 - when an identical UI message is a REPEAT, not a new event.
+**	GeneralsX: when an identical UI message is a REPEAT, not a new event.
 **
 **	WHY THIS IS A HEADER OF ITS OWN, AND PURE.
 **

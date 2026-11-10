@@ -47,7 +47,7 @@
 #include "WW3D2/dx8renderer.h"
 #include "WW3D2/light.h"
 #include "d3dx8math.h"
-// GeneralsX @bugfix BenderAI 13/02/2026 Include d3dx8core.h for LPD3DXBUFFER
+// GeneralsX: Include d3dx8core.h for LPD3DXBUFFER
 #include "d3dx8core.h"
 #include "WWLib/simplevec.h"
 #include "WW3D2/mesh.h"
@@ -78,7 +78,7 @@
 #include "GameClient/GXWaterLive.h"	// GeneralsX @feature live water: the glue is GXWaterLiveGlue.inl, at the end
 #include "GameClient/GXWaterRA3.h"	// GeneralsX @feature RA3 water: the glue is GXWaterRA3Glue.inl, at the end
 
-// GeneralsX @feature Claude 17/10/2026 Live water (GXWaterLiveGlue.inl, included at the end of this file).
+// GeneralsX: Live water (GXWaterLiveGlue.inl, included at the end of this file).
 static void gxWaterLiveAcquire();
 static void gxWaterLiveRelease();
 static void gxWaterLiveShutdown();
@@ -90,7 +90,7 @@ static inline void gxWaterLiveVertex(VertexFormatXYZNDUV2 *vb, Real x, Real y, c
 static void gxWaterLiveDrawGlare(const GxWaterLiveUV &live, unsigned short tris, unsigned short verts);
 static Bool s_gxGlareLayer = TRUE;	// live water: FALSE while renderWater draws a feathered surface's lower layers
 static void gxWaterLiveDrawFoam(Bool riversReplaced, TextureClass *noise, TextureClass *bubbles, TextureClass *white);
-// GeneralsX @feature Claude 24/10/2026 RA3 water (GXWaterRA3Glue.inl, included at the end of this file).
+// GeneralsX: RA3 water (GXWaterRA3Glue.inl, included at the end of this file).
 static unsigned gxWaterRA3WaterDiffuse(unsigned retail);
 static TextureClass *gxWaterRA3SurfaceTexture(TextureClass *retail);
 static void gxWaterRA3Release();
@@ -230,7 +230,7 @@ static Int getRiverVertexDiffuse(W3DShroud *shroud, Real x, Real y, Real shadeR,
 // GeneralsX @feature skybox-1 11/10/2026: a script that switches the sky off means the map wants no sky
 // (the always-on sky below stays out of it until the next map).
 static Bool s_scriptSkyOff = FALSE;
-// GeneralsX @bugfix E·wh1ter0se-bugs-1015 16/10/2026: the frame clears to black again, as retail does. The sky-coloured
+// GeneralsX: the frame clears to black again, as retail does. The sky-coloured
 // background (281c904b1) painted everything past the map's black border flat blue at a far camera; wh1ter0se (14/10): "edges
 // need to be more black before going blue". That left the box's own lower half (skyBelowHorizonBlack, offmap-black-2).
 // The texture name the always-on sky last pointed each face (N,E,S,W,T) at, empty when it never moved it: skyBoxMapReset
@@ -239,7 +239,7 @@ static Bool s_scriptSkyOff = FALSE;
 // static-initializer code the closure cannot tie to it, and then checks the whole file's initializer as region code (a GAP).
 static AsciiString *faceCur() { static AsciiString s_faceCur[5]; return s_faceCur; }
 
-// GeneralsX @bugfix skybox-1 12/10/2026 (Codex skybox r10 P2): the latch rides the save (GameClient::xfer, a client chunk),
+// GeneralsX @bugfix skybox-1 12/10/2026 (skybox r10 P2): the latch rides the save (GameClient::xfer, a client chunk),
 // so a map script's "sky off" survives a load; the engine reset ahead of the load (skyBoxMapReset) cleared it.
 Bool gxSkyScriptOff() { return s_scriptSkyOff; }
 void gxSetSkyScriptOff(Bool off) { s_scriptSkyOff = off; }
@@ -286,7 +286,7 @@ static Bool skyAlwaysOn()
 	return on;
 }
 
-// GeneralsX @bugfix skybox-1 12/10/2026 (Codex skybox r10 P2): the always-on sky's far depth and widened far plane hold only
+// GeneralsX @bugfix skybox-1 12/10/2026 (skybox r10 P2): the always-on sky's far depth and widened far plane hold only
 // while the mesh renderer is flushed inside them. A mesh the renderer defers - triangle-sorted (SORT, no static level) or
 // on a static sort list - is drawn after both are restored, where it can paint over the map or be clipped. Retail's
 // new_skybox is neither; a mod's that is gets the retail black instead (a script can still show it the retail way).
@@ -311,7 +311,7 @@ static Bool skyDrawIsDeferred(RenderObjClass *r)
 	return deferred;
 }
 
-// GeneralsX @bugfix E·offmap-black-2 16/10/2026: below eye level the always-on sky is black (wh1ter0se 16/10, on the 12-player
+// GeneralsX: below eye level the always-on sky is black (wh1ter0se 16/10, on the 12-player
 // spectator picture: "more black here - players shouldn't be able to see that unless like they zoom out infinitely").
 // The box is centred on the eye, so the lower half of its faces - the art's flat colour, 61,93,194 for TSSunny - filled
 // every direction past the map below the horizon down to the box's bottom edge. This cap, drawn right after the box at the
@@ -430,7 +430,7 @@ void WaterRenderObjClass::setupJbaWaterShader()
 		DX8Wrapper::Set_DX8_Texture_Stage_State(2,  D3DTSS_ADDRESSU, D3DTADDRESS_WRAP);
 		DX8Wrapper::Set_DX8_Texture_Stage_State(2,  D3DTSS_ADDRESSV, D3DTADDRESS_WRAP);
 
-		// GeneralsX @bugfix BenderAI 13/02/2026 Matrix4x4 for GLM compatibility (fighter19 pattern)
+		// GeneralsX: Matrix4x4 for GLM compatibility (fighter19 pattern)
 		Matrix4x4 curView;
 		DX8Wrapper::_Get_DX8_Transform(D3DTS_VIEW, curView);
 		D3DXMATRIX inv;
@@ -1104,7 +1104,7 @@ void WaterRenderObjClass::ReAcquireResources()
 
 	if (W3DShaderManager::getChipset() >= DC_GENERIC_PIXEL_SHADER_1_1)
 	{
-		// GeneralsX @bugfix Claude 28/09/2026 The three retail ps.1.1 water shaders as bytecode, on every platform.
+		// GeneralsX: The three retail ps.1.1 water shaders as bytecode, on every platform.
 		// They used to be assembled here at runtime with D3DXAssembleShader, which only exists as a stub that
 		// returns D3DERR_INVALIDCALL (CompatLib d3dx8_compat.cpp), and the block was compiled out off Windows,
 		// so every GeneralsX build ran water with these handles at 0: no river sparkles, noise or feathered
@@ -1177,7 +1177,7 @@ void WaterRenderObjClass::ReAcquireResources()
 	if (m_whiteTexture && !m_whiteTexture->Is_Initialized())
 	{	m_whiteTexture->Init();
 		SurfaceClass *surface=m_whiteTexture->Get_Surface_Level();
-		// GeneralsX @bugfix Claude 01/10/2026 No surface when the 1x1 texture could not be created (failed D3D/DXVK create); idea from Generals Online 767ac8ad8, reimplemented.
+		// GeneralsX: No surface when the 1x1 texture could not be created (failed D3D/DXVK create); idea from Generals Online 767ac8ad8, reimplemented.
 		if (surface)
 		{
 			int pitch;
@@ -1195,7 +1195,7 @@ void WaterRenderObjClass::load()
 	if (m_waterTrackSystem)
 		m_waterTrackSystem->loadTracks();
 
-	// GeneralsX @feature Claude 17/10/2026 Clearer water (GXWaterClearGlue.inl): the end of W3DTerrainVisual::load, so after
+	// GeneralsX: Clearer water (GXWaterClearGlue.inl): the end of W3DTerrainVisual::load, so after
 	// loadMapINI appended the map's own Water blocks and after initHeightData built the shoreline tiles - every map, the shell
 	// map at startup included.
 	gxWaterRA3MapLoaded();	// GeneralsX @feature RA3 water: FIRST - clearer water's apply asks it for the override (GXWaterRA3Glue.inl)
@@ -1220,7 +1220,7 @@ Int WaterRenderObjClass::init(Real waterLevel, Real dx, Real dy, SceneClass *par
 	m_dy=dy;
 	m_level=waterLevel;
 
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
 	m_LastUpdateTime=gxRenderNowMs();
 	m_uScrollPerMs=0.001f;
 	m_vScrollPerMs=0.001f;
@@ -1340,7 +1340,7 @@ Int WaterRenderObjClass::init(Real waterLevel, Real dx, Real dy, SceneClass *par
 	//For some reason setting a null texture does not result in 0xffffffff for pixel shaders so using explicit "white" texture.
 	m_whiteTexture=MSGNEW("TextureClass") TextureClass(1,1,WW3D_FORMAT_A4R4G4B4,MIP_LEVELS_1);
 	SurfaceClass *surface=m_whiteTexture->Get_Surface_Level();
-	// GeneralsX @bugfix Claude 01/10/2026 No surface when the 1x1 texture could not be created (failed D3D/DXVK create); idea from Generals Online 767ac8ad8, reimplemented.
+	// GeneralsX: No surface when the 1x1 texture could not be created (failed D3D/DXVK create); idea from Generals Online 767ac8ad8, reimplemented.
 	if (surface)
 	{
 		int pitch;
@@ -1454,7 +1454,7 @@ void WaterRenderObjClass::update()
 	gxWaterClearPoll();	// GeneralsX @test clearer water: GX_WATER_CLEAR_FLIP_AT, nothing when unset (GXWaterClearGlue.inl)
 
 	// TheSuperHackers @tweak The water movement time step is now decoupled from the render update.
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
 	const Real timeScale = gxRenderTimeScale();
 	gxWaterLiveTick(timeScale);	// GeneralsX @feature live water: its own clock, game seconds in a double (GXWaterLiveGlue.inl)
 
@@ -1474,7 +1474,7 @@ void WaterRenderObjClass::update()
 			m_fBumpFrame = 0.0f;
 
 	// GX-SIMID-BEGIN the simulation reads this - resources/gitinfo/simsourcedigest_watcher.cmake
-		// GeneralsX @bugfix Claude 06/08/2026 Class-C gate - see m_lastLogicFrameUpdated in the
+		// GeneralsX: Class-C gate - see m_lastLogicFrameUpdated in the
 		// header, including why this one site is determinism-relevant.
 		const UnsignedInt gxNow = (TheGameLogic != NULL) ? TheGameLogic->getFrame() : 0;
 		const Bool gxAdvanced = (TheGameLogic == NULL) || (gxNow != m_lastLogicFrameUpdated);
@@ -1564,7 +1564,7 @@ void WaterRenderObjClass::replaceSkyboxTexture(const AsciiString& oldTexName, co
 {
 	W3DAssetManager* assetManager = ((W3DAssetManager*)W3DAssetManager::Get_Instance());
 
-	// GeneralsX @bugfix Claude 01/10/2026 m_skyBox is null when the skybox asset is missing; idea from Generals Online 53f0b22d6, reimplemented.
+	// GeneralsX: m_skyBox is null when the skybox asset is missing; idea from Generals Online 53f0b22d6, reimplemented.
 	if (m_skyBox)
 		assetManager->replacePrototypeTexture(m_skyBox, oldTexName.str(), newTextName.str());
 
@@ -1796,7 +1796,7 @@ void WaterRenderObjClass::Render(RenderInfoClass & rinfo)
 		case WATER_TYPE_3_GRIDMESH:
 			//Draw the water surface as a bunch of alpha blended tiles covering areas where water is visible
 			renderWater();
-			// GeneralsX @feature Claude 17/10/2026 Live water's shoreline foam, over the water surface (GXWaterLiveGlue.inl).
+			// GeneralsX: Live water's shoreline foam, over the water surface (GXWaterLiveGlue.inl).
 			gxWaterLiveDrawFoam(m_disableRiver, m_waterNoiseTexture, m_waterSparklesTexture, m_whiteTexture);
 			if (!m_drawingRiver || m_disableRiver) {
 				renderWaterMesh();	//Draw water surface as 3D deforming mesh if it's enabled on this map.
@@ -1853,7 +1853,7 @@ void WaterRenderObjClass::Render(RenderInfoClass & rinfo)
 				/**************************************************************************************/
 
 				//get current view matrix
-			// GeneralsX @bugfix BenderAI 13/02/2026 Matrix4x4 for GLM compatibility (fighter19 pattern)
+			// GeneralsX: Matrix4x4 for GLM compatibility (fighter19 pattern)
 			Matrix4x4 curView;
 			DX8Wrapper::_Get_DX8_Transform(D3DTS_VIEW, curView);
 
@@ -2160,12 +2160,12 @@ void WaterRenderObjClass::drawSea(RenderInfoClass & rinfo)
 	if (!getClippedWaterPlane(&rinfo.Camera,&seaBox))
 		return;	//the sea is not visible
 
-	// GeneralsX @bugfix BenderAI 13/02/2026 Matrix4x4 for GLM compatibility (fighter19 pattern)
+	// GeneralsX: Matrix4x4 for GLM compatibility (fighter19 pattern)
 Matrix4x4 matProj, matView, matWW3D;
 
 	//create a transform which will flip the y and z coordinates to fit our system
 	memset(&matWW3D,0,sizeof(D3DMATRIX));
-	// GeneralsX @bugfix BenderAI 13/02/2026 GLM Matrix4x4 uses [row][col] not ._##
+	// GeneralsX: GLM Matrix4x4 uses [row][col] not ._##
 	matWW3D[0][0]=1.0f;
 	matWW3D[2][1]=1.0f;
 	matWW3D[1][2]=1.0f;
@@ -2184,8 +2184,8 @@ Matrix4x4 matProj, matView, matWW3D;
 
 	DX8Wrapper::_Get_DX8_Transform(D3DTS_VIEW, matView);
 	DX8Wrapper::_Get_DX8_Transform(D3DTS_PROJECTION, matProj);
-	// GeneralsX @feature E · render-motion-1 13/10/2026 the wave VS's own WVP gets the world pass's projection jitter (no-op on
-	// classic / outside the pass; DESIGN_motion.md §5, Codex #3); matProj itself stays clean: it is restored below
+	// GeneralsX: the wave VS's own WVP gets the world pass's projection jitter (no-op on
+	// classic / outside the pass; DESIGN_motion.md §5, #3); matProj itself stays clean: it is restored below
 	Matrix4x4 matProjVS = matProj;
 	GxWorldPassJitterProjection(W3DWorldSeam::worldPass(), (float *)&matProjVS);
 
@@ -2287,7 +2287,7 @@ Matrix4x4 matProj, matView, matWW3D;
 	{
 		for (startX=patchX=(seaBox.Center.X-seaBox.Extent.X)/(PATCH_WIDTH*PATCH_SCALE); (patchX*PATCH_WIDTH*PATCH_SCALE)<(seaBox.Center.X+seaBox.Extent.X); patchX++)
 		{
-			// GeneralsX @bugfix BenderAI 13/02/2026 Matrix4x4 for GLM compatibility (fighter19 pattern)
+			// GeneralsX: Matrix4x4 for GLM compatibility (fighter19 pattern)
 			Matrix4x4 matWorldViewProj, matTemp, matTempWorld;
 			patchMatrix._41=(float)(patchX*PATCH_WIDTH*PATCH_SCALE );
 			patchMatrix._43=(float)(patchY*PATCH_WIDTH*PATCH_SCALE );
@@ -2348,7 +2348,7 @@ Matrix4x4 matProj, matView, matWW3D;
 		{
 			for (startX=patchX=(seaBox.Center.X-seaBox.Extent.X)/(PATCH_WIDTH*PATCH_SCALE); (patchX*PATCH_WIDTH*PATCH_SCALE)<(seaBox.Center.X+seaBox.Extent.X); patchX++)
 			{
-				// GeneralsX @bugfix BenderAI 13/02/2026 Matrix4x4 for GLM compatibility (fighter19 pattern)
+				// GeneralsX: Matrix4x4 for GLM compatibility (fighter19 pattern)
 				Matrix4x4 matTemp;
 				patchMatrix._41=(float)(patchX*PATCH_WIDTH*PATCH_SCALE);
 				patchMatrix._43=(float)(patchY*PATCH_WIDTH*PATCH_SCALE);
@@ -2380,7 +2380,7 @@ void WaterRenderObjClass::renderWater()
 			if (pTrig->getNumPoints()>2) {
 				if (pTrig->isRiver()) {
 					drawRiverWater(pTrig);
-					// GeneralsX @feature Claude 25/10/2026 RA3 water's motion on rivers: this river once more, ADDED, from buffers of
+					// GeneralsX: RA3 water's motion on rivers: this river once more, ADDED, from buffers of
 					// its own (drawRiverWater's are released by now) - the sheen and the sky x Fresnel, faded at the banks, the ripples
 					// following the river downstream (GXWaterRA3Glue.inl); off = retail.
 					if (m_riverWaterPixelShader && !m_disableRiver)
@@ -2406,8 +2406,8 @@ void WaterRenderObjClass::renderWater()
 					{
 						for (int r = 0; r < TheGlobalData->m_featherWater; ++r)
 						{
-							// GeneralsX @feature Claude 17/10/2026 Live water's glints go on the TOP layer only, after every layer
-							// under it: a later layer would blend over glints added earlier (Codex lw2-r9).
+							// GeneralsX: Live water's glints go on the TOP layer only, after every layer
+							// under it: a later layer would blend over glints added earlier.
 							s_gxGlareLayer = (r == TheGlobalData->m_featherWater - 1);
 							drawTrapezoidWater(points);
 							points[0].Z += (FEATHER_THICKNESS/TheGlobalData->m_featherWater);
@@ -2417,7 +2417,7 @@ void WaterRenderObjClass::renderWater()
 					else
 					{
 						drawTrapezoidWater(points);
-						// GeneralsX @feature Claude 24/10/2026 RA3 water's motion: this patch once more, ADDED, from buffers of its own
+						// GeneralsX: RA3 water's motion: this patch once more, ADDED, from buffers of its own
 						// (drawTrapezoidWater's are released by now) - two counter-scrolling tilings of a normal map, the sun's sheen and the
 						// sky x Fresnel (GXWaterRA3Glue.inl); off = retail. Not on feathered water (a debug setting: its layers are raised
 						// by a wave this pass does not draw).
@@ -2444,7 +2444,7 @@ void WaterRenderObjClass::renderSky()
 
 	Setting *setting=&m_settings[m_tod];
 
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
 	timeNow=gxRenderNowMs();
 
 	timeDiff=timeNow-m_LastUpdateTime;
@@ -3133,7 +3133,7 @@ void WaterRenderObjClass::drawRiverWater(PolygonTrigger *pTrig)
 
 	if (m_disableRiver) return;
 
-	// GeneralsX @bugfix Claude 06/10/2026 A river's points come from the map (sent with it to every lobby peer). The
+	// GeneralsX: A river's points come from the map (sent with it to every lobby peer). The
 	// index and vertex counts below go through unsigned short buffer sizes, so from about 21,846 points the index count
 	// wrapped, the dynamic buffer came back smaller than the loop's writes, and the indices ran past it. A river too long
 	// for one 16-bit index buffer is not drawn; every river that fitted draws exactly as before.
@@ -3211,7 +3211,7 @@ void WaterRenderObjClass::drawRiverWater(PolygonTrigger *pTrig)
 
 	//Keep diffuse from lighting calculations but substitute custom alpha
 	diffuse |= m_settings[m_tod].waterDiffuse & 0xff000000;	//copy alpha/opacity from ini setting
-	// GeneralsX @feature Claude 25/10/2026 RA3 water on rivers: the deep colour, lit by the map, alpha kept (GXWaterRA3Glue.inl); off = retail.
+	// GeneralsX: RA3 water on rivers: the deep colour, lit by the map, alpha kept (GXWaterRA3Glue.inl); off = retail.
 	gxWaterRA3RiverColour(&shadeR, &shadeG, &shadeB, &diffuse);
 
 	Int innerNdx = pTrig->getRiverStart();
@@ -3318,7 +3318,7 @@ void WaterRenderObjClass::drawRiverWater(PolygonTrigger *pTrig)
 	DX8Wrapper::Set_Transform(D3DTS_WORLD,tm);	//position the water surface
 	DX8Wrapper::Set_Index_Buffer(ib_access,0);
 	DX8Wrapper::Set_Vertex_Buffer(vb_access);
-	// GeneralsX @feature Claude 25/10/2026 RA3 water on rivers: the smooth surface at the river's own opacity (GXWaterRA3Glue.inl); off = retail.
+	// GeneralsX: RA3 water on rivers: the smooth surface at the river's own opacity (GXWaterRA3Glue.inl); off = retail.
 	DX8Wrapper::Set_Texture(0,gxWaterRA3RiverSurfaceTexture(m_riverTexture));	//set to blue
 
 	setupJbaWaterShader();
@@ -3357,7 +3357,7 @@ void WaterRenderObjClass::drawRiverWater(PolygonTrigger *pTrig)
 void WaterRenderObjClass::setupFlatWaterShader()
 {
 
-	// GeneralsX @feature Claude 24/10/2026 RA3 water's smooth surface instead of the speckled standing-water texture (GXWaterRA3Glue.inl); off = retail.
+	// GeneralsX: RA3 water's smooth surface instead of the speckled standing-water texture (GXWaterRA3Glue.inl); off = retail.
 	DX8Wrapper::Set_Texture(0,gxWaterRA3SurfaceTexture(m_riverTexture));
 	if (!TheWaterTransparency->m_additiveBlend)
 		DX8Wrapper::Set_Shader(ShaderClass::_PresetAlphaShader);
@@ -3390,7 +3390,7 @@ void WaterRenderObjClass::setupFlatWaterShader()
 			if (!m_whiteTexture->Is_Initialized())
 			{	m_whiteTexture->Init();
 				SurfaceClass *surface=m_whiteTexture->Get_Surface_Level();
-				// GeneralsX @bugfix Claude 01/10/2026 No surface when the 1x1 texture could not be created (failed D3D/DXVK create); idea from Generals Online 767ac8ad8, reimplemented.
+				// GeneralsX: No surface when the 1x1 texture could not be created (failed D3D/DXVK create); idea from Generals Online 767ac8ad8, reimplemented.
 				if (surface)
 				{
 					int pitch;
@@ -3432,7 +3432,7 @@ void WaterRenderObjClass::setupFlatWaterShader()
 		DX8Wrapper::Set_DX8_Texture_Stage_State(2,  D3DTSS_ADDRESSU, D3DTADDRESS_WRAP);
 		DX8Wrapper::Set_DX8_Texture_Stage_State(2,  D3DTSS_ADDRESSV, D3DTADDRESS_WRAP);
 
-		// GeneralsX @bugfix BenderAI 13/02/2026 Matrix4x4 for GLM compatibility (fighter19 pattern)
+		// GeneralsX: Matrix4x4 for GLM compatibility (fighter19 pattern)
 		Matrix4x4 curView;
 		DX8Wrapper::_Get_DX8_Transform(D3DTS_VIEW, curView);
 		D3DXMATRIX inv;
@@ -3561,10 +3561,10 @@ void WaterRenderObjClass::drawTrapezoidWater(Vector3 points[4])
 
 	//Keep diffuse from lighting calculations but substitute custom alpha
 	diffuse |= m_settings[m_tod].waterDiffuse & 0xff000000;	//copy alpha/opacity from ini setting
-	// GeneralsX @feature Claude 24/10/2026 RA3 water: its deep colour, lit by the map, alpha kept (GXWaterRA3Glue.inl); off = retail.
+	// GeneralsX: RA3 water: its deep colour, lit by the map, alpha kept (GXWaterRA3Glue.inl); off = retail.
 	diffuse = (Int)gxWaterRA3WaterDiffuse((unsigned)diffuse);
 
-	// GeneralsX @feature Claude 17/10/2026 Live water's flow and glint coordinates (GXWaterLiveGlue.inl); off = retail.
+	// GeneralsX: Live water's flow and glint coordinates (GXWaterLiveGlue.inl); off = retail.
 	const GxWaterLiveUV live = gxWaterLiveFrameUV();
 
 	DynamicVBAccessClass vb_access(BUFFER_TYPE_DYNAMIC_DX8,dynamic_fvf_type,(rectangleCount+1)*2);
@@ -3735,7 +3735,7 @@ void WaterRenderObjClass::drawTrapezoidWater(Vector3 points[4])
 		DX8Wrapper::Draw_Triangles(	0,rectangleCount*2, 0,	(rectangleCount+1)*2);//lorenzen thinks this is where to itereate the soft shoreline effect
 	}
 
-	// GeneralsX @feature Claude 17/10/2026 Live water's glints: this mesh drawn again and ADDED on top, before the restore below
+	// GeneralsX: Live water's glints: this mesh drawn again and ADDED on top, before the restore below
 	// (GXWaterLiveGlue.inl). Only where setupFlatWaterShader bound the sparkle and noise textures.
 	if (live.glare && m_trapezoidWaterPixelShader && s_gxGlareLayer)
 		gxWaterLiveDrawGlare(live, rectangleCount*2, (rectangleCount+1)*2);
@@ -3751,9 +3751,9 @@ void WaterRenderObjClass::drawTrapezoidWater(Vector3 points[4])
 		GxRawRS(DX8Wrapper::_Get_D3D_Device8(), D3DRS_FILLMODE,D3DFILL_SOLID);
 	}
 
-	// GeneralsX @bugfix Claude 28/09/2026 Unbind whatever setupFlatWaterShader bound. This was keyed on the RIVER
-	// handle, so a trapezoid shader created without a river one stayed bound for the draws after water (Codex
-	// gfxb2-water-r2); retail never saw it because its handles were created together or not at all.
+	// GeneralsX: Unbind whatever setupFlatWaterShader bound. This was keyed on the RIVER
+	// handle, so a trapezoid shader created without a river one stayed bound for the draws after water;
+	// retail never saw it because its handles were created together or not at all.
 	DX8Wrapper::_Get_D3D_Device8()->SetPixelShader(0);
 	//Restore alpha blend to default values since we may have changed them to feather edges.
 	if (!TheWaterTransparency->m_additiveBlend)
@@ -3771,7 +3771,7 @@ void WaterRenderObjClass::drawTrapezoidWater(Vector3 points[4])
 		if (m_trapezoidWaterPixelShader)
 		{	//shroud was applied in stage3 of main pass so just need to restore state here.
 			W3DShaderManager::resetShader(W3DShaderManager::ST_SHROUD_TEXTURE);
-			// GeneralsX @bugfix Claude 25/10/2026 Unbind through the wrapper, not the raw device: resetShader just queued a wrapper
+			// GeneralsX: Unbind through the wrapper, not the raw device: resetShader just queued a wrapper
 			// Set_Texture(3, nullptr), but a raw SetTexture left the wrapper's D3D-texture cache naming the shroud while the device held
 			// nothing, so the next ShroudTextureShader::set whose caller had not applied state first had its shroud bind skipped as
 			// "already bound" and drew with stage 3 empty (RA3 water's sheen pass, D · water-ra3-2). The device state is the same.
@@ -3948,9 +3948,9 @@ void WaterRenderObjClass::loadPostProcess()
 
 
 
-// GeneralsX @feature Claude 17/10/2026 Clearer water: the engine glue, below every GX-SIMID region (GameClient/GXWaterClear.h).
+// GeneralsX: Clearer water: the engine glue, below every GX-SIMID region (GameClient/GXWaterClear.h).
 #include "GXWaterClearGlue.inl"
-// GeneralsX @feature Claude 17/10/2026 Live water: the engine glue, below every GX-SIMID region (GameClient/GXWaterLive.h).
+// GeneralsX: Live water: the engine glue, below every GX-SIMID region (GameClient/GXWaterLive.h).
 #include "GXWaterLiveGlue.inl"
-// GeneralsX @feature Claude 24/10/2026 RA3 water: the engine glue, below every GX-SIMID region (GameClient/GXWaterRA3.h).
+// GeneralsX: RA3 water: the engine glue, below every GX-SIMID region (GameClient/GXWaterRA3.h).
 #include "GXWaterRA3Glue.inl"

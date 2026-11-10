@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 23/09/2026 "Have I already mounted this archive?" - by FILE, not by
+// GeneralsX: "Have I already mounted this archive?" - by FILE, not by
 // the string somebody happened to spell it with.
 //
 // ArchiveFileSystem::m_archiveFileMap is keyed by the full path string of the archive
@@ -79,7 +79,7 @@ inline std::string canonicalPath(const char* path)
 	}
 
 #ifdef _WIN32
-	// ponytail: _fullpath collapses "..", "." and separators but NOT junctions or symlinks -
+	// Trade-off: _fullpath collapses "..", "." and separators but NOT junctions or symlinks -
 	// Windows would need GetFinalPathNameByHandle for that. Every duplicate spelling this fixes
 	// on Windows is a "..", separator or case difference, which _fullpath does collapse. Upgrade
 	// to GetFinalPathNameByHandle if a junctioned install ever turns up.
@@ -126,7 +126,7 @@ inline bool samePath(const std::string& lhs, const std::string& rhs)
 
 /// Is the archive named `archiveName` one the -mod argument supplied? `modBIG` is the single-file
 /// form, `modDir` the directory form (every *.big under it, recursively); either may be empty.
-/// GeneralsX @bugfix Claude 06/10/2026 (mod-compat-1, Codex r8 P2). Both sides go through
+/// GeneralsX: Both sides go through
 /// canonicalPath, so `-mod /game/./`, `/game/mod/../mod`, a trailing slash and a case spelling the
 /// filesystem folds all name the same archives as the clean path. A raw string prefix test here let
 /// an odd spelling defeat INI::loadFileDirectory's suppression of the patch's split command files.

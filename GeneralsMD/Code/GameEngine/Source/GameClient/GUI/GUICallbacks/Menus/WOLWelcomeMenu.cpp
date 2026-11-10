@@ -358,7 +358,7 @@ void HandleOverallStats( const char* szHTTPStats, unsigned len )
 		//      we want win% = team's wins / total # games played by all teams
 		const char* pTotal = FindNextNumber(pSide);
 		const char* pWins = FindNextNumber(pTotal);
-		// GeneralsX @bugfix Claude 25/09/2026 1.0, not 1: with gamespy's max macro gone this is BaseType.h's max<T>, which
+		// GeneralsX: 1.0, not 1: with gamespy's max macro gone this is BaseType.h's max<T>, which
 		// needs one type; the macro's ?: already compared and returned a double, so the value is unchanged.
 		float percent = atof(pWins) / max(1.0,atof(pTotal));  //max prevents divide by zero
 		s_totalWinPercent += percent;

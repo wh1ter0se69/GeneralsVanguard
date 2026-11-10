@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 10/10/2026 WS-X hybrid spike (render-seam/DESIGN_hybrid.md): external Vulkan recording
+// GeneralsX: WS-X hybrid spike (render-seam/DESIGN_hybrid.md): external Vulkan recording
 // inside DXVK's own device, inserted after the L2 producer flushes of RTS3DScene.
 //
 // GX_RENDER_HYBRID = 0 (default: nothing runs, no QueryInterface, no Vulkan call, no flush hook), 1 = P-L (record inside DXVK's
@@ -27,7 +27,7 @@ namespace GxInterop
 	int Mode();						// GX_RENDER_HYBRID, read once
 	// Main thread: the next value of the ONE retire sequence every RecordExternal caller signals into the extension's shared
 	// completion object (packets here, GxDepthShot's readback) - two private counters let one caller's earlier value satisfy the
-	// other's wait (Codex rw1x-design-r14 #4)
+	// other's wait
 	uint64_t Take_Retire_Value();
 	inline bool Enabled() { return Mode() != 0; }
 

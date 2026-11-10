@@ -42,7 +42,7 @@
 // PUBLIC FUNCTIONS ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-// GeneralsX @bugfix Claude 10/10/2026 A map.ini's WaterSet writes the time-of-day entry IN PLACE ("does not support override
+// GeneralsX: A map.ini's WaterSet writes the time-of-day entry IN PLACE ("does not support override
 // situations", below) and nothing put it back, so a map's sky and water outlived it in every later game of the process. The whole
 // array is copied before the map's first WaterSet block and copied back by GameLogic::reset, beside the WaterTransparency and
 // Weather overrides it already drops. 22 of the 386 community map.ini files scanned 10/10 use WaterSet.
@@ -115,7 +115,7 @@ void INI::parseWaterTransparencyDefinition( INI *ini )
 		TheWaterTransparency = newInstance(WaterTransparencySetting);
 	} else if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES) {
 		WaterTransparencySetting* wt = (WaterTransparencySetting*) (TheWaterTransparency.getNonOverloadedPointer());
-		// GeneralsX @bugfix Claude 09/10/2026 Copy the FINAL override, as every other store does: the master's copy carried
+		// GeneralsX: Copy the FINAL override, as every other store does: the master's copy carried
 		// its link to the first override, so a second block (twice in map.ini, or map.ini and solo.ini) closed a loop and
 		// getFinalOverride below never returned.
 		wt = (WaterTransparencySetting*) (wt->friend_getFinalOverride());

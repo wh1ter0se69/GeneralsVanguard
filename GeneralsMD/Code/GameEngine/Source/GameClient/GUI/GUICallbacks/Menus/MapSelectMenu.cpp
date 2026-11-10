@@ -59,7 +59,7 @@ static Bool startGame = false;
 static Bool buttonPushed = false;
 static GameDifficulty s_AIDiff = DIFFICULTY_NORMAL;
 
-// GeneralsX @feature Claude 27/07/2026 Map search field, built in code. MapSelectMenu.wnd lives
+// GeneralsX: Map search field, built in code. MapSelectMenu.wnd lives
 // inside WindowZH.big and the .wnd editor is Windows-only, so the row is created at runtime against
 // ListboxMap's real rect. This screen is single player, so there is no host to gate on and the
 // field is unconditional.
@@ -73,7 +73,7 @@ static Bool soloMapUsesSystemMaps = TRUE;
 //-------------------------------------------------------------------------------------------------
 /** Refill the map listbox from the current source radio, map kind and search filter */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 27/07/2026 One choke point for every repopulate, so the three inputs
+// GeneralsX: One choke point for every repopulate, so the three inputs
 // can never drift apart.
 static void repopulateSoloMapList( void )
 {
@@ -207,7 +207,7 @@ void MapSelectMenuInit( WindowLayout *layout, void *userData )
 	{
 		soloMapUsesSystemMaps = usesSystemMapDir;
 
-		// GeneralsX @feature Claude 27/07/2026 Deliberately NO reset() before this create(), unlike
+		// GeneralsX: Deliberately NO reset() before this create(), unlike
 		// the lobby map screens. This one is a shell-stack layout: Shell::hideShell() only runs its
 		// shutdown, it does not pop, so Shell::showShell() can run this Init a SECOND time on the
 		// very same listbox when the player quits a match back to the menu. Resetting here would
@@ -378,7 +378,7 @@ WindowMsgHandledType MapSelectMenuSystem( GameWindow *window, UnsignedInt msg,
 		//---------------------------------------------------------------------------------------------
 		case GWM_DESTROY:
 		{
-			// GeneralsX @feature Claude 27/07/2026 The only place the search row's windows genuinely
+			// GeneralsX: The only place the search row's windows genuinely
 			// go away (Shell::hideShell keeps the layout alive across a match), so the only place the
 			// raw pointers may be dropped. GameWindowManager::reset() also reaches here via
 			// winDestroyAll on a match transition.
@@ -400,7 +400,7 @@ WindowMsgHandledType MapSelectMenuSystem( GameWindow *window, UnsignedInt msg,
 		}
 
 		//---------------------------------------------------------------------------------------------
-		// GeneralsX @feature Claude 27/07/2026 Live map search. GadgetTextEntryInput sends
+		// GeneralsX: Live map search. GadgetTextEntryInput sends
 		// GEM_UPDATE_TEXT to the entry's OWNER on every accepted character and every backspace, and
 		// GEM_EDIT_DONE on Return. The field parents itself to the listbox's parent, which is
 		// MapSelectMenuParent — the window this callback is bound to. No .wnd change involved.
@@ -419,7 +419,7 @@ WindowMsgHandledType MapSelectMenuSystem( GameWindow *window, UnsignedInt msg,
 
 			GameWindow *control = (GameWindow *)mData1;
 
-			// GeneralsX @feature Claude 27/07/2026 The clear button is code-created and belongs to no
+			// GeneralsX: The clear button is code-created and belongs to no
 			// .wnd, so let the search field claim it by pointer before anything reads an id off
 			// `control`.
 			if ( soloMapSearchField.handleSystemMsg( msg, control ) )

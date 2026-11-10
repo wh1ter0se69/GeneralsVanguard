@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 02/10/2026 ai-gym: the action-line grammar a training bot writes (GXGym.cpp reads it).
+// GeneralsX: ai-gym: the action-line grammar a training bot writes (GXGym.cpp reads it).
 // Pure text parsing with no engine types, so scripts/ai/gym/gym-protocol-test.sh tests it on its own. One action per line:
 //
 //   step                              end of this step's actions (GX_ACT_SYNC: the match resumes)
@@ -149,7 +149,7 @@ inline const GXGymShape *gxGymShape(const char *verbName)
 		{ "exit", GXG_EXIT, false, false, true, 1, false },
 		{ "science", GXG_SCIENCE, true, false, false, 0, false },
 		{ "sell", GXG_SELL, false, false, false, 2, false },
-		// GeneralsX @feature Claude 10/10/2026 Track B scenario drills: "spawn <Template> <x> <y> <player> <count> [vet 1-4]"
+		// GeneralsX: Track B scenario drills: "spawn <Template> <x> <y> <player> <count> [vet 1-4]"
 		// and "clear <Template> <player>". The trailing numbers are NOT unit ids (perform() routes these two first).
 		{ "spawn", GXG_SPAWN, true, true, false, 2, false },
 		{ "clear", GXG_CLEAR, true, false, false, 1, false } };
@@ -251,7 +251,7 @@ inline int gxGymParseAction(const char *line, GXGymAction *out, const char **why
 	return 1;
 }
 
-// GeneralsX @feature Claude 03/10/2026 ai-train-3 (lead C11, option b): which build-spot search a match may use. The guarded
+// GeneralsX: ai-train-3 (lead C11, option b): which build-spot search a match may use. The guarded
 // search (GXOrderDriver anyObjectNear: no object within ~2 x the footprint) exists because BuildAssistant's legality check reads
 // Object::getShroudedStatus, a lazy cache that must never be computed on one peer alone. A match with exactly one peer cannot
 // diverge from another, so it may use the engine's own legality check - which lets a supply center stand ~130 from its dock as

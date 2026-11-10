@@ -31,7 +31,7 @@
 #include "Common/StateMachine.h"
 #include "Common/GameMemory.h"
 
-// GeneralsX @feature Claude 05/10/2026 rad per turret update, used only when a Turret block omits TurretTurnRate /
+// GeneralsX: rad per turret update, used only when a Turret block omits TurretTurnRate /
 // TurretPitchRate. The turn default is not halved at 60 Hz, as in Generals Online: the turret updates on every second
 // frame there and turns at twice the rate (TurretAI.cpp), so a default turret turns twice as fast as retail. The pitch
 // default IS halved (go-parity-undo3 C3): pitch is doubled in friend_turnTowardsPitch, so it pitches at retail speed.

@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-K 11/10/2026 GX_RENDER_NATIVE=OFF side of GxNativeInstall.h. Always built.
+// GeneralsX: GX_RENDER_NATIVE=OFF side of GxNativeInstall.h. Always built.
 #ifndef GX_RENDER_NATIVE
 #include "W3DDevice/GameClient/GxNativeInstall.h"
 

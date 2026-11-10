@@ -1,4 +1,4 @@
-# GeneralsX @feature E · rw1-B 10/10/2026 WS-B: gx_vkctx, the native renderer's Vulkan device layer, and its self-test.
+# GeneralsX: WS-B: gx_vkctx, the native renderer's Vulkan device layer, and its self-test.
 #
 # Two ways in, one file:
 #   * standalone (minutes, no game configure):  cmake -S <this dir> -B <build> -G Ninja && cmake --build <build>
@@ -27,7 +27,7 @@ set(GX_VKCTX_THIRD_PARTY "${CMAKE_CURRENT_SOURCE_DIR}/../third_party")
 file(GLOB GX_VKCTX_HOME_SDKS "$ENV{HOME}/VulkanSDK/*/macOS/include")
 list(SORT GX_VKCTX_HOME_SDKS)
 list(REVERSE GX_VKCTX_HOME_SDKS)
-# iOS only (Codex native-ipad-r3 P1): CMake's Darwin platform sets CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY for iOS, which hides these
+# iOS only: CMake's Darwin platform sets CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY for iOS, which hides these
 # host-side copies; Vulkan headers are target-independent there. Every other platform keeps its toolchain's root policy (MinGW's ONLY).
 set(GX_VKCTX_FIND_ROOT)
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
@@ -75,7 +75,7 @@ target_include_directories(gx_vkctx PUBLIC
 )
 # VK_NO_PROTOTYPES: every entry point comes from volk. Beta extensions: VK_KHR_portability_subset (MoltenVK).
 target_compile_definitions(gx_vkctx PUBLIC VK_NO_PROTOTYPES VK_ENABLE_BETA_EXTENSIONS)
-# GeneralsX @feature C · native-ipad-1 13/10/2026 iOS: the game links the static libMoltenVK.a, whose vk* FUNCTIONS share the
+# GeneralsX: iOS: the game links the static libMoltenVK.a, whose vk* FUNCTIONS share the
 # names of C volk's global pointers. volk_ns.cpp compiles volk as C++ in namespace volk instead (volk.h: C++ only, and every
 # includer must see the define, hence PUBLIC). Every other platform keeps volk.c as shipped.
 if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
@@ -84,7 +84,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "iOS")
     target_compile_definitions(gx_vkctx PUBLIC VOLK_NAMESPACE)
 endif()
 if(WIN32)
-    # GeneralsX @bugfix D · native-windows-1 13/10/2026 PRIVATE: as PUBLIC these reached every game source through
+    # GeneralsX: PRIVATE: as PUBLIC these reached every game source through
     # corei_gameenginedevice_public -> gx_device (NOMINMAX is deliberately off for the game, WWVegas/CMakeLists.txt:5), and with
     # VK_USE_PLATFORM_WIN32_KHR every includer of volk.h dragged in <windows.h>. Only VkWsiWin32.cpp calls the Win32 surface
     # functions (VkWsi.h declares them with void* handles); volk is used without its device/instance tables, so the other TUs

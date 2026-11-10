@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: the resource hub (see GxResources.h).
+// GeneralsX: WS-C GXRES v0: the resource hub (see GxResources.h).
 #include "GxResources.h"
 #include "GxBuffer.h"
 #include <algorithm>
@@ -169,7 +169,7 @@ bool GxResources::stageRows(const uint8_t* src, uint32_t srcPitch, uint32_t rowB
 	return true;
 }
 
-// A26 amendment 1 (Codex perfaudit-a26-r1 P1): staging is tagged with the unsubmitted next value, so only a submission frees it -
+// A26 amendment 1: staging is tagged with the unsubmitted next value, so only a submission frees it -
 // a dropped copy's staging included. The count restarts when the tag moves (a submission went out and took these bytes with it).
 void GxResources::noteStaged(VkDeviceSize bytes)
 {

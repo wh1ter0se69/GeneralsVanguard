@@ -189,7 +189,7 @@ inline long RegSetValueEx(HKEY hKey, const char* lpValueName, DWORD Reserved,
 
 // CreateDirectory stub (Linux: uses C++17 std::filesystem for recursive creation)
 // FTP.cpp and GameState.cpp use this for download/save directories
-// GeneralsX @build BenderAI 11/02/2026 - Upgraded to recursive mkdir
+// GeneralsX: Upgraded to recursive mkdir
 inline int CreateDirectory(const char* lpPathName, void* lpSecurityAttributes) {
     (void)lpSecurityAttributes;
     try {
@@ -199,12 +199,12 @@ inline int CreateDirectory(const char* lpPathName, void* lpSecurityAttributes) {
     }
 }
 
-// GeneralsX @build BenderAI 13/02/2026 Removed CreateThread stub - now provided by thread_compat.h
+// GeneralsX: Removed CreateThread stub - now provided by thread_compat.h
 // (thread_compat.h included via windows_compat.h since Session 31)
 // LPTHREAD_START_ROUTINE typedef removed - use start_routine from thread_compat.h instead
 
 // OutputDebugString stub (FTP.cpp debug logging)
-// GeneralsX @build BenderAI 11/02/2026 - Guard against old compat layer macro collision
+// GeneralsX: Guard against old compat layer macro collision
 #ifndef DEPENDENCIES_UTILITY_COMPAT_H
 inline void OutputDebugString(const char* lpOutputString) {
     // On Linux: write to stderr (equivalent to Windows debug output)
@@ -214,7 +214,7 @@ inline void OutputDebugString(const char* lpOutputString) {
 }
 #endif
 
-// GeneralsX @refactor Claude 21/10/2026 strlcpy/strlcat come from WWLib/stringex.h only. The weak copies that sat
+// GeneralsX: strlcpy/strlcat come from WWLib/stringex.h only. The weak copies that sat
 // here, behind a GX_COMPAT_PROVIDE_STRLCPY nothing defined, clashed with it on glibc < 2.38.
 
 #endif // !_WIN32

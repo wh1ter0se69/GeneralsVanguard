@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0 - see VkGpuTimer.h.
+// GeneralsX: WS-B VkCtx v0 - see VkGpuTimer.h.
 #include "VkGpuTimer.h"
 
 #include "vk_mem_alloc.h"
@@ -67,7 +67,7 @@ bool VkGpuTimer::init(VkCtx& ctx, uint32_t framesInFlight, uint32_t maxScopesPer
 	ai.commandPool = m_probePool;
 	ok = ok && vkAllocateCommandBuffers(ctx.device(), &ai, m_probeCmd) == VK_SUCCESS;
 	if (!ok)
-		shutdown(); // a half-built timer is no timer: validate() then reports UNSUPPORTED instead of probing nulls (Codex r2)
+		shutdown(); // a half-built timer is no timer: validate() then reports UNSUPPORTED instead of probing nulls
 	return ok;
 }
 
@@ -104,7 +104,7 @@ bool VkGpuTimer::readPair(uint32_t first, uint64_t* a, uint64_t* b, bool forceLa
 	uint64_t v[4] = {}; // value, availability, value, availability
 	// never VK_QUERY_RESULT_WAIT_BIT: a stamp never written would block it forever on a conformant driver. MoltenVK 1.4.2 does NOT
 	// block there (OBSERVED: WAIT_BIT planted, gputime-neverstamp still gave up after 51 ms), so no run can catch the regression on
-	// this platform - the flags are checked where they are passed instead (R26, Codex r26-r2 #2)
+	// this platform - the flags are checked where they are passed instead
 	constexpr VkQueryResultFlags kFlags = VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WITH_AVAILABILITY_BIT;
 	static_assert((kFlags & VK_QUERY_RESULT_WAIT_BIT) == 0, "R26: the timer's reads must never wait on a query");
 	const VkResult r = vkGetQueryPoolResults(m_ctx->device(), m_pool, first, 2, sizeof(v), v, 2 * sizeof(uint64_t), kFlags);
@@ -168,7 +168,7 @@ bool VkGpuTimer::probeGap(double gapMs, double* gpuMs, double* lowerMs, double* 
 	vkEndCommandBuffer(m_probeCmd[1]);
 
 	// A stamps; the host waits until A has completed, sleeps D, then submits B, which stamps. Nothing is ever left
-	// queued behind a host action (Codex r5: the earlier host-signalled gate could strand B if the signal failed).
+	// queued behind a host action (the earlier host-signalled gate could strand B if the signal failed).
 	SubmitDesc a;
 	a.label = "gputimer";
 	a.commandBuffers.push_back(m_probeCmd[0]);

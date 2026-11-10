@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G: see GxL2Check.h.
+// GeneralsX: WS-G: see GxL2Check.h.
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Check.h"
 #include "WW3D2/dx8wrapper.h"
@@ -43,7 +43,7 @@ const unsigned kGxFfTss[] = { D3DTSS_COLOROP, D3DTSS_COLORARG1, D3DTSS_COLORARG2
 const int kGxFfTssN = (int)(sizeof(kGxFfTss) / sizeof(kGxFfTss[0]));
 
 static const int kGxStages = 4;	// C2's compared stages
-static const int kGxCapStages = 8;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5 T3: the captured ones (C6 compares all 8)
+static const int kGxCapStages = 8;	// GeneralsX: WS-G Task 5 T3: the captured ones (C6 compares all 8)
 static_assert(kGxCapStages == MAX_TEXTURE_STAGES && sizeof(GxDrawState::tex) / sizeof(GxDrawState::tex[0]) == kGxCapStages, "GxDrawState stages");
 
 void GxL2Check_Capture(GxDrawState &s, unsigned prim, unsigned minIndex, unsigned numVerts, unsigned startIndex, unsigned primCount)
@@ -62,11 +62,11 @@ void GxL2Check_Capture(GxDrawState &s, unsigned prim, unsigned minIndex, unsigne
 	s.matKnown = v.materialValid;
 	for (int l = 0; l < 4; ++l) {
 		s.lightOn[l] = v.lightEnables[l];
-		s.lightValid[l] = v.lightValid[l];	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5 T3
+		s.lightValid[l] = v.lightValid[l];	// GeneralsX: WS-G Task 5 T3
 		s.light[l] = v.lights[l];
 	}
 	memcpy(s.world, &v.transforms[D3DTS_WORLD], sizeof(s.world));
-	s.worldKnown = (v.xformValid & 1u) != 0;	// a zeroed cache (Invalidate / Set_Transform_Dirty) is unknown (Codex rw1-G-r7 #2)
+	s.worldKnown = (v.xformValid & 1u) != 0;	// a zeroed cache (Invalidate / Set_Transform_Dirty) is unknown
 	// the view as last SENT (dx8wrapper.h GxViewSent, checked by C9's VIEWSENT): the cache's copy is zeroed by every reset while the
 	// device keeps drawing with it
 	memcpy(s.view, v.viewSent, sizeof(s.view));
@@ -112,10 +112,10 @@ static void gxMask(const GxDrawState &a, const GxDrawState &b, GxMask &m, int mu
 	for (int i = 0; i < kGxFfRsN; ++i)
 		m.rs[kGxFfRs[i]] = true;
 	if (bothOff(D3DRS_LIGHTING)) {
-		// Not SPECULARENABLE: unlit, the fixed-function pixel stage still adds the specular vertex colour under it (Codex rw1-G-r7
-		// #1). Not NORMALIZENORMALS: DXVK keys it whatever LIGHTING says (d3d9_device.cpp:7903) and its FF VS normalises the normal
+		// Not SPECULARENABLE: unlit, the fixed-function pixel stage still adds the specular vertex colour under it.
+		// Not NORMALIZENORMALS: DXVK keys it whatever LIGHTING says (d3d9_device.cpp:7903) and its FF VS normalises the normal
 		// before the lighting branch (d3d9_fixed_function.cpp:1064 vs :1241), which CAMERASPACENORMAL texgen reads (:1161) - rw1-G0 /
-		// Codex contract-r9. The rest are read only lit: AMBIENT (:1369), LOCALVIEWER (`&& lighting`, :7904), COLORVERTEX and the
+		// The rest are read only lit: AMBIENT (:1369), LOCALVIEWER (`&& lighting`, :7904), COLORVERTEX and the
 		// material sources (the colour-vertex mask is lighting-gated, :7895-7899).
 		static const unsigned dep[] = { D3DRS_AMBIENT, D3DRS_COLORVERTEX, D3DRS_LOCALVIEWER,
 			D3DRS_DIFFUSEMATERIALSOURCE, D3DRS_SPECULARMATERIALSOURCE, D3DRS_AMBIENTMATERIALSOURCE, D3DRS_EMISSIVEMATERIALSOURCE };
@@ -259,7 +259,7 @@ int GxL2Check_MaskOracle(int mutant)
 	a.rs[D3DRS_LIGHTING] = b.rs[D3DRS_LIGHTING] = FALSE;
 	a.rs[D3DRS_FOGENABLE] = TRUE;
 	const Expect e2[] = { { D3DRS_AMBIENT, -1, 0, false, false }, { -1, -1, 0, true, false }, { D3DRS_FOGCOLOR, -1, 0, false, true },
-		{ D3DRS_SPECULARENABLE, -1, 0, false, true },	// unlit: still adds the specular vertex colour (Codex rw1-G-r7 #1)
+		{ D3DRS_SPECULARENABLE, -1, 0, false, true },	// unlit: still adds the specular vertex colour
 		{ D3DRS_NORMALIZENORMALS, -1, 0, false, true } };	// unlit: still normalises the normal texgen reads (rw1-G0, contract-r9)
 	check(e2, (int)(sizeof(e2) / sizeof(e2[0])));
 	// 3: the chains end at different stages -> stage 1 fully compared, stage 2's control compared, stage 3 masked.

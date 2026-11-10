@@ -28,7 +28,7 @@ void init() {
     SAGEPATCH_LOG("  F11             screenshot (PNG to ~/Pictures/GeneralsX)");
     SAGEPATCH_LOG("  Scroll Lock     toggle cursor lock");
     SAGEPATCH_LOG("  Ctrl+PageUp/Dn  brightness +/-");
-    // GeneralsX @bugfix Claude 17/08/2026 Was Ctrl+1..5, which ate CREATE_TEAM1..5. See KeyHandler.cpp.
+    // GeneralsX: Was Ctrl+1..5, which ate CREATE_TEAM1..5. See KeyHandler.cpp.
 #if defined(__APPLE__)
     SAGEPATCH_LOG("  Cmd+1..5        window position (center / TL / TR / BL / BR)");
 #else

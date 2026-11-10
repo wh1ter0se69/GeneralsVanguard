@@ -11,7 +11,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/08/2026 See GXLoopback.h for why this exists and what it defends.
+// GeneralsX: See GXLoopback.h for why this exists and what it defends.
 
 #include "GameClient/GXLoopback.h"
 #include "GameNetwork/GXSecureClear.h"	// connDrop: the request buffer held the delivered sign-in
@@ -449,7 +449,7 @@ void connDrop(GXConn &c)
 	if (sockValid(c.sock))
 		sockClose(c.sock);
 	c.sock = GX_SOCK_NONE;
-	// GeneralsX @bugfix Claude 18/09/2026 THE REQUEST IS WIPED, not merely forgotten. A delivery's body
+	// GeneralsX: THE REQUEST IS WIPED, not merely forgotten. A delivery's body
 	// is the whole assertion, form-encoded, and this is static storage: resetting `got` left the token in
 	// it for the rest of the process - through a sign-out - until some later connection happened to
 	// overwrite that slot. Every way a connection ends comes through here, including close().

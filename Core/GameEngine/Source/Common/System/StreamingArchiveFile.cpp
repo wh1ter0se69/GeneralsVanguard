@@ -48,7 +48,7 @@
 #include "PreRTS.h"
 
 #include <fcntl.h>
-// GeneralsX @build BenderAI 12/02/2026 io.h is Windows-specific (file descriptors)
+// GeneralsX: io.h is Windows-specific (file descriptors)
 // Linux: Uses POSIX unistd.h for read/write/close/lseek instead
 #ifdef _WIN32
 #include <io.h>
@@ -226,9 +226,9 @@ Int StreamingArchiveFile::read( void *buffer, Int bytes )
 	// contains at least this many bits.
 	m_file->seek(m_startingPos + m_curPos, File::START);
 
-	// GeneralsX @bugfix Claude 29/10/2026 Clamp without the sum: `bytes + m_curPos` overflowed Int for an entry ending near
+	// GeneralsX: Clamp without the sum: `bytes + m_curPos` overflowed Int for an entry ending near
 	// INT_MAX once m_curPos was near its end (after seek(END)), and the read then ran past the entry into the archive's next
-	// bytes (Codex tsh1028-3588-sec-r2 F2, batch tsh-1029). m_curPos stays in [0, m_size] (seek clamps it, a read advances
+	// bytes (F2, batch tsh-1029). m_curPos stays in [0, m_size] (seek clamps it, a read advances
 	// it by at most what is left), so m_size - m_curPos cannot overflow. A negative count reads nothing.
 	if (bytes < 0)
 		bytes = 0;
@@ -259,7 +259,7 @@ Int StreamingArchiveFile::write( const void *buffer, Int bytes )
 
 Int StreamingArchiveFile::seek( Int pos, seekMode mode)
 {
-	// GeneralsX @bugfix Claude 29/10/2026 In 64 bits: `m_curPos + pos` and `m_size + pos` overflowed Int before the clamp
+	// GeneralsX: In 64 bits: `m_curPos + pos` and `m_size + pos` overflowed Int before the clamp
 	// below for an entry near INT_MAX, so a seek past the end could land at 0 (batch tsh-1029 F2).
 	Int64 newPos;
 

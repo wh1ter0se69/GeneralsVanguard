@@ -81,7 +81,7 @@ public:
 	// destination is learned from the slot list, exactly as it would be on a LAN, which is what
 	// lets a room hold eight peers instead of two.
 	AsciiString getRelayAddress() const;
-	// GeneralsX @feature Claude 29/10/2026 S1-3 relay-list-v2. The relay's LOBBY port, from the SAME decision as
+	// GeneralsX: S1-3 relay-list-v2. The relay's LOBBY port, from the SAME decision as
 	// getRelayAddress() (its game port is this + 2): the signed relay list's home port, or the port of a
 	// "RelayAddress = host:port" pin, else 8086 - the only port there was before.
 	UnsignedShort getRelayPort() const;
@@ -95,7 +95,7 @@ public:
 	static const char *getRelayBootstrapHost();
 	AsciiString getRelayRoom() const;
 	AsciiString getRelayRegion() const;
-	// GeneralsX @feature Claude 08/08/2026 Direct peer-to-peer, opt-OUT.
+	// GeneralsX: Direct peer-to-peer, opt-OUT.
 	//
 	// A direct connection publishes this machine's IP address to everyone else in the match -
 	// today only the relay learns it. That is normal for a peer-to-peer game and it is also a

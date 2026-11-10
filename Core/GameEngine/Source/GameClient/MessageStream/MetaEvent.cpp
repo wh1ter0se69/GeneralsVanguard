@@ -70,7 +70,7 @@ MetaMap *TheMetaMap = nullptr;
 
 #include "Common/UserPreferences.h"
 
-// GeneralsX @feature Claude 26/09/2026 THE GENERAL KEYS - the launcher's Keybinds > GENERAL tab (owner, 26/09/2026:
+// GeneralsX: THE GENERAL KEYS - the launcher's Keybinds > GENERAL tab (owner, 26/09/2026:
 // "add custom keybind mapping for that in the launcher too").
 //
 // Four chords live in CommandButtonHotKeys.ini beside GXFriendsKey - user data, never in dataID - each written
@@ -109,12 +109,12 @@ static GXChord s_gxCameraReset = { MK_HOME, NONE };
 /// default). The meta map fires it; onKeyEvent only guards its key-up.
 static GXChord s_gxIdleWorker = { MK_I, SHIFT_CTRL };
 /// Where that record can fire (its m_usableIn): the guard follows the command, not a game-only assumption - a mod's
-/// observer-only idle-worker key must not swallow a player's key-up (Codex kg-general-r6).
+/// observer-only idle-worker key must not swallow a player's key-up.
 static CommandUsableInType s_gxIdleWorkerUsable = COMMANDUSABLE_GAME;
 
 /// The key-up guard for the idle-worker record: its chord when it fires on the key going DOWN with a modifier held,
 /// else none. A mod's `Transition = UP` binding fires on the key-up itself, so guarding that edge would swallow the
-/// command (Codex kg-general-r2); a bare binding's key-up was never ours to guard.
+/// command; a bare binding's key-up was never ours to guard.
 /// scripts/test/audit/bench/select_chord_keys.cpp carries a copy.
 static GXChord gxIdleGuardFor(Int key, Int mods, Int transition)
 {
@@ -196,7 +196,7 @@ static Bool gxLoadGeneralKeys(GXChord *idle)
 		Int bareKey = MK_NONE;
 		Bool parsed = gxParseChord(value.str(), &chord);
 		// A bare key is only ever a navigation key: any other would be taken from a command-bar button in front of the
-		// map (Codex r2 P2). The launcher's keybinds.rs canonical_chord_for applies the same list.
+		// map. The launcher's keybinds.rs canonical_chord_for applies the same list.
 		if (!parsed && entries[i].bareOk && gxLookupName(KeyNames, value.str(), &bareKey)
 			&& (bareKey == MK_HOME || bareKey == MK_END || bareKey == MK_PGUP || bareKey == MK_PGDN || bareKey == MK_INS || bareKey == MK_DEL))
 		{
@@ -222,7 +222,7 @@ static Bool gxLoadGeneralKeys(GXChord *idle)
 
 #if RTS_ZEROHOUR
 
-// GeneralsX @feature Claude 25/09/2026 THE FRIENDS KEY. F5 unless the player chose another.
+// GeneralsX: THE FRIENDS KEY. F5 unless the player chose another.
 //
 // Owner decision 25/09/2026 (superseding 24/09): "F5 = Friends ONLINE only; offline (skirmish/campaign) keeps
 // camera view 5." So F5 opens the Friends overlay (GXBuddyOverlayToggle) in the relay lobby, a relay game room
@@ -738,9 +738,9 @@ void MetaEventTranslator::onMouseEvent(const GameMessage *msg)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 28/09/2026 Is an Options menu up? Matched by NAME through keyToName, which only reads: never
+// GeneralsX: Is an Options menu up? Matched by NAME through keyToName, which only reads: never
 // nameToKey, which on a peer that has not loaded OptionsMenu.wnd yet would mint a name key there alone and shift every
-// key minted after it - and upgrades travel between peers as that number (Codex gfxp3-toggle-r4b). A destroyed window
+// key minted after it - and upgrades travel between peers as that number. A destroyed window
 // waits in the list until the frame ends, and nothing under it counts.
 static Bool gxOptionsMenuUp(GameWindow *w)
 {
@@ -826,7 +826,7 @@ void MetaEventTranslator::onKeyEvent(const GameMessage *msg, GameMessageDisposit
 	}
 #endif
 
-	// GeneralsX @feature Claude 26/09/2026 SELECT EVERY INFANTRY UNIT (default Ctrl+I), SELECT EVERY UNIT (default Alt+I)
+	// GeneralsX: SELECT EVERY INFANTRY UNIT (default Ctrl+I), SELECT EVERY UNIT (default Alt+I)
 	// - on screen, and a second press across the map. Owner, 25/09/2026, for "select every infantry, then waypoint them
 	// into several transports"; rebindable from the launcher's Keybinds > GENERAL tab since 26/09/2026 (gxLoadGeneralKeys).
 	//
@@ -840,11 +840,11 @@ void MetaEventTranslator::onKeyEvent(const GameMessage *msg, GameMessageDisposit
 	// Both edges are eaten, and the UP is eaten even when the modifier was released first: a bare key-up reaches
 	// HotKeyTranslator, which fires command buttons on the UP, and would press whatever is bound to that key - the Demo
 	// general's worker has "Su&icide" on I. The idle-worker chord (the GENERAL tab's third row) is the meta map's to
-	// fire, but its key-up is guarded the same way (Codex kg-general-r1). One bit PER KEY, so two chords held on two
-	// keys at once each keep their own guard (Codex kg-general-r1).
+	// fire, but its key-up is guarded the same way. One bit PER KEY, so two chords held on two
+	// keys at once each keep their own guard.
 	//
 	// A key-UP is the chord's only when that key went DOWN as the chord (the held bit): an Up arrow held to scroll and
-	// released after Ctrl went down must still reach LookAtTranslator, or the camera scrolls on (Codex kg-general-r3).
+	// released after Ctrl went down must still reach LookAtTranslator, or the camera scrolls on.
 	//
 	// The Remastered chord (gxToggleRemastered) rides the same block and the same held bit, for the same key-up reason:
 	// Ctrl or Shift released before R would otherwise hand a bare R-up to the command bar. It appends nothing.
@@ -968,7 +968,7 @@ void MetaEventTranslator::onKeyEvent(const GameMessage *msg, GameMessageDisposit
 				/*GameMessage *metaMsg =*/ TheMessageStream->appendMessage(map->m_meta);
 				//DEBUG_LOG(("Frame %d: MetaEventTranslator::translateGameMessage() normal: %s", TheGameLogic->getFrame(), findGameMessageNameByType(map->m_meta)));
 			}
-			// GeneralsX @probe Claude 25/09/2026 GX_KEYTRACE (HotKey.h): a CommandMap binding eats the key before the
+			// GeneralsX: GX_KEYTRACE (HotKey.h): a CommandMap binding eats the key before the
 			// command-button hotkeys see it.
 			if (GXKeyTraceEnabled())
 			{
@@ -1079,10 +1079,10 @@ MetaMapRec *MetaMap::getMetaMapRec(GameMessage::Type t)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 28/09/2026 The Remastered chord came after the other GENERAL keys and every CommandMap binding,
+// GeneralsX: The Remastered chord came after the other GENERAL keys and every CommandMap binding,
 // so it gives way to them: when its chord is a select chord's or any meta map record's (a player who put Shift+Ctrl+R on
 // Select All under an engine that did not read GXRemasteredKey yet, or a mod's CommandMap record), that binding keeps the
-// key and the Remastered chord is off for the session, said on stderr (Codex gfxp3-toggle-r3b). Any transition and any
+// key and the Remastered chord is off for the session, said on stderr. Any transition and any
 // UseableIn: the chord eats both edges, so it would swallow an UP record too.
 #if GX_REMASTERED_UI
 static void gxYieldRemasteredChord(const MetaMapRec *first)
@@ -1108,7 +1108,7 @@ static void gxYieldRemasteredChord(const MetaMapRec *first)
 //-------------------------------------------------------------------------------------------------
 void MetaMap::generateMetaMap()
 {
-	// GeneralsX @bugfix Claude 24/09/2026 THE LAUNCHER'S KEY OVERRIDES LIVE IN GENERALSX'S OWN FOLDER.
+	// GeneralsX: THE LAUNCHER'S KEY OVERRIDES LIVE IN GENERALSX'S OWN FOLDER.
 	//
 	// scripts/launcher-rs/gxio/src/commandmap.rs used to write GXUserKeys.ini into Data\INI\CommandMap\ under the
 	// working directory, which on macOS and Linux is the Zero Hour folder - often one we do not own. It now writes
@@ -1253,7 +1253,7 @@ void MetaMap::generateMetaMap()
 		if (map->m_key == MK_NONE) {
 			map->m_key = MK_I;
 			map->m_transition = DOWN;
-			// GeneralsX @tweak Claude 26/09/2026 Upstream's Ctrl+I is now "select all infantry" (MetaEventTranslator::
+			// GeneralsX: Upstream's Ctrl+I is now "select all infantry" (MetaEventTranslator::
 			// onKeyEvent, owner request 25/09/2026), which is caught before this map and would leave the idle-worker key
 			// unreachable. Shift+Ctrl+I keeps it one modifier away; the control bar's idle-worker button is unchanged.
 			map->m_modState = SHIFT_CTRL;
@@ -1262,7 +1262,7 @@ void MetaMap::generateMetaMap()
 			map->m_description = TheGameText->FETCH_OR_SUBSTITUTE("GUI:SelectNextIdleWorkerDescription", L"Select the next idle worker");
 			map->m_displayName = TheGameText->FETCH_OR_SUBSTITUTE("GUI:SelectNextIdleWorker", L"Next Idle Worker");
 		}
-		// GeneralsX @feature Claude 26/09/2026 The launcher's GENERAL tab (GXIdleWorkerKey, see gxLoadGeneralKeys) wins
+		// GeneralsX: The launcher's GENERAL tab (GXIdleWorkerKey, see gxLoadGeneralKeys) wins
 		// over the default above and over any CommandMap record for this command: it is the player's own choice.
 		if (gxIdleWorkerSet)
 		{
@@ -1365,7 +1365,7 @@ void MetaMap::generateMetaMap()
 	// Last, once every record above has its key.
 	gxYieldRemasteredChord(getFirstMetaMapRec());
 #endif
-	// GeneralsX @feature Claude 11/10/2026 The camera-reset key gives way like the Remastered chord: a select chord or any
+	// GeneralsX: The camera-reset key gives way like the Remastered chord: a select chord or any
 	// record of another command on its key keeps it, and this key is off for the session (said on stderr). CAMERA_RESET's own
 	// record (KP5, or a mod's key) is the command itself, not a holder.
 	if (s_gxCameraReset.key != MK_NONE)

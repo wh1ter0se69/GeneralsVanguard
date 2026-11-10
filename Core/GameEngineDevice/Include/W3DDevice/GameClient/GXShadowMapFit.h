@@ -1,12 +1,12 @@
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 GPU sun shadow map: the light fit (pure math, no engine include).
+// GeneralsX: S7 GPU sun shadow map: the light fit (pure math, no engine include).
 //
-// PREREG_look-shadowmaps.md A14 + A28 (Codex r2 N8); PLAN Task 5. Host-tested by scripts/test/sm-fit-test.sh.
+// PREREG_look-shadowmaps.md A14 + A28 (N8); PLAN Task 5. Host-tested by scripts/test/sm-fit-test.sh.
 //
 // One orthographic light per cascade, looking along the map's sun direction t (object light 0 of the current time of day, from the
 // sun INTO the scene: W3DShadow.cpp:232-251 stores -t as the light position). The receivers are what the camera can see of the terrain
 // slab (the map's lowest to highest terrain height): the XY outline of the view pyramid (capped at the far clip) cut by that slab,
 // clipped as a polygon to the terrain's world rectangle, and - for the near cascade - to the near part of that BOUNDED outline; then
-// stood up as a prism at both terrain heights (Codex code-fit2-r1: clamping vertices one by one shrank the outline and kept far rays'
+// stood up as a prism at both terrain heights (clamping vertices one by one shrank the outline and kept far rays'
 // altitudes). The cascade's square extent S:
 //   * covers the footprint's light-space box plus a guard band of `guard` texels per side (the filter's reach),
 //   * is quantized UP to a multiple of `quantum` world units, and changes only by GROWING at once when the need is not
@@ -112,7 +112,7 @@ inline Poly hullXY(float* px, float* py, int n)
 // The receivers of one cascade. The view pyramid (eye + the four corner rays to `far`, frustumCorners) is cut by the slab
 // zLo <= z <= zHi: its vertices inside the slab plus every pyramid edge's crossings of both planes give the exact XY outline of what
 // the camera sees of the terrain's height range (the near clip is ignored: conservative). That outline is clipped AS A POLYGON to
-// `clampXY` (xmin, ymin, xmax, ymax; null = none: there is no receiver past the terrain, Codex code-fit2-r1 #1), and for the near
+// `clampXY` (xmin, ymin, xmax, ymax; null = none: there is no receiver past the terrain), and for the near
 // cascade (`cut` < 1) to its near part: dot(p, u) <= dmin + cut x (dmax - dmin) along u = the top-mid ray's ground direction, measured
 // on the BOUNDED outline (#4). Its vertices are then emitted at both heights zLo and zHi, so the depth range is the receivers' own
 // (#2). n = 0: the camera sees no terrain (the fit still returns a finite matrix).
@@ -198,12 +198,12 @@ inline Result fit(const Basis& b, const Footprint& fp, float casterNear, bool ca
 		z0 = casterNear;
 	const float span = (x1 - x0) > (y1 - y0) ? (x1 - x0) : (y1 - y0);
 	// the guard texels come out of the rect: need = span / (1 - 2 guard / res), +1 texel for the centre snap; never below one quantum
-	// (an empty or degenerate outline must not give a zero extent: Codex code-fit2-r1 #1)
+	// (an empty or degenerate outline must not give a zero extent)
 	const float usable = 1.f - 2.f * float(pr.guard + 1) / float(pr.res);
 	const float needRaw = span / (usable > 0.1f ? usable : 0.1f);
 	const float need = needRaw > pr.quantum ? needRaw : pr.quantum;
 	const float q = std::ceil(need / pr.quantum) * pr.quantum;
-	// shrink to the smallest quantized size that still keeps the band of headroom (Codex code-t4-r1 P2: comparing the band against
+	// shrink to the smallest quantized size that still keeps the band of headroom (comparing the band against
 	// q itself could never shrink a large extent after a zoom-in); a need hovering at a quantum boundary never flips it
 	const float shrinkTo = std::ceil(need * pr.shrinkBand / pr.quantum) * pr.quantum;
 	float S = st->extent;
@@ -367,7 +367,7 @@ inline float ndcToDist(float z, float n, float f) { return n * f / (f - z * (f -
 // (W3DVolumetricShadow.cpp updateMeshVolume, the m_shadowLengthScale block). The affine map z' = z0 + mu (z - z0), mu = (L.z - z0) /
 // (L_c.z - z0), keeps x/y, fixes the plane z = z0 and sends L_c to L - so it sends every line through L_c to a line through L. Applied to
 // the instance's caster copy AND to its own receivers' lookups, the map seen from L shows exactly what 2003's volumes from L_c show for that
-// instance: its ground shadow on z0 and its self-shadowing (PREREG A41 P1; Codex a39-design-r1 and sm-fit-test A39-6/7 measured the
+// instance: its ground shadow on z0 and its self-shadowing (PREREG A41 P1; and sm-fit-test A39-6/7 measured the
 // linearised shear it replaces). mu depends on z0 and the clamp only.
 // packed: low 32 bits = mu's float bits, high 32 = z0's; 0 = none. The same 64 bits reach the caster capture (World x S) and the
 // receiver's pad words (OwnScale, OwnZ0).
@@ -493,11 +493,11 @@ inline OffscreenPick pickRoot(bool lightOutside, bool mainInside)
 {
 	return lightOutside ? kOutside : (mainInside ? kSkipInView : kSubmit);
 }
-// A47 (Codex a44-code-r1 #1/#2): the decision is per caster MESH of a candidate root. Skipped (the scene captures it with CAST) only when
+// A47: the decision is per caster MESH of a candidate root. Skipped (the scene captures it with CAST) only when
 // the scene will draw its ROOT (RTS3DScene::Visibility_Check replicated by the glue) AND the mesh's sphere grown by insideMargin is inside
 // the camera - the margin covers the scene's own re-pose of a single animation (one frame newer than the lazy pose read here)
 inline float insideMargin(float r) { return r * 0.1f > 8.f ? r * 0.1f : 8.f; }
-// A48 (Codex a47-code-r1 #1): the LOD an additional HLOD is drawn at - its parent's (clamped to its own range, as Set_LOD_Level clamps)
+// A48: the LOD an additional HLOD is drawn at - its parent's (clamped to its own range, as Set_LOD_Level clamps)
 // when the parent matches sub-object LODs (HLodClass::Render), else its own stored LOD. Nothing calls Set_LOD_Level: this only reads.
 inline int effectiveLod(int parentLod, bool parentMatches, int ownLod, int lodCount)
 {
@@ -511,7 +511,7 @@ inline int effectiveLod(int parentLod, bool parentMatches, int ownLod, int lodCo
 	return parentLod < 0 ? 0 : (parentLod > hi ? hi : parentLod);
 #endif
 }
-// A61/A63 (D · look-shadowmaps-5; Codex a61-design-r1 P2-2): a SORTED caster mesh (SORT flag: dx8renderer.cpp:2130 sends it to the
+// A61/A63 (D · look-shadowmaps-5): a SORTED caster mesh (SORT flag: dx8renderer.cpp:2130 sends it to the
 // sorting renderer, past the CAST hook) is never captured by the scene's own draw, so the in-view skip does not apply to it: submitted
 // iff it is not outside the light volume, on or off screen. The glue calls only this predicate.
 inline OffscreenPick meshPick(bool lightOutside, bool sceneDrawsRoot, bool grownInside, bool sorted = false)

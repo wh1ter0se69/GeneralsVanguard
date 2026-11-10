@@ -76,7 +76,7 @@
 W3DVolumetricShadowManager	*TheW3DVolumetricShadowManager=nullptr;
 extern const FrustumClass *shadowCameraFrustum;	//defined in W3DShadow.
 
-// GeneralsX @performance Claude 23/09/2026 A prefetch is a hint with no architectural effect (same macro as
+// GeneralsX: A prefetch is a hint with no architectural effect (same macro as
 // AIPathfind.cpp). Used to fetch shadow casters a few entries ahead of the manager's per-frame walk.
 #if defined(__GNUC__) || defined(__clang__)
 	#define GX_SHADOW_PREFETCH(p) __builtin_prefetch((const void *)(p))
@@ -88,7 +88,7 @@ extern const FrustumClass *shadowCameraFrustum;	//defined in W3DShadow.
 #endif
 enum { GX_SHADOW_PREFETCH_AHEAD = 8 };
 
-// GeneralsX @performance Claude 23/09/2026 Dynamic (animated) shadow volumes are re-uploaded for every draw anyway,
+// GeneralsX: Dynamic (animated) shadow volumes are re-uploaded for every draw anyway,
 // so they are uploaded already in WORLD space and drawn under an identity world transform. A per-draw
 // SetTransform(D3DTS_WORLD) makes DXVK rebuild and re-upload its whole fixed-function vertex constant block on the
 // next draw (two matrix inverses plus the light block, D3D9DeviceEx::UpdateFixedFunctionVS): that was ~60% of a
@@ -98,7 +98,7 @@ enum { GX_SHADOW_PREFETCH_AHEAD = 8 };
 // one building can share a bone, in which case consecutive draws set the SAME matrix again. setShadowWorld()
 // skips a SetTransform whose matrix equals the one this file last set (the device then holds exactly that matrix),
 // so neither path dirties the fixed-function constants for nothing.
-// GeneralsX @test Claude 08/10/2026 [GXCENSUS] lk_*: this file's shadow-ring locks, counted by flag (GX_DRAWCENSUS=1).
+// GeneralsX: [GXCENSUS] lk_*: this file's shadow-ring locks, counted by flag (GX_DRAWCENSUS=1).
 static inline DWORD gxCenLock(DWORD flags) { DX8Wrapper::Census_Lock(flags); return flags; }
 static D3DMATRIX s_shadowWorld;
 static Bool s_shadowWorldValid = FALSE;	// FALSE: the device's world transform is unknown (set at every shadow render start)
@@ -122,7 +122,7 @@ static const D3DMATRIX &shadowIdentityWorld()
 	return s_identity;
 }
 
-// GeneralsX @performance Claude 23/09/2026 TS-06: a dynamic volume used to be locked, copied and unlocked into the
+// GeneralsX: TS-06: a dynamic volume used to be locked, copied and unlocked into the
 // dynamic VB/IB twice per frame, once per stencil pass, with identical contents. The DECR pass now redraws the
 // INCR pass's upload when it is still in the buffers: nothing since has DISCARDed either buffer (a DISCARD is the
 // only thing that makes an earlier range unavailable; NOOVERWRITE locks only ever append past it). The epoch
@@ -134,7 +134,7 @@ static UnsignedInt s_shadowUploadEpoch = 1;
 static Bool s_shadowReuseUploads = FALSE;	// TRUE only while the DECR pass walks the dynamic tasks
 static inline void bumpShadowUploadEpoch() { if (++s_shadowUploadEpoch == 0) s_shadowUploadEpoch = 1; }
 
-// GeneralsX @performance Claude 02/10/2026 How big a shadow volume is on screen, in render-target pixels. Set once per
+// GeneralsX: How big a shadow volume is on screen, in render-target pixels. Set once per
 // renderShadows from the camera of the pass that draws the stencil shadows (DoShadows), so the answer follows the zoom AND
 // the resolution: a bigger window draws more detail, never less. Perspective only; anything else reads as huge.
 extern CameraClass *shadowCamera;	// W3DShadow.cpp DoShadows
@@ -180,7 +180,7 @@ static Real shadowScreenRadiusPx(const Vector3 &center, Real radius)
 // (represented in degrees in the first number below)
 // is large enough the shadow info will be reconstructed
 const Real cosAngleToCare = cos ((0.2 * PI) / 180.0);	//1.5 degree difference
-// GeneralsX @performance Claude 02/10/2026 Screen-size level of detail for the stencil volumes (zoomed-out 6v6: ~5,000
+// GeneralsX: Screen-size level of detail for the stencil volumes (zoomed-out 6v6: ~5,000
 // volumes and ~1,000 silhouette rebuilds per frame, 3.6-3.9 ms on the Mini). A volume whose bounding sphere (the mesh AND
 // its extruded shadow) is under SHADOW_MIN_SCREEN_RADIUS_PX pixels in radius is neither rebuilt, uploaded nor drawn: its
 // whole shadow fits in a few pixels. A rotating mesh is rebuilt only once the rotation since its last build could move the
@@ -227,11 +227,11 @@ int nShadowVertsInBuf=0;	//model vetices in vertex buffer
 int nShadowStartBatchVertex=0;
 int nShadowIndicesInBuf=0;	//model vetices in vertex buffer
 int nShadowStartBatchIndex=0;
-// GeneralsX @performance Claude 23/09/2026 Was 4096 / 8192 (48 KB / 16 KB). A DISCARD wipes every earlier upload
+// GeneralsX: Was 4096 / 8192 (48 KB / 16 KB). A DISCARD wipes every earlier upload
 // for the DECR pass's redraw (TS-06) and costs a buffer rename, so the ring is sized for a battle's worth of turning
 // casters per frame: 65536 vertices (768 KB) and 196608 indices (384 KB). Indices stay 16-bit: each volume is
 // addressed from its own base vertex.
-// GeneralsX @performance Claude 29/09/2026 Doubled (RENDER_CPU_PLAN C1). At wh1ter0se's scene (12 Hard AI, observer, zoom
+// GeneralsX: Doubled (RENDER_CPU_PLAN C1). At wh1ter0se's scene (12 Hard AI, observer, zoom
 // 1000, battle) the INCR pass wrapped the ring mid-pass, so ~175 of ~1030 dynamic volumes a frame lost their upload
 // and the DECR pass transformed and uploaded them again ([GXSHADOW] reup). The 16-bit limit is now its own test in
 // RenderDynamicMeshVolume, so the ring size no longer sets the largest volume a caster may have.
@@ -289,12 +289,12 @@ struct Geometry
 		m_numActiveVertex=m_numVertex=0;
 		m_worldFilled=FALSE;
 	}
-	// GeneralsX @performance Claude 07/10/2026 A static volume's slot holds its vertices already transformed by this matrix
+	// GeneralsX: A static volume's slot holds its vertices already transformed by this matrix
 	// (W3DVolumetricShadow::RenderMeshVolume); the object-space copy stays in m_verts.
 	Bool isWorldFilled(const Matrix3D &xf) const { return m_worldFilled && memcmp(&xf, &m_worldFill, sizeof(xf)) == 0; }
 	void setWorldFilled(const Matrix3D &xf) { m_worldFill = xf; m_worldFilled = TRUE; }
 	void clearWorldFilled() { m_worldFilled = FALSE; }
-	// GeneralsX @performance Claude 08/10/2026 A SHADOW_GPU volume keeps no vertices: the light position in object space and
+	// GeneralsX: A SHADOW_GPU volume keeps no vertices: the light position in object space and
 	// the extrusion scale it was last "rebuilt" for, i.e. what constructVolume would have used (see gxShadowGpuFlush).
 	void setGpuLight(const Vector3 &lightPosObject, Real extrude) { m_gpuLight[0]=lightPosObject.X; m_gpuLight[1]=lightPosObject.Y; m_gpuLight[2]=lightPosObject.Z; m_gpuLight[3]=extrude; }
 	const float *getGpuLight() const { return m_gpuLight; }
@@ -510,7 +510,7 @@ protected:
 	W3DShadowGeometry *m_parentGeometry; // mesh hierarchy containing this mesh.
 
 public:
-	// GeneralsX @performance Claude 08/10/2026 GX_SHADOW_GPU: this mesh's edge mesh and its copies in the shared store (gxGpuReady).
+	// GeneralsX: GX_SHADOW_GPU: this mesh's edge mesh and its copies in the shared store (gxGpuReady).
 	Bool gxGpuReady();
 	void gxGpuRelease();
 	void gxSilhouetteEdge(const PolyNeighbor *visible, Int hiddenIndex, Short *edgeStart, Short *edgeEnd) const;
@@ -810,7 +810,7 @@ Int W3DShadowGeometry::initFromHLOD(RenderObjClass *robj)
 			if ((geomMesh->m_mesh->Is_Alpha() || geomMesh->m_mesh->Is_Translucent()) && !geomMesh->m_mesh->Peek_Model()->Get_Flag(MeshGeometryClass::CAST_SHADOW))
 				continue; //transparent meshes that don't have forced shadows will not cast volumetric shadows
 			if (W3DVolumetricShadowManager::gxShadowDropMesh(geomMesh->m_mesh->Get_Name(), FALSE))
-				continue;	// GeneralsX @test D · look-shadowmaps-5 S7 PREREG A60: TEST-ONLY GX_SHADOW_DROP_MESH (the D60 diagnostic)
+				continue;	// GeneralsX: S7 PREREG A60: TEST-ONLY GX_SHADOW_DROP_MESH (the D60 diagnostic)
 			// CNC3 (gth) skin meshes should never cast a volumetric shadow
 			if (geomMesh->m_mesh->Peek_Model()->Get_Flag(MeshGeometryClass::SKIN))
 				continue;
@@ -959,7 +959,7 @@ Int W3DShadowGeometry::initFromMesh(RenderObjClass *robj)
 	if (((geomMesh->m_mesh->Is_Alpha() || geomMesh->m_mesh->Is_Translucent()) && !geomMesh->m_mesh->Peek_Model()->Get_Flag(MeshGeometryClass::CAST_SHADOW)))
 		return FALSE; //transparent meshes that don't have forced shadows will not cast volumetric shadows
 	if (W3DVolumetricShadowManager::gxShadowDropMesh(geomMesh->m_mesh->Get_Name(), FALSE))
-		return FALSE;	// GeneralsX @test D · look-shadowmaps-5 S7 PREREG A60: TEST-ONLY GX_SHADOW_DROP_MESH (the D60 diagnostic)
+		return FALSE;	// GeneralsX: S7 PREREG A60: TEST-ONLY GX_SHADOW_DROP_MESH (the D60 diagnostic)
 
 	MeshModelClass *mm = geomMesh->m_mesh->Peek_Model();
 	geomMesh->m_numVerts=mm->Get_Vertex_Count();
@@ -1139,7 +1139,7 @@ void W3DShadowGeometryMesh::buildPolygonNeighbors()
 
 	}
 
-	// GeneralsX @performance B · perf-ipad-0969 26/10/2026 The 2003 search below tested every polygon against every other one
+	// GeneralsX: The 2003 search below tested every polygon against every other one
 	// (O(n^2) pair tests), and it runs lazily (GetPolyNeighbor), on the frame a model's shadow silhouette is first built - so each
 	// model first seen paid it inside ONE frame - 30-52 ms per big building model on the Mac Mini (a 3606-polygon damaged GLA Arms
 	// Dealer: 40 ms of replay G8's 50 ms frame at f55800, the iPad's 63-80 ms one), 48 such builds and ~0.42 s in one match there.
@@ -1149,13 +1149,13 @@ void W3DShadowGeometryMesh::buildPolygonNeighbors()
 	// unchanged: the same neighbours land in the same slots. vertexPolys lists, per vertex index, the polygons using it (each
 	// polygon once per distinct index, ascending). scripts/test/shadow-neighbors-test.sh runs this function and the 2003 one
 	// (from git) on the same meshes, degenerate ones included, and compares every slot.
-	// The index is built only where it pays and is safe (Codex pi69-shnb-r4): a mesh of at least 64 polygons whose vertex indices
+	// The index is built only where it pays and is safe: a mesh of at least 64 polygons whose vertex indices
 	// span no more than 3 per polygon + 1024 (shadow meshes are welded, so their indices are dense), and only when all its scratch
 	// memory is allocated up front - the merge buffers hold the polygon count, which a merged list never reaches (a
 	// polygon whose lists add up to the mesh takes the 2003 scan below), so nothing allocates after this block. Anything else
 	// (a tiny or sparse mesh, a failed allocation - whatever it throws) takes the 2003 scan of every polygon, exactly as before.
 	// The scratch is unique_ptr arrays, not std::vector: a checked-iterator (debug) MSVC vector allocates a proxy in its noexcept
-	// default constructor, so a failed allocation there would end the process instead of reaching the catch (Codex shg69-r1-lens P2).
+	// default constructor, so a failed allocation there would end the process instead of reaching the catch.
 	std::unique_ptr<Short[]> polyIndex;
 	std::unique_ptr<size_t[]> vertexStart;
 	std::unique_ptr<Int[]> vertexPolys, candidates, merged;
@@ -1206,7 +1206,7 @@ void W3DShadowGeometryMesh::buildPolygonNeighbors()
 				merged.reset( new Int[ numPolys ] );
 			}
 		}
-		catch( ... )	// GameMemory.cpp's operator new throws ERROR_OUT_OF_MEMORY (an enum), not std::bad_alloc (Codex pi69-shnb-r5)
+		catch( ... )	// GameMemory.cpp's operator new throws ERROR_OUT_OF_MEMORY (an enum), not std::bad_alloc
 		{
 			useIndex = false;
 		}
@@ -1225,7 +1225,7 @@ void W3DShadowGeometryMesh::buildPolygonNeighbors()
 		// find the neighbors of this polygon: every polygon sharing a vertex index with it, ascending (GeneralsX, see vertexPolys).
 		// Each vertex's list is already ascending, so a linear merge orders them. When the lists add up to the whole mesh (a vertex
 		// most polygons share: a fan) the 2003 scan of every polygon is the cheaper walk and is used as it was, so no mesh costs more
-		// than it did (Codex pi69-shnb-r2 P3).
+		// than it did.
 		size_t listed = 0;
 		for( Int k = 0; k < 3 && useIndex; k++ )
 		{
@@ -1401,7 +1401,7 @@ void W3DShadowGeometryMesh::deleteNeighbors()
 
 }
 
-// GeneralsX @performance Claude 08/10/2026 GX_SHADOW_GPU: dynamic shadow volumes extruded by the GPU.
+// GeneralsX: GX_SHADOW_GPU: dynamic shadow volumes extruded by the GPU.
 // A dynamic volume used to be rebuilt on the CPU whenever its mesh turned past the stale tolerance or rose (buildSilhouette
 // walks every face, constructVolume chains the silhouette edges), then transformed to world space and uploaded into the
 // dynamic ring for every draw (~3,400 volumes and ~2.2 MB a frame in a late 6v6). With GX_SHADOW_GPU each mesh gets ONE
@@ -1754,7 +1754,7 @@ Bool W3DShadowGeometryMesh::gxGpuReady()
 		if (m_gpuRefusedGen == 0 || m_gpuRefusedGen == s_gxGpuStoreGen)
 			return FALSE;
 		m_gpuState = 0;
-		m_gpuGrowFailed = FALSE;	// the failure belonged to the old store (Codex gse-w-r2 P2)
+		m_gpuGrowFailed = FALSE;	// the failure belonged to the old store
 	}
 	Int want = gxShadowGpuWant(m_gpuDemand, (Int)m_gpuVerts.size());
 	if (m_gpuState > 0 && ((Int)m_gpuCopies.size() >= want || m_gpuGrowFailed))
@@ -1789,7 +1789,7 @@ Bool W3DShadowGeometryMesh::gxGpuReady()
 			refused ? "REFUSED: " : "ready", refused ? refused : "");
 	if (refused != nullptr)
 	{
-		std::vector<GxShadowEdgeVertex>().swap(m_gpuVerts);	// clear() keeps the capacity (Codex gse-w-r5 P3)
+		std::vector<GxShadowEdgeVertex>().swap(m_gpuVerts);	// clear() keeps the capacity
 		std::vector<UnsignedShort>().swap(m_gpuIdx);
 		gxShadowAdd(GXS_GPUREF);
 		m_gpuState = -1;
@@ -1883,7 +1883,7 @@ static void gxShadowGpuFlush(LPDIRECT3DDEVICE8 dev, DWORD restoreFVF, Bool count
 				s_gxGpuFills.push_back(f);
 			}
 		}
-		// ponytail: a comparison sort of ~2,500 entries a frame; bucket by window if it ever shows up in [GXSHADOW] upd/incr
+		// Trade-off: a comparison sort of ~2,500 entries a frame; bucket by window if it ever shows up in [GXSHADOW] upd/incr
 		std::sort(s_gxGpuFills.begin(), s_gxGpuFills.end(), [](const GxShadowGpuFill &a, const GxShadowGpuFill &b) {
 			return a.round != b.round ? a.round < b.round : a.window < b.window; });
 		s_gxGpuFillsBuilt = TRUE;
@@ -1944,7 +1944,7 @@ void W3DVolumetricShadow::RenderGpuMeshVolume(Int meshIndex, Int lightIndex, con
 	Geometry *geometry = m_shadowVolume[lightIndex][meshIndex];
 	W3DShadowGeometryMesh *geomMesh = m_geometry->getMesh(meshIndex);
 	// The shader too is re-created here, not only by a rebuild: after a device reset a volume whose pose and light did not change
-	// is never rebuilt (Codex gse-k-r1 P2). Nothing to draw it with (the shader, the store or this mesh refused - e.g. after a
+	// is never rebuilt. Nothing to draw it with (the shader, the store or this mesh refused - e.g. after a
 	// SetGeometry swap): marked stale, so the next update rebuilds it, which puts it back on the CPU path (adversarial review P2).
 	if (geometry == nullptr || !gxShadowGpuOn() || !geomMesh->gxGpuReady())
 	{
@@ -2162,7 +2162,7 @@ void W3DVolumetricShadow::RenderVolume(Int meshIndex, Int lightIndex)
 	}
 }
 
-// GeneralsX @performance Claude 07/10/2026 A static volume's slot holds WORLD-space vertices, drawn under the identity world.
+// GeneralsX: A static volume's slot holds WORLD-space vertices, drawn under the identity world.
 // Each draw used to set its mesh matrix (setShadowWorld), and on DXVK every changed world transform rebuilds and re-uploads the
 // fixed-function vertex constants on the next draw: ~2,400 static volumes a pass, ~4,700 sets a frame in a late 6v6
 // (GX_SHADOW_NOSTATIC bound the whole static path at ~1.4 ms a frame on wh1ter0se's PC). fillStaticShadowSlot refills the slot from
@@ -2246,12 +2246,12 @@ void W3DVolumetricShadow::RenderMeshVolume(Int meshIndex, Int lightIndex, const 
 	if (!vbSlot)
 		return;
 
-	// GeneralsX @performance Claude 07/10/2026 The slot holds world-space vertices (fillStaticShadowSlot, when the volume was
+	// GeneralsX: The slot holds world-space vertices (fillStaticShadowSlot, when the volume was
 	// queued); a slot not filled for this transform draws nothing. Never fill here: an upload into a buffer this frame's
 	// command list has already drawn from makes DXVK end and restart the render pass (DxvkContext::copyBuffer).
 	if (!geometry->isWorldFilled(shadowObjSpace() ? shadowIdentityMatrix() : *meshXform))
 		return;
-	// GeneralsX @bugfix BenderAI 21/03/2026 Align mesh world transform with Generals base shadow path.
+	// GeneralsX: Align mesh world transform with Generals base shadow path.
 	if (shadowObjSpace())
 		setShadowWorld(m_pDev, To_D3DMATRIX(*meshXform));
 	else
@@ -2283,7 +2283,7 @@ void W3DVolumetricShadow::RenderMeshVolume(Int meshIndex, Int lightIndex, const 
 
 }
 
-// GeneralsX @performance Claude 02/10/2026 Dynamic (animated) volumes, batched. They are uploaded in world space under
+// GeneralsX: Dynamic (animated) volumes, batched. They are uploaded in world space under
 // an identity world (above), so nothing but the index base told one volume's draw from the next. The INCR pass now
 // appends each volume to the ring with its indices rebased to the open batch's first vertex and draws the batch once
 // (a zoomed-out 6v6: ~3,300 volume draws a frame became a handful). The DECR pass walks the volumes in the other order
@@ -2369,20 +2369,20 @@ void W3DVolumetricShadow::RenderDynamicMeshVolume(Int meshIndex, Int lightIndex,
 	if( numVerts == 0 || numPolys == 0 )
 		return;
 
-	// GeneralsX @bugfix Claude 23/09/2026 Skip a volume larger than the whole dynamic VB/IB. The room tests
+	// GeneralsX: Skip a volume larger than the whole dynamic VB/IB. The room tests
 	// below go negative for it, and the DISCARD lock then maps numVerts*stride / numIndex*2 bytes of a
 	// SHADOW_VERTEX_SIZE / SHADOW_INDEX_SIZE buffer, so the memcpy wrote past it. Same outcome TSH chose
 	// for oversized static volumes (W3DBufferManager getSlot): that mesh casts no shadow.
-	// GeneralsX @bugfix Claude 23/09/2026 >= on the vertex count: a volume of exactly 65536 vertices would use
+	// GeneralsX: >= on the vertex count: a volume of exactly 65536 vertices would use
 	// index 0xFFFF. Metal keeps primitive restart always on (MoltenVK cannot disable it), so that index can
 	// drop a triangle on macOS/iPad. One vertex less of headroom costs nothing.
 	// 65536: the 16-bit base-relative index limit and the Metal 0xFFFF restart index above, whatever the ring size.
 	if( numVerts >= 65536 || numVerts >= SHADOW_VERTEX_SIZE || numIndex > SHADOW_INDEX_SIZE )
 		return;
 
-	// GeneralsX @performance Claude 23/09/2026 TS-06: in the DECR pass, draw the INCR pass's upload again if it is
+	// GeneralsX: TS-06: in the DECR pass, draw the INCR pass's upload again if it is
 	// still in the buffers. The geometry cannot change between the passes (only static volumes are drawn between).
-	// GeneralsX @performance Claude 02/10/2026 ...as part of one range with the reused uploads right before it when they
+	// GeneralsX: ...as part of one range with the reused uploads right before it when they
 	// sit back to back in the index ring under the same base (flushShadowRun draws it).
 	W3DVolumetricShadowRenderTask &uploadTask = m_shadowVolumeRenderTask[lightIndex][meshIndex];
 	if (s_shadowReuseUploads && uploadTask.m_uploadEpoch == s_shadowUploadEpoch)
@@ -2473,7 +2473,7 @@ void W3DVolumetricShadow::RenderDynamicMeshVolume(Int meshIndex, Int lightIndex,
 			pvVertices++;
 		}
 #else
-		// GeneralsX @performance Claude 23/09/2026 Upload in world space (was a memcpy of the object-space
+		// GeneralsX: Upload in world space (was a memcpy of the object-space
 		// vertices plus a per-draw world transform). Same arithmetic Matrix3D::Transform_Vector does everywhere.
 		const Vector3 *src = geometry->GetVertex(0);
 		const Matrix3D &xf = *meshXform;
@@ -2682,7 +2682,7 @@ void W3DVolumetricShadow::RenderMeshVolumeBounds(Int meshIndex, Int lightIndex, 
 
 
 	//todo: replace this with mesh transform
-	// GeneralsX @bugfix BenderAI 21/03/2026 Keep bounds pass consistent with Generals matrix convention.
+	// GeneralsX: Keep bounds pass consistent with Generals matrix convention.
 	Matrix4x4 mWorld(1);	//identity since boxes are pre-transformed to world space.
 	D3DMATRIX dxmWorld = To_D3DMATRIX(mWorld);
 	setShadowWorld(m_pDev, dxmWorld);
@@ -2845,7 +2845,7 @@ void W3DVolumetricShadow::Update()
 			//if it's visible or what the shadow looks like.
 			return;
 		}
-		// GeneralsX @performance Claude 23/09/2026 Reject an off-screen caster BEFORE the terrain height
+		// GeneralsX: Reject an off-screen caster BEFORE the terrain height
 		// lookup. Both branches below return on the same box test with a per-branch extent (m_robjExtent,
 		// or 1.5x it for an airborne caster), and the ground height only picks the branch. Outside the box
 		// grown by the WIDER of the two extents is outside it for either one (float addition is monotone),
@@ -2942,14 +2942,14 @@ void W3DVolumetricShadow::updateVolumes(Real zoffset, Bool allowSizeSkip)
 				if (!mesh->Is_Not_Hidden_At_All())
 					continue;
 
-				// GeneralsX @performance Claude 02/10/2026 Too small on screen to see: no rebuild, upload or draw (see
+				// GeneralsX: Too small on screen to see: no rebuild, upload or draw (see
 				// SHADOW_MIN_SCREEN_RADIUS_PX). Judged on the volume's sphere from its last build; a volume never built yet
 				// is built once. Its history is untouched, so when it grows again the usual rotation test rebuilds it. Never for an
 				// airborne caster (allowSizeSkip FALSE): its extrusion reaches down to the lowest terrain, past the sphere it was built with.
 				if (allowSizeSkip && m_shadowVolume[i][j])
 				{
 					const SphereClass &vs = m_shadowVolume[i][j]->getBoundingSphere();
-					if (shadowScreenRadiusPx(vs.Center + mesh->Get_Transform().Get_Translation(), vs.Radius) < gxGovShadowMinPx(SHADOW_MIN_SCREEN_RADIUS_PX))	// GeneralsX @feature Claude 17/10/2026 S14 look governor (GameClient/GXLookGovernor.h): shadow step
+					if (shadowScreenRadiusPx(vs.Center + mesh->Get_Transform().Get_Translation(), vs.Radius) < gxGovShadowMinPx(SHADOW_MIN_SCREEN_RADIUS_PX))	// GeneralsX: S14 look governor (GameClient/GXLookGovernor.h): shadow step
 						continue;
 				}
 
@@ -3102,7 +3102,7 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 	// get the object
 	meshXform->Get_Translation(&objectCenter);	//current mesh position
 
-	// GeneralsX @performance Claude 02/10/2026 A small volume tolerates more rotation before its silhouette is rebuilt: the
+	// GeneralsX: A small volume tolerates more rotation before its silhouette is rebuilt: the
 	// stale volume is drawn under the CURRENT mesh transform, so it only points a little off the sun, by the angle turned
 	// since its last build. Allowed: what moves a point two sphere radii out by SHADOW_STALE_PX pixels (capped); a volume of
 	// 72 px radius or more keeps the stock cosAngleToCare.
@@ -3110,7 +3110,7 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 	{
 		const SphereClass &vs = m_shadowVolume[lightIndex][meshIndex]->getBoundingSphere();
 		const Real px = shadowScreenRadiusPx(vs.Center + objectCenter, vs.Radius);
-		Real tolerance = (px > 0.0f) ? gxGovShadowStalePx(SHADOW_STALE_PX) / (2.0f * px) : SHADOW_MAX_STALE_RAD;	// GeneralsX @feature Claude 17/10/2026 S14 look governor (GameClient/GXLookGovernor.h): shadow step
+		Real tolerance = (px > 0.0f) ? gxGovShadowStalePx(SHADOW_STALE_PX) / (2.0f * px) : SHADOW_MAX_STALE_RAD;	// GeneralsX: S14 look governor (GameClient/GXLookGovernor.h): shadow step
 		if (tolerance > SHADOW_MAX_STALE_RAD)
 			tolerance = SHADOW_MAX_STALE_RAD;
 		const Real cosTolerance = cosf(tolerance);
@@ -3258,7 +3258,7 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 			//
 
 			gxShadowAdd(isMeshRotating ? GXS_RBROT : (gxZRise ? GXS_RBZ : GXS_RBLIGHT));
-			// GeneralsX @performance Claude 08/10/2026 GX_SHADOW_GPU: a volume that is (or now turns) dynamic keeps no silhouette or
+			// GeneralsX: GX_SHADOW_GPU: a volume that is (or now turns) dynamic keeps no silhouette or
 			// vertices - this rebuild stores only what constructVolume would have extruded with, and the GPU extrudes the mesh's edge
 			// mesh (see gxShadowGpuFlush). Same trigger, same frustum test and same moment as the CPU rebuild below.
 			Geometry *gpuVolume = m_shadowVolume[ lightIndex ][meshIndex];
@@ -3322,7 +3322,7 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 				// construct the shadow volume at this light position in the
 				// passed shadow volume geometry index
 				//
-				// GeneralsX @bugfix BenderAI 21/03/2026 Clamp extrusion length to prevent runaway volume spikes on shallow light rays.
+				// GeneralsX: Clamp extrusion length to prevent runaway volume spikes on shallow light rays.
 				if (vectorScaleMax > MAX_EXTRUSION_LENGTH)
 					vectorScaleMax = MAX_EXTRUSION_LENGTH;
 				if (m_shadowVolume[ lightIndex ][meshIndex]->GetFlags() & SHADOW_DYNAMIC)
@@ -3802,7 +3802,7 @@ void W3DVolumetricShadow::constructVolume( Vector3 *lightPosObject,Real shadowEx
 		for (k=i+2; k<indicesPerMesh; k+=2)
 			if (silhouetteIndices[k]==currentEdgeEnd)
 			{	//swap the two edges
-				// GeneralsX @bugfix BenderAI 21/03/2026 Avoid strict-aliasing/alignment UB when swapping edge pairs on 64-bit/ARM.
+				// GeneralsX: Avoid strict-aliasing/alignment UB when swapping edge pairs on 64-bit/ARM.
 				Short edge0a = silhouetteIndices[i+2];
 				Short edge0b = silhouetteIndices[i+3];
 				silhouetteIndices[i+2] = silhouetteIndices[k];
@@ -3931,7 +3931,7 @@ void W3DVolumetricShadow::constructVolume( Vector3 *lightPosObject,Real shadowEx
 #ifdef RECORD_SHADOW_STRIP_STATS
 		//Continuing strip.
 		stripLength++;
-		// GeneralsX @bugfix BenderAI 13/02/2026 Use MAX macro (cross-platform, defined in BaseTypeCore.h)
+		// GeneralsX: Use MAX macro (cross-platform, defined in BaseTypeCore.h)
 		maxStripLength=MAX(maxStripLength,stripLength);
 #endif
 	}
@@ -4035,7 +4035,7 @@ void W3DVolumetricShadow::constructVolumeVB( Vector3 *lightPosObject,Real shadow
 			for (k=i+2; k<indicesPerMesh; k+=2)
 				if (silhouetteIndices[k]==currentEdgeEnd)
 				{	//swap the two edges
-					// GeneralsX @bugfix BenderAI 21/03/2026 Avoid strict-aliasing/alignment UB when swapping edge pairs on 64-bit/ARM.
+					// GeneralsX: Avoid strict-aliasing/alignment UB when swapping edge pairs on 64-bit/ARM.
 					Short edge0a = silhouetteIndices[i+2];
 					Short edge0b = silhouetteIndices[i+3];
 					silhouetteIndices[i+2] = silhouetteIndices[k];
@@ -4098,7 +4098,7 @@ void W3DVolumetricShadow::constructVolumeVB( Vector3 *lightPosObject,Real shadow
 	#ifdef RECORD_SHADOW_STRIP_STATS
 			//Continuing strip.
 			stripLength++;
-			// GeneralsX @bugfix BenderAI 13/02/2026 Use MAX macro (cross-platform)
+			// GeneralsX: Use MAX macro (cross-platform)
 			maxStripLength=MAX(maxStripLength,stripLength);
 	#endif
 		}
@@ -4140,7 +4140,7 @@ void W3DVolumetricShadow::constructVolumeVB( Vector3 *lightPosObject,Real shadow
 
 	geomMesh = m_geometry->getMesh(meshIndex);
 
-	// GeneralsX @performance Claude 07/10/2026 The vertices go to a CPU copy in object space (the slot's size, so a write
+	// GeneralsX: The vertices go to a CPU copy in object space (the slot's size, so a write
 	// stays as bounded as it was in the slot); RenderMeshVolume fills the slot from it, transformed to world space.
 	shadowVolume->Release();
 	if (!shadowVolume->Create(vbSlot->m_size, 0))
@@ -4577,7 +4577,7 @@ void W3DVolumetricShadowManager::renderStencilShadows()
 
 void W3DVolumetricShadowManager::renderShadows( Bool forceStencilFill )
 {
-	// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 (PREREG_look-shadowmaps 2.3): with the shadow map on this frame, no volume
+	// GeneralsX: S7 (PREREG_look-shadowmaps 2.3): with the shadow map on this frame, no volume
 	// is updated or drawn and no darkening quad: the map's receivers darken instead (step 3 = off brings all of this back)
 	if (GxShadowMapActive)
 		return;
@@ -5257,9 +5257,9 @@ W3DShadowGeometry * W3DShadowGeometryManagerIterator::Get_Current_Geom()
 	return (W3DShadowGeometry *)Get_Current();
 }
 
-// GeneralsX @test D · look-shadowmaps-5 18/10/2026 S7 PREREG A60 (TEST-ONLY, W3DVolumetricShadow.h). Two independent specs, each read
-// once with a thread-safe one-time init (Codex a60-r1 #4): map = FALSE reads GX_SHADOW_DROP_MESH (2003's volume geometry: use it with the
-// key OFF only - with the key on it also changes the walk's pose trigger and bounds, Codex a60-r1 P2), map = TRUE reads
+// GeneralsX: S7 PREREG A60 (TEST-ONLY, W3DVolumetricShadow.h). Two independent specs, each read
+// once with a thread-safe one-time init: map = FALSE reads GX_SHADOW_DROP_MESH (2003's volume geometry: use it with the
+// key OFF only - with the key on it also changes the walk's pose trigger and bounds), map = TRUE reads
 // GX_SHADOWMAP_DROP_CAST (S7's CAST tag at draw time only: the walk, the bounds and the off-screen selection are untouched). The first 8
 // matches of each are printed (`[GXSHADOW] TEST-ONLY drop <name> (volume|cast)`), then a running count every 4096th.
 namespace
@@ -5295,7 +5295,7 @@ Bool W3DVolumetricShadowManager::gxShadowDropMesh(const char *meshName, Bool map
 	return TRUE;
 }
 
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 (W3DVolumetricShadow.h). The same enable test renderShadows applies; the root is
+// GeneralsX: S7 (W3DVolumetricShadow.h). The same enable test renderShadows applies; the root is
 // the top of the render object's container chain (user data and the mesh tag live there, PREREG A7).
 // A39/A41 (D · look-shadowmaps-3): with the map on, renderShadows returns before any Update(), so 2003's one-shot runtime clamp
 // (updateOptimalExtrusionPadding) is run HERE under exactly Update()'s conditions - geometry present, the transform set (not the
@@ -5349,7 +5349,7 @@ void W3DVolumetricShadowManager::gxShadowMapWalk(GxShadowMapWalkOut &out, const 
 				++out.paddingNow;
 			}
 		}
-		// A48 (Codex a47-code-r1 #4): classic's POSE TRIGGER, exactly - the prefix of updateVolumes (:2810-2850) that touches the pose, for
+		// A48: classic's POSE TRIGGER, exactly - the prefix of updateVolumes (:2810-2850) that touches the pose, for
 		// the shadows classic's Update reaches (cand): each geometry mesh in order, LOD 0 (or m_robj itself), skipped when hidden, else its
 		// transform read. The same hierarchies get posed as key off (embedded sounds, emitter visibility included); only the moment in the
 		// frame differs. posed = classic found a visible geometry mesh (else it casts nothing: the glue collects nothing for it).
@@ -5412,7 +5412,7 @@ void W3DVolumetricShadowManager::gxShadowMapWalk(GxShadowMapWalkOut &out, const 
 	}
 }
 
-// GeneralsX @feature D · look-shadowmaps-4 18/10/2026 S7 PREREG A48 (Codex a47-code-r1 #4): the part of updateVolumes (:2810-2850) that touches
+// GeneralsX: S7 PREREG A48: the part of updateVolumes (:2810-2850) that touches
 // the POSE, alone - the same mesh choice (LOD 0 by m_meshRobjIndex, or m_robj itself), the same order, the same hidden check before each
 // transform read - and nothing else (no volume, no history, no size skip). The shadow-map walk calls it for exactly the shadows classic's
 // Update reaches, so the hierarchies posed with the key on are key off's (embedded animation sounds and emitter visibility included).

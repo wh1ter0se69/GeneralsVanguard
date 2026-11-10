@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 19/09/2026 In-match kick: the red line. See GameClient/GXKick.h.
+// GeneralsX: In-match kick: the red line. See GameClient/GXKick.h.
 //
 // NOT IN THE DIGEST (GameClient/), and it does not need to be: every input it gathers is used for one
 // decision, Common/GXKickTicket.h's gxKickDecide, which IS digested, and its only output is a line in
@@ -82,7 +82,7 @@ Int gxKickUnpackOrder( const GameMessage *msg, unsigned char *out, Int outMax )
 
 void gxKickShowLine( Player *victim, const GameMessage *msg )
 {
-	// GeneralsX @feature Claude 27/09/2026 (wh1ter0se: "Quitter = loser = left record") The one GameClient call a LIVING
+	// GeneralsX: The one GameClient call a LIVING
 	// player's self-destruct makes, on every peer at the same frame - so the match record learns here who quit, without
 	// an edit inside the digest (GameLogicDispatch.cpp onSelfDestruct). First, before any return below.
 	gxStatNoteSelfDestruct( victim );

@@ -33,7 +33,7 @@
 #include "internal_io.h"
 #include <stdlib.h>
 #include <windows.h>
-// GeneralsX @bugfix Claude 27/07/2026 _ReturnAddress and __debugbreak, replacing the two MSVC
+// GeneralsX: _ReturnAddress and __debugbreak, replacing the two MSVC
 // __asm blocks below. The x64 compiler does not accept __asm at all.
 #include <intrin.h>
 #include <WWLib/WWCommon.h>
@@ -306,7 +306,7 @@ bool Debug::SkipNext()
   if (Instance.disableAssertsEtc)
     return true;
 
-  // GeneralsX @bugfix Claude 27/07/2026 Ask the compiler for the return address.
+  // GeneralsX: Ask the compiler for the return address.
   //
   // "mov eax,[ebp+4]" is the return address read off an x86 frame - which needs a frame pointer,
   // hence the note above, and which x64 does not have. _ReturnAddress() is the intrinsic for
@@ -430,7 +430,7 @@ bool Debug::AssertDone()
           }
           break;
         case IDRETRY:
-          // GeneralsX @bugfix Claude 27/07/2026 __debugbreak() is the intrinsic form of "int 3"
+          // GeneralsX: __debugbreak() is the intrinsic form of "int 3"
           // and is available on every MSVC architecture; "_asm int 0x03" is x86-only.
 #if defined(_MSC_VER)
           __debugbreak();
@@ -706,7 +706,7 @@ bool Debug::CrashDone(bool die)
             }
             break;
           case IDRETRY:
-            // GeneralsX @bugfix Claude 27/07/2026 See the identical case above: __debugbreak()
+            // GeneralsX: See the identical case above: __debugbreak()
             // is the architecture-neutral intrinsic for "int 3".
 #if defined(_MSC_VER)
             __debugbreak();

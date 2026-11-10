@@ -31,7 +31,7 @@
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
-// GeneralsX @bugfix Claude 27/07/2026 getDefaultPlayerName() has to tell iOS apart from macOS and
+// GeneralsX: getDefaultPlayerName() has to tell iOS apart from macOS and
 // read the device model; TARGET_OS_IPHONE is only defined once TargetConditionals.h is included.
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -64,7 +64,7 @@
 #include "GameClient/GXPlayerIdentity.h"	// hasVerifiedIdentity - the relay sign-in notice below
 #include "GameClient/GXLoginFlow.h"		// takeMessage - the /login drain in LanLobbyMenuUpdate
 #include "GameClient/GXMatchChat.h"		// gxMatchWideFromUtf8 - the operator-notice drain below
-#include "GameClient/GUICallbacks.h"	// GeneralsX @feature Claude 11/08/2026 GXApplyNickname
+#include "GameClient/GUICallbacks.h"	// GeneralsX: GXApplyNickname
 #include "GameClient/ChatRateLimit.h"
 #include "GameClient/GadgetListBox.h"
 #include "GameClient/GadgetTextEntry.h"
@@ -108,7 +108,7 @@ Bool LANPreferences::loadFromIniFile()
 	return load("Network.ini");
 }
 
-// GeneralsX @bugfix Claude 27/07/2026 A player name carrying ',' ':' or ';' is refused by the host
+// GeneralsX: A player name carrying ',' ':' or ';' is refused by the host
 // with RET_DUPLICATE_NAME, which reaches the joiner as a misleading "name taken", so a name that
 // the game picks on the user's behalf must never contain them.
 static AsciiString sanitizeDefaultPlayerName(const AsciiString &name)
@@ -125,7 +125,7 @@ static AsciiString sanitizeDefaultPlayerName(const AsciiString &name)
 }
 
 #if defined(__APPLE__)
-// GeneralsX @bugfix Claude 27/07/2026 Returns the device family, "iPad" or "Mac" for example.
+// GeneralsX: Returns the device family, "iPad" or "Mac" for example.
 // UIDevice is not reachable from C++ and since iOS 16 only reports the model name anyway, so the
 // sysctl model string is as close to a device name as this platform gets. The key differs per
 // platform: hw.machine is the device on iOS ("iPad14,3") but the cpu on macOS ("arm64"), while
@@ -160,7 +160,7 @@ static AsciiString getAppleDeviceFamily()
 }
 #endif
 
-// GeneralsX @bugfix Claude 27/07/2026 iOS has no user facing host name - gethostname() answers
+// GeneralsX: iOS has no user facing host name - gethostname() answers
 // "localhost" on every device - so the machine name cannot serve as the default player name there.
 // Fall back to the device family plus a per device number, because a fixed literal would make the
 // second iOS device on the network look like a name clash to the host.
@@ -459,9 +459,9 @@ static void playerTooltip(GameWindow *window,
 		return;
 	}
 
-	// GeneralsX @bugfix BenderAI 12/02/2026 - Cast via uintptr_t for 64-bit compatibility
+	// GeneralsX: Cast via uintptr_t for 64-bit compatibility
 	UnsignedInt playerIP = static_cast<UnsignedInt>(reinterpret_cast<uintptr_t>(GadgetListBoxGetItemData( window, row, col )));
-	// GeneralsX @bugfix Claude 01/10/2026 The Back button deletes TheLAN while the window can still show tooltips; idea from Generals Online 2df73eca6, reimplemented.
+	// GeneralsX: The Back button deletes TheLAN while the window can still show tooltips; idea from Generals Online 2df73eca6, reimplemented.
 	if (!TheLAN)
 		return;
 	LANPlayer *player = TheLAN->LookupPlayer(playerIP);
@@ -522,7 +522,7 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	// Show Menu
 	layout->hide( FALSE );
 
-	// GeneralsX @bugfix Claude 22/09/2026 ENTERING THIS SCREEN IS SAYING "I AM LOCAL", and the menu is
+	// GeneralsX: ENTERING THIS SCREEN IS SAYING "I AM LOCAL", and the menu is
 	// the only place that knows it.
 	//
 	// Transport::init already retires a pin minted for a different identity, by comparing the pin with
@@ -539,7 +539,7 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	// before it builds a transport - SetUpOnlineLobbyLAN, relayJoinSelectedGame, JoinDirectConnectGame,
 	// HeadlessMatch::setUpLan - so nothing here reads a pin it did not just write.
 	//
-	// GeneralsX @bugfix Claude 23/09/2026 AND DROPPING THE PIN ALONE CHANGED NOTHING ON THE WIRE. This
+	// GeneralsX: AND DROPPING THE PIN ALONE CHANGED NOTHING ON THE WIRE. This
 	// note used to end "This fixes the room", and it did not: the room ONLINE pins is getLocalHostRoom(),
 	// which is also this screen's unpinned fallback, under the default LocalVirtualIP (10.42.0.1) - the
 	// same (room, id) the pin held in the common case. Nor could it reach TheLAN->reset() below, whose
@@ -606,7 +606,7 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	GadgetListBoxAddEntryText(listboxChatWindow, str, chatSystemColor, -1, 0);
 #endif
 
-	// GeneralsX @bugfix Claude 26/09/2026 (backlog #48, Codex) THE ADDRESS FIRST, THEN init(). init() binds the
+	// GeneralsX: THE ADDRESS FIRST, THEN init(). init() binds the
 	// address TheLAN holds, and that is 0 here - a fresh TheLAN has none, and reset() forgets the last one so that
 	// ONLINE's relay address cannot leak in - so it bound the wildcard before SetLocalIP chose. A multi-instance client
 	// binds the address it is given, and 0.0.0.0:8086 collides with every other instance's 127.x:8086: EADDRINUSE,
@@ -652,7 +652,7 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	}
 	*/
 
-	// GeneralsX @feature Claude 20/09/2026 SAY WHY, ON THE ONE SCREEN THAT IS "OUR NETWORKING"
+	// GeneralsX: SAY WHY, ON THE ONE SCREEN THAT IS "OUR NETWORKING"
 	// WITHOUT LOOKING LIKE IT.
 	//
 	// The owner's rule: "Online needs sign in anything else not needed but anything that uses our
@@ -836,7 +836,7 @@ void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 	if (TheShell->isAnimFinished() && !LANbuttonPushed && TheLAN)
 		TheLAN->update();
 
-	// GeneralsX @bugfix Claude 20/09/2026 THE RELAY'S OWN VOICE HAD NO RENDER SURFACE ON THIS SCREEN.
+	// GeneralsX: THE RELAY'S OWN VOICE HAD NO RENDER SURFACE ON THIS SCREEN.
 	//
 	// noticeTo and announceToRoom emit an operator line as GXSAY <room> 0.0.0.0 <text> (relay.js:6629)
 	// and need no new client capability - but the sender-zero branch that DRAWS it existed in exactly
@@ -855,19 +855,19 @@ void LanLobbyMenuUpdate( WindowLayout * layout, void *userData)
 	// one talker filling the bounded 16-slot ring (Transport.h:719-724) and starving the operator
 	// out of it.
 	//
-	// GeneralsX @refactor Claude 25/09/2026 The loop moved to GXMatchChat.h gxLobbyDrainRelayNotices, shared
+	// GeneralsX: The loop moved to GXMatchChat.h gxLobbyDrainRelayNotices, shared
 	// with the game-setup room so the two cannot drift (the 23/09 classification bug above was exactly one
 	// copy drifting). Through lanLobbySay, this screen's headless-aware sink.
 	//
-	// GeneralsX @bugfix Claude 25/09/2026 ONLY WHILE THIS SCREEN IS SHOWING. The shell updates EVERY layout on
+	// GeneralsX: ONLY WHILE THIS SCREEN IS SHOWING. The shell updates EVERY layout on
 	// its stack (Shell.cpp, runUpdate over m_screenStack), and joining a game hides this one under the
 	// game-setup room rather than removing it - so this drain went on eating the queue there and rendering
 	// operator lines into a listbox nobody could see. Hidden, it leaves the queue to the screen on top.
 	if (!layout->isHidden())
 		gxLobbyDrainRelayNotices(lanLobbySay, chatSystemColor);
 
-	// GeneralsX @bugfix Claude 23/09/2026 THE LOGIN FLOW'S OWN LINE HAD NO RENDER SURFACE HERE EITHER
-	// (Codex round 5, P2). The notice in LanLobbyMenuInit says "Type /login", GXLobbyChatCommand
+	// GeneralsX: THE LOGIN FLOW'S OWN LINE HAD NO RENDER SURFACE HERE EITHER
+	// The notice in LanLobbyMenuInit says "Type /login", GXLobbyChatCommand
 	// dispatches /login on every screen, and GXLoginFlow::start() reports through a one-slot queue
 	// whose only drains were the Online lobby (WOLLobbyMenu.cpp) and the main menu's refusal dialog -
 	// so on this screen "Your browser is opening", every refusal (bot mode, no pinned key, no
@@ -947,7 +947,7 @@ WindowMsgHandledType LanLobbyMenuInput( GameWindow *window, UnsignedInt msg,
 /** Lan Lobby menu window system callback */
 //-------------------------------------------------------------------------------------------------
 
-// GeneralsX @feature Claude 11/08/2026 This screen's seam into the shared lobby command table.
+// GeneralsX: This screen's seam into the shared lobby command table.
 //
 // Two passes, and the order matters. GXLobbyChatCommand runs FIRST because the verbs it retires
 // (/pass, /nopassword, /lobbyhelp) are still recognised DOWNSTREAM by LANAPI::applyLobbyCommand,
@@ -981,7 +981,7 @@ static Bool lanLobbyHandleChat( UnicodeString &txtInput )
 	if (GXLobbyChatCommand(ascii, GX_LOBBY_SCREEN_LAN, listboxChatWindow, lanLobbySay))
 		return TRUE;
 
-	// GeneralsX @feature Claude 11/08/2026 /nick on the browser - and it must ALSO move the name
+	// GeneralsX: /nick on the browser - and it must ALSO move the name
 	// box. LanLobbyMenuShutdown writes prefs["UserName"] from that box unconditionally on the way
 	// out, so a /nick that leaves the box alone is silently reverted the moment the player leaves
 	// this screen. The box is this screen's real state; outApplied is the normalised name the
@@ -1152,7 +1152,7 @@ WindowMsgHandledType LanLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 					txtInput.trim();
 					// Echo the user's input to the chat window
 					if (!txtInput.isEmpty() && !lanLobbyHandleChat(txtInput)) {
-				// GeneralsX @feature Claude 21/08/2026 One chat line every ChatRate::MIN_INTERVAL_MS,
+				// GeneralsX: One chat line every ChatRate::MIN_INTERVAL_MS,
 				// shared with every other chat box in the game - see GameClient/ChatRateLimit.h.
 				// Checked AFTER the slash-command interception, so a command costs no allowance,
 				// and the refused line is put BACK in the box rather than dropped: a rate limit
@@ -1203,7 +1203,7 @@ WindowMsgHandledType LanLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 
 					txtInput.truncateTo(g_lanPlayerNameLength);
 
-					// GeneralsX @feature Claude 11/08/2026 '@' is reserved for the role decoration - a
+					// GeneralsX: '@' is reserved for the role decoration - a
 					// moderator renders as <@Name> and an admin as @Name - so it must not survive into any
 					// name. STRIPPED here rather than refused, which is the opposite of GXApplyNickname and
 					// is deliberate: this runs on EVERY KEYSTROKE, and a refusal here would pop a message
@@ -1266,7 +1266,7 @@ WindowMsgHandledType LanLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 
 					// Echo the user's input to the chat window
 					if (!txtInput.isEmpty() && !lanLobbyHandleChat(txtInput)) {
-				// GeneralsX @feature Claude 21/08/2026 One chat line every ChatRate::MIN_INTERVAL_MS,
+				// GeneralsX: One chat line every ChatRate::MIN_INTERVAL_MS,
 				// shared with every other chat box in the game - see GameClient/ChatRateLimit.h.
 				// Checked AFTER the slash-command interception, so a command costs no allowance,
 				// and the refused line is put BACK in the box rather than dropped: a rate limit

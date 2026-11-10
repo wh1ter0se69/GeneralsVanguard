@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: the ONE pipeline layout every fixed-function pipeline (generic and
+// GeneralsX: WS-F1: the ONE pipeline layout every fixed-function pipeline (generic and
 // specialised, WS-D) and every GxPacketWriter draw uses. The contract with rw2-D (agreed 11/10/2026):
 //   set 0 = { b0 UNIFORM_BUFFER_DYNAMIC: the FF VS block (vertex), b1 UNIFORM_BUFFER_DYNAMIC: the FF PS block (fragment) }
 //   set 1 = { b0..b7 COMBINED_IMAGE_SAMPLER 2D: texture stages 0..7 (fragment) }

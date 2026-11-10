@@ -1,4 +1,4 @@
-# GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: gx_record (GxPacketWriter v1 - one recording thread, the pass graph) and its
+# GeneralsX: WS-F1: gx_record (GxPacketWriter v1 - one recording thread, the pass graph) and its
 # gate test. Render-only and outside every digested path (resources/gitinfo/simsourcedigest_watcher.cmake): never list these
 # sources in a WW3D2 CMakeLists. Standalone: cmake -S <this dir> -B <dir> -G Ninja && cmake --build <dir>
 #   -> libgx_record.a + gx_record_test (pulls ../Res, ../Pipeline and ../Vk when the parent did not add them).

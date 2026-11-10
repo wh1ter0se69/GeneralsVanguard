@@ -319,7 +319,7 @@ void W3DSmudgeManager::render(RenderInfoClass &rinfo)
 
 	// TheSuperHackers @performance stephanmeesters 14/08/2026 Early return when we have no smudge sets
 	// or if the global smudge set is the only set and contains no smudges.
-	// GeneralsX @probe Claude 19/08/2026 GX_SMUDGE_STATS counts how often this gate actually fires.
+	// GeneralsX: GX_SMUDGE_STATS counts how often this gate actually fires.
 	// Without it, "the A/B showed no difference" is ambiguous between "the early return is worthless"
 	// and "the early return never fired in this arm", and those are opposite conclusions. Off unless
 	// the env var is set; the timed arms run with it off.
@@ -355,7 +355,7 @@ void W3DSmudgeManager::render(RenderInfoClass &rinfo)
 		fflush(stderr);
 	}
 
-	// GeneralsX @bugfix Claude 28/09/2026 The haze samples "the frame so far", which lives in whatever
+	// GeneralsX: The haze samples "the frame so far", which lives in whatever
 	// target is bound now: the pillarbox RT under pillarbox, a script filter's RT while one runs, later the
 	// world RT. The backbuffer holds none of those (a stale or cleared image), so read the bound target.
 	// An effect pass into a texture (the WaterType 2 mirror) is not that frame: skip it, as dazzles do
@@ -423,7 +423,7 @@ void W3DSmudgeManager::render(RenderInfoClass &rinfo)
 	camera.Get_View_Matrix(&view);
 	camera.Get_Projection_Matrix(&proj);
 
-	// GeneralsX @bugfix Claude 28/09/2026 Clamp in render-target space. The camera viewport is a fraction of
+	// GeneralsX: Clamp in render-target space. The camera viewport is a fraction of
 	// the display mapped onto the bound target (CameraClass::Apply), so the view spans viewW*rtW/dispW texels
 	// of a background exactly rtW wide: the clamp is viewW/dispW. At 1:1 dispW is the backbuffer width, so
 	// this is the old viewW/backbufferW bit for bit; under pillarbox the old divisor was the (larger) window.

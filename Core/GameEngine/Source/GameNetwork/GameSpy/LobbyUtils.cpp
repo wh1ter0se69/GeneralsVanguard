@@ -202,7 +202,7 @@ static void gameTooltip(GameWindow *window,
 													WinInstanceData *instData,
 													UnsignedInt mouse)
 {
-	// GeneralsX @bugfix Claude 30/07/2026 A tooltip must not assume the GameSpy backend is alive.
+	// GeneralsX: A tooltip must not assume the GameSpy backend is alive.
 	//
 	// This function calls TheGameSpyInfo->findStagingRoomByID() below, and TheGameSpyInfo is
 	// legitimately null for a whole run of frames on the ordinary join path:
@@ -251,7 +251,7 @@ static void gameTooltip(GameWindow *window,
 
 	if (col == COLUMN_PING)
 	{
-		// GeneralsX @feature Claude 07/08/2026 Say what the dot actually measured.
+		// GeneralsX: Say what the dot actually measured.
 		//
 		// The stock tooltip is the fixed string "Connection speed quality to host", which tells a
 		// player nothing they cannot see from the colour. We now have a real number and, more
@@ -393,7 +393,7 @@ static void gameTooltip(GameWindow *window,
 	TheMouse->setCursorTooltip( tooltip, 10, nullptr, 2.0f ); // the text and width are the only params used.  the others are the default values.
 }
 
-// GeneralsX @bugfix Claude 07/08/2026 Re-proportion the game browser's columns.
+// GeneralsX: Re-proportion the game browser's columns.
 //
 // WOLCustomLobby.wnd ships COLUMNS: 8 with widths 48/30/0/6/6/0/4/6, and two of those are
 // literally ZERO: COLUMN_LADDER and COLUMN_OBSERVER. A zero-width column still contributes a
@@ -616,7 +616,7 @@ struct GameSortStruct
 		case GAMESORT_ALPHA_DESCENDING:
 			return wcsicmp(g1->getGameName().str(),g2->getGameName().str()) > 0;
 			break;
-		// GeneralsX @bugfix Claude 07/08/2026 An UNMEASURED game must not sort as the fastest one.
+		// GeneralsX: An UNMEASURED game must not sort as the fastest one.
 		//
 		// getPingAsInt() is 0 when there is no measurement, so a plain numeric compare put every
 		// unmeasured game at the top of a fastest-first sort - the most prominent position in the
@@ -649,7 +649,7 @@ struct GameSortStruct
 static Int insertGame( GameWindow *win, GameSpyStagingRoom *game, Bool showMap )
 {
 	game->cleanUpSlotPointers();
-	// GeneralsX @info Claude 06/08/2026 The row colour is a STATE and there are three of them. This
+	// GeneralsX: The row colour is a STATE and there are three of them. This
 	// was undocumented and had to be inferred from the screen, which is why it is written down here
 	// and shown to the player as a legend when the lobby opens:
 	//   GSCOLOR_GAME          - joinable
@@ -810,7 +810,7 @@ static Int insertGame( GameWindow *win, GameSpyStagingRoom *game, Bool showMap )
 		height = pingImages[0]->getImageHeight();
 	}
 
-	// GeneralsX @bugfix Claude 07/08/2026 The cutoffs below used to come from TheGameSpyConfig,
+	// GeneralsX: The cutoffs below used to come from TheGameSpyConfig,
 	// dereferenced unconditionally. Two problems, and the second one is why the config is gone
 	// entirely rather than merely null-guarded.
 	//
@@ -863,7 +863,7 @@ void RefreshGameListBox( GameWindow *win, Bool showMap )
 	GadgetListBoxGetSelected(win, &selectedIndex);
 	if (selectedIndex != -1 )
 	{
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	selectedID = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(win, selectedIndex)));
 	}
 	int prevPos = GadgetListBoxGetTopVisibleEntry( win );
@@ -871,7 +871,7 @@ void RefreshGameListBox( GameWindow *win, Bool showMap )
 	// empty listbox
 	GadgetListBoxReset(win);
 
-	// GeneralsX @feature Claude 06/08/2026 A header row naming the columns.
+	// GeneralsX: A header row naming the columns.
 	//
 	// The list has always BEEN a table - COLUMN_NAME/MAP/NUMPLAYERS/PASSWORD/PING are real columns -
 	// with nothing anywhere saying so, so the reader had to infer from context what the number pair,
@@ -939,7 +939,7 @@ void RefreshGameListBox( GameWindow *win, Bool showMap )
 
 	clearBuddyGames();
 
-	// GeneralsX @feature Claude 06/08/2026 Say so when the list is empty.
+	// GeneralsX: Say so when the list is empty.
 	//
 	// An empty listbox is indistinguishable from a broken one: the operator could not tell "nobody
 	// is hosting" from "the browser is not working" from "my relay is unreachable", and the honest
@@ -947,7 +947,7 @@ void RefreshGameListBox( GameWindow *win, Bool showMap )
 	// so it reads as a STATE and not as a joinable row, and inserted only when the list is truly
 	// empty so it can never be selected alongside a real game.
 	//
-	// GeneralsX @bugfix Claude 07/08/2026 "the browser ran and found nothing" was not true yet.
+	// GeneralsX: "the browser ran and found nothing" was not true yet.
 	//
 	// The claim above - that reaching here with an empty sgl means the browser ran and found
 	// nothing - holds between sweeps but NOT on entry. Nothing has been asked yet the first time
@@ -1132,7 +1132,7 @@ void playerTemplateComboBoxTooltip(GameWindow *wndComboBox, WinInstanceData *ins
 {
 	Int index = 0;
 	GadgetComboBoxGetSelectedPos(wndComboBox, &index);
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	Int templateNum = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(wndComboBox, index)));
 	UnicodeString ustringTooltip;
 	if (templateNum == -1)
@@ -1164,7 +1164,7 @@ void playerTemplateListBoxTooltip(GameWindow *wndListBox, WinInstanceData *instD
 	if (row == -1 || col == -1)
 		return;
 
-// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+// GeneralsX: 64-bit safe pointer cast
 Int templateNum = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(wndListBox, row, col)));
 	UnicodeString ustringTooltip;
 	if (templateNum == -1)

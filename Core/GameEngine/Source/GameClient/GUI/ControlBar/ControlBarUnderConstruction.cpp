@@ -86,7 +86,7 @@ void ControlBar::populateUnderConstruction( Object *objectUnderConstruction )
 	id = TheNameKeyGenerator->nameToKey( "ControlBar.wnd:ButtonCancelConstruction" );
 	GameWindow *win = TheWindowManager->winGetWindowFromId( parent, id );
 
-	// GeneralsX @bugfix Claude 01/10/2026 Modded UI data can lack the button or window; keep populating the rest of the panel. Idea from Generals Online dd31222d7, reimplemented.
+	// GeneralsX: Modded UI data can lack the button or window; keep populating the rest of the panel. Idea from Generals Online dd31222d7, reimplemented.
 	if( win && commandButton )
 	{
 		setControlCommand( win, commandButton );

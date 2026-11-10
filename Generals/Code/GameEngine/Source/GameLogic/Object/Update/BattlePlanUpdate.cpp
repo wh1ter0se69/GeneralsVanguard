@@ -551,7 +551,7 @@ void BattlePlanUpdate::setStatus( TransitionStatus newStatus )
 					}
 
 					// display a message to *all* users
-					// GeneralsX @bugfix Claude 06/10/2026 messageNoFormat here and below: the three plan labels are
+					// GeneralsX: messageNoFormat here and below: the three plan labels are
 					// map.ini fields that may name the map's own map.str text, which message() ran through printf.
 					TheInGameUI->messageNoFormat( TheGameText->fetch( data->m_bombardmentMessageLabel ) );
 					if( m_bombardmentAnnouncement.getEventName().isEmpty() == FALSE )

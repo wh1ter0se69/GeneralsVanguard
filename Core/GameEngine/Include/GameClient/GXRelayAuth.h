@@ -1,4 +1,4 @@
-// GeneralsX @bugfix Claude 19/09/2026 - the relay's registration secret, for the LOBBY PRESENCE socket.
+// GeneralsX: the relay's registration secret, for the LOBBY PRESENCE socket.
 //
 // The relay mints a secret on the first claim of a (room, id) and hands it back with
 // "GXAUTH <room> <id> <secret> [caps]"; a registration from a DIFFERENT endpoint for that id is refused
@@ -15,7 +15,7 @@
 //
 // PURE, so scripts/test/lobby-presence-auth-test.cpp can drive the real parser and composer.
 //
-// ponytail: the RAW secret, like Transport - not the relay's hmac1 proof. It rides every 5 s keepalive in
+// Trade-off: the RAW secret, like Transport - not the relay's hmac1 proof. It rides every 5 s keepalive in
 // cleartext, so an on-path observer can capture it; the GXIDN assertion on the same socket already has
 // that exposure. Upgrade path: both sockets move to hmac1 together (relay.js PROOF_CTR_BYTES).
 #pragma once
@@ -32,7 +32,7 @@ enum
 	GX_RELAY_SECRET_BUF = GX_RELAY_SECRET_LEN + 1
 };
 
-// GeneralsX @security Claude 07/11/2026 (Codex vnext1107-r2 P1) The word that says this client can read a relay id past .14. relay.js
+// GeneralsX: The word that says this client can read a relay id past .14. relay.js
 // SEATS_WORD has the argument: a 0.9.69 client overruns its lobby tables on such an id and nothing on the wire names it, so an id past
 // .14 goes only to clients that say so, in rooms where everybody did.
 static const char GX_RELAY_SEATS_WORD[] = "seats34";
@@ -48,7 +48,7 @@ enum
 /// a relay that never declares it never sees it. GXCAPS rides every accepted registration, which makes it a heartbeat: a relay rolled
 /// back under a running client refuses the word and answers nothing, and the silence takes it off the line again.
 ///
-/// EVERY SEAT, .15 AND ABOVE INCLUDED (Codex caps34 r1). Going silent costs nothing on a relay that reads the word: it refuses the plain
+/// EVERY SEAT, .15 AND ABOVE INCLUDED (caps34 r1). Going silent costs nothing on a relay that reads the word: it refuses the plain
 /// registration past .14 and answers GXCAPS, and the word is back on the next keepalive. Keeping it would strand the seat for good on
 /// a relay that does not read it, which refuses the word and never says anything again.
 ///
@@ -84,7 +84,7 @@ struct GXRelaySeats
 	}
 };
 
-/// GXRelaySeats, one per relay (Codex caps34-client-r2 P1). Whether a relay reads the word is a fact about THAT relay, and two sockets of one
+/// GXRelaySeats, one per relay. Whether a relay reads the word is a fact about THAT relay, and two sockets of one
 /// process can stand on two relays after a failover: held once, the new relay's GXCAPS would keep the word on for a socket registered at
 /// an old one, which refuses it for good. Keyed by address and lobby port, which is what both sockets of one relay share. Zero-initialised;
 /// a fifth relay takes the oldest slot, which costs only a relearning.
@@ -156,7 +156,7 @@ inline int gxRelayRegistrationLine( char *out, size_t size, const char *room, un
 	return len;
 }
 
-/// GeneralsX @security Claude 07/11/2026 (lead C77, Codex vnext1107b-r1 P1-3) "GXLIST", or "GXLIST seats34" when `seats34` says so. A relay
+/// GeneralsX: "GXLIST", or "GXLIST seats34" when `seats34` says so. A relay
 /// that reads the word cuts a plain GXLIST to what a 0.9.69 browser can hold (no host past .14, at most 14 slots, see relay.js SEATS_WORD),
 /// so a 32-seat game shows its real count only to a list asked for with the word. The same rule as GXRLY and GXROOM decides `seats34`: only
 /// a relay that has said it reads the word is sent it, because an older one does not answer the marked form. Returns the length, or 0 if it
@@ -197,7 +197,7 @@ inline bool gxRelayAuthTake( const char *rest, const char *room, unsigned id, ch
 	return true;
 }
 
-/// GeneralsX @feature Claude 25/09/2026 Does a GXAUTH `rest` ("<room> <id> <secret> [caps...]") carry the
+/// GeneralsX: Does a GXAUTH `rest` ("<room> <id> <secret> [caps...]") carry the
 /// capability word `cap`, AFTER the three fields gxRelayAuthTake reads? Whole-word compare, never a
 /// substring, so "gxm10" is not "gxm1" - and nothing in the first three fields can count, so a room or a
 /// secret that happens to spell the word proves nothing. relay.js sends "hmac1 gxm1" (AUTH_CAPS, GXM1_CAP).

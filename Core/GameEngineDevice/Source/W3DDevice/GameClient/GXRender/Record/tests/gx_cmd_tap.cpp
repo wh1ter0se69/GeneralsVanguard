@@ -1,4 +1,4 @@
-// GeneralsX @test B · render-perf-audit 12/10/2026 TEST-ONLY recorded-stream tap (PREREG_T A22's equality gate). Linked into the
+// GeneralsX: TEST-ONLY recorded-stream tap (PREREG_T A22's equality gate). Linked into the
 // record / translate / native / proxy test executables; does nothing unless GX_CMDTAP=<file> is set. Then, after every
 // volkLoadDevice (Vk::g_testAfterLoadDevice), the vkCmd* and vkUpdateDescriptorSets pointers the GXRender code calls through are
 // swapped for shims that fold each command - its arguments, the structs they point to, and every descriptor write - into an FNV-1a
@@ -7,7 +7,7 @@
 //   D<device> S<submit> n=<commands since the device loaded> d=<running digest>
 // so two files from the same suite diff to the first submission that differs. GX_A22_SLOW=1 sets Rec::g_recTest.exactSlowPaths
 // (the writer's pre-A22 paths), GX_A22_PLANT=1 the planted stale-world-stamp defect. Run each suite twice and diff the files.
-// What it digests (after Codex a22-r1..r3): every vkCmd* GXRender records, command-buffer begin/end/reset, pool resets and frees,
+// What it digests: every vkCmd* GXRender records, command-buffer begin/end/reset, pool resets and frees,
 // every descriptor write (the payload its type reads) and set allocation, every submission and present with their semaphores,
 // values and pNext chains (an unknown chain aborts), and - on the recording thread - every creation (arguments field by field,
 // unknown pNext aborts), memory allocation and binding, plus the writer's streamed uniform bytes and their destination
@@ -105,12 +105,12 @@ template <class H> void created(H h)   // a new object: a fresh id, so a reused 
 		return;
 	g_ids[std::make_pair(typeOf<H>(), uint64_t(reinterpret_cast<uintptr_t>(h)))] = ++g_next;
 }
-// Codex a22-r3 #5/#6: a swapchain image is digested as "an image of swapchain S" (which one is the driver's acquire order, not the
+// /#6: a swapchain image is digested as "an image of swapchain S" (which one is the driver's acquire order, not the
 // recording), and a pipeline by the content of its creation (shaders included), so two pipelines with different state never share
 // an identity and a reused handle never inherits one.
-// Codex a22-r4 #1: a swapchain image is identified by WHICH ACQUIRE handed it out (the k-th acquire of the device), not by the
+// a swapchain image is identified by WHICH ACQUIRE handed it out (the k-th acquire of the device), not by the
 // physical image the driver chose - so drawing into the image of acquire k vs k-1 differs, while the driver's choice does not.
-// Never-acquired images keep their swapchain index. Codex a22-r4 #3: these maps are device-scoped (cleared at each device load)
+// Never-acquired images keep their swapchain index. these maps are device-scoped (cleared at each device load)
 // and a creation that reuses a handle removes the old classification.
 struct SwapImage { uint64_t swapchain; uint32_t index; uint64_t acquire; };
 std::map<uint64_t, SwapImage> g_swapImages;              // VkImage -> its swapchain, index, last acquire ordinal (0 = never)
@@ -174,7 +174,7 @@ void op(uint32_t id, VkCommandBuffer cb)
 	X(vkAllocateMemory) X(vkBindBufferMemory) X(vkBindImageMemory) X(vkBindBufferMemory2) X(vkBindImageMemory2) \
 	X(vkCreateShaderModule) X(vkCreateGraphicsPipelines) X(vkCreateSwapchainKHR) X(vkGetSwapchainImagesKHR) X(vkAcquireNextImageKHR) \
 	X(vkCmdBindIndexBuffer2) X(vkCmdDrawIndirectCount) X(vkCmdDrawIndexedIndirectCount)
-// Codex a22-r3 P1/P2: typed atomic pointers - written by the swap and the proc-addr hook, read by the shims on any thread
+// /P2: typed atomic pointers - written by the swap and the proc-addr hook, read by the shims on any thread
 #define GX_TAP_DECL(name) std::atomic<PFN_##name> real_##name { nullptr };
 GX_TAP_FUNCS(GX_TAP_DECL)
 #undef GX_TAP_DECL
@@ -436,7 +436,7 @@ VKAPI_ATTR void VKAPI_CALL t_vkUpdateDescriptorSets(VkDevice dev, uint32_t nw, c
 		LOCK; ev(42); val(nw); val(nc);
 		for (uint32_t i = 0; i < nw; ++i) {
 			hnd(w[i].dstSet); val(w[i].dstBinding); val(w[i].dstArrayElement); val(w[i].descriptorCount); val(w[i].descriptorType);
-			const VkDescriptorType t = w[i].descriptorType;   // Codex a22-r3 #8: only the payload the type reads
+			const VkDescriptorType t = w[i].descriptorType;   // only the payload the type reads
 			for (uint32_t k = 0; k < w[i].descriptorCount; ++k) {
 				if (t == VK_DESCRIPTOR_TYPE_SAMPLER)
 					hnd(w[i].pImageInfo[k].sampler);
@@ -460,7 +460,7 @@ VKAPI_ATTR void VKAPI_CALL t_vkUpdateDescriptorSets(VkDevice dev, uint32_t nw, c
 	}
 	CALL(vkUpdateDescriptorSets)(dev, nw, w, nc, c);
 }
-// pNext chains (Codex a22-r2 #5): known structures are digested field by field; a submission carrying an unknown one is refused
+// pNext chains: known structures are digested field by field; a submission carrying an unknown one is refused
 // (its synchronisation would be invisible); so is a creation carrying one.
 void submitChain(const void* next)
 {
@@ -494,7 +494,7 @@ void createChain(const void* next)
 			val(t->flags); val(t->deviceMask);
 		} else {
 			std::fprintf(stderr, "[GXCMDTAP] creation pNext sType %d\n", int(b->sType));
-			fail("a creation carries a pNext structure the tap does not digest");   // Codex a22-r3 #7: refused, not warned
+			fail("a creation carries a pNext structure the tap does not digest");   // refused, not warned
 		}
 	}
 }
@@ -561,7 +561,7 @@ VKAPI_ATTR VkResult VKAPI_CALL t_vkAllocateDescriptorSets(VkDevice dev, const Vk
 			created(sets[k]);
 	return r;
 }
-// Creations on the recording thread (Codex a22-r2 #1-3): the creation's arguments and referenced objects are digested and the new
+// Creations on the recording thread: the creation's arguments and referenced objects are digested and the new
 // object gets a fresh id. Objects other threads create (pipeline workers) keep first-use numbering.
 template <class H> void forget(H) {}
 void forget(VkImage h) { g_swapImages.erase(uint64_t(reinterpret_cast<uintptr_t>(h))); }
@@ -645,7 +645,7 @@ VKAPI_ATTR VkResult VKAPI_CALL t_vkAllocateCommandBuffers(VkDevice dev, const Vk
 			created(cbs[k]);
 	return r;
 }
-// Codex a22-r3 #3/#4: command-buffer lifecycle, query scopes, indirect draws, memory allocation and binding
+// /#4: command-buffer lifecycle, query scopes, indirect draws, memory allocation and binding
 VKAPI_ATTR VkResult VKAPI_CALL t_vkBeginCommandBuffer(VkCommandBuffer cb, const VkCommandBufferBeginInfo* bi)
 {
 	{
@@ -791,7 +791,7 @@ VKAPI_ATTR VkResult VKAPI_CALL t_vkCreateShaderModule(VkDevice dev, const VkShad
 		hc.val(c->flags); hc.val(c->codeSize); hc.mix(c->pCode, c->codeSize);
 		LOCK;
 		g_modules[uint64_t(reinterpret_cast<uintptr_t>(*out))] = hc.h;
-		if (onRec()) { ev(81); val(hc.h); }   // Codex a22-r4 #4: an extra creation changes the trace
+		if (onRec()) { ev(81); val(hc.h); }   // an extra creation changes the trace
 	}
 	return r;
 }
@@ -824,7 +824,7 @@ uint64_t pipelineDigest(const VkGraphicsPipelineCreateInfo& c)
 			hc.val(d.location); hc.val(d.binding); hc.val(d.format); hc.val(d.offset);
 		}
 	}
-	// Codex a22-r4 #5: every pipeline state structure's own chain is refused (none is digested field by field)
+	// every pipeline state structure's own chain is refused (none is digested field by field)
 	auto noChain = [](const void* next, const char* what) { if (next) fail(what); };
 	if (c.pInputAssemblyState) noChain(c.pInputAssemblyState->pNext, "an input-assembly state with a pNext chain");
 	if (c.pTessellationState) noChain(c.pTessellationState->pNext, "a tessellation state with a pNext chain");
@@ -934,7 +934,7 @@ VKAPI_ATTR VkResult VKAPI_CALL t_vkQueuePresentKHR(VkQueue q, const VkPresentInf
 		LOCK; ev(77); hnd(q); submitChain(pi->pNext); val(pi->waitSemaphoreCount);
 		for (uint32_t k = 0; k < pi->waitSemaphoreCount; ++k) hnd(pi->pWaitSemaphores[k]);
 		val(pi->swapchainCount);
-		for (uint32_t k = 0; k < pi->swapchainCount; ++k) {   // the presented image by its acquire (Codex a22-r4 #1)
+		for (uint32_t k = 0; k < pi->swapchainCount; ++k) {   // the presented image by its acquire
 			hnd(pi->pSwapchains[k]);
 			auto l = g_swapLists.find(uint64_t(reinterpret_cast<uintptr_t>(pi->pSwapchains[k])));
 			if (l == g_swapLists.end() || pi->pImageIndices[k] >= l->second.size())
@@ -945,7 +945,7 @@ VKAPI_ATTR VkResult VKAPI_CALL t_vkQueuePresentKHR(VkQueue q, const VkPresentInf
 	return CALL(vkQueuePresentKHR)(q, pi);
 }
 
-// The hook table (Codex a22-r3 #1): typed accessors - function-pointer VALUES are converted, no pointer object is accessed through
+// The hook table: typed accessors - function-pointer VALUES are converted, no pointer object is accessed through
 // another type. vkGetDeviceProcAddr is hooked so VMA (dynamic functions, VkMemAlloc.cpp) gets the shims; each lookup refreshes the
 // real pointer (atomic) before handing the shim out.
 struct Hooked
@@ -989,7 +989,7 @@ void onLoadDevice(VkDevice)
 	g_n = g_submits = 0;
 	g_next = 0;
 	g_ids.clear();
-	g_swapImages.clear();   // device-scoped (Codex a22-r4 #3)
+	g_swapImages.clear();   // device-scoped
 	g_swapLists.clear();
 	g_modules.clear();
 	g_pipes.clear();

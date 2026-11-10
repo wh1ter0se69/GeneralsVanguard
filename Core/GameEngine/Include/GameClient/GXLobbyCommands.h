@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/08/2026 The one table every lobby chat box agrees on.
+// GeneralsX: The one table every lobby chat box agrees on.
 //
 // WHAT THIS OWNS. /help, /clear, the "that verb is gone, use this one" answers, and the guard that
 // stops a mistyped command being said out loud to the room. It does NOT own any command that
@@ -45,7 +45,7 @@
 #include "Common/AsciiString.h"
 #include "Common/UnicodeString.h"
 #include "GameClient/Color.h"
-// GeneralsX @feature Claude 11/08/2026 GXAssertRole. Both headers are under GameClient/ and outside
+// GeneralsX: GXAssertRole. Both headers are under GameClient/ and outside
 // the sim digest, so this include ties nothing new to a four-platform rebuild.
 #include "GameClient/GXIdentityAssertion.h"
 // GXLobbySaid's separator rule and the console-matched role palette. Engine-free on purpose so a
@@ -99,7 +99,7 @@ extern Bool GXLobbyChatCommand( const AsciiString &line, GXLobbyScreen screen,
 extern Bool GXLobbyGuardUnknownCommand( AsciiString &line, GXLobbyScreen screen,
 										GXLobbySayFunc say, Bool &outEscaped );
 
-/// GeneralsX @feature Claude 11/08/2026 Recognise "/nick" on the WIDE line and hand back the
+/// GeneralsX: Recognise "/nick" on the WIDE line and hand back the
 /// remainder. A name is characters, not bytes: every screen tokenises the ASCII translation for
 /// dispatch, but AsciiString::translate casts each WideChar to char, so a code point with a zero
 /// low byte truncates the narrow copy and an offset computed there cannot be mapped back onto the
@@ -111,7 +111,7 @@ extern Bool GXLobbyTakeNickRest( const UnicodeString &line, UnicodeString &outRe
 /// The one-line entry banner, and what /clear reprints so a cleared box is never a dead end.
 extern void GXLobbyPrintHelpHint( GXLobbyScreen screen, GXLobbySayFunc say );
 
-// GeneralsX @feature Claude 11/08/2026 Role presentation.
+// GeneralsX: Role presentation.
 //
 // These live in Core, beside the colours, so the lobby screen and the game screen cannot disagree
 // about what a moderator looks like. A role that renders one way in the browser and another way
@@ -128,7 +128,7 @@ extern GXAssertRole GXLobbyRoleFromCode( const char *code );
 /// every path that assigns a name - see GXApplyNickname.
 extern UnicodeString GXLobbyDecorateName( const UnicodeString &name, GXAssertRole role );
 
-// GeneralsX @bugfix Claude 20/09/2026 (owner: "@wh1ter0se: hello the ':' is missing") THE SEPARATOR,
+// GeneralsX: THE SEPARATOR,
 // IN ONE PLACE.
 //
 // Every chat renderer in the tree had its own `L"%ls %ls"` - the lobby's incoming line, the lobby's
@@ -160,9 +160,9 @@ extern UnicodeString GXLobbySaid( const UnicodeString &speaker, const UnicodeStr
 /// "@Admin", or "<@Mod>" for GX_ROLE_MOD - the name an OPERATOR speaks under: a GXSAY the relay
 /// stamped with one of its operator sender tokens (GameNetwork/GXRelaySay.h). The decoration is
 /// what makes it unforgeable - '@' is refused in every path that assigns a player a name, so
-/// "[Admin]" is somebody's nickname and "@Admin" is only ever this. GeneralsX @feature Claude 19/09/2026
+/// "[Admin]" is somebody's nickname and "@Admin" is only ever this. GeneralsX:
 ///
-/// GeneralsX @bugfix Claude 20/09/2026 IT TAKES THE ROLE. It used to be void and hard-coded to admin,
+/// GeneralsX: IT TAKES THE ROLE. It used to be void and hard-coded to admin,
 /// which drew a moderator's line as an admin's. No default argument: the two call
 /// sites both know which voice they are drawing, and a default is how the constant got there.
 extern UnicodeString GXLobbyOperatorName( GXAssertRole role );
@@ -193,7 +193,7 @@ extern Color GXLobbyRoleNameColor( GXAssertRole role, Color fallback );
 /// own echo. A TAGGED line puts the tag in front of the stamp; see below.
 extern UnicodeString GXLobbyTimestamp( void );
 
-// GeneralsX @feature Claude 13/08/2026 THE TAG GOES BEFORE THE STAMP, and a run of tagged lines
+// GeneralsX: THE TAG GOES BEFORE THE STAMP, and a run of tagged lines
 // prints its prefix once.
 //
 // Owner decision, 2026-08-13, against the screenshot of a /help listing: twenty rows each opening
@@ -245,7 +245,7 @@ extern UnicodeString GXLobbyChatRow( GameWindow *listbox, const UnicodeString &p
 /// Forget any open block. For a screen coming up or going down, so a block cannot span a visit.
 extern void GXLobbyChatRowReset( void );
 
-// GeneralsX @feature Claude 18/09/2026 SIGN-OUT, ONE SEQUENCE FOR EVERY SURFACE.
+// GeneralsX: SIGN-OUT, ONE SEQUENCE FOR EVERY SURFACE.
 //
 // The `/logout` chat verb and the lobby's right-click "Sign Out" both come through here, so the
 // steps below cannot drift between them - the same reason GXRelayRunSocialCommand is one seam.
@@ -258,7 +258,7 @@ extern void GXLobbyChatRowReset( void );
 //      outlives every screen; left alone it went on declaring the account to the relay after the
 //      player had signed out. When a relay room is joined, clearing it sends the relay the
 //      authenticated clear, so the relay forgets the account now rather than at member timeout.
-//   4. GeneralsX @bugfix Claude 18/09/2026 The LOBBY PRESENCE socket's copy too
+//   4. GeneralsX: The LOBBY PRESENCE socket's copy too
 //      (GXLobbyPresence::clearIdentity). That socket declares the identity so that mute and ban
 //      reach lobby chat, it lives for the whole process, and its membership never lapses while the
 //      game runs - so its copy is cleared whole and the relay is sent the same authenticated clear.

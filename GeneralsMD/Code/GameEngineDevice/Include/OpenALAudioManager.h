@@ -21,7 +21,7 @@
 **
 ** Forwards to the real implementation header in OpenALAudioDevice/.
 **
-** GeneralsX @build BenderAI 21/02/2026 Phase 2: replaced stub with fighter19 full implementation
+** GeneralsX: Phase 2: replaced stub with fighter19 full implementation
 */
 
 #pragma once

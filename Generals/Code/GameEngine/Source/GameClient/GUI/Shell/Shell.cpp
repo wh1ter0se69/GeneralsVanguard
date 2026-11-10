@@ -93,7 +93,7 @@ void Shell::construct()
 //-------------------------------------------------------------------------------------------------
 void Shell::deconstruct()
 {
-	// GeneralsX @bugfix Claude 12/08/2026 (upstream issue #2777) Popping a screen normally runs the
+	// GeneralsX: (upstream issue #2777) Popping a screen normally runs the
 	// revealed screen's init below it. During teardown the shell is destroyed from GameClient's dtor
 	// in reverse-order subsystem shutdown, so subsystems inited after TheGameClient (e.g. TheGameState)
 	// are already gone; re-initing a revealed save/load menu then read destroyed state and crashed
@@ -195,7 +195,7 @@ void Shell::update()
 	// we keep the shell updates fixed in time so that we can write consistent animation
 	// speeds during the screen update functions
 	//
-	// GeneralsX @bugfix Claude 29/10/2026 Cb-06a: the gate restarted its period at the draw that passed it, so a render rate
+	// GeneralsX: Cb-06a: the gate restarted its period at the draw that passed it, so a render rate
 	// that does not divide 1/30 s ran it on every 4th draw at 100 fps (25 Hz) or 5th at 144 (28.8 Hz): menus animated 17%
 	// and 4% slow. It keeps its phase now (GameClient/GXClientAnimPolicy.h): 30 Hz on average at any render rate, one
 	// update per draw below 30 fps, as before, and one update after a stall.
@@ -226,7 +226,7 @@ void Shell::update()
 		}
 
 		m_schemeManager->update();
-		if (GXAnimTrace::on())	// GeneralsX @test Claude 29/10/2026 Cb-06a: each 30 Hz shell update (GameClient/GXAnimTrace.h)
+		if (GXAnimTrace::on())	// GeneralsX: Cb-06a: each 30 Hz shell update (GameClient/GXAnimTrace.h)
 			fprintf(stderr, "[GXANIM] shell wall=%.3f dt=%d\n", GXAnimTrace::wallMs(), (int)(now - lastUpdate));
 
 		// mark last time we ran the updates
@@ -492,7 +492,7 @@ void Shell::showShell( Bool runInit )
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 25/09/2026 The shell is up BEFORE the top's Init runs, as it is for a
+	// GeneralsX: The shell is up BEFORE the top's Init runs, as it is for a
 	// doPush (the score screen's pop runs the room's Init with the shell already active). A screen's
 	// Init asks showShellMap for its backdrop, and with the shell map off that returns early while the
 	// shell is inactive - so a refused start's return to the lobby (GameLogic::startNewGame) came back
@@ -542,7 +542,7 @@ void Shell::showShell( Bool runInit )
 	//	}
 
 
-	// GeneralsX @bugfix Claude 14/09/2026 ZH-to-Generals unification from upstream PR #3070
+	// GeneralsX: ZH-to-Generals unification from upstream PR #3070
 	// (36ab560dc): the Zero Hour twin already carried this block, so the two Shell.cpp files
 	// had diverged here. The call is inert in this twin today - no Generals translation unit
 	// calls Profile::StartRange("init") (the only caller in the tree is

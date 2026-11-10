@@ -1,4 +1,4 @@
-// GeneralsX @feature C · native-ipad-1 13/10/2026 row S8 where the platform has NO Vulkan loader (iOS; DESIGN_l1-device.md §2.1).
+// GeneralsX: row S8 where the platform has NO Vulkan loader (iOS; DESIGN_l1-device.md §2.1).
 // iOS binds MoltenVK directly: SDL3Main points SDL_HINT_VULKAN_LIBRARY at the bundle's Frameworks/MoltenVK.framework and DXVK's
 // iOS patch (Patches/dxvk-ios.patch) dlopens that same framework, so the process's ONE Vulkan implementation is that image. S8's
 // "exactly one loader build, and it is the host's" becomes: no loader image at all, exactly one MoltenVK image, and the host's

@@ -157,7 +157,7 @@ void SpecialPowerStore::parseSpecialPowerDefinition( INI *ini )
 		{
 			specialPower = newInstance(SpecialPowerTemplate);
 			const SpecialPowerTemplate *defaultTemplate = TheSpecialPowerStore->findSpecialPowerTemplate( "DefaultSpecialPower" );
-			// GeneralsX @bugfix Claude 09/10/2026 From the default's final override (ThingFactory::newTemplate's twin): the
+			// GeneralsX: From the default's final override (ThingFactory::newTemplate's twin): the
 			// master's copy carried its link to a map.ini override of DefaultSpecialPower, which both then owned.
 			if( defaultTemplate )
 				*specialPower = *(const SpecialPowerTemplate*)defaultTemplate->getFinalOverride();
@@ -378,7 +378,7 @@ void SpecialPowerStore::reset()
 		}
 	}
 
-	// GeneralsX @bugfix Claude 10/10/2026 The powers a map.ini INVENTED just left (each was an override with no base), and the id
+	// GeneralsX: The powers a map.ini INVENTED just left (each was an override with no base), and the id
 	// counter goes back with them. The id is what MSG_DO_SPECIAL_POWER* carries on the wire (ControlBarCommandProcessing.cpp,
 	// CommandXlat.cpp; resolved by findSpecialPowerTemplateByID), and it used to keep counting: a process that had played a map
 	// inventing one power gave the next map's invention id N+2 where a fresh peer gave N+1, so that power's command named a

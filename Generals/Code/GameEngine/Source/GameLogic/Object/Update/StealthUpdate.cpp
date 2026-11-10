@@ -160,7 +160,7 @@ Bool StealthUpdate::allowedToStealth() const
 
 		//Now do weapon specific checks.
 		Weapon *weapon;
-		UnsignedInt lastFrame = TheGameLogic->getFrame() - GX_FRAMES30(1);	// GeneralsX @fix Claude 23/09/2026 one RETAIL frame, like the damage check
+		UnsignedInt lastFrame = TheGameLogic->getFrame() - GX_FRAMES30(1);	// GeneralsX: one RETAIL frame, like the damage check
 
 		if( flags & STEALTH_NOT_WHILE_FIRING_PRIMARY )
 		{
@@ -427,7 +427,7 @@ UpdateSleepTime StealthUpdate::update()
 		{
 			draw->setEffectiveOpacity( 0.5f + ( Sin( m_pulsePhase ) * 0.5f ) );
 			// between one half and full opacity
-			// GeneralsX @fix Claude 01/10/2026 A per-frame phase step: half of it per 60 Hz tick keeps the retail pulse
+			// GeneralsX: A per-frame phase step: half of it per 60 Hz tick keeps the retail pulse
 			// rate (cosmetic; the phase is not CRC'd). tsh batch2 #451, the defect Generals Online fixes at f72c95d9f.
 #if GX_LOGIC_60HZ
 			m_pulsePhase += m_pulsePhaseRate * 0.5f;

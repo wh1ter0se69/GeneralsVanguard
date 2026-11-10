@@ -35,7 +35,7 @@
 
 #include "Common/Debug.h"
 #include "Common/Language.h"
-// GeneralsX @bugfix Claude 17/08/2026 TheGlobalData->m_hotKeyTextColor, so gogoMessageBox can
+// GeneralsX: TheGlobalData->m_hotKeyTextColor, so gogoMessageBox can
 // measure a body with exactly the hot-key setting drawStaticTextText will draw it with.
 #include "Common/GlobalData.h"
 #include "GameClient/Display.h"
@@ -106,7 +106,7 @@ void GameWindowManager::processDestroyList()
 		// send the destroy message to the window we're about to kill
 		winSendSystemMsg( doDestroy, GWM_DESTROY, 0, 0 );
 
-		// GeneralsX @bugfix Claude 14/09/2026 Ported from TheSuperHackers PR #3224 (6512dc675).
+		// GeneralsX: Ported from TheSuperHackers PR #3224 (6512dc675).
 		// The "is this window special" cleanup that used to sit here is gone: winDestroy is the ONLY
 		// writer of m_destroyList, and it already clears every one of these pointers before linking
 		// the window in, so repeating the work here was dead code that merely hid a stale pointer if
@@ -550,7 +550,7 @@ void GameWindowManager::windowHiding( GameWindow *window )
 
 	// if this window has keyboard focus remove it
 	//
-	// GeneralsX @bugfix Claude 04/08/2026 Drop focus through winSetFocus, not by hand.
+	// GeneralsX: Drop focus through winSetFocus, not by hand.
 	//
 	// This used to assign m_keyboardFocus = nullptr directly, which silently skips the
 	// GWM_INPUT_FOCUS FALSE notification that every other focus change sends. Note the two
@@ -869,7 +869,7 @@ WinInputReturnCode GameWindowManager::winProcessKey( UnsignedByte key,
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 07/08/2026 Tell the mouse WHAT the cursor is hovering, so it can
+/** GeneralsX: Tell the mouse WHAT the cursor is hovering, so it can
 	* restart the tooltip hover wait when the cursor reaches something new instead of every time the
 	* cursor twitches. See Mouse::setTooltipTarget.
 	*
@@ -1184,7 +1184,7 @@ WinInputReturnCode GameWindowManager::winProcessMouseEvent( GameWindowMessage ms
 //				if( toolTipWindow && toolTipWindow->winGetParent() && BitIsSet( toolTipWindow->winGetParent()->winGetInstanceData()->getStyle(), GWS_COMBO_BOX ))
 //					toolTipWindow = toolTipWindow->winGetParent();
 
-				// GeneralsX @feature Claude 07/08/2026 Note the hover target BEFORE resolving the
+				// GeneralsX: Note the hover target BEFORE resolving the
 				// tooltip text, including the nullptr case - "the cursor left every window" is itself a
 				// change of target and has to re-arm the wait.
 				noteTooltipTarget( toolTipWindow, mousePos );
@@ -1505,7 +1505,7 @@ Int GameWindowManager::winDestroy( GameWindow *window )
 	if( m_keyboardFocus == window )
 		winSetFocus( nullptr );
 
-	// GeneralsX @bugfix Claude 14/09/2026 Ported from TheSuperHackers PR #3224 (6512dc675).
+	// GeneralsX: Ported from TheSuperHackers PR #3224 (6512dc675).
 	// Unset unconditionally. The old guard only popped the window when it happened to be the modal
 	// HEAD, so destroying a modal that had another modal stacked on top of it left its ModalWindow
 	// entry in the list pointing at memory processDestroyList is about to free.
@@ -1595,7 +1595,7 @@ Int GameWindowManager::winSetModal( GameWindow *window )
 	}
 
 	// TheSuperHackers @bugfix arcticdolphin 08/09/2026 If already modal, move to the top instead of duplicating.
-	// GeneralsX @bugfix Claude 14/09/2026 Ported from TheSuperHackers PR #3224 (6512dc675). A second
+	// GeneralsX: Ported from TheSuperHackers PR #3224 (6512dc675). A second
 	// winSetModal on the same window used to push a duplicate entry, and only one of them was ever
 	// popped - the leftover kept the UI modal for the rest of the session.
 	ModalWindow *previous = nullptr;
@@ -1635,7 +1635,7 @@ Int GameWindowManager::winSetModal( GameWindow *window )
 /** takes the window off the modal stack from anywhere in the stack */
 //-------------------------------------------------------------------------------------------------
 // TheSuperHackers @bugfix arcticdolphin 07/09/2026 Remove the window from anywhere in the modal stack, not just the top, so a destroyed window cannot leave a dangling entry behind.
-// GeneralsX @bugfix Claude 14/09/2026 Ported from TheSuperHackers PR #3224 (6512dc675). Callers that
+// GeneralsX: Ported from TheSuperHackers PR #3224 (6512dc675). Callers that
 // pass a window which is not on the stack at all still get WIN_ERR_GENERAL_FAILURE and no side
 // effect, so the existing "unset early, winDestroy unsets again later" call sites cannot double-pop.
 Int GameWindowManager::winUnsetModal( GameWindow *window )
@@ -1701,7 +1701,7 @@ void GameWindowManager::winSetLoneWindow( GameWindow *window )
 
 }
 
-// GeneralsX @feature Claude 23/09/2026 The measuring half of MessageBoxFit (GameClient/MessageBoxFit.h):
+// GeneralsX: The measuring half of MessageBoxFit (GameClient/MessageBoxFit.h):
 // the body's own DisplayString, at a point size of the body's own face, so the fit is decided with
 // exactly the metrics and wrap rule the draw will use. A size the library cannot build measures as
 // the layout's size, so the fit can never choose a font that does not exist.
@@ -1891,7 +1891,7 @@ GameWindow *GameWindowManager::gogoMessageBox(Int x, Int y, Int width, Int heigh
 	GameWindow *staticTextMessage = winGetWindowFromId(parent, staticTextMessageID);
 	GadgetStaticTextSetText(staticTextMessage,bodyString);
 
-	// GeneralsX @bugfix Claude 30/07/2026 Grow the box to fit the body instead of clipping it.
+	// GeneralsX: Grow the box to fit the body instead of clipping it.
 	//
 	// MessageBox.wnd is a fixed-size layout from 2003, when every message in it was one short
 	// retail sentence. The SimID join-failure diagnostics are several sentences and name two
@@ -1900,7 +1900,7 @@ GameWindow *GameWindowManager::gogoMessageBox(Int x, Int y, Int width, Int heigh
 	// which is the one saying which machine has to update. Observed on the iPad: the box showed
 	// the middle third of the message with the verdict cut off at both ends.
 	//
-	// GeneralsX @bugfix Claude 17/08/2026 The block below used to measure the WRONG HEIGHT and
+	// GeneralsX: The block below used to measure the WRONG HEIGHT and
 	// therefore never grew anything. Its own comment claimed "the DisplayString has already
 	// word-wrapped to the control's width by this point". It has not, and cannot have:
 	//
@@ -1919,7 +1919,7 @@ GameWindow *GameWindowManager::gogoMessageBox(Int x, Int y, Int width, Int heigh
 	// duplication, but it is duplication of the *device* layer from the *client* layer, and the
 	// alternative - measuring at draw time - is a frame too late to resize a modal.
 	//
-	// GeneralsX @bugfix Claude 23/09/2026 The box also WIDENS now, and steps its body font down as a
+	// GeneralsX: The box also WIDENS now, and steps its body font down as a
 	// last resort, so a twelve-player desync report fits: see GameClient/MessageBoxFit.h for the
 	// three steps and why each is gated on the one before. A body that fits the layout as authored
 	// takes none of them and draws exactly as it did. The wrap width is no longer set once here:

@@ -304,7 +304,7 @@ void ControlBar::updateContextMultiSelect()
 	// zero the array that counts how many objects can do each command
 	memset( objectsThatCanDoCommand, 0, sizeof( objectsThatCanDoCommand ) );
 
-	// GeneralsX @performance Claude 23/09/2026 Open a SWITCH_WEAPON scan cache for this pass (see ControlBar.h); the
+	// GeneralsX: Open a SWITCH_WEAPON scan cache for this pass (see ControlBar.h); the
 	// selection and every weapon are fixed until the pass ends, so the scan result per slot cannot change inside it.
 	m_switchWeaponScanActive = TRUE;
 	for( i = 0; i < WEAPONSLOT_COUNT; ++i )
@@ -429,7 +429,7 @@ void ControlBar::updateContextMultiSelect()
 	// removed from multiplayer branch
 	//showCommandMarkers();
 
-	// GeneralsX @performance Claude 23/09/2026 Close the SWITCH_WEAPON scan cache; other callers always scan.
+	// GeneralsX: Close the SWITCH_WEAPON scan cache; other callers always scan.
 	m_switchWeaponScanActive = FALSE;
 
 }

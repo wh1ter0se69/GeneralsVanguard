@@ -53,7 +53,7 @@ public:
 	void setPlayerTimeoutTime(Int playerNum, time_t newTime);
 	void setPacketRouterTimeoutTime(time_t newTime);
 
-	/// GeneralsX @bugfix Claude 16/09/2026 Returns FALSE when the shared chat cooldown refused the
+	/// GeneralsX: Returns FALSE when the shared chat cooldown refused the
 	/// line, so the caller can leave what the player typed in the text entry instead of eating it.
 	/// It used to be void, which is why the disconnect screen was the one chat box in the game with
 	/// no rate limit at all - there was no way to say "not sent".

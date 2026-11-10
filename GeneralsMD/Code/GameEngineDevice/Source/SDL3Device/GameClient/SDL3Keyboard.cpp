@@ -27,7 +27,7 @@
 
 #ifndef _WIN32
 
-// GeneralsX @bugfix BenderAI 13/02/2026 Fix include path (fighter19 pattern)
+// GeneralsX: Fix include path (fighter19 pattern)
 #include "SDL3Device/GameClient/SDL3Keyboard.h"
 #include <cstdio>
 #include <cstring>
@@ -121,7 +121,7 @@ Bool SDL3Keyboard::getCapsState(void)
 	return 0;
 }
 
-// GeneralsX @feature Claude 25/09/2026 The character the active layout puts on a key, unshifted (see
+// GeneralsX: The character the active layout puts on a key, unshifted (see
 // Keyboard::getLayoutKey): on French AZERTY the key at US ';' types "m", and this says so where the
 // engine's US key table cannot. 0 for a key that types no printable character.
 static WideChar layoutCharOf(SDL_Scancode scancode)
@@ -131,7 +131,7 @@ static WideChar layoutCharOf(SDL_Scancode scancode)
 }
 
 // No fallback to the key table: a key the layout gives no printable character (a dead key) names no
-// letter, rather than the US table's letter for that position (codex keys-b1-r7). Every key-down sets its
+// letter, rather than the US table's letter for that position. Every key-down sets its
 // entry in getKey before the key reaches the GUI, so the only caller - the drop-down letter keys, asking
 // about the key-down it is handling - never meets a key not seen yet; one would name nothing too.
 WideChar SDL3Keyboard::getLayoutKey(KeyDefType key)
@@ -145,7 +145,7 @@ WideChar SDL3Keyboard::getLayoutKey(KeyDefType key)
  */
 void SDL3Keyboard::getKey(KeyboardIO *key)
 {
-	// GeneralsX @bugfix Claude 17/08/2026 An unmapped key must not end the frame's batch.
+	// GeneralsX: An unmapped key must not end the frame's batch.
 	//
 	// KEY_NONE has two meanings that this function used to conflate. To Keyboard::updateKeys()
 	// it is the END-OF-STREAM sentinel - its read loop is
@@ -271,8 +271,8 @@ KeyVal SDL3Keyboard::translateScanCodeToKeyVal(SDL_Scancode scan)
 	// Quick mapping for essential keys
 	// GeneralsX @bugfix felipebraz 01/04/2026 Restore editing/navigation keys required by GUI widgets.
 	switch (scan) {
-		case SDL_SCANCODE_ESCAPE: return KEY_ESC;      // GeneralsX @bugfix BenderAI 13/02/2026 Fix key constant name
-		case SDL_SCANCODE_RETURN: return KEY_ENTER;    // GeneralsX @bugfix BenderAI 13/02/2026 Fix key constant name
+		case SDL_SCANCODE_ESCAPE: return KEY_ESC;      // GeneralsX: Fix key constant name
+		case SDL_SCANCODE_RETURN: return KEY_ENTER;    // GeneralsX: Fix key constant name
 		case SDL_SCANCODE_KP_ENTER: return KEY_KPENTER;
 		case SDL_SCANCODE_SPACE: return KEY_SPACE;
 		case SDL_SCANCODE_TAB: return KEY_TAB;
@@ -284,10 +284,10 @@ KeyVal SDL3Keyboard::translateScanCodeToKeyVal(SDL_Scancode scan)
 		case SDL_SCANCODE_PAGEDOWN: return KEY_PGDN;
 		case SDL_SCANCODE_LSHIFT: return KEY_LSHIFT;
 		case SDL_SCANCODE_RSHIFT: return KEY_RSHIFT;
-		case SDL_SCANCODE_LCTRL: return KEY_LCTRL;     // GeneralsX @bugfix BenderAI 13/02/2026 Fix key constant name
-		case SDL_SCANCODE_RCTRL: return KEY_RCTRL;     // GeneralsX @bugfix BenderAI 13/02/2026 Fix key constant name
-		case SDL_SCANCODE_LALT: return KEY_LALT;       // GeneralsX @bugfix BenderAI 13/02/2026 Fix key constant name
-		case SDL_SCANCODE_RALT: return KEY_RALT;       // GeneralsX @bugfix BenderAI 13/02/2026 Fix key constant name
+		case SDL_SCANCODE_LCTRL: return KEY_LCTRL;     // GeneralsX: Fix key constant name
+		case SDL_SCANCODE_RCTRL: return KEY_RCTRL;     // GeneralsX: Fix key constant name
+		case SDL_SCANCODE_LALT: return KEY_LALT;       // GeneralsX: Fix key constant name
+		case SDL_SCANCODE_RALT: return KEY_RALT;       // GeneralsX: Fix key constant name
 		
 		// Arrow keys
 		case SDL_SCANCODE_UP: return KEY_UP;
@@ -349,7 +349,7 @@ KeyVal SDL3Keyboard::translateScanCodeToKeyVal(SDL_Scancode scan)
 		case SDL_SCANCODE_Y: return KEY_Y;
 		case SDL_SCANCODE_Z: return KEY_Z;
 
-		// GeneralsX @bugfix Claude 17/08/2026 Finish the table. Every key below is a
+		// GeneralsX: Finish the table. Every key below is a
 		// MappableKeyType (MetaEvent.h) - i.e. the engine allows a command to be bound to it -
 		// and every one of them was falling through to KEY_NONE, so the binding could never fire
 		// on any SDL3 platform (macOS, Linux, iPadOS). The Windows DirectInput path has always

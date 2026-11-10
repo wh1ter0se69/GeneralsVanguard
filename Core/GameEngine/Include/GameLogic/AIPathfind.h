@@ -244,7 +244,7 @@ protected:
 	UnsignedInt m_closed:1;												///< place for marking this cell as on the closed list
 };
 
-// GeneralsX @performance Claude 14/08/2026 The open list's cost index. Defined in AIPathfind.cpp
+// GeneralsX: The open list's cost index. Defined in AIPathfind.cpp
 // because nothing outside it has any business touching it.
 struct GXOpenListIndex;
 
@@ -259,7 +259,7 @@ public:
 	   m_index(nullptr), m_indexValid(false), m_indexNeedsSeed(false), m_satHead(nullptr) {}
 	~PathfindCellList();
 
-	// GeneralsX @performance Claude 14/08/2026 Out of line since it now has to clear the cost
+	// GeneralsX: Out of line since it now has to clear the cost
 	// index as well. It runs a handful of times per search, never per insertion.
 #if RETAIL_COMPATIBLE_PATHFINDING
 	// The retail seed path installs a head WITHOUT going through an insertion sort, so it is the
@@ -275,14 +275,14 @@ public:
 
 	Bool empty() const { return m_head == nullptr; }
 
-	// GeneralsX @performance Claude 05/10/2026 Allocate the cost index up front, from Pathfinder's constructor next to the
+	// GeneralsX: Allocate the cost index up front, from Pathfinder's constructor next to the
 	// cell-info pool, never inside a search, where the allocator throws instead of letting the insertion fall back to the
-	// walk (Codex pf-openindex-r1 P2). A failed allocation leaves the index off and the walks on (r2 P2).
+	// walk. A failed allocation leaves the index off and the walks on (r2 P2).
 	void allocateIndex();
 
 	Bool canReverseSort(PathfindCell& currentCell) const;
 
-	// GeneralsX @performance Claude 14/08/2026 Bookkeeping only. m_count is the number of cells
+	// GeneralsX: Bookkeeping only. m_count is the number of cells
 	// linked into this list; m_countValid goes false on any path that truncates or abandons the
 	// list without unlinking cell by cell (the retail crash failovers do exactly that), because
 	// after one of those the count is a guess and must not be used to prove anything.
@@ -300,9 +300,9 @@ private:
 	Bool m_indexValid;			///< false whenever the index cannot be trusted to be complete
 	Bool m_indexNeedsSeed;		///< a head was installed by reset() without going through an insert
 
-	// GeneralsX @performance Claude 01/10/2026 The first cell of a run of 65535-cost (saturated, gxPathCost16) cells
+	// GeneralsX: The first cell of a run of 65535-cost (saturated, gxPathCost16) cells
 	// that ends at the tail, or null. Every cell from here to the tail costs 65535, so a cheaper cell's reverse walk
-	// can start here instead of crossing the whole run (Codex astar-r4). Kept by the fixed insertion sorts,
+	// can start here instead of crossing the whole run. Kept by the fixed insertion sorts,
 	// removeFromOpenList and reset(); the open list only.
 	PathfindCell* m_satHead;
 };
@@ -313,14 +313,14 @@ private:
  * and are also used for efficient A* pathfinding.
  * @todo Optimize memory usage of pathfind grid.
  */
-// GeneralsX @feature Claude 01/10/2026 Measure before widening (audit S10-F10). The A* costs are kept in
+// GeneralsX: Measure before widening (audit S10-F10). The A* costs are kept in
 // 16 bits (PathfindCellInfo::m_totalCost/m_costSoFar), so a cost above 65535 wraps and sorts as cheap.
 // Every store narrows through PathfindCell::setCostSoFar/setTotalCost, which count here how many stores
 // were above 65535 (cwrap=; since gxPathCost16 these saturate rather than wrap) and the largest cost asked
 // for (cmax=); [GXPATH] reports both, never reset, under GX_PATHTRACE. Observation only: no simulation code
 // reads them.
 // Compiled in only with -DGX_PATHCOST_COUNT=ON (cmake/config-build.cmake): this is the A* cell-expansion
-// path, and a shipping build does not spend its tick on a counter nobody reads (Codex fab-r3).
+// path, and a shipping build does not spend its tick on a counter nobody reads.
 #if defined(GX_PATHCOST_COUNT)
 extern UnsignedInt g_gxPathCostMax, g_gxPathCostWraps;
 inline void gxNotePathCost(UnsignedInt cost)
@@ -334,12 +334,12 @@ inline void gxNotePathCost(UnsignedInt cost)
 inline void gxNotePathCost(UnsignedInt) {}
 #endif
 
-// GeneralsX @bugfix Claude 01/10/2026 Saturate the A* costs at 65535 instead of wrapping (audit S10-F10).
+// GeneralsX: Saturate the A* costs at 65535 instead of wrapping (audit S10-F10).
 // A wrapped cost sorts a very expensive cell as cheap; a 30-minute 12-AI match wrapped 7 times in one capped
 // search (fix-audit-bugs, seed 103). Saturated cells all sort last, in insertion order, and a cell stored at
 // 65535 is improved only by a path costing less than that. Only searches that used to wrap change. Every value
 // stored stays within 0..65535, so the open-list cost index (GX_COST_BUCKETS) keeps every bucket in range.
-// ponytail: 16-bit saturation; widening to 32 bits needs a new open-list index (roadmap G-G13-01).
+// Trade-off: 16-bit saturation; widening to 32 bits needs a new open-list index (roadmap G-G13-01).
 inline UnsignedShort gxPathCost16(UnsignedInt cost)
 {
 #if RETAIL_COMPATIBLE_CRC
@@ -408,10 +408,10 @@ public:
 	// Forward insertion sort that is 100% retail compatible
 	void forwardInsertionSortRetailCompatible(PathfindCellList& list);
 #endif
-	// GeneralsX @performance Claude 14/08/2026 Same landing point as the walk above, found through
+	// GeneralsX: Same landing point as the walk above, found through
 	// the open list's cost index instead of by walking. Returns false when the index cannot prove
 	// it would agree, in which case the caller must do the walk. See AIPathfind.cpp.
-	// GeneralsX @performance Claude 05/10/2026 Compiled for the fixed pathfinder too: its two walks
+	// GeneralsX: Compiled for the fixed pathfinder too: its two walks
 	// (forward/reverseInsertionSort) land on the same cell as the retail walk does.
 	Bool indexedInsertRetailEquivalent(PathfindCellList& list);
 
@@ -494,7 +494,7 @@ private:
 	UnsignedInt m_obstacleIsFence : 1;        ///< True if occupied by a fence.
 	UnsignedInt m_obstacleIsTransparent : 1;  ///< True if obstacle is transparent (undefined if obstacleid is invalid)
 
-	// GeneralsX @feature Claude 06/11/2026 14 -> 16 bits: labelling hands out ids up to maxZones (24,000, AIPathfind.cpp) and
+	// GeneralsX: 14 -> 16 bits: labelling hands out ids up to maxZones (24,000, AIPathfind.cpp) and
 	// a 14-bit field silently cut 16,384..23,999 to other zones; a 32-start map measured 15,876 before any building.
 	// Identical for every id below 16,384 (every shipped map: max 10,453 measured). The cell grows by up to 2 bytes.
 	zoneStorageType m_zone : 16;              ///< Zone. Each zone is a set of adjacent terrain type.  If from & to in the same zone, you can successfully pathfind.  If not,
@@ -666,7 +666,7 @@ private:
 private:
 	ZoneBlock			*m_blockOfZoneBlocks;			///< Zone blocks - Info for hierarchical pathfinding at a "blocky" level.
 	ZoneBlock			**m_zoneBlocks;						///< Zone blocks as a matrix - contains matrix indexing into the map.
-	// GeneralsX @performance Claude 23/09/2026 The per-block passable flag used to live in each 56-byte
+	// GeneralsX: The per-block passable flag used to live in each 56-byte
 	// ZoneBlock, so every clearPassableFlags/setAllPassable (once or twice per path search) strode the
 	// whole block array. Dense [blockX*m_zoneBlockExtent.y+blockY] bytes make both sweeps a memset.
 	Bool					*m_passableBlocks;
@@ -674,7 +674,7 @@ private:
 
 	UnsignedShort m_maxZone;								///< Max zone used.
 	UnsignedInt		m_nextFrameToCalculateZones;		///< When should I recalculate, next?.
-	// GeneralsX @feature Claude 06/11/2026 UnsignedShort -> UnsignedInt (Codex scale32-r1 P1): allocateZones doubles it past m_maxZone,
+	// GeneralsX: UnsignedShort -> UnsignedInt: allocateZones doubles it past m_maxZone,
 	// and with the 65,000-zone cap a short wrapped 32,768 * 2 to 0 and the doubling loop never ended.
 	UnsignedInt m_zonesAllocated;
 	zoneStorageType *m_groundCliffZones;
@@ -720,7 +720,7 @@ public:
 /**
  * The Pathfinding engine itself.
  */
-// GeneralsX @bugfix Claude 06/10/2026 The pathfind queue's save block, CHUNK_GXPathfindQueue (AIPathfind.cpp; GameState::init).
+// GeneralsX: The pathfind queue's save block, CHUNK_GXPathfindQueue (AIPathfind.cpp; GameState::init).
 extern Snapshot *TheGXPathfindQueueState;
 
 class Pathfinder : PathfindServicesInterface, public Snapshot
@@ -895,12 +895,12 @@ protected:
 	void adjustCoordToCell(Int cellX, Int cellY, Bool centerInCell, Coord3D &pos, PathfindLayerEnum layer);
 	Bool checkDestination(const Object *obj, Int cellX, Int cellY, PathfindLayerEnum layer, Int iRadius, Bool centerInCell);
 	Bool checkForMovement(const Object *obj, TCheckMovementInfo &info);
-	// GeneralsX @performance Claude 23/09/2026 checkForMovement's body over an explicit cell
+	// GeneralsX: checkForMovement's body over an explicit cell
 	// rectangle [x0,x1) x [y0,y1), same i-outer/j-inner order. checkForMovement passes its own
 	// footprint block; linePassableCallback passes only the strip a one-cell step adds.
 	// wantAllyMoving=false leaves info.allyMoving false and skips the lookups that only feed it.
 	Bool checkForMovementInRect(const Object *obj, TCheckMovementInfo &info, Int x0, Int x1, Int y0, Int y1, Bool wantAllyMoving = true);
-	// GeneralsX @performance Claude 14/08/2026 checkForMovement, but remembering the answer for
+	// GeneralsX: checkForMovement, but remembering the answer for
 	// the duration of one A* search. Only the two call sites inside the search loops may use it -
 	// see the memo block in AIPathfind.cpp for why that restriction is the whole safety argument.
 	Bool checkForMovementInSearch(const Object *obj, TCheckMovementInfo &info);
@@ -976,7 +976,7 @@ protected:
 
 	bool checkCellOutsideExtents(ICoord2D& cell);
 
-	// GeneralsX @bugfix Claude 23/09/2026 Upstream PR #3332 (moveAllies use-after-free).
+	// GeneralsX: Upstream PR #3332 (moveAllies use-after-free).
 	void moveAlliesAroundCell(Object *obj, const ICoord2D &curCell, PathfindLayerEnum layer, Int radius, Int numCellsAbove, ObjectID ignoreId, Bool blockedByAlly);	///< Order the idle allies around one path cell out of the way
 
 #if defined(RTS_DEBUG)
@@ -1012,7 +1012,7 @@ private:
 	Real					m_wallHeight;
 
 	Int						m_moveAlliesDepth;
-	// GeneralsX @bugfix Claude 23/09/2026 Upstream PR #3332: per-depth scratch copy of the path cells for the fixed walk.
+	// GeneralsX: Upstream PR #3332: per-depth scratch copy of the path cells for the fixed walk.
 	struct MoveAlliesCell
 	{
 		ICoord2D cell;
@@ -1028,7 +1028,7 @@ private:
 	Int						m_queuePRTail;
 	Int						m_cumulativeCellsAllocated;
 
-	// GeneralsX @performance Claude 06/10/2026 PF27, the new A* kernel (AI/PF27Kernel.inl). Path-identical by
+	// GeneralsX: PF27, the new A* kernel (AI/PF27Kernel.inl). Path-identical by
 	// design; GX_PF27=legacy|new|check picks it per map. Neither is part of the simulation state.
 	friend class PF27Kernel;
 	PF27Kernel		*m_pf27;

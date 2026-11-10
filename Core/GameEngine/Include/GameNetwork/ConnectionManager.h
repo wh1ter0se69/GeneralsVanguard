@@ -76,7 +76,7 @@ public:
 	void handleAllCommandsReady();
 	NetCommandList *getFrameCommandList(UnsignedInt frame);
 //	void AddConnection(User *user, UnsignedInt slot);
-	// GeneralsX @fix Claude 08/08/2026 determineRouterFallbackPlan() was declared here and never
+	// GeneralsX: determineRouterFallbackPlan() was declared here and never
 	// defined - its only body was a commented-out block in the .cpp. That body stored a 1-BASED RANK
 	// at a SLOT index (m_packetRouterFallback[slot] = rank), which is the exact inverse of the live
 	// convention built by parseUserList (m_packetRouterFallback[rank] = slot) and read by
@@ -159,7 +159,7 @@ public:
 	Int getPingsSent();
 	Int getPingsReceived();
 
-	// GeneralsX @feature Claude 04/08/2026 THIS peer's own measured round trip, in SECONDS.
+	// GeneralsX: THIS peer's own measured round trip, in SECONDS.
 	//
 	// This is the one to show a player. FrameMetrics::processLatencyResponse stamps the send time
 	// per frame into m_pendingLatencies and, on the matching ack, records curTime - sendTime - a
@@ -175,7 +175,7 @@ public:
 	// Returns 0 before the first ack lands. Callers must distinguish that from a genuine 0.
 	Real getLocalAverageLatency() { return m_frameMetrics.getAverageLatency(); }
 
-	// GeneralsX @bugfix Claude 13/08/2026 Was getLocalMinimumLatency(), which reduced a ring that
+	// GeneralsX: Was getLocalMinimumLatency(), which reduced a ring that
 	// mixes every peer's samples together on the packet router and therefore reported the FASTEST
 	// peer - the one number that cannot be hurting a lockstep match. This returns the WORST peer we
 	// are still hearing from, in SECONDS, and names it in worstSlot. Negative, with worstSlot -1,
@@ -186,7 +186,7 @@ public:
 	// why the slot travels with the number instead of being dropped. See FrameMetrics.cpp.
 	Real getWorstPeerLatency(Int &worstSlot) { return m_frameMetrics.getWorstPeerLatency(worstSlot); }
 
-	// GeneralsX @feature Claude 04/08/2026 Promoted from private so the HUD can read it.
+	// GeneralsX: Promoted from private so the HUD can read it.
 	//
 	// This is the ONLY latency number the engine already maintains for the whole lobby, and it is
 	// the one the router itself trusts - updateRunAhead sizes the run-ahead window from exactly
@@ -197,7 +197,7 @@ public:
 	// latencies, i.e. a lobby-wide worst case, not "my round trip to the host". It is in SECONDS.
 	Real getMaximumLatency(); ///< Returns the average of the two highest average latencies between players.
 
-	// GeneralsX @feature Claude 13/08/2026 Round trip to @p slot in MILLISECONDS for the in-game
+	// GeneralsX: Round trip to @p slot in MILLISECONDS for the in-game
 	// player list, or -1 for "no live figure" - which the scoreboard must render as a dash and
 	// never as a zero.
 	//
@@ -290,7 +290,7 @@ private:
 	Real m_latencyAverages[MAX_SLOTS];
 	Int  m_fpsAverages[MAX_SLOTS];
 
-	// GeneralsX @feature Claude 13/08/2026 THE LOBBY-WIDE PING ROW, FOR DISPLAY ONLY.
+	// GeneralsX: THE LOBBY-WIDE PING ROW, FOR DISPLAY ONLY.
 	//
 	// Deliberately a SEPARATE array from m_latencyAverages above, which feeds getMaximumLatency()
 	// and therefore the run-ahead window. Nothing that arrives over the wire from another peer
@@ -311,7 +311,7 @@ private:
 	// value for the rest of the match. Same reasoning, and the same failure mode, as
 	// FrameMetrics::m_peerLastSampleTime.
 	time_t m_peerPingTime[MAX_SLOTS];
-	// GeneralsX @feature Claude 06/10/2026 Every slot's average render fps as the ROUTER last published it (the latency
+	// GeneralsX: Every slot's average render fps as the ROUTER last published it (the latency
 	// report's fps row), for getSlotAverageFPS on a client. -1 = no figure. Display only: the pacing inputs stay
 	// m_fpsAverages, which only processRunAheadMetrics and the router itself write; nothing here writes them.
 	Short m_peerFps[MAX_SLOTS];

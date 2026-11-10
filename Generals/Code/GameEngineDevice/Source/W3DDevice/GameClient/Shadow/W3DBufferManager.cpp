@@ -28,7 +28,7 @@
 
 #include <stdio.h>
 
-// GeneralsX @tweak Claude 23/09/2026 TS-05: when the static shadow slot pool cannot hand out a slot, that mesh
+// GeneralsX: TS-05: when the static shadow slot pool cannot hand out a slot, that mesh
 // silently casts no shadow. Say so once per kind per process, with the pool counters, so a stress run shows whether
 // the caps (MAX_NUMBER_SLOTS, MAX_*_BUFFERS_CREATED) are ever reached before anyone raises them.
 static void gxReportShadowSlotFailure(const char *kind, Int size, Int slots, Int buffers)
@@ -328,7 +328,7 @@ W3DBufferManager::W3DVertexBufferSlot * W3DBufferManager::allocateSlotStorage(VB
 
 		pVB=m_W3DVertexBuffers[fvfType];	//get new list head
 
-		// GeneralsX @bugfix Copilot 11/05/2026 Use MAX macro for cross-platform parity with Zero Hour shadow buffer sizing.
+		// GeneralsX: Use MAX macro for cross-platform parity with Zero Hour shadow buffer sizing.
 		Int vbSize=MAX(DEFAULT_VERTEX_BUFFER_SIZE,size);
 
 		pVB->m_DX8VertexBuffer=NEW_REF(DX8VertexBufferClass,(FVFTypeIndexList[fvfType],vbSize,DX8VertexBufferClass::USAGE_DEFAULT));
@@ -453,7 +453,7 @@ W3DBufferManager::W3DIndexBufferSlot * W3DBufferManager::allocateSlotStorage(Int
 
 		pIB=m_W3DIndexBuffers;	//get new list head
 
-		// GeneralsX @bugfix Copilot 11/05/2026 Use MAX macro for cross-platform parity with Zero Hour shadow index sizing.
+		// GeneralsX: Use MAX macro for cross-platform parity with Zero Hour shadow index sizing.
 		Int ibSize=MAX(DEFAULT_INDEX_BUFFER_SIZE,size);
 
 		pIB->m_DX8IndexBuffer=NEW_REF(DX8IndexBufferClass,(ibSize,DX8IndexBufferClass::USAGE_DEFAULT));

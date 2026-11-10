@@ -438,7 +438,7 @@ void TunnelTracker::xfer( Xfer *xfer )
 
 	// version
 	//
-	// GeneralsX @bugfix Claude 21/09/2026 v2 is only VALID when retail CRC compatibility is off.
+	// GeneralsX: v2 is only VALID when retail CRC compatibility is off.
 	//
 	// Version 2 drops m_tunnelCount on the argument that it always equals m_tunnelIDs.size().
 	// That premise is exactly what the RETAIL_COMPATIBLE_CRC arm does NOT hold: it deliberately

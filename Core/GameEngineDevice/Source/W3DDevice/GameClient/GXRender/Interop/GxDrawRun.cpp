@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/10/2026 WS-X2 - see W3DDevice/GameClient/GxDrawRun.h and render-seam/DESIGN_hybrid.md §13.
+// GeneralsX: WS-X2 - see W3DDevice/GameClient/GxDrawRun.h and render-seam/DESIGN_hybrid.md §13.
 //
 // Threads: Available / Draw_Run run on the main thread and only queue work; DX8Wrapper::Device_Call runs Run_On_Device on the
 // thread that owns the d3d8 device at that point of the stream (the d3d8 ring's consumer inside the object-flush bracket, the
@@ -240,7 +240,7 @@ void Parse_Options()
 
 	const char *dg = GxTestEnv("GX_DRAWRUN_DIGEST");
 	// =1: Draw_Run brackets each run itself (the synthetic test); =2: the S1 seat brackets each run's OWN draws in both toggle states
-	// (open before PREPARE, closed after the carry-out's Apply / the classic last task's epilogue; never nested, never early - Codex
+	// (open before PREPARE, closed after the carry-out's Apply / the classic last task's epilogue; never nested, never early
 	// rw1x-design-r17 #2/#4) and Draw_Run does not bracket. The carry-out is Check_Truth's (the oracle), not the digest's.
 	s_digest = s_test != 0 || (dg != nullptr && atoi(dg) == 1);
 }
@@ -265,7 +265,7 @@ GxIDxvkGxExternal *Ext_For(IDirect3DDevice8 *dev)
 #endif
 
 // DX8Wrapper::Pre_Release_Hook (main thread, ring drained, before the device is released): the cached device and extension
-// pointers die with it - a device re-created at the same address must be asked again (Codex rw1x-design-r13 #3). Chained: the
+// pointers die with it - a device re-created at the same address must be asked again. Chained: the
 // hook it replaced (GxInterop's, the test's) still runs.
 void (*s_prevRelease)() = nullptr;
 bool s_releaseChained = false;
@@ -288,9 +288,9 @@ void Refresh_Fork_Stats(GxIDxvkGxExternal *ext)
 void Release_Device_State()
 {
 	// the ring is drained here, so every queued run and Truth check has executed: the FINAL counters, marked final=1 - an analyzer
-	// judges these, never a periodic snapshot a later mismatch could postdate (Codex rw1x-design-r17 #3). The fork's counters are
+	// judges these, never a periodic snapshot a later mismatch could postdate. The fork's counters are
 	// re-read now (the device thread refreshes them only every 256 runs), and the record is printed for every armed mode, the
-	// classic-only test arm and a Truth-only run included (Codex seat-c9 on bd4d71d9f)
+	// classic-only test arm and a Truth-only run included (seat-c9 on bd4d71d9f)
 	if (s_init.load() == INIT_READY || s_test != 0 || Truth_On())
 	{
 #if GX_HAVE_VULKAN
@@ -425,7 +425,7 @@ void Truth_Call(IDirect3DDevice8 *dev, void *ctx)
 		bad = "wrapper vs device: lights";
 	if (bad == nullptr && t.wrapperDirty != 0)
 		bad = "wrapper has pending changes after the Apply";
-	// the oracle: the classic final state of the run, from the claim (Codex rw1x-design-r16 #1)
+	// the oracle: the classic final state of the run, from the claim
 	if (bad == nullptr && t.hasOracle)
 	{
 		if (ib != t.runIb || base != (UINT)t.last.baseVertex)
@@ -448,7 +448,7 @@ void Truth_Call(IDirect3DDevice8 *dev, void *ctx)
 
 std::atomic<unsigned long long> s_devFbOn(0), s_devFbOff(0), s_devVRefused(0);
 // the device counters as of a toggle row's boundary: snapshotted by a Device_Call queued when the row closes on the main thread, so
-// they cover exactly the work queued before that boundary (Codex rw1x2-code-r1 #2)
+// they cover exactly the work queued before that boundary
 std::atomic<unsigned long long> s_snapFbOn(0), s_snapFbOff(0), s_snapVRef(0), s_snapNsOn(0), s_snapNsOff(0);
 std::atomic<bool> s_snapDone(false);
 std::atomic<unsigned long long> s_devNsOn(0), s_devNsOff(0);	// device-thread time inside Run_On_Device, per toggle state
@@ -479,7 +479,7 @@ void Run_On_Device(IDirect3DDevice8 *dev, void *ctx)
 void Run_On_Device_Body(IDirect3DDevice8 *dev, const RunHeader *h)
 {
 	// test mode: every run is the synthetic test's, and it may draw only on the state its own setup established - a failed setup
-	// (buffers, state block) must not let the run draw with the game's bindings and nothing to restore them (Codex rw1x2-code-r2)
+	// (buffers, state block) must not let the run draw with the game's bindings and nothing to restore them
 	if (s_test != 0 && !s_testSetupOk)
 	{
 		static bool s_said = false;
@@ -561,7 +561,7 @@ void Print_Stats(unsigned frame, bool final)
 //   s1 (default) - ON: S1_On() is true, WS-G replaces its claimed runs with Draw_Run; OFF: classic. Clause (d).
 //   overhead     - S1 replaces the claimed runs in BOTH states; ON: every real run is preceded by one validate-only copy of
 //                  ITSELF (same tasks and light sets) through the production transport + the fork's entry and validation,
-//                  nothing drawn (Codex rw1x-design-r13 #2). Clause (a): per call = diff / validate-only calls per ON frame.
+//                  nothing drawn. Clause (a): per call = diff / validate-only calls per ON frame.
 // GX_DRAWRUN_TOGGLE_NULL=1: the bookkeeping with BOTH states OFF (the null arm). Lines: [GXDRUNP] per pair (an OFF period and the ON
 // period after it: diff = ON mean - OFF mean of the kept frames' periods) and [GXDRUNR] per 20 periods (rows close on an ON period,
 // are published when the next OFF period closes, so the device thread has drained their work) - rw1x2/drt.py reads both.
@@ -682,7 +682,7 @@ Task s_testTasks[TEST_TASKS];
 LightSet s_testSets[3];
 struct TestState { DWORD block; IDirect3DVertexBuffer8 *vb; IDirect3DIndexBuffer8 *ib; bool ok; } s_ts = { 0, nullptr, nullptr, false };
 std::atomic<IDirect3DIndexBuffer8 *> s_tsIbPublished(nullptr);	// s_ts.ib once Test_Setup (device thread) created it - the main thread's
-																	// Truth reads only this (Codex rw1x-design-r16 #4)
+																	// Truth reads only this
 unsigned s_testFrame = ~0u;
 
 void Make_Test_Data()
@@ -775,7 +775,7 @@ void Test_Setup(IDirect3DDevice8 *dev, void *)
 			memcpy(&idx[f * 6], q, sizeof(q));
 			memcpy(&idx[36 + f * 6], q, sizeof(q));
 		}
-		// all or nothing: both buffers created AND filled, else neither is kept and the frame's setup fails (Codex rw1x2-code-r3)
+		// all or nothing: both buffers created AND filled, else neither is kept and the frame's setup fails
 		BYTE *pv = nullptr, *pi = nullptr;
 		bool ok = SUCCEEDED(dev->CreateVertexBuffer(sizeof(v), D3DUSAGE_WRITEONLY, D3DFVF_XYZ | D3DFVF_NORMAL | D3DFVF_DIFFUSE,
 				D3DPOOL_MANAGED, &s_ts.vb))
@@ -1095,7 +1095,7 @@ void Digest_Mark(bool begin, unsigned long long tag)
 {
 	MarkPacket *m = (MarkPacket *)Arena_Take(sizeof(MarkPacket));
 	// bits 40-63 carry the render frame (mod 2^24) for every caller, so an analyzer proves coverage per (frame, run index) instead of
-	// inferring frames from run index 0 (Codex rw1x-design-r18 #1); the caller's path (bits 32-39) and run index (0-31) are kept
+	// inferring frames from run index 0; the caller's path (bits 32-39) and run index (0-31) are kept
 	m->tag = (tag & 0xFFFFFFFFFFull) | ((unsigned long long)(WW3D::Get_Frame_Count() & 0xFFFFFFu) << 40);
 	m->begin = begin ? 1 : 0;
 	DX8Wrapper::Device_Call(&Mark_Call, m);

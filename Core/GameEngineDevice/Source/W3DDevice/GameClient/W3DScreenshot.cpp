@@ -35,7 +35,7 @@
 #include <thread>
 #endif
 
-// GeneralsX @test Claude 10/10/2026 GameClient.cpp (both games): TRUE while gxShotDrive takes a GX_SHOT screenshot. Declared
+// GeneralsX: GameClient.cpp (both games): TRUE while gxShotDrive takes a GX_SHOT screenshot. Declared
 // here because GameClient.h is digested whole.
 Bool gxShotDriving( void );
 
@@ -162,7 +162,7 @@ static DWORD WINAPI screenshotThreadFunc(LPVOID param)
 
 void W3D_UpdateScreenshotMessages()
 {
-	// GeneralsX @test Claude 28/09/2026 No "screenshot saved" message while GX_SHOT captures (an accepted frame list,
+	// GeneralsX: No "screenshot saved" message while GX_SHOT captures (an accepted frame list,
 	// GameClient.cpp gxShotCaptureOn): the message is drawn into the frames that follow, so a GX_SHOT burst
 	// photographed its own earlier captures' messages and two arms' shots differed by them (scripts/test/gx-shotdiff).
 	// Every capture is still written; a hotkey screenshot taken meanwhile is written without its message too. A
@@ -196,16 +196,16 @@ void W3D_TakeCompressedScreenshot(ScreenshotFormat format, Int jpegQuality)
 	GetLocalTime(&st);
 	sprintf(leafname, "sshot_%04d%02d%02d_%02d%02d%02d_%03d.%s",
 		st.wYear, st.wMonth, st.wDay, st.wHour, st.wMinute, st.wSecond, st.wMilliseconds, extension);
-	// GeneralsX @test Claude 29/09/2026 While GX_SHOT captures, name each file in the log (right before gxShotDrive's
+	// GeneralsX: While GX_SHOT captures, name each file in the log (right before gxShotDrive's
 	// "n=" line): gx-shotdiff pair maps a capture to its file by this name, not by name order, which a wall clock
-	// stepping back mid-burst would scramble (Codex gfxp3-shotdiff-r22).
+	// stepping back mid-burst would scramble.
 	if (gxShotCaptureOn())
 	{
 		fprintf(stderr, "[GXSHOT] file=%s\n", leafname);
 		fflush(stderr);
 	}
 
-	// GeneralsX @test Claude 10/10/2026 GXCAP (GXCap.h): the readback below is the reference picture a capture window
+	// GeneralsX: GXCAP (GXCap.h): the readback below is the reference picture a capture window
 	// replays against; bracket it (every return path) so the replayer knows which copy is the shot.
 	struct GxCapShotScope
 	{

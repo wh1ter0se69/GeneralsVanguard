@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 19/09/2026 In-match kick: the KICKED client's half.
+// GeneralsX: In-match kick: the KICKED client's half.
 //
 // A moderator kicks a player who is in a match. The relay sends that player's lobby socket
 // "GXKICK <ticket>" every second; this pump - called once a frame beside gxMatchDrainOperatorLines() -
@@ -123,7 +123,7 @@ inline void gxKickPump()
 			memcpy( s_pending, bytes, n );
 			s_pendingLen = n;
 		}
-		static Int s_told = 0;	// ponytail: the relay resends every second; say it a few times, not forever
+		static Int s_told = 0;	// Trade-off: the relay resends every second; say it a few times, not forever
 		if( s_told++ < 4 )
 		{
 			fprintf( stderr, "[GXKICK] victim received a ticket: %s\n", b64[0] == '\0' ? "ignored (deaf)" : gxKickVerdictName( v ) );

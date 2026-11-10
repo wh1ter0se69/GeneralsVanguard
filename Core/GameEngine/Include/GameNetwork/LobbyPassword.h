@@ -17,7 +17,7 @@
 */
 
 // LobbyPassword.h ////////////////////////////////////////////////////////////
-// GeneralsX @feature Claude 08/08/2026 Password-protected lobbies.
+// GeneralsX: Password-protected lobbies.
 //
 // WHAT IS ON THE WIRE, AND WHY IT IS NOT THE PASSWORD.
 //
@@ -74,7 +74,7 @@ enum { LOBBYPW_CHALLENGE_LIFETIME_MS = 120000 };
 /// Raw SHA-256. `out` receives 32 bytes.
 void LobbyPasswordSha256( const void *data, UnsignedInt len, UnsignedByte *out32 );
 
-// GeneralsX @feature Claude 08/08/2026 The compression function and the initial state, exported so
+// GeneralsX: The compression function and the initial state, exported so
 // that a second construction can be built on THIS code rather than on a second copy of SHA-256.
 //
 // Transport's per-packet MAC needs HMAC, and HMAC done naively re-derives the key's ipad/opad

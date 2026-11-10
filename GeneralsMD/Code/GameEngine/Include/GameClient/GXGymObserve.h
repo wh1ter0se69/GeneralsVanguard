@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 02/10/2026 ai-gym observation logger, schema v1 (scripts/ai/gym/SCHEMA.md). See GXGymObserve.cpp.
+// GeneralsX: ai-gym observation logger, schema v1 (scripts/ai/gym/SCHEMA.md). See GXGymObserve.cpp.
 
 #pragma once
 

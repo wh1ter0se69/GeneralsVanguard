@@ -108,7 +108,7 @@ enum
 	DBG_FOOTER_BTN_W = 130, DBG_FOOTER_BTN_H = 30
 };
 
-// GeneralsX @feature Claude 27/07/2026 Spawn is its OWN tab, not another block on Cheats.
+// GeneralsX: Spawn is its OWN tab, not another block on Cheats.
 //
 // The panes are a fixed contentH = 520 - 76 - 40*... == 390 authoring-Y units tall, and the Cheats
 // pane already ran to 354 of them. A template picker needs a listbox, a search row, two steppers and
@@ -182,7 +182,7 @@ struct DebugSliderSpec
 // still shipped and still works; this screen is the new home for the same five settings.
 static const DebugSliderSpec s_sliderSpecs[ DBG_NUM_SLIDERS ] =
 {
-	// GeneralsX @feature Claude 26/09/2026 Owner: max up to 10000 (was 3000; owner 30/09: "zoom past 3k"), min down to 10 - beyond the launcher's 1000 / 50, so
+	// GeneralsX: Owner: max up to 10000 (was 3000; owner 30/09: "zoom past 3k"), min down to 10 - beyond the launcher's 1000 / 50, so
 	// Apply marks a pair outside that range (View::setPrefDebugCameraHeights) and it holds across a restart.
 	// GeneralsX 27/09/2026 Owner: Defaults restore Generals Online's 310 / 100 (was this screen's own 500 / 80).
 	{ "DebugMenu:SliderMaxCameraHeight", L"Max camera height",	"MaxCameraHeight",	View::CameraMaxHeightLo, View::DebugCameraMaxHeightHi, 310 },
@@ -260,7 +260,7 @@ static Int	s_forceRadarShown	= -1;
 //-------------------------------------------------------------------------------------------------
 // Spawn tab
 //
-// GeneralsX @feature Claude 27/07/2026 A searchable template picker instead of a text box.
+// GeneralsX: A searchable template picker instead of a text box.
 //
 // Typing "AmericaVehicleHumvee" exactly right is not a thing anyone can do on a phone keyboard, and
 // getting it wrong produced a one-line "no such template" and nothing else to go on. The picker
@@ -297,7 +297,7 @@ static Int				 s_spawnCountIdx = 0;						///< index into s_spawnCountSteps
 static Int				 s_spawnVet			= (Int)LEVEL_REGULAR;
 
 static CodeGuiSearchField s_spawnSearch;
-// GeneralsX @bugfix Claude 08/08/2026 The search text, held across a teardown. s_spawnSearch
+// GeneralsX: The search text, held across a teardown. s_spawnSearch
 // itself cannot hold it: reset() clears m_filter because the field's window pointers die with
 // the pane, so the text has to live somewhere that outlives the layout.
 static UnicodeString s_spawnSearchSaved;
@@ -346,7 +346,7 @@ static GameWindow *s_buttonSaveLoad			= nullptr;
 static GameWindow *s_buttonSaveHere			= nullptr;
 
 static OptionPreferences *s_pref = nullptr;
-// GeneralsX @bugfix Claude 25/09/2026 What Camera Apply does with the pitch - see ExtrasMenu.cpp's PitchEdit.
+// GeneralsX: What Camera Apply does with the pitch - see ExtrasMenu.cpp's PitchEdit.
 enum PitchEdit { PITCH_UNTOUCHED, PITCH_MOVED, PITCH_DEFAULTS };
 static PitchEdit s_pitchEdit = PITCH_UNTOUCHED;
 
@@ -368,7 +368,7 @@ static WindowMsgHandledType DebugMenuInput( GameWindow *window, UnsignedInt msg,
 //-------------------------------------------------------------------------------------------------
 /** May we issue a SYNCHRONISED cheat from here?
 	*
-	* GeneralsX @feature Claude 27/07/2026 Cheats are ORDERS now, not direct state writes.
+	* GeneralsX: Cheats are ORDERS now, not direct state writes.
 	*
 	* The old gate refused anything with TheNetwork up, because every cheat wrote simulation state on
 	* this peer alone and the CRC check would then drop the connection within ~100 frames. That reason
@@ -401,7 +401,7 @@ static const WideChar *debugSyncedCheatsRefusal( void )
 	if( TheGameLogic->isInReplayGame() )
 		return L"this is a replay";
 
-	// GeneralsX @tweak Claude 30/07/2026 The host-only restriction is GONE. Every peer may cheat.
+	// GeneralsX: The host-only restriction is GONE. Every peer may cheat.
 	//
 	// What stood here refused a non-host whenever TheNetwork was up, by asking
 	// TheGameInfo->amIHost(). Its own comment conceded that this was "a house rule, not a sync
@@ -415,14 +415,14 @@ static const WideChar *debugSyncedCheatsRefusal( void )
 	// settings, not a hardcoded compare against the host IP. Note that a cheat is still an ORDER,
 	// so it remains attributable - the sender's slot is on the wire and in every peer's log.
 	//
-	// GeneralsX @security Claude 18/09/2026 SUPERSEDED for any match with a second human in it.
+	// GeneralsX: SUPERSEDED for any match with a second human in it.
 	// Every peer being able to cheat meant every peer could KILL_PLAYER any other, which made
 	// in-match moderation meaningless; the simulation now refuses the orders there
 	// (GameLogic::gxCheatsAllowed), on every peer. This mirrors it so the buttons say so instead of
 	// silently doing nothing. A lobby-settings opt-in, carried in the start data, is the upgrade
 	// path if a private lobby wants the toolbox back.
 	//
-	// GeneralsX @security Claude 25/09/2026 ...UNLESS THE RELAY PROVED THIS PLAYER AN ADMIN FOR THE MATCH. wh1ter0se's ask:
+	// GeneralsX: ...UNLESS THE RELAY PROVED THIS PLAYER AN ADMIN FOR THE MATCH. wh1ter0se's ask:
 	// an admin's cheats work in any multiplayer match, hosting or not. The simulation decides it
 	// (GameLogic::gxCheatAllowedFor, from the admin slots every peer confirmed against its own relay roster before
 	// the match began) and announces every one it applies to every player; this asks the same question so the
@@ -495,7 +495,7 @@ static void loadSlidersFromPrefs( void )
 
 	// Same conversions the Extras screen used: the two scale factors live as 0..2 reals in the pref
 	// file and as integer percents on the slider.
-	// GeneralsX @bugfix Claude 25/09/2026 Rounded, and draw distance through View's resolver - see the
+	// GeneralsX: Rounded, and draw distance through View's resolver - see the
 	// matching note in ExtrasMenu.cpp. Truncating opened the shipped 1.05 as 104. Still read from
 	// s_pref, so a Config-tab edit of the key reaches the slider and Camera Apply keeps it.
 	const Int values[ DBG_NUM_SLIDERS ] =
@@ -554,7 +554,7 @@ static void applySlidersToPrefs( void )
 				prefString.format( "%d", val );
 				break;
 			case 2:
-				// GeneralsX @bugfix Claude 25/09/2026 Through View's one writer, and only for a slider the
+				// GeneralsX: Through View's one writer, and only for a slider the
 				// player moved or reset - it may remove the key, so it bypasses the shared assignment below.
 				// See saveExtras in ExtrasMenu.cpp.
 				if( s_pitchEdit == PITCH_DEFAULTS )
@@ -570,7 +570,7 @@ static void applySlidersToPrefs( void )
 				prefString.format( "%d", val );
 				break;
 			case 4:
-				// GeneralsX @bugfix Claude 26/07/2026 Write the draw-distance scale as the real it is.
+				// GeneralsX: Write the draw-distance scale as the real it is.
 				// View::getPrefTerrainDrawDistanceScale() atof's the string and takes only 1.00-2.00, so the
 				// raw slider percent ("105") would be ignored on reopen and the slider would not keep its place.
 				TheWritableGlobalData->m_terrainDrawDistanceScale = val / 100.0f;
@@ -583,12 +583,12 @@ static void applySlidersToPrefs( void )
 		(*s_pref)[ s_sliderSpecs[i].prefKey ] = prefString;
 	}
 
-	// GeneralsX @feature Claude 26/09/2026 Mark the pair when it leaves the launcher's range, so startup keeps it
+	// GeneralsX: Mark the pair when it leaves the launcher's range, so startup keeps it
 	// instead of clamping it back to 1000 / 50 (View.cpp, getPrefMaxCameraHeight).
 	if( s_slider[0] != nullptr && s_slider[1] != nullptr )
 		View::setPrefDebugCameraHeights( *s_pref, TheWritableGlobalData->m_minCameraHeight, TheWritableGlobalData->m_maxCameraHeight );
 
-	// GeneralsX @bugfix Claude 27/07/2026 Push the camera settings into the live view.
+	// GeneralsX: Push the camera settings into the live view.
 	// The view does not read TheGlobalData per frame. View::View snapshots the height limits
 	// (View.cpp:99-100) and the default pitch (View.cpp:104) at construction, and W3DView only
 	// recomputes them inside setCameraHeightAboveGroundLimitsToDefault/setDefaultPitch. Writing
@@ -600,7 +600,7 @@ static void applySlidersToPrefs( void )
 		TheTacticalView->setCameraHeightAboveGroundLimitsToDefault();
 		TheTacticalView->setDefaultPitch( DEG_TO_RADF( View::getPrefCameraPitch( *s_pref ) ) );
 
-		// GeneralsX @bugfix Claude 26/09/2026 Keep the camera's height, pinned into the new limits, so it moves now
+		// GeneralsX: Keep the camera's height, pinned into the new limits, so it moves now
 		// rather than on the player's next zoom input. This used to be setZoom( getZoom() ), which is not a round
 		// trip: getZoom() is height / (pivot + max) while setZoom() multiplies by the max ABOVE GROUND, which
 		// setCameraHeightAboveGroundLimitsToDefault scales by the aspect ratio (x1.44 at 16:9) - and setZoom is not
@@ -610,7 +610,7 @@ static void applySlidersToPrefs( void )
 		// the menu background frozen.
 		// A moved or reset pitch goes live the same way: setDefaultPitch alone only takes effect at the next
 		// camera reset or match, so Apply looked like it did nothing to the pitch.
-		// Then re-base the zoom on the new offset (Codex r2 P2): getCameraOffsetZ follows the new max at once, so a
+		// Then re-base the zoom on the new offset: getCameraOffsetZ follows the new max at once, so a
 		// zoom left on the old one drew the camera far out and let it drift back. setZoom of height / max above
 		// ground is an exact round trip: it keeps the pinned height and sets the zoom that places the camera there.
 		if( TheGameLogic != nullptr && TheGameLogic->isInGame() && !TheGameLogic->isInShellGame() )
@@ -632,7 +632,7 @@ static void setSliderDefaults( void )
 {
 	for( Int i = 0; i < DBG_NUM_SLIDERS; ++i )
 	{
-		// GeneralsX @bugfix Claude 25/09/2026 Pitch shows the data default, rounded, and Camera Apply removes
+		// GeneralsX: Pitch shows the data default, rounded, and Camera Apply removes
 		// the choice; the table's 37 was stored as a choice below the default.
 		const Int def = ( i == 2 ) ? (Int)( TheGlobalData->m_cameraPitch + 0.5f ) : s_sliderSpecs[i].defVal;
 		if( s_slider[i] )
@@ -905,7 +905,7 @@ static void doLoadSelectedSave( void )
 	// clearAvailableGames() frees, and loadGame takes it by value for exactly that reason.
 	AvailableGameInfo gameInfo = *info;
 
-	// GeneralsX @bugfix Claude 25/09/2026 before anything is torn down; see SaveLoadFeedback.cpp
+	// GeneralsX: before anything is torn down; see SaveLoadFeedback.cpp
 	if( gateSaveLoad( gameInfo.filename, doLoadSelectedSave ) )
 		return;
 
@@ -952,7 +952,7 @@ static void doSaveHere( void )
 			TheGameLogic->isInReplayGame() )
 		return;
 
-	// GeneralsX @bugfix Claude 25/09/2026 see SaveLoadFeedback.cpp
+	// GeneralsX: see SaveLoadFeedback.cpp
 	if( refuseNetworkMatchSave() )
 		return;
 
@@ -969,7 +969,7 @@ static void doSaveHere( void )
 //-------------------------------------------------------------------------------------------------
 // CHEATS /////////////////////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 27/07/2026 Every cheat below is a network order aimed at a CHOSEN
+// GeneralsX: Every cheat below is a network order aimed at a CHOSEN
 // player, not a direct write to the local one.
 //
 // The target travels as a PLAYER INDEX. That is the one identifier which is lockstep-identical on
@@ -1035,7 +1035,7 @@ static Color debugRowColor( Player *p )
 	Color c = p->getPlayerColor();
 	Player *local = ( ThePlayerList != nullptr ) ? ThePlayerList->getLocalPlayer() : nullptr;
 	// The HUD's own viewer test (InGameUI gxViewerMaySeeFeed): a replay, an observer seat or a DEFEATED player sees the real
-	// colours - isPlayerObserver() alone misses the defeated one (Codex r2 P2).
+	// colours - isPlayerObserver() alone misses the defeated one.
 	const Bool spectator = debugViewerSeesReal();
 	const Bool apparent = local != nullptr && !spectator && p != local;
 	if( apparent && TheGameInfo != nullptr && TheMultiplayerSettings != nullptr )
@@ -1173,9 +1173,9 @@ static UnicodeString cheatTargetName( Int index )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @bugfix Claude 25/09/2026 Why a target takes no order but reveal, or null when it does.
+/** GeneralsX: Why a target takes no order but reveal, or null when it does.
 	* Observer FIRST: Player::initFromTemplate sets m_isPlayerDead = m_observer, so an observer also
-	* reads as dead and would otherwise be called "defeated" (Codex P2). */
+	* reads as dead and would otherwise be called "defeated". */
 //-------------------------------------------------------------------------------------------------
 static const WideChar *cheatTargetInactiveWord( const Player *p )
 {
@@ -1211,12 +1211,12 @@ static GameMessage *beginCheatOrder( GameMessage::Type type, Int &targetOut )
 		return nullptr;
 	}
 
-	// GeneralsX @bugfix Claude 25/09/2026 A DEFEATED OR OBSERVING TARGET TAKES NO ORDER BUT REVEAL.
+	// GeneralsX: A DEFEATED OR OBSERVING TARGET TAKES NO ORDER BUT REVEAL.
 	// The owner's screenshot: the status line read "0 units, 0 buildings  DEAD" and "Give cash" still
 	// sent the order - money into a player who can never spend it. isPlayerActive() is the engine's
 	// own "alive and not observing" (Player.h), the same test the status line prints DEAD from.
 	// Reveal / Re-shroud stay allowed: showing a defeated player the map is how they watch the rest.
-	// GeneralsX @feature Claude 27/09/2026 So does Spawn: the simulation makes its units civilians - the Neutral player's,
+	// GeneralsX: So does Spawn: the simulation makes its units civilians - the Neutral player's,
 	// vehicles unmanned - instead of refusing it (GameLogic::gxSpawnGoesNeutral, wh1ter0se 27/09). Delete and the rest stay refused.
 	if( type != GameMessage::MSG_GX_CHEAT_REVEAL_MAP && type != GameMessage::MSG_GX_CHEAT_SPAWN_UNIT )
 	{
@@ -1766,7 +1766,7 @@ static void gxSpawnUnit( void )
 	DEBUG_LOG(( "DebugMenu: sent SPAWN_UNIT template %d x%d vet %d at %.1f,%.1f for player %d",
 		(Int)tmpl->getTemplateID(), count, s_spawnVet, pos.x, pos.y, target ));
 
-	// GeneralsX @feature Claude 27/09/2026 Say "as civilians" when the simulation will give them to the Neutral player.
+	// GeneralsX: Say "as civilians" when the simulation will give them to the Neutral player.
 	const Bool neutral = ThePlayerList != nullptr && GameLogic::gxSpawnGoesNeutral( ThePlayerList->getNthPlayer( target ) );
 	UnicodeString what;
 	what.format( L"spawn %d x %S (%S)%s", count, s_spawnPick.str(),
@@ -1885,7 +1885,7 @@ static void toggleForceRadar( void )
 //-------------------------------------------------------------------------------------------------
 /** One walk of the object list, sixteen buckets.
 	*
-	* GeneralsX @feature Claude 27/07/2026 The Stats tab already walked every object in the world once
+	* GeneralsX: The Stats tab already walked every object in the world once
 	* per 250ms tick and already called getControllingPlayer() and isKindOf(KINDOF_STRUCTURE) on each
 	* one. Bucketing that same pass by player index feeds the Players tab and the cheat target readout
 	* for free.
@@ -2173,9 +2173,9 @@ static void refreshSpawnTarget( void )
 
 	UnicodeString text;
 	const WideChar *inactive = cheatTargetInactiveWord( p );
-	// GeneralsX @feature Claude 27/09/2026 Spawn stays live and makes civilians - the Neutral player's, vehicles unmanned -
+	// GeneralsX: Spawn stays live and makes civilians - the Neutral player's, vehicles unmanned -
 	// when the target is out of the game (GameLogic::gxSpawnGoesNeutral, wh1ter0se 27/09); said here, before the click. Delete
-	// still refuses such a target. GeneralsX @bugfix Claude 05/10/2026 Whether YOU are observing or defeated no longer
+	// still refuses such a target. GeneralsX: Whether YOU are observing or defeated no longer
 	// matters: the target owns what you spawn (wh1ter0se 05/10).
 	if( inactive != nullptr )
 		text.format( L"Target %d  %s is %s - Spawn makes civilians (Neutral), Delete stays greyed   (change it on the Cheats tab)",
@@ -2325,7 +2325,7 @@ void DebugMenuUpdate( void )
 	const Bool cheats = ( refusal == nullptr );
 	const Bool client = debugClientToolsAllowed();
 
-	// GeneralsX @feature Claude 27/07/2026 Say why the row is dead before it is clicked. A guest in a
+	// GeneralsX: Say why the row is dead before it is clicked. A guest in a
 	// LAN game sees seven greyed buttons and no reason; the result line is otherwise only written on
 	// a click, which a disabled button never delivers. Only written while refusing, so it does not
 	// stomp the outcome text of a cheat that just went through.
@@ -2336,12 +2336,12 @@ void DebugMenuUpdate( void )
 		GadgetStaticTextSetText( s_cheatResult, msg );
 	}
 
-	// GeneralsX @bugfix Claude 25/09/2026 Grey what beginCheatOrder() would refuse for a defeated or
+	// GeneralsX: Grey what beginCheatOrder() would refuse for a defeated or
 	// observing target, so the row says so before it is clicked. No target: left to beginCheatOrder.
 	const Int cheatTarget = selectedCheatTarget();
 	const Player *targetPlayer = ( cheatTarget > 0 && ThePlayerList != nullptr ) ? ThePlayerList->getNthPlayer( cheatTarget ) : nullptr;
 	// The reason is shown on the two target lines (refreshCheatTargetInfo / refreshSpawnTarget), NOT on
-	// the result line: this runs every 250 ms and would overwrite a Reveal's "Sent:" (Codex P2).
+	// the result line: this runs every 250 ms and would overwrite a Reveal's "Sent:".
 	const Bool orders = cheats && cheatTargetInactiveWord( targetPlayer ) == nullptr;
 
 	if( s_buttonGiveCash )		s_buttonGiveCash->winEnable( orders );
@@ -2506,14 +2506,14 @@ static void debugMenuRootDraw( GameWindow *window, WinInstanceData *instData )
 	if( s_rootDraw )
 		s_rootDraw( window, instData );
 
-	// GeneralsX @bugfix Claude 26/09/2026 The overlay keeps the keyboard while it is drawn. ControlBar::switchToContext
+	// GeneralsX: The overlay keeps the keyboard while it is drawn. ControlBar::switchToContext
 	// still drops focus that sits on the overlay's own root (it is not a text entry), on any selection change or
 	// finished unit; from then on Escape and every hotkey went to the game under the open menu (measured: focus on
 	// the root at open, null 300 frames later with no click). This runs every drawn frame, after the frame's update
 	// and before the next frame's input, so no key is ever handled while focus is null. A focus that went somewhere
 	// real - the in-game chat, a message box - is left alone.
-	// A modal dialog open over the overlay gets it back instead (Codex r2 P2), so Escape still closes the dialog.
-	// GeneralsX @bugfix Claude 26/09/2026 A text field the player typed in KEEPS the keyboard while its tab is up:
+	// A modal dialog open over the overlay gets it back instead, so Escape still closes the dialog.
+	// GeneralsX: A text field the player typed in KEEPS the keyboard while its tab is up:
 	// clicking a row of the Spawn list moved focus to the listbox (GadgetListBox takes it on every button-up), so the
 	// next search typed nowhere until Search was clicked again - "searching to spawn UNITS it stops taking keyboard
 	// input multiple times". Same for Cheats' amount, Config's value and Saves' description beside their lists. Taken
@@ -2646,7 +2646,7 @@ static void nullifyControls( void )
 	s_buttonGiveCash			= nullptr;
 	s_buttonReveal				= nullptr;
 
-	// GeneralsX @feature Claude 27/07/2026 The targeted-cheat and player-panel controls. Every one of
+	// GeneralsX: The targeted-cheat and player-panel controls. Every one of
 	// these MUST be here: GameWindowManager::reset() runs winDestroyAll() on every match transition
 	// without going through DebugMenuClose, and the next DebugMenuUpdate would then write through the
 	// freed windows. A non-null freed pointer passes every guard in this file.
@@ -2670,7 +2670,7 @@ static void nullifyControls( void )
 	for( Int i = 0; i < MAX_PLAYER_COUNT; ++i )
 		s_cheatRosterKey[i] = NAMEKEY_INVALID;
 
-	// GeneralsX @feature Claude 27/07/2026 The Spawn pane. Same rule as the block above: every one of
+	// GeneralsX: The Spawn pane. Same rule as the block above: every one of
 	// these is written unconditionally by the next DebugMenuUpdate, and a freed pointer is not null.
 	s_listSpawnTemplate			= nullptr;
 	s_spawnTargetInfo				= nullptr;
@@ -2702,7 +2702,7 @@ static void nullifyControls( void )
 	s_spawnRowIndex.clear();
 	s_spawnCatalogBuilt = FALSE;
 
-	// GeneralsX @bugfix Claude 08/08/2026 The ARMED PICK now SURVIVES, like the count/veterancy
+	// GeneralsX: The ARMED PICK now SURVIVES, like the count/veterancy
 	// steppers beside it. It used to be cleared here, and the reason given was that "the pick names
 	// a template that may not exist after a data reload, so keeping it would leave a button aimed at
 	// something that resolves to nothing".
@@ -2794,7 +2794,7 @@ static void buildStatsTab( GameWindow *pane, Int paneW )
 																			"DebugMenu:ButtonLogicFpsUp", L"+",
 																			L"Step the simulation rate up 5 fps" );
 
-	// GeneralsX @feature Claude 30/09/2026 Fast forward: 1x 2x 3x 4x 5x 10x, only while this player is the match's only
+	// GeneralsX: Fast forward: 1x 2x 3x 4x 5x 10x, only while this player is the match's only
 	// human (changeFastForward says why not otherwise, and the buttons grey on the same refusal).
 	y += CodeGuiScaleY( 34 );
 	CodeGuiLabel( pane, pad, y + CodeGuiScaleY( 4 ), labelW, lineH,
@@ -2919,7 +2919,7 @@ static void buildCheatsTab( GameWindow *pane, Int paneW )
 																	 "DebugMenu:ButtonKillAll", L"Kill units + buildings",
 																	 L"Kill everything the target owns" );
 
-	// GeneralsX @feature Claude 27/07/2026 The spawn text box used to be here. It is now a searchable
+	// GeneralsX: The spawn text box used to be here. It is now a searchable
 	// picker on its own pane, because a control that only works if you can type "AmericaVehicleHumvee"
 	// exactly is not a control on a touch device. The pointer line stays so the button does not just
 	// vanish for anyone who knew where it was.
@@ -2979,7 +2979,7 @@ static void buildSpawnTab( GameWindow *pane, Int paneW )
 	s_spawnSearch.create( s_listSpawnTemplate, spawnSearchChanged,
 												"DebugMenu:EntrySpawnSearch", "DebugMenu:ButtonSpawnSearchClear" );
 
-	// GeneralsX @bugfix Claude 08/08/2026 Put the search text back, like the armed pick and the
+	// GeneralsX: Put the search text back, like the armed pick and the
 	// active tab. reset() above wipes m_filter, so without this the box comes back empty and the
 	// list unfiltered every time the screen is reopened - the same complaint as the other two.
 	//
@@ -3111,16 +3111,16 @@ static void buildCameraTab( GameWindow *pane, Int paneW )
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 26/09/2026 In a multiplayer match the camera heights stay within the wire's range - the
+// GeneralsX: In a multiplayer match the camera heights stay within the wire's range - the
 // host's pair, or this machine's clamped to it (GXHostCamera::effectiveLimits) - so a Debug pair of up to 10000 / down
-// to 10 is saved but cannot apply there. Say so on the tab instead of letting Apply look like it did (Codex dbgcam-r6).
+// to 10 is saved but cannot apply there. Say so on the tab instead of letting Apply look like it did.
 static void refreshCameraNote( void )
 {
 	if( s_cameraNote == nullptr )
 		return;
 	const Bool capped = GXHostCamera::isEnabled() && GXHostCamera::isInMultiplayerMatch() && !GXHostCamera::isLocalPlayerObserving();
 	GadgetStaticTextSetText( s_cameraNote, UnicodeString( capped
-		? L"Multiplayer: 100-1000 / 50-300 or host's; observers exempt."	// one line at 800x600 (Codex dbgcam-r7 P2)
+		? L"Multiplayer: 100-1000 / 50-300 or host's; observers exempt."	// one line at 800x600
 		: L"Scroll speed and draw distance are percentages." ) );
 }
 
@@ -3322,7 +3322,7 @@ void DebugMenuOpen( void )
 	}
 
 	loadSlidersFromPrefs();
-	// GeneralsX @bugfix Claude 08/08/2026 Re-open on the tab you were last on, not always on Stats.
+	// GeneralsX: Re-open on the tab you were last on, not always on Stats.
 	//
 	// s_activeTab is file-scope and already survives the screen being torn down - the state was
 	// there all along, and this one line threw it away on every open. It starts at DBG_TAB_STATS,
@@ -3459,7 +3459,7 @@ static WindowMsgHandledType DebugMenuSystem( GameWindow *window, UnsignedInt msg
 				DebugMenuClose();
 				return MSG_HANDLED;
 			}
-			// GeneralsX @feature Claude 27/07/2026 All of these append to TheMessageStream and return.
+			// GeneralsX: All of these append to TheMessageStream and return.
 			// None of them touch logic state directly, which is why none of them is gated to
 			// single-player any more. The one exception is the radar force, which is pure presentation
 			// on this machine and is therefore gated on debugClientToolsAllowed() instead.
@@ -3740,7 +3740,7 @@ static WindowMsgHandledType DebugMenuInput( GameWindow *window, UnsignedInt msg,
 		return MSG_HANDLED;
 	}
 
-	// GeneralsX @bugfix Claude 27/07/2026 Consume mouse input instead of letting it fall through
+	// GeneralsX: Consume mouse input instead of letting it fall through
 	// to the world.
 	//
 	// WIN_STATUS_ABOVE only wins the hit-test ORDER; it does not make the window swallow anything.

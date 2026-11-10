@@ -428,7 +428,7 @@ void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 		// m_lastDamageTimestamp is initialized to FFFFFFFFFF, so doing a < compare is problematic.
 		// jba.
 #if GX_LOGIC_60HZ
-		// GeneralsX @fix Claude 23/09/2026 "this frame or the one before" is a window of one RETAIL frame. Unsigned, so this is
+		// GeneralsX: "this frame or the one before" is a window of one RETAIL frame. Unsigned, so this is
 		// exactly the retail test at GX_FRAMES30(1) == 1: frame - ts in {0, 1} <=> ts is frame or frame-1.
 		if (TheGameLogic->getFrame() - m_lastDamageTimestamp > (UnsignedInt)GX_FRAMES30(1)) {
 #else
@@ -869,9 +869,9 @@ void ActiveBody::deleteAllParticleSystems()
 // ------------------------------------------------------------------------------------------------
 void ActiveBody::updateBodyParticleSystems()
 {
-	// GeneralsX @bugfix Claude 10/10/2026 Looked up on every call (a body state change), no longer cached in function statics on
+	// GeneralsX: Looked up on every call (a body state change), no longer cached in function statics on
 	// the FIRST call: that kept whatever the first match to burn something had - a map.ini's GameData names, or a template a map
-	// invented and ParticleSystemManager::reset has since retired - for the rest of the process (Codex mapini-rollback-r1 P2).
+	// invented and ParticleSystemManager::reset has since retired - for the rest of the process.
 	const ParticleSystemTemplate *fireSmallTemplate   = TheParticleSystemManager->findTemplate( TheGlobalData->m_autoFireParticleSmallSystem );
 	const ParticleSystemTemplate *fireMediumTemplate  = TheParticleSystemManager->findTemplate( TheGlobalData->m_autoFireParticleMediumSystem );
 	const ParticleSystemTemplate *fireLargeTemplate   = TheParticleSystemManager->findTemplate( TheGlobalData->m_autoFireParticleLargeSystem );

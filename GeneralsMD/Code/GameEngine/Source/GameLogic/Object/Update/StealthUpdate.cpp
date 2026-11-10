@@ -310,7 +310,7 @@ Bool StealthUpdate::allowedToStealth( Object *stealthOwner ) const
 		return FALSE;
 	}
 
-	// GeneralsX @fix Claude 05/10/2026 go-parity-undo3 N9: one RETAIL frame (2 at 60 Hz), like the firing check below. GO's
+	// GeneralsX: go-parity-undo3 N9: one RETAIL frame (2 at 60 Hz), like the firing check below. GO's
 	// 1 tick is half as long at 60 Hz, a GO mistake we do not copy.
 	const UnsignedInt *lastDamageTimestamp = self->getBodyModule()->getLastDamageTimestamp();
 	if( flags & STEALTH_NOT_WHILE_TAKING_DAMAGE && lastDamageTimestamp && *lastDamageTimestamp >= now - GX_FRAMES30(1) )
@@ -351,7 +351,7 @@ Bool StealthUpdate::allowedToStealth( Object *stealthOwner ) const
 
 		//Now do weapon specific checks.
 		Weapon *weapon;
-		UnsignedInt lastFrame = TheGameLogic->getFrame() - GX_FRAMES30(1);	// GeneralsX @fix Claude 23/09/2026 one RETAIL frame (2 frames at 60 Hz, the same as Generals Online)
+		UnsignedInt lastFrame = TheGameLogic->getFrame() - GX_FRAMES30(1);	// GeneralsX: one RETAIL frame (2 frames at 60 Hz, the same as Generals Online)
 
 		if( flags & STEALTH_NOT_WHILE_FIRING_PRIMARY )
 		{
@@ -611,7 +611,7 @@ UpdateSleepTime StealthUpdate::update()
 	Object *self = getObject();
 	Object *stealthOwner = calcStealthOwner();
 
-	// GeneralsX @bugfix Claude 06/10/2026 Start from our own rules. With UseRiderStealth and a rider that has no
+	// GeneralsX: Start from our own rules. With UseRiderStealth and a rider that has no
 	// StealthUpdate, neither branch below set this, and the uninitialised stack value became m_stealthAllowedFrame - a
 	// different number on every machine (sweep c044-03).
 	UnsignedInt stealthDelay = getStealthUpdateModuleData()->m_stealthDelay;
@@ -694,7 +694,7 @@ UpdateSleepTime StealthUpdate::update()
 		{
 			draw->setEffectiveOpacity( 0.5f + ( Sin( m_pulsePhase ) * 0.5f ) );
 			// between one half and full opacity
-			// GeneralsX @fix Claude 01/10/2026 A per-frame phase step: half of it per 60 Hz tick keeps the retail pulse
+			// GeneralsX: A per-frame phase step: half of it per 60 Hz tick keeps the retail pulse
 			// rate (cosmetic; the phase is not CRC'd). tsh batch2 #451, the defect Generals Online fixes at f72c95d9f.
 #if GX_LOGIC_60HZ
 			m_pulsePhase += m_pulsePhaseRate * 0.5f;
@@ -881,7 +881,7 @@ void StealthUpdate::markAsDetected(UnsignedInt numFrames)
 	Object *self = getObject();
 	Object *stealthOwner = calcStealthOwner();
 
-	// GeneralsX @bugfix Claude 06/10/2026 Start from our own rules, as in update(): a rider without a StealthUpdate left
+	// GeneralsX: Start from our own rules, as in update(): a rider without a StealthUpdate left
 	// both uninitialised, and they set m_detectionExpiresFrame and whether idle enemies are ordered to attack (sweep c044-03).
 	const StealthUpdateModuleData *ownData = getStealthUpdateModuleData();
 	UnsignedInt stealthDelay = ownData->m_stealthDelay, orderIdlesToAttack = ownData->m_orderIdleEnemiesToAttackMeUponReveal;

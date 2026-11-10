@@ -1,4 +1,4 @@
-// GeneralsX @test E · rw3-L 11/10/2026 gx_translate_test: GxD3D8Translate's d3d8 -> GxDrawPacket rules, one case per rule, each
+// GeneralsX: gx_translate_test: GxD3D8Translate's d3d8 -> GxDrawPacket rules, one case per rule, each
 // with the DXVK cite it reproduces (references/fbraz3-dxvk 954c5c692), plus the fail arms: an X-<plant> arm turns on one
 // GxTranslateDebug plant in the PRODUCT translator and must make exactly its own case fail.
 //
@@ -360,7 +360,7 @@ bool caseAnisotropy(Env& e, std::string* d)
 		CHECK(e.seen[0].samplers[1].minFilter == TEXF_POINT, "POINT stage changed");
 	}
 	e.seen.clear();
-	e.tr->setAnisotropyOverride(0);   // the player's "no anisotropy": an ANISOTROPIC sampler loses it (Codex r2 #3)
+	e.tr->setAnisotropyOverride(0);   // the player's "no anisotropy": an ANISOTROPIC sampler loses it
 	e.tr->textureStageState(0, TSS_MINFILTER, TEXF_ANISOTROPIC);
 	e.tr->textureStageState(0, TSS_MAXANISOTROPY, 8);
 	CHECK(quad(e) && e.seen.size() == 1 && e.seen[0].samplers[0].maxAnisotropy == 0, "override 0 must disable anisotropy");
@@ -451,7 +451,7 @@ bool caseRefusals(Env& e, std::string* d)
 	begin(e, e.argb, nullptr);
 	expect("unknown primitive type", [&] { return e.tr->draw(7, 0, 1); });
 	expect("zero primitives", [&] { return e.tr->draw(PT_TRIANGLELIST, 0, 0); });
-	expect("zero primitives", [&] {   // a 0-primitive strip still has 2 vertices: the count itself must be checked (Codex r1 #4)
+	expect("zero primitives", [&] {   // a 0-primitive strip still has 2 vertices: the count itself must be checked
 		static const VtxRhw v[2] = {};
 		return e.tr->drawUP(PT_TRIANGLESTRIP, 0, v, sizeof(VtxRhw));
 	});
@@ -507,7 +507,7 @@ bool caseRefusals(Env& e, std::string* d)
 }
 
 
-// Codex rw3L-translate-r1 #1: every translated packet carries a pipeline, which skips the writer's stride rule - the translator
+// every translated packet carries a pipeline, which skips the writer's stride rule - the translator
 // applies it (VUID-vkCmdBindVertexBuffers2-pStrides-06209).
 bool caseStride(Env& e, std::string* d)
 {
@@ -520,7 +520,7 @@ bool caseStride(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// Codex rw3L-translate-r1 #2: d3d9_device.cpp MultiplyTransform = current * m in DXVK's column-major Matrix4 = m * current in
+// d3d9_device.cpp MultiplyTransform = current * m in DXVK's column-major Matrix4 = m * current in
 // D3D's row-major storage: translate(10) then multiply by scale(2) keeps the translation at 10.
 bool caseMultiply(Env& e, std::string* d)
 {
@@ -534,7 +534,7 @@ bool caseMultiply(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-translate-r1 #3: a deleted shader that is still bound keeps its data (DXVK keeps the bound object): the draw is
+// a deleted shader that is still bound keeps its data (DXVK keeps the bound object): the draw is
 // judged by the shader, not refused as "never created".
 bool caseDeletedBound(Env& e, std::string* d)
 {
@@ -548,7 +548,7 @@ bool caseDeletedBound(Env& e, std::string* d)
 	CHECK(!quad(e), "an uncatalogued ps drew");
 	CHECK(refusedCount(e, "pixel shader: not in the catalogue (classic)") == judged + 1, "deleted-but-bound ps lost its data");
 	e.tr->pixelShader(0);
-	// SetVertexShader(0) changes nothing (Codex r2 #2): the FVF draw that follows still uses the FVF bound before
+	// SetVertexShader(0) changes nothing: the FVF draw that follows still uses the FVF bound before
 	e.tr->vertexShader(FVF_XYZRHW | FVF_DIFFUSE, false);
 	e.tr->vertexShader(0, false);
 	e.seen.clear();
@@ -556,7 +556,7 @@ bool caseDeletedBound(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// Codex rw3L-code-r4 #2 (d3d8_device.cpp:1915-1927): SetVertexShader(0) with a LIVE programmable shader bound unbinds the shader
+// (d3d8_device.cpp:1915-1927): SetVertexShader(0) with a LIVE programmable shader bound unbinds the shader
 // and keeps its declaration - fixed function on a shader declaration: refused by name, never drawn with the old program.
 bool caseVsZeroProgram(Env& e, std::string* d)
 {
@@ -576,7 +576,7 @@ bool caseVsZeroProgram(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// Codex rw3L-translate-r1 #6: LightEnable on an index SetLight never defined enables DXVK's DefaultLight (d3d9_state.h:176).
+// LightEnable on an index SetLight never defined enables DXVK's DefaultLight (d3d9_state.h:176).
 bool caseDefaultLight(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -591,7 +591,7 @@ bool caseDefaultLight(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// Codex rw3L-translate-r1 #7: DXVK's eight enable slots (d3d9_device.cpp LightEnable): with 8 lit, a 9th enable is ignored; a
+// DXVK's eight enable slots (d3d9_device.cpp LightEnable): with 8 lit, a 9th enable is ignored; a
 // disable empties that slot, and the next enable takes it - the FF block sees the slots in order.
 bool caseLightSlots(Env& e, std::string* d)
 {
@@ -856,7 +856,7 @@ bool caseSmBits(Env& e, std::string* d)
 	bitsOf("receivers off (key off), tag on", 0u);
 	e.tr->shadowTags(0);
 	ok = end(e, d) && ok;
-	// Codex code-p2-r1 P3: the classes read the RESOLVED factors - on X8R8G8B8, DESTALPHA / INVDESTALPHA is ONE / ZERO (exact, not
+	// the classes read the RESOLVED factors - on X8R8G8B8, DESTALPHA / INVDESTALPHA is ONE / ZERO (exact, not
 	// nonlinear)
 	begin(e, e.xrgb, nullptr);
 	e.tr->setReceivers(true);
@@ -1018,7 +1018,7 @@ bool caseDrawClasses(Env& e, std::string* d)
 	bool ok = true;
 	const std::map<std::string, uint64_t> before = e.tr->stats().drawClasses;
 	std::map<std::string, uint64_t> want;
-	// the map's change since `before` must equal `want` - checked at two snapshots with draws between them (Codex cut3a-r1 #4: a
+	// the map's change since `before` must equal `want` - checked at two snapshots with draws between them (a
 	// rebuild that does not clear, or a clear that loses counts, shows only across successive reads)
 	auto compare = [&](const char* when) {
 		std::map<std::string, uint64_t> got;
@@ -1139,7 +1139,7 @@ void packStep(Env& e, bool& ok, std::string* d, const std::string& what, PackWan
 		*d += " [" + what + ": did not reuse the cached pack]";
 		ok = false;
 	}
-	// with check mode on, every reuse - a world refresh too - is packed again and compared (Codex rw3-T-cut3b-world-r1 #4)
+	// with check mode on, every reuse - a world refresh too - is packed again and compared
 	if (st.packChecks != checks0 + (e.packCheck && want != REPACK ? 1 : 0)) {
 		*d += " [" + what + ": check mode did not compare this reuse exactly once]";
 		ok = false;
@@ -1253,7 +1253,7 @@ bool casePackReuse(Env& e, std::string* d)
 	step("a strip after the point list", REPACK, q);
 	e.tr->renderTarget(target(e.argb), target(e.depth), true);   // the viewport becomes the whole target
 	step("SetRenderTarget (viewport reset)", REPACK, q);
-	e.tr->resetStates();   // drawn with no setter in between: only the reset itself can have invalidated (Codex rw3-T-cut3b-r1 #4)
+	e.tr->resetStates();   // drawn with no setter in between: only the reset itself can have invalidated
 	step("Reset (render / stage states to defaults)", REPACK, q);
 	const bool ended = end(e, d);
 	e.w->forget(&tex.image());
@@ -1335,7 +1335,7 @@ bool casePackWorld(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// rw3-T cut 3b (Codex rw3-T-cut3b-r1 #4): a WS-E custom pixel shader through the dirty-pack. Its c0-c7 go on a COPY of the cached PS
+// rw3-T cut 3b: a WS-E custom pixel shader through the dirty-pack. Its c0-c7 go on a COPY of the cached PS
 // block: every custom draw's PS block == a fresh GxPackFF + the overlay, an FF draw after it has none, and check mode - which
 // compares the CACHE with a fresh pack - sees 0 mismatches (an overlay written into the cache shows there: packOverlayInCache).
 bool casePackCustom(Env& e, std::string* d)
@@ -1381,7 +1381,7 @@ bool casePackCustom(Env& e, std::string* d)
 	return end(e, d) && ok;
 }
 
-// rw3-T cut 3b (Codex rw3-T-cut3b-r2 #2): a WS-E custom VERTEX shader (Trees.vso + its declaration) through the dirty-pack. Its c0-c95
+// rw3-T cut 3b: a WS-E custom VERTEX shader (Trees.vso + its declaration) through the dirty-pack. Its c0-c95
 // overlay the first 1536 B of a COPY of the cached VS block - the region the world refresh writes (WorldView, NormalMatrix): each
 // custom draw's VS block == a fresh GxPackFF + the overlay, through a repeat, a world-only refresh, new constants and the return to
 // FF, with check mode comparing the CACHE (an overlay written into it shows there: packVsOverlayInCache).
@@ -1503,7 +1503,7 @@ struct Case
 	const char* name;
 	bool (*fn)(Env&, std::string*);
 	bool GxTranslateDebug::*plant;   // the plant that must break this case (its X- arm)
-	const char* breaks = nullptr;    // when set, the X- arm counts only if THIS step failed (a setup failure is no detection - Codex P3 r1)
+	const char* breaks = nullptr;    // when set, the X- arm counts only if THIS step failed (a setup failure is no detection)
 };
 
 const Case kCases[] = {
@@ -1552,7 +1552,7 @@ struct ArmResult
 {
 	std::string name, detail;
 	bool expectFail = false, failed = false;
-	bool setupFailed = false;   // the case never ran: the arm FAILS whatever it expected (Codex rw3L-translate-r1 #8)
+	bool setupFailed = false;   // the case never ran: the arm FAILS whatever it expected
 };
 
 ArmResult runArm(const std::string& arm, const Options& opt)
@@ -1628,7 +1628,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 	Env env;
 	if (setup) {
 		tr.init(ctx, writer, cache, !ctx.features().portabilitySubset);
-		tr.setPackCheck(false);   // the cases own check mode (Env::packCheck), whatever GX_TR_PACK_CHECK says (Codex rw3-T-cut3b-r2 #1)
+		tr.setPackCheck(false);   // the cases own check mode (Env::packCheck), whatever GX_TR_PACK_CHECK says
 		tr.setObserver(observe, &env);
 		if (res.expectFail)
 			tr.debug().*(c->plant) = true;

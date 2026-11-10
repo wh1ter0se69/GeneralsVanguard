@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 06/10/2026 IN-MATCH VOTE KICK - the client's half: the banner, its keys and clicks, the lines in
+// GeneralsX: IN-MATCH VOTE KICK - the client's half: the banner, its keys and clicks, the lines in
 // the message list, the kicked client leaving, and the two calls the Tab board's KICK button makes.
 //
 // Everything here READS the simulation's vote (GameLogic::getGxVoteKick, rules in Common/GXVoteKick.h) and SENDS orders
@@ -25,5 +25,5 @@ Bool gxVoteKickPump();
 
 /// Clicks and taps on the banner: YES, NO, HIDE, and every other click on it swallowed so none becomes an order to the units
 /// under it. Attached BEFORE the WindowTranslator, which eats every click while a map script disables input - a ballot must
-/// still get through then (Codex vote-kick-r3 P2); the banner steps aside under the quit menu so no menu click is taken. No keys.
+/// still get through then; the banner steps aside under the quit menu so no menu click is taken. No keys.
 GameMessageTranslator *gxNewVoteKickTranslator();

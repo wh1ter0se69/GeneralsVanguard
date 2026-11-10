@@ -90,7 +90,7 @@ static WW3DFormat findFormat(const WW3DFormat formats[], WW3DFormat fallback)
 		}
 
 	}
-	// GeneralsX @bugfix BenderAI 24/02/2026 W3DRadar: When DXVK/MoltenVK caps query returns no supported
+	// GeneralsX: W3DRadar: When DXVK/MoltenVK caps query returns no supported
 	// format (e.g. CheckDeviceFormat fails on macOS for R8G8B8/R5G6B5), fall back to a guaranteed format.
 	// Without this, texture creation silently produces a null D3D texture and crashes in buildTerrainTexture.
 	//
@@ -298,13 +298,13 @@ void W3DRadar::drawHeroIcon( Int pixelX, Int pixelY, Int width, Int height, cons
 /** Draw a "box" into the texture passed in that represents the viewable area for
 	* the tactical display into the game world */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 05/10/2026 The GeneralsX spectator HUD (InGameUI.cpp, GXSpectatorHud.inl) draws the radar into
+// GeneralsX: The GeneralsX spectator HUD (InGameUI.cpp, GXSpectatorHud.inl) draws the radar into
 // a panel of its own while the retail radar window is hidden, and points this at that panel for the length of its draw()
 // call, so the view box is clipped to where the radar actually is. nullptr - always, outside that call - keeps the retail
 // clip below exactly as it was. Defined here, not in the HUD: this file links into both games, the HUD only into Zero Hour.
 IRegion2D *gxRadarViewBoxClip = nullptr;
 
-// GeneralsX @bugfix Claude 22/10/2026 TRUE = draw the margins of a map that does not fill the radar window black, as retail
+// GeneralsX: TRUE = draw the margins of a map that does not fill the radar window black, as retail
 // does (the legacy look); FALSE = the dimmed out-of-bounds border image (draw). Written by the Zero Hour HUD every frame of a
 // match (GXSpectatorHud.inl underWindows); FALSE until then, and always in the base game, which has no such switch.
 Bool gxRadarRetailMargins = FALSE;
@@ -702,7 +702,7 @@ Bool W3DRadar::canRenderObject( const RadarObject *rObj, const Player *localPlay
 	// ML-- What the heck is this? local-only and neutral-observer-viewed units are stealthy?? Since when?
 	// Now it twinkles for any stealthed object, whether locally controlled or neutral-observer-viewed
 	//
-	// GeneralsX @performance Claude 23/09/2026 Status bits first: they are false for nearly every radar object, and the
+	// GeneralsX: Status bits first: they are false for nearly every radar object, and the
 	// relationship lookup (viewed player + two map finds) was paid for every one. All four terms are pure reads.
 	if (obj->testStatus( OBJECT_STATUS_STEALTHED ) &&
 		!obj->testStatus( OBJECT_STATUS_DETECTED ) &&
@@ -991,7 +991,7 @@ void W3DRadar::init()
 	size.y = m_textureHeight;
 	m_terrainImage->setImageSize( &size );
 
-	// GeneralsX @feature Claude 06/10/2026 The border image: the radar window's margins around a map whose shape differs
+	// GeneralsX: The border image: the radar window's margins around a map whose shape differs
 	// from the window's, in the map's own out-of-bounds terrain (draw, buildBorderTexture). Same format and orientation.
 	m_borderTexture = MSGNEW("TextureClass") TextureClass( m_textureWidth, m_textureHeight, m_terrainTextureFormat, MIP_LEVELS_1 );
 	m_borderImage = newInstance(Image);
@@ -1118,7 +1118,7 @@ void W3DRadar::buildTerrainTexture( TerrainLogic *terrain )
 	// get the terrain surface to draw in
 	surface = m_terrainTexture->Get_Surface_Level();
 	DEBUG_ASSERTCRASH( surface, ("W3DRadar: Can't get surface for terrain texture") );
-	// GeneralsX @bugfix BenderAI 24/02/2026 W3DRadar: Guard against null surface level — can occur
+	// GeneralsX: W3DRadar: Guard against null surface level — can occur
 	// when terrain texture creation silently fails (e.g. DXVK format fallback still not supported).
 	// Without this guard the code dereferences a null pointer and crashes at surfaceDesc offset 0x18.
 	if( !surface )
@@ -1347,7 +1347,7 @@ void W3DRadar::buildTerrainTexture( TerrainLogic *terrain )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 06/10/2026 The border texture for a radar window of width x height pixels: the world
+/** GeneralsX: The border texture for a radar window of width x height pixels: the world
 	* rectangle that window shows at the map image's own scale (findDrawPositions: the map fitted whole, centred), in the
 	* out-of-bounds terrain tiles' own colours, dimmed, fading to a plain colour past the height map's border - and nothing
 	* derived from the playable map (see the loop). Reads the terrain only; changes no radar mapping. */
@@ -1367,7 +1367,7 @@ void W3DRadar::buildBorderTexture( Int width, Int height )
 	const Real x0 = m_mapExtent.lo.x - (viewW - mapW) * 0.5f, y0 = m_mapExtent.lo.y - (viewH - mapH) * 0.5f;
 	// The height map we really have: the playable area plus its border (none on some maps). The colour lookup clamps past
 	// it ONTO THE NEAREST CELL, which is a playable one when the border is thin or absent - so every sample is
-	// clamped here first, and one that still lands on the playable map gets a plain margin colour (Codex player-ui-c-r13 P2).
+	// clamped here first, and one that still lands on the playable map gets a plain margin colour.
 	Region3D bordered;
 	TheTerrainLogic->getExtentIncludingBorder( &bordered );
 	const Real half = MAP_XY_FACTOR * 0.5f;
@@ -1396,7 +1396,7 @@ void W3DRadar::buildBorderTexture( Int width, Int height )
 			sy = clamp( bordered.lo.y + half, sy, bordered.hi.y - half );
 			RGBColor color;
 			// Nothing of the playable map, shrouded or not, may reach the margin: not its texels (filtering at the map image's
-			// edge blends them in - Codex player-ui-c-r12 P2), not a playable cell the lookup clamps onto (r13), nor anything
+			// edge blends them in), not a playable cell the lookup clamps onto (r13), nor anything
 			// next to it (r14, r15). So the plain colour wherever the sample - after the clamp - lies within GUARD of the
 			// playable extent.
 			if( fade >= 1.0f || (wx > m_mapExtent.lo.x - GUARD && wx < m_mapExtent.hi.x + GUARD && sy > m_mapExtent.lo.y - GUARD
@@ -1405,7 +1405,7 @@ void W3DRadar::buildBorderTexture( Int width, Int height )
 			else
 			{
 				// The out-of-bounds TILE colour only: no height shading (it is normalised by the whole map's heights, playable
-				// peaks included - Codex r15 P2) and no water lookup (a water polygon crossing the boundary takes its level
+				// peaks included) and no water lookup (a water polygon crossing the boundary takes its level
 				// from the playable side - r15 P2). A tile is one cell and GUARD keeps it outside the playable map.
 				TheTerrainVisual->getTerrainColorAt( wx, sy, &color );
 				// out of bounds: darker and a little greyer, so the playable map stays the brightest thing in the frame
@@ -1608,10 +1608,10 @@ void W3DRadar::draw( Int pixelX, Int pixelY, Int width, Int height )
 	Int scaledHeight = lr.y - ul.y;
 
 	// draw black border areas where we need map
-	// GeneralsX @feature Claude 06/10/2026 ...unless the border image can fill them: the map's own out-of-bounds terrain,
+	// GeneralsX: ...unless the border image can fill them: the map's own out-of-bounds terrain,
 	// dimmed, at the map image's scale (owner 06/10: the legacy radar's black margins, "we LITERALLY have the game code to
 	// fix that" - option a). The thin line still marks where the playable map ends.
-	// GeneralsX @bugfix Claude 22/10/2026 Not in the legacy look: there the radar is retail's again, black margins included
+	// GeneralsX: Not in the legacy look: there the radar is retail's again, black margins included
 	// (owner 21/10: "These shouldn't change if the UI is legacy" - gxRadarRetailMargins, set by the HUD every frame).
 	const Bool border = !gxRadarRetailMargins && m_borderImage != nullptr && (scaledWidth < width - 1 || scaledHeight < height - 1);
 	if( border )

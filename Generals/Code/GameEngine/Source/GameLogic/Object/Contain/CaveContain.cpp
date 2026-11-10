@@ -87,8 +87,8 @@ void CaveContain::removeFromContain( Object *obj, Bool exposeStealthUnits )
 	// we can only remove this object from the contains list of this module if
 	// it is actually contained by this module
 	//
-	// GeneralsX @bugfix Claude 09/10/2026 No tracker until a cave of this index finished building: nothing is inside, nothing
-	// to remove (script evacuate / team Stop on an unfinished cave, Codex tsh-port-1008-sec-r4 P2).
+	// GeneralsX: No tracker until a cave of this index finished building: nothing is inside, nothing
+	// to remove (script evacuate / team Stop on an unfinished cave).
 	TunnelTracker *myTracker = TheCaveSystem->findTunnelTrackerForCaveIndex( m_caveIndex );
 
 	if( myTracker == nullptr || ! myTracker->isInContainer( obj ) )
@@ -212,14 +212,14 @@ void CaveContain::onRemoving( Object *obj )
 Bool CaveContain::isValidContainerFor(const Object* obj, Bool checkCapacity) const
 {
 	TunnelTracker *myTracker = TheCaveSystem->findTunnelTrackerForCaveIndex( m_caveIndex );
-	if( myTracker == nullptr )	// GeneralsX @bugfix Claude 09/10/2026 no tracker yet (sec-r5 P2): what an empty one answers
+	if( myTracker == nullptr )	// GeneralsX: no tracker yet (sec-r5 P2): what an empty one answers
 		return obj != nullptr && !obj->isKindOf( KINDOF_AIRCRAFT ) && ( !checkCapacity || 0 < TheGlobalData->m_maxTunnelCapacity );
 	return myTracker->isValidContainerFor( obj, checkCapacity );
 }
 
-// GeneralsX @bugfix Claude 09/10/2026 No tracker until a cave of this index finished building (see getContainedItemsList
+// GeneralsX: No tracker until a cave of this index finished building (see getContainedItemsList
 // below): nobody inside, and the same capacity the tracker would report. The control bar asks both when an enemy's
-// unfinished cave is selected, which dereferenced the null (Codex tsh-port-1008-sec-r3 P2).
+// unfinished cave is selected, which dereferenced the null.
 UnsignedInt CaveContain::getContainCount() const
 {
 	TunnelTracker *myTracker = TheCaveSystem->findTunnelTrackerForCaveIndex( m_caveIndex );
@@ -234,11 +234,11 @@ Int CaveContain::getContainMax() const
 
 const ContainedItemsList* CaveContain::getContainedItemsList() const
 {
-	// GeneralsX @bugfix Claude 09/10/2026 CaveSystem creates an index's tracker only when a cave of that index finishes
+	// GeneralsX: CaveSystem creates an index's tracker only when a cave of that index finishes
 	// building (registerNewCave in onBuildComplete). Until then there are no passengers: an empty list, as TunnelContain
 	// answers for a player with no tunnel system. The unguarded dereference crashed every caller that walks the list -
 	// evacuating an unfinished cave (orderAllPassengersToExit), and isContained for an exit order naming it
-	// (Codex tsh-port-1008-sec-r1 P2, sec-r2 P2/P3). findTunnelTrackerForCaveIndex does not assert on the null.
+	// findTunnelTrackerForCaveIndex does not assert on the null.
 	TunnelTracker *myTracker = TheCaveSystem->findTunnelTrackerForCaveIndex( m_caveIndex );
 	if( myTracker == nullptr )
 	{
@@ -264,7 +264,7 @@ void CaveContain::onDie( const DamageInfo * damageInfo )
 
 	TheCaveSystem->unregisterCave( m_caveIndex );
 
-	if( myTracker != nullptr )	// GeneralsX @bugfix Claude 09/10/2026 no tracker = never an endpoint (sec-r5 P2)
+	if( myTracker != nullptr )	// GeneralsX: no tracker = never an endpoint (sec-r5 P2)
 		myTracker->onTunnelDestroyed( getObject() );
 }
 
@@ -273,8 +273,8 @@ void CaveContain::onDie( const DamageInfo * damageInfo )
 void CaveContain::onCreate()
 {
 	m_caveIndex = getCaveContainModuleData()->m_caveIndexData;
-	// GeneralsX @bugfix Claude 06/10/2026 A map.ini may override this module's CaveIndex, and onBuildComplete registers it
-	// unchecked: -1 grew the cave system's tracker table until allocation failed (batch-0958 Codex r3-full). An index the
+	// GeneralsX: A map.ini may override this module's CaveIndex, and onBuildComplete registers it
+	// unchecked: -1 grew the cave system's tracker table until allocation failed. An index the
 	// cave system cannot hold joins the default group 0. No shipped INI or map.ini uses CaveContain at all (ZH + Community
 	// Patch INIs, 1,222 community maps); its default is 0 and scripts use 1..2.
 	if( !CaveSystem::isValidCaveIndex( m_caveIndex ) )
@@ -299,10 +299,10 @@ void CaveContain::onBuildComplete()
 //-------------------------------------------------------------------------------------------------
 void CaveContain::tryToSetCaveIndex( Int newIndex )
 {
-	// GeneralsX @bugfix Claude 09/10/2026 A cave still under construction is not an endpoint yet (onDie says the same): its
+	// GeneralsX: A cave still under construction is not an endpoint yet (onDie says the same): its
 	// onBuildComplete registers it under whatever m_caveIndex then holds. Registering it here as well made it an endpoint
 	// before it was built and then a second time on completion (a duplicate id the tracker never removes) - with or
-	// without a tracker for the old index (Codex tsh-port-1008-sec-r6 P2).
+	// without a tracker for the old index.
 	if( getObject()->getStatusBits().test( OBJECT_STATUS_UNDER_CONSTRUCTION ) )
 	{
 		if( CaveSystem::isValidCaveIndex( newIndex ) )
@@ -314,7 +314,7 @@ void CaveContain::tryToSetCaveIndex( Int newIndex )
 	{
 		TunnelTracker *myOldTracker = TheCaveSystem->findTunnelTrackerForCaveIndex( m_caveIndex );
 		TheCaveSystem->unregisterCave( m_caveIndex );
-		if( myOldTracker != nullptr )	// GeneralsX @bugfix Claude 09/10/2026 the old index may never have had a tracker (sec-r5 P2)
+		if( myOldTracker != nullptr )	// GeneralsX: the old index may never have had a tracker (sec-r5 P2)
 			myOldTracker->onTunnelDestroyed( getObject() );
 
 		m_caveIndex = newIndex;
@@ -386,7 +386,7 @@ static CaveInterface* findCave(Object* obj)
 void CaveContain::changeTeamOnAllConnectedCaves( Team *newTeam, Bool setOriginalTeams )
 {
 	TunnelTracker *myTracker = TheCaveSystem->findTunnelTrackerForCaveIndex( m_caveIndex );
-	if( myTracker == nullptr )	// GeneralsX @bugfix Claude 09/10/2026 no tracker = no connected caves (sec-r5 P2)
+	if( myTracker == nullptr )	// GeneralsX: no tracker = no connected caves (sec-r5 P2)
 		return;
 	const std::list<ObjectID> *allCaves = myTracker->getContainerList();
 	for( std::list<ObjectID>::const_iterator iter = allCaves->begin(); iter != allCaves->end(); iter++ )
@@ -451,7 +451,7 @@ void CaveContain::xfer( Xfer *xfer )
 
 	// cave index
 	xfer->xferInt( &m_caveIndex );
-	// GeneralsX @bugfix Claude 06/10/2026 A save's index reaches registerNewCave too (onBuildComplete of a cave still under
+	// GeneralsX: A save's index reaches registerNewCave too (onBuildComplete of a cave still under
 	// construction), so one outside the range onCreate allows refuses the load instead of growing the tracker table.
 	if( xfer->getXferMode() == XFER_LOAD && !CaveSystem::isValidCaveIndex( m_caveIndex ) )
 		throw SC_INVALID_DATA;

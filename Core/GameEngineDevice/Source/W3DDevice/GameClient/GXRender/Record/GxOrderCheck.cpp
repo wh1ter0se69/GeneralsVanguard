@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: GxOrderCheck (see GxOrderCheck.h).
+// GeneralsX: WS-F1: GxOrderCheck (see GxOrderCheck.h).
 #include "GxOrderCheck.h"
 
 #include <algorithm>
@@ -23,15 +23,15 @@ struct Bar
 	VkPipelineStageFlags2 srcS, dstS;
 	VkAccessFlags2 srcA, dstA;
 	VkImage img;   // an image barrier (buf null)
-	uint32_t mip0, mips, layer0, layers;   // its subresource range (counts: UINT32_MAX = to the end) - Codex rw2-F1-r3 #3
-	VkImageAspectFlags aspects;            // and its aspects (Codex rw2-F1-r5 #2)
-	uint32_t gen;                          // the image's generation when the barrier was RECORDED (Codex rw2-F1-r14 #1)
+	uint32_t mip0, mips, layer0, layers;   // its subresource range (counts: UINT32_MAX = to the end)
+	VkImageAspectFlags aspects;            // and its aspects
+	uint32_t gen;                          // the image's generation when the barrier was RECORDED
 };
 
 struct Att   // one attachment of a rendering instance: the image subresource its view names, ONE aspect (depth and stencil of
-{            // one view have their own load/store ops - Codex rw2-F1-r5 #2)
+{            // one view have their own load/store ops)
 	VkImage img;
-	uint32_t gen;                // the image's generation when the instance was RECORDED (Codex rw2-F1-r14 #1)
+	uint32_t gen;                // the image's generation when the instance was RECORDED
 	uint32_t mip, layer0, layers;
 	VkImageAspectFlags aspect;   // COLOR, DEPTH or STENCIL
 	bool depth;                  // DEPTH or STENCIL: the fragment-test stages
@@ -70,12 +70,12 @@ struct PipeInfo
 
 // Where a write has been made visible: one (stages, accesses) pair per dependency that reached it. Pairs are never merged:
 // two barriers reaching (ALL_GRAPHICS, INDEX_READ) and (FRAGMENT_SHADER, MEMORY_READ) do not make a vertex read safe
-// (Codex rw2-F1-r1 #4).
+//
 struct Vis
 {
 	VkPipelineStageFlags2 s;
 	VkAccessFlags2 a;
-	uint64_t cmd;   // the barrier command that added it (0: a semaphore wait): no chain within one command (Codex rw2-F1-r3 #2)
+	uint64_t cmd;   // the barrier command that added it (0: a semaphore wait): no chain within one command
 };
 
 struct W
@@ -100,9 +100,9 @@ struct IW
 	uint64_t seq;
 	std::vector<Vis> vis;
 };
-// keyed by subresource (image, mip level, array layer): a barrier credits only the levels and layers it covers (Codex rw2-F1-r3 #3)
+// keyed by subresource (image, mip level, array layer): a barrier credits only the levels and layers it covers
 // (image, GENERATION, mip, layer, aspect): forgetImage() starts a new generation, so commands recorded for a destroyed image -
-// however late they are submitted - never touch the history of a new image that reuses its handle (Codex rw2-F1-r14 #1)
+// however late they are submitted - never touch the history of a new image that reuses its handle
 using Sub = std::tuple<VkImage, uint32_t, uint32_t, uint32_t, VkImageAspectFlags>;
 std::unordered_map<VkImage, uint32_t> g_imageGen;
 std::map<Sub, IW> g_images;
@@ -111,9 +111,9 @@ struct Sig
 {
 	uint64_t value;   // 0 for a binary semaphore
 	// the writes (buffer) and stores (image) in the signal's first synchronisation scope, by seq, decided AT THE SIGNAL: a
-	// dependency recorded later cannot widen what an earlier signal covered (Codex rw2-F1-r2 #3, r4 #1)
+	// dependency recorded later cannot widen what an earlier signal covered
 	// buffer writes as (seq, range): a write split by a partial barrier keeps its seq in every piece, and only the pieces in the
-	// scope at the signal are covered - a later split is matched by containment (Codex rw2-F1-r12 #1)
+	// scope at the signal are covered - a later split is matched by containment
 	struct Range { uint64_t seq; VkDeviceSize begin, end; };
 	std::vector<Range> writes;
 	std::vector<uint64_t> stores;
@@ -162,7 +162,7 @@ PFN_vkDestroySemaphore o_destroySemaphore;
 
 const VkPipelineStageFlags2 kTransfer = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT | VK_PIPELINE_STAGE_2_COPY_BIT |
 	VK_PIPELINE_STAGE_2_CLEAR_BIT | VK_PIPELINE_STAGE_2_RESOLVE_BIT | VK_PIPELINE_STAGE_2_BLIT_BIT;
-// what ALL_GRAPHICS stands for (the spec's list; compute, transfer and host are NOT in it - Codex rw2-F1-r6 #2)
+// what ALL_GRAPHICS stands for (the spec's list; compute, transfer and host are NOT in it)
 const VkPipelineStageFlags2 kGraphics = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT | VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT |
 	VK_PIPELINE_STAGE_2_TASK_SHADER_BIT_EXT | VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT | VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT |
 	VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT | VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT | VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT |
@@ -173,7 +173,7 @@ const VkPipelineStageFlags2 kGraphics = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT | V
 	VK_PIPELINE_STAGE_2_TRANSFORM_FEEDBACK_BIT_EXT | VK_PIPELINE_STAGE_2_FRAGMENT_SHADING_RATE_ATTACHMENT_BIT_KHR |
 	VK_PIPELINE_STAGE_2_FRAGMENT_DENSITY_PROCESS_BIT_EXT;
 
-// The stages a mask stands for, every aggregate expanded (Codex rw2-F1-r4 #3, r6 #2, r7 #2). first = a FIRST synchronisation
+// The stages a mask stands for, every aggregate expanded. first = a FIRST synchronisation
 // scope (sync2: BOTTOM_OF_PIPE there is all commands, TOP_OF_PIPE none); else a second scope (TOP_OF_PIPE all, BOTTOM none).
 VkPipelineStageFlags2 expand(VkPipelineStageFlags2 m, bool first)
 {
@@ -197,10 +197,10 @@ VkPipelineStageFlags2 expand(VkPipelineStageFlags2 m, bool first)
 }
 
 // EXECUTION scopes also hold logically earlier (a first scope) or later (a second scope) stages of the graphics pipeline; ACCESS
-// scopes hold only the stages named (Codex rw2-F1-r15 #3). Two orders: the primitive-shading and the mesh pipeline.
+// scopes hold only the stages named. Two orders: the primitive-shading and the mesh pipeline.
 VkPipelineStageFlags2 logical(VkPipelineStageFlags2 m, bool first)
 {
-	// INDEX_INPUT is logically EARLIER than VERTEX_ATTRIBUTE_INPUT: one rung each (Codex rw2-F1-r16)
+	// INDEX_INPUT is logically EARLIER than VERTEX_ATTRIBUTE_INPUT: one rung each
 	static const VkPipelineStageFlags2 kVtx[] = { VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT, VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT,
 		VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT, VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT,
 		VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT, VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT,
@@ -227,7 +227,7 @@ VkPipelineStageFlags2 logical(VkPipelineStageFlags2 m, bool first)
 }
 
 // The stages a mask's ACCESS scope covers: TOP_OF_PIPE and BOTTOM_OF_PIPE widen only the EXECUTION scope (sync2: their access
-// scope is empty), so availability and visibility never come from them (Codex rw3-P-ordercheck-r1 #1)
+// scope is empty), so availability and visibility never come from them
 VkPipelineStageFlags2 accessStages(VkPipelineStageFlags2 m)
 {
 	return expand(m & ~(VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT | VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT), true);
@@ -251,7 +251,7 @@ bool stageCovers(VkPipelineStageFlags2 vis, VkPipelineStageFlags2 want)   // vis
 	return (accessStages(vis) & want) == want;
 }
 
-// MEMORY_READ stands for every READ access and MEMORY_WRITE for every WRITE access - never the other kind (Codex rw3-P-oc-r1 #1:
+// MEMORY_READ stands for every READ access and MEMORY_WRITE for every WRITE access - never the other kind (
 // the attachment write check took MEMORY_READ as covering a write and did not take MEMORY_WRITE at all)
 const VkAccessFlags2 kWriteAccesses = VK_ACCESS_2_SHADER_WRITE_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT |
 	VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT | VK_ACCESS_2_HOST_WRITE_BIT |
@@ -274,13 +274,13 @@ bool visibleTo(const std::vector<Vis>& vis, VkPipelineStageFlags2 s, VkAccessFla
 bool visibleTo(const W& w, VkPipelineStageFlags2 s, VkAccessFlags2 a) { return visibleTo(w.vis, s, a); }
 
 // The barrier reaches the write: its source scope holds the write (stage AND that write's access, or MEMORY_WRITE -
-// Codex rw2-F1-r1 #5), or it chains on a dependency that already reached it (execution chain through that destination).
+// ), or it chains on a dependency that already reached it (execution chain through that destination).
 bool reaches(const Bar& b, VkPipelineStageFlags2 stage, VkAccessFlags2 access, const std::vector<Vis>& vis)
 {
 	if (srcStageHas(b.srcS, stage) && (b.srcA & (access | VK_ACCESS_2_MEMORY_WRITE_BIT)))
 		return true;
 	// the barriers of ONE vkCmdPipelineBarrier2 do not chain on each other: a dependency added by this same command has its
-	// destination after the command and cannot be a source scope of it (Codex rw2-F1-r3 #2)
+	// destination after the command and cannot be a source scope of it
 	for (const Vis& v : vis)
 		if (v.cmd != g_cmd && execMeets(b.srcS, v.s))   // an execution chain: logical stage order applies
 			return true;
@@ -340,7 +340,7 @@ void applyBarrier(const Bar& b)
 		if (!b.global)
 			return;   // an image barrier orders that image's memory only
 	}
-	std::vector<W> pieces;   // the parts of writes a buffer barrier covers only partly (Codex rw2-F1-r1 #2)
+	std::vector<W> pieces;   // the parts of writes a buffer barrier covers only partly
 	for (W& w : g_writes) {
 		if (!b.global && (w.buf != b.buf || w.end <= b.begin || b.end <= w.begin))
 			continue;
@@ -434,13 +434,13 @@ void replay(const Log& log, int depth = 0)
 				if (it == g_images.end())
 					continue;   // never stored by an earlier instance
 				// where the LOAD OP runs (depth/stencil: EARLY_FRAGMENT_TESTS; the instance's later tests are logically later
-				// stages, which a dependency to EARLY already orders - Codex rw2-F1-r8 #2)
+				// stages, which a dependency to EARLY already orders)
 				const VkPipelineStageFlags2 st = a.depth ? VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT :
 					VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 				const VkAccessFlags2 rd = a.depth ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT : VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
 				const VkAccessFlags2 wr = a.depth ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 				// LOAD reads the earlier store (needs it visible to the read); CLEAR / DONT_CARE write it (a write-after-write: the
-				// earlier store made available and visible to the WRITE access - execution order alone is not enough, Codex
+				// earlier store made available and visible to the WRITE access - execution order alone is not enough,
 				// rw3-P-ordercheck-r1 #2, as Khronos' attachment-reuse example)
 				bool ordered = false;
 				for (const Vis& v : it->second.vis)
@@ -465,7 +465,7 @@ void replay(const Log& log, int depth = 0)
 			for (uint32_t i = 0; i < e.barCount; ++i)
 			for (uint32_t layer = log.atts[e.bar + i].layer0; layer - log.atts[e.bar + i].layer0 < log.atts[e.bar + i].layers; ++layer) {
 				const Att& a = log.atts[e.bar + i];
-				// every instance counts as a write: STORE and DONT_CARE write (Codex rw2-F1-r8 #1), and NONE skips only the store - a
+				// every instance counts as a write: STORE and DONT_CARE write, and NONE skips only the store - a
 				// CLEAR load or a draw before it still wrote (r13 #3). A read-only NONE instance is an over-report, never a miss.
 				g_images[Sub(a.img, a.gen, a.mip, layer, a.aspect)] = { a.depth ? VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT : VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 					a.depth ? VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT : VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT, g_seq++, {} };
@@ -618,7 +618,7 @@ VKAPI_ATTR void VKAPI_CALL w_cmdCopyBuffer(VkCommandBuffer cb, VkBuffer src, VkB
 VKAPI_ATTR void VKAPI_CALL w_cmdUpdateBuffer(VkCommandBuffer cb, VkBuffer dst, VkDeviceSize off, VkDeviceSize size, const void* data)
 {
 	// the CLEAR stage, as the Khronos layer classifies it ("TRANSFER_WRITE at VK_PIPELINE_STAGE_2_CLEAR_BIT", VVL 1.4.357):
-	// Codex rw2-F1-r4 #2 said COPY - refuted by X-order-units' update-* cases, where checker and layer agree both ways
+	// said COPY - refuted by X-order-units' update-* cases, where checker and layer agree both ways
 	logWrite(cb, dst, off, size, VK_PIPELINE_STAGE_2_CLEAR_BIT);
 	o_cmdUpdateBuffer(cb, dst, off, size, data);
 }
@@ -754,7 +754,7 @@ VKAPI_ATTR void VKAPI_CALL w_cmdExecuteCommands(VkCommandBuffer cb, uint32_t n, 
 	o_cmdExecuteCommands(cb, n, cbs);
 }
 
-// a semaphore's handle can come back as a NEW semaphore: its signal history ends at either lifecycle boundary (Codex r11 #2)
+// a semaphore's handle can come back as a NEW semaphore: its signal history ends at either lifecycle boundary
 VKAPI_ATTR VkResult VKAPI_CALL w_createSemaphore(VkDevice dev, const VkSemaphoreCreateInfo* ci, const VkAllocationCallbacks* alloc,
 	VkSemaphore* out)
 {
@@ -809,9 +809,9 @@ VKAPI_ATTR VkResult VKAPI_CALL w_queueSubmit2(VkQueue q, uint32_t n, const VkSub
 {
 	// The replay below credits this submission's waits, barriers and signals BEFORE the driver runs it; a submission the driver
 	// refuses ran nothing (vkQueueSubmit2: on failure the resources and synchronisation primitives are unaffected), so the
-	// sync state is put back (Codex rw3-P-ordercheck-r1 #3). Violations found in it stay counted (over-report only). The lock is
+	// sync state is put back. Violations found in it stay counted (over-report only). The lock is
 	// held across the real submit, so no other submission's replay can land between the snapshot and the restore.
-	// ponytail: the snapshot copies the whole sync state per submit and serialises submits - a gate tool's cost, not shipped
+	// Trade-off: the snapshot copies the whole sync state per submit and serialises submits - a gate tool's cost, not shipped
 	std::lock_guard<std::mutex> g(g_lock);
 	const std::vector<W> writes0 = g_writes;
 	const std::map<Sub, IW> images0 = g_images;
@@ -821,31 +821,31 @@ VKAPI_ATTR VkResult VKAPI_CALL w_queueSubmit2(VkQueue q, uint32_t n, const VkSub
 		for (uint32_t s = 0; s < n; ++s) {
 			const VkSubmitInfo2& si = submits[s];
 			// A wait makes visible, at its stages, only the writes made before the SIGNAL that satisfies it - a signal from a
-			// submission this check saw. A host-signalled or unknown semaphore orders no device write (Codex rw2-F1-r1 #3).
+			// submission this check saw. A host-signalled or unknown semaphore orders no device write.
 			for (uint32_t i = 0; i < si.waitSemaphoreInfoCount; ++i) {
 				const VkSemaphoreSubmitInfo& wi = si.pWaitSemaphoreInfos[i];
 				auto it = g_signals.find(wi.semaphore);
 				if (it == g_signals.end()) {
 					if (wi.value != 0)
-						++g_counts.ambiguousWaits;   // a timeline wait no submitted signal can satisfy (host-signalled: Codex rw3-P-ordercheck-r1 #4)
+						++g_counts.ambiguousWaits;   // a timeline wait no submitted signal can satisfy (host-signalled)
 					continue;
 				}
 				std::vector<Sig>& sigs = it->second;
 				size_t best = sigs.size();
 				// binary: the pending signal. Timeline: ONLY a submitted signal of exactly the wait's value - values strictly
 				// increase, so the semaphore first reaches it there; a larger signal is ambiguous (an initial or host value may
-				// have satisfied the wait already - Codex rw2-F1-r10 #2): no credit (over-report at worst), counted
+				// have satisfied the wait already): no credit (over-report at worst), counted
 				for (size_t k = 0; k < sigs.size(); ++k)
 					if (sigs[k].value == wi.value)
 						best = k;
 				if (best == sigs.size()) {
 					if (wi.value != 0)
-						++g_counts.ambiguousWaits;   // no submitted signal of exactly its value (larger, smaller or none: Codex rw3-P-ordercheck-r1 #4)
+						++g_counts.ambiguousWaits;   // no submitted signal of exactly its value (larger, smaller or none)
 					continue;
 				}
 				const Sig& sg = sigs[best];
 				// a WAIT's second scope: TOP_OF_PIPE there is every command (sync2), and a semaphore wait's access scope is every
-				// device access in it - not a barrier's empty TOP access scope: stored as ALL_COMMANDS (Codex rw3-P-oc-r1 #2)
+				// device access in it - not a barrier's empty TOP access scope: stored as ALL_COMMANDS
 				const VkPipelineStageFlags2 waitScope = (wi.stageMask & VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT) ?
 					VkPipelineStageFlags2(VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT) : wi.stageMask;
 				for (W& w : g_writes)
@@ -865,7 +865,7 @@ VKAPI_ATTR VkResult VKAPI_CALL w_queueSubmit2(VkQueue q, uint32_t n, const VkSub
 				if (it != g_logs.end() && it->second.begun)
 					replay(it->second);
 				else
-					++g_counts.uncheckedCommandBuffers;   // recorded before install(): its commands are unseen (Codex rw2-F1-r9 #3)
+					++g_counts.uncheckedCommandBuffers;   // recorded before install(): its commands are unseen
 			}
 			for (uint32_t i = 0; i < si.signalSemaphoreInfoCount; ++i) {
 				std::vector<Sig>& sigs = g_signals[si.pSignalSemaphoreInfos[i].semaphore];
@@ -881,7 +881,7 @@ VKAPI_ATTR VkResult VKAPI_CALL w_queueSubmit2(VkQueue q, uint32_t n, const VkSub
 				std::sort(sg.stores.begin(), sg.stores.end());
 				sigs.push_back(std::move(sg));
 				if (sigs.size() > 64)
-					sigs.erase(sigs.begin());   // ponytail: old timeline signals dropped; a wait that old would find nothing
+					sigs.erase(sigs.begin());   // Trade-off: old timeline signals dropped; a wait that old would find nothing
 			}
 			++g_counts.submits;
 		}
@@ -909,7 +909,7 @@ VKAPI_ATTR VkResult VKAPI_CALL w_createImageView(VkDevice dev, const VkImageView
 	const VkResult r = o_createImageView(dev, ci, alloc, out);
 	if (r == VK_SUCCESS) {
 		std::lock_guard<std::mutex> g(g_lock);
-		// ponytail: a VK_REMAINING_ARRAY_LAYERS view counts as its base layer only (the image's layer count is not hooked);
+		// Trade-off: a VK_REMAINING_ARRAY_LAYERS view counts as its base layer only (the image's layer count is not hooked);
 		// attachments here are single-layer
 		const VkImageSubresourceRange& r = ci->subresourceRange;
 		g_views[*out] = { ci->image, r.baseMipLevel, r.baseArrayLayer,
@@ -936,7 +936,7 @@ void logAtt(Log& l, const VkRenderingAttachmentInfo* a, VkImageAspectFlags aspec
 		++g_counts.unknownAttachmentViews;   // created before install(): unchecked
 		return;
 	}
-	// a dynamic-rendering RESOLVE writes the resolve image at the instance's end: not modelled, counted (Codex rw2-F1-r9 #2)
+	// a dynamic-rendering RESOLVE writes the resolve image at the instance's end: not modelled, counted
 	if (a->resolveMode != VK_RESOLVE_MODE_NONE && a->resolveImageView)
 		++g_counts.uncheckedResolves;
 	const ViewSub& v = it->second;
@@ -1094,13 +1094,13 @@ void uninstall()
 	vkQueueSubmit = o_queueSubmit;
 	vkCreateSemaphore = o_createSemaphore;
 	vkDestroySemaphore = o_destroySemaphore;
-	// nothing recorded, begun or destroyed while uninstalled is seen: every kept log is incomplete from here (Codex r11 #1), and
+	// nothing recorded, begun or destroyed while uninstalled is seen: every kept log is incomplete from here, and
 	// semaphores may be destroyed and their handles reused unseen
 	for (auto& kv : g_logs)
 		kv.second.begun = false;
 	g_signals.clear();
 	// and pipelines / views destroyed while the hooks are out may come back under the same handle: after a reinstall, objects
-	// made before it are UNKNOWN (unknownPipelineDraws / unknownAttachmentViews, must be 0), never trusted stale (Codex r12 #2)
+	// made before it are UNKNOWN (unknownPipelineDraws / unknownAttachmentViews, must be 0), never trusted stale
 	g_pipes.clear();
 	g_views.clear();
 	g_installed = false;

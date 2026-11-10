@@ -579,7 +579,7 @@ Bool AsciiString::isNone() const
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 01/10/2026 Hand-ported from TheSuperHackers #3374 (0ba1a4fe4): an empty source now clears
+// GeneralsX: Hand-ported from TheSuperHackers #3374 (0ba1a4fe4): an empty source now clears
 // the token instead of leaving the previous one in it (loops that test the token spun forever), and tok == this is
 // a caller bug, asserted (tsh batch2 #53).
 Bool AsciiString::nextToken(AsciiString* tok, const char* separators)

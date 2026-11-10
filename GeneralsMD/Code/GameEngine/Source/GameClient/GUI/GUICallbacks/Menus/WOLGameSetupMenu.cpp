@@ -146,7 +146,7 @@ static Bool launchGameNext = FALSE;
 // window ids ------------------------------------------------------------------------------
 static NameKeyType parentWOLGameSetupID = NAMEKEY_INVALID;
 
-// GeneralsX @feature Claude 12/08/2026 The shipped .wnd layouts carry exactly this many slot
+// GeneralsX: The shipped .wnd layouts carry exactly this many slot
 // rows. MAX_SLOTS is now larger; lookups for rows past this legitimately return null until the
 // dynamic-row lobby rebuild lands, so the per-row asserts below tolerate them.
 enum { LEGACY_WND_SLOT_ROWS = 8 };
@@ -529,7 +529,7 @@ void pingTooltip(GameWindow *window, WinInstanceData *instData, UnsignedInt mous
 GameWindow *listboxGameSetupChat = nullptr;
 NameKeyType listboxGameSetupChatID = NAMEKEY_INVALID;
 
-// GeneralsX @feature Claude 25/09/2026 After a LETTER KEY sets a slot (GadgetComboBoxKeyPick), open
+// GeneralsX: After a LETTER KEY sets a slot (GadgetComboBoxKeyPick), open
 // the next slot's drop-down so a lobby can be filled by typing - E, E, H, M - without the mouse.
 // Only ever reached from inside the host-only slot branch, so a joiner cannot get here. Skips slots
 // whose drop-down is disabled or hidden, and HUMAN slots: on one of those the next letter would
@@ -557,7 +557,7 @@ static void handleColorSelection(int index)
 	GameWindow *combo = comboBoxColor[index];
 	Int color, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	color = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 
 	GameInfo *myGame = TheGameSpyInfo->getCurrentStagingRoom();
@@ -621,7 +621,7 @@ static void handlePlayerTemplateSelection(int index)
 	GameWindow *combo = comboBoxPlayerTemplate[index];
 	Int playerTemplate, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	playerTemplate = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 	GameInfo *myGame = TheGameSpyInfo->getCurrentStagingRoom();
 
@@ -747,7 +747,7 @@ static void handleTeamSelection(int index)
 	GameWindow *combo = comboBoxTeam[index];
 	Int team, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	team = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 	GameInfo *myGame = TheGameSpyInfo->getCurrentStagingRoom();
 
@@ -794,7 +794,7 @@ static void handleStartingCashSelection()
     GadgetComboBoxGetSelectedPos(comboBoxStartingCash, &selIndex);
 
     Money startingCash;
-    // GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+    // GeneralsX: 64-bit safe pointer cast
     startingCash.deposit( static_cast<UnsignedInt>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData( comboBoxStartingCash, selIndex ))), FALSE, FALSE );
     myGame->setStartingCash( startingCash );
     myGame->resetAccepted();
@@ -864,7 +864,7 @@ static void StartPressed()
 	{
 		if ((myGame->getSlot(i)->isAccepted() == FALSE) && (myGame->getSlot(i)->isHuman() == TRUE))
 			isReady = FALSE;
-		// GeneralsX @bugfix Claude 02/10/2026 EVERY human, accepted or not (Codex m1det3-2b-r6 P2), as the LAN setup screen
+		// GeneralsX: EVERY human, accepted or not, as the LAN setup screen
 		// does: accepting never checks the map, and since M1 2b a slot whose map.ini/solo.ini differ from ours lacks it.
 		if (myGame->getSlot(i)->isHuman() && !myGame->getSlot(i)->hasMap() && !willTransfer)
 		{
@@ -892,7 +892,7 @@ static void StartPressed()
 		return;
 	}
 
-	// GeneralsX @feature Claude 23/09/2026 The map must also have room for every slot next to the
+	// GeneralsX: The map must also have room for every slot next to the
 	// civilian sides it keeps (Common/PlayerCapacity.h). Refused here, never trimmed: owner decision.
 	const Int slotCapacity = TheMapCache->getPlayerSlotCapacity( myGame->getMap() );
 	if (slotCapacity >= 0 && myGame->countSlotsTakingPlayers() > slotCapacity)
@@ -906,7 +906,7 @@ static void StartPressed()
 		return;
 	}
 
-	// GeneralsX @feature Claude 27/09/2026 THE START RULE is GameInfo::getStartVerdict - see
+	// GeneralsX: THE START RULE is GameInfo::getStartVerdict - see
 	// LanGameOptionsMenu.cpp StartPressed. Retail refused an all-AI lobby here with GUI:NeedHumanPlayers.
 	const GameInfo::StartVerdict startVerdict = myGame->getStartVerdict();
 
@@ -1053,7 +1053,7 @@ void WOLDisplayGameOptions()
   Int index = 0;
   for ( ; index < itemCount; index++ )
   {
-    // GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+    // GeneralsX: 64-bit safe pointer cast
     Int value  = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(comboBoxStartingCash, index)));
     if ( value == theGame->getStartingCash().countMoney() )
     {
@@ -1211,7 +1211,7 @@ void InitWOLGameGadgets()
 	GameWindow *staticTextTitle = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, staticTextTitleID );
 	if (staticTextTitle)
 	{
-		// GeneralsX @feature Claude 25/09/2026 The room's name is another player's text: filtered and
+		// GeneralsX: The room's name is another player's text: filtered and
 		// fitted with "..." (GadgetStaticTextSetUntrustedLine) instead of wrapping out of the heading.
 		GadgetStaticTextSetUntrustedLine(staticTextTitle, TheGameSpyGame->getGameName());
 	}
@@ -1222,7 +1222,7 @@ void InitWOLGameGadgets()
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 12/08/2026 The .wnd authors eight of every per-slot control; the loop
+	// GeneralsX: The .wnd authors eight of every per-slot control; the loop
 	// below binds MAX_SLOTS of them and dereferences each one immediately - winSetTooltipFunc() on
 	// the player, ping and accept windows, GadgetComboBoxGetListBox() on the faction box - so a row
 	// the layout does not contain is a null crash at init, not a short list. Build whatever the
@@ -1232,7 +1232,7 @@ void InitWOLGameGadgets()
 	// ButtonMapStartPosition is NOT a column: those markers are children of MapWindow and are placed
 	// over the preview from the map's own start waypoints, so they only need to exist.
 	//
-	// GeneralsX @feature Claude 08/11/2026 The seat columns SCROLL instead, and the chat box's space goes to them
+	// GeneralsX: The seat columns SCROLL instead, and the chat box's space goes to them
 	// (owner 08/11: rows at a readable size with a scroll bar like the map list). See CodeGui.h.
 	static const char * const wolSeatColumns[] =
 	{
@@ -1244,7 +1244,7 @@ void InitWOLGameGadgets()
 		"GameSpyGameOptionsMenu.wnd:ButtonAccept%d",
 		"GameSpyGameOptionsMenu.wnd:GenericPing%d",
 	};
-	// The chat STAYS on this screen (Codex lobby-scroll r1 P2): Start's refusals - missing map, too many players, too
+	// The chat STAYS on this screen (lobby-scroll r1 P2): Start's refusals - missing map, too many players, too
 	// few teams - are written only to it, and this screen has no notice line. The rows scroll inside the authored band.
 	CodeGuiRowsScrollSetup( parentWOLGameSetup, wolSeatColumns, (Int)( sizeof( wolSeatColumns ) / sizeof( wolSeatColumns[ 0 ] ) ), MAX_SLOTS,
 													nullptr, 0, 0, listboxGameSetupChat );
@@ -1257,14 +1257,14 @@ void InitWOLGameGadgets()
 		comboBoxPlayerID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		comboBoxPlayer[i] = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, comboBoxPlayerID[i] );
 		GadgetComboBoxReset(comboBoxPlayer[i]);
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxPlayer[i])
 			comboBoxPlayer[i]->winSetTooltipFunc(playerTooltip);
 
 		tmpString.format("GameSpyGameOptionsMenu.wnd:StaticTextPlayer%d", i);
 		staticTextPlayerID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		staticTextPlayer[i] = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, staticTextPlayerID[i] );
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (staticTextPlayer[i])
 		{
 			staticTextPlayer[i]->winSetTooltipFunc(playerTooltip);
@@ -1296,7 +1296,7 @@ void InitWOLGameGadgets()
 		PopulatePlayerTemplateComboBox(i, comboBoxPlayerTemplate, theGameInfo, theGameInfo->getAllowObservers() );
 
 		// add tooltips to the player template combobox and listbox
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxPlayerTemplate[i])
 		{
 			comboBoxPlayerTemplate[i]->winSetTooltipFunc(playerTemplateComboBoxTooltip);
@@ -1313,7 +1313,7 @@ void InitWOLGameGadgets()
 		buttonAcceptID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		buttonAccept[i] = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, buttonAcceptID[i] );
 		DEBUG_ASSERTCRASH(buttonAccept[i] || i >= LEGACY_WND_SLOT_ROWS, ("Could not find the buttonAccept[%d]",i ));
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (buttonAccept[i])
 			buttonAccept[i]->winSetTooltipFunc(gameAcceptTooltip);
 
@@ -1321,7 +1321,7 @@ void InitWOLGameGadgets()
 		genericPingWindowID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		genericPingWindow[i] = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, genericPingWindowID[i] );
 		DEBUG_ASSERTCRASH(genericPingWindow[i] || i >= LEGACY_WND_SLOT_ROWS, ("Could not find the genericPingWindow[%d]",i ));
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (genericPingWindow[i])
 			genericPingWindow[i]->winSetTooltipFunc(pingTooltip);
 
@@ -1535,7 +1535,7 @@ void WOLGameSetupMenuInit( WindowLayout *layout, void *userData )
 		for (Int i = 0; i < MAX_SLOTS; ++i)
 		{
 			//I'm a client, disable the controls I can't touch.
-			// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+			// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 			if (comboBoxPlayer[i])
 				comboBoxPlayer[i]->winEnable(FALSE);
 
@@ -2564,7 +2564,7 @@ WindowMsgHandledType WOLGameSetupMenuInput( GameWindow *window, UnsignedInt msg,
 }
 
 
-// GeneralsX @refactor Claude 11/08/2026 handleGameSetupSlashCommands is DELETED, not preserved.
+// GeneralsX: handleGameSetupSlashCommands is DELETED, not preserved.
 //
 // The GameSpy staging screen's /host /me (/slots /discon in debug) interceptor. This screen is
 // pushed only from inside the TheGameSpyPeerMessageQueue-gated pump, and that queue is
@@ -2748,7 +2748,7 @@ WindowMsgHandledType WOLGameSetupMenuSystem( GameWindow *window, UnsignedInt msg
 				}
 				else if ( controlID == buttonCommunicatorID )
 				{
-					// GeneralsX @feature Claude 25/09/2026 The relay path's Communicator is the Friends overlay,
+					// GeneralsX: The relay path's Communicator is the Friends overlay,
 					// the lobby's rule (WOLLobbyMenu.cpp, ButtonBuddy). GameSpyOpenOverlay dereferences the buddy
 					// queue, which only SetUpGameSpy creates. Today this screen is itself reached only through
 					// that same GameSpy setup (the relay game room is LanGameOptionsMenu.wnd, which has no
@@ -2769,7 +2769,7 @@ WindowMsgHandledType WOLGameSetupMenuSystem( GameWindow *window, UnsignedInt msg
 					// Echo the user's input to the chat window
 					if (!txtInput.isEmpty())
 					{
-						// GeneralsX @feature Claude 21/08/2026 Rate limited like every other chat
+						// GeneralsX: Rate limited like every other chat
 						// box - see GameClient/ChatRateLimit.h.
 						unsigned int gxChatWait = 0;
 						if (!ChatRate::consumeShared(timeGetTime(), &gxChatWait))
@@ -2925,7 +2925,7 @@ WindowMsgHandledType WOLGameSetupMenuSystem( GameWindow *window, UnsignedInt msg
 					// gate this is deleted - see the note where it lived.
 					if (!txtInput.isEmpty())
 					{
-						// GeneralsX @feature Claude 21/08/2026 Rate limited like every other chat
+						// GeneralsX: Rate limited like every other chat
 						// box - see GameClient/ChatRateLimit.h. The refused line goes back in the
 						// box; this screen has no local-only sink to explain it in.
 						unsigned int gxChatWait = 0;

@@ -1,4 +1,4 @@
-# GeneralsX @bugfix Claude 25/09/2026 fast_float: the one INI number parser on every platform
+# GeneralsX: fast_float: the one INI number parser on every platform
 # (Common/INIScanNumber.h). vcpkg provides it on the vcpkg presets; the presets without vcpkg
 # (mingw-w64-i686, win32) and the Flatpak fetch the same release instead, like cmake/stb.cmake.
 #

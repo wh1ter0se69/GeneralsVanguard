@@ -227,7 +227,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	/*
 	** Convert WinMain arguments to simple main argc and argv
 	*/
-	// GeneralsX @build Claude 21/09/2026 Upstream rewrote this loop over __argc/__argv. Kept on
+	// GeneralsX: Upstream rewrote this loop over __argc/__argv. Kept on
 	// lpCmdLine here because this translation unit also compiles off Windows, where __argc and
 	// __argv are globals that only the game's own SDL3Main defines. lpCmdLine excludes the
 	// executable, so its token index is already the zero-based index wasCommandLineArgumentParsed

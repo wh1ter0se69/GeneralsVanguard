@@ -69,7 +69,7 @@ protected:
 	Real m_speedInDistPerFrame;		///< speed of tracer (in dist/frame)
 	Real m_opacity;								///< opacity of the tracer
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate. doDrawModule() runs once per RENDERED frame
+	// GeneralsX: Class-C gate. doDrawModule() runs once per RENDERED frame
 	// but both the opacity decay and the translate below are per-LOGIC-FRAME steps: the tracer's
 	// lifetime is computed as frames = distance/speed against TheGameLogic->getFrame() when it is
 	// spawned (FXList.cpp), so at the 8x network floor the tracer flew ~8x too far - past its target

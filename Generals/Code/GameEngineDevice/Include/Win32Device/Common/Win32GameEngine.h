@@ -36,7 +36,7 @@
 #include "GameClient/ParticleSys.h"
 #include "GameLogic/GameLogic.h"
 #include "GameNetwork/NetworkInterface.h"
-// GeneralsX @bugfix Claude 21/08/2026 THE SAME BRANCH THE ZERO HOUR TWIN GAINED ON 06/08, which
+// GeneralsX: THE SAME BRANCH THE ZERO HOUR TWIN GAINED ON 06/08, which
 // this side never got. Miles compiles into no shipping binary - every platform ships the Core
 // OpenAL manager - so under -DSAGE_USE_OPENAL=ON the Miles sources are not built at all, and
 // including this header unconditionally declared a class with no definition anywhere. It linked

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @fix Claude 05/10/2026 THE NETWORK NAMES AN UPGRADE OR A SCIENCE BY ITS NAME, NOT BY ITS NAMEKEY.
+// GeneralsX: THE NETWORK NAMES AN UPGRADE OR A SCIENCE BY ITS NAME, NOT BY ITS NAMEKEY.
 //
 // MSG_QUEUE_UPGRADE, MSG_CANCEL_UPGRADE and MSG_PURCHASE_SCIENCE carried the template's NameKey, and a NameKey is a position
 // in one per-process sequence that every nameToKey of a new string advances. The INI-defined upgrades and sciences are
@@ -24,7 +24,7 @@
 // this process minted before it: the shell screens a player opened (Shell::push parses each .wnd on first use and mints
 // every window name), none at all on a headless peer (its window manager is a dummy), and every map played earlier in the
 // process (keys are never un-minted). So two peers that loaded the same map disagreed on the number, and researching such
-// an upgrade on a live server (a headless standing host, rendered players) desynced (Codex codex-batch-1005, p2-live-ui).
+// an upgrade on a live server (a headless standing host, rendered players) desynced (p2-live-ui).
 //
 // The id is FNV-1a over the name's bytes: the same on every peer whatever it minted before, and the same in a replay played
 // back in another process. UpgradeCenter / ScienceStore resolve it through a table built at map load; a map whose names

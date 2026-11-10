@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 30/10/2026 AI RULE BANK rule 1, PROBE (GXRule_Probe.h): issues nothing, changes nothing - it counts its ticks,
+// GeneralsX: AI RULE BANK rule 1, PROBE (GXRule_Probe.h): issues nothing, changes nothing - it counts its ticks,
 // reads the sense layer once per tick and saves its count, so "PROBE on" vs its NO_OP control (per-frame CRC identical) proves the bank
 // path is free, and the save/load fixture can see its state survive a load. Test-instruments builds add the red arms and fixtures:
 //   GX_RULE_PROBE_RED=1                  the first tick orders this player's lowest-id own unit to move (N2's red arm: must DIFFER)
@@ -77,7 +77,7 @@ public:
 		{
 			char kv[160];
 			const AsciiString t = ctx.ref(PROBE_TEMPLATE);
-			const AsciiString tm = ctx.ref(PROBE_TEAM);		// a TEAM ref only so the TEAM action has an accepting slot (Codex core-r5-lensB P2)
+			const AsciiString tm = ctx.ref(PROBE_TEAM);		// a TEAM ref only so the TEAM action has an accepting slot
 			snprintf(kv, sizeof(kv), "ticks=%u value=%d tmpl=%s team=%s", m_ticks, (int)m_lastValue, t.isEmpty() ? "-" : t.str(),
 				tm.isEmpty() ? "-" : tm.str());
 			ctx.log("probe", kv);

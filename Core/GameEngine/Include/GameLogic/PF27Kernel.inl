@@ -1,4 +1,4 @@
-// GeneralsX @performance Claude 06/10/2026 PF27 - the new A* kernel for Pathfinder::internalFindPath.
+// GeneralsX: PF27 - the new A* kernel for Pathfinder::internalFindPath.
 // Design, contract and proof plan: fixes/pathfinding-2027/DESIGN.md (gx-handoff). Included at the END of
 // AIPathfind.cpp because it uses that file's statics (the info pool gauges, s_gxMoveGen, the cost constants).
 //
@@ -32,7 +32,7 @@ static Int pf27ModeFromEnv()
 	static Int s_mode = -1;
 	if (s_mode < 0)
 	{
-		// GeneralsX @performance Claude 06/10/2026 The new kernel is the DEFAULT (lead C24, 0.9.59): path-identical to the
+		// GeneralsX: The new kernel is the DEFAULT (lead C24, 0.9.59): path-identical to the
 		// legacy loop on Mac, Linux and Windows (fixes/pathfinding-2027 identity runs); GX_PF27=legacy keeps the old loop,
 		// GX_PF27=check runs both and compares. Peers may differ in this choice - the paths do not. Builds whose retail
 		// pathfinding switches are on still run legacy (PF27Kernel::prepare refuses the kernel there).
@@ -48,7 +48,7 @@ static Int pf27ModeFromEnv()
 static UnsignedInt s_pf27Searches = 0, s_pf27Ok = 0, s_pf27Bad = 0, s_pf27Reopen = 0, s_pf27Sat = 0,
 	s_pf27Tunnel = 0, s_pf27LayerChange = 0, s_pf27OnLayer = 0, s_pf27XLayer = 0, s_pf27CapTakes = 0, s_pf27CapFloor = 0,
 	s_pf27StartGoal = 0, s_pf27Fail = 0, s_pf27BadDumps = 0;
-// Production-path fixture counters (GX_PF27=new): what the kernel's cleanup met. Codex r2 asked for named evidence
+// Production-path fixture counters (GX_PF27=new): what the kernel's cleanup met. asked for named evidence
 // that each boundary ran, not only "0 bad".
 static UnsignedInt s_pf27PreRelease = 0, s_pf27KeptObstacle = 0, s_pf27KeptUnit = 0, s_pf27KeptAircraft = 0,
 	s_pf27StaleBlocked = 0;
@@ -119,7 +119,7 @@ static void pf27ReportCounters()
 }
 
 /// [GXPF27H] per queue pass; atEnd (Pathfinder::reset) flushes the last batch and prints the end marker that
-/// pf27-trace-diff.py requires, so a log that stopped early can never compare as identical (Codex r2 P2-4).
+/// pf27-trace-diff.py requires, so a log that stopped early can never compare as identical.
 static void pf27TraceFlush(Bool atEnd)
 {
 	if (pf27TraceLevel() == 0)
@@ -182,8 +182,8 @@ public:
 		if (pf->m_blockOfMapCells == nullptr)
 			return false;
 		// The kernel reproduces the LIVE (fixed) pathfinder. In a retail-compatible build the retail arm marks the real
-		// start info open in startPathfind and tears its lists down differently, so those builds run legacy (Codex
-		// code-r1 P2).
+		// start info open in startPathfind and tears its lists down differently, so those builds run legacy.
+		//
 #if RETAIL_COMPATIBLE_PATHFINDING_ALLOCATION
 		return false;
 #endif
@@ -348,7 +348,7 @@ public:
 	}
 
 #if defined(GX_TEST_INSTRUMENTS)
-	// GeneralsX @fix Claude 06/10/2026 TEST BUILDS ONLY (Codex batch-0959 r5 P1): the probe's searches spend the frame's queue
+	// GeneralsX: TEST BUILDS ONLY: the probe's searches spend the frame's queue
 	// budget and move m_cumulativeCellsAllocated, so a peer that set the env var alone would desync. A shipping build has no
 	// probe at all and never reads GX_PF27_PROBE.
 	/// GX_PF27_PROBE=K,F (test env, any GX_PF27 mode - it moves the simulation, identically in every mode since the kernel is
@@ -548,7 +548,7 @@ public:
 		if (!m_ok)
 		{	// A cell outside the dense index. prepare() and getCell make this impossible (every cell getCell returns
 			// lies in the ground block or a layer block and carries its layer id); if it ever happens the shared
-			// state is half-written, so stop loudly rather than return a quietly different answer (Fable r2 P2-2).
+			// state is half-written, so stop loudly rather than return a quietly different answer.
 			RELEASE_CRASH(("PF27: search left the dense cell index"));
 			return nullptr;
 		}
@@ -936,7 +936,7 @@ private:
 				return true;	// keep going
 		}
 		const UnsignedInt costRemaining = costToGoal(r);
-		gxNotePathCost(newCostSoFar);	// legacy's setters count the raw value (GX_PATHCOST_COUNT, Codex code-r1 P2)
+		gxNotePathCost(newCostSoFar);	// legacy's setters count the raw value (GX_PATHCOST_COUNT)
 		r.g = gxPathCost16(newCostSoFar);
 		r.parent = fromIdx;
 		gxNotePathCost((UnsignedInt)r.g + costRemaining);
@@ -1123,7 +1123,7 @@ private:
 			if (info.allyFixedCount > 0)
 			{
 #if RTS_GENERALS && RETAIL_COMPATIBLE_PATHFINDING
-				newCostSoFar += 3*COST_DIAGONAL*info.allyFixedCount;	// legacy's own retail Generals variant (Codex code-r2)
+				newCostSoFar += 3*COST_DIAGONAL*info.allyFixedCount;	// legacy's own retail Generals variant
 #else
 				newCostSoFar += 3*COST_DIAGONAL;
 #endif
@@ -1199,7 +1199,7 @@ private:
 			pos.x = r.x;
 			pos.y = r.y;
 			// Cannot fail: the chain is part of the listed set, which legacy held infos for at this moment, and the
-			// kernel took none of them from the pool (virtual takes). Asserted rather than assumed (Fable r2 P3-3).
+			// kernel took none of them from the pool (virtual takes). Asserted rather than assumed.
 			if (!c->allocateInfo(pos))
 			{
 				RELEASE_CRASH(("PF27: cell info pool exhausted while materialising a path"));

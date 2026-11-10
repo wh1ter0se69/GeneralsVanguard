@@ -411,7 +411,7 @@ public:  // ********************************************************************
 	// mouse mode interface
 	virtual void setScrolling( Bool isScrolling );							///< set right-click scroll mode
 
-	// GeneralsX @feature Claude 13/08/2026 Hide every HUD readout at once. Mirrors the Zero Hour
+	// GeneralsX: Hide every HUD readout at once. Mirrors the Zero Hour
 	// side: CommandXlat.cpp is Core and compiles into BOTH games, so its MSG_META_TOGGLE_HUD_OVERLAY
 	// handler calls this on whichever InGameUI it was built against. Adding it to one game only is
 	// a twin build break, which is exactly how this was caught.
@@ -765,14 +765,14 @@ protected:
 	UnsignedInt									m_lastNetworkLatencyMs;
 	UnsignedInt									m_lastNetworkLatencyUpdateMs;
 
-	// GeneralsX @bugfix Claude 13/08/2026 Which peer the displayed latency belongs to, or -1 for
+	// GeneralsX: Which peer the displayed latency belongs to, or -1 for
 	// none. Cached beside the milliseconds because the string has to be rebuilt when the WORST peer
 	// changes even if its round trip happens to match the previous peer's to the millisecond.
 	Int													m_lastNetworkLatencySlot;
 
 	// Network Resend Counter (packet loss)
 	//
-	// GeneralsX @feature Claude 08/08/2026 Deliberately has no font, position, colour or point size
+	// GeneralsX: Deliberately has no font, position, colour or point size
 	// of its own: it reuses every m_networkLatency* resource above, and is therefore gated by the
 	// SAME existing NetworkLatencyFontSize preference, 0 = off. A new OptionPreferences key would
 	// have meant editing Core/GameEngine/{Include,Source}/Common, which is inside the SimID digest -
@@ -809,7 +809,7 @@ protected:
 
 	// Observed Logic Rate (tps)
 	//
-	// GeneralsX @feature Claude 08/08/2026 Twinned with the fps counter above the same way the
+	// GeneralsX: Twinned with the fps counter above the same way the
 	// resend counter is twinned with latency: no resources of its own, gated by the existing
 	// RenderFpsFontSize preference, 0 = off. tps is a rate counter and belongs to the rate
 	// preference - a player who turned the fps counter off does not want a second one appearing.

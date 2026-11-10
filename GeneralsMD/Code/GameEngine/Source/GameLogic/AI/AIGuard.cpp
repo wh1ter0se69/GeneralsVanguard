@@ -233,7 +233,7 @@ Bool AIGuardMachine::lookForInnerTarget()
 	Coord3D pos = targetToGuard ? *targetToGuard->getPosition() : *getPositionToGuard();
 
 	const PolygonTrigger*								area = getAreaToGuard();
-	// GeneralsX @performance Claude 06/10/2026 when f1 is first, the scan skips cells holding no enemy (getCellOwnerMask)
+	// GeneralsX: when f1 is first, the scan skips cells holding no enemy (getCellOwnerMask)
 	PartitionFilterRelationship					f1(owner, PartitionFilterRelationship::ALLOW_ENEMIES | PartitionFilterRelationship::SKIP_CELLS_BY_OWNER);
 	PartitionFilterPossibleToAttack			f2(ATTACK_NEW_TARGET, owner, CMD_FROM_AI);
 	PartitionFilterSameMapStatus				filterMapStatus(owner);

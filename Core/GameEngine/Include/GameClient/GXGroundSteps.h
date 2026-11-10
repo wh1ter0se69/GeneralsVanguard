@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 17/10/2026 The REMASTERED ground's switch and quality steps (D · look-director-2, slice 1 of
+// GeneralsX: The REMASTERED ground's switch and quality steps (D · look-director-2, slice 1 of
 // look-director/HANDBACK_look-ground-2.md §5; wh1ter0se 14/10 "new ground looks better" = the direction, wh1ter0se 17/10: every look
 // feature ships with 2-4 quality steps a runtime governor can move).
 //
@@ -43,7 +43,7 @@ inline bool g_gxGroundEngaged = false;
 // TRUE once a terrain base pass offered the ground its path - the one-pass retail pixel-shader pass on a ps.1.1 chipset, which is the
 // only pass GXGround_Base replaces (HeightMap.cpp) - since the governor glue last read it (W3DDisplay.cpp, which clears it). The
 // multi-pass fallback (missing terrain .pso files) and a chipset without ps.1.1 never set it, so the governor does not spend a step,
-// and its hold periods, on a ground those paths never draw (Codex ls1017-r1 P3). Set whatever the governor's own step is.
+// and its hold periods, on a ground those paths never draw. Set whatever the governor's own step is.
 inline bool g_gxGroundBasePath = false;
 
 inline int gxGroundClampStep( int s )

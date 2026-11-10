@@ -1,4 +1,4 @@
-# GeneralsX @build GitHubCopilot 13/04/2026 Allow Flatpak SDK builds to inject pre-fetched lzhl source.
+# GeneralsX: Allow Flatpak SDK builds to inject pre-fetched lzhl source.
 if(DEFINED FETCHCONTENT_SOURCE_DIR_LZHL AND EXISTS "${FETCHCONTENT_SOURCE_DIR_LZHL}")
     set(LZHL_DIR ${FETCHCONTENT_SOURCE_DIR_LZHL})
 else()

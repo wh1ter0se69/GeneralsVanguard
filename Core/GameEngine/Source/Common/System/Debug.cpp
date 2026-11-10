@@ -702,7 +702,7 @@ static void TriggerMiniDump()
 void ReleaseCrash(const char *reason)
 {
 #ifndef _WIN32
-	// GeneralsX @bugfix Claude 20/09/2026 Say why we died on stderr, and say it FIRST.
+	// GeneralsX: Say why we died on stderr, and say it FIRST.
 	//
 	// On Windows the reason reaches the player through the ::MessageBox at the bottom of this
 	// function. On macOS and Linux that MessageBox is a stub that returns 0 without drawing
@@ -737,7 +737,7 @@ void ReleaseCrash(const char *reason)
 
 	// We are shutting down, and TheGlobalData has been freed.  jba. [4/15/2003]
 	//
-	// GeneralsX @bugfix Claude 20/09/2026 Skip the crash FILE here rather than leaving the
+	// GeneralsX: Skip the crash FILE here rather than leaving the
 	// function. This used to `return`, which made ReleaseCrash() the one crash handler that can
 	// hand control back to its caller - and every caller is written on the opposite assumption.
 	// GameEngine.cpp:1612 says so in as many words ("Release CRASH doesn't return, so don't worry
@@ -748,7 +748,7 @@ void ReleaseCrash(const char *reason)
 	// function now falls through to the reporting tail and the _exit(1) that already ends it. That
 	// keeps the Windows MessageBox on this path, which neither the `return` nor an _exit(1) here
 	// would have - on a GUI launch with no console, that MessageBox is the only notification there
-	// is. Codex (gpt-5.6-sol) raised exactly this against the _exit(1) that stood here first.
+	// is. Review (gpt-5.6-sol) raised exactly this against the _exit(1) that stood here first.
 	if (TheGlobalData != nullptr) {
 		strlcpy(prevbuf, TheGlobalData->getPath_UserData().str(), ARRAY_SIZE(prevbuf));
 		strlcat(prevbuf, RELEASECRASH_FILE_NAME_PREV, ARRAY_SIZE(prevbuf));
@@ -806,7 +806,7 @@ void ReleaseCrash(const char *reason)
 
 // crash error message changed again 8/22/03 M Lorenzen... made this message box modal to the system so it will appear on top of any task-modal windows, splash-screen, etc.
 	//
-	// GeneralsX @bugfix Claude 25/09/2026 TheReleaseCrashHeadless, not only m_headless: this is
+	// GeneralsX: TheReleaseCrashHeadless, not only m_headless: this is
 	// now also reached with TheGlobalData already freed (see the file skip above), where the
 	// m_headless test reads "not headless" and a -headless peer would park on a system-modal box.
 	if (!(TheReleaseCrashHeadless || (TheGlobalData && TheGlobalData->m_headless)))
@@ -822,7 +822,7 @@ void ReleaseCrash(const char *reason)
 	_exit(1);
 }
 
-// GeneralsX @bugfix Claude 27/07/2026 Declare TheSystemIsUnicode before using it.
+// GeneralsX: Declare TheSystemIsUnicode before using it.
 //
 // It is defined per game in <game>/Code/GameEngine/Source/Common/GameEngine.cpp but was never
 // declared anywhere a Core translation unit could see, so the reference below was an undeclared
@@ -834,7 +834,7 @@ extern const Bool TheSystemIsUnicode;
 
 void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 {
-	// GeneralsX @bugfix Claude 20/09/2026 A null TheGlobalData means TheGameText is already
+	// GeneralsX: A null TheGlobalData means TheGameText is already
 	// DANGLING, so it has to be caught here, before the fetches below - not further down at the
 	// point where the user data path is needed.
 	//
@@ -844,7 +844,7 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 	// while ~GlobalData does (GlobalData.cpp:1140). Once TheGlobalData reads null, TheGameText is
 	// therefore guaranteed to be a non-null pointer to freed memory, and the `!TheGameText` test
 	// on its own cannot see that. Fetching a label through it SIGSEGVs in precisely the shutdown
-	// window this guard exists for. Found by Codex (gpt-5.6-sol) against the first version of this
+	// window this guard exists for. Found by review (gpt-5.6-sol) against the first version of this
 	// fix, which put the TheGlobalData check after the two fetches.
 	//
 	// ReleaseCrash() is the right fallback rather than a bare _exit: it prints the reason to
@@ -861,7 +861,7 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 	UnicodeString prompt = TheGameText->fetch(p);
 	UnicodeString mesg = TheGameText->fetch(m);
 
-	// GeneralsX @bugfix Claude 25/09/2026 UTF-8 copies, for everything below that is not a wide
+	// GeneralsX: UTF-8 copies, for everything below that is not a wide
 	// API. The stderr line used to pass the WideChar strings to %s, which stops at the first zero
 	// byte of a 4-byte wchar_t, so every reason printed as its first letter; and %ls, which the
 	// crash file used, does not write UTF-8 in the "C" locale (measured on macOS: a u-umlaut
@@ -873,7 +873,7 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 
 	/// do additional reporting on the crash, if possible
 
-	// GeneralsX @build BenderAI 12/02/2026 Platform-specific crash reporting
+	// GeneralsX: Platform-specific crash reporting
 	// Windows: Native MessageBox dialogs
 	// Linux: Console output (crash dialogs would need SDL_ShowSimpleMessageBox)
 	#ifdef _WIN32
@@ -900,7 +900,7 @@ void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m)
 	}
 	#else
 	// Linux: Output to stderr (game will crash anyway after this)
-	// GeneralsX @bugfix Claude 25/09/2026 One line, in the same form as ReleaseCrash(), so
+	// GeneralsX: One line, in the same form as ReleaseCrash(), so
 	// GXStderrLog's past-cap "FATAL" keep rule keeps the message and not just the title.
 	fprintf(stderr, "\nFATAL: release crash: %s: %s\n", promptA.str(), mesgA.str());
 	fflush(stderr);

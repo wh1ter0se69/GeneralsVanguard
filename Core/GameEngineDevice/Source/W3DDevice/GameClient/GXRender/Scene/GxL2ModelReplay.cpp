@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the replay driver - one flush's `=2` call log through the device-less model, with
+// GeneralsX: WS-G Task 5: the replay driver - one flush's `=2` call log through the device-less model, with
 // C6's call-level comparison (MODEL_CALL, CONTRACT_L2 r9b) built in (GxL2Model.h replay()). Engine-free.
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Model.h"
@@ -106,7 +106,7 @@ struct In : Inputs {
 	std::vector<Src> *collect = nullptr; uint32_t seq = 0;	// C5: every input taken, with its object
 	In(const gxlog::Log &l, size_t b_, size_t e_, ReplayHooks &h_, Pred &p_) : L(l), b(b_), e(e_), h(h_), p(p_), used(e_ > b_ ? e_ - b_ : 0, 0) {}
 	// The input's sends keep their logged VALUES; the model's cache decision for each (sent / skipped) must agree with the logged tag
-	// (Codex rw1-G-r24 #2), and anything but a low-level record inside an input bracket is reported, not dropped (#1).
+	// and anything but a low-level record inside an input bracket is reported, not dropped (#1).
 	void take(State &s, uint8_t bracket, int stage, uint64_t obj, const char *missing)
 	{
 		bool any = false;
@@ -115,7 +115,7 @@ struct In : Inputs {
 			if (r.bracket != bracket || (bracket == gxlog::BR_TEXTURE && r.stage != stage)) continue;
 			used[i - b] = 1;
 			if (r.op == gxlog::DEVICE_READ || r.op == gxlog::RESOURCE || r.op == gxlog::RAW_ACCESS) continue;	// provenance: harmless, or the
-			// outer scan's UNKNOWN (RAW_ACCESS) - not an input send (Codex rw1-G-r25 #2)
+			// outer scan's UNKNOWN (RAW_ACCESS) - not an input send
 			any = true;
 			if (!isLow(r.op)) { h.callMismatch(r, "a high-level record inside an input bracket"); continue; }
 			const size_t before = p.v.size();
@@ -185,7 +185,7 @@ size_t Stepper::step(size_t i, const size_t n)
 		In in(L, ab < n ? ab + 1 : n, ae, h, p);
 		in.collect = collect;
 		in.seq = r.entry;
-		for (size_t k = in.b; k < ae; ++k)	// provenance inside the Apply (a texture / material Apply's device access): Codex rw1-G-r23 #1
+		for (size_t k = in.b; k < ae; ++k)	// provenance inside the Apply (a texture / material Apply's device access):
 			if (L.rec[k].op == gxlog::RAW_ACCESS) {
 #if GX_L2M_MUTANT != 19
 				++s.unknown;
@@ -362,7 +362,7 @@ void cmpDevice(const State &x, const State &y, Cmp &c)
 #if GX_L2M_MUTANT != 29
 	// The enable is tracked whatever the payload's validity (Invalidate clears only the validity; Set_DX8_Light's disable tests only the
 	// enable): enables always compared; a payload, and its validity, only where the slot is ON - a disabled slot's payload is not
-	// observable (Codex rw1-G-r30 #1: a slot enabled and disabled again inside a run leaves arm A a valid payload arm B never had).
+	// observable (a slot enabled and disabled again inside a run leaves arm A a valid payload arm B never had).
 	for (int l = 0; l < kLights; ++l) {	// M29: the lights not compared
 		if (a.lightOn[l] != b.lightOn[l]) { std::snprintf(f, sizeof(f), "LIGHT%d_ON", l); c.bad(f, a.lightOn[l], b.lightOn[l]); continue; }
 #if GX_L2M_MUTANT == 30

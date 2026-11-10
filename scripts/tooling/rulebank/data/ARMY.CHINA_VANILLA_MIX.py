@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank DATA rule ARMY.CHINA_VANILLA_MIX (C·rb-data): vanilla China's pro army - Outposts +
+# GeneralsX: rule bank DATA rule ARMY.CHINA_VANILLA_MIX (C·rb-data): vanilla China's pro army - Outposts +
 # Gattlings + Flamers, few Battlemasters, variety, the 2nd War Factory after the oils (rows 154, 159, 161, 162). Stock Hard vanilla China
 # fields Battlemasters in every tank wave (3, then up to 5 per team), never an Outpost or (before wave 5) a Dragon. Team edits:
 #   bm_cap B caps the Battlemaster count of the wave teams (wave 1 Rush, 2/3/4/5 Tanks; a stock minimum of 0 stays 0);

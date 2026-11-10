@@ -1,10 +1,10 @@
 #!/bin/bash
-# GeneralsX @build BenderAI 03/03/2026 Bundle Linux GeneralsXZH binary + .so libs into a tarball archive
+# GeneralsX: Bundle Linux GeneralsXZH binary + .so libs into a tarball archive
 # Packages the same files as deploy-linux-zh.sh into GeneralsXZH-linux-x86_64.tar.gz
 
 set -e
 
-# GeneralsX @bugfix BenderAI 09/03/2026 Resolve repository root correctly from scripts/build/linux.
+# GeneralsX: Resolve repository root correctly from scripts/build/linux.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/linux64-deploy"
@@ -18,7 +18,7 @@ BINARY_SRC="${BUILD_DIR}/GeneralsMD/GeneralsXZH"
 DXVK_CONF_SRC="${PROJECT_ROOT}/resources/dxvk/dxvk.conf"
 OUTPUT_TARBALL="${PROJECT_ROOT}/GeneralsXZH-linux-x86_64.tar.gz"
 
-# GeneralsX @bugfix Claude 18/09/2026 THE OVERLAY'S SOURCE DIRECTORIES, AS ONE LIST, UP HERE.
+# GeneralsX: THE OVERLAY'S SOURCE DIRECTORIES, AS ONE LIST, UP HERE.
 #
 # ONE list feeds both the archive search (gx_find_overlay_archive) and the generator's --game-dir
 # candidates. The generator used to get ${GX_GAME_DATA:-${GX_OVERLAY_SRC:-${GX_PATCH_SRC}}} - a
@@ -49,7 +49,7 @@ if [[ -n "${GX_OVERLAY_RESOLVE_ONLY:-}" ]]; then
     exec python3 "${_gx_gen}" --resolve "${_gx_gen_dirs[@]}"
 fi
 
-# GeneralsX @bugfix Claude 20/08/2026 THE TARBALL SHIPPED ZERO ARCHIVES, and that is a join refusal.
+# GeneralsX: THE TARBALL SHIPPED ZERO ARCHIVES, and that is a join refusal.
 #
 # This bundled the engine and its .so files and nothing else, while its macOS counterpart carries the
 # overlay inside the .app at Contents/Resources/GeneralsXPatch. So a Linux player who installed this
@@ -140,7 +140,7 @@ echo "  + GeneralsXZH"
 cp "${BINARY_SRC}" "${BUNDLE_DIR}/GeneralsXZH"
 chmod +x "${BUNDLE_DIR}/GeneralsXZH"
 
-# GeneralsX @build Claude 25/09/2026 The openal-soft this engine was built against, and a runpath
+# GeneralsX: The openal-soft this engine was built against, and a runpath
 # of $ORIGIN so it is the one that loads. The tarball shipped no libopenal at all, so every player
 # ran the distro's copy - see scripts/build/linux/lib-openal.sh.
 # shellcheck source=scripts/build/linux/lib-openal.sh
@@ -169,7 +169,7 @@ if [[ -f "${SAGE_PATCH_LIB}" ]]; then
     cp "${SAGE_PATCH_LIB}" "${BUNDLE_DIR}/"
 fi
 
-# GeneralsX @build GitHubCopilot 17/05/2026 Copy FFmpeg runtime libs transitively so the bundle is independent of host SONAME layout.
+# GeneralsX: Copy FFmpeg runtime libs transitively so the bundle is independent of host SONAME layout.
 echo "  + FFmpeg runtime libraries"
 shopt -s nullglob
 ffmpeg_roots=(
@@ -203,7 +203,7 @@ else
     echo "WARNING: ${DXVK_CONF_SRC} not found - terrain shaders may fail"
 fi
 
-# GeneralsX @bugfix Claude 20/08/2026 Stage the community-patch overlay.
+# GeneralsX: Stage the community-patch overlay.
 #
 # WHY IT GOES BESIDE THE EXE HERE AND NOT ON A DEPLOYED LINUX BOX. lib-overlay.sh documents that
 # <exe dir>/GeneralsXPatch is WRONG for a deployed macOS/Linux install, because there the exe lives
@@ -214,7 +214,7 @@ fi
 # SIBLING directory the wrapper never cds into. The overlay is therefore outside the asset root, and
 # run.sh exports GENERALSX_PATCH_PATH explicitly so the engine cannot resolve it any other way.
 #
-# GeneralsX @bugfix Claude 14/09/2026 THE TARBALL SHIPPED NO OPTIONAL CONTENT AND NO MANIFESTS.
+# GeneralsX: THE TARBALL SHIPPED NO OPTIONAL CONTENT AND NO MANIFESTS.
 #
 # This block read overlay-archives.txt and stopped there. overlay-optional.txt was never opened, so
 # the Linux tarball carried the 2 mandatory archives while the macOS .app carried those plus the 5
@@ -254,7 +254,7 @@ fi
 GX_PATCH_STAGE="${BUNDLE_DIR}/GeneralsXPatch"
 mkdir -p "${GX_PATCH_STAGE}"
 
-# GeneralsX @feature Claude 15/09/2026 GENERATE !GXUI.big HERE, the way the Windows packager
+# GeneralsX: GENERATE !GXUI.big HERE, the way the Windows packager
 # already does. It is now on overlay-archives.txt, so a missing copy is a refusal rather than a
 # quiet omission - and only package-windows-share.ps1 ran the generator, despite a comment in
 # overlay-optional.txt claiming iOS, Linux and Windows all did. They did not; that line was wrong
@@ -406,7 +406,7 @@ if [[ ${#gx_missing_required[@]} -eq 0 ]]; then
     done
     : > "${GX_PATCH_STAGE}/required.txt"
     gx_overlay_archives >> "${GX_PATCH_STAGE}/required.txt" || exit 1
-    # SCOPE, decided (Codex launcher-maps r2 P1): the Flatpak (flatpak/*.yml, build-linux-flatpak.yml) carries
+    # SCOPE, decided (launcher-maps r2 P1): the Flatpak (flatpak/*.yml, build-linux-flatpak.yml) carries
     # no GeneralsXPatch overlay at all today (grep -c GeneralsXPatch = 0 in all three), so it ships none of the
     # overlay archives either; the maps ride with the overlay and gain nothing there that dataID does not
     # already lose. A Flatpak player still gets the maps by lobby transfer.
@@ -486,7 +486,7 @@ if [[ ${#gx_missing_required[@]} -gt 0 || ${#gx_missing_optional[@]} -gt 0 ]]; t
     fi
 fi
 
-# GeneralsX @bugfix Claude 25/09/2026 THE LOOSE DATA EVERY OTHER PLATFORM SHIPS (Codex P1 on
+# GeneralsX: THE LOOSE DATA EVERY OTHER PLATFORM SHIPS (on
 # feat/next-batch-defaults). Data/INI/Multiplayer.ini (the sixteen colours) and Data/INI/Weapon.ini (the
 # Toxin Tractor change, cut by scripts/tooling/make-weapon-ini.py from the CoreINI staged above) both go
 # through the INI parser, so both are in iniCRC -> dataID: a tarball without them is refused by every
@@ -546,19 +546,19 @@ fi
 echo "  + run.sh"
 cat > "${BUNDLE_DIR}/run.sh" << 'WRAPPER'
 #!/bin/bash
-# GeneralsX @build BenderAI 03/03/2026 - Linux wrapper for bundled runtime
+# GeneralsX: Linux wrapper for bundled runtime
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Set LD_LIBRARY_PATH to find DXVK, SDL3, and other libs in same directory
 export LD_LIBRARY_PATH="${SCRIPT_DIR}:${LD_LIBRARY_PATH:-}"
 
-# GeneralsX @bugfix Claude 20/08/2026 Point the engine at the bundled community-patch overlay.
+# GeneralsX: Point the engine at the bundled community-patch overlay.
 # Explicit rather than relying on <exe dir>/GeneralsXPatch: the default is correct for this layout
 # but wrong for a deployed install, and one spelling that is always right beats two that differ.
 if [[ -d "${SCRIPT_DIR}/GeneralsXPatch" ]]; then
     export GENERALSX_PATCH_PATH="${SCRIPT_DIR}/GeneralsXPatch"
 fi
-# GeneralsX @bugfix Claude 25/09/2026 The loose data (colour pair, Weapon.ini) this tarball carries: the
+# GeneralsX: The loose data (colour pair, Weapon.ini) this tarball carries: the
 # engine reads a relative path here before the working directory (StdLocalFileSystem.cpp).
 if [[ -d "${SCRIPT_DIR}/gamedata" ]]; then
     export GENERALSX_DATA_OVERLAY="${GENERALSX_DATA_OVERLAY:-${SCRIPT_DIR}/gamedata}"
@@ -587,7 +587,7 @@ if [[ -z "${CNC_GENERALS_INSTALLPATH:-}" && -d "${SCRIPT_DIR}/../Generals" ]]; t
     export CNC_GENERALS_INSTALLPATH="${SCRIPT_DIR}/../Generals/"
 fi
 
-# GeneralsX @bugfix Claude 20/08/2026 NAME THE ZERO HOUR DATA ROOT, do not let it fall out of cwd.
+# GeneralsX: NAME THE ZERO HOUR DATA ROOT, do not let it fall out of cwd.
 #
 # This wrapper execs the engine without cd-ing, so the asset root was whatever directory the user
 # happened to be in. dataID is computed over the mounted archives and is cwd-relative, so the same
@@ -612,7 +612,7 @@ if [[ -z "${CNC_GENERALS_ZH_PATH:-}" ]]; then
     echo "           CNC_GENERALS_ZH_PATH to it. Starting anyway - the engine will look in \$PWD." >&2
 fi
 
-# GeneralsX @bugfix BenderAI 06/03/2026 - Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
+# GeneralsX: Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
 # libvulkan_lvp.so (LLVMpipe) crashes during static initialization with LLVM 20.x.
 # Filter hardware-only ICDs via VK_DRIVER_FILES to prevent loading the crashing library.
 # User can override by setting VK_DRIVER_FILES or VK_ICD_FILENAMES before running.
@@ -650,7 +650,7 @@ fi
 # These env vars are read by openal-soft's static constructor at library load time,
 # so they must be set here in the launcher before the binary starts.
 # User can override by setting ALSOFT_DISABLE_CPU_EXTS or ALSOFT_DRIVERS explicitly.
-# GeneralsX @build Claude 25/09/2026 The crashes above were recorded with the DISTRO's 1.25.1,
+# GeneralsX: The crashes above were recorded with the DISTRO's 1.25.1,
 # which this tarball no longer loads (it ships 1.24.2 beside the binary). Kept as defaults because
 # nobody has measured the bundled copy without them. Pulse first still follows default-output
 # changes: the Pulse backend reports them, on PipeWire desktops too (via pipewire-pulse). The
@@ -664,7 +664,7 @@ if [[ -z "${ALSOFT_DRIVERS:-}" ]]; then
     echo "INFO: OpenAL: ALSOFT_DRIVERS=$ALSOFT_DRIVERS (pipewire excluded)"
 fi
 
-# GeneralsX @bugfix Claude 28/09/2026 READ THE dxvk.conf THIS TARBALL SHIPS. DXVK loads $DXVK_CONFIG_FILE,
+# GeneralsX: READ THE dxvk.conf THIS TARBALL SHIPS. DXVK loads $DXVK_CONFIG_FILE,
 # else $PWD/dxvk.conf (util/config/config.cpp getUserConfig), and this wrapper never cds: the launcher
 # starts it with the cwd at the Zero Hour data root. So the conf beside this script was never read and
 # Linux terrain went without the 16x anisotropy it carries. A caller's DXVK_CONFIG_FILE, or a dxvk.conf
@@ -673,7 +673,7 @@ if [[ -z "${DXVK_CONFIG_FILE:-}" && ! -f dxvk.conf && -f "${SCRIPT_DIR}/dxvk.con
     export DXVK_CONFIG_FILE="${SCRIPT_DIR}/dxvk.conf"
 fi
 
-# GeneralsX @feature Claude 07/11/2026 THE SHIPPED MAPS ARE INSTALLED HERE TOO (owner 07/11: "ship the maps we are making by
+# GeneralsX: THE SHIPPED MAPS ARE INSTALLED HERE TOO (owner 07/11: "ship the maps we are making by
 # default"). This tarball carries GeneralsXPatch/ShippedMaps/<Name>/ (scripts/build/overlay-maps.txt), but only the
 # launcher's PLAY copied them into the engine's <userdata>/Maps, and the Linux launcher neither installs nor finds a
 # tarball engine - so a player who starts this script got them only by lobby transfer. The rule is gxio shippedmaps.rs's:
@@ -683,7 +683,7 @@ fi
 # $XDG_DATA_HOME, else ~/.local/share, then GeneralsX/GeneralsZH). A failure is one line and never stops the game.
 # scripts/build/test-runsh-shipped-maps.sh runs this text in a tarball-shaped tree.
 # The temp is a FRESH file from mktemp (created exclusively, never an existing name), so a symlink planted at a predictable
-# name can never be written through (Codex maps-default-r1 P2) and two launches sharing one user folder cannot write into
+# name can never be written through and two launches sharing one user folder cannot write into
 # each other's temp. A folder sitting at the target's name is refused: mv would move the file INTO it and call that done.
 gx_put_shipped_file() {  # <file> <dest folder>: a fresh temp beside the target, then a rename over it
     local dst="${2}/${1##*/}" tmp
@@ -697,7 +697,7 @@ gx_put_shipped_file() {  # <file> <dest folder>: a fresh temp beside the target,
 gx_install_shipped_maps() {
     local src="${GENERALSX_PATCH_PATH:-${SCRIPT_DIR}/GeneralsXPatch}/ShippedMaps" ud maps dir name f ok
     [[ -d "${src}" ]] || return 0   # an older payload: nothing to install, nothing to say
-    # Present but unlistable: the glob below would match nothing and the maps would be silently skipped (Codex r4 P2).
+    # Present but unlistable: the glob below would match nothing and the maps would be silently skipped.
     if [[ ! -r "${src}" ]]; then
         echo "GeneralsX: shipped maps: cannot list ${src}; none installed" >&2
         return 0
@@ -723,13 +723,13 @@ gx_install_shipped_maps() {
         [[ -f "${dir}/${name}.map" && ! -L "${dir}/${name}.map" ]] || continue
         cmp -s "${dir}/${name}.map" "${maps}/${name}/${name}.map" 2>/dev/null && continue
         # A folder that cannot be LISTED hides its sidecars from the glob below; installing its .map alone would match on
-        # every later start and never fetch them (Codex maps-default-r3 P2). The launcher refuses this case too.
+        # every later start and never fetch them. The launcher refuses this case too.
         if [[ ! -r "${dir}" ]]; then
             echo "GeneralsX: shipped map ${name} was not installed: cannot list ${dir}" >&2
             continue
         fi
         # The player's own Maps/<Name> may be a link to a folder elsewhere (a shared or retail map folder): never write
-        # through it (Codex maps-default-r5 P2). A linked Maps folder as a whole is fine; only this one level is refused.
+        # through it. A linked Maps folder as a whole is fine; only this one level is refused.
         if [[ -L "${maps}/${name}" ]]; then
             echo "GeneralsX: shipped map ${name} was not installed: ${maps}/${name} is a link, left alone" >&2
             continue
@@ -755,7 +755,7 @@ exec "${SCRIPT_DIR}/GeneralsXZH" "$@"
 WRAPPER
 chmod +x "${BUNDLE_DIR}/run.sh"
 
-# GeneralsX @feature Claude 18/09/2026 BUILD.txt, SO THE LAUNCHER CAN TELL THIS PAYLOAD IS THE RELEASE.
+# GeneralsX: BUILD.txt, SO THE LAUNCHER CAN TELL THIS PAYLOAD IS THE RELEASE.
 #
 # The launcher identifies a Linux engine from the gitinfo compiled into it, and that names a
 # COMMIT - which any build at that commit also carries, local changes and other flags included. So

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 29/10/2026 S1-3 relay-list-v2: THE ENGINE READS THE SIGNED RELAY LIST.
+// GeneralsX: S1-3 relay-list-v2: THE ENGINE READS THE SIGNED RELAY LIST.
 //
 // WHY. "Adding a relay must not require updating clients" (CLAUDE.md, "The goal"). Until this file the
 // signed list in the release manifest reached only the Windows launcher; Mac, Linux and the launcher-less
@@ -46,14 +46,14 @@
 //   * FRESHNESS IS (rank, serial) AND NOTHING ELSE (§8.7). The release ordinal belongs to the
 //     update manifest; it is parsed and never consulted here, so a relay-only re-sign at the same ordinal
 //     still beats the list it replaces, and a recovery document from an older release still wins.
-//   * THE HORIZON, NOT A CLAMP (§3.3, §8.8-8.10, and Codex relaylist-v2 r1+r2). A stolen key can sign
+//   * THE HORIZON, NOT A CLAMP (§3.3, §8.8-8.10, and relaylist-v2 r1+r2). A stolen key can sign
 //     serial = 2^40. A list ARRIVING with a serial more than 7 days past this machine's clock is REFUSED
 //     ("too far ahead"); every list accepted therefore carries a serial at most 7 days past its own arrival,
 //     and freshness compares those raw serials. Consequences, each the point: (1) a replay of anything
 //     already seen can never win again - its serial is fixed, and once an honest list signed after it is held
 //     it is below the floor; (2) a stolen key can keep honest re-signs out for at most 7 days PER DELIVERY,
 //     and only by delivering again (rotation to K2 ends it); (3) no per-document memory exists to overflow or
-//     cycle - the stored-clamp design this replaced was beaten twice by Codex (a re-offered document re-clamped
+//     cycle - the stored-clamp design this replaced was beaten twice by review (a re-offered document re-clamped
 //     from a later clock; a 4-entry history evicted by five pre-signed documents). The clock is
 //     max(wall clock, a persisted high-water mark of the wall clock), so winding it back cannot shrink the
 //     horizon below what was already seen. The engine's OWN cache is not re-checked against the horizon at load,
@@ -222,7 +222,7 @@ enum GXRelaySource
 // launcherKey: the RelayAddressLauncher value (NULL when absent) - the Windows launcher writes the SAME value there as
 // in RelayAddress (gxlaunch.c publish_relay). While the two agree, RelayAddress is the LAUNCHER's choice, not the
 // player's: with a verified list held the list's home wins (the engine's own rank/serial floor governs on Windows too,
-// Codex relaylist-v2-r6); with none, the launcher's value is used as before. A RelayAddress the player edited no longer
+// ); with none, the launcher's value is used as before. A RelayAddress the player edited no longer
 // matches, and is a pin. A RelayAddress naming exactly the bootstrap on its port, with no marker, is a LEGACY
 // launcher-written value (every launcher before the marker wrote the bootstrap name there) and is treated the same.
 GXRelaySource gxRelayResolve(int envOptOut, const char *key, const char *launcherKey, const GXRelayEndpoint *listHome,

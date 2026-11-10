@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0 - see VkFrameRing.h.
+// GeneralsX: WS-B VkCtx v0 - see VkFrameRing.h.
 #include "VkFrameRing.h"
 
 #include <chrono>
@@ -47,7 +47,7 @@ void VkFrameRing::shutdown()
 		return;
 	VkDevice device = m_ctx->device();
 	// destroy only after a PROVEN idle (waitIdle: success or a driver loss's completion) - a slot wait that read false after a
-	// loss proves nothing (Codex rw3V-design-r2 P1-1)
+	// loss proves nothing
 	if (!g_testMutants.ringShutdownNoIdle)
 		m_ctx->waitIdle();
 	for (uint32_t i = 0; i < m_count; ++i) {

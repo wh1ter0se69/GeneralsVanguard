@@ -147,7 +147,7 @@ static const Int TELETYPE_UPDATE_FREQ = 2; // how many frames between teletype u
 
 
 //-----------------------------------------------------------------------------
-// GeneralsX @feature Claude 13/08/2026 The row builder GeneralsMD registers. See LoadScreen.h for
+// GeneralsX: The row builder GeneralsMD registers. See LoadScreen.h for
 // why this is a hook and not a direct call: this file is Core and CodeGuiRowsEnsure is not.
 //
 // Null until someone registers one, and null forever in the Generals twin - which is the point.
@@ -167,7 +167,7 @@ Int LoadScreenEnsureRows( GameWindow *parent, const char *idFormat, Int rowCount
 	return s_loadScreenRowBuilder( parent, idFormat, rowCount, placedByCaller );
 }
 
-// GeneralsX @feature Claude 08/11/2026 The splitter GeneralsMD registers; see LoadScreen.h. Null in the twin.
+// GeneralsX: The splitter GeneralsMD registers; see LoadScreen.h. Null in the twin.
 static LoadScreenRowSplitter s_loadScreenRowSplitter = nullptr;
 
 void LoadScreenSetRowSplitter( LoadScreenRowSplitter splitter )
@@ -206,7 +206,7 @@ void LoadScreen::update( Int percent )
 	if (TheGameEngine->getQuitting() || (TheGameLogic && TheGameLogic->isQuitToDesktopRequested()))
 		return;	//don't bother with any of this if the player is exiting game.
 
-	// GeneralsX @perf Claude 01/10/2026 A2: the first call of a session starts the pipeline warm-up, so it compiles
+	// GeneralsX: A2: the first call of a session starts the pipeline warm-up, so it compiles
 	// while the map loads; later calls only read the pending count.
 	TheDisplay->warmPipelines();
 
@@ -227,12 +227,12 @@ void LoadScreen::update( Int percent )
 	}
 }
 
-// GeneralsX @test Claude 01/10/2026 A2: GX_WARM_SHOT=1 saves one screenshot at the load's end - of the held screen with its
+// GeneralsX: A2: GX_WARM_SHOT=1 saves one screenshot at the load's end - of the held screen with its
 // message, or of a load that did not hold (no message). The proof shots. Unset: one cached getenv, nothing else. Off
-// on a -headless peer, which never creates the device takeScreenShot reads (as gxShotCaptureOn, Codex a2-r10).
+// on a -headless peer, which never creates the device takeScreenShot reads (as gxShotCaptureOn).
 // The screenshot reads back buffer 0 after a present, and DXVK ROTATES the back buffers at every present
 // (D3D9SwapChainEx::Present, m_backBuffers[i]->Swap): buffer 0 is then one drawn one or two presents earlier. The first
-// iPad shot (IT2, 01/10) showed the screen from BEFORE the message for that reason (Codex a2-r10 had said so; declined
+// iPad shot (IT2, 01/10) showed the screen from BEFORE the message for that reason (had said so; declined
 // then, wrongly). So three more barrier passes first - at most three buffers rotate (two back buffers plus the front
 // one) - each drawing what the shot is to show. Test runs only: it lengthens a load by three draws.
 static void gxWarmShot( LoadScreen *screen, Bool message )
@@ -246,7 +246,7 @@ static void gxWarmShot( LoadScreen *screen, Bool message )
 	fprintf(stderr, "[GXWARM] shot message=%d\n", message);
 }
 
-// GeneralsX @feature Claude 02/10/2026 A2 (wh1ter0se 02/10: "show the message top left 'Optimizing shaders...' with a
+// GeneralsX: A2 (wh1ter0se 02/10: "show the message top left 'Optimizing shaders...' with a
 // 0.00-100.00% info"): one left-aligned line in the screen's top-left corner, in the face and size of the render-fps/
 // clock readout InGameUI draws there (Tahoma bold, its size, resolution-adjusted), white with a black border, one row below that
 // readout. Not a .wnd text's font: the multiplayer screens' features font is so large the line ran into the general's
@@ -255,7 +255,7 @@ static void gxWarmShot( LoadScreen *screen, Bool message )
 static GameWindow *gxWarmTextTopLeft( GameWindow *screen )
 {
 	// Not on a -headless peer: its window manager is the dummy, whose static text has no TextData for the gadget's own
-	// destroy to free (Codex a2-r16). Nothing is drawn there anyway.
+	// destroy to free. Nothing is drawn there anyway.
 	if (screen == nullptr || TheWindowManager == nullptr || TheFontLibrary == nullptr
 		|| (TheGlobalData != nullptr && TheGlobalData->m_headless))
 		return nullptr;
@@ -289,7 +289,7 @@ static void gxWarmProgress( GameWindow *text, UnsignedInt pendingAtEntry, Unsign
 		L"Optimizing shaders... %.2f%%", percent));
 }
 
-// GeneralsX @perf Claude 01/10/2026 A2: hold the load screen until every recorded graphics pipeline is compiled, so no
+// GeneralsX: A2: hold the load screen until every recorded graphics pipeline is compiled, so no
 // first draw in the match compiles one (13 of the 16 stops over 100 ms in modernize/HANDBACK_s0-hitch-attribution.md).
 // Before GameLogic reports the load complete, so a slow compile is load time, never a lockstep stop. Each pass is
 // update(101) - the subclass's own barrier pass, the one GameLogic's barrier makes: network keep-alive, the LAN start
@@ -305,14 +305,14 @@ void LoadScreen::waitForPipelineWarmup()
 	}
 	const UnsignedInt start = timeGetTime();
 	UnsignedInt pending = pendingAtEntry;
-	// GeneralsX @feature Claude 01/10/2026 A2 (wh1ter0se 01/10: "with a clear message"): say what the hold is, in the screen's
+	// GeneralsX: A2 (wh1ter0se 01/10: "with a clear message"): say what the hold is, in the screen's
 	// own text element so it looks like the rest of the screen, once the hold has lasted long enough to notice - a shorter
 	// one would only flash a sentence. Put back after: a LAN screen goes on to wait for the other players.
 	UnicodeString savedText;
 	Bool savedHidden = FALSE;
 	Int messageMs = -1;
 	while (pending > 0 && timeGetTime() - start < 20000 && !TheGameEngine->getQuitting()
-		&& !(TheGameLogic && TheGameLogic->isQuitToDesktopRequested()))	// the same two exits update() honours (Codex a2-r5)
+		&& !(TheGameLogic && TheGameLogic->isQuitToDesktopRequested()))	// the same two exits update() honours
 	{
 		const Bool showNow = messageMs < 0 && m_gxWarmText != nullptr && timeGetTime() - start >= 250;
 		if (showNow)
@@ -340,7 +340,7 @@ void LoadScreen::waitForPipelineWarmup()
 		m_gxWarmText->winHide(savedHidden);
 	}
 	else
-		gxWarmShot(this, FALSE);	// a hold too short to say anything (Codex a2-r11)
+		gxWarmShot(this, FALSE);	// a hold too short to say anything
 	fprintf(stderr, "[GXWARM] load-end pending=%u wait_ms=%u left=%u message_ms=%d\n", pendingAtEntry, timeGetTime() - start,
 		pending, messageMs);
 }
@@ -642,7 +642,7 @@ void SinglePlayerLoadScreen::init( GameInfo *game )
 */
 	m_ambientLoop.setEventName("LoadScreenAmbient");
 	// create the new stream
-	// GeneralsX @bugfix Claude 01/10/2026 No current mission (bad campaign data): treat it like a movie that cannot open. Idea from Generals Online 3e6a7186c, reimplemented.
+	// GeneralsX: No current mission (bad campaign data): treat it like a movie that cannot open. Idea from Generals Online 3e6a7186c, reimplemented.
 	const Mission *currentMission = TheCampaignManager->getCurrentMission();
 	m_videoStream = currentMission ? TheVideoPlayer->open( currentMission->m_movieLabel ) : nullptr;
 	if ( m_videoStream == nullptr )
@@ -1114,7 +1114,7 @@ void ChallengeLoadScreen::init( GameInfo *game )
 	const Mission *mission = TheCampaignManager->getCurrentMission();
 
 	// the player general is tied to the campaign
-	// GeneralsX @bugfix Claude 01/10/2026 An unresolved campaign, mission or persona (bad/modded Campaign.ini) was dereferenced. Keep building the window and progress bar
+	// GeneralsX: An unresolved campaign, mission or persona (bad/modded Campaign.ini) was dereferenced. Keep building the window and progress bar
 	// (update() drives it), then leave before the persona, voice-delay and taunt pieces, like the failed-video path below does. Idea from Generals Online 3e6a7186c, reimplemented.
 	const GeneralPersona* generalPlayer = campaign ? TheChallengeGenerals->getPlayerGeneralByCampaignName( campaign->m_name ) : nullptr;
 
@@ -1133,7 +1133,7 @@ void ChallengeLoadScreen::init( GameInfo *game )
 	DEBUG_ASSERTCRASH(m_progressBar, ("Can't initialize the progressbar for the single player loadscreen"));
 	GadgetProgressBarSetProgress(m_progressBar, 0 );
 	// GeneralsX A2: in the bios' style; here, before the early returns below (no mission, no movie, no video buffer), which
-	// still load (Codex a2-r12)
+	// still load
 	m_gxWarmText = gxWarmTextTopLeft( m_loadScreen );
 
 	m_ambientLoop.setEventName("LoadScreenAmbient");
@@ -1466,7 +1466,7 @@ MultiPlayerLoadScreen::~MultiPlayerLoadScreen()
 //	TheAudio->stopAudio( AudioAffect_Music );
 }
 
-// GeneralsX @bugfix Claude 23/09/2026 init() ran before the start positions were picked. m_mapPreview is
+// GeneralsX: init() ran before the start positions were picked. m_mapPreview is
 // null until init() has built the window, which is also the headless case.
 void MultiPlayerLoadScreen::refreshStartSpots( GameInfo *game )
 {
@@ -1474,7 +1474,7 @@ void MultiPlayerLoadScreen::refreshStartSpots( GameInfo *game )
 		updateMapStartSpots( game, m_buttonMapStartPosition, TRUE );
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 A multiplayer load screen with no game is a save from a LAN or
+// GeneralsX: A multiplayer load screen with no game is a save from a LAN or
 // online match being loaded outside one: GameStateMap::xfer restores the saved mode and nothing supplies
 // TheGameInfo. Both inits below dereferenced it - a SIGSEGV. Throw instead. On a save load this runs
 // inside GameState::loadGame's catch, which turns it into SC_INVALID_DATA and the normal error; any
@@ -1493,7 +1493,7 @@ static void refuseMultiplayerLoadScreenWithoutGame( const char *which )
 	throw SC_INVALID_DATA;
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 A game with no local player slot: both inits below dereferenced
+// GeneralsX: A game with no local player slot: both inits below dereferenced
 // getSlot(getLocalSlotNum()) = getSlot(-1) = null. Measured with a skirmish save from a build with a
 // different MAX_SLOTS (retail and older GeneralsX wrote 8): SkirmishGameInfo::xfer misreads the slots and
 // none is local. The save gate refuses that save before loading (SaveLoadFeedback.cpp); this is the same
@@ -1592,7 +1592,7 @@ void MultiPlayerLoadScreen::init( GameInfo *game )
 		teamWin[i] = nullptr;
 	}
 
-	// GeneralsX @bugfix Claude 13/08/2026 BUILD THE ROWS THE .WND DOES NOT AUTHOR.
+	// GeneralsX: BUILD THE ROWS THE .WND DOES NOT AUTHOR.
 	//
 	// MultiplayerLoadScreen.wnd authors ProgressLoad0..7, StaticTextPlayer0..7, StaticTextSide0..7,
 	// StaticTextTeam0..7 and ButtonMapStartPosition0..7 - verified by extracting it from
@@ -1607,14 +1607,14 @@ void MultiPlayerLoadScreen::init( GameInfo *game )
 	//
 	// LoadScreenEnsureRows is a null check when no builder is registered, so the Generals twin -
 	// which has no CodeGui and registers nothing - behaves exactly as it does today.
-	// GeneralsX @feature Claude 08/11/2026 Created, NOT fitted (TRUE): LoadScreenSplitRows below places them once the
+	// GeneralsX: Created, NOT fitted (TRUE): LoadScreenSplitRows below places them once the
 	// number of filled rows is known - the authored eight as EA laid them out, more as two groups that stay inside the
 	// frame. Fitting all MAX_SLOTS into the band here ran 34 rows off the bottom of the screen.
 	LoadScreenEnsureRows( m_loadScreen, "MultiplayerLoadScreen.wnd:ProgressLoad%d",           MAX_SLOTS, TRUE );
 	LoadScreenEnsureRows( m_loadScreen, "MultiplayerLoadScreen.wnd:StaticTextPlayer%d",       MAX_SLOTS, TRUE );
 	LoadScreenEnsureRows( m_loadScreen, "MultiplayerLoadScreen.wnd:StaticTextSide%d",         MAX_SLOTS, TRUE );
 	LoadScreenEnsureRows( m_loadScreen, "MultiplayerLoadScreen.wnd:StaticTextTeam%d",         MAX_SLOTS, TRUE );
-	// GeneralsX @bugfix Claude 25/09/2026 The start markers too - this list stopped at the player
+	// GeneralsX: The start markers too - this list stopped at the player
 	// columns, so a 12-player map loaded with markers on eight of its twelve bases. Placed by
 	// positionStartSpots below, so they are created, not fitted.
 	LoadScreenEnsureRows( m_loadScreen, "MultiplayerLoadScreen.wnd:ButtonMapStartPosition%d", MAX_SLOTS, TRUE );
@@ -1655,7 +1655,7 @@ void MultiPlayerLoadScreen::init( GameInfo *game )
 		if (!slot || !slot->isOccupied())
 			continue;
 
-		// GeneralsX @bugfix Claude 13/08/2026 THE OCCUPIED BRANCH HAD THE SAME NULL ROW AS THE TAIL.
+		// GeneralsX: THE OCCUPIED BRANCH HAD THE SAME NULL ROW AS THE TAIL.
 		//
 		// The guard below the loop already covers rows netSlot..MAX_SLOTS-1. It did not cover THIS
 		// branch, which indexes the widget arrays by netSlot - the count of OCCUPIED slots - and
@@ -1718,7 +1718,7 @@ void MultiPlayerLoadScreen::init( GameInfo *game )
 		netSlot++;
 	}
 
-	// GeneralsX @bugfix Claude 12/08/2026 SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
+	// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
 	//
 	// MultiplayerLoadScreen.wnd and GameSpyLoadScreen.wnd author rows 0..7 - read out of
 	// WindowZH.big. MAX_SLOTS became 12, so winGetWindowFromId returns null for 8..11
@@ -1741,7 +1741,7 @@ void MultiPlayerLoadScreen::init( GameInfo *game )
 		if (teamWin[i])        teamWin[i]->winHide(TRUE);
 	}
 
-	// GeneralsX @feature Claude 08/11/2026 Place the filled rows: unchanged up to the authored eight, two side-by-side
+	// GeneralsX: Place the filled rows: unchanged up to the authored eight, two side-by-side
 	// groups past that, so 32 players stay inside the frame. See LoadScreenSplitRows.
 	{
 		static const char * const mpColumns[] =
@@ -1797,7 +1797,7 @@ void MultiPlayerLoadScreen::reset()
 	}
 }
 
-// GeneralsX @test Claude 24/09/2026 GX_TEST_LOAD_STALL_MS=<ms> blocks ONCE, for <ms>, at the first load step
+// GeneralsX: GX_TEST_LOAD_STALL_MS=<ms> blocks ONCE, for <ms>, at the first load step
 // at or past GX_TEST_LOAD_STALL_AT percent (default 50) - a synchronous load step that long, which is what a
 // slow machine does inside startNewGame. Nothing services a socket until it returns (this function is the
 // only pump the load has), so it reproduces a relay membership going silent mid-load on any machine.
@@ -1828,7 +1828,7 @@ void MultiPlayerLoadScreen::update( Int percent )
 {
 	gxTestLoadStall(percent);
 
-	// GeneralsX @bugfix Claude 23/09/2026 Keep delivering the host's Game Start while it loads and
+	// GeneralsX: Keep delivering the host's Game Start while it loads and
 	// waits in startNewGame's progress barrier. The start's 5-copy burst fires only from
 	// LANAPI::update, which the engine pumps once per main-loop iteration - and this whole load,
 	// barrier (PROGRESS_COMPLETE_TIMEOUT = 60 s) and fade is ONE iteration. A peer that lost both
@@ -1914,7 +1914,7 @@ GameSpyLoadScreen::~GameSpyLoadScreen()
 
 extern Int GetAdditionalDisconnectsFromUserFile(Int playerID);
 
-// GeneralsX @bugfix Claude 23/09/2026 init() ran before the start positions were picked. m_mapPreview is
+// GeneralsX: init() ran before the start positions were picked. m_mapPreview is
 // null until init() has built the window, which is also the headless case.
 void GameSpyLoadScreen::refreshStartSpots( GameInfo *game )
 {
@@ -1989,7 +1989,7 @@ GameSlot *lSlot = game->getSlot(game->getLocalSlotNum());
 		teamWin[i] = nullptr;
 	}
 
-	// GeneralsX @bugfix Claude 13/08/2026 Same as MultiPlayerLoadScreen::init above - see the note
+	// GeneralsX: Same as MultiPlayerLoadScreen::init above - see the note
 	// there. GameSpyLoadScreen.wnd authors the same eight rows across more columns, so the online
 	// load screen has the identical eight-of-twelve defect.
 	LoadScreenEnsureRows( m_loadScreen, "GameSpyLoadScreen.wnd:ProgressLoad%d",             MAX_SLOTS );
@@ -2002,7 +2002,7 @@ GameSlot *lSlot = game->getSlot(game->getLocalSlotNum());
 	// The team column is authored under the MULTIPLAYER prefix even on this screen - the binding
 	// loop below reads "MultiplayerLoadScreen.wnd:StaticTextTeam%d" here, which is not a typo.
 	LoadScreenEnsureRows( m_loadScreen, "MultiplayerLoadScreen.wnd:StaticTextTeam%d",       MAX_SLOTS );
-	// GeneralsX @bugfix Claude 25/09/2026 Start markers, as on MultiPlayerLoadScreen::init.
+	// GeneralsX: Start markers, as on MultiPlayerLoadScreen::init.
 	LoadScreenEnsureRows( m_loadScreen, "GameSpyLoadScreen.wnd:ButtonMapStartPosition%d",   MAX_SLOTS, TRUE );
 
 	Int netSlot = 0;
@@ -2071,7 +2071,7 @@ GameSlot *lSlot = game->getSlot(game->getLocalSlotNum());
 		if (!slot || !slot->isOccupied())
 			continue;
 
-		// GeneralsX @bugfix Claude 13/08/2026 Same null row as MultiPlayerLoadScreen::init above -
+		// GeneralsX: Same null row as MultiPlayerLoadScreen::init above -
 		// see the long note there for the mechanism. GameSpyLoadScreen.wnd authors the same eight
 		// rows, and this branch dereferences seven widget arrays by netSlot, so it faults on the
 		// ninth occupied slot exactly as the LAN screen did. Not yet reachable in practice - the
@@ -2217,7 +2217,7 @@ GameSlot *lSlot = game->getSlot(game->getLocalSlotNum());
 		netSlot++;
 	}
 
-	// GeneralsX @bugfix Claude 12/08/2026 SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
+	// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
 	//
 	// MultiplayerLoadScreen.wnd and GameSpyLoadScreen.wnd author rows 0..7 - read out of
 	// WindowZH.big. MAX_SLOTS became 12, so winGetWindowFromId returns null for 8..11
@@ -2346,7 +2346,7 @@ void MapTransferLoadScreen::init( GameInfo *game )
 	m_loadScreen->winHide(FALSE);
 	m_loadScreen->winBringToTop();
 
-	// GeneralsX @bugfix Claude 25/09/2026 Stop drawing the world behind the transfer screen, as every
+	// GeneralsX: Stop drawing the world behind the transfer screen, as every
 	// other load screen already does (GameLogic::startNewGame, ScoreScreen set the same flag).
 	//
 	// This is the one load-type screen that can come up while a GAME_SHELL game is still loaded: the
@@ -2370,7 +2370,7 @@ void MapTransferLoadScreen::init( GameInfo *game )
 		TheDisplay ? (Int)TheDisplay->getWidth() : -1, TheDisplay ? (Int)TheDisplay->getHeight() : -1,
 		s_ungated ? "NOT gated (GX_XFER_UNGATED)" : "gated", m_prevLoadScreenRender ? 1 : 0);
 
-	// GeneralsX @bugfix Claude 14/08/2026 MapTransferScreen.wnd authors its per-row controls 0..7
+	// GeneralsX: MapTransferScreen.wnd authors its per-row controls 0..7
 	// and MAX_SLOTS is 12, so a 9th-12th human transferring a map had NO control to be drawn on and
 	// was simply invisible on this screen - no name, no bar, no percentage - while the transfer
 	// itself worked. The sibling load screens both build their missing rows already:
@@ -2440,7 +2440,7 @@ void MapTransferLoadScreen::init( GameInfo *game )
 		netSlot++;
 	}
 
-	// GeneralsX @bugfix Claude 12/08/2026 SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
+	// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
 	//
 	// MultiplayerLoadScreen.wnd and GameSpyLoadScreen.wnd author rows 0..7 - read out of
 	// WindowZH.big. MAX_SLOTS became 12, so winGetWindowFromId returns null for 8..11

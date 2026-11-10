@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-// GeneralsX @feature Claude 27/07/2026
+// GeneralsX:
 // 32-bit digest of the simulation-relevant source tree plus the build
 // configuration, computed at build time by simsourcedigest_watcher.cmake.
 // 0 is a RESERVED SENTINEL meaning "no provenance" - the build had no git

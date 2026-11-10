@@ -29,7 +29,7 @@ class WorkingDirectory
 {
 public:
 	static Bool setStartupWorkingDirectory();
-	// GeneralsX @build Claude 21/09/2026 Windows only. See the note in the .cpp - on the macOS
+	// GeneralsX: Windows only. See the note in the .cpp - on the macOS
 	// bundle the executable does not live beside the data root, so this would be wrong there.
 	static Bool setExecutableWorkingDirectory();
 	// Relative paths are resolved from the current working directory.

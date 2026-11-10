@@ -81,7 +81,7 @@ public:
 	enum
 	{
 		ZoomHeightPerSecond = 10,
-		// GeneralsX @feature Claude 26/09/2026 What the camera-height settings may hold. The player's range is the
+		// GeneralsX: What the camera-height settings may hold. The player's range is the
 		// launcher's and OptionPreferences' (50 .. 300, 100 .. 1000 - 1000 is also Generals Online's lobby cap). The
 		// Debug menu reaches further (owner: down to 10, up to 10000 - "I need zoom past 3k", 30/09), and a value outside the player's range is
 		// honoured only while Options.ini carries the Debug menu's mark - see getPrefDebugCameraHeights.
@@ -235,7 +235,7 @@ public:
 	virtual void set3DCameraLookAt(const Coord3D &pos, const Coord3D &dir, Real roll) {} ///< Set the actual camera position and view direction
 
 	virtual Real getZoom() { return m_zoom; }
-	/// GeneralsX @bugfix Claude 25/09/2026 The zoom retail WOULD report for this camera: what the
+	/// GeneralsX: The zoom retail WOULD report for this camera: what the
 	/// selection overlays (health bar, pips, veterancy, formation marker) size themselves by, so they
 	/// keep the retail look when the camera is allowed higher than retail's MaxCameraHeight. iconScale
 	/// (optional) receives the factor for the overlays retail draws at a FIXED pixel size: 1.0 unless

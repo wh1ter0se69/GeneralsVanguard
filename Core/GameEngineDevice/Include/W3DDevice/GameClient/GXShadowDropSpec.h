@@ -1,4 +1,4 @@
-// GeneralsX @test E · look-shadowmaps-6 18/10/2026 S7 PREREG A60/A73 (TEST-ONLY): the drop spec GX_SHADOW_DROP_MESH /
+// GeneralsX: S7 PREREG A60/A73 (TEST-ONLY): the drop spec GX_SHADOW_DROP_MESH /
 // GX_SHADOWMAP_DROP_CAST name - pure parsing and matching, host-tested (scripts/test/sm-fit/sm-fit-test.cpp A73-drop-*, with the
 // compile-time mutants sm-fit-test.sh builds), used by W3DVolumetricShadowManager::gxShadowDropMesh. Render-only diagnostics.
 //

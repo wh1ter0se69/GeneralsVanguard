@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 10/10/2026 WS-X hybrid spike: the DXVK-side interfaces GxInterop calls, mirrored.
+// GeneralsX: WS-X hybrid spike: the DXVK-side interfaces GxInterop calls, mirrored.
 //
 // The game compiles against the DirectX 8 headers only (min-dx8-sdk on Windows, DXVK's native d3d8.h elsewhere), so the
 // d3d9 interop declarations of references/fbraz3-dxvk/src/d3d9/d3d9_interfaces.h are not reachable from here. These are

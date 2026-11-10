@@ -64,7 +64,7 @@ public:
                       float dest_alpha = 0.0f, float z = 1.0f, unsigned int stencil = 0);
     static void Set_Viewport(const RenderViewport & viewport);
     static void Invalidate_Cached_Render_States();
-    // GeneralsX @refactor Claude 10/10/2026 WW3D::End_Render marks only the matrices dirty each frame instead of
+    // GeneralsX: WW3D::End_Render marks only the matrices dirty each frame instead of
     // invalidating every cached state (fork divergence, ww3d.cpp), so the seam carries that call too.
     static void Set_Transform_Dirty();
 

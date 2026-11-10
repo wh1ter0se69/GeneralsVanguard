@@ -46,7 +46,7 @@ public:
 		unsigned short vertex_count);
 
 	static void Flush();
-	// GeneralsX @feature D · look-shadowmaps-4 18/10/2026 S7 PREREG A44/A46 (A31): nothing queued - the early cast-only flush runs only then
+	// GeneralsX: S7 PREREG A44/A46 (A31): nothing queued - the early cast-only flush runs only then
 	static bool Gx_Is_Empty();
 	static void Deinit();
 

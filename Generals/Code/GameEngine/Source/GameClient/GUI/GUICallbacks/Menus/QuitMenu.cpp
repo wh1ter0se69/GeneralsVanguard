@@ -196,7 +196,7 @@ static void restartMissionMenu()
 
 	Int rankPointsStartedWith = TheGameLogic->getRankPointsToAddAtGameStart();// must write down before reset
 	GameDifficulty diff = TheScriptEngine->getGlobalDifficulty();
-	// GeneralsX @feature Claude 27/09/2026 The restart's fourth MSG_NEW_GAME argument is the game SPEED
+	// GeneralsX: The restart's fourth MSG_NEW_GAME argument is the game SPEED
 	// (GameLogic::onNewGame), so pass the speed this game ran at, not the render cap: with the cap at the
 	// display's refresh rate or unlimited, that argument became a render cap again.
 	Int fps = TheFramePacer->isLogicTimeScaleEnabled() ? TheFramePacer->getLogicTimeScaleFps() : (Int)LOGICFRAMES_PER_SECOND;

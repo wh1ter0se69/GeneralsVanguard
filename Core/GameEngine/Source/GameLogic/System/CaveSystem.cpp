@@ -62,12 +62,12 @@ void CaveSystem::update()
 {
 }
 
-// GeneralsX @bugfix Claude 06/10/2026 newIndex is a map script's SET_CAVE_INDEX value as the file gave it (CaveContain::
+// GeneralsX: newIndex is a map script's SET_CAVE_INDEX value as the file gave it (CaveContain::
 // tryToSetCaveIndex asks here before it changes anything), and the switch it grants registers that index: registerNewCave
 // fills the dense tracker vector up to it, so -1 (a huge size_t there) or INT_MAX grew the vector until allocation failed
-// (Codex mlv-r7 #1). An index outside 0..MAX_CAVE_INDEX-1 is not granted. Real maps use 1..2 (2,641 maps scanned).
+// An index outside 0..MAX_CAVE_INDEX-1 is not granted. Real maps use 1..2 (2,641 maps scanned).
 // The two other ways in - a cave's CaveIndex module data (which a map.ini can override) and a save - are held to the same
-// range by CaveContain::onCreate and CaveContain::xfer through isValidCaveIndex (batch-0958 Codex r3-full).
+// range by CaveContain::onCreate and CaveContain::xfer through isValidCaveIndex.
 static const Int MAX_CAVE_INDEX = 4096;
 
 Bool CaveSystem::isValidCaveIndex( Int theIndex )

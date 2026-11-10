@@ -1,4 +1,4 @@
-// GeneralsX @bugfix Claude 18/09/2026 - what the GAME socket (Transport) tells the relay about who is
+// GeneralsX: what the GAME socket (Transport) tells the relay about who is
 // playing, decided in PURE code: no socket, no engine, no AsciiString. Transport.cpp cannot be compiled
 // on its own (5,500 lines over the whole engine), so scripts/test/game-socket-identity-test.cpp drives
 // THIS - the code Transport::resendRelayIdentity actually runs - and checks the wiring at source level.
@@ -68,7 +68,7 @@ private:
 	unsigned short m_port;	///< the port the clear is owed on; 0 while nothing is owed
 };
 
-/// GeneralsX @bugfix Claude 23/09/2026 Bare keepalives of a signed-out membership the relay may leave
+/// GeneralsX: Bare keepalives of a signed-out membership the relay may leave
 /// unanswered before the client gives that id up and asks for a new one. ONE policy for both sockets that
 /// discard their secret at sign-out: GXLobbyPresence::update re-asks GXWHO itself, and the lobby transport
 /// raises Transport::isRelayIdentityStranded for the Online screen to re-enter its room. The relay answers

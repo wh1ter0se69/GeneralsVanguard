@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/08/2026 SHA-512, FIPS 180-4, portable.
+// GeneralsX: SHA-512, FIPS 180-4, portable.
 //
 // WHY THIS EXISTS. Ed25519 verification hashes R || A || M with SHA-512, and there was no portable
 // SHA-512 in this tree. The one implementation that existed lived in the Windows launcher's

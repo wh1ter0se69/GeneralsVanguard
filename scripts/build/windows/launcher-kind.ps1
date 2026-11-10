@@ -1,4 +1,4 @@
-# GeneralsX @bugfix Claude 24/09/2026 The Windows launcher is the TAURI one (scripts/launcher-rs).
+# GeneralsX: The Windows launcher is the TAURI one (scripts/launcher-rs).
 #
 # Dot-sourced by setup-run-win64.ps1 and package-windows-share.ps1. Both stage a file called
 # GeneralsXLauncher.exe, and two different programs have carried that name: the retired C# loader

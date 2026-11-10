@@ -1,6 +1,6 @@
 #pragma once
 
-// GeneralsX @bugfix C · mip-box-filter 18/10/2026 One 2:1 box reduction for every platform.
+// GeneralsX: One 2:1 box reduction for every platform.
 //
 // D3DXLoadSurfaceFromSurface builds each mip level from the one above it (D3DXFilterTexture: the terrain atlas, its
 // blend and edge textures, the tree atlas, surface-built textures). Apple averaged every 2x2 block; Windows and Linux

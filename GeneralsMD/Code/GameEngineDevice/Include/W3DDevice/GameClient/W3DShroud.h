@@ -96,7 +96,7 @@ public:
 	void setShroudLevel(Int x, Int y, W3DShroudLevel,Bool textureOnly=FALSE);
 	void setShroudFilter(Bool enable);	///<turns on bilinear filtering of shroud cells.
 	void setBorderShroudLevel(W3DShroudLevel level);	///<color that will appear in unused border terrain.
-	// GeneralsX @feature Claude 13/10/2026 Fog interpolation: TRUE while a cell the sphere's shroud pass samples is still fading.
+	// GeneralsX: Fog interpolation: TRUE while a cell the sphere's shroud pass samples is still fading.
 	Bool isFadingUnder(const SphereClass &sphere) const;
 	Bool isFading() const { return m_fogInterpolation && m_fogFading; }	///<any cell fading (cheap pre-check for callers)
 	Real	getDrawOriginX()	{return m_drawOriginX;}	///<returns ws origin of first pixel in shroud texture.
@@ -121,14 +121,14 @@ protected:
 	Real m_drawOriginY;
 	Bool m_drawFogOfWar;					///<switch to draw alternate fog style instead of solid black
 	Bool m_clearDstTexture;				///<flag indicating we must clear video memory destination texture
-	// GeneralsX @performance Claude 23/09/2026 render() re-uploads the shroud only when the
+	// GeneralsX: render() re-uploads the shroud only when the
 	// sysmem copy changed (m_srcDirty) or the copied rect / destination texture changed.
 	Bool m_srcDirty;						///<sysmem shroud written since the last copy to m_pDstTexture
 	RECT m_lastCopiedRect;					///<source rect of the last copy to m_pDstTexture
 	W3DShroudLevel m_boderShroudLevel;			///<color used to clear the shroud border
 	W3DShroudLevel *m_finalFogData;			///<copy of logical shroud in an easier to access array.
 	W3DShroudLevel *m_currentFogData;		///<copy of intermediate logical shroud while it's interpolated.
-	// GeneralsX @feature Claude 13/10/2026 Retail's compiled-out DO_FOG_INTERPOLATION as a client option (W3DShroud::init).
+	// GeneralsX: Retail's compiled-out DO_FOG_INTERPOLATION as a client option (W3DShroud::init).
 	Bool m_fogInterpolation;				///<fade each cell's drawn level toward its logical level instead of snapping
 	Bool m_fogFading;						///<some cell's drawn level still differs from its logical level
 	Real m_fogCarry;						///<fraction of a fog step not yet applied (a fast frame is worth less than one step)

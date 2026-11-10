@@ -13,7 +13,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-// GeneralsX @bugfix Claude 27/09/2026 Match the real D3DX8 contract (checked by scripts/test/d3dx-math-contract-test.sh).
+// GeneralsX: Match the real D3DX8 contract (checked by scripts/test/d3dx-math-contract-test.sh).
 // The two converters copy the SAME mathematical matrix across (row r, column c <-> _rc), which is right for the
 // convention-free operations (Multiply, Inverse, Transpose). D3DX is ROW-vector ([x y z 1] * M, translation in
 // _41/_42/_43) while GLM's builders are COLUMN-vector (M * v, translation in column 3), so a GLM-built transform must

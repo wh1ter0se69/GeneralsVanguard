@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 23/09/2026 - finish a write-to-tmp and put it in place, in one call.
+// GeneralsX: finish a write-to-tmp and put it in place, in one call.
 //
 // Options.ini, MapCache.ini and GXPlayer.ini used to be written with fopen(path, "w"). That
 // truncates the live file before the first byte of the new one exists, so a crash, a full disk,
@@ -45,11 +45,11 @@ inline bool gxPlatformReplaceFile(const char *tmpPath, const char *finalPath)
 }
 #endif
 
-// GeneralsX @bugfix Claude 22/10/2026 (file-wipe class, Codex fwc-r1 P2) A read that fails with ENOENT is a missing file
+// GeneralsX: A read that fails with ENOENT is a missing file
 // ONLY when no name is there at all. A dangling symlink - a GXPlayer.ini linked onto a volume that is not mounted -
 // also opens as ENOENT, and writing a new file over the NAME replaces the link: when the volume comes back, the
 // player's file is no longer reached. Call this after an ENOENT (it may change errno). On Windows the directory entry
-// is looked up with _findfirst, which does not follow a link (Codex fwc-r2 P2).
+// is looked up with _findfirst, which does not follow a link.
 inline bool gxNameExists(const char *path)
 {
 #ifdef _WIN32
@@ -65,7 +65,7 @@ inline bool gxNameExists(const char *path)
 #endif
 }
 
-// GeneralsX @bugfix Claude 22/10/2026 (Codex fwc-r3 P2) A NEW temp file beside finalPath, "<final>.<pid>.<n>.tmp", made
+// GeneralsX: A NEW temp file beside finalPath, "<final>.<pid>.<n>.tmp", made
 // exclusively (mode "x": refused if the name exists, so a link planted at that name is never followed and no other file
 // is truncated through it, and two writers never share one). tmpOut gets the name; nullptr when none could be made.
 // For the writers added with it; the older ones keep "<final>.tmp", which release.rs's writers contract pins.
@@ -109,7 +109,7 @@ inline bool gxCommitAndReplace(FILE *fp, const char *tmpPath, const char *finalP
 	return ok;
 }
 
-// GeneralsX @bugfix Claude 22/10/2026 (file-wipe class, Codex fwc-r1 P1) Copy srcPath over finalPath without ever
+// GeneralsX: Copy srcPath over finalPath without ever
 // destroying finalPath first. The replay "save as" used to DELETE the saved replay it was replacing and then copy
 // LastReplay.rep over it, so a copy that failed - the source unreadable or gone, a full disk - had already lost the
 // player's replay. The source is opened before anything else, the copy goes to "<final>.tmp", and only a complete,
@@ -121,7 +121,7 @@ inline bool gxCopyAndReplace(const char *srcPath, const char *finalPath)
 	if (in == nullptr)
 		return false;
 	// A fresh exclusive temp, never "<final>.tmp": a link left at that name would truncate whatever it points at
-	// (Codex fwc-r2 P2, r3 P2).
+	//
 	std::string tmp;
 	FILE *out = gxCreateTempFor(finalPath, tmp);
 	if (out == nullptr)

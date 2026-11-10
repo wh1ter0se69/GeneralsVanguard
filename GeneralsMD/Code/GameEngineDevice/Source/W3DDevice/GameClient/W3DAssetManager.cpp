@@ -456,7 +456,7 @@ static void remapTexture16Bit(Int dx, Int dy, Int pitch, SurfaceClass::SurfaceDe
 #define DO_HUE_SHIFT
 
 #ifdef DO_HUE_SHIFT
-// GeneralsX @bugfix Claude 18/10/2026 A dark house colour no longer turns ZHCA texels white (wh1ter0se 18/10, the Black
+// GeneralsX: A dark house colour no longer turns ZHCA texels white (wh1ter0se 18/10, the Black
 // colour: "these units need to be black top not white"). The hue shift gives a texel the colour's hue, scales its
 // saturation by the colour's and KEEPS THE TEXEL'S OWN VALUE. That is right for a bright colour, and every retail and
 // shipped colour is one (Purple's day value 200/255 is the darkest), but Black (40,40,40) has saturation 0, so each
@@ -794,7 +794,7 @@ RenderObjClass * W3DAssetManager::Create_Render_Obj(
 		const char *mesh_name = strchr (name, '.');
 		if (mesh_name != nullptr)
 		{
-			// GeneralsX @bugfix BenderAI 13/02/2026AI - Use intptr_t for pointer arithmetic (64-bit compat)
+			// GeneralsX:AI - Use intptr_t for pointer arithmetic (64-bit compat)
 			lstrcpyn(filename, name, ((intptr_t)mesh_name) - ((intptr_t)name) + 1);
 			lstrcat(filename, ".w3d");
 		} else {
@@ -1395,7 +1395,7 @@ RenderObjClass * W3DAssetManager::Create_Render_Obj(const char * name,float scal
 		char filename [MAX_PATH];
 		char *mesh_name = ::strchr (name, '.');
 		if (mesh_name != nullptr) {
-			// GeneralsX @bugfix BenderAI 13/02/2026AI - Use intptr_t for pointer arithmetic (64-bit compat)
+			// GeneralsX:AI - Use intptr_t for pointer arithmetic (64-bit compat)
 			::lstrcpyn (filename, name, ((intptr_t)mesh_name) - ((intptr_t)name) + 1);
 			if (isGranny)
 				::lstrcat (filename, ".gr2");

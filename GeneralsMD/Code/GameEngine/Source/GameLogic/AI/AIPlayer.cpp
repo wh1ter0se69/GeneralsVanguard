@@ -73,12 +73,12 @@
 #include "GameLogic/Module/SupplyWarehouseDockUpdate.h"
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/GXHookTimer.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ: [GXHOOK] CPU timer (test-instruments builds)
-// the face-front arm's per-tick time: the door turn here and the defence facing in AISkirmishPlayer.cpp, one sum (Codex ke-rotate-r6)
+// the face-front arm's per-tick time: the door turn here and the defence facing in AISkirmishPlayer.cpp, one sum
 GX_HOOK_STATS_DEFINE(gxFaceFrontHook, "face_front");
 #include "GameNetwork/GameInfo.h"
 #include "Lib/trig.h"	// GeneralsX: deterministic Sin/Cos - see WWMath/gamemath.h
 
-// GeneralsX @bugfix E·wh1ter0se-bugs-1015 16/10/2026 The AI tests a structure spot as standing ON THE GROUND. Its spot searches move a
+// GeneralsX: The AI tests a structure spot as standing ON THE GROUND. Its spot searches move a
 // candidate in x and y only, keeping the height of the spot they started from (the build-list spot, the warehouse, the base
 // centre), and isLocationLegalToBuild sees an object only when the two boxes overlap in height too
 // (PartitionManager::geomCollidesWithGeom). So from a spot on a ridge, every candidate on the low ground below was tested as a box
@@ -94,7 +94,7 @@ static LegalBuildCode gxLegalToBuildOnGround( const Coord3D *pos, const ThingTem
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 04/11/2026 base-layout (gx-handoff ai/base-layout/PLAN_base-layout.md section 2.4; wh1ter0se 03/11 "look at the rotation
+// GeneralsX: base-layout (gx-handoff ai/base-layout/PLAN_base-layout.md section 2.4; wh1ter0se 03/11 "look at the rotation
 // facing back of the base"): THE DOOR RULE, for a side whose list carries GXFrontDoors. R's own aim, the octant towards the front waypoint, reverses a
 // door that stands past its waypoint, and it fans the flanks far off the way the base faces. With t = unit(spot -> front) and a = unit(base centre ->
 // front): past the waypoint (t.a <= 0) aim along a, else along t + a. Then half the door's skew: units leave along model +X, but the rally point
@@ -108,7 +108,7 @@ static Bool gxDoorKind( const ThingTemplate *t, Bool keyed )
 		&& ( t->isKindOf( KINDOF_FS_BARRACKS ) || t->isKindOf( KINDOF_FS_WARFACTORY ) || ( keyed && t->isKindOf( KINDOF_FS_AIRFIELD ) ) );
 }
 
-// GeneralsX @bugfix Claude 04/11/2026 base-layout (Codex bl-engine-r5): an airfield is drawn facing the front and queued at the rule's angle, and a turned one's padded box is
+// GeneralsX: base-layout: an airfield is drawn facing the front and queued at the rule's angle, and a turned one's padded box is
 // huge, so turning it to the next octant would only push its neighbours into the position search. It keeps its list angle unless the rule's octant is more than one octant off.
 static Bool gxAirfieldKeepsList( const ThingTemplate *t, Real want, Real listAngle )
 {
@@ -330,7 +330,7 @@ void gxLayoutFallbackFixture()
 
 #define SUPPLY_CENTER_CLOSE_DIST (20*PATHFIND_CELL_SIZE_F)
 
-// GeneralsX @feature Claude 15/10/2026 Gatherers on a supply centre that stands on its pro spot (AIPlayer::buildBySupplies,
+// GeneralsX: Gatherers on a supply centre that stands on its pro spot (AIPlayer::buildBySupplies,
 // findDockFacePlacement): the free truck + one. wh1ter0se 15/10: "One supply placed perfectly with ONLY 2 TRUCKS AT A TIME ONLY TWO".
 static const Int AI_PRO_SPOT_GATHERERS = 2;
 
@@ -460,7 +460,7 @@ void AIPlayer::onStructureProduced( Object *factory, Object *bldg )
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @refactor Claude 15/10/2026 AIData's ResourceGatherers for a side and difficulty (the lookup checkForSupplyCenter
+// GeneralsX: AIData's ResourceGatherers for a side and difficulty (the lookup checkForSupplyCenter
 // always did), shared with queueSupplyTruck's player-wide ceiling, which must not shrink with a pro-spot centre's own target.
 // ------------------------------------------------------------------------------------------------
 static Int dataGatherers(const AsciiString &side, GameDifficulty difficulty)
@@ -500,7 +500,7 @@ void AIPlayer::checkForSupplyCenter( BuildListInfo *info, Object *bldg )
 		info->setSupplyBuilding(true);
 		info->setCurrentGatherers(-1);
 		info->setDesiredGatherers(desiredGatherers+1); // get a freebie with the supply depots.
-		// GeneralsX @feature Claude 15/10/2026 A centre on its pro spot (the entry still holds today's spot as an unused fallback,
+		// GeneralsX: A centre on its pro spot (the entry still holds today's spot as an unused fallback,
 		// SidesList.h) runs exactly two trucks: both park in the gap and keep the dock busy, a third only queues (measured,
 		// ai/supply-two). A centre that fell back to today's spot keeps today's count: two trucks there earn a quarter less.
 		if (info->hasFallbackSpot())
@@ -669,9 +669,9 @@ void AIPlayer::queueSupplyTruck()
 					}
 				}
 			}
-			// GeneralsX @fix Claude 15/10/2026 the player-wide ceiling stays today's (data + the free truck, x3): a pro-spot
+			// GeneralsX: the player-wide ceiling stays today's (data + the free truck, x3): a pro-spot
 			// centre's own target of two must not lower it, or a pro centre beside older fallback centres never gets its
-			// second truck (Codex supply-two-r2 P2).
+			// second truck.
 			const Int ceilingPerCentre = info->hasFallbackSpot() ? dataGatherers(m_player->getSide(), m_difficulty) + 1 : desiredGatherers;
 			if (totalHarvesters >= ceilingPerCentre*3) {
 				continue; // we got lotsa gatherers.
@@ -830,7 +830,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 	Real angle = info->getAngle();
 	Int gxDoorTurned = -1;	// GeneralsX 23/10/2026 ai-wh1ter0se-econ R: -1 = no door candidate, else 0 / 1 = list angle / turned ([GXROT] ev=placed)
 	Bool gxSearchAtWant = FALSE;	// GeneralsX 05/11/2026 base-layout: the position search below starts at the door rule's angle
-	// GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6; wh1ter0se 22/10 "building rotation should always
+	// GeneralsX: ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6; wh1ter0se 22/10 "building rotation should always
 	// be rotated to where it matters"): with AI_PLAYER_FACE_FRONT on, a barracks / war factory / arms dealer is turned so its door - model
 	// +X, where every production building's NaturalRallyPoint sits - points at the base front (the point front defences use). Today every
 	// AI base has one world orientation (RotateSkirmishBases = No, adjustBuildList never turns an angle). Only an angle legal at this very
@@ -858,7 +858,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 			// GeneralsX 05/11/2026 base-layout (ADDENDUM_2): no try fits this spot and the list angle is more than a quarter turn off the rule (a defence
 			// ring's clone keeps its "outward" there): the door would face the rear wherever it lands, so the position search below runs at the rule's
 			// angle first. Its own passes fall back to the list angle if that finds nothing, so this cannot leave a door unbuilt. An enemy on the rule's
-			// box keeps the list angle: the enemy gate below returns early and would never reach those passes (Codex bl-engine-r7 P1).
+			// box keeps the list angle: the enemy gate below returns early and would never reach those passes.
 			gxSearchAtWant = gxKeyedDoors && !turned && !bldgPlan->isKindOf( KINDOF_FS_AIRFIELD ) && fabs( normalizeAngle( want - info->getAngle() ) ) > PI / 2 + 0.001f
 				&& gxLegalToBuildOnGround( &pos, bldgPlan, want, BuildAssistant::NO_ENEMY_OBJECT_OVERLAP, dozer, m_player ) == LBC_OK;
 			if( gxSearchAtWant )
@@ -876,11 +876,11 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 																								 dozer, m_player ) != LBC_OK ) {
 		// If there's enemy units or structures, don't build/rebuild.
 		TheTerrainVisual->removeAllBibs();	// isLocationLegalToBuild adds bib feedback, turn it off.  jba.
-		// GeneralsX @feature Claude 01/10/2026 A supply centre refused on its dock face moves to today's spot and tries it at once
+		// GeneralsX: A supply centre refused on its dock face moves to today's spot and tries it at once
 		// (one level deep: useFallbackSpot is one-shot). See AIPlayer::buildBySupplies.
-		// GeneralsX @bugfix Claude 15/10/2026 ...but only when today's spot passes the same isLocationSafe gate
-		// AISkirmishPlayer::processBaseBuilding applies; else the next pass there tests it (Codex supply-two-r1 P2).
-		// GeneralsX @bugfix Claude 27/10/2026 Test today's spot BEFORE leaving the face: an entry moved to a spot that is just as
+		// GeneralsX: ...but only when today's spot passes the same isLocationSafe gate
+		// AISkirmishPlayer::processBaseBuilding applies; else the next pass there tests it.
+		// GeneralsX: Test today's spot BEFORE leaving the face: an entry moved to a spot that is just as
 		// unsafe waited there and lost the face for nothing (see processBaseBuilding). One level deep: the move uses the fallback up.
 		// GeneralsX 06/11/2026 base-layout (ADDENDUM_8 (a)): a keyed entry's layout fallback, the stock spot, is taken here the same way.
 		const Coord3D *fallback = info->getFallbackLocation();
@@ -899,13 +899,13 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 																								 BuildAssistant::TERRAIN_RESTRICTIONS |
 																								 BuildAssistant::NO_OBJECT_OVERLAP,
 																								 dozer, m_player ) != LBC_OK ) {
-			// GeneralsX @feature Claude 01/10/2026 A dock-face spot that is no longer legal: today's spot instead of a wiggle around
+			// GeneralsX: A dock-face spot that is no longer legal: today's spot instead of a wiggle around
 			// the face (see above).
 			// GeneralsX 06/11/2026 base-layout (ADDENDUM_8): not a keyed entry's layout fallback: a keyed spot that is only illegal searches around itself
 			// first, as before, and moves to the stock spot only when that search finds nothing (below).
 			if (!info->hasLayoutFallback() && info->useFallbackSpot()) {
 				TheTerrainVisual->removeAllBibs();	// isLocationLegalToBuild adds bib feedback, turn it off.
-				// GeneralsX @bugfix Claude 15/10/2026 the same safety gate as above (Codex supply-two-r1 P2).
+				// GeneralsX: the same safety gate as above.
 				return isLocationSafe(info->getLocation(), bldgPlan) ? buildStructureWithDozer(bldgPlan, info) : nullptr;
 			}
 			// Warn.
@@ -921,13 +921,13 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 				limit = 120*PATHFIND_CELL_SIZE_F;
 			}
 			Coord3D newPos = pos;
-			// GeneralsX @bugfix Claude 26/09/2026 A skirmish AI searches the same rings a second time without
+			// GeneralsX: A skirmish AI searches the same rings a second time without
 			// CLEAR_PATH before giving up, the build-list spot first: reaching the spot is not required, because an
 			// unreachable dozer is teleported below (a dozer boxed in by its own base reaches nothing at all).
 			UnsignedInt flags = BuildAssistant::CLEAR_PATH | BuildAssistant::TERRAIN_RESTRICTIONS | BuildAssistant::NO_OBJECT_OVERLAP;
 			const Int passes = gxSearchAtWant ? 4 : ( isSkirmishAI() ? 2 : 1 );
 			for (Int pass = 0; pass < passes && !valid; ++pass) {
-				if (pass == 2) {	// GeneralsX 05/11/2026 base-layout: the rule's angle found nothing; both passes again at the list angle, its own spot first (Codex bl-engine-r7 P2)
+				if (pass == 2) {	// GeneralsX 05/11/2026 base-layout: the rule's angle found nothing; both passes again at the list angle, its own spot first
 					angle = info->getAngle();
 					gxDoorTurned = 0;
 					flags |= BuildAssistant::CLEAR_PATH;
@@ -956,7 +956,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 						if (valid) break;
 						newPos.y = yPos+posOffset;
 						valid = gxLegalToBuildOnGround( &newPos, bldgPlan, angle, flags, dozer, m_player ) == LBC_OK;
-						// GeneralsX @bugfix Claude 26/09/2026 Stop on this candidate too. Without the break the next step
+						// GeneralsX: Stop on this candidate too. Without the break the next step
 						// overwrote a legal top- (here) or right-edge (below) candidate, so bar each ring's last one only the
 						// bottom and left edges counted: a base near a map edge or corner found no spot and fell back to
 						// building over its own structures (Mayhem - Defcon 51).
@@ -972,14 +972,14 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 						if (valid) break;
 						newPos.x = xPos+posOffset;
 						valid = gxLegalToBuildOnGround( &newPos, bldgPlan, angle, flags, dozer, m_player ) == LBC_OK;
-						if (valid) break;	// GeneralsX @bugfix Claude 26/09/2026 See the top-edge break above.
+						if (valid) break;	// GeneralsX: See the top-edge break above.
 					}
 					if (valid) break;
 				}
 			}
 			if (valid) pos = newPos;
 			if (!valid) {
-				// GeneralsX @bugfix Claude 26/09/2026 With no legal spot found, retail builds on the build-list spot
+				// GeneralsX: With no legal spot found, retail builds on the build-list spot
 				// anyway and refuses it only for enemies. A skirmish AI's spot is a template offset from its Command
 				// Center, so that put buildings on its own structures, on neutral supply docks and over cliffs (wh1ter0se's
 				// Mayhem game). Both passes above found nothing, so a skirmish AI retries this entry after the rebuild
@@ -987,7 +987,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 				// A mission AI keeps the retail fallback; its spots are designer-placed.
 				if (isSkirmishAI()) {
 					TheTerrainVisual->removeAllBibs();	// isLocationLegalToBuild adds bib feedback, turn it off.
-					// GeneralsX @feature Claude 06/11/2026 base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md (b), wh1ter0se's option 2): a keyed entry
+					// GeneralsX: base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md (b), wh1ter0se's option 2): a keyed entry
 					// whose search found nothing moves to the stock list's spot for it and is tried there at once, one level deep (the move uses the
 					// fallback up). Only a fallback from the layout data: a supply centre's today's spot, or none, waits here as before (lead C70
 					// condition 1; gxLayoutFallbackFixture's arm S).
@@ -1010,7 +1010,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 	}
 
 	TheTerrainVisual->removeAllBibs();	// isLocationLegalToBuild adds bib feedback, turn it off.  jba.
-	// GeneralsX @bugfix E·wh1ter0se-bugs-1015 16/10/2026 (batch-0965 Codex r2 P2) Hand on the spot as tested: on the ground. The searches
+	// GeneralsX: Hand on the spot as tested: on the ground. The searches
 	// above test grounded copies, but a candidate still carries its start spot's height, and the dozer's and the worker's
 	// construct() re-check this exact position for a computer player - at the stale height they could refuse the spot the search
 	// accepted (an elevated object overlapping the box tested up there), and the AI would pick the same spot again every pass.
@@ -1030,7 +1030,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 																						angle,
 																						m_player );
 	// GeneralsX 23/10/2026 ai-wh1ter0se-econ R: the PLACED structure - the object exists now. The readers count these; ev=door above and
-	// AISkirmishPlayer's ev=defence are attempts, made before the legality checks that can still refuse the spot (Codex ke-prereg-R-r1 P1).
+	// AISkirmishPlayer's ev=defence are attempts, made before the legality checks that can still refuse the spot.
 	// A defence was queued with its facing as the build-list angle: turned = that angle is not the template's view angle.
 	if( bldg && m_gxFaceFront && ( gxDoorTurned >= 0 || bldgPlan->isKindOf( KINDOF_FS_BASE_DEFENSE ) ) )
 	{
@@ -1271,9 +1271,9 @@ void AIPlayer::aiPreTeamDestroy( const Team *deletedTeam )
 	{
 		for (DLINK_ITERATOR<TeamInQueue> iter = iterate_TeamBuildQueue(); !iter.done(); )
 		{
-			// GeneralsX @bugfix Claude 01/10/2026 Advance only past an entry that stays. After a removal the iterator
+			// GeneralsX: Advance only past an entry that stays. After a removal the iterator
 			// restarts at the head, and the loop's own advance() then skipped that head: of two consecutive entries for
-			// the team, the second stayed queued with a dangling pointer (Codex tsh-b2-r2, tsh batch2 #417).
+			// the team, the second stayed queued with a dangling pointer (tsh batch2 #417).
 			TeamInQueue *team = iter.cur();
 			if (team->m_team == deletedTeam) {
 				// The members of the team all got killed before we could finish building the team.
@@ -1288,7 +1288,7 @@ void AIPlayer::aiPreTeamDestroy( const Team *deletedTeam )
 	{
 		for ( DLINK_ITERATOR<TeamInQueue> iter = iterate_TeamReadyQueue(); !iter.done(); )
 		{
-			// GeneralsX @bugfix Claude 01/10/2026 Same as the build queue above.
+			// GeneralsX: Same as the build queue above.
 			TeamInQueue *team = iter.cur();
 			if (team->m_team == deletedTeam) {
 				// The members of the team all got killed before we could activate the team.
@@ -1328,7 +1328,7 @@ void AIPlayer::guardSupplyCenter( Team *team, Int minSupplies )
 #endif
 		Coord3D location = *warehouse->getPosition();
 		// It's probably a defensive move - position towards the enemy.
-		// GeneralsX @bugfix Claude 01/10/2026 getSkirmishEnemyPlayer() may be null (no current script player, or no
+		// GeneralsX: getSkirmishEnemyPlayer() may be null (no current script player, or no
 		// human in the match: AI-only games, the challenge dummy). Guard the warehouse itself then. tsh batch2 #395, idea of
 		// Generals Online b5770a12b (reimplemented).
 		Player *enemy = TheScriptEngine->getSkirmishEnemyPlayer();
@@ -1398,9 +1398,9 @@ Bool AIPlayer::isSupplySourceAttacked()
 					continue;
 				}
 #if !RETAIL_COMPATIBLE_CRC
-				// GeneralsX @bugfix Claude 09/10/2026 With a 10-s window a dozer or harvester killed seconds ago - still allocated
+				// GeneralsX: With a 10-s window a dozer or harvester killed seconds ago - still allocated
 				// while it dies - would win the scan, and TEAM_GUARD_SUPPLY_CENTER would send its team to the wreck instead of a
-				// live target or the fallback supply center (Codex tsh3-3380-adv-r1 P2).
+				// live target or the fallback supply center.
 				if (obj->isEffectivelyDead()) {
 					continue;
 				}
@@ -1440,7 +1440,7 @@ Bool AIPlayer::isSupplySourceSafe( Int minSupplies )
 	return (isLocationSafe(warehouse->getPosition(), warehouse->getTemplate()));
 }
 
-// GeneralsX @bugfix C·ai-stash-ignore-1016 16/10/2026 A scan marker is not an enemy presence. The USA spy-satellite ping
+// GeneralsX: A scan marker is not an enemy presence. The USA spy-satellite ping
 // (SpySatellitePing: NO_COLLIDE IMMOBILE UNATTACKABLE INERT, gone after 13 s), the radar-van ping, vision objects and spy drones are
 // all INERT. Counting them meant an enemy scan of an AI base marked its home dock - and every build spot near its command center -
 // unsafe while the ping lived, and the supply expansion (which skips unsafe docks) built its stash at a far dock for good: wh1ter0se's
@@ -1455,7 +1455,7 @@ public:
 		if( !other->isKindOf( KINDOF_INERT ) || other->isKindOf( KINDOF_CLEANUP_HAZARD ) )
 			return TRUE;
 		// The strike marker by template, not by name: a map may override or reskin it, and ThingFactory::newObject builds one of its
-		// BuildVariations when it has any (Codex scan-safe-r2 P2). Reached only for an INERT non-hazard object near the spot.
+		// BuildVariations when it has any. Reached only for an INERT non-hazard object near the spot.
 		const ThingTemplate *view = TheThingFactory->findTemplate( TheGlobalData->m_specialPowerViewObjectName, FALSE );
 		if( view == nullptr )
 			return FALSE;
@@ -1567,7 +1567,7 @@ void AIPlayer::onUnitProduced( Object *factory, Object *unit )
 					team->m_reinforcementID = unit->getID();
 				}
 				AIUpdateInterface *ai = unit->getAIUpdateInterface();
-				// GeneralsX @bugfix Claude 01/10/2026 The null check two lines up did not cover this dereference (tsh batch2 #417).
+				// GeneralsX: The null check two lines up did not cover this dereference (tsh batch2 #417).
 				if (team->m_team && team->m_team->getPrototype()->getTemplateInfo()->m_hasHomeLocation) {
 					if (ai) {
 						std::vector<Coord3D> path;
@@ -1632,7 +1632,7 @@ void AIPlayer::onUnitProduced( Object *factory, Object *unit )
 }
 
 //----------------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 10/10/2026 STRATEGIC POWER AIM (owner 10/10: "super weapon aim should be strategic based on
+// GeneralsX: STRATEGIC POWER AIM (owner 10/10: "super weapon aim should be strategic based on
 // markets/second economy/hackers/black markets/strat center/hacker center combined with other powers"). Stock values a
 // spot by the enemy's build cost alone, so a strike lands on defences, factories or a parked army as readily as on the
 // income. This weighs what the cost buys, in percent, integer only:
@@ -1746,7 +1746,7 @@ static void gxCollectSuperweaponTargets( Int playerNdx, Bool includeMilitaryUnit
 			for (DLINK_ITERATOR<Object> iter = team->iterate_TeamMemberList(); !iter.done(); iter.advance())
 			{
 				Object *pObj = iter.cur();
-				// the dying are skipped (Codex sw-target-r1 P2): still on their team at 0 health, the damage bonus would score them 3x
+				// the dying are skipped: still on their team at 0 health, the damage bonus would score them 3x
 				if (!pObj || pObj->isEffectivelyDead())
 					continue;
 				Bool applyNegValue = FALSE;
@@ -1932,13 +1932,13 @@ Bool AIPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord
 		for( y = 0; y < yCount; y++ )
 		{
 			pos.x = bestPos.x + (x-5)*(weaponRadius/10);
-			// GeneralsX @bugfix Claude 10/10/2026 stock steps y with x, so its 121 samples are the 11 points of one diagonal,
+			// GeneralsX: stock steps y with x, so its 121 samples are the 11 points of one diagonal,
 			// each scored 11 times; the strategic aim searches the square it was meant to (same 121 samples).
 			pos.y = bestPos.y + ((strategic ? y : x)-5)*(weaponRadius/10);
 			pos.z = 0;
 			Int curCash = strategic ? gxSuperweaponValueAt( s_targets, &pos, weaponRadius ) : getPlayerSuperweaponValue( &pos, playerNdx, weaponRadius, targetMilitaryUnits );
-			// GeneralsX @bugfix Claude 10/10/2026 The first sample stands while nothing has beaten it: a first -1 used to add onto
-			// an uninitialised veryBestPos, and when no sample beat -1 its garbage reached getGroundHeight (Codex tsh3-clamp-adv-r4).
+			// GeneralsX: The first sample stands while nothing has beaten it: a first -1 used to add onto
+			// an uninitialised veryBestPos, and when no sample beat -1 its garbage reached getGroundHeight.
 			// The position is unchanged whenever a sample is >= 0, and success (cash > -1) is unchanged for every input.
 			if ( curCash > cash || count == 0 )
 			{
@@ -2062,8 +2062,8 @@ Int AIPlayer::getPlayerSuperweaponValue(Coord3D *center, Int playerNdx, Real rad
 			}
 		}
 	}
-	// GeneralsX @bugfix Claude 10/10/2026 Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
-	// conversion of the float sum differs by CPU (Codex tsh3-clamp-adv-r1).
+	// GeneralsX: Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
+	// conversion of the float sum differs by CPU.
 	return REAL_TO_INT(cash);
 }
 // ------------------------------------------------------------------------------------------------
@@ -2096,13 +2096,13 @@ Bool AIPlayer::startTraining( WorkOrder *order, Bool busyOK, AsciiString teamNam
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/10/2026 A Hard skirmish AI sitting on a large bank spends it (wh1ter0se 08/10, 12 Hard AIs on a
+// GeneralsX: A Hard skirmish AI sitting on a large bank spends it (wh1ter0se 08/10, 12 Hard AIs on a
 // $200,000 start still banked $147k-$198k each at 4:00, and "this made 3 airfields yet using only 1?"). Above AI_HOARD_CASH:
 // a team's units are built in parallel (buildSpecificAITeam), teams and structures are picked faster and attack teams may field extra copies (AISkirmishPlayer.cpp, ported from Zero
 // Hour Reforged's cash hoard). Only in a match that STARTED richer than the default cash: Hard's scripted gifts alone lift
 // a bank to ~$50k in a $10,000 start (measured 08/10, ai/HANDBACK_ai-spend-scale.md), so no bank threshold separates the
 // two - the starting cash, a lobby option every peer shares, does. A default-cash match takes none of these branches.
-// ponytail: one fixed threshold for Hard only; a per-difficulty AIData field when Normal/Easy want it.
+// Trade-off: one fixed threshold for Hard only; a per-difficulty AIData field when Normal/Easy want it.
 static const Int AI_HOARD_CASH = 20000;
 
 Int AIPlayer::hoardThreshold()
@@ -2114,7 +2114,7 @@ Int AIPlayer::hoardThreshold()
 	return AI_HOARD_CASH;
 }
 
-// The largest batch any of our factories would build this unit in: a split order may land on any of them (Codex spend-r5).
+// The largest batch any of our factories would build this unit in: a split order may land on any of them.
 Int AIPlayer::unitsPerOrder(const ThingTemplate *thing)
 {
 	Int most = 1;
@@ -2202,8 +2202,8 @@ Bool AIPlayer::isPossibleToBuildTeam( TeamPrototype *proto, Bool requireIdleFact
 				// Found an idle factory.
 				anyIdle = true;
 			}
-			// GeneralsX @bugfix Claude 10/10/2026 Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
-			// conversion of the float sum differs by CPU (Codex tsh3-clamp-adv-r1).
+			// GeneralsX: Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
+			// conversion of the float sum differs by CPU.
 			cost = REAL_TO_INT(cost + thingCost * ((unitInfo[i].maxUnits+unitInfo[i].minUnits)/2.0f));
 		}
 	}
@@ -2225,7 +2225,7 @@ Bool AIPlayer::isPossibleToBuildTeam( TeamPrototype *proto, Bool requireIdleFact
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 27/10/2026 ai-pro-rules-2 T2 (gx-handoff ai/pro-rules/FINDINGS_ai-pro-rules-1.md 3d "lifetime", PREREG_T2.md):
+// GeneralsX: ai-pro-rules-2 T2 (gx-handoff ai/pro-rules/FINDINGS_ai-pro-rules-1.md 3d "lifetime", PREREG_T2.md):
 // the air-watch team (AI_PLAYER_TUNNEL_AIR_WATCH's team) is BUILT only while some hostile player owns an airfield and REINFORCED only
 // while C holds (that airfield term, or a hostile aircraft seen in the last 180 s); C is evaluated by AISkirmishPlayer's watch and
 // saved. Every other team, and every AI without the watch: TRUE (stock).
@@ -2243,7 +2243,7 @@ Bool AIPlayer::gxAirWatchTeamMemberSkips(const Object *unit, const Object *targe
 {
 	if (m_gxAirWatchRadius <= 0 || unit == nullptr || target == nullptr || !target->isKindOf(KINDOF_AIRCRAFT))
 		return FALSE;
-	// a unit of a watch row (stock guard teams included - Codex t2-engine-r4 #15), or a member of the AA team
+	// a unit of a watch row (stock guard teams included), or a member of the AA team
 	for (Int i = 0; i < m_gxAirGuardCount; ++i)
 		if (m_gxAirGuards[i].unit == unit->getID())
 			return TRUE;
@@ -2251,7 +2251,7 @@ Bool AIPlayer::gxAirWatchTeamMemberSkips(const Object *unit, const Object *targe
 	return m_gxAirWatchTeam.isNotEmpty() && t != nullptr && t->getPrototype() == TheTeamFactory->findTeamPrototype(m_gxAirWatchTeam);
 }
 
-// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r8 (Codex t2-engine-r7 P1 #16): with the watch acting, a unit of a watch row may attack an aircraft
+// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r8: with the watch acting, a unit of a watch row may attack an aircraft
 // only if it is THAT row's plane (and the row is not returning); a tunnel guard or a member of the AA team may attack none other - the
 // shared attack state asks this, so no path (retaliation, hunt, attack area, guard, attack squad, any mood scan, a continue-range
 // retarget) gives a watched unit an aircraft it was not assigned. Every other unit, and every player whose watch is off (T0), is stock.
@@ -2677,11 +2677,11 @@ void AIPlayer::buildUpgrade(const AsciiString &upgrade)
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 01/10/2026 Place a supply center whose gatherers dock at its docking bones (China, USA; the GLA
+// GeneralsX: Place a supply center whose gatherers dock at its docking bones (China, USA; the GLA
 // stash is KINDOF_IGNORE_DOCKING_BONES) square on a face of its dock, AI_SUPPLY_CENTER_DOCK_GAP from the dock's edge by the
 // SupplyBuildBorder metric (the dock's footprint expanded by the gap). Returns FALSE when no face is legal; the caller then
 // keeps the stock placement.
-// GeneralsX @feature Claude 15/10/2026 THE PRO SPOT (wh1ter0se 30/09 + 15/10: "One supply placed perfectly with ONLY 2 TRUCKS"):
+// GeneralsX: THE PRO SPOT (wh1ter0se 30/09 + 15/10: "One supply placed perfectly with ONLY 2 TRUCKS"):
 // on the dock's long side, centred, the centre's front (where its trucks come out) pointing at the dock, a 45 wu gap - how GO's
 // top players place their first Supply Center (ai/pro-macro). The supply dock and the China centre have no docking bones, so a
 // truck docks where it stands once its approach path ends there; in that gap both trucks stop moving and load AND unload in
@@ -2694,16 +2694,16 @@ void AIPlayer::buildUpgrade(const AsciiString &upgrade)
 static const Real AI_SUPPLY_CENTER_DOCK_GAP = 45.0f;
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 23/10/2026 ai-wh1ter0se-econ (U2 / Z2, lead C48 CHECK): a pro-spot face must also keep clear of the buildings the AI
+// GeneralsX: ai-wh1ter0se-econ (U2 / Z2, lead C48 CHECK): a pro-spot face must also keep clear of the buildings the AI
 // has QUEUED - its build list's entries with no live object that it will still build - not only of what already stands
 // (isLocationLegalToBuild's NO_OBJECT_OVERLAP sees only objects). Found on the pre-* box pilot (gx-handoff ai/wh1ter0se-econ/DIAG_pre-S-U.md):
 // on arctic start (1450,450) the face test passed at ~43 s and dropped the USA Superweapon general's supply centre on its QUEUED Strategy
 // Center spot - the Strategy Center was displaced in 36/36 games, the Particle Uplink built in 6/36 vs 36/36, d -0.42. The test is the gap
 // walk's own (geomCollidesWithGeom), the centre's footprint expanded by GX_QUEUED_CLEARANCE; entries in build-list order (deterministic:
 // the same list on every peer). Every unbuilt entry counts, another queued supply centre included: both callers add the new centre's
-// entry only AFTER the face is chosen (buildBySupplies), so there is no own entry to exempt (Codex ke-qfix-det-r1 #2). A build-list
+// entry only AFTER the face is chosen (buildBySupplies), so there is no own entry to exempt. A build-list
 // location is GROUND-RELATIVE (z = 0, buildBySupplies), the candidate p is world-space and geomCollidesWithGeom tests height first, so
-// the entry is grounded the way buildStructureWithDozer grounds it (Codex ke-qfix-r1 / -det-r1 #1: on raised terrain an overlapping
+// the entry is grounded the way buildStructureWithDozer grounds it (-det-r1 #1: on raised terrain an overlapping
 // queued building read as clear). Reads only; returns the first blocking entry or nullptr.
 // ------------------------------------------------------------------------------------------------
 static const Real GX_QUEUED_CLEARANCE = 2.0f * PATHFIND_CELL_SIZE_F;
@@ -2730,13 +2730,13 @@ static BuildListInfo *gxQueuedBuildingAt(Player *player, const ThingTemplate *ce
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 28/10/2026 THE CHINA MAIN BASE PRO SPOT (wh1ter0se 27/10: "when does china AI get the correct placement and 2
+// GeneralsX: THE CHINA MAIN BASE PRO SPOT (wh1ter0se 27/10: "when does china AI get the correct placement and 2
 // trucks?"): a centred LONG dock face that only QUEUED build-list entries block keeps the centre, and those entries move, instead of
 // the face being skipped as U2 does. Measured on 0.9.68 (gx-handoff ai/china-fallback, 20 maps, every seat a China Hard AI): the main
 // base got the pro spot on 28 of 102 starts, Twin Ridges v2 on 2 of 24, because at ~45 s the China SkirmishBuildList template already
 // holds a spot on the dock's long face (a queued War Factory, Power Plant, Airfield or Propaganda Center); 21 of Twin Ridges' 22 misses
 // had a long face that was legal against everything standing and blocked only by queued entries. The relocation is ai-wh1ter0se-econ's U3
-// (feat/ai-ke-usa3 488b8a2a29, written for the Hard-USA pro face; lead C49 CHECK of DESIGN_U3, Codex ke-u3-r1..r7), ported unchanged:
+// (feat/ai-ke-usa3 488b8a2a29, written for the Hard-USA pro face; lead C49 CHECK of DESIGN_U3), ported unchanged:
 // it runs only from findDockFacePlacement's first pass (centred faces) on a LONG face, and only when the face failed on the queued test
 // alone (gxDockFaceSpotOk), i.e. a face U2 would not skip is never touched; China's buildBySupplies call is its only caller.
 // * Colliders, in build-list order: every unbuilt buildable entry that collides with the centre's footprint (+GX_QUEUED_CLEARANCE) at p
@@ -2757,7 +2757,7 @@ static BuildListInfo *gxQueuedBuildingAt(Player *player, const ThingTemplate *ce
 //   its 8k lattice points walked in ONE fixed order: the y-low edge x ascending, the y-high edge x ascending, then the x-low edge and the
 //   x-high edge y ascending, corners excluded. The entry keeps its own list angle. A candidate is refused, cheapest test first, when -
 //   at ANY angle the entry may be built at there (gxBuildAngles: its list angle, and for a barracks or war factory the Hard AI turns to
-//   the base front its three turns; Codex cmb-r1 P2), against ANY angle another queued entry may be built at - it
+//   the base front its three turns), against ANY angle another queued entry may be built at - it
 //   (1) collides with the new centre (+clearance) at p / centerAngle (gxQueuedBuildingAt's argument order, so that test then finds it
 //       clear), or the two conflict at build time in either order (gxBuildTimeConflict, below);
 //   (2) collides with the dock's gap ring - the face walk's `border` - tested as the walk tests it: in 2D, at the dock's height;
@@ -2787,7 +2787,7 @@ static BuildListInfo *gxQueuedBuildingAt(Player *player, const ThingTemplate *ce
 // which gxDockFaceSpotOk's unchanged [GXPLACE] skip_queued line has already printed for the face.
 // ------------------------------------------------------------------------------------------------
 // U3's values (lead C49 Q4, set from its one calibration smoke), except the radius:
-// GeneralsX @bugfix Claude 28/10/2026 GX_RELOCATE_RADIUS 200 -> 400 wu for China. At 200 the China base template fills every legal spot round
+// GeneralsX: GX_RELOCATE_RADIUS 200 -> 400 wu for China. At 200 the China base template fills every legal spot round
 // its big buildings (Internet Center, Propaganda Center, Nuclear Missile Launcher, War Factory, Airfield): a TEST-ONLY count of the refusing
 // tests found 270-430 of each one's 440 candidates on ANOTHER queued entry, and most relocations failed with noslot (Twin Ridges v2: 7 of
 // 24 main bases on the dock face). A DIAG sweep (outcome-informed, NOT registered; gx-handoff ai/china-main-base) on the four 12-seat
@@ -2814,7 +2814,7 @@ struct GXRelocQueued
 };
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 28/10/2026 (Codex cmb-r1 P2, cmb-r2 P2 x2): every angle buildStructureWithDozer may build an entry at, at `at`:
+// GeneralsX: every angle buildStructureWithDozer may build an entry at, at `at`:
 // its list angle, and - for a door the Hard AI turns to the base front (ai-wh1ter0se-econ R: AI_PLAYER_FACE_FRONT on, a skirmish FS_FACTORY
 // barracks or war factory) - the turns it may take there: the octant towards gxFrontPoint, then +/-45 deg, with the same expressions, so
 // the values are the ones it will use. While gxFrontPoint cannot change (gxFrontPointFixed: this player's Center path waypoint, or no front
@@ -2822,7 +2822,7 @@ struct GXRelocQueued
 // the code can ever take - the three from each of gxOctantAngle's 8 answers. A reservation made at the list angle alone let a relocated
 // factory turn its footprint or exit into another queued entry's reserved spot at build time - the cascade the relocation exists to stop.
 // Exact duplicates are dropped (in order: out[0] is always the list angle). Reads only. Returns the count, 1 .. GX_BUILD_ANGLES_MAX.
-// GeneralsX @perf Claude 28/10/2026 (PREREG_gate.md stage 0 item 3b): the base front comes from a GXBuildFront read ONCE per
+// GeneralsX: the base front comes from a GXBuildFront read ONCE per
 // gxRelocateQueued call (gxBuildFrontRead) instead of at every ring point - gxFrontPointFixed and gxFrontPoint each formatted the Center
 // path label and searched every waypoint of the map, twice per point of a barracks / war factory mover. Same values: nothing they read
 // (the base centre, the waypoints, the AI's face-front switch) changes during the call, whose only write is build-list locations.
@@ -2925,7 +2925,7 @@ static Int gxBuildAngles(GXBuildFront &fr, const ThingTemplate *t, const Coord3D
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @perf Claude 28/10/2026 (gx-handoff ai/china-main-base/PREREG_gate.md stage 0 item 3b): geomCollidesWithGeom for the
+// GeneralsX: geomCollidesWithGeom for the
 // relocation's ring search and gxBuildTimeBlocked, with a 2D distance early-out in front. PartitionManager::geomCollidesWithGeom tests z
 // first, then in 2D: two boxes by their corners (rectToFourPoints / testRotatedPointsAgainstRect - every corner, and every point a corner
 // is tested inside, lies within sqrt(major^2 + minor^2) of its box's centre), a box against a non-box by turning the non-box into a SQUARE
@@ -2963,7 +2963,7 @@ static Bool gxGeomCollides(const Coord3D *p1, const GeometryInfo &g1, Real a1, c
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 23/10/2026 ai-wh1ter0se-econ U3 (Codex ke-u3-r1 P2, ke-u3-det-r1 #1): TRUE when BuildAssistant::
+// GeneralsX: ai-wh1ter0se-econ U3: TRUE when BuildAssistant::
 // isLocationClearOfObjects refuses building `later` at laterPos / laterAngle for `player` because the structure `standing` stands at
 // standingPos / standingAngle. Its structure loop, mirrored line for line (BuildAssistant.cpp at 11c7aeab6a), templates for objects:
 // * which structures the loop sees (:774, :836-837): KINDOF_STRUCTURE, minus what construction removes - for a live building, a non-INERT
@@ -3090,24 +3090,24 @@ static void gxRelocLogFail(const Player *player, Int face, const ThingTemplate *
 #endif
 }
 
-// GeneralsX @perf Claude 28/10/2026 (gx-handoff ai/china-main-base/PREREG_gate.md stage 0 item 3b: one dock_face call took 3.2 ms of CPU on
-// a quiet Mini, nearly all of it in gxRelocateQueued): every ring point ran tests (4) / (4b) against EVERY queued entry, at every angle
+// GeneralsX:
+// every ring point ran tests (4) / (4b) against EVERY queued entry, at every angle
 // of both, footprint + clearance and gxBuildTimeConflict's padding and exits both ways - though a base template's entries mostly sit far
 // from the point. gxRelocReach bounds how far from its centre ANY shape those tests build for template t can reach: its footprint
 // (a non-box becomes a square of its major radius) grown on both radii by `pad`, the largest padding gxBuildTimeBlocked can add on
 // either side (a skirmish AI's 3-cell minimum, or a bigger bib); and its factory exit, centred major radius + width/2 ahead - for a box
 // template a box of half-sizes width/2 and its minor radius (corner within width/2 + minor of the exit centre), for a non-box one a
 // circle of radius width/2 that PartitionManager tests against a box as a SQUARE of half-side width/2 (corner within width/2 x sqrt 2;
-// Codex cmb-r5 P2: an exit this wide was not covered by "+ width"). Every such shape fits in a circle of
+// an exit this wide was not covered by "+ width"). Every such shape fits in a circle of
 // major + max(major, minor) + 1.5 x exit width + 2 x pad (1.5 >= 1/2 + sqrt(2)/2, and >= 1/2 + 1/2 with the minor in max). Two
 // shapes whose centres are farther apart than the sum of their circles cannot collide at any angle, so a pair farther apart in 2D than
 // reach + reach + 2 x GX_QUEUED_CLEARANCE (+1 wu) is skipped: no answer changes, only tests that would be FALSE are not run. 2D because
 // every collision there is 2D (gxBuildTimeBlocked) or also needs the 2D overlap (geomCollidesWithGeom). A rounding difference at the
 // boundary can only decide whether a FALSE test runs, never a result. A template with a NEGATIVE radius, exit width or bib (INI::parseReal
 // takes them; a mod could ship one) has no bound - PartitionManager's radius tests square a negative radius into a large one - so it
-// gets no reach (-1) and none of its pairs is ever skipped (Codex cmb-r6 P2). So does a reach of GX_RELOC_SANE wu or more, and
+// gets no reach (-1) and none of its pairs is ever skipped. So does a reach of GX_RELOC_SANE wu or more, and
 // gxRelocApart skips nothing with a coordinate that large: there float rounding can swallow the 1 wu slack, a touching pair can read
-// as apart (Codex cmb-r7 P2, at ~1e10 wu). Below 1e6 wu - a hundred times the widest map - every sum and square here is off by far
+// as apart (at ~1e10 wu). Below 1e6 wu - a hundred times the widest map - every sum and square here is off by far
 // less than the slack, and the collision tests' own rounding too.
 static Real gxRelocReach(const ThingTemplate *t, Real pad)
 {
@@ -3187,14 +3187,14 @@ static Bool gxRelocateQueued(AIPlayer *ai, Player *player, const ThingTemplate *
 	const Real reachClr = 2.0f * GX_QUEUED_CLEARANCE + 1.0f;
 
 	// the colliders, in build-list order: every entry whose footprint (+clearance) overlaps the centre at p - gxQueuedBuildingAt's test,
-	// the face's trigger, here at each of the entry's build angles (Codex cmb-r2 P2) - OR that conflicts with the centre at build time in
-	// either order (gxBuildTimeConflict; Codex ke-u3-r2 / ke-u3-det-r2: left where it is, such an entry fails its own build once the
+	// the face's trigger, here at each of the entry's build angles - OR that conflicts with the centre at build time in
+	// either order (gxBuildTimeConflict; / ke-u3-det-r2: left where it is, such an entry fails its own build once the
 	// centre stands and takes buildStructureWithDozer's stock wiggle - the cascade). A PROTECTED collider (CASH_GENERATOR, or one with a
-	// fallback spot) refuses the whole relocation, whichever way it conflicts (lead C49 Q3: those are never moved; Codex ke-u3-r4 /
+	// fallback spot) refuses the whole relocation, whichever way it conflicts (lead C49 Q3: those are never moved; /
 	// ke-u3-det-r4: leaving one in place where it conflicts kept producing cascade edge cases). Every collider counts toward the cap,
 	// protected ones too.
 	// The new centre may not sit on any queued entry's saved FALLBACK spot either - footprint (+clearance) or build-time padding, either
-	// order - even when that entry's current spot is clear of p (reason=centre_on_fallback; Codex ke-u3-r6: that entry, moving to its
+	// order - even when that entry's current spot is clear of p (reason=centre_on_fallback; that entry, moving to its
 	// fallback later, would meet the centre and be displaced again). Checked here, before anything moves; for one entry the collider
 	// reasons come first, so an entry that is both keeps its reason=protected line.
 	Int col[GX_RELOCATE_MAX];	// indices into queued
@@ -3204,7 +3204,7 @@ static Bool gxRelocateQueued(AIPlayer *ai, Player *player, const ThingTemplate *
 	for (Int i = 0; i < (Int)queued.size(); ++i)
 	{
 		const GXRelocQueued &e = queued[i];
-		// at every angle the entry may be built at (gxBuildAngles; Codex cmb-r2 P2: a door that clears the centre at its list angle but
+		// at every angle the entry may be built at (gxBuildAngles; a door that clears the centre at its list angle but
 		// would be turned into it, built first, takes the face from the centre)
 		Bool overlaps = FALSE;
 		Bool conflicts = FALSE;
@@ -3298,7 +3298,7 @@ static Bool gxRelocateQueued(AIPlayer *ai, Player *player, const ThingTemplate *
 				Coord3D q = c;
 				q.z = TheTerrainLogic->getGroundHeight(c.x, c.y);
 				// tests (1) - (4b) hold for EVERY angle the entry may be built at here (gxBuildAngles: the list angle a, and a door's turns
-				// to the base front), and against every angle another queued entry may be built at (its own turn[]; Codex cmb-r1 P2)
+				// to the base front), and against every angle another queued entry may be built at (its own turn[])
 				Real ma[GX_BUILD_ANGLES_MAX];
 				const Int mn = gxBuildAngles(front, e.tmpl, q, a, ma);
 				Bool hit = FALSE;
@@ -3331,7 +3331,7 @@ static Bool gxRelocateQueued(AIPlayer *ai, Player *player, const ThingTemplate *
 									queued[x].turn[xt])
 								|| gxBuildTimeConflict(player, e.tmpl, q, ang, queued[x].tmpl, queued[x].world, queued[x].turn[xt]);
 					}
-					// (4b) every queued entry's saved FALLBACK spot, as (4): clearance, and both build orders (Codex ke-u3-r5: a non-colliding
+					// (4b) every queued entry's saved FALLBACK spot, as (4): clearance, and both build orders (a non-colliding
 					// queued centre that later uses its fallback would otherwise meet a relocated building there). A mover never has one - a
 					// collider with a fallback spot refuses the relocation - so no entry is tested against itself. A fallback spot is a supply
 					// centre's, which no door turn moves: its saved angle only.
@@ -3392,12 +3392,12 @@ static Bool gxRelocateQueued(AIPlayer *ai, Player *player, const ThingTemplate *
 	return TRUE;
 }
 
-// GeneralsX @feature Claude 27/10/2026 One dock-face candidate: the trucks' shuttle line across the gap is passable ground (no cliff or
-// water, Codex r3), the centre is legal on the ground there, and it is not over a QUEUED building (gxQueuedBuildingAt). `off` slides the
+// GeneralsX: One dock-face candidate: the trucks' shuttle line across the gap is passable ground (no cliff or
+// water), the centre is legal on the ground there, and it is not over a QUEUED building (gxQueuedBuildingAt). `off` slides the
 // centre along the face (0 = centred, the pro spot); the shuttle line slides with it. Reads only.
-// GeneralsX @feature Claude 28/10/2026 `queuedOnly`, when given: set TRUE, with the candidate (world space, grounded) in `queuedAt`, when
+// GeneralsX: `queuedOnly`, when given: set TRUE, with the candidate (world space, grounded) in `queuedAt`, when
 // the queued test is the ONLY one that refused it - what gxRelocateQueued needs (findDockFacePlacement); FALSE otherwise.
-// GeneralsX @bugfix Claude 04/11/2026 base-layout (Codex plan-r1 #3): gxQueuedBuildingAt tests a queued entry at its list angle only, so with the
+// GeneralsX: base-layout: gxQueuedBuildingAt tests a queued entry at its list angle only, so with the
 // door rule a face could pass and a queued door's later turn then land on the centre. For GXFrontDoors: the same test at the door's other build
 // angles. Reads only. Returns the first blocking entry or nullptr.
 static BuildListInfo *gxQueuedDoorTurnAt(AIPlayer *ai, Player *player, const ThingTemplate *center, const Coord3D &p, Real angle)
@@ -3487,7 +3487,7 @@ static Bool gxDockFaceSpotOk(const Object *dock, const ThingTemplate *center, Pl
 	return TRUE;
 }
 
-// GeneralsX @feature Claude 28/10/2026 `ai` (the AIPlayer that owns `player`, for its isLocationSafe gate; Player keeps its AI private,
+// GeneralsX: `ai` (the AIPlayer that owns `player`, for its isLocationSafe gate; Player keeps its AI private,
 // so the caller passes itself), `keep` / `keepAngle` (today's spot, ground-relative, the entry's fallback): given, a centred LONG face
 // that only QUEUED entries block moves them (gxRelocateQueued, above) and keeps the face. No `ai`, no relocation.
 static Bool findDockFacePlacement(const Object *dock, const ThingTemplate *center, const Coord2D &towardsBase, Player *player,
@@ -3521,13 +3521,13 @@ static Bool findDockFacePlacement(const Object *dock, const ThingTemplate *cente
 	const GeometryInfo &centerGeom = center->getTemplateGeometryInfo();
 	// Pass 1: every face, centred - the pro spot. Pass 2, only when pass 1 found nothing: the LONG faces again, the centre slid along
 	// the face, still facing the dock across the same gap.
-	// GeneralsX @feature Claude 27/10/2026 Pass 2 exists for the main base: at ~45 s the China base template already fills the dock's
+	// GeneralsX: Pass 2 exists for the main base: at ~45 s the China base template already fills the dock's
 	// faces (a queued War Factory or Power Plant spot on one long face, a standing Barracks or Power Plant on the other, the Command
 	// Center on a short face), so the centred spot failed on 5 of 6 main bases in wh1ter0se's 27/10 0.9.68 game and the centre went to
 	// today's spot with 3 trucks (gx-handoff ai/china-fallback). A slid centre's door still faces the dock's long side.
 	// Only on a BOX dock, and only while the shuttle line still starts on the face itself (|off| <= the face's half-length less the
 	// margin): off a cylinder, or past a short face's end, the line would start in open ground and could miss water or a cliff
-	// between it and the dock (Codex cfslide-r1 P2).
+	// between it and the dock.
 	static const Real slide[4] = { 20.0f, -20.0f, 40.0f, -40.0f };
 	for (Int pass = 0; pass < 2; ++pass)
 	{
@@ -3564,7 +3564,7 @@ static Bool findDockFacePlacement(const Object *dock, const ThingTemplate *cente
 					*angle = centerAngle;
 					return TRUE;
 				}
-				// GeneralsX @feature Claude 28/10/2026 the China main base pro spot: a centred LONG face that only QUEUED entries block
+				// GeneralsX: the China main base pro spot: a centred LONG face that only QUEUED entries block
 				// keeps the centre and moves them (gxRelocateQueued, above); a relocation that cannot move them all restores every entry
 				// exactly and the face is skipped as before. Short faces and the slid candidates of pass 2 never relocate.
 				if (queuedOnly && isLong && ai != nullptr
@@ -3627,7 +3627,7 @@ void AIPlayer::buildBySupplies(Int minimumCash, const AsciiString& thingName)
 		offset.y = location.y - gxSupplyRef().y;
 		offset.normalize();
 		Real radius = 3*PATHFIND_CELL_SIZE_F;
-		// GeneralsX @bugfix Claude 01/10/2026 getSkirmishEnemyPlayer() may be null (no current script player, or no
+		// GeneralsX: getSkirmishEnemyPlayer() may be null (no current script player, or no
 		// human in the match: AI-only games, the challenge dummy). Keep the base-relative offset then. tsh batch2 #395, idea of
 		// Generals Online b5770a12b (reimplemented).
 		Player *enemy = TheScriptEngine->getSkirmishEnemyPlayer();
@@ -3643,7 +3643,7 @@ void AIPlayer::buildBySupplies(Int minimumCash, const AsciiString& thingName)
 		location.x -= offset.x*radius;
 		location.y -= offset.y*radius;
 		Real angle = tTemplate->getPlacementViewAngle();
-		// GeneralsX @feature Claude 04/11/2026 base-layout (gx-handoff ai/base-layout/PLAN_base-layout.md section 2.3): a factory the spend scripts queue beside a dock is most of the
+		// GeneralsX: base-layout (gx-handoff ai/base-layout/PLAN_base-layout.md section 2.3): a factory the spend scripts queue beside a dock is most of the
 		// backwards doors (43 of 48, ai/base-layout/tools-v2/split-44.py): it was queued at the view angle, R then often could not turn it at that
 		// spot, and the wiggle moved it with the view angle. With GXFrontDoors it takes the door rule's angle here and the dozer path's own
 		// flags in the first test, so the spot it queues is one the dozer can use at that angle.
@@ -3739,7 +3739,7 @@ void AIPlayer::buildBySupplies(Int minimumCash, const AsciiString& thingName)
 		}
 		TheTerrainVisual->removeAllBibs();	// isLocationLegalToBuild adds bib feedback, turn it off.  jba.
 		location.z = 0; // All build list locations are ground relative.
-		// GeneralsX @feature Claude 01/10/2026 China/USA skirmish AI (campaign AIs keep their placement): queue the centre square on
+		// GeneralsX: China/USA skirmish AI (campaign AIs keep their placement): queue the centre square on
 		// a dock face (findDockFacePlacement) and keep the spot above, today's, as the entry's fallback. The first time the face
 		// spot is refused - an enemy within the safety radius (AISkirmishPlayer::processBaseBuilding), an enemy on it or it is no
 		// longer legal (buildStructureWithDozer) - the entry moves to today's spot and is tried there at once. Without that, a
@@ -3750,7 +3750,7 @@ void AIPlayer::buildBySupplies(Int minimumCash, const AsciiString& thingName)
 		Coord2D towardsBase;
 		towardsBase.x = -offset.x;
 		towardsBase.y = -offset.y;
-		// GeneralsX @feature Claude 15/10/2026 China only: its gatherers are ground trucks that park in the gap (USA's Chinooks fly,
+		// GeneralsX: China only: its gatherers are ground trucks that park in the gap (USA's Chinooks fly,
 		// the GLA stash ignores docking bones); every China general's centre (Side China*).
 		if (isSkirmishAI() && tTemplate->isKindOf(KINDOF_CASH_GENERATOR) && !tTemplate->isKindOf(KINDOF_IGNORE_DOCKING_BONES)
 			&& tTemplate->getDefaultOwningSide().startsWith("China")
@@ -4267,12 +4267,12 @@ void AIPlayer::buildSpecificAITeam( TeamPrototype *teamProto, Bool priorityBuild
 		const TCreateUnitsInfo *unitInfo = &teamProto->getTemplateInfo()->m_unitsInfo[0];
 		WorkOrder *orders = nullptr;
 		Int i;
-		// GeneralsX @feature Claude 08/10/2026 Hoarding: one order per unit. An order holds ONE factory until its unit is out
+		// GeneralsX: Hoarding: one order per unit. An order holds ONE factory until its unit is out
 		// (WorkOrder::isWaitingToBuild), so "4 Raptors" came out of one airfield one at a time while the others idled. Split,
 		// each unit takes the next idle factory; completion, recruiting and minimum-built work per order as before. A unit
 		// built in batches (QuantityModifier: one queued Red Guard yields a pair) keeps retail's single order: its twin is
 		// recruited by that order's next pass, and split orders sharing one factory would each claim a batch member and
-		// re-buy the rest (Codex spend-r3, r4).
+		// re-buy the rest.
 		const Bool parallel = isHoarding();
 		// Queue up optional units.
 		for( i=0; i<teamProto->getTemplateInfo()->m_numUnitsInfo; i++ )
@@ -4333,7 +4333,7 @@ void AIPlayer::buildSpecificAITeam( TeamPrototype *teamProto, Bool priorityBuild
 			// create inactive team to place members into as they are built
 			// when team is complete, the team is activated
 			team->m_team = TheTeamFactory->createInactiveTeam( teamProto->getName() );
-			// GeneralsX @bugfix Claude 01/10/2026 A queue entry without a team can never complete, and the build and
+			// GeneralsX: A queue entry without a team can never complete, and the build and
 			// ready queues dereference m_team everywhere. Drop it instead (tsh batch2 #417, idea of Generals Online
 			// a0fc36d70, reimplemented at queue level).
 			if (team->m_team == nullptr) {
@@ -4490,11 +4490,11 @@ void AIPlayer::queueUnits()
 	for ( DLINK_ITERATOR<TeamInQueue> iter = iterate_TeamBuildQueue(); !iter.done(); iter.advance())
 	{
 		TeamInQueue *team = iter.cur();
-		// GeneralsX @performance Claude 08/10/2026 A recruit search that found nothing is not repeated for another order of the
+		// GeneralsX: A recruit search that found nothing is not repeated for another order of the
 		// same unit in this team in this pass: Team::tryToRecruit is a pure scan of the whole object list (no RNG, no state),
 		// its arguments are the same, and nothing between the two calls can add a candidate - a failed search changes
 		// nothing, and a unit recruited for another order joins THIS team, which the search never takes from. A hoarding AI
-		// splits a team's units into one order each, which would otherwise repeat the scan per unit (Codex spend-r9).
+		// splits a team's units into one order each, which would otherwise repeat the scan per unit.
 		const ThingTemplate *noRecruit[8];
 		Int numNoRecruit = 0;
 		for( WorkOrder *order = team->m_workOrders; order; order = order->m_next )
@@ -5313,7 +5313,7 @@ void AIPlayer::xfer( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void AIPlayer::loadPostProcess()
 {
-	// GeneralsX @bugfix Claude 01/10/2026 A queued team that no longer exists loads back as a null m_team (the
+	// GeneralsX: A queued team that no longer exists loads back as a null m_team (the
 	// TeamInQueue xfer looks it up by ID); drop those entries like a destroyed team's (tsh batch2 #417).
 	AIPlayer::aiPreTeamDestroy( nullptr );
 }
@@ -5435,7 +5435,7 @@ void TeamInQueue::disband()
 }
 
 // -------------------------------------------------------------------------------------------------
-// GeneralsX @performance Claude 23/09/2026 Same result as TheScriptEngine->findScriptByName(name): the first script with that
+// GeneralsX: Same result as TheScriptEngine->findScriptByName(name): the first script with that
 // name in side/list/group order. Cached per TeamInQueue and re-resolved whenever the condition name differs.
 const Script *TeamInQueue::getProductionConditionScript()
 {

@@ -115,7 +115,7 @@ bool DbgHelpLoader::load()
 
 	Inst->m_symInitialize = reinterpret_cast<SymInitialize_t>(::GetProcAddress(Inst->m_dllModule, "SymInitialize"));
 	Inst->m_symCleanup = reinterpret_cast<SymCleanup_t>(::GetProcAddress(Inst->m_dllModule, "SymCleanup"));
-	// GeneralsX @bugfix Claude 27/07/2026 Ask for the ...64 exports on a 64-bit build.
+	// GeneralsX: Ask for the ...64 exports on a 64-bit build.
 	//
 	// A 64-bit dbghelp.dll exports SymLoadModule64 / SymGetModuleBase64 / SymGetSymFromAddr64 /
 	// SymGetLineFromAddr64 / SymFunctionTableAccess64 / StackWalk64 and no plain-named variant, so

@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule OPEN.CHINA_BUNKER_WF (C·rb-data-6): the lean China opening - ONE Barracks, ONE
+# GeneralsX: rule bank DATA rule OPEN.CHINA_BUNKER_WF (C·rb-data-6): the lean China opening - ONE Barracks, ONE
 # War Factory (Dominator stand-in, medium). Map of stock Hard (owners.txt, 14d03e02): the first Barracks ("China Barracks - H", CONDITION_TRUE)
 # and the first War Factory (after the first Supply Center) are the lean opening already. The extras are two plain build scripts:
 #   "China War Factory 2 - H"  (SkirmishChina, SkirmishChinaNukeGeneral): the instant a first War Factory stands
@@ -73,7 +73,7 @@ def activation(obs, me, params=None):
 
 
 # the stock arm builds the extra factory/barracks by itself, so the measure is how many production buildings were built by 300 s (a lost one
-# still counts; Codex rbd6-r1); fewer is the rule
+# still counts); fewer is the rule
 CONTRAST = {'what': 'own War Factories + Barracks at 300 s', 'direction': -1, 'min_delta': 1}
 
 

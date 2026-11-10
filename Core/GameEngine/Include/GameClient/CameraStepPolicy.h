@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 03/10/2026 The time a once-per-DRAW camera step covers (wh1ter0se, 03/10, fast forward: "moving/
+// GeneralsX: The time a once-per-DRAW camera step covers (wh1ter0se, 03/10, fast forward: "moving/
 // zooming out in and moving around ... is buggy and freezing just the moving thing").
 //
 // The camera's zoom and ground-follow easing (W3DView::zoomCameraToDesiredHeight, movePivotToGround) run once per draw,

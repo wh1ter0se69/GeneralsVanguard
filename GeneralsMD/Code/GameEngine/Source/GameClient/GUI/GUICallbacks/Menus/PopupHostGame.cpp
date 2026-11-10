@@ -88,7 +88,7 @@ static NameKeyType buttonCancelID = NAMEKEY_INVALID;
 static NameKeyType textEntryLadderPasswordID = NAMEKEY_INVALID;
 static NameKeyType comboBoxLadderNameID = NAMEKEY_INVALID;
 static NameKeyType textEntryGamePasswordID = NAMEKEY_INVALID;
-// GeneralsX @feature Claude 16/08/2026 Added by !GXUI.big; absent on a stock archive, so every use
+// GeneralsX: Added by !GXUI.big; absent on a stock archive, so every use
 // is guarded and their absence means "no confirmation required" rather than "cannot host".
 static NameKeyType textEntryGamePasswordConfirmID = NAMEKEY_INVALID;
 static NameKeyType staticTextConfirmPasswordID = NAMEKEY_INVALID;
@@ -340,7 +340,7 @@ void PopupHostGameInit( WindowLayout *layout, void *userData )
 	textEntryGamePassword = TheWindowManager->winGetWindowFromId(parentPopup, textEntryGamePasswordID);
 	GadgetTextEntrySetText(textEntryGamePassword, UnicodeString::TheEmptyString);
 
-	// GeneralsX @feature Claude 16/08/2026 The confirm field, and its label.
+	// GeneralsX: The confirm field, and its label.
 	//
 	// Both are added by !GXUI.big, which overrides Window\Menus\PopupHostGame.wnd. That is safe and
 	// was MEASURED rather than assumed: probe-dataid.sh over a modified copy of this very layout
@@ -378,7 +378,7 @@ void PopupHostGameInit( WindowLayout *layout, void *userData )
 			TheGameText->FETCH_OR_SUBSTITUTE("GUI:ConfirmPassword", L"Confirm password"));
 	}
 
-	// GeneralsX @feature Claude 16/08/2026 Asterisks, not the password.
+	// GeneralsX: Asterisks, not the password.
 	//
 	// The .wnd authors this box as ordinary text, so it rendered what was typed in the clear - on a
 	// screen people stream and screenshot, and this is the one field on it worth reading over
@@ -425,7 +425,7 @@ void PopupHostGameInit( WindowLayout *layout, void *userData )
 	// limit armies is disallowed in "use stats" games
   checkBoxLimitArmiesID = TheNameKeyGenerator->nameToKey("PopupHostGame.wnd:CheckBoxLimitArmies");
   checkBoxLimitArmies = TheWindowManager->winGetWindowFromId(parentPopup, checkBoxLimitArmiesID);
-	// GeneralsX @feature Claude 25/09/2026 In the relay lobby Use Stats locks nothing: the relay records no
+	// GeneralsX: In the relay lobby Use Stats locks nothing: the relay records no
 	// stats and its room (the LAN options screen) has no such rule, so this popup must not force off a
 	// Limit Armies the room kept - it would write that forced "off" back on create. The room keeps it in
 	// LANPreferences (it cannot write CustomMatchPreferences: TheGameSpyInfo is torn down while a room is
@@ -619,7 +619,7 @@ WindowMsgHandledType PopupHostGameSystem( GameWindow *window, UnsignedInt msg, W
 				name = GadgetTextEntryGetText(textEntryGameName);
 				name.trim();
 
-				// GeneralsX @feature Claude 16/08/2026 THE RELAY LOBBY BRANCHES BEFORE createGame().
+				// GeneralsX: THE RELAY LOBBY BRANCHES BEFORE createGame().
 				//
 				// createGame() ends at TheGameSpyPeerMessageQueue->addRequest(req), and on the relay
 				// path that pointer is NULL by construction - it is the switch the whole relay lobby
@@ -636,7 +636,7 @@ WindowMsgHandledType PopupHostGameSystem( GameWindow *window, UnsignedInt msg, W
 				// because that one is displayed.
 				if (GXRelayLobbyIsActive())
 				{
-					// GeneralsX @feature Claude 16/08/2026 A typo here locks the host out of their
+					// GeneralsX: A typo here locks the host out of their
 					// own lobby, and silently: the password is stored as a salted verifier, so
 					// nothing can recover or even display what was actually set, and the first
 					// symptom is a friend being refused with a password the host is certain is
@@ -686,7 +686,7 @@ WindowMsgHandledType PopupHostGameSystem( GameWindow *window, UnsignedInt msg, W
 						}
 					}
 
-					// GeneralsX @feature Claude 25/09/2026 This popup's own retail Limit Armies checkbox. The relay
+					// GeneralsX: This popup's own retail Limit Armies checkbox. The relay
 					// room is the LAN options screen, which takes its starting state from LANPreferences, so the
 					// choice is handed over there - and read back from there by Init next time; the room's own
 					// checkbox keeps it editable afterwards.
@@ -765,7 +765,7 @@ void createGame()
 	req.stagingRoomCreation.ladPort = 0;
 	if (ladderSelectPos >= 0)
 	{
-		// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+		// GeneralsX: 64-bit safe pointer cast
 		ladderID = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(comboBoxLadderName, ladderSelectPos)));
 		if (ladderID != 0)
 		{

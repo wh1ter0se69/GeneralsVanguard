@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-hud-seam-1 13/10/2026 AMD FidelityFX FSR 1 (EASU + RCAS) for IGxWorldPass::Upscale(GX_UPSCALE_FSR1)
+// GeneralsX: AMD FidelityFX FSR 1 (EASU + RCAS) for IGxWorldPass::Upscale(GX_UPSCALE_FSR1)
 // (modernize/render-dlss/DESIGN_hud-seam.md §4; shaders/SOURCE.txt for the vendored MIT headers). Two full-screen fragment passes,
 // recorded outside a rendering scope like GxNativePresent: EASU from the world colour into a scratch target of the output size,
 // then RCAS from the scratch into the output target. Both targets are the seam's own textures; the seam composites the output.

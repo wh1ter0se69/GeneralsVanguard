@@ -43,7 +43,7 @@ extern Real GetGameLogicRandomValueRealUnchanged(Real lo, Real hi, const char* f
 #define GameLogicRandomValueReal( lo, hi ) GetGameLogicRandomValueReal( lo, hi, __FILE__, __LINE__ )
 #define GameLogicRandomValueRealUnchanged( lo, hi ) GetGameLogicRandomValueRealUnchanged( lo, hi, __FILE__, __LINE__ )
 
-// GeneralsX @feature Claude 06/10/2026 render-split step 2: the simulation's COSMETIC stream (RandomValue.cpp). For a value
+// GeneralsX: render-split step 2: the simulation's COSMETIC stream (RandomValue.cpp). For a value
 // that only places or times an effect and that no lockstep state reads. The client stream (GameClientRandomValue) belongs
 // to the render side; simulation code must not draw from it.
 extern Int GetGameLogicCosmeticRandomValue( int lo, int hi, const char *file, int line );

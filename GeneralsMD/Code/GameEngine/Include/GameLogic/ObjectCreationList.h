@@ -190,7 +190,7 @@ public:
 	virtual ~ObjectCreationListStore() override;
 
 	virtual void init() override { }
-	// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#1974 - was `{ }`.
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#1974 - was `{ }`.
 	virtual void reset() override;
 	virtual void update() override { }
 
@@ -209,7 +209,7 @@ private:
 	typedef std::map< NameKeyType, ObjectCreationList, std::less<NameKeyType>/**/> ObjectCreationListMap;
 	ObjectCreationListMap m_ocls;
 
-	// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#1974
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#1974
 	//
 	// parseObjectCreationListDefinition calls ocl.clear() and re-parses IN PLACE regardless of
 	// load type, and reset() was an empty inline - so a map.ini's OCL override destroyed the base

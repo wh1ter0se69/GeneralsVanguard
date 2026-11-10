@@ -1,6 +1,6 @@
 # Overlay archives that SHIP but do not decide compatibility.
 #
-# GeneralsX @feature Claude 12/08/2026
+# GeneralsX:
 #
 # Format, one per line:   <on|off>|<filename>|<label shown in the launcher>
 # '#' comments and blank lines ignored. Labels may contain spaces; the '|' is the separator
@@ -91,7 +91,7 @@ on|340_ControlBarPro1440ZH.big|ControlBar Pro - 1440 layout
 # So the archive supplied a retail fallback that the keybind file overrides. Removing it costs no
 # behaviour and saves every friend the download. dataID-neutral either way, measured twice:
 # the 12/08 leave-one-out (data=FA018128 with it in or out) and again three ways in 42f6be320.
-# GeneralsX @info Claude 15/09/2026 !GXUI.big STAYS HERE, and an attempt to make it
+# GeneralsX: !GXUI.big STAYS HERE, and an attempt to make it
 # unconditional on 15/09/2026 is why this note exists.
 #
 # It is this project's own UI rather than a community preference, so "always on, no switch" is a
@@ -107,7 +107,7 @@ on|340_ControlBarPro1440ZH.big|ControlBar Pro - 1440 layout
 # like `always|` beside `on|` and `off|` - plus the launcher parser and its toggle UI. That is a
 # feature, not a list edit. Until then it ships to everyone by defaulting on, which is the same
 # outcome for anyone who does not go looking for the switch.
-# GeneralsX @feature Claude 17/08/2026 The FIRST entry here that is BUILT rather than downloaded.
+# GeneralsX: The FIRST entry here that is BUILT rather than downloaded.
 #
 # !GXUI.big carries this project's own .wnd layout overrides - today one file,
 # Window\Menus\PopupHostGame.wnd with the Confirm Password field, generated from retail bytes by
@@ -119,7 +119,7 @@ on|340_ControlBarPro1440ZH.big|ControlBar Pro - 1440 layout
 # !GXUI.big missing and the archive had to be copied to the host by hand. macOS and Linux invoke
 # it now; iOS still does not, and it produces no CDN artifact either.
 on|!GXUI.big|GeneralsX UI layouts (adds the Confirm Password field to Host Game)
-# GeneralsX @feature Claude 03/10/2026 !GXUIHD.big: hand-drawn 7x16 / 10x24 occupancy pips for renders 1440p and taller
+# GeneralsX: !GXUIHD.big: hand-drawn 7x16 / 10x24 occupancy pips for renders 1440p and taller
 # (owner, 03/10/2026). BUILT, like !GXUI.big, but from nothing: scripts/build/make-gxuihd-archive.py draws the art in its
 # own grids, so no install is read and every box writes the same bytes. Two members, Art\Textures\GXUIHD_Pips.tga and
 # Data\INI\MappedImages\TextureSize_512\GXUIHD.ini - MappedImages and textures are outside the SimID fingerprint, so
@@ -127,7 +127,7 @@ on|!GXUI.big|GeneralsX UI layouts (adds the Confirm Password field to Host Game)
 # install, the engine draws the retail 5x12 at every resolution (GXImageVariant.h falls back), so the switch is safe.
 # All four packagers run the generator now - iOS too (package-ios-zh.sh:477); the !GXUI.big note above predates that.
 on|!GXUIHD.big|Sharper unit pips at 1440p and 4K (hand-drawn, original colours)
-# GeneralsX @feature Claude 06/10/2026 !!GXEmblemHD.big: the faction emblems upscaled with the original colours (ui/emblem-upscale,
+# GeneralsX: !!GXEmblemHD.big: the faction emblems upscaled with the original colours (ui/emblem-upscale,
 # two members: Art\Textures\GXEmblemHD_001.tga and Data\INI\MappedImages\TextureSize_512\SCGenChallengeSelect512.INI, whose 46 blocks
 # keep every name - 36 remapped to the new texture, 10 identical to the Community Patch's). NOT BUILT: a hand-placed binary like
 # !!GXCameoHD.big (4,202,415 B, sha256 4e74491e802d6a14...), so it must be on every packaging box before this line reaches a
@@ -136,7 +136,7 @@ on|!GXUIHD.big|Sharper unit pips at 1440p and 4K (hand-drawn, original colours)
 # MappedImages and textures are outside the SimID fingerprint: dataID does not move, assetID does (tier-2, warn only).
 # Default on and never flip it later (see the note above on flipped defaults).
 on|!!GXEmblemHD.big|HD faction emblems (upscaled, original colours)
-# GeneralsX @feature Claude 08/10/2026 !GXUISide.big: the control bar's side buttons (Options, Idle Worker, Chat, Beacon, the General's
+# GeneralsX: !GXUISide.big: the control bar's side buttons (Options, Idle Worker, Chat, Beacon, the General's
 # star button) and the General's experience ladder in the player HUD's navy-and-steel look (owner, 08/10/2026: "rebranded with our
 # new stuff for GeneralsX UI"). Built like !GXUIHD.big, from nothing, by scripts/build/make-gxsidebar-archive.py. It REDEFINES 137 existing
 # MappedImage names (retail SA*/SN*/SU*, Control Bar Pro <Faction>Pro*/ObserverPro*, GenExpBar*) and adds none; MappedImages and textures are

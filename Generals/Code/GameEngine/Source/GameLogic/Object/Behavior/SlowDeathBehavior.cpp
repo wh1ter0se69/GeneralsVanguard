@@ -179,7 +179,7 @@ Int SlowDeathBehavior::getProbabilityModifier( const DamageInfo *damageInfo ) co
 	// severly killed, and more sedate ones when only slightly killed.
 	// eg ( 200 hp max, had 10 left, took 50 damage, 40 overkill, (40/200) * 100 = 20 overkill %)
 	Int overkillDamage = damageInfo->out.m_actualDamageDealt - damageInfo->out.m_actualDamageClipped;
-	// GeneralsX @bugfix Claude 01/10/2026 NO 0/0 HERE: a CROSS-PLATFORM DESYNC. An object with max health 0 (GenericDebris
+	// GeneralsX: NO 0/0 HERE: a CROSS-PLATFORM DESYNC. An object with max health 0 (GenericDebris
 	// dies this way in a 12-AI Crater Ring match) made this NaN, and the Int conversion below is target-defined for NaN:
 	// arm64 (fcvtzs) gives 0, x64 (cvttss2si) gives INT_MIN. So the summed modifier in SlowDeathBehavior::onDie was 10 on
 	// macOS and 1 on Windows. Retail drew GameLogicRandomValue(1, total) either way, which hid it; with
@@ -303,7 +303,7 @@ void SlowDeathBehavior::beginSlowDeath(const DamageInfo *damageInfo)
 												d->m_flingPitch, d->m_flingPitch + d->m_flingPitchVariance, force);
 				physics->setAllowToFall(true);
 #if GX_LOGIC_60HZ
-				// GeneralsX @fix Claude 23/09/2026 One-shot impulse = a per-frame velocity kick in 30 Hz units;
+				// GeneralsX: One-shot impulse = a per-frame velocity kick in 30 Hz units;
 				// halved (exact) so the arc under the per-frame^2 gravity matches retail. RNG draws unchanged.
 				force.scale( 0.5f );
 #endif
@@ -446,7 +446,7 @@ UpdateSleepTime SlowDeathBehavior::update()
 						obj->clearModelConditionFlags( MAKE_MODELCONDITION_MASK(MODELCONDITION_EXPLODED_BOUNCING) );
 						obj->setModelConditionFlags(   MAKE_MODELCONDITION_MASK(MODELCONDITION_PARACHUTING) ); //looks like he is snagged in a tree
 #if GX_LOGIC_60HZ
-						// GeneralsX @fix Claude 23/09/2026 50 frames' worth of the per-frame SinkRate: scale the frames.
+						// GeneralsX: 50 frames' worth of the per-frame SinkRate: scale the frames.
 						obj->setPositionZ( obj->getPosition()->z - (d->m_sinkRate * (Real)GX_FRAMES30(50)) );// make him sink faster
 #else
 						obj->setPositionZ( obj->getPosition()->z - (d->m_sinkRate * 50.0f) );// make him sink faster

@@ -83,7 +83,7 @@ void Connection::init() {
 		m_netCommandList->init();
 	}
 	m_netCommandList->reset();
-	// GeneralsX @security Claude 06/10/2026 The window and the pending wraps go with the queue; m_nextWrapSeq does NOT (design v16
+	// GeneralsX: The window and the pending wraps go with the queue; m_nextWrapSeq does NOT (design v16
 	// section 3): a wrapSeq is never reused on this connection, so a late chunk of an old serialization can never pass for a new one.
 	clearWrapState();
 
@@ -154,13 +154,13 @@ void Connection::sendNetCommandMsg(NetCommandMsg *msg, RelayMaskType relay) {
 		// one wrapper command at a time.
 
 		NetCommandRef *tempref = NEW_NETCOMMANDREF(msg);
-		// GeneralsX @bugfix Claude 06/10/2026 The probe carries the relay the queued command will carry. It used to be set only
+		// GeneralsX: The probe carries the relay the queued command will carry. It used to be set only
 		// after the probe, so the probe ref's relay was the constructor's (never set: 0 from the zeroed pool) - and against a
 		// fresh packet's m_lastRelay of 0, NetPacket::addCommand left the relay field (sizeof(NetPacketRelayField) bytes) out
 		// of the size. A command up to that many bytes over MAX_PACKET_SIZE was judged to fit and queued unwrapped; doSend's
 		// fresh packet then counted the real relay and addCommand refused it in every packet, so it was skipped on every pass
 		// and never sent: a synchronized command held every peer at its frame, a FILE never finished (an honest map sidecar can
-		// land in that window - Codex wrap-probe-r1). Upstream (TheSuperHackers main) probes the same way.
+		// land in that window). Upstream (TheSuperHackers main) probes the same way.
 		tempref->setRelay(relay);
 		if (packet.addCommand(tempref)) {
 			deleteInstance(tempref); // delete the temporary reference.
@@ -168,7 +168,7 @@ void Connection::sendNetCommandMsg(NetCommandMsg *msg, RelayMaskType relay) {
 		} else {
 
 			// the message doesn't fit in a single packet, need to split it up.
-			// GeneralsX @security Claude 06/10/2026 Not here and now: through this connection's send window (pumpPendingWraps), so a
+			// GeneralsX: Not here and now: through this connection's send window (pumpPendingWraps), so a
 			// receiver never holds more than GX_WRAP_WINDOW serializations / GX_WRAP_BYTES of ours (design v16 section 3). Nothing
 			// queued there is ever dropped; it waits for acks, and it is wrapped at once while the window has room.
 			deleteInstance(tempref);
@@ -221,7 +221,7 @@ void Connection::clearCommandsExceptFrom( Int playerIndex )
 		tmp = next;
 	}
 
-	// GeneralsX @security Claude 06/10/2026 Pending wraps (obligations included) of every other originator go the same way.
+	// GeneralsX: Pending wraps (obligations included) of every other originator go the same way.
 	for (std::map<Int, std::deque<GXPendingWrap> >::iterator it = m_pendingWraps.begin(); it != m_pendingWraps.end(); ) {
 		if (it->first != playerIndex) {
 			for (size_t k = 0; k < it->second.size(); ++k)
@@ -234,7 +234,7 @@ void Connection::clearCommandsExceptFrom( Int playerIndex )
 }
 
 Bool Connection::isQueueEmpty() {
-	// GeneralsX @security Claude 06/10/2026 A command waiting for the window is still to be sent: ConnectionManager::update deletes a
+	// GeneralsX: A command waiting for the window is still to be sent: ConnectionManager::update deletes a
 	// quitting connection, and canILeave / FileTransfer wait, on this (design v16 section 3).
 	if (m_netCommandList->getFirstMessage() == nullptr && m_pendingWraps.empty()) {
 		return TRUE;
@@ -249,14 +249,14 @@ void Connection::setQuitting()
 	DEBUG_LOG(("Connection::setQuitting() at time %d", m_quitTime));
 }
 
-// GeneralsX @tweak Claude 11/08/2026 GX_MAPDBG: [GXXFER] doSend accounting for the transfer
+// GeneralsX: GX_MAPDBG: [GXXFER] doSend accounting for the transfer
 // command types (WRAPPER/FILE/FILEANNOUNCE/FILEPROGRESS). File-scope statics: shared across
 // connections by design - see the note at the increment site.
 static UnsignedInt s_xferPacked = 0;
 static UnsignedInt s_xferRetried = 0;
 static time_t s_xferLastPrint = 0;
 
-// GeneralsX @feature Claude 14/08/2026 [GXPKT] packet-occupancy accounting.
+// GeneralsX: [GXPKT] packet-occupancy accounting.
 //
 // The question this exists to answer: widening the relay destination mask from one byte to two
 // for twelve human slots grows the 'R' field by one byte. Is that affordable against
@@ -305,7 +305,7 @@ UnsignedInt Connection::doSend() {
 		return 0;
 	}
 
-	// GeneralsX @security Claude 06/10/2026 Wrap what the window now has room for (acks free it). Before the grouping gate, and
+	// GeneralsX: Wrap what the window now has room for (acks free it). Before the grouping gate, and
 	// regardless of m_isQuitting: a quitting connection drains its pending wraps like its queue (design v16 section 3).
 	pumpPendingWraps();
 
@@ -322,8 +322,8 @@ UnsignedInt Connection::doSend() {
 		packet.setAddress(m_user->GetIPAddr(), m_user->GetPort());
 
 		Bool notDone = TRUE;
-		// GeneralsX @bugfix Claude 01/10/2026 The commands whose FIRST send is this packet: if the transport refuses the
-		// packet their first-send stamp is undone, so an ack latency never includes a refused offer (Codex ffr-r3 P2).
+		// GeneralsX: The commands whose FIRST send is this packet: if the transport refuses the
+		// packet their first-send stamp is undone, so an ack latency never includes a refused offer.
 		// A packet holds at most MAX_PACKET_SIZE commands (each is at least one byte).
 		NetCommandRef *firstSends[MAX_PACKET_SIZE];
 		Int numFirstSends = 0;
@@ -336,14 +336,14 @@ UnsignedInt Connection::doSend() {
 
 			if (((curtime - timeLastSent) > retryTimeFor(msg)) || (timeLastSent == -1)) {
 				notDone = packet.addCommand(msg);
-				// GeneralsX @feature Claude 14/08/2026 [GXPKT] the load-bearing counter: a FALSE
+				// GeneralsX: [GXPKT] the load-bearing counter: a FALSE
 				// here is the ONLY way packet size costs anything. Note the command is not lost -
 				// it was never stamped setTimeLastSent, so it stays on m_netCommandList and the
 				// next doSend picks it up.
 				if (s_pktTrace && !notDone)
 					++s_pktSpills;
 				if (notDone) {
-					// GeneralsX @tweak Claude 11/08/2026 GX_MAPDBG: [GXXFER] transfer-traffic
+					// GeneralsX: GX_MAPDBG: [GXXFER] transfer-traffic
 					// accounting. Counters are function statics, so with several live connections
 					// they aggregate across all of them - fine for the two-peer harness this
 					// exists to instrument, and the printed address still names who was current.
@@ -361,10 +361,10 @@ UnsignedInt Connection::doSend() {
 					if (CommandRequiresAck(msg->getCommand())) {
 						if (timeLastSent != -1) {
 							++m_numRetries;
-							// GeneralsX @feature Claude 06/08/2026, rewritten 01/10/2026 [GXNET] retries = commands
+							// GeneralsX: rewritten 01/10/2026 [GXNET] retries = commands
 							// that were LIKELY LOST: each counts once (latched), the first time it is resent after
 							// being outstanding past the adaptive timer (updateRetryTime). A fast resend of frame
-							// data (retryTimeFor) is routine, not loss, and is not counted (Codex ffr-r2/r3 P2).
+							// data (retryTimeFor) is routine, not loss, and is not counted.
 							// m_numRetries cannot serve: doRetryMetrics zeroes it every 10 s. A transport-queue
 							// refusal is not counted here either: GX_MAPDBG logs each one ([GXXFER] QUEUE-FULL).
 							// A first send the transport refused carries no stamp (see firstSends below).
@@ -376,7 +376,7 @@ UnsignedInt Connection::doSend() {
 								msg->markLossCounted();
 								++TheGxNetRetries;
 							}
-							// GeneralsX @feature Claude 02/10/2026 [GXNET] rtx_old: every re-offer of a command still unacked
+							// GeneralsX: [GXNET] rtx_old: every re-offer of a command still unacked
 							// GX_STALE_MS after its first send. retries= above is latched (one per command), so it cannot
 							// see a command retransmitted for the rest of a match (the resend-ack leak); this counts each
 							// re-offer, per connection, and a healthy match - any ack inside a second - keeps it at zero.
@@ -415,7 +415,7 @@ UnsignedInt Connection::doSend() {
 					firstSends[f]->setTimeFirstSent(-1);
 			}
 
-			// GeneralsX @feature Claude 14/08/2026 [GXPKT] occupancy accounting - see the counter
+			// GeneralsX: [GXPKT] occupancy accounting - see the counter
 			// block above doSend for why spills, not sizeof, are what decides affordability.
 			if (s_pktTrace) {
 				const Int len = packet.getLength();
@@ -434,7 +434,7 @@ UnsignedInt Connection::doSend() {
 				++s_pktHist[bucket];
 			}
 
-			// GeneralsX @tweak Claude 11/08/2026 [GXXFER] A failed queueSend LOSES this packet's
+			// GeneralsX: [GXXFER] A failed queueSend LOSES this packet's
 			// commands for this round - they were stamped setTimeLastSent above, so they will not
 			// be retried until a whole m_retryTime elapses. Rare event, logged per occurrence
 			// (an aggregate would hide the multi-second hole it creates - see
@@ -462,7 +462,7 @@ UnsignedInt Connection::doSend() {
 		s_xferLastPrint = curtime;
 	}
 
-	// GeneralsX @feature Claude 14/08/2026 [GXPKT] one aggregate line a second, and it prints even
+	// GeneralsX: [GXPKT] one aggregate line a second, and it prints even
 	// when nothing moved - a window with pkts=0 is evidence the probe ran, which is the difference
 	// between "no spills" and "the trace never fired". See gate-never-observed-to-fire.
 	if (s_pktTrace && (curtime - s_pktLastPrint) >= 1000)
@@ -485,7 +485,7 @@ UnsignedInt Connection::doSend() {
 	return numpackets;
 }
 
-// GeneralsX @feature Claude 02/10/2026 [GXNET] stale (GX_NET only, ConnectionManager::gxNetSample): up to four commands
+// GeneralsX: [GXNET] stale (GX_NET only, ConnectionManager::gxNetSample): up to four commands
 // on this queue still unacked GX_STALE_MS after their first send - the destination, type, originator and ID of what
 // rtx_old counts. budget is the caller's per-destination cap.
 void Connection::gxTraceStale(UnsignedInt slot, Int &budget) {
@@ -532,7 +532,7 @@ NetCommandRef * Connection::processAck(NetCommandMsg *msg) {
  */
 NetCommandRef * Connection::processAck(UnsignedShort commandID, UnsignedByte originalPlayerID) {
 	NetCommandRef *temp = m_netCommandList->getFirstMessage();
-	// GeneralsX @security Claude 06/10/2026 Never a wrapper chunk: a chunk is acked only by a WRAPPERACK naming its (wrapSeq, chunk)
+	// GeneralsX: Never a wrapper chunk: a chunk is acked only by a WRAPPERACK naming its (wrapSeq, chunk)
 	// (processWrapperAck). A (player, 16-bit ID) ack can alias a chunk that reused the ID, and a chunk counted as delivered that
 	// was not would let the window pass a serialization the receiver never completed (design v16 section 2).
 	while ((temp != nullptr) && ((temp->getCommand()->getID() != commandID) || (temp->getCommand()->getPlayerID() != originalPlayerID)
@@ -565,10 +565,10 @@ NetCommandRef * Connection::processAck(UnsignedShort commandID, UnsignedByte ori
 }
 
 void Connection::sampleAckLatency(NetCommandRef *temp) {
-	// GeneralsX @bugfix Claude 01/10/2026 ACK LATENCY FROM THE FIRST SEND. It was timed from the LAST send, so the ack of
+	// GeneralsX: ACK LATENCY FROM THE FIRST SEND. It was timed from the LAST send, so the ack of
 	// a resent command measured only the tail since the resend: with frame data resent every 30 ms (retryTimeFor) every
 	// sample would read ~10-30 ms and pin m_retryTime - the timer chat, votes and file transfer still use - at its
-	// 120 ms floor, below a relayed path's ack time (Codex ffr-r1 P2). The same bias made the adaptive timer bistable
+	// 120 ms floor, below a relayed path's ack time. The same bias made the adaptive timer bistable
 	// before (one resend -> short samples -> floor -> everything resent). Timed from the first send a sample can only
 	// read LONG (when the first copy was lost), which errs the safe way for a retry timer. Not Karn's rule (skip resent
 	// commands): with frame data almost always resent before its ack, that would leave this 200-slot mean, which starts
@@ -580,7 +580,7 @@ void Connection::sampleAckLatency(NetCommandRef *temp) {
 		Real lat = timeGetTime() - temp->getTimeFirstSent();
 		m_averageLatency += lat / CONNECTION_LATENCY_HISTORY_LENGTH;
 
-		// GeneralsX @bugfix Claude 06/08/2026 Keep the retry timer on the measured path. See
+		// GeneralsX: Keep the retry timer on the measured path. See
 		// updateRetryTime() below for why 2000 ms fixed was 79% of all measured stall time.
 		updateRetryTime();
 		m_latencies[index] = lat;
@@ -588,7 +588,7 @@ void Connection::sampleAckLatency(NetCommandRef *temp) {
 }
 
 /**
- * GeneralsX @security Claude 06/10/2026 The peer acked ONE wrapper chunk, by (original player, wrapSeq, chunk number) - only a
+ * GeneralsX: The peer acked ONE wrapper chunk, by (original player, wrapSeq, chunk number) - only a
  * WRAPPER chunk on this queue can match, so the ack means exactly that chunk arrived (design v16 section 2).
  */
 void Connection::processWrapperAck(UnsignedByte originalPlayerID, UnsignedInt wrapSeq, UnsignedInt chunkNumber) {
@@ -609,7 +609,7 @@ void Connection::processWrapperAck(UnsignedByte originalPlayerID, UnsignedInt wr
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-// GeneralsX @security Claude 06/10/2026 THE WRAPPER SEND WINDOW (fixes/DESIGN_wrapper-memory-cap.md v16 section 3, sweep v-net-01).
+// GeneralsX: THE WRAPPER SEND WINDOW (fixes/DESIGN_wrapper-memory-cap.md v16 section 3, sweep v-net-01).
 //
 // A receiver reserves a whole command's buffer the moment the first chunk of a serialization arrives, and it may free one only
 // once it knows the serialization is over. Each serialization on this connection is numbered (wrapSeq), and every chunk carries
@@ -675,7 +675,7 @@ void Connection::pumpPendingWraps() {
 			if (it == m_pendingWraps.end())
 				it = m_pendingWraps.begin();
 			const GXPendingWrap &front = it->second.front();
-			// Not while the originator's queued commands leave too few chunk IDs: the whole wrap waits (Codex wrapcap-impl-r1 P2).
+			// Not while the originator's queued commands leave too few chunk IDs: the whole wrap waits.
 			if (!canWrapNow(front.claimed) || (DoesCommandRequireACommandID(front.msg->getNetCommandType())
 					&& !NetPacket::ChunkIdsAvailable(m_netCommandList, front.msg->getPlayerID(), front.chunks))) {
 				++it;
@@ -686,7 +686,7 @@ void Connection::pumpPendingWraps() {
 				// on one connection is not an honest game.
 				DEBUG_CRASH(("Connection::pumpPendingWraps - the wrap counter is exhausted; leaving"));
 				if (!m_isQuitting)
-					setQuitting();	// once: setQuitting restarts the MaxQuitFlushTime deadline (Codex wrapcap-impl-r2 P2)
+					setQuitting();	// once: setQuitting restarts the MaxQuitFlushTime deadline
 				return;
 			}
 			const GXPendingWrap w = it->second.front();
@@ -706,7 +706,7 @@ void Connection::pumpPendingWraps() {
 
 void Connection::wrapNow(const GXPendingWrap &w) {
 	// The serialization is in the window from the moment its number is drawn, so every chunk's lowWater is <= its wrapSeq: on a
-	// quiet connection it is the wrapSeq itself (design v16 section 2, Fable r9 P2-1).
+	// quiet connection it is the wrapSeq itself (design v16 section 2).
 	const UnsignedInt seq = m_nextWrapSeq++;
 	GXWrapState &state = m_wrapInFlight[seq];
 	state.unacked = 0;
@@ -725,9 +725,9 @@ void Connection::wrapNow(const GXPendingWrap &w) {
 			if (NetCommandRef *ref2 = m_netCommandList->addMessage(chunk)) {
 				ref2->setRelay(w.relay);
 				// A chunk carries no type of its own: it retries fast when the command it splits is frame data
-				// (Codex ffr-adv1 P2 - a big group order is wrapped, and one lost chunk holds the frame).
+				// (ffr-adv1 P2 - a big group order is wrapped, and one lost chunk holds the frame).
 				ref2->setFastRetry(IsCommandSynchronized(w.msg->getNetCommandType()));
-				++state.unacked;	// only what was actually queued can be acked (design v16 section 3, Fable r6 P3-1)
+				++state.unacked;	// only what was actually queued can be acked (design v16 section 3)
 			}
 		}
 		deleteInstance(list);
@@ -736,7 +736,7 @@ void Connection::wrapNow(const GXPendingWrap &w) {
 	w.msg->detach();	// the pending entry's reference
 
 	if (state.unacked == 0) {
-		// Nothing to ack, so it must not hold lowWater (Fable r10 P3-2): ConstructBigCommandList refused the command.
+		// Nothing to ack, so it must not hold lowWater: ConstructBigCommandList refused the command.
 		m_windowBytes -= w.claimed;
 		m_wrapInFlight.erase(seq);
 		advanceLowWater();
@@ -777,7 +777,7 @@ void Connection::clearWrapState() {
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-// GeneralsX @test Claude 06/10/2026 GX_NET_TEST_WRAPFLOOD - a TEST INSTRUMENT (plan Task 9, the forged-wrapper flood arm): queue
+// GeneralsX: GX_NET_TEST_WRAPFLOOD - a TEST INSTRUMENT (plan Task 9, the forged-wrapper flood arm): queue
 // @p count wrapper chunks that IGNORE this connection's window - each the first of four chunks of a 4,000-byte serialization that
 // never completes, with its own wrapSeq (drawn from the real counter, so the honest stream never reuses one), a distinct wrapped ID,
 // a forged sender and the window's lowWater frozen at flood time. What a modified client can send. The receiver must hold at most
@@ -830,7 +830,7 @@ void Connection::doRetryMetrics() {
 	}
 }
 
-// GeneralsX @bugfix Claude 06/08/2026 The retry timer is what the stutter actually is.
+// GeneralsX: The retry timer is what the stutter actually is.
 //
 // MEASURED, on live mac+linux peers with [GXSTALL] (evidence/stutter-rootcause-2026-08-06.md):
 // across four runs, 79% of ALL blocked time was 10 events, and every one of them lasted 1847-2016
@@ -881,7 +881,7 @@ void Connection::updateRetryTime() {
 	m_retryTime = t;
 }
 
-// GeneralsX @bugfix Claude 01/10/2026 FRAME-DATA FAST RETRANSMIT (m1-net-lab-2). A lost datagram that carried frame
+// GeneralsX: FRAME-DATA FAST RETRANSMIT (m1-net-lab-2). A lost datagram that carried frame
 // input stalled every peer until this connection's retry timer fired - clamp(3 x mean ack latency, 120, 2000) ms, so
 // ~300 ms per loss on a relayed path, and with every leg able to lose a datagram the stalls add up: at 2% bursty loss
 // per leg the lobby was blocked 48% (4 peers) and 51% (6 peers) of the time, every dip a loss repair. A synchronized
@@ -892,7 +892,7 @@ void Connection::updateRetryTime() {
 // burst 2: blocked 1.0-1.2%, no stall over 250 ms. File transfer, chat, votes and the disconnect traffic keep the
 // adaptive timer. GX_RETRY_MS (a lab knob) still forces ONE timer for everything.
 time_t Connection::retryTimeFor(const NetCommandRef *msg) const {
-	// Same test as updateRetryTime: only a POSITIVE GX_RETRY_MS forces one timer (Codex ffr-r2 P2: "=0" used to turn
+	// Same test as updateRetryTime: only a POSITIVE GX_RETRY_MS forces one timer ("=0" used to turn
 	// the fast path off while leaving the adaptive timer on).
 	static const Int s_forced = (getenv("GX_RETRY_MS") != NULL) ? atoi(getenv("GX_RETRY_MS")) : 0;
 	const time_t FRAME_RETRY_MS = 30;

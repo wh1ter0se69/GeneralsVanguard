@@ -30,7 +30,7 @@
 
 #include "Common/Snapshot.h"
 #include "Common/Money.h"
-// GeneralsX @bugfix Claude 06/08/2026 For LOGICFRAMES_PER_SECOND, used by the setCRCInterval cap
+// GeneralsX: For LOGICFRAMES_PER_SECOND, used by the setCRCInterval cap
 // below. Explicit rather than relying on MessageStream.h to drag it in transitively.
 #include "Common/GameCommon.h"
 #include "GameNetwork/NetworkDefs.h"
@@ -122,7 +122,7 @@ public:
 	Bool isPlayer( UnicodeString userName ) const;					///< Does this slot contain the given user?
 	Bool isPlayer( UnsignedInt ip ) const;									///< Is this slot at this IP?
 	Bool isOpen() const;
-	/// GeneralsX @feature Claude 24/09/2026 An OBSERVER seat, before the start or after it. The start rewrites
+	/// GeneralsX: An OBSERVER seat, before the start or after it. The start rewrites
 	/// an observer's template from PLAYERTEMPLATE_OBSERVER to the FactionObserver index, and a skirmish save
 	/// stores that rewritten value, so after the start only the original template still says "observer".
 	/// Every observer seat shares the ReplayObserver, so the start and a load must agree on which they are.
@@ -162,7 +162,7 @@ protected:
 	*/
 /// How much of a typed lobby name survives to the wire.
 ///
-/// GeneralsX @feature Claude 16/08/2026 24 costs 28 announce bytes ("LN=" + 24 + ';'). Measured
+/// GeneralsX: 24 costs 28 announce bytes ("LN=" + 24 + ';'). Measured
 /// against the real budget rather than guessed: m_lanMaxOptionsLength is 692, and the twelve-slot
 /// worst case is 12*26 + 130 = 442, so this takes 470 of 692. g_announcePrefixAllowance is raised
 /// by the same 28 so the existing static_assert keeps covering the whole structure - the budget is
@@ -175,7 +175,7 @@ class GameInfo
 {
 public:
 	GameInfo();
-	virtual ~GameInfo();	///< GeneralsX @bugfix Claude 01/10/2026 clears TheGameInfo if it points here (tsh batch2 #250)
+	virtual ~GameInfo();	///< GeneralsX: clears TheGameInfo if it points here (tsh batch2 #250)
 
 	void init();
 	virtual void reset();
@@ -184,11 +184,11 @@ public:
 
 	Int getNumPlayers() const;									///< How many players (human and AI) are in the game?
 	Int countSlotsTakingPlayers() const;						///< GeneralsX: occupied slots that each become a Player (Common/PlayerCapacity.h)
-	/// GeneralsX @feature Claude 25/09/2026 Is slot `slotNum` an observer that SHARES THE REPLAYOBSERVER - an
+	/// GeneralsX: Is slot `slotNum` an observer that SHARES THE REPLAYOBSERVER - an
 	/// occupied observer seat in a game laid out the current way? Every start and mapping decision about an
 	/// observer asks this, never GameSlot::isObserver() alone, because a game recorded or saved before observers
 	/// shared the ReplayObserver gave each observer a Player of its own, and a replay's commands and a save's
-	/// Player table carry the Player INDICES of that layout (Codex r2). setLegacyObserverLayout(TRUE) - a
+	/// Player table carry the Player INDICES of that layout. setLegacyObserverLayout(TRUE) - a
 	/// GENREP/GENR12 replay, a SkirmishGameInfo save older than version 5 - makes this FALSE for every slot, and
 	/// the start then builds exactly the table the recording or the save was made with.
 	Bool slotSharesReplayObserver( Int slotNum ) const;
@@ -228,7 +228,7 @@ public:
 	inline UnsignedInt getMapCRC() const;							///< Get the map CRC
 	inline UnsignedInt getMapSize() const;						///< Get the map size
 	inline Int getMapContentsMask() const;						///< Get the map contents mask
-	// GeneralsX @feature Claude 01/10/2026 The host's map-scoped sim data hash (GetMapDataHash, "MD=" on the wire, 0 = the
+	// GeneralsX: The host's map-scoped sim data hash (GetMapDataHash, "MD=" on the wire, 0 = the
 	// map has no map.ini/solo.ini). A joiner whose own sidecars hash differently reports no map, so the host re-sends
 	// them; GameLogic refuses a networked start whose loaded sidecars still differ (M1 Determinism-1 step 2b).
 	void setMapDataHash( UnsignedInt hash ) { m_mapDataHash = hash; }
@@ -259,7 +259,7 @@ public:
 
 	// CRC checking hack
 	//
-	// GeneralsX @bugfix Claude 06/08/2026 THE CAP MUST SCALE WITH THE TICK RATE. At 60 Hz a hard
+	// GeneralsX: THE CAP MUST SCALE WITH THE TICK RATE. At 60 Hz a hard
 	// 100 here desynchronises the CRC check itself.
 	//
 	// The host never comes through this setter: GameInfo::reset() assigns m_crcInterval directly
@@ -285,7 +285,7 @@ public:
 	void setCRCInterval( Int val )
 	{
 		const Int maxInterval = (100 * LOGICFRAMES_PER_SECOND) / 30;
-		// GeneralsX @fix Claude 22/09/2026 The floor was missing, and the ceiling alone does not bound
+		// GeneralsX: The floor was missing, and the ceiling alone does not bound
 		// garbage: val arrives as atoi() of the wire/replay `C=` field (GameInfo.cpp:1441/:1932), which
 		// is 0 for "0" and for any non-numeric junk. GameLogic then evaluates m_frame % getCRCInterval()
 		// unguarded (GameLogic.cpp:4327), so 0 is a divide by zero - #DE on the x86-64 legs, a silent
@@ -303,7 +303,7 @@ public:
 	Bool isMultiPlayer(); // TRUE if 2+ human are present
 	Bool isSandbox(); // TRUE if everybody is on the same team
 
-	/// GeneralsX @feature Claude 27/09/2026 THE START RULE, one for every setup screen (LAN and relay lobbies,
+	/// GeneralsX: THE START RULE, one for every setup screen (LAN and relay lobbies,
 	/// GameSpy, Skirmish) and for the match's end report, and inside the SimID digest, so two builds that
 	/// disagree on it never share a lobby (owner, 27/09/2026). A lobby may start when at least one occupied
 	/// slot PLAYS - an AI or a human player; every human may observe. Such a start is a SANDBOX when no human
@@ -323,18 +323,18 @@ public:
   inline Bool oldFactionsOnly() const;
   inline void setOldFactionsOnly( Bool oldFactionsOnly );
 
-	/// GeneralsX @feature Claude 23/09/2026 The lobby-agreed stress battlefield ("ST=" on the wire,
+	/// GeneralsX: The lobby-agreed stress battlefield ("ST=" on the wire,
 	/// see GameLogic/GXStress.h). Set only by a HOST, from its own environment (HeadlessMatch);
 	/// every other peer gets it from the host's options string and never from its own environment.
 	const GXStressOption &getGxStress() const { return m_gxStress; }
 	void setGxStress( const GXStressOption &stress ) { m_gxStress = stress; }
 
-	/// GeneralsX @security Claude 25/09/2026 The slots the RELAY proves are admins in this match ("AD=" on the
+	/// GeneralsX: The slots the RELAY proves are admins in this match ("AD=" on the
 	/// wire, bit i = slot i). The host stamps it on MSG_GAME_START from its own relay roster, every other peer
 	/// adopts it from there and refuses to start unless its OWN roster confirms every bit (LANAPI::gxRelayAdminMask),
 	/// and GameLogic snapshots it on a new game - so a cheat order is accepted from exactly these slots, on every
 	/// peer and in the replay. Masked to MAX_SLOTS bits.
-	// GeneralsX @feature Claude 06/11/2026 scale32: RelayMaskType (64 bit), ALL_SLOTS_MASK.
+	// GeneralsX: scale32: RelayMaskType (64 bit), ALL_SLOTS_MASK.
 	RelayMaskType getGxAdminMask() const { return m_gxAdminMask; }
 	void setGxAdminMask( RelayMaskType mask ) { m_gxAdminMask = mask & ALL_SLOTS_MASK; }
 	/// ...and each admin slot's per-match public key (Common/GXAdminOrder.h), which its cheat orders must be signed
@@ -343,7 +343,7 @@ public:
 	void setGxAdminKey( Int slot, const unsigned char key[32] ) { if( slot >= 0 && slot < MAX_SLOTS ) memcpy( m_gxAdminKeys[slot], key, 32 ); }
 	void clearGxAdmin() { m_gxAdminMask = 0; memset( m_gxAdminKeys, 0, sizeof( m_gxAdminKeys ) ); }
 
-	/// GeneralsX @feature Claude 07/11/2026 AI in three colours (GameNetwork/GXAiColours.h). stampAiColours is the host's choice at
+	/// GeneralsX: AI in three colours (GameNetwork/GXAiColours.h). stampAiColours is the host's choice at
 	/// Start, from its own Options.ini; applyAiColours is the logic's, after every colour has been drawn. A replay ("AC=" in its header)
 	/// and a save carry the mode, so playing one back follows the recording and never the viewer's own setting.
 	Int getGxAiColours() const { return m_gxAiColours; }
@@ -352,7 +352,7 @@ public:
 	void applyAiColours();
 
 protected:
-	RelayMaskType m_preorderMask;	// GeneralsX @feature Claude 06/11/2026 scale32: 64 bit, bit per slot
+	RelayMaskType m_preorderMask;	// GeneralsX: scale32: 64 bit, bit per slot
 	Int m_crcInterval;
 	Bool m_inGame;
 	Bool m_inProgress;
@@ -362,7 +362,7 @@ protected:
 
 	UnsignedInt m_localIP;
 
-	// GeneralsX @feature Claude 16/08/2026 THE LOBBY'S DISPLAY NAME, which is NOT LANGameInfo's
+	// GeneralsX: THE LOBBY'S DISPLAY NAME, which is NOT LANGameInfo's
 	// name. That one (LANGameInfo::getName) is the LOOKUP KEY - LANAPI.cpp:2239 finds a game with
 	// `while (theGame && theGame->getName() != gameName)` - which is why it is built as
 	// "%8.8X%8.8X" of IP and seed and why a human name concatenated onto it is truncated away by
@@ -418,21 +418,21 @@ UnsignedShort GameInfo::getSuperweaponRestriction() const { return m_superweapon
 Bool        GameInfo::oldFactionsOnly() const           { return m_oldFactionsOnly; }
 void        GameInfo::setOldFactionsOnly( Bool oldFactionsOnly ) { m_oldFactionsOnly = oldFactionsOnly; }
 
-// GeneralsX @security Claude 25/09/2026 maxLength 0 is the lobby announce's room (the binding limit for every
+// GeneralsX: maxLength 0 is the lobby announce's room (the binding limit for every
 // string a lobby sends), and such a string never carries the admin field. A positive maxLength asks for a string that
-// is never announced - the replay header passes GX_REPLAY_OPTIONS_MAX - and only that one carries it (Codex r2 P2:
-// with the announce limit a crowded lobby with an admin wrote an EMPTY slot list into its replay; Codex r3 P2: with
+// is never announced - the replay header passes GX_REPLAY_OPTIONS_MAX - and only that one carries it (
+// with the announce limit a crowded lobby with an admin wrote an EMPTY slot list into its replay; with
 // the field in announces an in-progress game could stop being listed).
-// GeneralsX @feature Claude 06/11/2026 1023 -> 4095 with readAsciiString's buffer (4096) and the GENS34 magic: a 34-slot list
+// GeneralsX: 1023 -> 4095 with readAsciiString's buffer (4096) and the GENS34 magic: a 34-slot list
 // does not fit 1023 bytes, and an overflow returns the EMPTY string (an unplayable replay). GENS15 files stay <= 1023.
 enum { GX_REPLAY_OPTIONS_MAX = 4095 };	///< RecorderClass::readAsciiString's buffer, less its NUL
-// GeneralsX @security Claude 04/11/2026 forReplayFile: the string a replay FILE keeps (RecorderClass::startRecording, its only
+// GeneralsX: forReplayFile: the string a replay FILE keeps (RecorderClass::startRecording, its only
 // caller that passes TRUE). Replays get sent around and posted, so it holds no network address of anyone: no NP=, and each
 // human slot's IP and port are placeholders (wh1ter0se 04/11, msg 5a19; names stay). See buildGameInfoAsciiString.
 AsciiString GameInfoToAsciiString( const GameInfo *game, Int maxLength = 0, Bool forReplayFile = FALSE );
 Bool ParseAsciiStringToGameInfo( GameInfo *game, AsciiString options );
 
-// GeneralsX @feature Claude 01/10/2026 M1 Determinism-1 step 2b. map.ini and solo.ini can redefine Weapon, Object,
+// GeneralsX: M1 Determinism-1 step 2b. map.ini and solo.ini can redefine Weapon, Object,
 // GameData, AudioEvent... rules, and GameLogic::loadMapINI applies them AFTER the SimID/dataID was fixed at startup, so no
 // identity covered them: the same .map with one changed Weapon value joined and desynced. This hashes the bytes of the
 // two files loadMapINI loads for `mapName` (resolved through TheMapCache exactly as loadMapINI resolves it): 0 when
@@ -440,7 +440,7 @@ Bool ParseAsciiStringToGameInfo( GameInfo *game, AsciiString options );
 // bytes), and the SimID pins the first two.
 UnsignedInt GetMapDataHash( AsciiString mapName );
 
-// GeneralsX @feature Claude 02/10/2026 (Codex m1det3-2b-r8 P2) A replay header's mapDataHash field: 0 is "not recorded" - GENS14
+// GeneralsX: A replay header's mapDataHash field: 0 is "not recorded" - GENS14
 // files from builds before step 2b hold it there - and this value is "recorded: the map had no map.ini/solo.ini".
 // GetMapDataHash never returns it, so a hash can always be told from both.
 static const UnsignedInt MAPDATA_RECORDED_NONE = 0xFFFFFFFFu;
@@ -469,7 +469,7 @@ public:
 			setSlotPointer(i, &m_skirmishSlot[i]);
 	}
 
-	/// GeneralsX @bugfix Claude 01/10/2026 Put back each slot's original colour, start position and faction when a
+	/// GeneralsX: Put back each slot's original colour, start position and faction when a
 	/// restart saved them. The recorder calls it before writing a replay's slot list; tryStartNewGame then does the
 	/// same restore (a no-op by then) or, on a first start, the save (tsh batch2 #9).
 	void restoreOriginalSetups();

@@ -184,7 +184,7 @@ public:
 #endif
 	virtual void preloadModelAssets( AsciiString model ) = 0;	///< preload model asset
 	virtual void preloadTextureAssets( AsciiString texture ) = 0;	///< preload texture asset
-	// GeneralsX @perf Claude 01/10/2026 A2: compile every graphics pipeline the renderer has recorded, now. The first
+	// GeneralsX: A2: compile every graphics pipeline the renderer has recorded, now. The first
 	// call starts it; every call returns how many compiles are still pending (0 = nothing to wait for, or no
 	// warm-up on this renderer). LoadScreen::update waits on it at 100%.
 	virtual UnsignedInt warmPipelines() { return 0; }
@@ -198,7 +198,7 @@ public:
 
 	virtual void setCinematicText( AsciiString string ) { m_cinematicText = string; }
 	virtual void setCinematicFont( GameFont *font ) { m_cinematicFont = font; }
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C, converted to a WALL-CLOCK deadline rather than
+	// GeneralsX: Class-C, converted to a WALL-CLOCK deadline rather than
 	// gated by a logic-frame stamp.
 	//
 	// The caption was decremented once per RENDERED frame while the script author specifies a frame
@@ -217,7 +217,7 @@ public:
 	virtual Real getCurrentFPS() = 0;	///< returns the current FPS.
 	virtual Int getLastFrameDrawCalls() = 0;  ///< returns the number of draw calls issued in the previous frame
 
-	// GeneralsX @feature Claude 28/09/2026 The render interpolation phase (GXLogicPhase.h): 0 = the previous logic
+	// GeneralsX: The render interpolation phase (GXLogicPhase.h): 0 = the previous logic
 	// frame, 1 = the current one. Exactly 1.0f whenever every draw gets a tick, on a headless peer (never updated) and
 	// under GX_INTERP=0, so those draw what they always drew. Render-only: nothing that feeds the simulation reads it.
 	Real getLogicPhase() const { return m_logicPhase.value(); }
@@ -227,7 +227,7 @@ public:
 	void updateLogicPhase();	///< once per GameClient::update, before anything is drawn
 	void noteLogicTick( UnsignedInt frame );	///< GameClient::setFrame, at the start of every logic update
 	// TRUE from updateLogicPhase() until the next logic update starts: the client is drawing. A drawable's interpolation
-	// snapshot may only be refreshed then, never from a query made in the middle of a logic update (Codex interp-r2).
+	// snapshot may only be refreshed then, never from a query made in the middle of a logic update.
 	Bool isRenderPhase() const { return m_renderPhase; }
 
 protected:

@@ -106,7 +106,7 @@ void FXListDie::crc( Xfer *xfer )
 	DieModule::crc( xfer );
 
 	//
-	// GeneralsX @bugfix Claude 25/07/2026 This module mixes in UpgradeMux but never folded the mux's
+	// GeneralsX: This module mixes in UpgradeMux but never folded the mux's
 	// m_upgradeExecuted flag into the logic CRC, so a peer whose death-FX activation state had
 	// diverged looked identical to everyone else until the object actually died - the desync was
 	// only observable as one player seeing an explosion the others did not. Every other UpgradeMux
@@ -126,13 +126,13 @@ void FXListDie::crc( Xfer *xfer )
 /** Xfer method
 	* Version Info:
 	* 1: Initial version
-	* 2: GeneralsX @bugfix Claude 25/07/2026 Serialize the UpgradeMux state */
+	* 2: GeneralsX: Serialize the UpgradeMux state */
 // ------------------------------------------------------------------------------------------------
 void FXListDie::xfer( Xfer *xfer )
 {
 
 	//
-	// GeneralsX @bugfix Claude 25/07/2026 UpgradeMux::m_upgradeExecuted was never written to the save,
+	// GeneralsX: UpgradeMux::m_upgradeExecuted was never written to the save,
 	// and nothing re-derives it on load (Object::updateUpgradeModules only runs when an upgrade
 	// completes). A module declared "StartsActive = No" plus "TriggeredBy" that had since been
 	// switched on therefore came back from a save with the flag clear, so the isUpgradeActive() test
@@ -175,7 +175,7 @@ void FXListDie::loadPostProcess()
 	DieModule::loadPostProcess();
 
 	//
-	// GeneralsX @bugfix Claude 25/07/2026 The UpgradeMux half of this module was never post-processed,
+	// GeneralsX: The UpgradeMux half of this module was never post-processed,
 	// so any fixup added to the shared mux would silently skip FXListDie the way the xfer above did.
 	// The base is empty today, so this costs nothing and only restores consistency with the other
 	// UpgradeMux hosts.

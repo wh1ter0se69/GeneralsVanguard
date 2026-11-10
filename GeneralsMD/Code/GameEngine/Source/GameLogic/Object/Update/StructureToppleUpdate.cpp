@@ -201,7 +201,7 @@ void StructureToppleUpdate::onDie( const DamageInfo *damageInfo )
 UpdateSleepTime StructureToppleUpdate::update()
 {
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 rad/frame^2: x1/4 (exact). StructuralDecay below is a per-frame multiplier (sqrt), and the
+	// GeneralsX: rad/frame^2: x1/4 (exact). StructuralDecay below is a per-frame multiplier (sqrt), and the
 	// crush weapon fires once per frame inside the crush zone, so it is gated to the retail cadence: the
 	// correctly-slowed fall spends twice as many frames there and would otherwise crush twice as often.
 	static const Real TOPPLE_ACCELERATION_FACTOR = 0.005f;
@@ -442,7 +442,7 @@ void StructureToppleUpdate::doDamageLine(Object *building, const WeaponTemplate*
 
 	for (Real i = -facingWidth; i < facingWidth; i += WEAPON_SPACING_PARALLEL)
 	{
-		// GeneralsX @bugfix Claude 05/10/2026 The strip runs ACROSS the fall: the perpendicular of (Cos, Sin) is
+		// GeneralsX: The strip runs ACROSS the fall: the perpendicular of (Cos, Sin) is
 		// (-Sin, Cos). EA's +Sin only worked along an axis; at 45 degrees the strip lay along the building and
 		// missed the units beside it. As Zero Hour Reforged (Olcay Seygan, GPL-3.0-or-later).
 		target.x = building->getPosition()->x + jcos - (i * Sin(toppleAngle));
@@ -457,7 +457,7 @@ void StructureToppleUpdate::doDamageLine(Object *building, const WeaponTemplate*
 	}
 
 	// Make sure there are weapons fired and FX done on the edge of the building.
-	// GeneralsX @bugfix Claude 05/10/2026 Same perpendicular as above: -Sin.
+	// GeneralsX: Same perpendicular as above: -Sin.
 	target.x = building->getPosition()->x + jcos - (facingWidth * Sin(toppleAngle));
 	target.y = building->getPosition()->y + jsin + (facingWidth * Cos(toppleAngle));
 	target.z = TheTerrainLogic->getGroundHeight(target.x, target.y);

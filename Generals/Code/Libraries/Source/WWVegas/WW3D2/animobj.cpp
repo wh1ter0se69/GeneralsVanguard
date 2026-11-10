@@ -301,7 +301,7 @@ void Animatable3DObjClass::Render(RenderInfoClass & rinfo)
 	const bool isSingleAnim = CurMotionMode == SINGLE_ANIM && ModeAnim.AnimMode != ANIM_MODE_MANUAL;
 
 	if (isSingleAnim || !Is_Hierarchy_Valid() || Are_Sub_Object_Transforms_Dirty()) {
-		// GeneralsX @performance Claude 07/10/2026 R-CPU pose cache: see Keep_Current_Pose.
+		// GeneralsX: R-CPU pose cache: see Keep_Current_Pose.
 		if (isSingleAnim) {
 			if (Keep_Current_Pose()) {
 				return;
@@ -335,7 +335,7 @@ void Animatable3DObjClass::Special_Render(SpecialRenderInfoClass & rinfo)
 	const bool isSingleAnim = CurMotionMode == SINGLE_ANIM && ModeAnim.AnimMode != ANIM_MODE_MANUAL;
 
 	if (isSingleAnim || !Is_Hierarchy_Valid()) {
-		// GeneralsX @performance Claude 07/10/2026 R-CPU pose cache: see Keep_Current_Pose.
+		// GeneralsX: R-CPU pose cache: see Keep_Current_Pose.
 		if (isSingleAnim) {
 			if (Keep_Current_Pose()) {
 				return;
@@ -348,7 +348,7 @@ void Animatable3DObjClass::Special_Render(SpecialRenderInfoClass & rinfo)
 }
 
 
-// GeneralsX @performance Claude 07/10/2026 R-CPU pose cache (modernize/render-split, render-split-4).
+// GeneralsX: R-CPU pose cache (modernize/render-split, render-split-4).
 // Render and Special_Render rebuilt a clock-driven SINGLE_ANIM pose on EVERY call: HTree Anim_Update over every pivot,
 // then Set_Transform on the sub-objects of every LOD - 9.2% of the main thread in the G0 whole-map Mini profile. An
 // object is often posed more than once at one clock reading: a Get_Bone_Transform in doDrawModule, then Render, a
@@ -377,7 +377,7 @@ int Animatable3DObjClass::Pose_Cache_Mode()
 
 Animatable3DObjClass::PoseStatsStruct Animatable3DObjClass::PoseStats = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-// GeneralsX @performance Claude 07/10/2026 R-CPU pose pre-pass. True when Render, called now, would rebuild this pose:
+// GeneralsX: R-CPU pose pre-pass. True when Render, called now, would rebuild this pose:
 // the same tests in the same order (hidden: no; clock pose: not current; other single-motion poses: invalid or dirty).
 // Blended and combo poses answer false and stay with Render on the main thread.
 bool Animatable3DObjClass::Pose_Needs_Build()

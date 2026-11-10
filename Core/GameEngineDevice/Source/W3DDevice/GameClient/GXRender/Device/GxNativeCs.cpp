@@ -1,4 +1,4 @@
-// GeneralsX @feature D · rw3-X-2 13/10/2026 A23-B: the native device's command stream (GxNativeCs.h).
+// GeneralsX: A23-B: the native device's command stream (GxNativeCs.h).
 #include "GxNativeCs.h"
 
 #include <cfenv>
@@ -352,7 +352,7 @@ void gxWriteStderrBounded(const char* msg, int ms)
 		std::atomic<bool> done { false };
 	};
 	std::shared_ptr<Job> job;
-	try {   // allocation or thread creation may fail at exit: then no line - never an exception out of the watchdog (Codex rf2-a60-r3)
+	try {   // allocation or thread creation may fail at exit: then no line - never an exception out of the watchdog
 		job = std::make_shared<Job>();
 		job->text = msg;
 		std::thread([job] {

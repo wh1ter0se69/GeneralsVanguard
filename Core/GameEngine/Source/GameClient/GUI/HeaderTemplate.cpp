@@ -217,7 +217,7 @@ void HeaderTemplateManager::onResolutionChanged()
 
 void HeaderTemplateManager::populateGameFonts()
 {
-	// GeneralsX @probe Claude 20/08/2026 GX_FONT=1 - the size every header-template control on every
+	// GeneralsX: GX_FONT=1 - the size every header-template control on every
 	// screen ends up at, and the single factor that produced it.
 	//
 	// This is where the menu furniture's size is actually decided. A .wnd's own FONT is parsed and

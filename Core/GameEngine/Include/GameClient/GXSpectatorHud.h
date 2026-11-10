@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @feature Claude 05/10/2026 - the pure half of the GeneralsX spectator HUD (the owner's pick of 05/10/2026:
+**	GeneralsX: the pure half of the GeneralsX spectator HUD (the owner's pick of 05/10/2026:
 **	"C2" caster layout + the "B3" Tab scoreboard, in the game's blue). The drawing lives in
 **	GeneralsMD/Code/GameEngine/Source/GameClient/GXSpectatorHud.inl; this header holds every decision that can go
 **	wrong without anything looking wrong, so it can be driven with no engine:
@@ -201,8 +201,8 @@ inline std::string writeSettings( const std::string &iniText, const Settings &s 
 // ---------------------------------------------------------------------------------------------------------------------
 // The file
 //
-// GeneralsX @bugfix Claude 22/10/2026 The panel's own reader took ANY fopen failure, and an fread error, for an empty
-// GXHud.ini (file-wipe class, the sweep after Codex uow-r1). The load then gave the defaults - the LEGACY UI among them -
+// GeneralsX: The panel's own reader took ANY fopen failure, and an fread error, for an empty
+// GXHud.ini (file-wipe class, the sweep after). The load then gave the defaults - the LEGACY UI among them -
 // and the next toggle merged them into nothing and renamed that over the file: the launcher's HUD anchor, the message
 // delay, SpectatorUI=generalsx and every other line were gone. ONLY a file that is not there (ENOENT) is empty now. An
 // existing file that cannot be read is never replaced, and a match whose load could not read it saves nothing, even
@@ -409,7 +409,7 @@ inline ViewState viewAfterClick( ViewState cur, int clickedSlot, Status clickedS
 /// through that player's eyes): one click switches between the whole map and the FOLLOWED player's eyes (his fog of war, through
 /// the retail toggle's own call). Nobody followed, or a followed player with no eyes left (dead, left): the click does nothing.
 /// canViewAs: the engine can look through a player's eyes at all - rts::changeObservedPlayer refuses to begin unless
-/// PlayerObserverEnabled is on and every player's ghosts are tracked (Codex spectator-occupants r1); going back always works.
+/// PlayerObserverEnabled is on and every player's ghosts are tracked (spectator-occupants r1); going back always works.
 inline ViewState viewAfterChip( ViewState cur, Status followedStatus, bool canViewAs )
 {
 	if (cur.follow < 0)
@@ -460,7 +460,7 @@ inline ViewState viewAfterObjectClick( ViewState cur, int ownerSlot, Status owne
 /// "Follow the player's camera" (retail UseCameraInReplays, default on) is on and GameLogic::onSetReplayCamera applied his
 /// recorded camera in the last logic step (cameraApplied: it locks user control until the next frame, View::isUserControlLocked).
 /// Read from that lock rather than predicted from the game mode and the seat, because a skirmish recorded with
-/// SaveCameraInReplays = no, an AI and a multiplayer seat have no camera to play (Codex fix0964-r1 P3).
+/// SaveCameraInReplays = no, an AI and a multiplayer seat have no camera to play.
 inline bool followsTheirCamera( bool replay, bool followCamera, bool following, bool cameraApplied )
 {
 	return replay && followCamera && following && cameraApplied;
@@ -483,7 +483,7 @@ struct PowerNote { unsigned caster; int player; int science; unsigned power; uns
 ///   * A superweapon row names its launcher and its power (rowCaster, rowPower): that launcher's newest order for that power, at
 ///     any age - the order comes first and a SCUD Storm held by an EMP may fire much later - up to `after` frames past the row.
 ///   * A general's-skill row names the player and the skill: his note for a power needing it, the nearest within `window` frames.
-///   * Any other row (an upgrade names its building but no power) matches nothing (Codex spectator-click r1-BC P2).
+///   * Any other row (an upgrade names its building but no power) matches nothing (spectator-click r1-BC P2).
 inline int pickPowerNote( const PowerNote *notes, int count, unsigned rowCaster, unsigned rowPower, int rowPlayer, int rowScience,
 	unsigned rowFrame, unsigned window, unsigned after )
 {
@@ -573,7 +573,7 @@ inline bool apparentIdentity( bool viewerIsSpectator, bool ownRow ) { return !vi
 /// The player keys are caught in front of the meta map, so a bare key would steal a command-bar letter or a control
 /// group. They need a modifier - except Tab, retail Diplomacy's own key, which the player board takes over (Diplomacy
 /// moves to Shift+Tab, as it does for spectators). The engine also skips a chord the active CommandMap already binds.
-/// "NONE+KEY_R" is a bare R (ModifierNames maps NONE to 0), so it counts as no modifier (Codex player-ui-c-r1 P2).
+/// "NONE+KEY_R" is a bare R (ModifierNames maps NONE to 0), so it counts as no modifier.
 inline bool playerChordAllowed( const std::string &mod, const std::string &key )
 {
 	return !(mod.empty() || equalsNoCase( mod, "NONE" )) || key == "KEY_TAB";
@@ -629,7 +629,7 @@ inline Rect fitRadarCentred( const Rect &home, int mapW, int mapH )
 	if (mapW <= 0 || mapH <= 0)
 		return home;
 	// W3DLeftHUDDraw draws the radar one pixel inside the window on every side: fit the INNER box, add the inset back
-	// (Codex player-ui-c-r22 P3: fitting the outer one left 1-2 px margins on 2:1 and 4:1 maps).
+	// (fitting the outer one left 1-2 px margins on 2:1 and 4:1 maps).
 	Rect r = fitMinimap( mapW, mapH, home.w - 2, home.h - 2 );
 	r.w += 2;
 	r.h += 2;
@@ -661,22 +661,22 @@ inline FocusBarLayout focusBarLayout( bool hasFocus, bool hasObject, int fullH =
 }
 
 /// Top edge of the shown bar: it sits on the bottom edge of the FULL panel's home, so the dock offset is always measured against one
-/// reference rect and a collapsed or compact bar can never clamp itself into a permanent offset (Codex scb-r1 P2).
+/// reference rect and a collapsed or compact bar can never clamp itself into a permanent offset.
 inline int focusBarTop( int fullHomeTop, int fullH, int panelH ) { return fullHomeTop + fullH - panelH; }
 
 /// Drawn top of the full panel: the replay strip's clearance lifts what is DRAWN, never the saved offset. placed() clamps (and writes
 /// back) the offset against the strip-free home only, so a frame where the strip is not up - the first frame after overlays come back
-/// (F11), the quit menu - can no longer shrink the offset for good (Codex b0965-r1 P2).
+/// (F11), the quit menu - can no longer shrink the offset for good.
 inline int focusDrawnTop( int placedTop, int clearance ) { return placedTop - clearance < 0 ? 0 : placedTop - clearance; }
 
 /// Px of the offset the top clamp of focusDrawnTop hides (the bar is drawn at 0 while its placed top is below the clearance).
-/// A drag starts from what is drawn: Dock::press takes this, so the first px of a downward drag move the bar (Codex b0965-r1f P3).
+/// A drag starts from what is drawn: Dock::press takes this, so the first px of a downward drag move the bar.
 inline int focusHiddenTop( int placedTop, int clearance ) { return placedTop < clearance ? clearance - placedTop : 0; }
 
 /// The FOCUS tab's bottom line (the tab, tabW x tabH at tabX, is drawn tabRise px above it). It never leaves the top edge, and a tab
 /// over the replay strip, which takes input first, goes just above the strip - or just below it when the strip is docked at the top
-/// edge and there is no room above (Codex b0965-r1 P2: the scb-r7 top clamp put it back under such a strip). The top clamp comes
-/// BEFORE the overlap test: a full panel at the top edge was tested off screen and then clamped under the strip (Codex b0965-r1b P2).
+/// edge and there is no room above (the scb-r7 top clamp put it back under such a strip). The top clamp comes
+/// BEFORE the overlap test: a full panel at the top edge was tested off screen and then clamped under the strip.
 inline int focusTabY( int tabY, int tabX, int tabW, int tabH, const Rect &strip, int tabRise, int gap )
 {
 	if (tabY < tabRise)
@@ -813,7 +813,7 @@ enum GateMsg { GATE_PRESS, GATE_FOLLOW, GATE_WHEEL, GATE_POSITION };
 /// The open Tab board owns a press or a wheel turn over its rectangle, and the drag and release of a press that began on it:
 /// nothing reaches the windows, the selection or the camera under it (owner 06/10: "with tab opened i can play through the
 /// game"). A press that began on the world finishes on the world wherever it is released - the camera's rotate and the
-/// selection box clean up on their own release (Codex player-ui-c-r11 P2) - and moves always pass, so edge scrolling and
+/// selection box clean up on their own release - and moves always pass, so edge scrolling and
 /// every hover keep their bookkeeping (r11 P2).
 inline bool boardGateTakes( bool boardOpen, const Rect &board, int x, int y, int kind, bool pressOwnedByBoard )
 {
@@ -829,7 +829,7 @@ inline bool boardGateTakes( bool boardOpen, const Rect &board, int x, int y, int
 /// Retail Diplomacy's rule for its mute buttons: not yourself, not an AI, not a player who is no longer in the game.
 inline bool mayMute( bool human, bool own, bool inGame ) { return human && !own && inGame; }
 
-/// GeneralsX @bugfix Claude 07/10/2026 No GX overlay (spectator HUD, replay strip, vote banner, net/pacing readouts, match
+/// GeneralsX: No GX overlay (spectator HUD, replay strip, vote banner, net/pacing readouts, match
 /// timer) draws while the load screen is up. The game's own signals, not a timer: GameLogic::startNewGame raises
 /// m_loadScreenRender with the load screen and lowers it at its very end, m_loadingMap / m_loadingSave bracket the load.
 inline bool mayDrawOverlays( bool loadScreenRender, bool loadingMap, bool loadingSave )
@@ -852,7 +852,7 @@ inline bool toastShows( unsigned bornMs, unsigned nowMs, unsigned ttlMs, unsigne
 	return matchLoaded && (nowMs - bornMs) < ttlMs && (int)(bornMs - matchStartMs) >= 0;
 }
 
-/// GeneralsX @feature Claude 03/11/2026 The geometry the event toasts are laid out against, out of GXSpectatorHud.inl so the
+/// GeneralsX: The geometry the event toasts are laid out against, out of GXSpectatorHud.inl so the
 /// model test builds the very rects the HUD draws. Every length is a 1080p design pixel scaled by `scale` (= screen height / 1080),
 /// rounded as the HUD's own S() rounds.
 inline int hudS( float v, float scale ) { return (int)(v * scale + 0.5f); }
@@ -862,7 +862,7 @@ inline bool rectsMeet( const Rect &a, const Rect &b )
 }
 
 /// The player bar's home rect (before any drag), its card width and its centre block's width.
-/// GeneralsX @feature Claude 08/11/2026 More players than the band has room for at its normal card size (32-player maps, wh1ter0se 08/11:
+/// GeneralsX: More players than the band has room for at its normal card size (32-player maps, wh1ter0se 08/11:
 /// 31 cards in one row, every name cut to "Hard ..."): the cards keep that size, each half shows what fits and pages through the
 /// rest with two buttons at its outer end. 14 players or fewer never page: their band is what it always was.
 enum { BAR_UNPAGED_MAX = 14 };
@@ -921,7 +921,7 @@ inline int barWindow( int count, int fit, bool pinLast, int &first, int *idx )
 	return n;
 }
 
-/// GeneralsX @feature Claude 08/11/2026 The player lists (Tab board, spectator board) show at most maxRows rows and never more than
+/// GeneralsX: The player lists (Tab board, spectator board) show at most maxRows rows and never more than
 /// roomPx holds, and scroll through the rest. At least one row is always shown.
 inline int listRowsShown( int rows, int maxRows, int roomPx, int rowH )
 {
@@ -1177,7 +1177,7 @@ inline const wchar_t *cashPrefix( int v, bool plus, bool dollar )
 /// (Particle Cannon: its update module is active; Nuclear Missile / SCUD Storm: the silo doors are in their post-firing
 /// waiting-to-close / closing states) from the client's own timer walk (InGameUI::postDraw), so the simulation is never touched.
 /// A launch is the idle -> in-use edge. This is not the ready-frame jump: a Saboteur resets a ready weapon's timer without
-/// firing (Codex r1 P2), and a ready-state edge needs the READY frame to have been rendered, which fast-forward skips (r1 P2).
+/// firing, and a ready-state edge needs the READY frame to have been rendered, which fast-forward skips (r1 P2).
 /// In use lasts seconds, so a skipped frame still sees it; the first sample is only a baseline, so a seek or a join in the
 /// middle of a launch announces nothing.
 struct SuperweaponWatch
@@ -1198,7 +1198,7 @@ struct SuperweaponWatch
 /// no shot, and a skipped render or a replay seek cannot hide it (the last-shot frame persists).
 /// A shot starts a NEW salvo (= a launch) when the previous shot this watcher knew of is more than `newSalvoGap` older (or there was none);
 /// the caller passes 90% of the power's reload time: one salvo cannot be followed by another before the power has recharged, while the shots of
-/// one salvo are seconds apart, even across an EMP or a Microwave Tank subdue that parks the building (the shots resume afterwards; Codex r7, r8). The first sample is only a baseline, and it counts as the previous shot, so joining or becoming a
+/// one salvo are seconds apart, even across an EMP or a Microwave Tank subdue that parks the building (the shots resume afterwards). The first sample is only a baseline, and it counts as the previous shot, so joining or becoming a
 /// spectator in the middle of a salvo announces nothing. The shot must also be recent (10 s), so a seek over an old salvo stays quiet.
 struct ScudLaunchWatch
 {
@@ -1325,7 +1325,7 @@ struct CameoFit
 
 /// One row of availW px: every occupant then every free slot, at the largest cell size from maxIcon down to minIcon that fits
 /// them all. If none does, the free boxes give way first, then the last occupants give way to one "+N" cell - and with no room
-/// for even one cell, nothing is drawn past the row (Codex spectator-occupants r1).
+/// for even one cell, nothing is drawn past the row (spectator-occupants r1).
 inline CameoFit fitCameos( int units, int freeSlots, int availW, int maxIcon, int minIcon, int gap )
 {
 	CameoFit f = { maxIcon, units, freeSlots, 0, false };

@@ -399,7 +399,7 @@ Bool TurretAI::friend_turnTowardsAngle(Real desiredAngle, Real rateModifier, Rea
 	Real actualAngle = origAngle;
 	Real turnRate = getTurnRate() * rateModifier;
 #if GX_LOGIC_60HZ
-	// GeneralsX @feature Claude 05/10/2026 GENERALS ONLINE PARITY: the turret turns only on every second frame
+	// GeneralsX: GENERALS ONLINE PARITY: the turret turns only on every second frame
 	// (updateTurretAI), so twice the per-frame rate, as GO does. friend_turnTowardsPitch doubles too (go-parity-undo3 C3):
 	// GO leaves pitch at half retail speed, a GO mistake we do not copy.
 	turnRate *= 2.0f;
@@ -447,7 +447,7 @@ Bool TurretAI::friend_turnTowardsPitch(Real desiredPitch, Real rateModifier)
 	Real actualPitch = getTurretPitch();
 	Real pitchRate = getPitchRate() * rateModifier;
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 05/10/2026 go-parity-undo3 C3: pitch also runs only on every second frame, so twice the per-frame
+	// GeneralsX: go-parity-undo3 C3: pitch also runs only on every second frame, so twice the per-frame
 	// rate keeps the retail pitch speed in game time (GO doubles turn only and pitches at half speed).
 	pitchRate *= 2.0f;
 #endif
@@ -700,7 +700,7 @@ DECLARE_PERF_TIMER(TurretAI)
 UpdateSleepTime TurretAI::updateTurretAI()
 {
 #if GX_LOGIC_60HZ
-	// GeneralsX @feature Claude 05/10/2026 GENERALS ONLINE PARITY (owner 05/10: "Look through everything GO does and do
+	// GeneralsX: GENERALS ONLINE PARITY (owner 05/10: "Look through everything GO does and do
 	// it"). GO runs turret AI only on every second 60 Hz frame - the even frames from 2 on, its 30 Hz "legacy" frames -
 	// so a turret aims and fires on retail's cadence: the aim -> fire -> aim round takes 4 frames, and a Quad's 6-frame
 	// delay fires every 8 (133 ms, as in 2003) where an every-frame turret fired every 6 (100 ms). Odd frames ask to be
@@ -744,7 +744,7 @@ UpdateSleepTime TurretAI::updateTurretAI()
 		if (m_didFire)
 		{
 			// if we fired, enable sweeping for a few frames.
-			// GeneralsX @feature Claude 05/10/2026 3 frames at either rate, as GO: on GO's every-second-frame turret
+			// GeneralsX: 3 frames at either rate, as GO: on GO's every-second-frame turret
 			// cadence that is one turret update with sweep on (retail had two).
 			const Int ENABLE_SWEEP_FRAME_COUNT = 3;
 			m_enableSweepUntil = now + ENABLE_SWEEP_FRAME_COUNT;
@@ -1411,7 +1411,7 @@ StateReturnType TurretAIIdleScanState::update()
     return STATE_CONTINUE;//ML so that under-construction base-defenses do not idle-scan while under construction
 
 #if GX_LOGIC_60HZ
-	// GeneralsX @feature Claude 05/10/2026 GENERALS ONLINE PARITY: an idle scan counts as done within 0.5 rad of its
+	// GeneralsX: GENERALS ONLINE PARITY: an idle scan counts as done within 0.5 rad of its
 	// target angle, as in GO, instead of on it.
 	Bool angleAligned = getTurretAI()->friend_turnTowardsAngle(getTurretAI()->getNaturalTurretAngle() + m_desiredAngle, 0.5f, 0.5f);
 #else

@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: the sampler cache (see GxSamplers.h for the DXVK mapping it follows).
+// GeneralsX: WS-F1: the sampler cache (see GxSamplers.h for the DXVK mapping it follows).
 #include "GxSamplers.h"
 
 #include "GxPipelineKey.h"
@@ -32,8 +32,8 @@ bool GxSamplers::init(Vk::VkCtx& ctx)
 {
 	m_ctx = &ctx;
 	// a D3D LOD bias beyond the device limit is an invalid sampler (VUID-VkSamplerCreateInfo-mipLodBias-01069), and a portability
-	// device may take none at all (samplerMipLodBias, VUID-...-04467): clamp to what the device takes (Codex rw2-F1-r6 #1)
-	// D3DTADDRESS_MIRRORONCE needs samplerMirrorClampToEdge (VUID-VkSamplerCreateInfo-addressModeU-01079; Codex rw2-F1-r7 #1)
+	// device may take none at all (samplerMipLodBias, VUID-...-04467): clamp to what the device takes
+	// D3DTADDRESS_MIRRORONCE needs samplerMirrorClampToEdge
 	m_lodBiasMax = ctx.limits().maxSamplerLodBias;
 	VkPhysicalDevicePortabilitySubsetFeaturesKHR p = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PORTABILITY_SUBSET_FEATURES_KHR };
 	VkPhysicalDeviceVulkan12Features v12 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES };
@@ -72,7 +72,7 @@ VkSampler GxSamplers::get(const GxSamplerDesc& d)
 	auto addr = [this](uint8_t m) {
 		VkSamplerAddressMode a = address(m);
 		if (a == VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE && (!m_mirrorClamp || testAssumeNoMirrorClamp)) {
-			// ponytail: MIRRORONCE as MIRRORED_REPEAT (exact on [-1, 1], tiles beyond); counted - a device without the
+			// Trade-off: MIRRORONCE as MIRRORED_REPEAT (exact on [-1, 1], tiles beyond); counted - a device without the
 			// feature that meets it in a capture would want shader-side clamping
 			++m_mirrorOnceFallbacks;
 			a = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
@@ -91,7 +91,7 @@ VkSampler GxSamplers::get(const GxSamplerDesc& d)
 		si.mipLodBias = std::clamp(std::round(d.lodBias * 256.f) / 256.f, -m_lodBiasMax, m_lodBiasMax);
 		// DXVK-faithful, and deliberately so: the shipped fork's minLod is MAXMIPLEVEL on top of a view that already starts at the
 		// texture's SetLOD level (d3d9_device.cpp setLodRange(maxMipLevel) + d3d9_texture.h CreateSampleView(m_lod)). D3D's own
-		// rule is absolute (max of the two), but L1 parity is measured against that renderer (Codex rw2-F1-r13 #2: not taken)
+		// rule is absolute (max of the two), but L1 parity is measured against that renderer (not taken)
 		si.minLod = float(d.maxMipLevel);
 		si.maxLod = std::max(16.f, si.minLod);
 	}
@@ -103,7 +103,7 @@ VkSampler GxSamplers::get(const GxSamplerDesc& d)
 		else if (d.border == 0xffffffffu)
 			si.borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE;
 		else if (d.border != 0) {
-			// ponytail: nearest standard border; enable VK_EXT_custom_border_color in VkCtx when a capture shows one
+			// Trade-off: nearest standard border; enable VK_EXT_custom_border_color in VkCtx when a capture shows one
 			++m_nonStandardBorders;
 			si.borderColor = a < 128 ? VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK :
 				rgb >= 0x808080u ? VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE : VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK;

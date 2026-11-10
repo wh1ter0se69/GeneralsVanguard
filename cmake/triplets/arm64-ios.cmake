@@ -10,7 +10,7 @@ set(VCPKG_CMAKE_SYSTEM_NAME iOS)
 set(VCPKG_OSX_DEPLOYMENT_TARGET "16.0")
 set(VCPKG_OSX_ARCHITECTURES arm64)
 #
-# GeneralsX @build Claude 18/09/2026 THE SDK IS PINNED BY NAME. Without VCPKG_OSX_SYSROOT the port
+# GeneralsX: THE SDK IS PINNED BY NAME. Without VCPKG_OSX_SYSROOT the port
 # build takes whatever SDK the compiler finds by default, and on a host whose OS is newer than its
 # Xcode that is the Command Line Tools' SDK for the NEWER OS - which the older Xcode linker cannot
 # read ("tapi error: malformed file ... unknown architecture"). Measured 18/09/2026: a MacBook on

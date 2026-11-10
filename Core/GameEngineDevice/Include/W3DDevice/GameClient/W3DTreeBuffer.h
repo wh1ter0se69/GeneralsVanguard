@@ -217,7 +217,7 @@ private:
 				MAX_TILES = 512,
 				NUM_SWAY_ENTRIES = 100,
 				MAX_SWAY_TYPES = 10,
-				// GeneralsX @bugfix Claude 28/09/2026 Was 1: one 30000-vertex buffer holds roughly 730 trees, and the fill
+				// GeneralsX: Was 1: one 30000-vertex buffer holds roughly 730 trees, and the fill
 				// loop silently stopped drawing every visible tree past that. The draw and update loops already walk
 				// every buffer (Reforged 477a661 made the same change).
 				MAX_BUFFERS = 4,

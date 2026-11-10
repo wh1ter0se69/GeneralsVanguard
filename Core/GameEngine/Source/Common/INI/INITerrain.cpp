@@ -51,7 +51,7 @@ void INI::parseTerrainDefinition( INI* ini )
 	if( terrainType == nullptr )
 		terrainType = TheTerrainTypes->newTerrain( name );
 
-	// GeneralsX @bugfix Claude 10/10/2026 A map.ini's terrain edits and inventions end with the map (TerrainTypeCollection::reset).
+	// GeneralsX: A map.ini's terrain edits and inventions end with the map (TerrainTypeCollection::reset).
 	if( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
 		TheTerrainTypes->noteOverrideLoad( terrainType, created );
 

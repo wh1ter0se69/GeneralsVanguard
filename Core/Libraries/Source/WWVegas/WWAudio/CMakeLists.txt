@@ -52,7 +52,7 @@ target_sources(corei_wwaudio INTERFACE ${WWAUDIO_SRC})
 
 target_include_directories(corei_wwaudio INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
 
-# GeneralsX @bugfix Claude 27/07/2026
+# GeneralsX:
 # The non-Windows shim headers now live in compat/ (see compat/mmsystem.h for why). The include
 # entry that exposes them is NOT here: this directory is not how the WWAudio path reaches the tree.
 # corei_wwaudio has only ~40 consumers, whereas ../CMakeLists.txt lists WWAudio on core_wwcommon,

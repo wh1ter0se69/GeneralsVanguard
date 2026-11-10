@@ -1,5 +1,5 @@
 # READ-ONLY integrity manifest of the Steam Zero Hour install.
-# GeneralsX @build Claude 27/07/2026
+# GeneralsX:
 #
 # Generals Online + Easy Anti-Cheat live in that folder. Our build must treat it as read-only
 # game data. Run this BEFORE and AFTER a session and compare MANIFEST-SHA256 - a single changed

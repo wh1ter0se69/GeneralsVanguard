@@ -536,7 +536,7 @@ void ThingTemplate::parseModuleName(INI* ini, void *instance, void* store, const
 
 	ModuleData* data = TheModuleFactory->newModuleDataFromINI(ini, tokenStr, type, moduleTagStr);
 
-	// GeneralsX @bugfix Claude 01/10/2026 newModuleDataFromINI returns null on a lookup miss (its DEBUG_CRASH compiles
+	// GeneralsX: newModuleDataFromINI returns null on a lookup miss (its DEBUG_CRASH compiles
 	// away), so a misspelled module name in a map.ini crashed on the vptr load below. Mirrors the Zero Hour twin's
 	// guard (tsh batch2 #406).
 	if (data == nullptr)
@@ -1102,7 +1102,7 @@ void ThingTemplate::validate()
 
 //-------------------------------------------------------------------------------------------------
 // copy the guts of that into this, but preserve this' name, id, and list-links.
-// GeneralsX @bugfix Claude 09/10/2026 And its override link: `*this = *that` copied that's place in ITS override chain too.
+// GeneralsX: And its override link: `*this = *that` copied that's place in ITS override chain too.
 // A map.ini "ObjectReskin A A" left A's new override pointing at itself, so getFinalOverride never returned and every peer
 // hung at the first script naming A (measured on 0.9.61 in AttackPriorityInfo::setPriority); a reskin of a template with
 // overrides shared their chain (deleted twice by ThingFactory::reset); a reskin made by a map.ini lost its override mark
@@ -1426,7 +1426,7 @@ Int ThingTemplate::calcCostToBuild( const Player* player) const
 	// changePercent format is "-.2 equals 20% cheaper"
 	Real factionModifier = 1 + player->getProductionCostChangePercent( getName() );
 	factionModifier *= player->getProductionCostChangeBasedOnKindOf( m_kindof );
-	// GeneralsX @bugfix Claude 10/10/2026 Saturated, as calcTimeToBuild's (a float -> Int differs by CPU out of range).
+	// GeneralsX: Saturated, as calcTimeToBuild's (a float -> Int differs by CPU out of range).
 	return REAL_TO_INT(getBuildCost() * factionModifier * player->getHandicap()->getHandicap(Handicap::BUILDCOST, this));
 }
 
@@ -1445,10 +1445,10 @@ Int ThingTemplate::calcTimeToBuild( const Player* player) const
 		return finalOverride->calcTimeToBuild(player);
 #endif
 
-	// GeneralsX @bugfix Claude 10/10/2026 Every float -> Int below goes through REAL_TO_INT, which saturates (and is the
+	// GeneralsX: Every float -> Int below goes through REAL_TO_INT, which saturates (and is the
 	// plain conversion in range). A map.ini BuildTime of 4e7 (charged since #3445) is 2.4e9 frames: plainly converted that
 	// is INT_MAX on arm64 but INT_MIN on x86-64, which ProductionUpdate's <= 0 branch completes at once, on x86 only - a
-	// desync between a Mac and a Windows peer (Codex batch-0962 r33d P1).
+	// desync between a Mac and a Windows peer.
 	Int buildTime = REAL_TO_INT(getBuildTime() * LOGICFRAMES_PER_SECOND);
 	buildTime = REAL_TO_INT(buildTime * player->getHandicap()->getHandicap(Handicap::BUILDTIME, this));
 

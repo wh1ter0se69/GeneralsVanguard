@@ -137,7 +137,7 @@ static void parseFXLocInfo( INI *ini, void *instance, BoneLocInfo *locInfo )
 //-------------------------------------------------------------------------------------------------
 /** Parse a random delay.  This is a number pair, where the numbers are a min and max time in milliseconds. */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 06/10/2026 render-split step 2: the particle-system delays are cosmetic and drew the CLIENT stream
+// GeneralsX: render-split step 2: the particle-system delays are cosmetic and drew the CLIENT stream
 // (GameClientRandomVariable::getValue). The same uniform draw now comes from the simulation's cosmetic stream (RandomValue.cpp):
 // the client stream belongs to the render side. parseGameClientRandomDelay below only ever makes UNIFORM variables, and a
 // uniform getValue() is exactly GameClientRandomValueReal(low, high).

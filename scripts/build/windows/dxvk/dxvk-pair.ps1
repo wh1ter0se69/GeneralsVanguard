@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 03/10/2026 WHICH DXVK PAIR A FOLDER HOLDS - dot-sourced by setup-run-win64.ps1,
+# GeneralsX: WHICH DXVK PAIR A FOLDER HOLDS - dot-sourced by setup-run-win64.ps1,
 # package-windows-share.ps1 and build-dxvk-win64.ps1. Windows PowerShell 5.1 compatible.
 #
 # Two pairs exist, both pinned in dxvk-win64.pins:

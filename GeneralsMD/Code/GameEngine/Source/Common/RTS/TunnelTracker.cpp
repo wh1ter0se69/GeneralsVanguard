@@ -439,7 +439,7 @@ void TunnelTracker::xfer( Xfer *xfer )
 
 	// version
 	//
-	// GeneralsX @bugfix Claude 21/09/2026 v2 is only VALID when retail CRC compatibility is off.
+	// GeneralsX: v2 is only VALID when retail CRC compatibility is off.
 	//
 	// Version 2 drops m_tunnelCount on the argument that it always equals m_tunnelIDs.size().
 	// That premise is exactly what the RETAIL_COMPATIBLE_CRC arm does NOT hold: it deliberately
@@ -458,7 +458,7 @@ void TunnelTracker::xfer( Xfer *xfer )
 	XferVersion currentVersion = 2;
 #endif
 	XferVersion version = currentVersion;
-	// GeneralsX 27/10/2026 (ai-pro-rules-2 T2, Codex t2-engine-r2 #9): written as integration's version; a version-3 save of the
+	// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): written as integration's version; a version-3 save of the
 	// earlier test arm T (never shipped) still LOADS - its two extra nemesis fields are read and discarded below
 #if !(RETAIL_COMPATIBLE_XFER_SAVE || RETAIL_COMPATIBLE_CRC)
 	if( xfer->getXferMode() == XFER_LOAD )

@@ -288,7 +288,7 @@ BOOL ObjectOptions::OnInitDialog()
 			do {
 				AsciiString filename = *it;
 				int len = filename.getLength();
-				if (len<5) { ++it; continue; }	// GeneralsX @bugfix Claude 01/10/2026 step on: the ++it below is skipped by continue
+				if (len<5) { ++it; continue; }	// GeneralsX: step on: the ++it below is skipped by continue
 				// only do .w3d files
 
 				// strip out the path, and just keep the filename itself.

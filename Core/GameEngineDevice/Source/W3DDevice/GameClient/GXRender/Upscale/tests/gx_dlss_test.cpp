@@ -1,4 +1,4 @@
-// GeneralsX @feature B · dlss-streamline-1 13/10/2026 PREREG A36.1: DLSS SR first light on a test scene, through Streamline.
+// GeneralsX: PREREG A36.1: DLSS SR first light on a test scene, through Streamline.
 //
 // No game and no shaders. Each frame the CPU point-samples a procedural pattern (zone plate + 1-px grid + 3-px checker) at the
 // JITTERED render-pixel centres under a constant camera pan, uploads it as the render-res colour, clears motion vectors to the
@@ -8,7 +8,7 @@
 //
 // Arms: C (conventions as stated), F1 (motion reported with the wrong sign), F2 (jitter reported negated), F3 (jitter reported
 // as 0 while the scene still jitters). The decision rule lives in PREREG A36.1, not here: this prints the numbers.
-// --teardown (Codex dlss-sl-r2 P1 / r3 P3): root = no explicit slShutdown - VkCtx::shutdown's vkDestroyDevice through
+// --teardown: root = no explicit slShutdown - VkCtx::shutdown's vkDestroyDevice through
 // Streamline::loaderRoot() must run it ("[GXSL] slShutdown before vkDestroyDevice"); initfail = vkCreateSemaphore fails, so VkCtx::init
 // fails AFTER vkCreateDevice and destroys the device itself (r2's path) - the root must run slShutdown there too. raw / initfail-raw =
 // the same on the interposer's own root: the FAIL arms. Each prints "devices_destroyed=N slshutdown_before_device=yes|NO" (a probe
@@ -293,10 +293,10 @@ std::wstring widen(const std::string& s)
 	return w;
 }
 
-// The probe, in front of the root under test in EVERY arm (Codex dlss-sl-r4 P3): counts the device's destruction and records whether
+// The probe, in front of the root under test in EVERY arm: counts the device's destruction and records whether
 // Streamline was already down when that vkDestroyDevice returned - the shutdown is tied to the device, not to vkDestroyInstance.
 // --teardown initfail[-raw] also makes vkCreateSemaphore fail: VkCtx::init's timeline step right after vkCreateDevice, so VkCtx
-// destroys the device itself (the Codex dlss-sl-r2 P1 path); the calls are counted so a failure elsewhere is not taken for it.
+// destroys the device itself (the path); the calls are counted so a failure elsewhere is not taken for it.
 PFN_vkGetInstanceProcAddr g_underGipa = nullptr;
 PFN_vkGetDeviceProcAddr g_underGdpa = nullptr;
 PFN_vkDestroyDevice g_underDestroyDevice = nullptr;
@@ -375,7 +375,7 @@ int run(const Options& opt)
 		return 2;
 	}
 
-	Vk::VkCtx ctx;	// declared first: destroyed after sl (slShutdown before the device goes, Codex dlss-sl-r1)
+	Vk::VkCtx ctx;	// declared first: destroyed after sl (slShutdown before the device goes)
 	Upscale::Streamline sl;
 	std::string why;
 	GXRender::Upscale::StreamlineFeatures want;	// DLSS SR only, as before (dlss-fg-1 added the features argument)
@@ -396,7 +396,7 @@ int run(const Options& opt)
 	desc.log = &vkLog;
 	// After VkCtx's teardown: the device went exactly once, and Streamline was down when that vkDestroyDevice returned. NO = exit 7, no
 	// device destroyed = exit 9 (UNINFORMATIVE) - both at once, never slShutdown after the device or instance went. The probe sits ABOVE
-	// the root, so "down when it returned" cannot see the order INSIDE the root's vkDestroyDevice (Codex dlss-sl-r5 P3); beneath it the
+	// the root, so "down when it returned" cannot see the order INSIDE the root's vkDestroyDevice; beneath it the
 	// validation layer does - Streamline still alive at the real vkDestroyDevice is VUID-vkDestroyDevice-device-05137 (A36.2d raw: 275
 	// leaked objects) - so with the layer on, "yes" also needs 0 validation errors (beneath=checked; without the layer: unchecked).
 	auto teardownVerdict = [&](int rc) {
@@ -478,7 +478,7 @@ int run(const Options& opt)
 	int rc = 0;
 	if (!ok) {
 		say("[GXDLSS] Vulkan resource creation failed");
-		rc = 5;	// through the cleanup at the end: VMA asserts on allocations still live when the device goes (Codex dlss-sl-r2)
+		rc = 5;	// through the cleanup at the end: VMA asserts on allocations still live when the device goes
 	}
 
 	const Pan v = { 3.3, 1.7 };	// output px per frame

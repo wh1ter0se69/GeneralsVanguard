@@ -214,7 +214,7 @@ void ControlBar::showBuildTooltipLayout( GameWindow *cmdButton )
 		//	m_buildToolTipLayout = TheWindowManager->winCreateLayout( "ControlBarPopupDescription.wnd" );
 		//	m_buildToolTipLayout->setUpdate(ControlBarPopupDescriptionUpdateFunc);
 
-		// GeneralsX @bugfix Claude 26/09/2026 The window too, so the title can mark the key that fires THIS button.
+		// GeneralsX: The window too, so the title can mark the key that fires THIS button.
 		populateBuildTooltipLayout(commandButton, cmdButton);
 	}
 	else
@@ -409,7 +409,7 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 
 		name = TheGameText->fetch(commandButton->getTextLabel().str());
 
-		// GeneralsX @bugfix Claude 26/09/2026 The title is drawn with WIN_STATUS_HOTKEY_TEXT, so the letter after its
+		// GeneralsX: The title is drawn with WIN_STATUS_HOTKEY_TEXT, so the letter after its
 		// '&' is highlighted - and that letter came straight from the CSF, naming a key that did not fire this button
 		// after a rebind (CommandButtonHotKeys.ini) or while another button owned it. Ask the live binding table
 		// instead: the same key setControlCommand bound, kept only while it is this window's (isHotKeyBoundTo - the
@@ -422,7 +422,7 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 			name = HotKeyManager::labelWithHotKey( name, key );
 		}
 
-		// GeneralsX @feature Claude 06/10/2026 The idle-worker button has no CommandButton key (it is no command): its key is the
+		// GeneralsX: The idle-worker button has no CommandButton key (it is no command): its key is the
 		// meta map's SELECT_NEXT_IDLE_WORKER record (Shift+Ctrl+I by default, the launcher's GENERAL tab or a CommandMap
 		// can move it). Name the live chord in the title so the player can find it (owner 06/10/2026: "add keybind here").
 		if( TheMetaMap != nullptr && commandButton->getName().compareNoCase( "NonCommand_IdleWorker" ) == 0 )
@@ -585,7 +585,7 @@ void ControlBar::populateBuildTooltipLayout( const CommandButton *commandButton,
 		{
 			TheScienceStore->getNameAndDescription(st, name, descrip);
 
-			// GeneralsX @feature Claude 27/09/2026 A General's Points button's title names its key the way a command
+			// GeneralsX: A General's Points button's title names its key the way a command
 			// button's does (labelWithHotKey, above): the letter drawn on its cameo, marked only while this window is the
 			// one the key fires (a tier that is bought or refused keeps a grey letter and an unmarked title).
 			if( commandButton->getCommandType() == GUI_COMMAND_PURCHASE_SCIENCE && TheHotKeyManager != nullptr && tooltipWin != nullptr )

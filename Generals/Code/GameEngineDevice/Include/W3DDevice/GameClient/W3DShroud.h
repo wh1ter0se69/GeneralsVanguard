@@ -96,8 +96,8 @@ public:
 	void setShroudLevel(Int x, Int y, W3DShroudLevel,Bool textureOnly=FALSE);
 	void setShroudFilter(Bool enable);	///<turns on bilinear filtering of shroud cells.
 	void setBorderShroudLevel(W3DShroudLevel level);	///<color that will appear in unused border terrain.
-	// GeneralsX @feature Claude 13/10/2026 Zero Hour's fog-interpolation query (W3DPropBuffer.cpp is shared with this game);
-	// the base game has no fog interpolation, so nothing is ever fading (Codex look-fog-r2 P1).
+	// GeneralsX: Zero Hour's fog-interpolation query (W3DPropBuffer.cpp is shared with this game);
+	// the base game has no fog interpolation, so nothing is ever fading.
 	Bool isFadingUnder(const SphereClass &) const { return FALSE; }
 	Real	getDrawOriginX()	{return m_drawOriginX;}	///<returns ws origin of first pixel in shroud texture.
 	Real	getDrawOriginY()	{return m_drawOriginY;}	///<returns ws origin of first pixel in shroud texture.
@@ -121,7 +121,7 @@ protected:
 	Real m_drawOriginY;
 	Bool m_drawFogOfWar;					///<switch to draw alternate fog style instead of solid black
 	Bool m_clearDstTexture;				///<flag indicating we must clear video memory destination texture
-	// GeneralsX @performance Claude 23/09/2026 render() re-uploads the shroud only when the
+	// GeneralsX: render() re-uploads the shroud only when the
 	// sysmem copy changed (m_srcDirty) or the copied rect / destination texture changed.
 	Bool m_srcDirty;						///<sysmem shroud written since the last copy to m_pDstTexture
 	RECT m_lastCopiedRect;					///<source rect of the last copy to m_pDstTexture

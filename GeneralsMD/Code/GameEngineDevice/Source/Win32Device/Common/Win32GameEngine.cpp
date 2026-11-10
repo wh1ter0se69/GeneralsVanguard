@@ -40,7 +40,7 @@
 #include "Common/GlobalData.h"	// TheGlobalData->m_lanRole - which launches skip the lobby
 #include "GameClient/GXIdentityPush.h"	// gxDeclareIdentityIfChanged - the headless peer's GXIDN
 #include "GameClient/GXReplayDiag.h"	// gxReplayTelSuspend / gxReplayTelAway - the replay telemetry's gap and away flag
-#include "W3DDevice/GameClient/GxNativeInstall.h"	// GeneralsX @feature B · dlss-fg-1 14/10/2026 NoteWindowsMessage (PCL ping, Reflex flash)
+#include "W3DDevice/GameClient/GxNativeInstall.h"	// GeneralsX: NoteWindowsMessage (PCL ping, Reflex flash)
 
 extern DWORD TheMessageTime;
 
@@ -58,7 +58,7 @@ Win32GameEngine::Win32GameEngine()
 //-------------------------------------------------------------------------------------------------
 Win32GameEngine::~Win32GameEngine()
 {
-	// GeneralsX @feature Claude 14/08/2026 Close the lobby-presence socket with the engine.
+	// GeneralsX: Close the lobby-presence socket with the engine.
 	if (TheGXLobbyPresence != NULL)
 	{
 		delete TheGXLobbyPresence;
@@ -76,7 +76,7 @@ Win32GameEngine::~Win32GameEngine()
 void Win32GameEngine::init()
 {
 
-	// GeneralsX @feature Claude 14/08/2026 The shared-lobby presence socket. Created HERE, in the
+	// GeneralsX: The shared-lobby presence socket. Created HERE, in the
 	// device engine, and not in GameEngine::init(): Common/ is inside the sourceID digest and this
 	// feature is deliberately digest-neutral so it can ship without an atomic four-platform rebuild.
 	// It opens no socket until an Online screen calls enterLobby(), so constructing it always costs
@@ -86,7 +86,7 @@ void Win32GameEngine::init()
 		TheGXLobbyPresence = NEW GXLobbyPresence;
 
 		/*
-		 * GeneralsX @bugfix Claude 21/09/2026 A DIRECT MATCH LAUNCH NEVER LEARNED WHERE THE RELAY
+		 * GeneralsX: A DIRECT MATCH LAUNCH NEVER LEARNED WHERE THE RELAY
 		 * WAS, so it filed no telemetry at all - and one silent member turns the panel's
 		 * attribution off for its whole room, because it will not name a player unless everybody in
 		 * the room is reporting. The standing lobby host is a `-lanhost`, so that was production.
@@ -132,7 +132,7 @@ void Win32GameEngine::reset()
 //-------------------------------------------------------------------------------------------------
 void Win32GameEngine::update()
 {
-	// GeneralsX @bugfix Claude 23/09/2026 Pump the Windows message queue FIRST (PP-5). It used to
+	// GeneralsX: Pump the Windows message queue FIRST (PP-5). It used to
 	// run only at the END of update(), after GameEngine::update() had already drained the mouse
 	// and drawn - and execute() sleeps in FramePacer right after that. WM_MOUSEMOVE/button (and
 	// WM_CHAR) messages that arrived during that sleep therefore sat unpumped through the whole
@@ -141,7 +141,7 @@ void Win32GameEngine::update()
 	// The keyboard is DirectInput, polled in Keyboard::UPDATE, and was never affected.
 	serviceWindowsOS();
 
-	// GeneralsX @bugfix Claude 07/08/2026 Windows never got the engine-level LANAPI pump.
+	// GeneralsX: Windows never got the engine-level LANAPI pump.
 	//
 	// THIS is why ACCEPT and BACK did nothing on Windows while the identical build worked on
 	// iPadOS. LANAPI::update() was not running slowly on the game-options screen - it was not
@@ -178,7 +178,7 @@ void Win32GameEngine::update()
 	//
 	// GameEngineDevice/ is not digested by simsourcedigest_watcher.cmake, so this ships to Windows
 	// alone - no atomic four-platform rebuild, and sourceID does not move.
-	// GeneralsX @bugfix Claude 08/08/2026 Pump during a match as well - see the long note on the
+	// GeneralsX: Pump during a match as well - see the long note on the
 	// same change in SDL3GameEngine.cpp. Short version: LANAPI::update() holds the host's periodic
 	// re-advertisement, including a branch written specifically for the in-progress case
 	// (LANAPI.cpp:697-702), and excluding the match phase means that branch can never run. The host
@@ -194,7 +194,7 @@ void Win32GameEngine::update()
 		TheLAN->update();
 	}
 
-	// GeneralsX @feature Claude 14/08/2026 Shared-lobby presence. IDENTICAL to the SDL3 engine, and
+	// GeneralsX: Shared-lobby presence. IDENTICAL to the SDL3 engine, and
 	// that is the point - see the note above about d19090d14. There are two engine classes, so a
 	// pump added to one of them reaches three platforms and silently misses the fourth.
 	if (TheGXLobbyPresence != nullptr)
@@ -202,14 +202,14 @@ void Win32GameEngine::update()
 		TheGXLobbyPresence->update();
 	}
 
-	// GeneralsX @bugfix Claude 20/09/2026 Declare the SIGNED identity from HERE too. IDENTICAL to the
+	// GeneralsX: Declare the SIGNED identity from HERE too. IDENTICAL to the
 	// SDL3 engine, and that is the point - see the d19090d14 note above. Every writer of
 	// Transport::m_relayIdentity was GUI menu code, so a peer with no menus sent no GXIDN however
 	// valid its GXLogin.txt was, and RELAY_REQUIRE_IDENTITY=1 drops it 15 s after it joins. The whole
 	// trace, and why it cannot live in HeadlessMatch.cpp or Transport.cpp, is in the header.
 	gxDeclareIdentityIfChanged();
 
-	// GeneralsX @bugfix B · tel-bg-1 08/11/2026 The replay telemetry's AWAY flag (U): a network game keeps simulating while the
+	// GeneralsX: The replay telemetry's AWAY flag (U): a network game keeps simulating while the
 	// window is minimised (the IsIconic loop below breaks out) and while it has lost focus (Alt+Tab keeps drawing to nobody), and
 	// those rows had no flag. isActive() is WinMain's WM_ACTIVATEAPP state, pumped by serviceWindowsOS() above; IsIconic covers a
 	// minimise that kept activation. Set BEFORE GameEngine::update() samples, so a solo minimise's last row is U as well as
@@ -224,7 +224,7 @@ void Win32GameEngine::update()
 
 	extern HWND ApplicationHWnd;
 	if (ApplicationHWnd && ::IsIconic(ApplicationHWnd)) {
-		// GeneralsX @feature B · replay-tel-1 05/11/2026 A solo game stops in the loop below until it is restored: the replay's
+		// GeneralsX: A solo game stops in the loop below until it is restored: the replay's
 		// telemetry closes its row there and shows "suspended N s", never one 12 s frame (GXReplayDiag.h). A network game breaks out
 		// after one pass and keeps running, so it is not suspended. Same predicate as the Sleep(5) below.
 		if (!(TheGameEngine->getQuitting() || TheGameLogic->isInInternetGame() || TheGameLogic->isInLanGame() || TheNetwork != nullptr))
@@ -232,7 +232,7 @@ void Win32GameEngine::update()
 		while (ApplicationHWnd && ::IsIconic(ApplicationHWnd)) {
 			// We are alt-tabbed out here.  Sleep a bit, & process windows
 			// so that we can become un-alt-tabbed out.
-			// GeneralsX @bugfix Claude 23/09/2026 Not in a network match (PP-4). There the loop
+			// GeneralsX: Not in a network match (PP-4). There the loop
 			// runs exactly once and breaks below to keep the logic going, so this Sleep(5) was
 			// paid on EVERY main-loop iteration of a minimised peer - logic frames included - and
 			// capped it at 1/(L+5 ms). Under lockstep that cap is charged to the whole lobby.
@@ -250,7 +250,7 @@ void Win32GameEngine::update()
 				TheLAN->update();
 			}
 
-			// GeneralsX @feature Claude 14/08/2026 And keep our lobby presence alive while
+			// GeneralsX: And keep our lobby presence alive while
 			// alt-tabbed, for exactly BGC's reason above: this loop can run for minutes, the relay
 			// times a membership out after 60 s of silence, and coming back to find yourself gone
 			// from the player list - and your own id handed to somebody else - is the same class of
@@ -259,15 +259,15 @@ void Win32GameEngine::update()
 				TheGXLobbyPresence->update();
 			}
 
-			// GeneralsX @bugfix Claude 23/09/2026 And re-read a renewed bot login from HERE too (Codex r3
-			// P2). In a menu or lobby this loop runs for as long as the window stays minimised, and the
+			// GeneralsX: And re-read a renewed bot login from HERE too.
+			// In a menu or lobby this loop runs for as long as the window stays minimised, and the
 			// declare above it ran exactly once, before entry: a GX_IDENTITY_FILE the host's timer rewrote
 			// meanwhile was never re-read, the two pumps above kept sending the expired assertion, and an
 			// enforcing relay dropped the memberships they were keeping alive. Same call, same order as the
 			// unminimised path. Not compiled on this Mac; the pin is scripts/test/gxm1-reach-test.sh.
 			gxDeclareIdentityIfChanged();
 
-			// GeneralsX @bugfix Claude 01/10/2026 Also keep running once a network session exists (TheNetwork): the start callback creates it BEFORE queueing MSG_NEW_GAME, and
+			// GeneralsX: Also keep running once a network session exists (TheNetwork): the start callback creates it BEFORE queueing MSG_NEW_GAME, and
 			// isInLanGame() only turns true after that message is dispatched by GameEngine::update(), so a minimised peer sat here and never started. The Sleep(5) predicate above
 			// stays identical. Idea from Generals Online a9861ab5c, reimplemented.
 			// If we are running a multiplayer game, keep running the logic.
@@ -277,7 +277,7 @@ void Win32GameEngine::update()
 				break; // keep running.
 			}
 		}
-		gxReplayTelSuspend(false);	// GeneralsX @feature B · replay-tel-1 05/11/2026 the loop runs again (a no-op if it never stopped)
+		gxReplayTelSuspend(false);	// GeneralsX: the loop runs again (a no-op if it never stopped)
 
     // When we are alt-tabbed out... the MilesAudioManager seems to go into a coma sometimes
     // and not regain focus properly when we come back. This seems to wake it up nicely.
@@ -322,7 +322,7 @@ void Win32GameEngine::serviceWindowsOS()
 */
 
 		TheMessageTime = msg.time;
-		// GeneralsX @feature B · dlss-fg-1 14/10/2026 (PREREG A39b): before dispatch - PCL Stats' ping can be a thread message that no window
+		// GeneralsX: (PREREG A39b): before dispatch - PCL Stats' ping can be a thread message that no window
 		// procedure sees. Two atomics in the native device; nothing without Reflex.
 		GxNative::NoteWindowsMessage(msg.message);
 		// translate and dispatch the message
@@ -335,7 +335,7 @@ void Win32GameEngine::serviceWindowsOS()
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 27/09/2026 The refresh rate of the display the game window is on, or 0 when
+/** GeneralsX: The refresh rate of the display the game window is on, or 0 when
   * Windows cannot say. The max-FPS cap's default when the launcher sets none (Common/FpsLimitPolicy.h).
   * MonitorFromWindow picks the monitor holding most of the window; EnumDisplaySettingsW on that monitor's
   * device reads the mode it runs now. dmDisplayFrequency 0 and 1 both mean "the hardware default", i.e.

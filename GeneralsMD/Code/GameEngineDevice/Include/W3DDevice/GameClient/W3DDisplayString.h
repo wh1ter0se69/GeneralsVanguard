@@ -99,7 +99,7 @@ protected:
 	Bool m_fontChanged;  ///< when font has changed this is TRUE
 	UnicodeString m_hotkey;		///< holds the current hotkey marker.
 	Bool m_useHotKey;
-	// GeneralsX @performance Claude 23/09/2026 State that lets setUseHotkey stop forcing a full re-layout and glyph
+	// GeneralsX: State that lets setUseHotkey stop forcing a full re-layout and glyph
 	// texture rebuild on every call (static text calls it every frame), see setUseHotkey.
 	Bool m_hotKeyRequested;  ///< what setUseHotkey last asked for; m_useHotKey is cleared by draw() when the text has no hotkey
 	Bool m_clipChanged;  ///< the clip region changed since the quads were last built

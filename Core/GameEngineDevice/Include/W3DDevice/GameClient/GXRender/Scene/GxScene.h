@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G (gx-handoff render-seam/PLAN_native-renderer.md §1 "L2", §3 WS-G): the L2
+// GeneralsX: WS-G (gx-handoff render-seam/PLAN_native-renderer.md §1 "L2", §3 WS-G): the L2
 // scene renderer's CPU side. It reads each Flush's classic draw list (WW3D2 dx8renderer.h GxClassicDraw) through
 // DX8MeshRendererClass's flush hook. Today it holds the census: GX_L2_CENSUS=1, in a GX_RENDER_CENSUS (or
 // GX_TEST_INSTRUMENTS) build with GX_DRAWCENSUS=1 GX_GFX=1, counts every list into the l2_* fields of [GXCENSUS]

@@ -141,7 +141,7 @@ public:
 	Bool m_reinforcement;						///< True if it is a unit to reinforce an existing team.
 	ObjectID m_reinforcementID;			///< True if it is a unit to reinforce an existing team.
 
-	// GeneralsX @performance Claude 23/09/2026 Memo of TheScriptEngine->findScriptByName(production condition), which is a linear
+	// GeneralsX: Memo of TheScriptEngine->findScriptByName(production condition), which is a linear
 	// scan of every side's scripts and ran every frame per queued/ready team. Runtime-only: not xfer'd or CRC'd, re-resolved
 	// when the condition name changes (m_team can be reassigned). Script lists are only replaced at map load/game setup.
 	const Script *getProductionConditionScript();

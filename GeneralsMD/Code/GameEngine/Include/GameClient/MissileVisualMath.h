@@ -15,7 +15,7 @@
 **	You should have received a copy of the GNU General Public License
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-// GeneralsX @feature Claude 28/09/2026 THE MATH OF THE SUPERWEAPON MISSILES' VISUAL FLIGHT, with no engine in it so
+// GeneralsX: THE MATH OF THE SUPERWEAPON MISSILES' VISUAL FLIGHT, with no engine in it so
 // scripts/test/missile-visual-test.cpp can drive it standalone against a replica of the logic flight.
 //
 // WHAT IT IS FOR. The nuke (NeutronMissileUpdate) and the SCUD Storm missiles (MissileAIUpdate) fly in GAME LOGIC along
@@ -67,7 +67,7 @@ struct MVProfile
 	float smoothing;			///< 1: thrust spools up and tails off and the pitch eases in and out; 0: the step thrust and constant pitch rate the flight had at first (the probe's RED arm)
 };
 
-// GeneralsX @feature Claude 29/09/2026 (wh1ter0se's look #1: "the acceleration is kinda weird"): the thrust spools up over the
+// GeneralsX: the thrust spools up over the
 // first 20% of the burn from 60% of full and tails off over the last 30% (real motors do; a step to full thrust at
 // liftoff and a step to none at burnout were visible as a jump in the puff spacing), and the pitch program eases in and
 // out (smoothstep) instead of starting at a constant rate. The thrust and burnout angle were re-tuned so the flight
@@ -215,7 +215,7 @@ inline MVVec mvAdvance( const MVTable &t, float *u, const MVVec &L, const MVVec 
 
 /// Blend from the logic missile's own height above the height it would die at HERE (HeightDieUpdate's threshold,
 /// structures included when its data says so): 1 at or below `margin` above it - a missile that low can detonate this
-/// frame - easing to 0 at `band` above it. Continuous and direction-free on purpose (Codex missile-r2): a SCUD climbing
+/// frame - easing to 0 at `band` above it. Continuous and direction-free on purpose: a SCUD climbing
 /// off its rail, or out of the band after skimming a structure, eases off the logic path instead of popping.
 inline float mvHeightBlend( float heightAboveDie, float band, float margin )
 {
@@ -229,7 +229,7 @@ inline float mvHeightBlend( float heightAboveDie, float band, float margin )
 /// Proximity to something that can detonate the missile, closing at `closing` units per logic frame (>= 0). A contact
 /// cannot be predicted, only approached, and it can land between two frames, so the blend is 1 while the gap is within
 /// two frames of that approach (mvProxLead): on the frame a collision detonates it, the missile is already drawn on the
-/// logic (Codex missile-r14). It starts `band` or `rampFrames` frames of the approach before that, whichever is longer,
+/// logic. It starts `band` or `rampFrames` frames of the approach before that, whichever is longer,
 /// so a fast approach is a short glide onto the logic path, never a snap.
 inline float mvProxLead( float closing ) { return 2.0f * (closing > 0.0f ? closing : 0.0f) + 1.0f; }
 inline float mvProxReach( float closing, float band, float rampFrames )

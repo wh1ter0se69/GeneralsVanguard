@@ -309,7 +309,7 @@ void W3DPropBuffer::removePropsForConstruction(const Coord3D* pos, const Geometr
 //=============================================================================
 void W3DPropBuffer::notifyShroudChanged()
 {
-	// GeneralsX @performance Claude 23/09/2026 This is called once per changed shroud CELL (W3DDisplay::setShroudLevel), up to
+	// GeneralsX: This is called once per changed shroud CELL (W3DDisplay::setShroudLevel), up to
 	// the whole partition grid from refreshShroudForLocalPlayer. Defer the O(numProps) invalidation to
 	// drawProps, the only reader of TProp::ss, so it runs at most once per frame.
 	m_shroudChanged = true;
@@ -382,13 +382,13 @@ void W3DPropBuffer::drawProps(RenderInfoClass &rinfo)
 		if (m_props[i].ss == OBJECTSHROUD_INVALID) {
 			const Int localPlayerIndex = rts::getObservedOrLocalPlayerIndex_Safe();
 			m_props[i].ss = ThePartitionManager->getPropShroudStatusForPlayer(localPlayerIndex, &m_props[i].location);
-			// GeneralsX @bugfix Claude 28/09/2026 CLEAR now skips the shroud pass (below), so it must hold for the
+			// GeneralsX: CLEAR now skips the shroud pass (below), so it must hold for the
 			// whole prop, not just the 2x2 cells at its origin: a big or scaled prop straddling a fog edge would
-			// draw its fogged part fully lit (Codex gfxb2-propshroud-r1). Check every cell the shroud texture is
+			// draw its fogged part fully lit. Check every cell the shroud texture is
 			// bilinearly sampled from within the prop's radius (rotation-proof: the type sphere's offset plus
 			// its radius, times the prop's scale). Off-map cells read SHROUDED, so edge props keep the pass.
 			if (m_props[i].ss == OBJECTSHROUD_CLEAR && m_props[i].propType >= 0) {
-				// ponytail: a prop wider than this many cells simply keeps the pass (rare, and the old behaviour)
+				// Trade-off: a prop wider than this many cells simply keeps the pass (rare, and the old behaviour)
 				enum { MAX_FOOTPRINT_CELLS = 16 };
 				const SphereClass &typeBounds = m_propTypes[m_props[i].propType].m_bounds;
 				const Real r = (typeBounds.Center.Length() + typeBounds.Radius) * m_props[i].m_robj->Get_ObjectScale();
@@ -416,13 +416,13 @@ void W3DPropBuffer::drawProps(RenderInfoClass &rinfo)
 		if (m_props[i].ss <= OBJECTSHROUD_INVALID) {
 			continue;
 		}
-		// GeneralsX @performance Claude 24/09/2026 ss is an ObjectShroudStatus. It was compared to CELLSHROUD_CLEAR,
+		// GeneralsX: ss is an ObjectShroudStatus. It was compared to CELLSHROUD_CLEAR,
 		// which is 0 like OBJECTSHROUD_INVALID, already skipped above, so every visible prop drew the shroud pass.
 		// A map or mod with ClearAlpha below 255 tints even clear cells, so there the pass still has work to do.
-		// GeneralsX @feature Claude 13/10/2026 ... or while the drawn fog under a CLEAR prop is still fading (fog interpolation,
-		// W3DShroud::isFadingUnder; Codex look-fog-r1 P2). ss is cached until the next logical change; the fade is not. The
+		// GeneralsX: ... or while the drawn fog under a CLEAR prop is still fading (fog interpolation,
+		// W3DShroud::isFadingUnder). ss is cached until the next logical change; the fade is not. The
 		// test uses the scale-aware footprint of the CLEAR test above: a mesh's cached sphere keeps its unscaled radius
-		// (Codex look-fog-r2 P2).
+		//
 		Bool fading = FALSE;
 		if (TheTerrainRenderObject->getShroud() && m_props[i].ss == OBJECTSHROUD_CLEAR && TheGlobalData->m_clearAlpha == 255) {
 			SphereClass footprint = m_props[i].m_robj->Get_Bounding_Sphere();

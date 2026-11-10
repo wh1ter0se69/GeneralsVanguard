@@ -527,7 +527,7 @@ void W3DTerrainVisual::updateSeismicSimulations()
 //-------------------------------------------------------------------------------------------------
 /** load method for W3D visual terrain */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @probe Claude 19/08/2026 GX_SKIRMISH - shared gate shape with SidesList.cpp.
+// GeneralsX: GX_SKIRMISH - shared gate shape with SidesList.cpp.
 static Bool gxMapDiag(void)
 {
 	static Int s_on = -1;
@@ -540,7 +540,7 @@ static Bool gxMapDiag(void)
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 25/09/2026 Every bridge template that names a model, through the SAME
+/** GeneralsX: Every bridge template that names a model, through the SAME
 	* W3DBridge::load call W3DBridgeBuffer::addBridge makes, so "loads here" means exactly "gets its
 	* model on a map". A template naming no model - Roads.ini's landmark bridges, which are objects -
 	* fails that load on every install and addBridge ignores it, so it is not this install's problem.
@@ -598,7 +598,7 @@ Bool W3DTerrainVisual::load( AsciiString filename )
 
 	// open the terrain file
 	CachedFileInputStream fileStrm;
-	// GeneralsX @bugfix Claude 19/08/2026 Open the map by its REAL on-disk path, not the lowercased
+	// GeneralsX: Open the map by its REAL on-disk path, not the lowercased
 	// identity. MapUtil lowercases every discovered map path and stores that as the cache key and the
 	// multiplayer map name; on iOS the absolute path contains '/Containers/Data/Application/<UUID>/
 	// Library/Application Support/', so the lowercased form names nothing on a case-sensitive volume
@@ -689,7 +689,7 @@ Bool W3DTerrainVisual::load( AsciiString filename )
 	}
 
 	// apply the heightmap to the terrain render object
-	// GeneralsX @performance Claude 23/09/2026 Light iterator on the stack instead of NEW/delete; the else branch
+	// GeneralsX: Light iterator on the stack instead of NEW/delete; the else branch
 	// passes the nullptr iterator the old code passed when there is no scene.
 	// Upstream reference: Mauller, PR #2646
 	// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2646
@@ -759,7 +759,7 @@ Bool W3DTerrainVisual::load( AsciiString filename )
 			Vector3 loc(pos->x, pos->y, pos->z);
 			Real radius = d->getReal(TheKey_objectRadius);
 			Scorches type = (Scorches)d->getInt(TheKey_scorchType);
-			// GeneralsX @bugfix Claude 24/09/2026 Upstream PR #3114 (66804e109): a map's own scorch is static.
+			// GeneralsX: Upstream PR #3114 (66804e109): a map's own scorch is static.
 			m_terrainRenderObject->addStaticScorch(loc, radius, type);
 		}
 		pMapObj = pMapObj->getNext();
@@ -853,7 +853,7 @@ TerrainType *W3DTerrainVisual::getTerrainTile( Real x, Real y )
 {
 	TerrainType *tile = nullptr;
 
-	// GeneralsX @performance Claude 27/09/2026 Resolved once per texture class (WorldHeightMap::getTerrainTypeAt), not by a
+	// GeneralsX: Resolved once per texture class (WorldHeightMap::getTerrainTypeAt), not by a
 	// name copy and a walk of every terrain type per call: the AI's placement search asks this ~300 times per candidate.
 #ifdef DO_SEISMIC_SIMULATIONS
 	if( m_clientHeightMap )
@@ -1024,10 +1024,10 @@ void W3DTerrainVisual::setRawMapHeight(const ICoord2D *gridPos, Int height)
  		if (m_logicHeightMap->getHeight(x,y) > height)
 		{
 			m_logicHeightMap->setRawHeight(x, y, height);
-			// GeneralsX @performance Claude 28/09/2026 Was staticLightingChanged(): the whole terrain draw window
+			// GeneralsX: Was staticLightingChanged(): the whole terrain draw window
 			// rebuilt for one lowered cell. EA's note here: "OOH! this could benefit from the new Seismic update code".
 			// The cell queued is the one setRawHeight wrote: it linearizes (y*width + x), so an x of -1 from a flatten or
-			// crater at the edge of a borderless map lands on the last cell of the previous row (Codex gfxa-relight-r3).
+			// crater at the edge of a borderless map lands on the last cell of the previous row.
 			const Int width = m_logicHeightMap->getXExtent();
 			const Int ndx = y*width + x;
 			m_terrainRenderObject->terrainHeightChanged(ndx % width, ndx / width);
@@ -1357,7 +1357,7 @@ void W3DTerrainVisual::xfer( Xfer *xfer )
 		Int len = m_logicHeightMap->getXExtent()*m_logicHeightMap->getYExtent();
 		Int xferLen = len;
 		xfer->xferInt(&xferLen);
-		// GeneralsX @bugfix Claude 06/10/2026 Refuse a length the buffer cannot take. A negative one became a ~4 GB
+		// GeneralsX: Refuse a length the buffer cannot take. A negative one became a ~4 GB
 		// fread into m_logicHeightMap (the clamp below only shortens), copying the rest of the save past the buffer;
 		// a longer one read len bytes and left the rest to be misread as the next block. A shorter one still loads
 		// as before (sweep c050-01).

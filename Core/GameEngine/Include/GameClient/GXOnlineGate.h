@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @feature Claude 11/08/2026 - who may open the Online lobby.
+**	GeneralsX: who may open the Online lobby.
 **
 **	WHY THIS IS A HEADER OF ITS OWN, AND PURE.
 **

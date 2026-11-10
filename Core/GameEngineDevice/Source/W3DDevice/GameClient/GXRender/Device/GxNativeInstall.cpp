@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-K 11/10/2026 see GxNativeInstall.h. Built only with GX_RENDER_NATIVE=ON.
+// GeneralsX: see GxNativeInstall.h. Built only with GX_RENDER_NATIVE=ON.
 #include "W3DDevice/GameClient/GxNativeInstall.h"
 
 #include <cstdio>
@@ -13,7 +13,7 @@
 #include "GxNativeD3D8.h"
 #include "GxNativeDevice.h"	// S7 A92: GxNativeFromDevice (TestSetLogicFrame)
 #if defined(_WIN32)
-#include "GxNativeHostWin32.h"	// GeneralsX @feature D · native-windows-1 13/10/2026: the Windows game's host is its Win32 window
+#include "GxNativeHostWin32.h"	// GeneralsX: the Windows game's host is its Win32 window
 #else
 #include "GxNativeHostSDL.h"
 #endif
@@ -63,7 +63,7 @@ IDirect3D8 *Wrap(IDirect3D8 *dxvk)
 		fflush(stderr);
 		return dxvk;
 	}
-	// GeneralsX @feature B · dlss-streamline-1 13/10/2026 (PREREG A36.2): NVIDIA Streamline (DLSS) only for GXUpscaler=dlss in a
+	// GeneralsX: (PREREG A36.2): NVIDIA Streamline (DLSS) only for GXUpscaler=dlss in a
 	// GX_STREAMLINE build on an NVIDIA adapter; otherwise the host is untouched and nothing of Streamline is in the process.
 	// B · dlss-fg-1 14/10/2026 (PREREG A39): GXReflex / GXFrameGen load it too (Reflex, DLSS Frame Generation), same gates.
 	GxNativeLoadStreamline(dxvk, host, GXGraphics::upscaler() == GXGraphics::UPSCALER_DLSS, GXGraphics::reflex(), GXGraphics::frameGen());

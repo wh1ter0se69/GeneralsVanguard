@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 03/10/2026 THE WINDOWS DXVK PAIR, PINNED: every input of build-dxvk-win64.ps1 and the
+# GeneralsX: THE WINDOWS DXVK PAIR, PINNED: every input of build-dxvk-win64.ps1 and the
 # sha256 of what it must produce. Read by build-dxvk-win64.ps1 and dxvk-pair.ps1 (setup-run-win64.ps1,
 # package-windows-share.ps1, gx-ab-build.sh). key = value, '#' starts a comment. Values hold no '#' and no paths.
 #

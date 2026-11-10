@@ -449,7 +449,7 @@ void WaveGuideUpdate::doShoreEffects()
 
 	// this is expensive to do *all* the time
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 every other RETAIL frame: at 60 Hz "& 0x1" spawned shore splashes twice as often.
+	// GeneralsX: every other RETAIL frame: at 60 Hz "& 0x1" spawned shore splashes twice as often.
 	if( TheGameLogic->getFrame() % GX_FRAMES30(2) )
 		return;
 #else

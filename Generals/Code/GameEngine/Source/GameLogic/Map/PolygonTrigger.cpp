@@ -167,7 +167,7 @@ Bool PolygonTrigger::ParsePolygonTriggersDataChunk(DataChunkInput &file, DataChu
 		}
 
 		numPoints = file.readInt();
-		// GeneralsX @bugfix Claude 06/10/2026 The point count sized the trigger's point array (numPoints+1) before
+		// GeneralsX: The point count sized the trigger's point array (numPoints+1) before
 		// anything checked it: 0x10000000 allocated ~3 GB, INT_MAX overflowed the +1, a count below -1 asked new[] for a
 		// negative size. Each point is three ints that follow in this chunk, so a count the chunk cannot hold is damage.
 		if (numPoints < 0 || numPoints > (Int)file.getChunkDataSizeLeft() / (Int)(3 * sizeof(Int))) {
@@ -175,7 +175,7 @@ Bool PolygonTrigger::ParsePolygonTriggersDataChunk(DataChunkInput &file, DataChu
 		}
 		// A river is drawn as one triangle strip of numPoints/2 quads with a 16-bit index count
 		// (W3DWater.cpp drawRiverWater: (numPoints/2)*6 indices through DynamicIBAccessClass's unsigned short), so more
-		// than 21845 points wrapped the count and wrote past the index buffer (Codex mlv-r3 #3; an odd count rounds down
+		// than 21845 points wrapped the count and wrote past the index buffer (an odd count rounds down
 		// - mlv-r4 #5). Real rivers have up to a few hundred points.
 		if (isRiver && numPoints / 2 > 65535 / 6) {
 			throw ERROR_CORRUPT_FILE_FORMAT;

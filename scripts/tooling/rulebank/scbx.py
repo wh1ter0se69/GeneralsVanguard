@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank, DATA half: scb helpers for the ruleset compiler and its modules (C·rb-data).
+# GeneralsX: rule bank, DATA half: scb helpers for the ruleset compiler and its modules (C·rb-data).
 # Works on the recipe's own parse (make-skirmish-scripts.py: SCB / Node / parse_call / enc_call), which the compiler binds in as `mss`
 # before any module runs. A module sees this file as `rb`.
 #
@@ -463,7 +463,7 @@ def launch_fields(name, tick):
     return dict({'teamOnCreateScript': name + FORMED}, **({'teamGenericScriptHook0': name} if tick else {}))
 
 
-# rb-data-17 (the lead's ruling on Codex rbd17-r4: provenance by construction): what a new team copies is recorded when it is built, never
+# rb-data-17 (provenance by construction): what a new team copies is recorded when it is built, never
 # inferred from its name, its place or its fields. {team: its stock donor, or None when declared new}; the compiler resets it per tier;
 # guards.team_provenance and the keep-block overlap scan read this table alone
 BUILT = {}
@@ -629,7 +629,7 @@ def teams(scb):
     out, p = [], 0
 
     def need(n):                         # every field inside the chunk: the engine's reader refuses a short one (DataChunk.cpp:1054;
-        if p + n > len(raw):             # a Python slice past the end would decode it as shorter instead, Codex rbd-r9-lensA)
+        if p + n > len(raw):             # a Python slice past the end would decode it as shorter instead)
             raise ValueError('ScriptTeams: a field at byte %d needs %d bytes, %d are left' % (p, n, len(raw) - p))
     while p < len(raw):
         need(2); cnt = struct.unpack_from('<H', raw, p)[0]; p += 2; es = []
@@ -664,7 +664,7 @@ def teams_ro(scb):
     (tuples, read-only mappings): a write through it would change every later reader's copy, the guard's "before" included, and so
     hide the edit (Codex rbd-r2-lensB 8) - write through teams() + put_teams()"""
     raw = next(k for k in scb.root if k.name == 'ScriptTeams').raw
-    k = (raw, tuple(scb.toc))            # the table's CONTENTS: two compiles can give different keys one id (Codex rbd-r3-lensA 1)
+    k = (raw, tuple(scb.toc))            # the table's CONTENTS: two compiles can give different keys one id
     if k not in _TRO:
         if len(_TRO) > 32:
             _TRO.clear()
@@ -738,11 +738,11 @@ def canon(scb, n):
         except Exception as x:
             raise ValueError('a malformed %s leaf: %s' % (n.name, x))
         # the engine's reader, not Python's: a negative count reads no parameters here but turns the leaf FALSE there
-        # (Scripts.cpp:1724), a negative tag indexes PTYPES from the end here but is no type there (Codex rbd-r12-lensA)
+        # (Scripts.cpp:1724), a negative tag indexes PTYPES from the end here but is no type there
         if cnt < 0 or any(not 0 <= p[0] < len(mss.PTYPES) for p in ps):
             raise ValueError('a malformed %s leaf: parameter count %d, tags %s (the engine reads a count >= 0 and tags 0..%d)'
                              % (n.name, cnt, [p[0] for p in ps], len(mss.PTYPES) - 1))
-        # floats as their bytes: -0.0 == 0.0 in Python, not in the file (Codex rbd-r2-lensA 3)
+        # floats as their bytes: -0.0 == 0.0 in Python, not in the file
         ps = tuple((p[0], struct.pack('<3f', *p[1])) if len(p) == 2 else (p[0], p[1], struct.pack('<f', p[2]), p[3]) for p in ps)
         return (n.name, n.ver, typ, scb.byid.get(key >> 8), key & 0xFF, ps)
     return (n.name, n.ver, n.raw)

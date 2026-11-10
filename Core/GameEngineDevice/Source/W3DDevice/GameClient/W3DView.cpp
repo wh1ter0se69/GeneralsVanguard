@@ -112,7 +112,7 @@
 #include "WW3D2/Renderer.h"
 
 #include "W3DDevice/GameClient/CameraShakeSystem.h"
-#include "GameClient/GXRenderSplit.h"	// GeneralsX @feature Claude 08/10/2026 render-split step 6: shakes from the tick
+#include "GameClient/GXRenderSplit.h"	// GeneralsX: render-split step 6: shakes from the tick
 
 // 30 fps
 Real TheW3DFrameLengthInMsec = MSEC_PER_LOGICFRAME_REAL; // default is 33msec/frame == 30fps. but we may change it depending on sys config.
@@ -168,7 +168,7 @@ Real W3DView::getHeightAroundPos(Real x, Real y, Real terrainSampleSize) const
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 (GXShadowMapHooks.h): defined here (Core, both games); the ZH glue installs them.
+// GeneralsX: S7 (GXShadowMapHooks.h): defined here (Core, both games); the ZH glue installs them.
 GxShadowMapFrameHooks *GxShadowMapFrame = nullptr;
 CameraClass *GxShadowMapArmedCamera = nullptr;	// A49: armed here, fired by the scene after its On_Frame_Update loop
 bool GxShadowMapXNoFire = false;	// A50 TEST-ONLY (GXShadowMapHooks.h)
@@ -423,7 +423,7 @@ void W3DView::buildCameraTransform( Matrix3D *transform, const Vector3 &sourcePo
 	//WST 11/12/2002 New camera shaker system
 	// TheSuperHackers @tweak The camera shaker is now decoupled from the render update.
 	// TheSuperHackers @todo Move Update_Camera_Shaker to the W3DView::update function.
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
 	CameraShakerSystem.Timestep(gxRenderStepMs());
 	CameraShakerSystem.Update_Camera_Shaker(sourcePos, &m_shakerAngles);
 	transform->Rotate_X(m_shakerAngles.X);
@@ -476,7 +476,7 @@ void W3DView::buildCameraTransform( Matrix3D *transform, const Vector3 &sourcePo
 
 //-------------------------------------------------------------------------------------------------
 // TheSuperHackers @info Original logic responsible for zooming the camera to the desired height.
-// GeneralsX @bugfix Claude 17/10/2026 wh1ter0se 17/10 ("the camera not to go that low over a gorge", then on the pictures "zoom
+// GeneralsX: wh1ter0se 17/10 ("the camera not to go that low over a gorge", then on the pictures "zoom
 // still needs a bit more zoom out"): the zoom height counts from the ground at the look-at point and the camera body sits
 // well behind that point, so looking into a valley next to a cliff the body came within 33 units of the rim behind it (his
 // 17/10 replay: gx-handoff gameplay/NOTE_plane-hill-1017.md; retail's rule gives the same). The desired zoom is now raised
@@ -503,7 +503,7 @@ Real W3DView::gxBodyClearedZoom(Real desiredZoom)
 	Vector3 targetPos;
 	buildCameraPosition(sourcePos, targetPos);
 	// the body's offset from the PIVOT per unit of h: measured from m_pos.z, not targetPos.Z, which an FX pitch below 1 moves with
-	// the zoom (an FX pitch above 1 scales the body's offset by a constant, which u absorbs) - Codex pg2-cam-v2-r1 P2
+	// the zoom (an FX pitch above 1 scales the body's offset by a constant, which u absorbs)
 	const Vector3 u(sourcePos.X - targetPos.X, sourcePos.Y - targetPos.Y, sourcePos.Z - m_pos.z);
 	const Real pivotZ = m_pos.z;
 	if (u.Z < 0.05f * h0)
@@ -535,13 +535,13 @@ Real W3DView::gxBodyClearedZoom(Real desiredZoom)
 	};
 	// The ground behind the camera is arbitrary (ridges make needAt non-monotonic), so the range is SCANNED rather than chased:
 	// 24 even steps from the wanted height up to the max, the first good one refined by bisection against the step before it
-	// (which was bad); if none is good, the best fallback below (Codex pg2-cam-v4..v8-r1 P2: an unchecked, an exact, a
+	// (which was bad); if none is good, the best fallback below (an unchecked, an exact, a
 	// too-short and an overshooting climb each picked a wrong height).
 	if (needAt(hWanted) <= hWanted || hMax <= hWanted)
 		return desiredZoom;
 	enum { GX_CLEAR_STEPS = 24 };
 	// the fallback ranks a height that meets the physical floor above one that does not, then by the smaller shortfall (of
-	// the valley goal for the first kind, of the floor for the second) - Codex pg2-cam-v9-r1 P2
+	// the valley goal for the first kind, of the floor for the second)
 	Real h = hWanted;
 	Bool bestMeetsFloor = false;
 	Real bestShort = 0.0f;
@@ -559,7 +559,7 @@ Real W3DView::gxBodyClearedZoom(Real desiredZoom)
 	};
 	{
 		// the wanted height itself ranks first, so a correction never trades a camera that meets the floor for one that does not
-		// (Codex pg2-cam-v10-r1 P2); then the max
+		// then the max
 		const Real ground = groundAt(hWanted);
 		bestMeetsFloor = floorOf(ground) <= hWanted;
 		bestShort = bestMeetsFloor ? goalOf(ground) - hWanted : floorOf(ground) - hWanted;
@@ -591,7 +591,7 @@ Real W3DView::gxBodyClearedZoom(Real desiredZoom)
 	const Real cleared = (h + m_pos.z) / offsetZ;
 	if (cleared <= desiredZoom)
 		return desiredZoom;
-	// never past the max zoom, at it included (Codex pg2-cam-v2-r1 P2); a desired zoom already above the max is left as it was
+	// never past the max zoom, at it included; a desired zoom already above the max is left as it was
 	if (cleared > maxZoom)
 		return (desiredZoom > maxZoom) ? desiredZoom : maxZoom;
 	return cleared;
@@ -603,7 +603,7 @@ Bool W3DView::zoomCameraToDesiredHeight()
 	const Real adjustZoom = desiredZoom - m_zoom;
 	if (fabs(adjustZoom) >= 0.001f)
 	{
-		// GeneralsX @bugfix Claude 03/10/2026 Steps by the time since the last draw, not the last iteration (update()).
+		// GeneralsX: Steps by the time since the last draw, not the last iteration (update()).
 		const Real fpsRatio = m_drawFpsRatio;
 		const Real adjustFactor = std::min(TheGlobalData->m_cameraAdjustSpeed * fpsRatio, 1.0f);
 		m_zoom += adjustZoom * adjustFactor;
@@ -621,7 +621,7 @@ Bool W3DView::movePivotToGround()
 	const Real groundLevelDiff = m_terrainHeightAtPivot - groundLevel;
 	if (fabs(groundLevelDiff) > 0.1f)
 	{
-		// GeneralsX @bugfix Claude 03/10/2026 Steps by the time since the last draw, not the last iteration (update()).
+		// GeneralsX: Steps by the time since the last draw, not the last iteration (update()).
 		const Real fpsRatio = m_drawFpsRatio;
 		const Real adjustFactor = std::min(TheGlobalData->m_cameraAdjustSpeed * fpsRatio, 1.0f);
 		// Adjust the ground level. This will change the world height of the camera.
@@ -825,7 +825,7 @@ void W3DView::getPickRay(const ICoord2D *screen, Vector3 *rayStart, Vector3 *ray
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @bugfix Claude 10/09/2026 The shell map behind the main menu is an authored backdrop
+/** GeneralsX: The shell map behind the main menu is an authored backdrop
   * with a scripted camera, not a playfield. MaxCameraHeight is not just a zoom clamp - it is the
   * base scalar for the camera's world-space height (getCameraOffsetZ), so a player's Extras or
   * SagePatch zoom preference reframes the menu backdrop as a side effect. This hands back the
@@ -890,7 +890,7 @@ Real W3DView::getCameraOffsetZ() const
 	}
 #endif
 
-	// GeneralsX @feature Claude 24/08/2026 Host-authoritative camera limits: see GXHostCamera.h.
+	// GeneralsX: Host-authoritative camera limits: see GXHostCamera.h.
 	//
 	// This read was NOT on the design pass's list of five and has to be here anyway. getCameraOffsetZ
 	// is the denominator that turns a height into a zoom (getZoom/getMaxZoom below, and the inverse
@@ -901,7 +901,7 @@ Real W3DView::getCameraOffsetZ() const
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 25/09/2026 THE ZOOM RETAIL WOULD REPORT FOR THIS CAMERA.
+// GeneralsX: THE ZOOM RETAIL WOULD REPORT FOR THIS CAMERA.
 //
 // zoom = cameraHeight / getCameraOffsetZ(), and getCameraOffsetZ() above follows the EFFECTIVE max
 // camera height (host limits) where retail used MaxCameraHeight (310). With the camera allowed higher,
@@ -909,19 +909,19 @@ Real W3DView::getCameraOffsetZ() const
 // bar, the ammo pips, the veterancy chevron, the formation marker - grew by effectiveMax / retailMax:
 // long thin lines over tiny infantry (owner, 2026-09-25: "use the original game's health bar").
 // Rescaled from the LIVE zoom and the live offset, so it cannot lag a frame behind a zoom the way the
-// cached height above ground does (Codex P2). A scripted camera keeps its own offset in retail too
-// (getCameraOffsetZ's PRESERVE_RETAIL_SCRIPTED_CAMERA branch), so it keeps plain zoom (Codex P2).
+// cached height above ground does. A scripted camera keeps its own offset in retail too
+// (getCameraOffsetZ's PRESERVE_RETAIL_SCRIPTED_CAMERA branch), so it keeps plain zoom.
 // m_defaultMaxCameraHeight is the stock GameData value, captured before SagePatch.ini or options move it.
 //
 // The STOCK CEILING is this view's max height above ground scaled back to retail's MaxCameraHeight, so the
 // aspect-ratio allowance setCameraHeightAboveGroundLimitsToDefault gives a widescreen view (which takes zoom
-// past 1.0 on its own - Codex P1: "zoom > 1" is not "camera extended") and any script scale stay in it. Up to
+// past 1.0 on its own: "zoom > 1" is not "camera extended") and any script scale stay in it. Up to
 // that ceiling this is the zoom the stock camera would report, pivot elevation included - with the stock limit
 // that is plain zoom, and iconScale is 1.0: exactly what retail draws.
 // Above it the camera distance - and so every unit on screen - follows the height above the PIVOT alone
 // (buildCameraPosition places the camera at getCameraOffsetZ() * zoom and subtracts m_pos.z), so the
 // overlays follow that height too and keep the overlay-to-unit proportion the stock camera has at its
-// ceiling, on any terrain (Codex P2: extrapolating the absolute-elevation ratio left them ~20% large).
+// ceiling, on any terrain (extrapolating the absolute-elevation ratio left them ~20% large).
 Real W3DView::getRetailReferenceZoom( Real *iconScale )
 {
 	if (iconScale)
@@ -942,7 +942,7 @@ Real W3DView::getRetailReferenceZoom( Real *iconScale )
 	// float precision, and "a hair above" would shave a pixel off every fixed-size icon in ordinary play.
 	if (stockCeiling <= 0.0f || heightAbovePivot <= stockCeiling + 1.0f)
 		return (effectiveMax == retailMax) ? m_zoom : m_zoom * offset / retailOffset;
-	// Above the stock ceiling - a raised limit, or the stock one with the zoom lock off (Codex P2).
+	// Above the stock ceiling - a raised limit, or the stock one with the zoom lock off.
 	if (iconScale)
 		*iconScale = stockCeiling / heightAbovePivot;
 	return (m_pos.z + stockCeiling) / retailOffset * (heightAbovePivot / stockCeiling);
@@ -1193,13 +1193,13 @@ void W3DView::reset()
 	View::reset();
 
 	// Just in case...
-	// GeneralsX @bugfix Claude 08/10/2026 The scripted camera's timing starts over: no move, time multiplier 1 and its divider,
+	// GeneralsX: The scripted camera's timing starts over: no move, time multiplier 1 and its divider,
 	// no freeze, no blur (the freeze used to outlive a game).
 	m_camTimeline.reset(MSEC_PER_LOGICFRAME_REAL);
 
 	stopDoingScriptedCamera();
 	setUserControlled(true);
-	// GeneralsX @bugfix Claude 08/10/2026 The scripted camera clock starts over with the next game, so a replay steps the same
+	// GeneralsX: The scripted camera clock starts over with the next game, so a replay steps the same
 	// whatever played before it in this process (the divider included: W3DDisplay::draw's own counter never reset).
 	m_gxCamStepFrame = m_gxCamPoseFrame = m_gxCamDrawnFrame = 0xffffffff;
 	m_gxCamContinues = FALSE;
@@ -1218,7 +1218,7 @@ void W3DView::reset()
 
 	m_recalcCameraConstraintsAfterScrolling = false;
 
-	// GeneralsX @performance Claude 26/09/2026 The terrain window only grows within one game (updateTerrain);
+	// GeneralsX: The terrain window only grows within one game (updateTerrain);
 	// the next one starts from its own default view, not from the menu backdrop's or the last match's size.
 	m_terrainDrawSize.x = 0;
 	m_terrainDrawSize.y = 0;
@@ -1229,7 +1229,7 @@ void W3DView::reset()
 //-------------------------------------------------------------------------------------------------
 static void drawDrawable( Drawable *draw, void *userData )
 {
-	// GeneralsX @performance Claude 23/09/2026 Also record the visit, for W3DView::draw's post-draw walk.
+	// GeneralsX: Also record the visit, for W3DView::draw's post-draw walk.
 	static_cast<std::vector<Drawable*>*>(userData)->push_back( draw );
 
 	draw->draw();
@@ -1523,7 +1523,7 @@ static void drawablePostDraw( Drawable *draw, void *userData )
 
 	Object* obj = draw->getObject();
 	const Int localPlayerIndex = rts::getObservedOrLocalPlayerIndex_Safe();
-	// GeneralsX @probe Claude 23/09/2026 query first, then drop it: getShroudedStatus recomputes a lazy sim cache
+	// GeneralsX: query first, then drop it: getShroudedStatus recomputes a lazy sim cache
 	// (m_everSeenByPlayer) logic reads, so -noshroud / GX_NOSHROUD must not change which queries run (review r1).
 	ObjectShroudStatus ss = (!obj) ? OBJECTSHROUD_CLEAR : obj->getShroudedStatus(localPlayerIndex);
 #if ENABLE_CONFIGURABLE_SHROUD
@@ -1571,15 +1571,15 @@ static void renderAIDebug()
 // ------------------------------------------------------------------------------------------------
 Bool W3DView::updateCameraMovements()
 {
-	// GeneralsX @bugfix Claude 08/10/2026 THE SCRIPTED CAMERA STEPS ON LOGIC FRAMES (Common/ScriptedCameraClock.h).
+	// GeneralsX: THE SCRIPTED CAMERA STEPS ON LOGIC FRAMES (Common/ScriptedCameraClock.h).
 	//
 	// isCameraMovementFinished() is a script condition, CAMERA_MOVEMENT_FINISHED (ScriptConditions.cpp), and GameEngine::
 	// isTimeFrozen reads the same answer, so the logic frame a scripted move ends on is simulation state: it must not depend
 	// on how the frames were drawn. It used to step here, once per DRAW: the zoom/pitch/rotate counters on a draw that saw a
 	// new logic frame (06/08), the waypoint path by the pacer's per-draw slice, or by one logic frame under fast forward
-	// (30/09, Codex ffwd-r6) or while tick catch-up was eligible (07/10). Each patch left a case where a move ended on
+	// or while tick catch-up was eligible (07/10). Each patch left a case where a move ended on
 	// another frame - catch-up on vs off a frame apart (120 x 16.666666f = 1999.998), a pause before the draw losing a step,
-	// a skipped draw (Codex r10, r10b P1a/P1b) - and a replay recorded one way could leave its CRCs played back another.
+	// a skipped draw (P1a/P1b) - and a replay recorded one way could leave its CRCs played back another.
 	// It now steps once per new logic frame in stepScriptedCamera (stepView: GameClient::step, after every tick that
 	// advanced time), one logic frame long, in every mode; a draw only shows it, blended between the last two logic frames'
 	// poses (blendScriptedCamera).
@@ -1594,7 +1594,7 @@ Bool W3DView::updateCameraMovements()
 	// The scripted camera will still move when the time is frozen, but not when the game is halted.
 	// A SCRIPT freeze is not stepped here either: its scripts still run once per gate pass, so the camera steps on those
 	// updates (stepFrozenLogicUpdate) - the freeze loop stops after one pass under it, and per draw a move ran fps times
-	// faster than the scripts watching it (Codex catchup-reland r1/r2 P1). Only a camera-only freeze steps here.
+	// faster than the scripts watching it (catchup-reland r1/r2 P1). Only a camera-only freeze steps here.
 	const Bool frozen = (TheFramePacer != NULL) && TheFramePacer->isTimeFrozen()
 		&& !(TheScriptEngine->isTimeFrozenScript() || TheScriptEngine->isTimeFrozenDebug());
 	Bool didUpdate = false;
@@ -1607,22 +1607,22 @@ Bool W3DView::updateCameraMovements()
 	{
 		didUpdate = true;
 	}
-	// GeneralsX @bugfix Claude 30/09/2026 A move stepped with no draw (fast forward's skipped draws, the script
+	// GeneralsX: A move stepped with no draw (fast forward's skipped draws, the script
 	// fast-time return - W3DDisplay::draw) still has to reach the camera: updateView sets this after the same call, but
-	// a move that finishes on a skipped draw would leave the next drawn frame seeing no active move (Codex ffwd-r4).
+	// a move that finishes on a skipped draw would leave the next drawn frame seeing no active move.
 	if (didUpdate)
 		m_recalcCamera = true;
 	return didUpdate;
 }
 
-// GeneralsX @bugfix Claude 08/10/2026 One scripted camera step: zoom, pitch, then the rotation or the waypoint path (a
+// GeneralsX: One scripted camera step: zoom, pitch, then the rotation or the waypoint path (a
 // rotation ends a path, rotateCamera), in the order and with the bookkeeping updateCameraMovements always had.
 Bool W3DView::stepScriptedCameraOnce(Real waypointMs)
 {
 	return applyScriptedStep(m_camTimeline.stepOnce(waypointMs), waypointMs);
 }
 
-// GeneralsX @bugfix Claude 08/10/2026 The pose of one step of m_camTimeline (ScriptedCameraTimeline::stepOnce, which counted the
+// GeneralsX: The pose of one step of m_camTimeline (ScriptedCameraTimeline::stepOnce, which counted the
 // frames, ended the moves, set the time multiplier and cleared the freeze): zoom, pitch, then the rotation or the path, in the
 // order updateCameraMovements always stepped them.
 Bool W3DView::applyScriptedStep(unsigned did, Real waypointMs)
@@ -1644,11 +1644,11 @@ Bool W3DView::applyScriptedStep(unsigned did, Real waypointMs)
 	return (did & (TL::STEPPED_ZOOM | TL::STEPPED_PITCH | TL::STEPPED_ROTATE | TL::STEPPED_PATH)) != 0;
 }
 
-// GeneralsX @test Claude 08/10/2026 GX_CAMTEST, the scripted camera's in-game check, lives in GameLogic/ScriptedCamera.cpp: it
+// GeneralsX: GX_CAMTEST, the scripted camera's in-game check, lives in GameLogic/ScriptedCamera.cpp: it
 // starts its moves through the simulation, so a -headless peer runs it too. The view adds "[GXCAMDRAW]" on every draw while
 // a move runs (the drawn camera, the blend's phase).
 
-// GeneralsX @test Claude 08/10/2026 GX_CAMTEST: the first time the VIEW drops a scripted move's state, say from where (a
+// GeneralsX: GX_CAMTEST: the first time the VIEW drops a scripted move's state, say from where (a
 // backtrace where the platform has one). The test moves themselves live in TheScriptedCamera (simulation); this only finds
 // what cuts the view's own move (it was fullscreen edge scroll on the Mini). Once per run, off unless GX_CAMTEST is set.
 static void gxCamTestWhoEnds(const char *what)
@@ -1664,7 +1664,7 @@ static void gxCamTestWhoEnds(const char *what)
 #endif
 }
 
-// GeneralsX @bugfix Claude 08/10/2026 The scripted camera's logic step (see updateCameraMovements): once per new logic frame,
+// GeneralsX: The scripted camera's logic step (see updateCameraMovements): once per new logic frame,
 // from stepView. GameClient::step runs after every logic update that did not leave time frozen; one that did not advance
 // the frame either (a paused game's, the first of a new game) steps nothing. The camera time multiplier's divider counts
 // every logic frame, as W3DDisplay::draw's counter counted every draw, moving or not. A motion blur's logic lifetime counts
@@ -1672,7 +1672,7 @@ static void gxCamTestWhoEnds(const char *what)
 void W3DView::stepScriptedCamera()
 {
 	// never in frozen time: base Generals also steps its views once per iteration (GameEngine::execute), so after a load into
-	// a script freeze the first one would step a frame no logic update advanced (Codex catchup-reland-r3 P2); a freeze's
+	// a script freeze the first one would step a frame no logic update advanced; a freeze's
 	// moves are stepped by stepFrozenLogicUpdate or the draw's freeze loop
 	if (TheGameLogic == NULL || (TheFramePacer != NULL && TheFramePacer->isTimeFrozen()))
 		return;
@@ -1682,8 +1682,8 @@ void W3DView::stepScriptedCamera()
 	m_gxCamStepFrame = frame;
 	endWaypointPathForCameraLock();
 	// the divider and the blur's count (ScriptedCameraTimeline::beginLogicFrame); an IN_AND_OUT with a target jumps there at the
-	// top of its count - on this step, not on the draw that reached it: lookAt ends a scripted rotation or path (review P1,
-	// Codex catchup-reland-r1 P1), and the timeline has ended them already. The simulation's blur end re-reads the camera
+	// top of its count - on this step, not on the draw that reached it: lookAt ends a scripted rotation or path,
+	// and the timeline has ended them already. The simulation's blur end re-reads the camera
 	// freeze (ScriptedCamera::logicFrame).
 	const unsigned begun = m_camTimeline.beginLogicFrame();
 	if (!(begun & ScriptedCameraTimeline::DUE))
@@ -1700,7 +1700,7 @@ void W3DView::stepScriptedCamera()
 	}
 }
 
-// GeneralsX @bugfix Claude 08/10/2026 A SCRIPT freeze (FREEZE_TIME) stops the frame, but GameLogic::update still runs the
+// GeneralsX: A SCRIPT freeze (FREEZE_TIME) stops the frame, but GameLogic::update still runs the
 // scripts on every gate pass, and they read CAMERA_MOVEMENT_FINISHED and count their timers on that clock: a move in flight
 // steps once per such frozen update (GameEngine::updateLogic), one logic frame long, through the divider - as 2003's coupled
 // loop stepped it once per draw, which was once per update. A camera-only freeze is stepped by the draw's freeze loop
@@ -1714,8 +1714,8 @@ void W3DView::stepFrozenLogicUpdate()
 		m_recalcCamera = true;
 }
 
-// GeneralsX @bugfix Claude 08/10/2026 A camera lock ends a waypoint path (update() did it on the next DRAW, so a logic-only
-// pass left the path running: Codex catchup-reland-r1 P1), and a lock whose object is gone ends, as update() ends it. On
+// GeneralsX: A camera lock ends a waypoint path (update() did it on the next DRAW, so a logic-only
+// pass left the path running), and a lock whose object is gone ends, as update() ends it. On
 // every logic update that runs scripts - each new frame ahead of the time multiplier's divider (r2 P1) and each script-frozen
 // update (r3 P1) - so a lock a script sets ends the path before the next script reads CAMERA_MOVEMENT_FINISHED.
 void W3DView::endWaypointPathForCameraLock()
@@ -1747,7 +1747,7 @@ void W3DView::applyScriptedPose(const ScriptedPose &pose)
 	m_FXPitch = pose.fxPitch;
 }
 
-// GeneralsX @feature Claude 08/10/2026 The drawn scripted camera, between the last two logic frames' poses at the drawables'
+// GeneralsX: The drawn scripted camera, between the last two logic frames' poses at the drawables'
 // phase (Display::getLogicPhase; Drawable::isInterpolating), so a scripted move glides on a 120-240 Hz screen instead of
 // stepping at the logic rate, and stays where the units it frames are drawn. update() swaps the blend in for
 // updateCameraTransform() alone and puts the logic pose back, so nothing a step or a script reads ever sees it. Only for the
@@ -1757,7 +1757,7 @@ void W3DView::applyScriptedPose(const ScriptedPose &pose)
 Bool W3DView::blendScriptedCamera(ScriptedPose &logic)
 {
 	// a slaved camera (cameraEnableSlaveMode) takes its transform and its position from a bone in updateCameraTransform:
-	// nothing to blend, and the restore would undo that position (Codex catchup-reland-r1 P2)
+	// nothing to blend, and the restore would undo that position
 	if (TheGameLogic == NULL || TheDisplay == NULL || m_isCameraSlaved || (TheFramePacer != NULL && TheFramePacer->isTimeFrozen()))
 		return FALSE;
 	if (m_gxCamPoseFrame != TheGameLogic->getFrame() || !m_gxCamContinues)
@@ -1799,7 +1799,7 @@ void W3DView::updateView()
 // linear interpolation during the render update.
 void W3DView::stepView()
 {
-	// GeneralsX @bugfix Claude 08/10/2026 The scripted camera's one step per new logic frame (updateCameraMovements says why).
+	// GeneralsX: The scripted camera's one step per new logic frame (updateCameraMovements says why).
 	stepScriptedCamera();
 
 	//
@@ -1833,7 +1833,7 @@ void W3DView::update()
 	Bool didScriptedMovement = false;
 	m_drawWalkValid = FALSE; // any early return below leaves no draw walk for draw() to reuse
 
-	// GeneralsX @feature Claude 08/10/2026 Did this frame's first draw follow a draw of the frame before? A scripted camera
+	// GeneralsX: Did this frame's first draw follow a draw of the frame before? A scripted camera
 	// blends between two logic frames' poses only then, as a drawable does (blendScriptedCamera).
 	const Bool firstDrawOfGame = (m_gxCamDrawnFrame == 0xffffffff);	// reset() clears it
 	if (TheGameLogic != NULL && TheGameLogic->getFrame() != m_gxCamDrawnFrame)
@@ -1842,7 +1842,7 @@ void W3DView::update()
 		m_gxCamDrawnFrame = TheGameLogic->getFrame();
 	}
 
-	// GeneralsX @bugfix Claude 03/10/2026 The zoom and ground-follow easing below (zoomCameraToDesiredHeight,
+	// GeneralsX: The zoom and ground-follow easing below (zoomCameraToDesiredHeight,
 	// movePivotToGround) run once per DRAW, so they step by the time since the last draw. They stepped by the pacer's last
 	// ITERATION, the same time at 1x, but fast forward draws 1 iteration in k (FramePacer::isFastForwardDrawDue) and a
 	// network catch-up pass skips a draw too: the zoom eased at 1/k speed and near-stopped after a slow draw ("moving/
@@ -1856,7 +1856,7 @@ void W3DView::update()
 		m_lastDrawLoopSeconds = loopNow;
 	}
 
-	// GeneralsX @test Claude 29/10/2026 GX_ANIMTEST camlock@F (GameClient/GXAnimTrace.h): lock this view on the first enemy command
+	// GeneralsX: GX_ANIMTEST camlock@F (GameClient/GXAnimTrace.h): lock this view on the first enemy command
 	// center, as a script's camera follow does, so the follow easing below can be traced at several fps caps.
 	if (TheGameLogic != nullptr && ThePlayerList != nullptr && GXAnimTrace::testAt("camlock",
 		(TheGameLogic->isInGame() && !TheGameLogic->isInShellGame() && !TheGameLogic->isLoadingMap()) ? TheGameLogic->getFrame() : 0u))
@@ -1887,11 +1887,11 @@ void W3DView::update()
 
 //	Int elapsedTimeMs = TheW3DFrameLengthInMsec; // Assume a constant time flow.  It just works out better.  jba.
 
-	// GeneralsX @diagnostic Claude 28/09/2026 [GXTERRAIN], with GX_TERRAIN set on a rendered peer: the cost of each
+	// GeneralsX: [GXTERRAIN], with GX_TERRAIN set on a rendered peer: the cost of each
 	// terrain rebuild this frame - "partial" (ground a building flattened) or "full" (the whole draw window).
 	static const Bool s_terrainTrace = (getenv("GX_TERRAIN") != nullptr) && !TheGlobalData->m_headless;
 
-	// GeneralsX @performance Claude 28/09/2026 Ground a building flattened since the last frame: rebuilt here, once,
+	// GeneralsX: Ground a building flattened since the last frame: rebuilt here, once,
 	// instead of through a full terrain update per lowered cell (BaseHeightMapRenderObjClass::terrainHeightChanged).
 	// Before the full-update check, so a pending full update makes it skip the partial rebuild.
 	if (TheTerrainRenderObject && TheTerrainRenderObject->hasTerrainHeightChanges() && W3DDisplay::m_3DScene)
@@ -1958,7 +1958,7 @@ void W3DView::update()
 		}
 		else
 		{
-			// GeneralsX @bugfix Claude 29/10/2026 Cb-06a: every easing of the lock below was a fixed share per DRAW, so the camera
+			// GeneralsX: Cb-06a: every easing of the lock below was a fixed share per DRAW, so the camera
 			// caught its target 4x as fast at 240 fps as at 60. Each now covers the draw's 60 fps reference frames (gxRef, from
 			// m_drawFpsRatio; GameClient/GXClientAnimPolicy.h): at any fps the path in time this game drew at 60 fps (wh1ter0se:
 			// "def 60 fps"). The ramp steps in WHOLE reference frames, as it stepped once per 60 fps draw: a ramp growing
@@ -2016,8 +2016,8 @@ void W3DView::update()
 			}
 			else
 			{	Coord3D objpos = *cameraLockObj->getPosition();
-				// GeneralsX @feature Claude 29/09/2026 A superweapon missile is drawn along its visual flight (MissileVisual.h),
-				// away from its logic position: a lock follows what is drawn (Codex visuals-3 r6).
+				// GeneralsX: A superweapon missile is drawn along its visual flight (MissileVisual.h),
+				// away from its logic position: a lock follows what is drawn.
 				if (const Drawable *lockDraw = cameraLockObj->getDrawable())
 				{
 					if (const Matrix3D *visual = lockDraw->getVisualTransform())
@@ -2080,19 +2080,19 @@ void W3DView::update()
 						(unsigned)TheGameLogic->getFrame(), (double)m_drawFpsRatio, (double)followFactor, (double)curpos.x, (double)curpos.y,
 						(double)objpos.x, (double)objpos.y);
 
-				// GeneralsX @bugfix Claude 08/10/2026 ...but not while a scripted rotation runs: it stepped after this on every draw
-				// and so won; on the logic step now, this pull would fight it between steps (Codex catchup-reland-r5 P2).
+				// GeneralsX: ...but not while a scripted rotation runs: it stepped after this on every draw
+				// and so won; on the logic step now, this pull would fight it between steps.
 				if (m_lockType == LOCK_FOLLOW && !hasScriptedState(Scripted_Rotate))
 				{
 					// camera follow objects if they are flying
-					// A drawn superweapon missile (a nuke has no locomotor) is followed too (Codex visuals-3 r14).
+					// A drawn superweapon missile (a nuke has no locomotor) is followed too.
 					const Drawable *followDraw = cameraLockObj->getDrawable();
 					if ((cameraLockObj->isUsingAirborneLocomotor() && cameraLockObj->isAboveTerrainOrWater())
 						|| (followDraw != nullptr && followDraw->getVisualTransform() != nullptr))
 					{
 						Matrix3D camXForm;
 						Real heading = cameraLockObj->getOrientation();
-						// A drawn superweapon missile faces along its visual flight (Codex visuals-3 r13).
+						// A drawn superweapon missile faces along its visual flight.
 						if (followDraw != nullptr)
 						{
 							if (const Matrix3D *visual = followDraw->getVisualTransform())
@@ -2192,8 +2192,8 @@ void W3DView::update()
 		const Bool isScrollingTooFast = scrollLenSqr >= m_scrollAmountCutoffSqr;
 		const Bool isWithinHeightConstraints = isWithinCameraHeightConstraints();
 
-		// GeneralsX @bugfix Claude 17/10/2026 a camera body under its clearance floor counts as "too close" (gxBodyClearedZoom)
-		// - judged from the WANTED zoom, and only when the clearance rule is why the target is above the camera (Codex pg2-cam-v6-r1 P2)
+		// GeneralsX: a camera body under its clearance floor counts as "too close" (gxBodyClearedZoom)
+		// - judged from the WANTED zoom, and only when the clearance rule is why the target is above the camera
 		Bool isBodyTooLow = FALSE;
 		if (isScrolling && isScrollingTooFast && isWithinHeightConstraints)
 		{
@@ -2252,7 +2252,7 @@ void W3DView::update()
 		}
 	}
 
-	// GeneralsX @diagnostic Claude 03/10/2026 [GXCAMT], with GX_CAMTRACE set on a rendered peer: where the camera is at
+	// GeneralsX: [GXCAMT], with GX_CAMTRACE set on a rendered peer: where the camera is at
 	// each drawn frame, against the wall clock - ms since the first line, wall= ms since the last update (the last
 	// draw), upd= the pacer's last iteration (FramePacer::getUpdateTime, what the zoom/pivot smoothing above steps by),
 	// pos, zoom, the wanted and actual height above ground, the scroll this iteration and the fast-forward speed.
@@ -2281,12 +2281,12 @@ void W3DView::update()
 	}
 
 	// (gth) C&C3 if m_isCameraSlaved then force the camera to update each frame
-	// GeneralsX @bugfix Claude 08/10/2026 The pan motion blur (calcDeltaScroll) measures how far the DRAWN camera moved since
+	// GeneralsX: The pan motion blur (calcDeltaScroll) measures how far the DRAWN camera moved since
 	// the last draw: the scripted camera steps once per logic frame now, so the step's own start no longer tells it (r5 P3).
 	Coord3D drawnLookAt = m_pos;
 	if (m_recalcCamera || m_isCameraSlaved)
 	{
-		// GeneralsX @feature Claude 08/10/2026 A scripted move is drawn between logic frames; the logic pose goes back after.
+		// GeneralsX: A scripted move is drawn between logic frames; the logic pose goes back after.
 		ScriptedPose logicPose;
 		const Bool blended = blendScriptedCamera(logicPose);
 		updateCameraTransform();
@@ -2294,7 +2294,7 @@ void W3DView::update()
 		if (blended)
 			applyScriptedPose(logicPose);
 		// a blended camera is rebuilt on the next draw too, so the last blend of a move is followed by its end pose even if
-		// nothing else moves the camera (Codex catchup-reland-r1 P2)
+		// nothing else moves the camera
 		m_recalcCamera = blended;
 		if (TheScriptedCamera.isCamTestOn() && (blended || isCameraMovementFinished() == FALSE))
 		{
@@ -2306,7 +2306,7 @@ void W3DView::update()
 		}
 	}
 	// only when the drawn look-at moved: the blur keeps the last movement while the camera stands, as it always did, and an
-	// END_PAN normalises it (a zero vector there drew NaNs: Codex catchup-reland-r6 P2)
+	// END_PAN normalises it (a zero vector there drew NaNs)
 	// the first draw of a game starts the history where the camera is, not at the last game's position (r7), and so does
 	// every load-screen draw: the start camera is placed after the first of them (r8)
 	if (firstDrawOfGame || TheGlobalData->m_loadScreenRender)
@@ -2329,7 +2329,7 @@ void W3DView::update()
 
 	// render all of the visible Drawables
 	/// @todo this needs to use a real region partition or something
-	// GeneralsX @performance Claude 23/09/2026 Record the visit list for the post-draw walk in draw().
+	// GeneralsX: Record the visit list for the post-draw walk in draw().
 	// The change count is read BEFORE the walk, so a drawable that moves, appears or is destroyed
 	// during it (or at any point before draw()) invalidates the list.
 	m_drawWalkChangeCount = GameClient::getDrawableChangeCount();
@@ -2410,12 +2410,12 @@ void W3DView::set3DWireFrameMode(Bool enable)
 void W3DView::setViewFilterPos(const Coord3D *pos)
 {
 	ScreenMotionBlurFilter::setZoomToPos(pos);
-	// GeneralsX @bugfix Claude 08/10/2026 A jump target makes an IN_AND_OUT blur turn instead of ending (its logic lifetime)
+	// GeneralsX: A jump target makes an IN_AND_OUT blur turn instead of ending (its logic lifetime)
 	m_gxBlurJumpPos = *pos;
 	m_camTimeline.blurTarget();
 }
 
-// GeneralsX @bugfix Claude 08/10/2026 After a filter or mode was set (or a failed set put the old one back): a motion blur
+// GeneralsX: After a filter or mode was set (or a failed set put the old one back): a motion blur
 // IN/OUT now set starts its logic lifetime over - every set re-runs the filter's setup, which restarts its count - and
 // anything else ends it. The draw ending the effect does not end it: isCameraMovementFinished counts logic frames.
 void W3DView::noteViewFilterForCameraClock()
@@ -2510,7 +2510,7 @@ void W3DView::draw()
 	CustomScenePassModes customScenePassMode  = SCENE_PASS_DEFAULT;
 	Bool preRenderResult = false;
 
-	// GeneralsX @feature D · render-hud-seam-1 13/10/2026 The world/HUD seam (W3DWorldSeam.h): with an upscaler on, the world
+	// GeneralsX: The world/HUD seam (W3DWorldSeam.h): with an upscaler on, the world
 	// below draws into a private target at the render scale and pop() upscales it under everything drawn after it. One branch
 	// while GXUpscaler is off. Only the tactical view: pop() composites onto the whole target. Bypassed only for a filter that
 	// redirects the scene: every view sits on FT_VIEW_DEFAULT, whose preRender returns FALSE (W3DShaderManager.cpp:179-186), so it
@@ -2542,7 +2542,7 @@ void W3DView::draw()
 		W3DDisplay::m_3DScene->setCustomPassMode(customScenePassMode);
 		if (m_isWireFrameEnabled)
 			W3DDisplay::m_3DScene->Set_Extra_Pass_Polygon_Mode(SceneClass::EXTRA_PASS_CLEAR_LINE);
-		// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 (GXShadowMapHooks.h): the shadow map's frame - the tactical view's
+		// GeneralsX: S7 (GXShadowMapHooks.h): the shadow map's frame - the tactical view's
 		// default pass only (a filter that redirects the scene draws no map). A49 (D · look-shadowmaps-4): ARMED here; the scene starts it
 		// after its On_Frame_Update loop (GxShadowMapFireArmed), so its poses land where key off's do
 		const bool gxShadowFrame = this == TheTacticalView && GxShadowMapFrame && customScenePassMode == SCENE_PASS_DEFAULT;
@@ -2567,7 +2567,7 @@ void W3DView::draw()
 		W3DDisplay::m_3DScene->Set_Extra_Pass_Polygon_Mode(SceneClass::EXTRA_PASS_DISABLE);
 		m_isWireFrameEnabled = m_nextWireFrameEnabled;
 
-		// GeneralsX @diagnostic Claude 25/09/2026 [GXPICK] where this frame drew the targeting decal's
+		// GeneralsX: [GXPICK] where this frame drew the targeting decal's
 		// centre, from the camera as it rendered and the viewport CameraClass::Apply gave D3D. See
 		// GXPickProbe.h.
 		GXPickPreview &gx = TheGXPickPreview;
@@ -2798,7 +2798,7 @@ void W3DView::draw()
 	TheGameClient->resetRenderedObjectCount();
 
 	TheDisplay->beginBatch();
-	// GeneralsX @performance Claude 23/09/2026 Upstream TheSuperHackers PR #2044 (open) attacks the same
+	// GeneralsX: Upstream TheSuperHackers PR #2044 (open) attacks the same
 	// double walk with a retained list fed from GameLogic; this is a client-only subset. If no drawable
 	// was added, removed or moved since update()'s draw walk and the region is unchanged, that walk's
 	// visit list IS what a fresh walk would produce, in the same order, so replay it instead of
@@ -2830,7 +2830,7 @@ void W3DView::draw()
 			{
 				next = draw->getNextDrawable();
 				const Coord3D *pos = draw->getPosition();
-				if( draw->getVisualTransform() != nullptr ||	// a drawn superweapon missile is always walked, as in GameClient::iterateDrawablesInRegion (Codex visuals-3 r11)
+				if( draw->getVisualTransform() != nullptr ||	// a drawn superweapon missile is always walked, as in GameClient::iterateDrawablesInRegion
 						(pos->x >= axisAlignedRegion.lo.x && pos->x <= axisAlignedRegion.hi.x &&
 						 pos->y >= axisAlignedRegion.lo.y && pos->y <= axisAlignedRegion.hi.y &&
 						 pos->z >= axisAlignedRegion.lo.z && pos->z <= axisAlignedRegion.hi.z) )
@@ -3011,14 +3011,14 @@ void W3DView::setCameraHeightAboveGroundLimitsToDefault(Real heightScale)
 		aspectRatioScale = fabs(( 1 - ( baseAspectRatio - currentAspectRatio) ));
 	}
 
-	// GeneralsX @feature Claude 24/08/2026 Host-authoritative camera limits: see GXHostCamera.h.
+	// GeneralsX: Host-authoritative camera limits: see GXHostCamera.h.
 	// One call, not two, so min and max can never come from different sides of a match boundary.
-	// GeneralsX @bugfix Claude 10/09/2026 Shell map pin layered over the host-camera limits; still
+	// GeneralsX: Shell map pin layered over the host-camera limits; still
 	// ONE resolution for the pair, so min and max cannot come from different sides of a boundary.
 	Real effectiveMinHeight, effectiveMaxHeight;
 	getEffectiveCameraHeightLimits(&effectiveMinHeight, &effectiveMaxHeight);
 	m_maxHeightAboveGround = effectiveMaxHeight * aspectRatioScale * heightScale;
-	// GeneralsX @tweak Claude 26/09/2026 Only the MAX takes the aspect allowance, as in Generals Online (owner: "min/max
+	// GeneralsX: Only the MAX takes the aspect allowance, as in Generals Online (owner: "min/max
 	// zoom must match Generals Online's"): GO scales m_maxHeightAboveGround alone (GameClient W3DView.cpp setDefaultView,
 	// 1 + (w/h - 4/3)) and its view takes the min height unscaled (View.cpp View::init). Scaling the min too left a
 	// 16:9 player unable to zoom in past 144 for a setting of 100 - a widescreen zooms OUT further, not in less.
@@ -3035,7 +3035,7 @@ void W3DView::setDefaultView(Real pitch, Real angle, Real maxHeight)
 	// MDC - we no longer want to rotate maps (design made all of them right to begin with)
 	//	m_defaultAngle = angle * M_PI/180.0f;
 	setDefaultPitch(pitch);
-	// GeneralsX @feature Claude 24/08/2026 Host-authoritative camera limits: see GXHostCamera.h.
+	// GeneralsX: Host-authoritative camera limits: see GXHostCamera.h.
 	m_maxHeightAboveGround = getEffectiveMaxCameraHeight()*maxHeight;
 	if (m_minHeightAboveGround > m_maxHeightAboveGround)
 		m_maxHeightAboveGround = m_minHeightAboveGround;
@@ -3075,7 +3075,7 @@ void W3DView::setZoom(Real z)
 void W3DView::setZoomToMax()
 {
 	// default zoom has to be max, otherwise players will just zoom to max always
-	// GeneralsX @feature Claude 26/09/2026 The start rises with the max, as in Generals Online (owner, 26/09/2026): GO
+	// GeneralsX: The start rises with the max, as in Generals Online (owner, 26/09/2026): GO
 	// starts a match at m_defaultMaxHeightAboveGround, which setDefaultView makes the max itself, aspect allowance
 	// included (GameClient ecb828ebd, Core/GameEngineDevice/Source/W3DDevice/GameClient/W3DView.cpp:2295 and :2304,
 	// setZoomToDefault :2349). So 447.8 at 16:9 for the default 310, 1444.4 for 1000, 4333.3 for the Debug menu's 3000.
@@ -3504,7 +3504,7 @@ void W3DView::moveCameraTo(const Coord3D *o, Int milliseconds, Int shutter, Bool
 	m_mcwpInfo.waySegLength[2] = 0;
 
 	m_mcwpInfo.numWaypoints = 2;
-	// GeneralsX @bugfix Claude 08/10/2026 Its time is m_camTimeline's (one step a logic frame, the shutter ignored as before): a
+	// GeneralsX: Its time is m_camTimeline's (one step a logic frame, the shutter ignored as before): a
 	// move of under 1 ms ends on its first logic step.
 	m_camTimeline.path(milliseconds, 1, easeIn, easeOut);
 	m_mcwpInfo.shutter = 1;
@@ -3514,7 +3514,7 @@ void W3DView::moveCameraTo(const Coord3D *o, Int milliseconds, Int shutter, Bool
 
 	setupWaypointPath(orient);
 	// ...and its "do it instantly" pose step stays, 1 ms of its 1 ms: base Generals' walk (>) puts the camera at the target here,
-	// so a rotation chained in the same script starts there (Codex camera-sim-B r1 P2); Zero Hour's (>=) ends the walk first and
+	// so a rotation chained in the same script starts there (camera-sim-B r1 P2); Zero Hour's (>=) ends the walk first and
 	// moves it on the first step, as it always did
 	if (m_camTimeline.waypointPath().total == 1.0f)
 	{
@@ -3530,7 +3530,7 @@ void W3DView::rotateCamera(Real rotations, Int milliseconds, Real easeIn, Real e
 {
 	m_rcInfo.trackObject = FALSE;
 	m_camTimeline.rotate(milliseconds, 0, easeIn, easeOut);	// GeneralsX: its frames and multiplier; it ends a path
-	setUserControlled(false);	// before the start pose, where addScriptedState ran (Codex camera-sim-B r2 P2)
+	setUserControlled(false);	// before the start pose, where addScriptedState ran (camera-sim-B r2 P2)
 	m_rcInfo.angle.startAngle = m_angle;
 	m_rcInfo.angle.endAngle = m_angle + 2*PI*rotations;
 	m_CameraArrivedAtWaypointOnPathFlag = false;
@@ -3555,7 +3555,7 @@ void W3DView::rotateCameraTowardPosition(const Coord3D *pLoc, Int milliseconds, 
 {
 	m_rcInfo.trackObject = FALSE;
 
-	// GeneralsX @bugfix Claude 08/10/2026 It runs its time wherever the camera stands (m_camTimeline, as the simulation's does):
+	// GeneralsX: It runs its time wherever the camera stands (m_camTimeline, as the simulation's does):
 	// within 0.1 of the target there is no direction to turn to, so it turns nowhere - it used not to start at all, which made
 	// CAMERA_MOVEMENT_FINISHED depend on this peer's camera.
 	Real endAngle = m_angle;
@@ -3600,7 +3600,7 @@ void W3DView::zoomCamera( Real finalZoom, Int milliseconds, Real easeIn, Real ea
 {
 	m_camTimeline.zoom(milliseconds);	// GeneralsX: its frames (Common/ScriptedCameraClock.h)
 	// before the start zoom is taken, where addScriptedState ran: under PRESERVE_RETAIL_SCRIPTED_CAMERA it converts m_zoom into
-	// scripted coordinates (Codex camera-sim-B r2 P2: the zoom started from the user's)
+	// scripted coordinates (camera-sim-B r2 P2: the zoom started from the user's)
 	setUserControlled(false);
 	if (milliseconds<1) milliseconds = 1;
 	m_zcInfo.startZoom = m_zoom;
@@ -3804,7 +3804,7 @@ void W3DView::cameraModFinalLookToward(Coord3D *pLoc)
 // ------------------------------------------------------------------------------------------------
 void W3DView::cameraModFinalTimeMultiplier(Int finalMultiplier)
 {
-	// GeneralsX @bugfix Claude 08/10/2026 The multiplier a rotation or a path ends at (else the multiplier now): m_camTimeline's.
+	// GeneralsX: The multiplier a rotation or a path ends at (else the multiplier now): m_camTimeline's.
 	// A path's used to be blended per waypoint by distance, the first segment running from the camera; it follows the path's
 	// eased time now, as the simulation's does.
 	m_camTimeline.finalTimeMultiplier(finalMultiplier);
@@ -3856,7 +3856,7 @@ void W3DView::resetCamera(const Coord3D *location, Int milliseconds, Real easeIn
 Bool W3DView::isCameraMovementFinished()
 {
 	// Several of the motion blur effects are similar to camera movements.
-	// GeneralsX @bugfix Claude 08/10/2026 ...and answer for their LOGIC lifetime. This is the VIEW's answer (W3DDisplay::draw's
+	// GeneralsX: ...and answer for their LOGIC lifetime. This is the VIEW's answer (W3DDisplay::draw's
 	// freeze loop, the replay camera); scripts read the simulation's, TheScriptedCamera (GameLogic/ScriptedCamera.h).
 	return m_camTimeline.isFinished();
 }
@@ -3884,7 +3884,7 @@ void W3DView::moveCameraAlongWaypointPath(Waypoint *pWay, Int milliseconds, Int 
 	m_mcwpInfo.numWaypoints = 1;
 	m_mcwpInfo.shutter = shutter/TheW3DFrameLengthInMsec;
 	if (m_mcwpInfo.shutter<1) m_mcwpInfo.shutter = 1;
-	// GeneralsX @bugfix Claude 08/10/2026 Its time and multiplier are m_camTimeline's, and it runs its time even when the drops
+	// GeneralsX: Its time and multiplier are m_camTimeline's, and it runs its time even when the drops
 	// below leave one waypoint (the camera stood on it): that peer's camera used to decide whether the path started.
 	m_camTimeline.path(milliseconds, m_mcwpInfo.shutter, easeIn, easeOut);
 
@@ -3976,7 +3976,7 @@ void W3DView::setupWaypointPath(Bool orient)
 	m_mcwpInfo.waypoints[0].x -= cur.x-prev.x;
 	m_mcwpInfo.waypoints[0].y -= cur.y-prev.y;
 
-	// GeneralsX @bugfix Claude 08/10/2026 m_camTimeline started the path (and ended a rotation) with its time; a path left with
+	// GeneralsX: m_camTimeline started the path (and ended a rotation) with its time; a path left with
 	// one waypoint runs its time without moving (moveAlongWaypointPath)
 	m_CameraArrivedAtWaypointOnPathFlag = false;
 	m_mcwpInfo.curShutter = m_mcwpInfo.shutter;
@@ -4003,8 +4003,8 @@ static Real makeQuadraticS(Real t)
 // ------------------------------------------------------------------------------------------------
 void W3DView::rotateCameraOneFrame(Bool ended)
 {
-	// GeneralsX @bugfix Claude 08/10/2026 The pose of a rotation step: m_camTimeline counted the frame, set the time multiplier
-	// (from its own clock - Codex catchup-reland-r4 P1) and decided the end, which also clears the camera freeze.
+	// GeneralsX: The pose of a rotation step: m_camTimeline counted the frame, set the time multiplier
+	// (from its own clock) and decided the end, which also clears the camera freeze.
 	const ScriptedCameraTimeline::Counter &rc = m_camTimeline.rotation();
 	if (TheGlobalData->m_disableCameraMovement) {
 		return;
@@ -4160,7 +4160,7 @@ void W3DView::removeScriptedState(ScriptedState state)
 // ------------------------------------------------------------------------------------------------
 void W3DView::moveAlongWaypointPath(Real elapsed, Real totalTime, Real milliseconds, Bool ended)
 {
-	// GeneralsX @bugfix Claude 08/10/2026 The pose of a path step: m_camTimeline counted the time, ended the path on it (and
+	// GeneralsX: The pose of a path step: m_camTimeline counted the time, ended the path on it (and
 	// cleared the camera freeze) and set the time multiplier.
 	if (TheGlobalData->m_disableCameraMovement) {
 		return;
@@ -4343,7 +4343,7 @@ void W3DView::shake( const Coord3D *epicenter, CameraShakeType shakeType )
 	if (inRange)
 		intensity *= 1.0f - (dist/TheGlobalData->m_maxShakeRange);
 
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6 (GXRenderSplit.h): the shake's angle and strength are worked
+	// GeneralsX: render-split step 6 (GXRenderSplit.h): the shake's angle and strength are worked
 	// out at the call, as before (the client-random draw stays in its place in the stream); the writes into the view's
 	// shake state, which its per-frame update damps, are deferred when the tick calls - an explosion's FX or a script.
 	// As before, an epicenter out of range still sets the new angle.
@@ -4481,7 +4481,7 @@ bool W3DView::getDesiredTerrainDrawSize(ICoord2D &dimensions) const
 		dimensions.y = WorldHeightMap::LOW_ANGLE_DRAW_HEIGHT;
 	}
 
-	// GeneralsX @feature Claude 28/07/2026 TerrainDrawDistanceScale widens the tuned draw window.
+	// GeneralsX: TerrainDrawDistanceScale widens the tuned draw window.
 	const Real terrainScale = TheGlobalData != nullptr ? TheGlobalData->m_terrainDrawDistanceScale : 1.0f;
 	if (terrainScale != 1.0f)
 	{
@@ -4489,7 +4489,7 @@ bool W3DView::getDesiredTerrainDrawSize(ICoord2D &dimensions) const
 		dimensions.y = static_cast<Int>(dimensions.y * terrainScale);
 	}
 
-	// GeneralsX @bugfix Claude 28/07/2026 Scale the terrain draw window with camera HEIGHT.
+	// GeneralsX: Scale the terrain draw window with camera HEIGHT.
 	//
 	// The size chosen above depends only on camera PITCH. Zooming out scales the camera position
 	// uniformly on X/Y/Z (buildCameraPosition, :298-300), so the pitch angle is INVARIANT under zoom
@@ -4516,7 +4516,7 @@ bool W3DView::getDesiredTerrainDrawSize(ICoord2D &dimensions) const
 	// on that. Ratio is clamped at 1.0 so normal play is bit-for-bit unchanged - this only ever
 	// grows the window, never shrinks it below the tuned defaults.
 	//
-	// GeneralsX @performance Claude 26/09/2026 Sized for the MAX height as well as the current one, so the window a
+	// GeneralsX: Sized for the MAX height as well as the current one, so the window a
 	// player can zoom out to is drawn at once rather than found one 32-cell step at a time. The window only grows
 	// within a game (updateTerrain) and every step rebuilds the whole terrain: measured on the Mac Mini, Alpine Assault
 	// at 16:9, the first zoom-out after the Debug menu raised the max mid-match cost 4-5 frames of 30-35 ms (55.3 TPS).
@@ -4524,7 +4524,7 @@ bool W3DView::getDesiredTerrainDrawSize(ICoord2D &dimensions) const
 	// only moves a raise of the max (Debug/Extras Apply, a host's pair arriving) to one rebuild, instead of several
 	// spread over the next zoom-out. setTerrainDrawSize clamps the window to the map. Only while the player holds the
 	// camera: a scripted one (a cutscene, the shell map) never goes where the player's limit allows, so it keeps its
-	// own height and the window grows to the max when control returns (Codex dbgcam-r7 P2).
+	// own height and the window grows to the max when control returns.
 	const Real sizingHeight = m_isUserControlled ? std::max(m_currentHeightAboveGround, m_maxHeightAboveGround) : m_currentHeightAboveGround;
 	const Real heightRatio = sizingHeight / ViewDefaultMaxHeightAboveTerrain;
 	if (heightRatio > 1.0f)
@@ -4547,7 +4547,7 @@ void W3DView::updateTerrain()
 
 	if (getDesiredTerrainDrawSize(drawSize))
 	{
-		// GeneralsX @performance Claude 26/09/2026 Grow at once, never shrink within a game (reset() clears it).
+		// GeneralsX: Grow at once, never shrink within a game (reset() clears it).
 		// Every size change rebuilds the whole terrain (HeightMapRenderObjClass::setTerrainDrawSize). At 16:9
 		// a zoom from max to min crosses 225 -> 193 -> 161 -> 135 and back, and the 225 step sits at a height
 		// of 444.2 against a max (and default) zoom of 447.8, so ground wobble under the pivot flipped it
@@ -4557,9 +4557,9 @@ void W3DView::updateTerrain()
 		// the largest window already drawn, so keeping it never draws more terrain than the player's own
 		// default view; growing is never delayed, so the ground never goes black.
 		// A live settings change (Extras/Debug TerrainDrawDistanceScale, DrawEntireTerrain) starts the window
-		// over, so lowering the draw distance to recover performance takes effect at once (Codex P2). So does a
+		// over, so lowering the draw distance to recover performance takes effect at once. So does a
 		// LOWER camera max: the window is sized for the max (getDesiredTerrainDrawSize), and a window kept for a
-		// max the player has since lowered would be drawn for the rest of the match (Codex dbgcam-r7/r8 P2).
+		// max the player has since lowered would be drawn for the rest of the match.
 		const Real drawScale = TheGlobalData != nullptr ? TheGlobalData->m_terrainDrawDistanceScale : 1.0f;
 		const Bool drawEntire = TheGlobalData != nullptr && TheGlobalData->m_drawEntireTerrain;
 		if (drawScale != m_terrainDrawScale || drawEntire != m_terrainDrawEntire || m_maxHeightAboveGround < m_terrainDrawMaxHeight)
@@ -4578,7 +4578,7 @@ void W3DView::updateTerrain()
 		TheTerrainRenderObject->setTerrainDrawSize(drawSize.x, drawSize.y);
 	}
 
-	// GeneralsX @performance Claude 23/09/2026 Iterator on the stack instead of NEW/delete on every call.
+	// GeneralsX: Iterator on the stack instead of NEW/delete on every call.
 	// Upstream reference: Mauller, PR #2646
 	// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2646
 	RefRenderObjListClass* lightlist = W3DDisplay::m_3DScene->getLightList();
@@ -4586,7 +4586,7 @@ void W3DView::updateTerrain()
 
 	const Vector3 cameraPivot(m_pos.x, m_pos.y, m_pos.z);
 	// D · look-shadowmaps-2 S7 (GXShadowMapHooks.h): a full rebuild through ANY caller (update(), or a camera move such as a replay's
-	// camera command, which rebuilds and clears m_needFullUpdate before update() runs - Codex code-fit5-r1) re-measures the shadow fit's
+	// camera command, which rebuilds and clears m_needFullUpdate before update() runs) re-measures the shadow fit's
 	// terrain height range
 	if (TheTerrainRenderObject->doesNeedFullUpdate())
 		GxShadowMapTerrainChanged = true;

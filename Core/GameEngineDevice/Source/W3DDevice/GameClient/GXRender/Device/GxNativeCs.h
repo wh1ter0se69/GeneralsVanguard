@@ -1,4 +1,4 @@
-// GeneralsX @feature D · rw3-X-2 13/10/2026 A23-B: the native device's command stream and its worker thread `gx-native-cs`
+// GeneralsX: A23-B: the native device's command stream and its worker thread `gx-native-cs`
 // (perf-audit/DESIGN_A23_wide-ring.md v8 §2, §3.10, §5 - DXVK's CS model, dxvk_cs.h).
 //
 // One producer (the device's front end: the thread calling the device, one at a time) and one consumer (the worker). A command
@@ -198,7 +198,7 @@ private:
 	std::mutex m_lock;
 	std::condition_variable m_workerCv, m_producerCv, m_holdCv;
 	// The worker. Apple: a pthread with at least the CREATING thread's stack - the exec halves it runs ran on the game's main thread
-	// (8 MiB on macOS) before, and std::thread's 512 KiB overflowed under a deep driver encode (Codex rw3x-a23b-code-r12-core P1:
+	// (8 MiB on macOS) before, and std::thread's 512 KiB overflowed under a deep driver encode (
 	// a 20000-rectangle Clear with GX_VK_SUBMIT_THREAD=0). Elsewhere std::thread already matches main (Windows: the exe's default
 	// reserve; Linux: RLIMIT_STACK).
 	struct Worker
@@ -223,7 +223,7 @@ private:
 // A60: ends the process at once - Windows TerminateProcess, POSIX _exit: no atexit handler, no static destructor, and nothing that takes
 // the UCRT exit lock (UCRT's own _exit / abort / quick_exit do). For the CRT-exit watchdog only.
 [[noreturn]] void gxTerminateProcessNow(int code);
-// A60 (Codex rf2-a60-r2 P1): writes msg to the process's stderr through the OS (no FILE lock, no stdio buffer) on a helper thread and
+// A60: writes msg to the process's stderr through the OS (no FILE lock, no stdio buffer) on a helper thread and
 // waits at most `ms` for it - a stalled pipe or a lock held by a blocked thread can delay the line, never what follows it
 void gxWriteStderrBounded(const char* msg, int ms);
 

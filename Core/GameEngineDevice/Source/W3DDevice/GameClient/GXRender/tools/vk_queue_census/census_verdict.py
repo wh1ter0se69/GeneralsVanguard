@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# GeneralsX @feature B · dlss-fg-1 14/10/2026 census_verdict.py: C1/C2/C3 of the DLSS Frame Generation queue contract (PREREG A39a,
+# GeneralsX: census_verdict.py: C1/C2/C3 of the DLSS Frame Generation queue contract (PREREG A39a,
 # modernize/render-dlss/DESIGN_dlss-fg-P0.md §6) from a VK_LAYER_GX_queue_census summary.
 #   C1  every operation on a queue the EXECUTABLE fetched comes from ONE thread, the one the executable's own operations on that
 #       queue come from. Streamline's work inside our calls is therefore on that thread; anything else is a foreign op.

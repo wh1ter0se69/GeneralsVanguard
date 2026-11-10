@@ -62,13 +62,13 @@ Intro::Intro()
 	{
 		// Please be kind and do not remove the EA logo movie. This game was built by EA. It lasts just 3 seconds.
 		//
-		// GeneralsX @feature Claude 13/08/2026 The EA logo now plays BY DEFAULT rather than only
+		// GeneralsX: The EA logo now plays BY DEFAULT rather than only
 		// under GX_INTRO. EA's own additional licence terms ask that the origins of the program are
 		// not misrepresented and that modified versions are marked as such; showing their logo is
 		// the plainest way to honour the first half, and it is three seconds.
 		m_allowedStateFlags |= 1u << IntroState_EALogoMovie;
 
-		// GeneralsX @feature Claude 13/08/2026 The TheSuperHackers attribution screen is no longer
+		// GeneralsX: The TheSuperHackers attribution screen is no longer
 		// shown, at the owner's request.
 		//
 		// The line that stood here asked downstream forks to keep it. It is a request in a comment,

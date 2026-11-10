@@ -1,5 +1,5 @@
 # SDL3 windowing/input library for Linux builds
-# GeneralsX @build BenderAI 11/02/2026 - Session 26
+# GeneralsX: Session 26
 # SDL3 provides cross-platform windowing, input events, and OS integration
 # Used by SDL3GameEngine (replaces Win32 window management on Linux)
 #
@@ -8,7 +8,7 @@
 # This avoids vcpkg issues with libsystemd and complex dependencies
 
 if(SAGE_USE_SDL3)
-    # GeneralsX @build BenderAI 22/02/2026 (updated)
+    # GeneralsX: (updated)
     # Strategy: FetchContent to compile SDL3 + SDL3_image from source
     # Docker environment (ubuntu:24.04) has build dependencies pre-installed
     # This ensures local build compatibility (same glibc, same distro as developer machine)
@@ -47,7 +47,7 @@ if(SAGE_USE_SDL3)
     
     FetchContent_MakeAvailable(SDL3)
     
-    # GeneralsX @bugfix BenderAI 22/02/2026 (updated 24/02/2026 for macOS)
+    # GeneralsX: (updated 24/02/2026 for macOS)
     # Before SDL3_image build: force PNG discovery to platform-specific libpng
     # Linux: System libpng16.so is dynamic shared library
     # macOS: Use Homebrew PNG or system framework
@@ -67,11 +67,11 @@ if(SAGE_USE_SDL3)
         set(SDLIMAGE_PNG_SHARED OFF CACHE BOOL "No shared libpng on iOS" FORCE)
     else()
         # macOS: Force Homebrew's dynamic libpng, bypassing vcpkg's static .a
-        # GeneralsX @build BenderAI 24/02/2026 - Phase 5 macOS port
+        # GeneralsX: Phase 5 macOS port
         # vcpkg provides static libpng16.a but SDL3_image requires dynamic .dylib
         # Homebrew installs libpng16.16.dylib at /usr/local/lib (Intel) or /opt/homebrew/lib (ARM)
         set(PNG_SHARED ON CACHE BOOL "Require PNG as shared library" FORCE)
-        # GeneralsX @bugfix BenderAI 25/02/2026 Check Apple Silicon Homebrew (/opt/homebrew) FIRST.
+        # GeneralsX: Check Apple Silicon Homebrew (/opt/homebrew) FIRST.
         # A machine with both Homebrew installations (Intel Rosetta + native arm64) could have
         # /usr/local/lib/libpng16.dylib (x86_64) AND /opt/homebrew/lib/libpng16.dylib (arm64).
         # Linking the x86_64 dylib into an arm64 binary produces:

@@ -90,7 +90,7 @@
 #include "W3DDevice/GameClient/W3DCustomScene.h"
 
 #include "Common/UnitTimings.h" //Contains the DO_UNIT_TIMINGS define jba.
-#include "GameClient/GXRenderSplit.h"	// GeneralsX @feature Claude 08/10/2026 render-split step 6: scorches from the tick
+#include "GameClient/GXRenderSplit.h"	// GeneralsX: render-split step 6: scorches from the tick
 #include "W3DDevice/GameClient/BaseHeightMap.h"
 
 #include "W3DDevice/GameClient/HeightMap.h"
@@ -101,9 +101,9 @@
 #include "GameClient/GXWaterLive.h"	// GeneralsX @feature live water: the foam rescans changed ground (flushTerrainHeightChanges)
 #include "GameClient/GXWaterRA3.h"	// GeneralsX @feature RA3 water: the depth LUT's shape and the shore tiles' tint pass
 
-// GeneralsX @feature Claude 24/10/2026 RA3 water: the shape key each depth LUT was last filled for (gxWaterRA3LutKey; 0 = retail),
+// GeneralsX: RA3 water: the shape key each depth LUT was last filled for (gxWaterRA3LutKey; 0 = retail),
 // per TEXTURE: HeightMap and FlatHeightMap each keep their own m_destAlphaTexture and adjustTerrainLOD swaps between them, so
-// one shared key let the idle one keep the other shape (Codex wra3-r2 P2). A few slots, constant-initialised (a dynamic
+// one shared key let the idle one keep the other shape. A few slots, constant-initialised (a dynamic
 // initialiser here would put the file's static set-up at run time); an unknown texture reads 0, i.e. retail's fill.
 struct GxRA3LutKey
 {
@@ -373,7 +373,7 @@ void BaseHeightMapRenderObjClass::setTextureLOD(Int lod)
 	if (m_map)
 		m_map->setTextureLOD(lod);
 #ifdef DO_SCORCH
-	// GeneralsX @bugfix Claude 24/09/2026 - upstream TheSuperHackers PR #3119 (a2b5d7210), hand-ported:
+	// GeneralsX: upstream TheSuperHackers PR #3119 (a2b5d7210), hand-ported:
 	// upstream adds W3DScorch::invalidateTexture(); this fork keeps the scorch texture on this class,
 	// so it is one call here. Drop the scorch texture's D3D surface so its next Apply() reloads it
 	// at the new texture-reduction level; before this it kept the mip chain it was first loaded with.
@@ -1311,7 +1311,7 @@ Real BaseHeightMapRenderObjClass::getMaxCellHeight(Real x, Real y) const
 	p3=data[iX+(iY+offset)*logicHeightMap->getXExtent()]*MAP_HEIGHT_SCALE;
 
 	height=p0;
-	// GeneralsX @bugfix BenderAI 13/02/2026 Replace __max with MAX (fighter19 pattern)
+	// GeneralsX: Replace __max with MAX (fighter19 pattern)
 	height=MAX(height,p1);
 	height=MAX(height,p2);
 	height=MAX(height,p3);
@@ -1553,11 +1553,11 @@ void BaseHeightMapRenderObjClass::setShoreLineDetail()
 	//Find all shoreline tiles so they can get extra alpha blend
 	updateShorelineTiles(0,0,m_mapDX-1,m_mapDY-1,m_map);
 
-	// GeneralsX @feature Claude 17/10/2026 And the depth LUT, when the water's opacity cap moved since it was filled: the
+	// GeneralsX: And the depth LUT, when the water's opacity cap moved since it was filled: the
 	// clearer-water option (W3DDevice/GameClient/Water/GXWaterClearGlue.inl) changes TheWaterTransparency inside a loaded map,
 	// both ways, and initHeightData's own refresh runs only at map load. The same test initHeightData uses, so a call that
 	// changes nothing (GameLOD's soft-edge toggle) leaves the texture alone.
-	// GeneralsX @feature Claude 24/10/2026 ... or when RA3 water's ramp went on, off or changed shape at an unchanged cap (GXWaterRA3.h).
+	// GeneralsX: ... or when RA3 water's ramp went on, off or changed shape at an unchanged cap (GXWaterRA3.h).
 	if (TheWaterTransparency->m_minWaterOpacity != m_currentMinWaterOpacity || gxWaterRA3LutKey() != gxRA3LutKeyOf(m_destAlphaTexture))
 		initDestAlphaLUT();
 }
@@ -1751,7 +1751,7 @@ void BaseHeightMapRenderObjClass::updateShorelineTiles(Int minX, Int minY, Int m
 	}
 
 	//First remove any existing extra blend tiles within this partial region
-	// GeneralsX @bugfix Claude 23/09/2026 Stable in-place compaction instead of one overlapping memcpy per removed tile
+	// GeneralsX: Stable in-place compaction instead of one overlapping memcpy per removed tile
 	// (undefined behaviour, and O(n^2) when the whole map is rebuilt by setShoreLineDetail).
 	Int j=0;
 	Int numKept=0;
@@ -1792,9 +1792,9 @@ void BaseHeightMapRenderObjClass::updateShorelineTiles(Int minX, Int minY, Int m
 				updateShorelineTile(i,j,border,pMap);
 			}
 
-	// GeneralsX @bugfix Claude 28/09/2026 A partial range (a flattened patch, since terrain relight went partial) drops
+	// GeneralsX: A partial range (a flattened patch, since terrain relight went partial) drops
 	// its tiles and APPENDS the re-scanned ones, but recordShoreLineSortInfos keeps one run per column (row) and a
-	// column split into two runs loses the earlier one: those soft-water edges were never drawn (Codex gfxa-relight-r5).
+	// column split into two runs loses the earlier one: those soft-water edges were never drawn.
 	// Restore the order a full scan produces - major axis, then minor - before the runs are recorded. Keys are unique
 	// (one tile per cell), and a full scan is already in this order.
 	if (shoreLineSortInfosXMajor)
@@ -1856,7 +1856,7 @@ void BaseHeightMapRenderObjClass::initDestAlphaLUT()
 
 		if (pData)
 		{
-			// GeneralsX @feature Claude 24/10/2026 RA3 water fills its Beer-Lambert ramp to the same cap (GXWaterRA3.h); off, retail's.
+			// GeneralsX: RA3 water fills its Beer-Lambert ramp to the same cap (GXWaterRA3.h); off, retail's.
 			if (!gxWaterRA3FillLUT((unsigned *)pData, TheWaterTransparency->m_minWaterOpacity))
 			{
 			//Fill texture with alpha gradient
@@ -2004,7 +2004,7 @@ void BaseHeightMapRenderObjClass::allocateScorchBuffers()
 	m_scorchesInBuffer = 0; // If we just allocated the buffers, we got no scorches in the buffer.
 	m_curNumScorchVertices=0;
 	m_curNumScorchIndices=0;
-	// GeneralsX @bugfix Claude 14/09/2026 - upstream TheSuperHackers PR #3159 (f71bdf0da)
+	// GeneralsX: upstream TheSuperHackers PR #3159 (f71bdf0da)
 	// dropped the two hard-coded RTS_DEBUG sample scorches that used to be seeded here.
 	// Do not re-add them as "missing upstream lines".
 	//
@@ -2024,7 +2024,7 @@ void BaseHeightMapRenderObjClass::allocateScorchBuffers()
 //=============================================================================
 void BaseHeightMapRenderObjClass::updateScorches()
 {
-	// GeneralsX @bugfix Claude 23/09/2026 Was `> 1`, so with exactly one scorch the buffers were rebuilt (and,
+	// GeneralsX: Was `> 1`, so with exactly one scorch the buffers were rebuilt (and,
 	// via the size-0 locks below, the whole 917 KB re-uploaded) on every rendered frame. A rebuild with
 	// m_numScorches >= 1 always leaves m_scorchesInBuffer >= 1, and every invalidation (addScorch,
 	// clearAllScorches, allocateScorchBuffers, initHeightData, staticLightingChanged) zeroes it, so
@@ -2050,7 +2050,7 @@ void BaseHeightMapRenderObjClass::updateScorches()
 	VertexFormatXYZDUV1 *curVb = vb;
 
 	Int curScorch;
-	// GeneralsX @bugfix Claude 24/09/2026 - upstream TheSuperHackers PR #3153 (fba44b797), hand-ported:
+	// GeneralsX: upstream TheSuperHackers PR #3153 (fba44b797), hand-ported:
 	// upstream edits Core/.../W3DScorch.cpp, which this fork has not adopted, so the edit lands here.
 	// Was ambient + diffuse/2, scaled by 255 and packed with REAL_TO_INT and no clamp: once a channel
 	// passed 1.0 (e.g. ambient 0.6 + diffuse 1.0 = 1.1 -> 280) its high bits carried into the next
@@ -2062,11 +2062,11 @@ void BaseHeightMapRenderObjClass::updateScorches()
 	Real shadeB = (TheGlobalData->m_terrainAmbient[0].blue + TheGlobalData->m_terrainDiffuse[0].blue) / 2.0f;
 	UnsignedInt diffuse = DX8Wrapper::Convert_Color_Clamp(Vector4(shadeR, shadeG, shadeB, 1.0f));
 	m_scorchesInBuffer = 0;
-	// GeneralsX @bugfix Claude 24/09/2026 Upstream PR #3114 (66804e109) draws the static list, then the volatile
+	// GeneralsX: Upstream PR #3114 (66804e109) draws the static list, then the volatile
 	// one, each newest first. Same order here over the one array. The two parts share one vertex buffer
 	// (upstream gives each list its own), so the static part goes first: when the buffer fills, what is left
 	// out is the oldest gameplay marks, never a map's own.
-	// ponytail: shared buffer, so gameplay scorches get what the map's leave; a second buffer if that bites.
+	// Trade-off: shared buffer, so gameplay scorches get what the map's leave; a second buffer if that bites.
 	for (Int n = 0; n < m_numScorches; n++) {
 		curScorch = (n < m_numStaticScorches) ? (m_numStaticScorches - 1 - n) : (m_numScorches - 1 - (n - m_numStaticScorches));
 		m_scorchesInBuffer++;
@@ -2096,7 +2096,7 @@ void BaseHeightMapRenderObjClass::updateScorches()
 			maxY = m_map->getYExtent()-m_map->getBorderSizeInline();
 		}
 
-		// GeneralsX @bugfix Claude 14/09/2026 - Decide whether this scorch fits BEFORE writing any of
+		// GeneralsX: Decide whether this scorch fits BEFORE writing any of
 		// it, porting TheSuperHackers PR #3186 (upstream e3ed89ea6, which edits Core/.../W3DScorch.cpp -
 		// a file this fork has not adopted, so the equivalent edit lands in the inlined loop here).
 		// The old per-vertex and per-index bounds tests bailed out in the MIDDLE of a scorch, so the
@@ -2194,7 +2194,7 @@ void BaseHeightMapRenderObjClass::clearAllScorches()
 //=============================================================================
 void BaseHeightMapRenderObjClass::addScorch(Vector3 location, Real radius, Scorches type)
 {
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6 (GXRenderSplit.h): a scorch the tick adds - an FX list's
+	// GeneralsX: render-split step 6 (GXRenderSplit.h): a scorch the tick adds - an FX list's
 	// TerrainScorch, or the Firestorm, neutron missile and particle cannon modules through W3DGameClient::addScorch - goes
 	// into the list the terrain draw rebuilds from at the tick's end. Its type was drawn by the caller, at the call.
 	GXRenderSplit &split = GXRenderSplit::get();
@@ -2210,7 +2210,7 @@ void BaseHeightMapRenderObjClass::addScorch(Vector3 location, Real radius, Scorc
 #ifdef DO_SCORCH
 	Int i;
 	Real limit = radius/4;
-	// GeneralsX @bugfix Claude 24/09/2026 Upstream PR #3114 (66804e109): only gameplay scorches are
+	// GeneralsX: Upstream PR #3114 (66804e109): only gameplay scorches are
 	// deduplicated against, and only they are evicted, so a map's own scorches survive any battle.
 	for (i=m_numStaticScorches; i<m_numScorches; i++) {
 		if ( abs(location.X-m_scorches[i].location.X) < limit &&
@@ -2221,7 +2221,7 @@ void BaseHeightMapRenderObjClass::addScorch(Vector3 location, Real radius, Scorc
 		}
 	}
 
-	// GeneralsX @bugfix Claude 14/09/2026 - upstream TheSuperHackers PR #3159 (893aaa1b6)
+	// GeneralsX: upstream TheSuperHackers PR #3159 (893aaa1b6)
 	// moved this eviction below the duplicate scan. Running it first meant that adding a
 	// duplicate mark to a full table shifted the oldest scorch out and then returned via
 	// the loop above, destroying a live scorch without storing anything in its place.
@@ -2252,7 +2252,7 @@ void BaseHeightMapRenderObjClass::addScorch(Vector3 location, Real radius, Scorc
 //=============================================================================
 /** TheSuperHackers @feature stephanmeesters 13/08/2026 Adds a permanent scorch mark loaded from the map. Static
  * scorch marks are managed separately so adding gameplay scorch marks cannot evict them. */
-// GeneralsX @bugfix Claude 24/09/2026 Ported by hand from upstream PR #3114 (66804e109) into the one array
+// GeneralsX: Ported by hand from upstream PR #3114 (66804e109) into the one array
 // (see m_numStaticScorches). Like upstream's static list: no duplicate check, and the oldest static
 // scorch is evicted when the static part is full.
 //=============================================================================
@@ -2344,7 +2344,7 @@ Int BaseHeightMapRenderObjClass::getStaticDiffuse(Int x, Int y)
 
 	RTS3DScene *pMyScene = (RTS3DScene *)Scene;
 	if (pMyScene) {
-		// GeneralsX @performance Claude 23/09/2026 Iterator on the stack instead of NEW/delete on every call.
+		// GeneralsX: Iterator on the stack instead of NEW/delete on every call.
 		// Upstream reference: Mauller, PR #2646
 		// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2646
 		RefRenderObjListClass *lightlist = pMyScene->getLightList();
@@ -2571,8 +2571,8 @@ void BaseHeightMapRenderObjClass::staticLightingChanged()
 	// Cause the terrain to get updated with new lighting.
 	scheduleFullUpdate();
 
-	// GeneralsX @feature Claude 17/10/2026 Live water's foam caches the ground: rescan it all (a loaded save restores heights
-	// through here, not through dirty rectangles; Codex lw2-r4). GXWaterLiveGlue.inl.
+	// GeneralsX: Live water's foam caches the ground: rescan it all (a loaded save restores heights
+	// through here, not through dirty rectangles). GXWaterLiveGlue.inl.
 	gxWaterLiveTerrainReloaded();
 
 	// Cause the scorches to get updated with new lighting.
@@ -2587,7 +2587,7 @@ void BaseHeightMapRenderObjClass::staticLightingChanged()
 //=============================================================================
 // BaseHeightMapRenderObjClass::terrainHeightChanged
 //=============================================================================
-/** GeneralsX @performance Claude 28/09/2026 One cell was lowered - a building foundation flattening its footprint
+/** GeneralsX: One cell was lowered - a building foundation flattening its footprint
 (TerrainLogic::flattenTerrain -> W3DTerrainVisual::setRawMapHeight, inside the LOGIC tick, up to 9 calls per cell).
 Each call used to be staticLightingChanged(): a rebuild and relight of every vertex in the terrain draw window on the
 next frame, plus an O(roads) road relight per cell right here in the sim tick. Now the cell only joins a dirty
@@ -2647,7 +2647,7 @@ void BaseHeightMapRenderObjClass::terrainHeightChanged(Int x, Int y)
 /** Client frame: rebuild and relight each dirty rectangle through doPartialUpdate (the call WorldBuilder uses for
 the same job), then redo the road and scorch lighting once, as staticLightingChanged did once per cell. Returns the
 cells the partial updates actually rebuilt (clipped to the draw window): 0 when none ran - headless, a pending full
-update that rebuilds everything, or every patch outside the drawn terrain (Codex gfxa-relight-r4). */
+update that rebuilds everything, or every patch outside the drawn terrain. */
 //=============================================================================
 Int BaseHeightMapRenderObjClass::flushTerrainHeightChanges(RefRenderObjListIterator *pLightsIterator)
 {
@@ -2659,8 +2659,8 @@ Int BaseHeightMapRenderObjClass::flushTerrainHeightChanges(RefRenderObjListItera
 	if (TheGlobalData->m_headless || m_map == nullptr) {
 		return 0; // nothing is drawn
 	}
-	// GeneralsX @feature Claude 17/10/2026 Live water's shoreline foam caches the ground it lies on: the cells in these
-	// rectangles are scanned again (GXWaterLiveGlue.inl; Codex lw2-r1). A partial update or a pending full one alike.
+	// GeneralsX: Live water's shoreline foam caches the ground it lies on: the cells in these
+	// rectangles are scanned again (GXWaterLiveGlue.inl). A partial update or a pending full one alike.
 	for (Int i = 0; i < count; i++)
 		gxWaterLiveTerrainChanged(m_dirtyRegions[i].lo.x, m_dirtyRegions[i].lo.y, m_dirtyRegions[i].hi.x, m_dirtyRegions[i].hi.y);
 	Int cells = 0;
@@ -2928,7 +2928,7 @@ transition.  This version is exactly like the one above but optimized for the ca
 are assumed to be sorted.  Not used by World Builder. */
 void BaseHeightMapRenderObjClass::renderShoreLinesSorted(CameraClass *pCamera)
 {
-	// GeneralsX @feature Claude 24/10/2026 RA3 water's tint pass draws these same tiles once more under its own state
+	// GeneralsX: RA3 water's tint pass draws these same tiles once more under its own state
 	// (gxWaterRA3TintBegin, from the terrain render): then neither the state below nor the visible-tile count is touched.
 	const Bool gxTint = gxWaterRA3TintPassOn() ? TRUE : FALSE;
 	if (!gxTint)
@@ -2976,9 +2976,9 @@ void BaseHeightMapRenderObjClass::renderShoreLinesSorted(CameraClass *pCamera)
 
 	if (!gxTint)
 	{
-	// GeneralsX @feature Claude 24/10/2026 RA3 water: this renderer's LUT in the shape RA3 water wants now (on, off, a new ramp) -
+	// GeneralsX: RA3 water: this renderer's LUT in the shape RA3 water wants now (on, off, a new ramp) -
 	// checked here, before its one reader, so a map change, a runtime switch and an LOD swap to the other terrain renderer
-	// (its own texture, Codex wra3-r2 P2) are all caught; one compare a frame when nothing changed.
+	// (its own texture) are all caught; one compare a frame when nothing changed.
 	if (gxRA3LutKeyOf(m_destAlphaTexture) != gxWaterRA3LutKey())
 		initDestAlphaLUT();
 	ShaderClass unlitShader=ShaderClass::_PresetOpaque2DShader;
@@ -3337,5 +3337,5 @@ void BaseHeightMapRenderObjClass::loadPostProcess()
 //=============================================================================
 Bool BaseHeightMapRenderObjClass::useCloud()
 {
-	return gxGovCloudMap(TheGlobalData->m_useCloudMap) && TheGlobalData->m_timeOfDay != TIME_OF_DAY_NIGHT;	// GeneralsX @feature Claude 17/10/2026 S14 look governor (GameClient/GXLookGovernor.h): cloud step
+	return gxGovCloudMap(TheGlobalData->m_useCloudMap) && TheGlobalData->m_timeOfDay != TIME_OF_DAY_NIGHT;	// GeneralsX: S14 look governor (GameClient/GXLookGovernor.h): cloud step
 }

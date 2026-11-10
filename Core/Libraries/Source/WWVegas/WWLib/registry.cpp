@@ -76,7 +76,7 @@ RegistryClass::RegistryClass( const char * sub_key, bool create ) :
 	IsValid( false )
 {
 	HKEY key;
-	// GeneralsX @bugfix Claude 27/07/2026 HKEY is a pointer, so it is 8 bytes on x64 and the old
+	// GeneralsX: HKEY is a pointer, so it is 8 bytes on x64 and the old
 	// sizeof(HKEY)==sizeof(int) claim silently truncated the handle stored in RegistryClass::Key.
 	// Key is now intptr_t; assert the real invariant at compile time so a future ABI change cannot
 	// reintroduce the truncation (a runtime assert() would compile away in release anyway).
@@ -735,7 +735,7 @@ void RegistryClass::Delete_Registry_Tree(char *path)
 	}
 }
 
-// GeneralsX @build BenderAI 13/02/2026 Linux: No registry support - stub all methods
+// GeneralsX: Linux: No registry support - stub all methods
 #else // _WIN32
 
 namespace {
@@ -763,7 +763,7 @@ namespace {
 bool RegistryClass::IsLocked = false;
 
 // Static methods
-// GeneralsX @feature GitHubCopilot 29/03/2026 Back RegistryClass string/int settings with registry.ini on non-Windows.
+// GeneralsX: Back RegistryClass string/int settings with registry.ini on non-Windows.
 bool RegistryClass::Exists(const char* sub_key)
 {
 	return sub_key != nullptr && RegistryIni::SectionExists(RegistryIni::LocalMachineRoot(), sub_key);

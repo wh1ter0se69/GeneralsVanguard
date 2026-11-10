@@ -114,7 +114,7 @@ UserPreferences::UserPreferences() : m_unreadable(FALSE)
 {
 }
 
-// GeneralsX @bugfix Claude 22/10/2026 A file that exists and cannot be read is never replaced (Codex uow-r1, the
+// GeneralsX: A file that exists and cannot be read is never replaced (the
 // file-wipe class). load() used to keep the name and return false for ANY fopen failure, and most callers ignore that
 // result (OptionPreferences' constructor, SkirmishBattleHonors, LANPreferences...), so the next write() moved the few
 // keys set since over the whole file: the in-game Options menu's Accept, GameLOD's automatic write at startup, and
@@ -149,7 +149,7 @@ Bool UserPreferences::load(AsciiString fname)
 	FILE *fp = fopen(m_filename.str(), "r");
 	const int openErr = errno;
 	// A dangling symlink opens as ENOENT too, and writing over its name would cut the player's file off when its volume
-	// comes back (gxNameExists, GXReplaceFile.h; Codex fwc-r1 P2).
+	// comes back (gxNameExists, GXReplaceFile.h).
 	if (fp == nullptr && (openErr != ENOENT || gxNameExists(m_filename.str())))
 	{
 		m_unreadable = TRUE;
@@ -161,9 +161,9 @@ Bool UserPreferences::load(AsciiString fname)
 		Bool firstLine = TRUE;
 		while( fgets( buf, LINE_LEN, fp ) != nullptr )
 		{
-			// GeneralsX @bugfix Claude 22/10/2026 A UTF-8 BOM (a hand edit in an older Notepad) is not part of the first key.
+			// GeneralsX: A UTF-8 BOM (a hand edit in an older Notepad) is not part of the first key.
 			// Kept, it hid that key from the game while the launcher (gxio strip_bom) read it, so a first line
-			// "GXRenderer = native" showed the new renderer on in the launcher and ran classic (C · asm-0967, Codex r1 P2).
+			// "GXRenderer = native" showed the new renderer on in the launcher and ran classic (C · asm-0967).
 			const char *start = buf;
 			if (firstLine && (unsigned char)buf[0] == 0xEF && (unsigned char)buf[1] == 0xBB && (unsigned char)buf[2] == 0xBF)
 				start = buf + 3;
@@ -220,7 +220,7 @@ Bool UserPreferences::write()
 	if (m_unreadable)
 		return false;	// load() said why; the file stays exactly as it is
 
-	// GeneralsX @bugfix Claude 23/09/2026 Written beside the file and then swapped into place, never
+	// GeneralsX: Written beside the file and then swapped into place, never
 	// truncated in place. This writes Options.ini, and on Windows that file lives under Documents,
 	// which OneDrive keeps under sync. See GameClient/GXReplaceFile.h.
 	AsciiString tmp = m_filename;
@@ -494,7 +494,7 @@ Int QuickMatchPreferences::getSide()
 
 CustomMatchPreferences::CustomMatchPreferences()
 {
-	// GeneralsX @bugfix Claude 25/09/2026 The file name is keyed on the GameSpy profile, and in relay
+	// GeneralsX: The file name is keyed on the GameSpy profile, and in relay
 	// mode TheGameSpyInfo only exists while the Online lobby is up. A construction outside that
 	// window (the lobby's second shutdown at process exit was one) read through a null pointer and
 	// killed the process in ~GameEngine. With no profile there is no file to name: load nothing, and

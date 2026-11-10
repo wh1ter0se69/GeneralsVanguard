@@ -267,7 +267,7 @@ const ContainedItemsList* TunnelContain::getContainedItemsList() const
 	{
 		return owningPlayer->getTunnelSystem()->getContainedItemsList();
 	}
-	// GeneralsX @bugfix Claude 01/10/2026 No tunnel system means nothing inside: an empty list, as the getters above
+	// GeneralsX: No tunnel system means nothing inside: an empty list, as the getters above
 	// return 0. nullptr crashed every caller that dereferences the list unguarded (PartitionFilterStealthedAndUndetected,
 	// reached by the skirmish AI's hunt-with-command-button scan). The neutral player has no tunnel system, and
 	// Object::setTeam hands a dead player's new objects to neutral: killPlayer kills a pending Sneak Attack's start
@@ -477,7 +477,7 @@ UpdateSleepTime TunnelContain::update()
 					Object *attacker = TheGameLogic->findObjectByID(attackerID);
 					if( attacker )
 					{
-						// GeneralsX @bugfix Claude 01/10/2026 A neutral tunnel has no tunnel system (see getContainedItemsList).
+						// GeneralsX: A neutral tunnel has no tunnel system (see getContainedItemsList).
 						if (tunnelSystem && obj->getRelationship(attacker) == ENEMIES) {
 							tunnelSystem->updateNemesis(attacker);
 						}

@@ -557,7 +557,7 @@ public:
 	Bool clearDisabled( DisabledType type );
 
 	void setDisabled( DisabledType type );
-	/// GeneralsX @feature Claude 27/09/2026 neverManned = TRUE: DISABLED_UNMANNED on a vehicle that never had a pilot (a
+	/// GeneralsX: neverManned = TRUE: DISABLED_UNMANNED on a vehicle that never had a pilot (a
 	/// cheat spawn's, GameLogicDispatch.cpp) - none of what a SNIPED pilot's death does: no splatter sound, no car bomb's
 	/// dead-man's trigger, no veterancy or auto-heal reset. Ignored for every other type.
 	void setDisabledUntil( DisabledType type, UnsignedInt frame, Bool neverManned = FALSE );
@@ -566,7 +566,7 @@ public:
 	void pauseAllSpecialPowers( const Bool disabling ) const;
 
 	//Checks any timers and clears disabled statii that have expired.
-	// GeneralsX @performance Claude 23/09/2026 returns the earliest remaining till-frame (0xffffffff if none).
+	// GeneralsX: returns the earliest remaining till-frame (0xffffffff if none).
 	UnsignedInt checkDisabledStatus();
 
 	//When an AIAttackState is over, it needs to clean up any weapons that might be in leech range mode
@@ -695,7 +695,7 @@ private:
 	Real					m_shroudClearingRange;						///< looking range for shroud ONLY
 	Real					m_shroudRange;										///< like looking range, this is how far I shroud others' looks
 
-	// GeneralsX @performance Claude 23/09/2026 WRITER CONTRACT: set a bit / till-frame only through
+	// GeneralsX: WRITER CONTRACT: set a bit / till-frame only through
 	// setDisabledUntil (it calls TheGameLogic->noteDisabledUntil, which keeps
 	// GameLogic::m_disabledExpiryWatermark at or below every set bit's till-frame). A direct write here
 	// would let GameLogic skip the expiry walk past that frame and silently delay the expiry.

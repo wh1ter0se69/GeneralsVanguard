@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-K 11/10/2026 L1 native device, game side (render-seam/DESIGN_l1-device.md §1, §8.1, §12).
+// GeneralsX: L1 native device, game side (render-seam/DESIGN_l1-device.md §1, §8.1, §12).
 //
 // Options.ini GXRenderer = native (or GX_RENDERER=native, TEST-ONLY, over it: GameClient/GXRendererKey.h) asks for the native d3d8
 // device; GxNative::Install() (W3DDisplay::init, right after GxCap::Install and before WW3D::Init creates the device) sets
@@ -20,10 +20,10 @@ bool SessionLive();	///< GeneralsX: a native session really started; Requested()
 // alive at process exit (a leaked child keeps it; the device prints end=teardown itself when it is destroyed). The game ends in
 // _exit() (SDL3Main), which runs no atexit handler - call this before shutdownMemoryManager(): the line allocates. No-op otherwise.
 void FlushFinalStats();
-// GeneralsX @feature B · dlss-fg-1 14/10/2026 (PREREG A39b): every message the Windows message loop takes, BEFORE dispatch - NVIDIA PCL
+// GeneralsX: (PREREG A39b): every message the Windows message loop takes, BEFORE dispatch - NVIDIA PCL
 // Stats pings with its own registered message, possibly a thread message that no window procedure ever sees. No-op without Reflex.
 void NoteWindowsMessage(unsigned message);
-// GeneralsX @feature E · look-shadowmaps-9 19/10/2026 S7 A92 TEST-ONLY (GX_GPUTIME_DUMP, read once): W3DDisplay::draw hands the native device
+// GeneralsX: S7 A92 TEST-ONLY (GX_GPUTIME_DUMP, read once): W3DDisplay::draw hands the native device
 // the logic frame it draws through DX8Wrapper::Device_Call, so each per-frame GPU sample of the dump names its game frame. Without the
 // switch there is no call at all; on another device TestSetLogicFrame does nothing.
 bool GpuTimeDump();

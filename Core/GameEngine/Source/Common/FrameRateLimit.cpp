@@ -19,7 +19,7 @@
 #include "PreRTS.h"
 #include "Common/FrameRateLimit.h"
 
-// GeneralsX @build BenderAI 12/02/2026 Platform-specific high-resolution timing
+// GeneralsX: Platform-specific high-resolution timing
 #ifndef _WIN32
 #include <time.h>    // clock_gettime, nanosleep, clock_nanosleep
 #include <errno.h>   // EINTR
@@ -33,7 +33,7 @@
 namespace
 {
 
-// GeneralsX @bugfix Claude 14/08/2026 One clock, read one way, for the whole file.
+// GeneralsX: One clock, read one way, for the whole file.
 //
 // The constructor, wait() and reset() each used to read the clock themselves, and reset() got it
 // wrong: it called QueryPerformanceCounter with no #ifdef, and off Windows that is the CompatLib
@@ -85,7 +85,7 @@ HANDLE createFrameTimer()
 }
 #endif
 
-// GeneralsX @perf Claude 14/08/2026 Sleep until an absolute deadline, and do NOT busy-wait.
+// GeneralsX: Sleep until an absolute deadline, and do NOT busy-wait.
 //
 // What this replaces: sleep to 2 ms short of the target, then spin on the clock until the target
 // arrives. That guard band is an ABSOLUTE 2 ms against a target that is not - at the 8x network
@@ -152,7 +152,7 @@ void sleepUntilTick(Int64 deadlineTicks, Int64 freq)
 		const uint64_t machTicks = static_cast<uint64_t>(remaining) * s_timebase.denom / s_timebase.numer;
 		const uint64_t machDeadline = mach_absolute_time() + machTicks;
 
-		// GeneralsX @perf Claude 12/10/2026 mach_wait_until is a NORMAL-urgency kernel timer, and XNU coalesces those:
+		// GeneralsX: mach_wait_until is a NORMAL-urgency kernel timer, and XNU coalesces those:
 		// it fires anywhere in a leeway window that grows with the wait (~a quarter of it), even on a user-interactive
 		// thread. Measured on M-series Macs at a 60 cap: woke 2.3-3.7 ms late at the median, up to ~7 ms, differently
 		// every frame, so the grid turned each late wake into a long + short frame pair - p99 ~22 ms and ~10% of frames
@@ -212,10 +212,10 @@ Real FrameRateLimit::wait(UnsignedInt maxFps, UnsignedInt pollFps, Bool (*poll)(
 {
 	PROFILER_SECTION;
 
-	// GeneralsX @bugfix BenderAI 11/05/2026 Validate FPS limit to prevent division by zero and underflow
+	// GeneralsX: Validate FPS limit to prevent division by zero and underflow
 	// Skip limiting if maxFps is 0 or extremely high (uncapped mode)
 	//
-	// GeneralsX @bugfix Claude 14/08/2026 Was `maxFps > 1000000`, one short of
+	// GeneralsX: Was `maxFps > 1000000`, one short of
 	// RenderFpsPreset::UncappedFpsValue, so the value the UI actually means by "uncapped" missed
 	// this branch and went through the limiter with a 1 microsecond target. Named, and inclusive.
 	if (maxFps == 0 || maxFps >= RenderFpsPreset::UncappedFpsValue)
@@ -250,7 +250,7 @@ Real FrameRateLimit::wait(UnsignedInt maxFps, UnsignedInt pollFps, Bool (*poll)(
 	// unpaced, and that frame still costs its own work. Network::timeForNewFrame() forgives at two
 	// periods; one is the tighter choice here because this side must never overshoot the cap.
 	//
-	// GeneralsX @feature Claude 30/09/2026 ...except under fast forward (FramePacer::update), which asks for ~100 ms: there
+	// GeneralsX: ...except under fast forward (FramePacer::update), which asks for ~100 ms: there
 	// the loop IS the logic's pacer, one tick per iteration, and a draw that costs several periods would otherwise lose
 	// those ticks for good. The burst of unpaced iterations that repays it is exactly the catch-up fast forward wants.
 	if (tick - m_deadline > targetTicks * static_cast<Int64>(maxDebtPeriods > 0 ? maxDebtPeriods : 1))
@@ -258,7 +258,7 @@ Real FrameRateLimit::wait(UnsignedInt maxFps, UnsignedInt pollFps, Bool (*poll)(
 		m_deadline = tick;
 	}
 
-	// GeneralsX @bugfix Claude 27/09/2026 The hold is sliced for the network: poll() runs every
+	// GeneralsX: The hold is sliced for the network: poll() runs every
 	// 1/pollFps s until the deadline (FramePacer::update - a network and logic pass with no draw), so
 	// a cap at the tick rate still reads the socket and ticks on time. The draw deadline is unchanged.
 	Int64 pollSpent = 0; // time inside poll() is work, not a hold
@@ -295,7 +295,7 @@ Real FrameRateLimit::wait(UnsignedInt maxFps, UnsignedInt pollFps, Bool (*poll)(
 	return static_cast<Real>(elapsedSeconds);
 }
 
-// GeneralsX @bugfix Claude 14/08/2026 This read the clock through a raw QueryPerformanceCounter
+// GeneralsX: This read the clock through a raw QueryPerformanceCounter
 // with no #ifdef _WIN32. Off Windows that is the CompatLib shim, which reports 100-NANOSECOND
 // units (CompatLib/Include/time_compat.h) while the POSIX constructor sets m_freq = 1000000000 and
 // stores NANOSECONDS. Measured on an Apple Silicon machine: m_start landed exactly 100.00x too
@@ -323,7 +323,7 @@ void FrameRateLimit::reset()
 }
 
 
-// GeneralsX @feature Claude 27/09/2026 Nothing below the tick rate at GX_LOGIC_60HZ. The engine advances
+// GeneralsX: Nothing below the tick rate at GX_LOGIC_60HZ. The engine advances
 // AT MOST ONE logic frame per main-loop iteration, so a render cap under the tick rate would also cap
 // the LOGIC; FramePacer::getActualFramesPerSecondLimit therefore lifts any cap under it to it, in every
 // game, and 30, 50 and 56 were steps that changed nothing. At 30 Hz logic the ladder keeps them: 30 is

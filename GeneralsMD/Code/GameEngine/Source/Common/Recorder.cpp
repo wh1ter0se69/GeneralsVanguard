@@ -52,7 +52,7 @@
 #include "gitinfo.h"	// GitSHA1, GitUncommittedChanges: the replay identity (GENS14)
 #include "GameClient/GXReplayDiag.h"
 #include "GameClient/GXReplayDiagFormat.h"
-// GeneralsX @feature Claude 22/09/2026 The archived copy is named after the MATCH, not the clock.
+// GeneralsX: The archived copy is named after the MATCH, not the clock.
 #include "GameNetwork/GXRelayStatsWire.h"
 #include "GameNetwork/GXWireChar.h"
 #include "GameNetwork/GameInfo.h"
@@ -93,26 +93,26 @@ static inline bool CopyFile(const char* source, const char* dest, bool failIfExi
 #include <Utility/bit_adapter.h>
 
 constexpr const char s_genrep[] = "GENREP";
-// GeneralsX @feature Claude 12/08/2026 Twelve-human replay magic. Six bytes, exactly like the
+// GeneralsX: Twelve-human replay magic. Six bytes, exactly like the
 // legacy one, so nothing before the disconnect-flag block shifts and the reader can discriminate
 // on the magic alone. See REPLAY_DISCON_SLOTS in Recorder.h.
 constexpr const char s_genr12[] = "GENR12";
-// GeneralsX @feature Claude 25/09/2026 Fourteen-human replay magic (MAX_HUMAN_SLOTS 14). Six bytes again, so
+// GeneralsX: Fourteen-human replay magic (MAX_HUMAN_SLOTS 14). Six bytes again, so
 // the reader still discriminates before it has read anything it could mis-parse. New recordings carry it;
 // GENR12 and GENREP stay readable with their own flag counts.
 constexpr const char s_genr14[] = "GENR14";
-// GeneralsX @feature Claude 01/10/2026 GENR14's layout plus the recording build's identity right after iniCRC - its
+// GeneralsX: GENR14's layout plus the recording build's identity right after iniCRC - its
 // SimIdWire (36 bytes), its commit (40 hex digits), an uncommitted-changes byte and the map-data hash (u32, step 2b:
 // GetMapDataHash of the map's map.ini/solo.ini, 0 = none; builds before 2b wrote 0) - so playback keys on the build that
 // simulated the match instead of the exe (replayMatchesGameVersion). New recordings carry it; GENREP/GENR12/GENR14 stay
 // readable for the replay list but are never played (they carry no identity to check).
 constexpr const char s_gens14[] = "GENS14";
-// GeneralsX @fix Claude 05/10/2026 GENS14's layout, but MSG_QUEUE_UPGRADE / MSG_CANCEL_UPGRADE / MSG_PURCHASE_SCIENCE carry the
+// GeneralsX: GENS14's layout, but MSG_QUEUE_UPGRADE / MSG_CANCEL_UPGRADE / MSG_PURCHASE_SCIENCE carry the
 // template's name id (Common/GXWireId.h), not its NameKey. The bytes are the same shape, so only the magic can tell a
 // reader - this engine and every tool that decodes those arguments (scripts/ai/parse-replay.py) - which one it holds.
 // New recordings carry it; a GENS14 file is listed but never played (replayRefusal).
 constexpr const char s_gens15[] = "GENS15";
-// GeneralsX @feature Claude 06/11/2026 GENS15's layout with 34 disconnect flags (MAX_HUMAN_SLOTS 34: 32 players + 2
+// GeneralsX: GENS15's layout with 34 disconnect flags (MAX_HUMAN_SLOTS 34: 32 players + 2
 // observers). New recordings carry it; GENS15 (14 flags) stays readable and playable on this build (its matches fit the
 // 16-Player CRC view, GameCommon.h gxCrcPlayerSpan). An older build refuses GENS34 at the magic.
 constexpr const char s_gens34[] = "GENS34";
@@ -125,7 +125,7 @@ static_assert(sizeof(RecorderClass::ReplayHeader::buildSha) == REPLAY_SHA_CHARS 
 static_assert(GX_DIAG_TYPE == GameMessage::MSG_BEGIN_NETWORK_MESSAGES, "appendNextCommand deletes this type unread, and the diagnostics block relies on that");
 constexpr const UnsignedInt replayBufferBytes = 8192;
 
-// GeneralsX @fix Claude 05/08/2026 Frame count standing in for 3.33 s of wall clock; a fixed 100
+// GeneralsX: Frame count standing in for 3.33 s of wall clock; a fixed 100
 // would double the replay CRC volume at 60 Hz. Exactly 100 at the default 30 Hz.
 // A .rep records the frames it was captured at, so a replay only compares like with like when the
 // recording and playback builds share a tick rate - which engineID already enforces at join.
@@ -141,7 +141,7 @@ const char *lastReplayFileName = "00000000";	// a name the user is unlikely to e
 // Note that this will overflow on January 18, 2038. @todo Upgrade to 64 bits when we break compatibility.
 typedef int32_t replay_time_t;
 
-// GeneralsX @bugfix Claude 28/07/2026 Replay strings are UTF-16 on the wire, not native wchar_t.
+// GeneralsX: Replay strings are UTF-16 on the wire, not native wchar_t.
 //
 // A Mac-recorded .rep crashed Windows with an access violation before frame 0, and the Mac refused
 // Windows replays. Cause: the header's strings were written and read with File::writeChar(const
@@ -507,7 +507,7 @@ void RecorderClass::updatePlayback() {
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 17/10/2026 Hand the logic a frame's commands only once the replay's game has started.
+	// GeneralsX: Hand the logic a frame's commands only once the replay's game has started.
 	// playbackFile() queues MSG_NEW_GAME, and the next update reaches here with the frame counter already 0 - before that
 	// MSG_NEW_GAME is processed, and a whole update before startNewGame() loads the map. So every command recorded at
 	// frame 0 went in behind the MSG_NEW_GAME and was dispatched in the window between prepareNewGame() and the load:
@@ -558,7 +558,7 @@ void RecorderClass::stopPlayback() {
 	}
 }
 
-// GeneralsX @feature Claude 24/09/2026 A CRC report from ANOTHER slot that shares this peer's Player -
+// GeneralsX: A CRC report from ANOTHER slot that shares this peer's Player -
 // another observer, since every observer slot is the one ReplayObserver. A replay stores only the
 // Player index, so playback could not tell the recorder's own report from its fellow observers' and
 // would compare the wrong number of them; leaving those out keeps exactly the recorder's own. CRC
@@ -658,7 +658,7 @@ void RecorderClass::startRecording(GameDifficulty diff, Int originalGameMode, In
 		return;
 	}
 	// TheSuperHackers @info the null terminator needs to be ignored to maintain retail replay file layout
-	// GeneralsX @feature Claude 12/08/2026 New recordings carry the newest magic (GENS14 since 01/10/2026).
+	// GeneralsX: New recordings carry the newest magic (GENS14 since 01/10/2026).
 	m_file->writeFormat("%s", s_gens34);	// GENS15 since 05/10/2026, GENS34 since 06/11/2026
 
 	//
@@ -700,7 +700,7 @@ void RecorderClass::startRecording(GameDifficulty diff, Int originalGameMode, In
 	m_file->write(&versionNumber, sizeof(versionNumber));
 	m_file->write(&(TheGlobalData->m_exeCRC), sizeof(TheGlobalData->m_exeCRC));
 	m_file->write(&(TheGlobalData->m_iniCRC), sizeof(TheGlobalData->m_iniCRC));
-	// GeneralsX @feature Claude 01/10/2026 GENS14: the SimID this build would present at a lobby join, its commit and
+	// GeneralsX: GENS14: the SimID this build would present at a lobby join, its commit and
 	// whether it had uncommitted changes. An identity that never completed writes tag 0, and a build without git writes
 	// an all-'0' commit; every reader refuses both - the same fail-safe as "this build cannot join".
 	SimIdWire simId;
@@ -713,12 +713,12 @@ void RecorderClass::startRecording(GameDifficulty diff, Int originalGameMode, In
 	m_file->write(buildSha, sizeof(buildSha));
 	const UnsignedByte buildDirty = GitUncommittedChanges ? 1 : 0;
 	m_file->write(&buildDirty, sizeof(buildDirty));
-	// GeneralsX @feature Claude 01/10/2026 M1 step 2b: the map-scoped sim data this match runs on - GetMapDataHash of
+	// GeneralsX: M1 step 2b: the map-scoped sim data this match runs on - GetMapDataHash of
 	// the map.ini/solo.ini GameLogic::loadMapINI will load (0 = the map has none). The GameInfo is the one whose string
 	// is written below; playbackFile refuses a replay whose map's sidecars hash differently now.
 	GameInfo *recordedGame = TheNetwork ? (TheLAN ? (GameInfo *)TheLAN->GetMyGame() : (GameInfo *)TheGameSpyGame)
 		: (TheSkirmishGameInfo ? (GameInfo *)TheSkirmishGameInfo : &m_gameInfo);
-	// MAPDATA_RECORDED_NONE, not 0, for a map without sidecars: 0 means "not recorded" (GameInfo.h, Codex m1det3-2b-r8 P2).
+	// MAPDATA_RECORDED_NONE, not 0, for a map without sidecars: 0 means "not recorded" (GameInfo.h).
 	UnsignedInt mapDataHash = recordedGame != nullptr ? GetMapDataHash(recordedGame->getMap()) : 0u;
 	if (recordedGame != nullptr && mapDataHash == 0)
 		mapDataHash = MAPDATA_RECORDED_NONE;
@@ -739,7 +739,7 @@ void RecorderClass::startRecording(GameDifficulty diff, Int originalGameMode, In
 		{
 			GameInfo *game = TheLAN->GetMyGame();
 			DEBUG_ASSERTCRASH(game, ("Starting a LAN game with no LANGameInfo object!"));
-			// GeneralsX @security Claude 25/09/2026 The replay's own limit, not the lobby announce's: this string
+			// GeneralsX: The replay's own limit, not the lobby announce's: this string
 			// is never announced, and it carries the admin field the match ran on (GameInfo.h GX_REPLAY_OPTIONS_MAX).
 			theSlotList = GameInfoToAsciiString(game, GX_REPLAY_OPTIONS_MAX, TRUE);
 
@@ -762,7 +762,7 @@ void RecorderClass::startRecording(GameDifficulty diff, Int originalGameMode, In
 	{
     if(TheSkirmishGameInfo)
     {
-			// GeneralsX @bugfix Claude 01/10/2026 A restarted skirmish must record the slots it will actually play with
+			// GeneralsX: A restarted skirmish must record the slots it will actually play with
 			// (tsh batch2 #9, TheSuperHackers PR #3200).
 			TheSkirmishGameInfo->restoreOriginalSetups();
 
@@ -832,7 +832,7 @@ void RecorderClass::startRecording(GameDifficulty diff, Int originalGameMode, In
 
 	/// @todo Need to write game options when there are some to be written.
 
-	// GeneralsX @feature Claude 03/11/2026 The settings snapshot goes down now, so a crash in the map load still has it.
+	// GeneralsX: The settings snapshot goes down now, so a crash in the map load still has it.
 	gxReplayDiagRecordingStarted();
 }
 
@@ -841,7 +841,7 @@ void RecorderClass::startRecording(GameDifficulty diff, Int originalGameMode, In
  * every game.
  */
 void RecorderClass::stopRecording() {
-	// GeneralsX @feature Claude 03/11/2026 Every way out of a match comes through here; quit and restart never write MSG_CLEAR_GAME_DATA.
+	// GeneralsX: Every way out of a match comes through here; quit and restart never write MSG_CLEAR_GAME_DATA.
 	gxReplayDiagRecordingEnding();
 	logGameEnd();
 	if (TheNetwork)
@@ -871,7 +871,7 @@ void RecorderClass::archiveReplay(AsciiString fileName)
 	AsciiString archiveFileName;
 
 	/*
-	 * GeneralsX @feature Claude 22/09/2026 NAMED AFTER THE MATCH WHEN THERE IS ONE.
+	 * GeneralsX: NAMED AFTER THE MATCH WHEN THERE IS ONE.
 	 *
 	 * The wall clock is a fine unique name and a useless INDEX: it says when a file was written and
 	 * nothing about which match it belongs to, so the console can list a player's games and never
@@ -932,7 +932,7 @@ void RecorderClass::archiveReplay(AsciiString fileName)
 }
 
 /**
- * GeneralsX @feature Claude 03/11/2026 A comment record in the command stream: the replay diagnostics block (GameClient/GXReplayDiagFormat.h).
+ * GeneralsX: A comment record in the command stream: the replay diagnostics block (GameClient/GXReplayDiagFormat.h).
  *
  * The shape of a command, type MSG_BEGIN_NETWORK_MESSAGES: never recorded as a command (updateRecord's test is a strict >), and
  * appendNextCommand parses it and deletes it on every build, so nothing on the read path changed and the simulation cannot see it.
@@ -994,7 +994,7 @@ void RecorderClass::writeToFile(GameMessage * msg) {
 		//commandName.str(), msg->getPlayerIndex(), TheGameLogic->getFrame()));
 #endif // DEBUG_LOGGING
 
-	// GeneralsX @security Claude 05/11/2026 A moderator's kick rides MSG_SELF_DESTRUCT as a signed ticket naming the kicked player's relay
+	// GeneralsX: A moderator's kick rides MSG_SELF_DESTRUCT as a signed ticket naming the kicked player's relay
 	// address, the room and the moderator (GXKickTicket.h). The FILE keeps argument 0, the one the simulation reads, and nothing after it: a
 	// replay carries no address (wh1ter0se 04/11, msg 5a19), and playback never shows a kick (gxKickShowLine). The message itself is untouched.
 	if (type == GameMessage::MSG_SELF_DESTRUCT && msg->getArgumentCount() > 1)
@@ -1071,7 +1071,7 @@ void RecorderClass::writeArgument(GameMessageArgumentDataType type, const GameMe
 		case ARGUMENTDATATYPE_TIMESTAMP:
 			m_file->write( &(arg.timestamp), sizeof(arg.timestamp) );
 			break;
-		// GeneralsX @bugfix Claude 22/09/2026 The .rep body gets the same fixed 16-bit wide
+		// GeneralsX: The .rep body gets the same fixed 16-bit wide
 		// character as the wire. `sizeof(arg.wChar)` is the host's wchar_t - 4 under clang/gcc, 2
 		// under MSVC - so a macOS/Linux/iPadOS recording of a match containing beacon text could
 		// not be read by a Windows build, or by retail, or by any tool expecting the documented
@@ -1107,7 +1107,7 @@ Bool RecorderClass::readReplayHeader(ReplayHeader& header, const AsciiString& fi
 	}
 
 	// Read the GENREP header.
-	// GeneralsX @feature Claude 12/08/2026 Four accepted magics (GENR14 added 25/09/2026, GENS14 01/10/2026), and the one we
+	// GeneralsX: Four accepted magics (GENR14 added 25/09/2026, GENS14 01/10/2026), and the one we
 	// read decides how many disconnect flags the block below carries and whether a SimID follows iniCRC. All are six
 	// bytes, so this read is the same size either way.
 	char genrep[sizeof(s_genrep) - 1] = {0};
@@ -1199,10 +1199,10 @@ Bool RecorderClass::readReplayHeader(ReplayHeader& header, const AsciiString& fi
 		return FALSE;
 	}
 	m_gameInfo.startGame(0);
-	// GeneralsX @feature Claude 25/09/2026 A GENREP or GENR12 replay was recorded while every observer had a
+	// GeneralsX: A GENREP or GENR12 replay was recorded while every observer had a
 	// Player of its own, and its commands carry that layout's Player indices; played back in the current one
 	// (observers share the ReplayObserver), a player seated after an observer would run as the wrong Player
-	// (Codex r2). The magic says which layout the file holds, so the start rebuilds that one.
+	// The magic says which layout the file holds, so the start rebuilds that one.
 	m_gameInfo.setLegacyObserverLayout(fileDisconSlots < REPLAY_DISCON_SLOTS_14);	// GeneralsX 06/11/2026: 14 and 34 share the layout
 
 	AsciiString playerIndex = readAsciiString();
@@ -1338,16 +1338,16 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 
 	Int localPlayerIndex = m_crcInfo.getLocalPlayer();
 	const Player *p = ThePlayerList->getNthPlayer(playerIndex);
-	// GeneralsX @refactor Claude 21/09/2026 Resolve the slot by index instead of matching a
+	// GeneralsX: Resolve the slot by index instead of matching a
 	// synthetic "playerN" name key. Hand-ported.
 	// Upstream reference: bobtista, PR #3033
 	// https://github.com/TheSuperHackers/GeneralsGameCode/pull/3033
-	// GeneralsX @feature Claude 24/09/2026 Compare PLAYERS, not slots: an observer recorder's reports are
+	// GeneralsX: Compare PLAYERS, not slots: an observer recorder's reports are
 	// the ReplayObserver's, which maps from every observer slot and back to none. For a player slot the
 	// two tests are the same (one Player per slot). The recording side keeps only the recorder's own
 	// report on a shared Player (isOtherSlotsReportOnSharedPlayer), so this matches one per interval.
 	const Bool isLocalPlayer = !p || ThePlayerList->getPlayerFromSlotIndex(localPlayerIndex) == p;
-	// GeneralsX @bugfix Claude 21/09/2026 Keep the no-local-player escape upstream #3033 dropped.
+	// GeneralsX: Keep the no-local-player escape upstream #3033 dropped.
 	//
 	// A replay header may legitimately carry localPlayerIndex == -1 and readReplayHeader accepts it.
 	// During playback GameLogic sets TheGameInfo = TheRecorder->getGameInfo(), so
@@ -1372,7 +1372,7 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 			//
 			// TheSuperHackers @tweak helmutbuhler 03/04/2025
 			// More than 20 years later, but finally fixed and re-enabled!
-			// GeneralsX @bugfix Claude 28/07/2026 Do not drive the UI from a headless run.
+			// GeneralsX: Do not drive the UI from a headless run.
 			//
 			// `-headless` substitutes GameWindowManagerDummy and MouseDummy (GameClient.cpp:326,352)
 			// but TheInGameUI->message still walks the real text/font path, and a mismatch during a
@@ -1406,7 +1406,7 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 				mismatchFrame, playbackCRC, newCRC);
 			fprintf(stderr, "[GeneralsX] This replay is incompatible with the current map/game-code state.\n");
 
-			// GeneralsX @diag Claude 28/07/2026 In cross-platform mode, report and KEEP GOING.
+			// GeneralsX @diag /07/2026 In cross-platform mode, report and KEEP GOING.
 			//
 			// The default behaviour marks the mismatch seen, which pauses the game and makes the
 			// headless driver (ReplaySimulation.cpp) break out of its update loop at the FIRST
@@ -1437,7 +1437,7 @@ void RecorderClass::handleCRCMessage(UnsignedInt newCRC, Int playerIndex, Bool f
 	//DEBUG_LOG(("RecorderClass::handleCRCMessage() - Skipping CRC of %8.8X from %d (our index is %d)", newCRC, playerIndex, localPlayerIndex));
 }
 
-// GeneralsX @diag Claude 28/07/2026 Cross-platform replay simulation, for lockstep debugging.
+// GeneralsX @diag /07/2026 Cross-platform replay simulation, for lockstep debugging.
 //
 // WHY. Reproducing the cross-platform desync used to need a human at the Mac and a human at the
 // Windows PC playing a LAN match simultaneously - about an hour per iteration. But a .rep already
@@ -1486,7 +1486,7 @@ Bool RecorderClass::replayMatchesGameVersion(AsciiString filename)
 	return FALSE;
 }
 
-// GeneralsX @feature Claude 01/10/2026 Replays fail CLOSED on another simulation (ROADMAP_2027 M1, Determinism-1 item 4b).
+// GeneralsX: Replays fail CLOSED on another simulation (ROADMAP_2027 M1, Determinism-1 item 4b).
 // The old key (version, exeCRC, iniCRC) was a property of the binary: it refused every cross-platform replay, yet it was
 // only advisory (the menu offered OK anyway) and -replay / -loadreplay never asked. playbackFile now asks on every path,
 // and the key is the build that simulated the match:
@@ -1508,18 +1508,18 @@ static const char *replayRefusal(const RecorderClass::ReplayHeader& header, Int 
 {
 	if (!header.hasIdentity)
 	{
-		// GeneralsX @fix Claude 05/10/2026 No waiver any more, XPLAT's included: every file without an identity (GENREP, GENR12,
+		// GeneralsX: No waiver any more, XPLAT's included: every file without an identity (GENREP, GENR12,
 		// GENR14) predates GENS15, so its upgrade and science commands carry NameKeys this build would read as name ids
-		// (Codex fix-0957-codex r2). The XPLAT waiver used to play one whose iniCRC matched.
+		// The XPLAT waiver used to play one whose iniCRC matched.
 		return "recorded by an older version (no simulation identity); this version cannot play it";
 	}
-	// GeneralsX @fix Claude 05/10/2026 Before every waiver: a GENS14 file's upgrade and science commands carry NameKeys, which
+	// GeneralsX: Before every waiver: a GENS14 file's upgrade and science commands carry NameKeys, which
 	// this build would read as name ids (GXWireId.h) - the replay would research nothing, or something else.
 	if (!header.nameIdArgs)
 		return "NAMEKEY_ARGS (recorded before upgrades and sciences went over the network by name id); this version cannot play it";
 	SimIdWire wire;
 	memcpy(&wire, header.simId, sizeof(wire));
-	// GeneralsX @feature Claude 06/11/2026 a replay from before 34 slots carries the engineID of the older LOBBY wire (sizeof(LANMessage),
+	// GeneralsX: a replay from before 34 slots carries the engineID of the older LOBBY wire (sizeof(LANMessage),
 	// MAX_NETWORK_MESSAGE_LEN), not of another simulation: map exactly that value to ours. Any simulation input that differs still
 	// gives another engineID and refuses (SimulationId.cpp computeEngineIDWith). Joins never take this path.
 	if (wire.engineID == SimIdReplayLegacyEngineID())
@@ -1571,7 +1571,7 @@ Bool RecorderClass::replayMatchesGameVersion(const ReplayHeader& header)
 	return replayWaiverNeeded(header) >= 0;
 }
 
-// GeneralsX @feature Claude 01/10/2026 wh1ter0se 01/10: a wrong-version replay is refused now, and a future launcher update
+// GeneralsX: wh1ter0se 01/10: a wrong-version replay is refused now, and a future launcher update
 // will play it with the build that recorded it (the StarCraft II model). So the refusal names that build: the header's
 // version string, plus the commit for a GENS14 file - the key a launcher would fetch the matching engine by.
 UnicodeString RecorderClass::describeRecordingBuild(const ReplayHeader& header)
@@ -1589,7 +1589,7 @@ UnicodeString RecorderClass::describeRecordingBuild(const ReplayHeader& header)
 	return text;
 }
 
-// GeneralsX @feature Claude 01/10/2026 stderr, not DEBUG_LOG (a no-op in shipping builds), so a refused replay says why.
+// GeneralsX: stderr, not DEBUG_LOG (a no-op in shipping builds), so a refused replay says why.
 static void logReplayIdentity(const RecorderClass::ReplayHeader& header)
 {
 	const Int waiver = replayWaiverNeeded(header);
@@ -1620,10 +1620,10 @@ static void logReplayIdentity(const RecorderClass::ReplayHeader& header)
 /**
  * returns the path to open for a replay filename in the replay directory or an absolute replay path.
  *
- * GeneralsX @bugfix BenderAI 13/04/2026 Accept absolute replay paths passed via -replay instead of forcing ReplayDir prefix.
- * GeneralsX @bugfix BenderAI 20/02/2026 Distinguish between CWD-relative paths (with directories, like "GeneralsReplays/...") and replay-dir relative (bare filenames like "replay.rep").
+ * GeneralsX: Accept absolute replay paths passed via -replay instead of forcing ReplayDir prefix.
+ * GeneralsX: Distinguish between CWD-relative paths (with directories, like "GeneralsReplays/...") and replay-dir relative (bare filenames like "replay.rep").
  *
- * GeneralsX @refactor Claude 21/09/2026 Lifted out of readReplayHeader, which TheSuperHackers
+ * GeneralsX: Lifted out of readReplayHeader, which TheSuperHackers
  * #3227 factors into this static. The fork's own body is kept rather than upstream's, which tests
  * only isAbsolutePath: dropping the separator test would send every CWD-relative path that carries
  * a directory back through the ReplayDir prefix and break the -replay validation lane.
@@ -1666,12 +1666,12 @@ static void showQueuedReplayLoadFailure()
 	MessageBoxOk(title, body, nullptr);
 }
 
-// GeneralsX @feature Claude 01/10/2026 Was the generic load failure; a replay of another simulation now says so.
+// GeneralsX: Was the generic load failure; a replay of another simulation now says so.
 static void showQueuedReplayIncompatible(const RecorderClass::ReplayHeader& header)
 {
 	UnicodeString title = TheGameText->FETCH_OR_SUBSTITUTE("GUI:ReplayIncompatibleTitle", L"REPLAY CANNOT BE PLAYED");
 	UnicodeString body;
-	// GeneralsX @feature Claude 01/10/2026 Promise later launcher playback only where the header names the build.
+	// GeneralsX: Promise later launcher playback only where the header names the build.
 	body.format(header.hasIdentity
 		? TheGameText->FETCH_OR_SUBSTITUTE("GUI:ReplayIncompatible", L"This replay was recorded by %s. This version of the game cannot play it; a future launcher update can play it with the version that recorded it. The file is kept.").str()
 		: TheGameText->FETCH_OR_SUBSTITUTE("GUI:ReplayIncompatibleOld", L"This replay was recorded by %s, an older version that did not record which build made it. It cannot be played by this version of the game. The file is kept.").str(),
@@ -1688,10 +1688,10 @@ static void showQueuedReplayMapNotFound()
 	MessageBoxOk(title, body, nullptr);
 }
 
-// GeneralsX @feature Claude 02/10/2026 M1 step 2b (Codex m1det3-2b-r7 P2): ONE test for "the map's map.ini/solo.ini hash as they
+// GeneralsX: M1 step 2b: ONE test for "the map's map.ini/solo.ini hash as they
 // did when this replay was recorded", so every entry path can say WHY before playbackFile refuses. A pre-identity file
 // recorded none, so it has nothing to compare (it only plays at all under GX_REPLAY_XPLAT); nor does a GENS14 file from before
-// step 2b, which holds 0 there (Codex m1det3-2b-r8 P2) - only GX_REPLAY_XPLAT admits its SimID at all. No waiver lifts it.
+// step 2b, which holds 0 there - only GX_REPLAY_XPLAT admits its SimID at all. No waiver lifts it.
 Bool RecorderClass::replayMapDataMatches(const ReplayHeader& header, const AsciiString& mapName)
 {
 	if (!header.hasIdentity || header.mapDataHash == 0)
@@ -1782,7 +1782,7 @@ Bool RecorderClass::playbackFile(AsciiString filename)
 		return FALSE;
 	}
 
-	// GeneralsX @feature Claude 01/10/2026 The one gate every entry path shares: the Replay menu, -loadreplay, -replay
+	// GeneralsX: The one gate every entry path shares: the Replay menu, -loadreplay, -replay
 	// (headless or not) and -jobs workers all start playback here. See replayMatchesGameVersion.
 	if (replayRefusal(header, REPLAY_WAIVE_NONE) != 0)
 	{
@@ -1797,7 +1797,7 @@ Bool RecorderClass::playbackFile(AsciiString filename)
 		}
 	}
 
-	// GeneralsX @feature Claude 01/10/2026 M1 step 2b: the same build on the same .map still simulates other rules when the
+	// GeneralsX: M1 step 2b: the same build on the same .map still simulates other rules when the
 	// map's map.ini/solo.ini changed since the recording - the SimID was fixed before they load. No waiver lifts this:
 	// GX_REPLAY_XPLAT enforces data, and these are data. A pre-identity file recorded none, so it has nothing to compare
 	// (it only plays at all under GX_REPLAY_XPLAT).
@@ -1901,7 +1901,7 @@ UnicodeString RecorderClass::readUnicodeString() {
 	}
 	str[index] = c;
 
-	// GeneralsX @bugfix Claude 25/07/2026 The bound was tested against the index just *stored*, but the body then
+	// GeneralsX: The bound was tested against the index just *stored*, but the body then
 	// incremented index and wrote to the new slot without re-testing. With a full 1024 non-zero chars the loop entered
 	// at index==1023 and wrote str[1024] - one element past the stack array - tripping __stack_chk_fail (or silently
 	// smashing the canary/frame on builds without it). readReplayHeader parses every .rep in the Replays folder when
@@ -1927,7 +1927,7 @@ UnicodeString RecorderClass::readUnicodeString() {
  * Read an ascii string from the current file position. The string is assumed to be 0-terminated.
  */
 AsciiString RecorderClass::readAsciiString() {
-	// GeneralsX @feature Claude 06/11/2026 1024 -> 4096: a GENS34 slot list may run past 1023 bytes (GX_REPLAY_OPTIONS_MAX,
+	// GeneralsX: 1024 -> 4096: a GENS34 slot list may run past 1023 bytes (GX_REPLAY_OPTIONS_MAX,
 	// GameInfo.h); a buffer shorter than the string would stop mid-string and misalign every later read.
 	char str[4096] = "";
 	const Int maxChars = (Int)(sizeof(str) / sizeof(str[0]));
@@ -1939,7 +1939,7 @@ AsciiString RecorderClass::readAsciiString() {
 	}
 	str[index] = c;
 
-	// GeneralsX @bugfix Claude 25/07/2026 Same one-past-the-end write as readUnicodeString above: the bound was checked
+	// GeneralsX: Same one-past-the-end write as readUnicodeString above: the bound was checked
 	// against the index already stored, then index was incremented and the new slot written unchecked, so a 1024-char
 	// run wrote str[1024] on a 1024-byte stack array. Reached from readReplayHeader's gameOptions/playerIndex reads
 	// while enumerating untrusted .rep files. Test index+1 so the slot about to be written is the one bounds-checked.
@@ -1985,8 +1985,8 @@ void RecorderClass::readNextFrame() {
 
 			DEBUG_LOG(("RecorderClass::readNextFrame - current frame %d, next frame %d is in unexpected distance",
 				TheGameLogic->getFrame(), m_nextFrame));
-			// GeneralsX @bugfix Claude 18/10/2026 Say so: a replay simulation ends here as if the file had ended, and must
-			// not count as a pass (ReplaySimulation reads this; Codex tsh1018-b-r2 P2).
+			// GeneralsX: Say so: a replay simulation ends here as if the file had ended, and must
+			// not count as a pass (ReplaySimulation reads this).
 			fprintf(stderr, "[GXREPLAY] invalid next frame %u after frame %u: playback stopped\n", m_nextFrame, curFrame);
 			m_sawInvalidNextFrame = TRUE;
 			m_nextFrame = -1;
@@ -2132,8 +2132,8 @@ void RecorderClass::readArgument(GameMessageArgumentDataType type, GameMessage *
 			break;
 		}
 		case ARGUMENTDATATYPE_BOOLEAN: {
-			// GeneralsX @bugfix Claude 06/10/2026 The file's byte, normalised: reading 0x02 straight into a bool is undefined,
-			// so a crafted replay could play differently per compiler (as NetPacket::readGameMessage, Codex batch0958 r1 P2).
+			// GeneralsX: The file's byte, normalised: reading 0x02 straight into a bool is undefined,
+			// so a crafted replay could play differently per compiler (as NetPacket::readGameMessage, batch0958 r1 P2).
 			UnsignedByte thebyte = 0;
 			m_file->read(&thebyte, sizeof(thebyte));
 			const Bool thebool = (thebyte != 0);
@@ -2232,7 +2232,7 @@ void RecorderClass::readArgument(GameMessageArgumentDataType type, GameMessage *
 			break;
 		}
 		case ARGUMENTDATATYPE_WIDECHAR: {
-			// GeneralsX @bugfix Claude 22/09/2026 The reader half; see writeArgument above.
+			// GeneralsX: The reader half; see writeArgument above.
 			GXWireChar unit = 0;
 			m_file->read(&unit, sizeof(unit));
 			const WideChar theid = gxWireCharToHost(unit);
@@ -2287,7 +2287,7 @@ RecorderClass::CullBadCommandsResult RecorderClass::cullBadCommands() {
 AsciiString RecorderClass::getReplayDir()
 {
 	AsciiString tmp = TheGlobalData->getPath_UserData();
-	// GeneralsX @bugfix copilot 12/03/2026 Use POSIX separator on non-Windows so replay files are stored in the actual Replays directory.
+	// GeneralsX: Use POSIX separator on non-Windows so replay files are stored in the actual Replays directory.
 #ifdef _WIN32
 	tmp.concat("Replays\\");
 #else
@@ -2302,7 +2302,7 @@ AsciiString RecorderClass::getReplayDir()
 AsciiString RecorderClass::getReplayArchiveDir()
 {
 	AsciiString tmp = TheGlobalData->getPath_UserData();
-	// GeneralsX @bugfix copilot 12/03/2026 Use POSIX separator on non-Windows so archived replays are stored in the actual directory.
+	// GeneralsX: Use POSIX separator on non-Windows so archived replays are stored in the actual directory.
 #ifdef _WIN32
 	tmp.concat("ArchivedReplays\\");
 #else

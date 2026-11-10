@@ -115,7 +115,7 @@ ScienceType ScienceStore::getScienceFromWireId(UnsignedInt wireId) const
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @fix Claude 05/10/2026 Called at map load, after the map.ini (GameLogic::startNewGame): every science known
+// GeneralsX: Called at map load, after the map.ini (GameLogic::startNewGame): every science known
 // then, in m_sciences order, so every peer that loaded the same data builds the same table (GXWireId.h).
 Bool ScienceStore::rebuildWireIds()
 {

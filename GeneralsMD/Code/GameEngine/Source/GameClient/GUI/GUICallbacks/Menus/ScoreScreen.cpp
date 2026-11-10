@@ -51,7 +51,7 @@
 // USER INCLUDES //////////////////////////////////////////////////////////////
 //-----------------------------------------------------------------------------
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
-// GeneralsX @build Claude 28/07/2026 wcslcpy is a BSD/macOS libc function with no glibc
+// GeneralsX: wcslcpy is a BSD/macOS libc function with no glibc
 // equivalent, so this compiles on macOS and fails on Linux. WWLib/stringex.h provides a portable
 // inline fallback guarded by HAVE_WCSLCPY - the same one LANAPI.cpp already relies on.
 #include "WWLib/stringex.h"
@@ -260,7 +260,7 @@ extern Bool DontShowMainMenu; //KRIS
 Bool g_playMusic = FALSE;
 Bool ReplayWasPressed = FALSE;
 
-// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#1972 follow-up
+// GeneralsX: TheSuperHackers/GeneralsGameCode#1972 follow-up
 // The music NAME has to be read here, not in the update, even though the music is still PLAYED
 // there. The comment in ScoreScreenUpdate() explains why playback moved: clearGameData() runs
 // between this function and the first update, and it resets the audio subsystem. What that
@@ -270,11 +270,11 @@ Bool ReplayWasPressed = FALSE;
 // and a custom map's score screen music never plays. Read the name while the override is still
 // live; play it after the audio subsystem is back.
 static AsciiString s_scoreScreenMusic;
-// GeneralsX @bugfix Claude 10/10/2026 And the track's DEFINITION, for the same reason: that reset also puts a map.ini's
+// GeneralsX: And the track's DEFINITION, for the same reason: that reset also puts a map.ini's
 // MusicTrack edits back and retires a track the map invented (AudioManager::undoOverrideLoads), so playing the NAME in the
-// update played the stock file, or a track the map never defined (Codex mapini-rollback-r7 P2). A copy is taken here and
+// update played the stock file, or a track the map never defined. A copy is taken here and
 // the update plays it; the audio then keeps it until shutdown, never freeing it under a sound or its sample cache.
-// ponytail: one small copy per score screen, per process (strings shared with the table's); free them with their cache
+// Trade-off: one small copy per score screen, per process (strings shared with the table's); free them with their cache
 // entries if a process ever plays thousands of matches.
 static AudioEventInfo *s_scoreScreenMusicInfo = nullptr;	///< taken in ScoreScreenInit, not yet played
 
@@ -335,7 +335,7 @@ void ScoreScreenInit( WindowLayout *layout, void *userData )
 
 	parent = TheWindowManager->winGetWindowFromId( nullptr, parentID );
 
-	// GeneralsX @bugfix Claude 13/08/2026 SHOW ALL TWELVE, NOT THE EIGHT THE .WND AUTHORS.
+	// GeneralsX: SHOW ALL TWELVE, NOT THE EIGHT THE .WND AUTHORS.
 	//
 	// ScoreScreen.wnd authors every per-row control 0..7 - verified by extracting it from
 	// WindowZH.big and listing the indices on each of the nine column names below. MAX_SLOTS is
@@ -516,7 +516,7 @@ void ScoreScreenUpdate( WindowLayout * layout, void *userData)
 	{
 		g_playMusic = FALSE;
 
-		// GeneralsX @bugfix Claude 01/08/2026 Resolved in ScoreScreenInit, before clearGameData()
+		// GeneralsX: Resolved in ScoreScreenInit, before clearGameData()
 		// restored the pristine PlayerTemplate over a map.ini's override. See the note there.
 		const AsciiString& musicName = s_scoreScreenMusic;
 		if ( !musicName.isEmpty() )
@@ -531,7 +531,7 @@ void ScoreScreenUpdate( WindowLayout * layout, void *userData)
 			}
 			event.setShouldFade( TRUE );
 			TheAudio->addAudioEvent( &event );
-			// GeneralsX @test Claude 10/10/2026 The score screen's music as the audio resolved it (addAudioEvent fills the event's
+			// GeneralsX: The score screen's music as the audio resolved it (addAudioEvent fills the event's
 			// info; generateFilename then takes the file from it): a map.ini's ScoreScreenMusic is checked by this line, since
 			// a headless run never shows the score screen (scripts/test/map-ini-rollback/score-probe.sh).
 			const AudioEventInfo *played = event.getAudioEventInfo();
@@ -707,7 +707,7 @@ WindowMsgHandledType ScoreScreenSystem( GameWindow *window, UnsignedInt msg,
 				if( controlID == TheNameKeyGenerator->nameToKey(name))
 				{
 					Bool notBuddy = TRUE;
-					// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+					// GeneralsX: 64-bit safe pointer cast
 					Int playerID = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetButtonGetData(TheWindowManager->winGetWindowFromId(nullptr,controlID))));
 											// request to add a buddy
 					BuddyInfoMap *buddies = TheGameSpyInfo->getBuddyMap();
@@ -1529,7 +1529,7 @@ void populatePlayerInfo( Player *player, Int pos)
 	winName.format("ScoreScreen.wnd:StaticTextPlayer%d", pos);
 	win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
 	DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
-	// GeneralsX @bugfix Claude 12/08/2026 rows 8+ have no .wnd control; assert compiles out in release
+	// GeneralsX: rows 8+ have no .wnd control; assert compiles out in release
 	if (win)
 	{
 		if(overidePlayerDisplayName)
@@ -2157,10 +2157,10 @@ winName.format("ScoreScreen.wnd:StaticTextScore%d", pos);
 //-------------------------------------------------------------------------------------------------
 void grabMultiPlayerInfo()
 {
-	// GeneralsX @feature Claude 25/09/2026 Score -> SLOT, not score -> Player: every observer slot maps onto the one
+	// GeneralsX: Score -> SLOT, not score -> Player: every observer slot maps onto the one
 	// ReplayObserver (PlayerList::assignSlotIndices), so two observers are one Player and only their slots can tell
 	// their rows apart - by the name each slot carries. A player slot reads exactly as before.
-	// GeneralsX @bugfix Claude 01/10/2026 multimap: a score that collided used to be bumped by `adder`, which could collide again and overwrite a player's row
+	// GeneralsX: multimap: a score that collided used to be bumped by `adder`, which could collide again and overwrite a player's row
 	// (score screen dropped a player). Idea from Generals Online 52a9e6f8a, reimplemented.
 	typedef std::multimap<Int, Int> ScoreMap;
 	typedef ScoreMap::iterator ScoreMapIt;
@@ -2174,7 +2174,7 @@ void grabMultiPlayerInfo()
 	if (localPlayer)
 	{
 		const Image *image = TheMappedImageCollection->findImageByName("MutiPlayer_ScoreScreen");
-		if(image && parent)	// GeneralsX @bugfix Claude 01/10/2026 null guard (idea from Generals Online bb025d378)
+		if(image && parent)	// GeneralsX: null guard (idea from Generals Online bb025d378)
 		{
 			parent->winSetEnabledImage(0, image);
 			parent->winSetStatus(parent->winGetStatus() | WIN_STATUS_IMAGE );
@@ -2366,7 +2366,7 @@ void hideWindows( Int pos )
 		winName.format("ScoreScreen.wnd:StaticTextPlayer%d", i);
 		win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
 		DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
-		// GeneralsX @bugfix Claude 12/08/2026 rows 8+ have no .wnd control; assert compiles out in release
+		// GeneralsX: rows 8+ have no .wnd control; assert compiles out in release
 		if (win) win->winHide(TRUE);
 
 		// set the player name
@@ -2457,7 +2457,7 @@ void setObserverWindows( Player *player, const UnicodeString &name, Int i )
 	DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
 
 	GadgetStaticTextSetText(win, name);
-	// GeneralsX @bugfix Claude 12/08/2026 rows 8+ have no .wnd control; assert compiles out in release
+	// GeneralsX: rows 8+ have no .wnd control; assert compiles out in release
 	if (win)
 	{
 		win->winHide(FALSE);
@@ -2581,7 +2581,7 @@ winName.format("ScoreScreen.wnd:StaticTextScore%d", i);
 //-------------------------------------------------------------------------------------------------
 void populateSideInfo( UnicodeString side,ScoreGather *sg, Int pos, Color color)
 {
-	// GeneralsX @bugfix Claude 12/08/2026 was > MAX_SLOTS, letting pos==MAX_SLOTS through to a row that never exists; rows 8+ have no .wnd control and the assert compiles out in release
+	// GeneralsX: was > MAX_SLOTS, letting pos==MAX_SLOTS through to a row that never exists; rows 8+ have no .wnd control and the assert compiles out in release
 	if(pos < 0 || pos >= MAX_SLOTS)
 		return;
 

@@ -71,18 +71,18 @@
 */
 DX8MeshRendererClass TheDX8MeshRenderer;
 
-// GeneralsX @performance Claude 08/10/2026 R-CPU 1f: see GxCollectSink (dx8renderer.h).
+// GeneralsX: R-CPU 1f: see GxCollectSink (dx8renderer.h).
 thread_local GxCollectSink *GxCollectActiveSink = nullptr;
 bool GxCollectSinkArmed = false;
 
 void (*GxL2FlushHook)(bool end) = nullptr;	// WS-G (dx8renderer.h GxClassicDraw)
-void (*GxL2FlushClosedHook)() = nullptr;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5 T3 (dx8renderer.h)
-bool (*GxL2SeatHook)(DX8TextureCategoryClass *, PolyRenderTaskClass *) = nullptr;	// GeneralsX @feature Claude 11/10/2026 WS-G S1 seat (dx8renderer.h)
+void (*GxL2FlushClosedHook)() = nullptr;	// GeneralsX: WS-G Task 5 T3 (dx8renderer.h)
+bool (*GxL2SeatHook)(DX8TextureCategoryClass *, PolyRenderTaskClass *) = nullptr;	// GeneralsX: WS-G S1 seat (dx8renderer.h)
 std::vector<GxClassicDraw> *GxL2Executed = nullptr;
 GxMotionHooks *GxMotion = nullptr;	// D · render-motion-units-1 A35 (dx8renderer.h)
 GxShadowCastHooks *GxShadowCast = nullptr;	// D · look-shadowmaps S7 (dx8renderer.h)
 
-// GeneralsX @test E · look-shadowmaps-6 18/10/2026 S7 PREREG A74 / A74a (TEST-ONLY GX_SEETHROUGH_PAINT=<RRGGBB>): M3's don't-care mask. Pass 0
+// GeneralsX: S7 PREREG A74 / A74a (TEST-ONLY GX_SEETHROUGH_PAINT=<RRGGBB>): M3's don't-care mask. Pass 0
 // of an immediate (non-sorted), non-skin mesh whose category shader alpha-TESTS and whose model has CAST_SHADOW - the see-through casters
 // (camo nets, fences, cutouts) - is drawn as one flat opaque colour with its alpha test off, so a picture shows its whole footprint, holes
 // included. The paint REPLACES the mesh's draw (one Render inside the motion bridge's rigidBegin / rigidEnd; meshBegin still tags it):
@@ -98,7 +98,7 @@ namespace
 		GxSeeThroughPaint()
 		{
 			const char *e = getenv("GX_SEETHROUGH_PAINT");
-			bool hex6 = e != nullptr && strlen(e) == 6;	// exactly RRGGBB (Codex a74-code-r1: strtoul takes 0x, signs and spaces)
+			bool hex6 = e != nullptr && strlen(e) == 6;	// exactly RRGGBB (strtoul takes 0x, signs and spaces)
 			for (int i = 0; hex6 && i < 6; ++i)
 				hex6 = isxdigit((unsigned char)e[i]) != 0;
 			if (hex6)
@@ -131,7 +131,7 @@ namespace
 		DX8Wrapper::Set_DX8_Render_State(D3DRS_ALPHABLENDENABLE, FALSE);
 		DX8Wrapper::Set_DX8_Render_State(D3DRS_FOGENABLE, FALSE);
 		DX8Wrapper::Set_DX8_Render_State(D3DRS_LIGHTING, FALSE);
-		DX8Wrapper::Set_DX8_Render_State(D3DRS_SPECULARENABLE, FALSE);	// the FF shader adds specular after the stages (Codex a74-design-r1 #6)
+		DX8Wrapper::Set_DX8_Render_State(D3DRS_SPECULARENABLE, FALSE);	// the FF shader adds specular after the stages
 		DX8Wrapper::Set_DX8_Render_State(D3DRS_TEXTUREFACTOR, s_gxPaint.color);
 		DX8Wrapper::Set_DX8_Texture_Stage_State(0, D3DTSS_COLOROP, D3DTOP_SELECTARG1);
 		DX8Wrapper::Set_DX8_Texture_Stage_State(0, D3DTSS_COLORARG1, D3DTA_TFACTOR);
@@ -143,7 +143,7 @@ namespace
 		const unsigned n = ++s_gxPaint.hits;
 		if (n <= 8 || (n & 4095u) == 0)
 			fprintf(stderr, "[GXSHADOW] TEST-ONLY paint %s n=%u\n", mesh->Get_Name(), n);
-		// restore (Codex a74-design-r1 #1): the next mesh of this category does not call Set_Shader, so the shader is re-set explicitly
+		// restore: the next mesh of this category does not call Set_Shader, so the shader is re-set explicitly
 		DX8Wrapper::Set_DX8_Render_State(D3DRS_TEXTUREFACTOR, oldFactor);
 		DX8Wrapper::Set_DX8_Render_State(D3DRS_SPECULARENABLE, oldSpecular);
 		ShaderClass::Invalidate();
@@ -161,7 +161,7 @@ static void Gx_Executed(int kind, DX8TextureCategoryClass *cat, DX8PolygonRender
 {
 	GxClassicDraw d = { kind, cat, pr, pass, mesh, decal, s_gxSkinBatch };
 	GxL2Executed->push_back(d);
-	if (DX8Wrapper::GxLogOn) {	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: ENTRY, before the entry's setters
+	if (DX8Wrapper::GxLogOn) {	// GeneralsX: WS-G Task 5: ENTRY, before the entry's setters
 		DX8Wrapper::GxLogEntry = (unsigned)(GxL2Executed->size() - 1);
 		DX8Wrapper::Gx_Log(gxlog::ENTRY, DX8Wrapper::GxLogEntry, (unsigned)kind, nullptr, 0, 0);
 	}
@@ -505,7 +505,7 @@ void DX8RigidFVFCategoryContainer::Render_Delayed_Procedural_Material_Passes()
 		GxShadowCast->containerEnd();
 }
 
-// GeneralsX @feature Claude 10/10/2026 WS-G: the Gx_List_* functions walk exactly what the Render functions next to them
+// GeneralsX: WS-G: the Gx_List_* functions walk exactly what the Render functions next to them
 // draw, in the same order, and change nothing. skin_batches (a GxSkinBatchMap: skin containers only, empty when every
 // visible skin fits one dynamic VB) stands in for the VERTEX_BUFFER_OVERFLOW marks Render() sets while it fills.
 static bool Gx_In_Batch(const MeshClass *mesh, const void *skin_batches, int batch)
@@ -548,7 +548,7 @@ void DX8TextureCategoryClass::Log(bool only_visible)
 	}
 	work2.Format("\n	material: %x (%s)\n	shader: %x", material, material ? material->Get_Name() : "-", shader);
 	work+=work2;
-	WWDEBUG_SAY(("%s", (const char *)work));	// GeneralsX @security Claude 06/10/2026 work holds asset names: data, not a format
+	WWDEBUG_SAY(("%s", (const char *)work));	// GeneralsX: work holds asset names: data, not a format
 
 	work.Format("	%8s %8s %6s %6s %6s %5s %s",
 		"idx_cnt",
@@ -558,7 +558,7 @@ void DX8TextureCategoryClass::Log(bool only_visible)
 		"vi_rng",
 		"ident",
 		"name");
-	WWDEBUG_SAY(("%s", (const char *)work));	// GeneralsX @security Claude 06/10/2026 work holds asset names: data, not a format
+	WWDEBUG_SAY(("%s", (const char *)work));	// GeneralsX: work holds asset names: data, not a format
 
 	DX8PolygonRendererListIterator it(&PolygonRendererList);
 	while (!it.Is_Done()) {
@@ -1466,7 +1466,7 @@ void DX8SkinFVFCategoryContainer::Log(bool only_visible)
 
 // ----------------------------------------------------------------------------
 
-// GeneralsX @performance Claude 10/10/2026 E·skin-workers (render-split lever "CPU skinning"): the skin container's
+// GeneralsX: E·skin-workers (render-split lever "CPU skinning"): the skin container's
 // per-mesh deform + interleave (Get_Deformed_Vertices, VectorProcessorClass::Transform, the copy into the dynamic VB)
 // runs on the GXParallel pool. Render() first walks the visible skins on this thread exactly as before - the fit /
 // VERTEX_BUFFER_OVERFLOW logic, Set_Base_Vertex_Offset and the stats stay serial - and queues one job per fitted mesh
@@ -1479,7 +1479,7 @@ void DX8SkinFVFCategoryContainer::Log(bool only_visible)
 // TEST-ONLY negative control of both the check and the picture gate (a job that never ran); 4 is 1 plus a deliberate
 // data race in the jobs (TEST-ONLY: the ThreadSanitizer lane's mutant, as GX_COLLECTPAR=4). Client only: nothing here
 // feeds the simulation.
-// GeneralsX @performance Claude 10/10/2026 C·skin-default-win: on by default on Windows only - wh1ter0se's PC, G2 R1 frame
+// GeneralsX: C·skin-default-win: on by default on Windows only - wh1ter0se's PC, G2 R1 frame
 // time ~-0.4 ms in two n=6+6 ABBA leases (lead C32 ruling, modernize/render-split/HANDBACK_win-timing.md). The Mini
 // measured ~0 (-0.03 ms), so macOS, iOS and Linux stay on the serial fill. Unset or empty = GX_SKINPAR_DEFAULT;
 // GX_SKINPAR=0..4 overrides it on every platform.
@@ -1643,7 +1643,7 @@ void DX8SkinFVFCategoryContainer::Render()
 				VertexFormatXYZNDUV2* verts=dest_verts+vertex_offset;
 
 				if (GxL2Executed) Gx_Executed(GxClassicDraw::SKIN, nullptr, nullptr, nullptr, mesh, nullptr);
-				// GeneralsX @feature D · render-fwd-0965 17/10/2026 merge of render/dlss onto the 0.9.65 batch: the A35 motion bridge's
+				// GeneralsX: merge of render/dlss onto the 0.9.65 batch: the A35 motion bridge's
 				// skinMesh writes the bridge's shared state (GxMotionUnits.cpp), so while the bridge is open the fill stays serial on this
 				// thread; the GX_SKINPAR workers run only while it is closed (always on the classic path).
 				if (s_gxSkinPar.mode != 0 && !(GxMotion && !sorting)) {
@@ -1996,7 +1996,7 @@ unsigned DX8TextureCategoryClass::Add_Mesh(
 
 void DX8TextureCategoryClass::Render()
 {
-	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log_Ptr(gxlog::CAT_BEGIN, 0, 0, this, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log_Ptr(gxlog::CAT_BEGIN, 0, 0, this, 0);	// GeneralsX: WS-G Task 5
 	#ifdef WWDEBUG
 	if (!WW3D::Expose_Prelit()) {
 	#endif
@@ -2061,7 +2061,7 @@ void DX8TextureCategoryClass::Render()
 			continue;
 		}
 		if (GxL2Executed) Gx_Executed(GxClassicDraw::TASK, this, renderer, nullptr, mesh, nullptr);
-		if (GxL2SeatHook && GxL2SeatHook(this, prt)) {	// GeneralsX @feature Claude 11/10/2026 WS-G S1 seat: drawn by DrawRun in its run -
+		if (GxL2SeatHook && GxL2SeatHook(this, prt)) {	// GeneralsX: WS-G S1 seat: drawn by DrawRun in its run -
 			PolyRenderTaskClass * next_prt = prt->Get_Next_Visible();	// unlinked and deleted exactly as at the end of this loop
 			if (last_prt == nullptr) {
 			   render_task_head = next_prt;
@@ -2208,7 +2208,7 @@ void DX8TextureCategoryClass::Render()
 				GxMotion->rigidBegin(mesh, mesh->Peek_Model(), *world_transform);
 			if (GxShadowCast && !mesh->Peek_Model()->Get_Flag(MeshModelClass::SKIN))	// S7 caster tag (dx8renderer.h)
 				GxShadowCast->meshBegin(mesh, pass);
-			if (gxPaintThis(mesh, theShader, pass))	// GeneralsX @test E · look-shadowmaps-6 S7 A74: TEST-ONLY GX_SEETHROUGH_PAINT
+			if (gxPaintThis(mesh, theShader, pass))	// GeneralsX: S7 A74: TEST-ONLY GX_SEETHROUGH_PAINT
 				gxPaintDraw(renderer, mesh, theShader, vmaterial);
 			else if (mesh->Get_Alpha_Override() != 1.0 || (mesh->Get_User_Data() && *(int *)mesh->Get_User_Data() == RenderObjClass::USER_DATA_MATERIAL_OVERRIDE))
 			{	//mesh has material override of some kind
@@ -2273,7 +2273,7 @@ void DX8TextureCategoryClass::Render()
 
 
         }
-		if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log(gxlog::TASK_END, DX8Wrapper::GxLogEntry, 0, nullptr, 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log(gxlog::TASK_END, DX8Wrapper::GxLogEntry, 0, nullptr, 0, 0);	// GeneralsX: WS-G Task 5
 
 		/*
 		** Move to the next render task.  Note that the delete should be fast because prt's are pooled
@@ -2298,7 +2298,7 @@ void DX8TextureCategoryClass::Render()
 	}
 }
 
-// GeneralsX @feature Claude 11/10/2026 WS-G S1 seat (dx8renderer.h): the task walk, as DX8TextureCategoryClass::Render reads it.
+// GeneralsX: WS-G S1 seat (dx8renderer.h): the task walk, as DX8TextureCategoryClass::Render reads it.
 PolyRenderTaskClass *Gx_Task_Next(PolyRenderTaskClass *t) { return t->Get_Next_Visible(); }
 MeshClass *Gx_Task_Mesh(PolyRenderTaskClass *t) { return t->Peek_Mesh(); }
 DX8PolygonRendererClass *Gx_Task_Renderer(PolyRenderTaskClass *t) { return t->Peek_Polygon_Renderer(); }
@@ -2588,10 +2588,10 @@ void DX8MeshRendererClass::Flush()
 		GxBoundary(GX_BOUNDARY_DELAYED, DX8Wrapper::Get_Draw_Calls_Total() - gxDraws);
 	}
 
-	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log(gxlog::FLUSH_END, 0, 0, nullptr, 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log(gxlog::FLUSH_END, 0, 0, nullptr, 0, 0);	// GeneralsX: WS-G Task 5
 	DX8Wrapper::Set_Vertex_Buffer(nullptr);
 	DX8Wrapper::Set_Index_Buffer(nullptr,0);
-	if (GxL2FlushClosedHook) GxL2FlushClosedHook();	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5 T3: the call log's close point
+	if (GxL2FlushClosedHook) GxL2FlushClosedHook();	// GeneralsX: WS-G Task 5 T3: the call log's close point
 }
 
 

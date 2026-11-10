@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/10/2026 WS-X2: DrawRun - DXVK draws a claimed run of classic draws itself, at the run's own
+// GeneralsX: WS-X2: DrawRun - DXVK draws a claimed run of classic draws itself, at the run's own
 // position, through its own d3d9 entry points (render-seam/DESIGN_hybrid.md §13; the ABI in prose: rw1x/DRAWRUN_ABI.md).
 //
 // GX_L2_DRAWRUN unset (default): nothing runs - no QueryInterface, no Device_Call, no arena. Render-only: nothing here is read by
@@ -74,7 +74,7 @@ namespace GxDrawRun
 	// the printed tag = frame << 40 | path << 32 | run index.
 	void Digest_Mark(bool begin, unsigned long long tag);
 
-	// The carry-out on EXECUTED device state (Codex rw1x-design-r15 #1, r16 #1). What DX8Wrapper's caches say the device holds; with
+	// The carry-out on EXECUTED device state. What DX8Wrapper's caches say the device holds; with
 	// GX_DRAWRUN_TRUTH=1 the S1 seat passes it right after its CARRY-OUT's Apply - and in OFF frames at the same point after the
 	// classic run's last task (the A/A arm, must be clean) - and the device thread compares it with the d3d8 device's own answers
 	// (GetIndices, GetTransform(WORLD), GetRenderState(AMBIENT / NORMALIZENORMALS), GetLightEnable / GetLight for slots 0-3).

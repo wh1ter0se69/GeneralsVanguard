@@ -317,7 +317,7 @@ class AudioManager : public SubsystemInterface
 
 		Real getZoomVolume() const { return m_zoomVolume; }
 
-		// GeneralsX @feature Claude 10/09/2026 Extra attenuation for shell map world SFX only.
+		// GeneralsX: Extra attenuation for shell map world SFX only.
 		// Returns 1.0 unless we are in the shell game AND the event is an AT_SoundEffect marked
 		// ST_WORLD and not ST_GLOBAL, ST_VOICE or ST_UI - those three are separate bits that ST_WORLD
 		// does not imply - so menu music, streamed dialog, speech and UI gadget sounds are never
@@ -401,7 +401,7 @@ class AudioManager : public SubsystemInterface
 		/// and no longer a destructive snapshot.
 		void applyVolumes( void );
 
-		// GeneralsX @bugfix Claude 16/08/2026 RETIRED. This held muteAudio's snapshot of the system
+		// GeneralsX: RETIRED. This held muteAudio's snapshot of the system
 		// volumes, which unmuteAudio replayed - losing any change made while muted, and restoring
 		// zeros when a snapshot was taken over an already-muted state. Mute is a factor now and
 		// nothing is stored. Left declared so the class layout note stays findable in history;

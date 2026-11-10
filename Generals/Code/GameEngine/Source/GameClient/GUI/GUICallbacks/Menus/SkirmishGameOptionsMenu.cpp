@@ -73,7 +73,7 @@ SkirmishGameInfo *TheSkirmishGameInfo = nullptr;
 // window ids ------------------------------------------------------------------------------
 static NameKeyType parentSkirmishGameOptionsID = NAMEKEY_INVALID;
 static NameKeyType textEntryPlayerNameID = NAMEKEY_INVALID;
-// GeneralsX @feature Claude 12/08/2026 The shipped .wnd layouts carry exactly this many slot
+// GeneralsX: The shipped .wnd layouts carry exactly this many slot
 // rows. MAX_SLOTS is now larger; lookups for rows past this legitimately return null until the
 // dynamic-row lobby rebuild lands, so the per-row asserts below tolerate them.
 enum { LEGACY_WND_SLOT_ROWS = 8 };
@@ -460,7 +460,7 @@ static void startPressed()
 {
 
 	BOOL isReady = FALSE;
-	// GeneralsX @feature Claude 27/09/2026 Slot 0 may observe (an all-AI sandbox), so count the seats that
+	// GeneralsX: Slot 0 may observe (an all-AI sandbox), so count the seats that
 	// PLAY: an observer takes no start position. Whether the lobby may start at all is the start rule,
 	// GameInfo::getStartVerdict, which every setup screen shares.
 	Int playerCount = TheSkirmishGameInfo->getNumNonObserverPlayers();
@@ -471,7 +471,7 @@ static void startPressed()
 	{
 		buttonPushed = FALSE;
 		MessageBoxOk(TheGameText->fetch("GUI:ErrorStartingGame"), TheGameText->fetch("GUI:CantFindMap"), nullptr);
-		// GeneralsX @bugfix Claude 01/10/2026 Stop the start: falling through read it->second of end() (idea from Generals Online 2979d5b8f, reimplemented).
+		// GeneralsX: Stop the start: falling through read it->second of end() (idea from Generals Online 2979d5b8f, reimplemented).
 		return;
 	}
 	MapMetaData mmd = it->second;
@@ -487,7 +487,7 @@ static void startPressed()
 		msg.format(TheGameText->fetchGameOnly("GUI:TooManyPlayers"), mmd.m_numPlayers);
 		MessageBoxOk(TheGameText->fetch("GUI:ErrorStartingGame"), msg, nullptr);
 	}
-	// GeneralsX @feature Claude 23/09/2026 The map must also have room for every slot next to the
+	// GeneralsX: The map must also have room for every slot next to the
 	// civilian sides it keeps (Common/PlayerCapacity.h). Refused here, never trimmed: owner decision.
 	else if (TheMapCache->getPlayerSlotCapacity(lowerMap) >= 0
 		&& TheSkirmishGameInfo->countSlotsTakingPlayers() > TheMapCache->getPlayerSlotCapacity(lowerMap))
@@ -598,7 +598,7 @@ void positionStartSpotControls( GameWindow *win, GameWindow *mapWindow, Coord3D 
 	{
 		if(buttonMapStartPositions[i] == win)
 			break;
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if(!buttonMapStartPositions[i])
 			continue;
 		ICoord2D tempPos;
@@ -839,7 +839,7 @@ void updateMapStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[
 		{
 			if(gs->getApparentStartPos() >=0 && gs->getApparentStartPos() < mmd.m_numPlayers && gs->getPlayerTemplate() > PLAYERTEMPLATE_MIN )
 			{
-				// GeneralsX @bugfix Claude 12/08/2026 indexed by start position (8+ possible on a 12-spawn map); slots 8+ have no .wnd control until the lobby rebuild lands
+				// GeneralsX: indexed by start position (8+ possible on a 12-spawn map); slots 8+ have no .wnd control until the lobby rebuild lands
 				GameWindow *posBtn = buttonMapStartPositions[gs->getApparentStartPos()];
 				if (posBtn)
 				{
@@ -853,7 +853,7 @@ void updateMapStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[
 		{
 			if(gs->getStartPos() >=0 && gs->getStartPos() < mmd.m_numPlayers && gs->getPlayerTemplate() > PLAYERTEMPLATE_MIN )
 			{
-				// GeneralsX @bugfix Claude 12/08/2026 indexed by start position (8+ possible on a 12-spawn map); slots 8+ have no .wnd control until the lobby rebuild lands
+				// GeneralsX: indexed by start position (8+ possible on a 12-spawn map); slots 8+ have no .wnd control until the lobby rebuild lands
 				GameWindow *posBtn = buttonMapStartPositions[gs->getStartPos()];
 				if (posBtn)
 				{
@@ -951,7 +951,7 @@ static void handlePlayerTemplateSelection(int index)
 			return;
 
 		slot->setPlayerTemplate(playerTemplate);
-		// GeneralsX @feature Claude 27/09/2026 An observer holds no colour, team or start position
+		// GeneralsX: An observer holds no colour, team or start position
 		// (setPlayerTemplate clears the start), as in the LAN lobby.
 		if (playerTemplate == PLAYERTEMPLATE_OBSERVER)
 		{
@@ -1121,13 +1121,13 @@ void InitSkirmishGameGadgets()
 
 	for (i = 0; i < MAX_SLOTS; ++i)
 	{
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands (PopulateColorComboBox calls GadgetComboBoxGetLength, which derefs)
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands (PopulateColorComboBox calls GadgetComboBoxGetLength, which derefs)
 		if (comboBoxColor[i])
 		{
 			PopulateColorComboBox(i, comboBoxColor, TheSkirmishGameInfo );
 			GadgetComboBoxSetSelectedPos(comboBoxColor[i], 0);
 		}
-		// GeneralsX @feature Claude 27/09/2026 Slot 0, the local human, may observe an all-AI match.
+		// GeneralsX: Slot 0, the local human, may observe an all-AI match.
 		PopulatePlayerTemplateComboBox(i, comboBoxPlayerTemplate, TheSkirmishGameInfo, i == 0 );
 		PopulateTeamComboBox(i, comboBoxTeam, TheSkirmishGameInfo );
 
@@ -1320,7 +1320,7 @@ void SkirmishGameOptionsMenuInit( WindowLayout *layout, void *userData )
 	// set up the game speed slider
 //	NameKeyType sliderGameSpeedID = TheNameKeyGenerator->nameToKey( "SkirmishGameOptionsMenu.wnd:SliderGameSpeed" );
 	GameWindow *sliderGameSpeed = TheWindowManager->winGetWindowFromId( parentSkirmishGameOptions, sliderGameSpeedID );
-	// GeneralsX @feature Claude 27/09/2026 The slider is a GAME SPEED (GameLogic::onNewGame) and no longer
+	// GeneralsX: The slider is a GAME SPEED (GameLogic::onNewGame) and no longer
 	// shares a value with the render cap, so its default is normal speed, the tick rate - not the max-FPS
 	// cap, which is now the display's refresh rate or unlimited and would open the slider at its "--" end.
 	Int sliderPos = max(15,min(61,prefs.getInt("FPS", (Int)LOGICFRAMES_PER_SECOND)));
@@ -1334,7 +1334,7 @@ void SkirmishGameOptionsMenuInit( WindowLayout *layout, void *userData )
 
 	for (Int i = 0; i < MAX_SLOTS; ++i)
 	{
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxColor[i])
 			comboBoxColor[i]->winEnable(TRUE);
 		if (comboBoxPlayerTemplate[i])

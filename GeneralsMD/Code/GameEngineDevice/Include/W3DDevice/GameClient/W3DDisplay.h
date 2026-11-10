@@ -154,7 +154,7 @@ public:
 	virtual Real getCurrentFPS() override;						///< return the current FPS.
 	virtual Int getLastFrameDrawCalls() override;				///< returns the number of draw calls issued in the previous frame
 
-	// GeneralsX @feature Claude 18/08/2026 [GXDRAW] render-workload probe; see the block above the
+	// GeneralsX: [GXDRAW] render-workload probe; see the block above the
 	// definition in W3DDisplay.cpp for what the counters mean and which End_Statistics they read.
 	// Env-gated on GX_DRAW, no-op otherwise. Private: nothing outside draw() should call it.
 	static void gxDrawSample( void );

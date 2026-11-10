@@ -4,7 +4,7 @@
 
 #include <time.h>
 
-// GeneralsX @feature BenderAI 24/02/2026 Phase 5 macOS timer support (CLOCK_BOOTTIME -> CLOCK_UPTIME)
+// GeneralsX: Phase 5 macOS timer support (CLOCK_BOOTTIME -> CLOCK_UPTIME)
 #ifdef __APPLE__
 #include <mach/mach_time.h>
 #endif
@@ -48,7 +48,7 @@ void Sleep(DWORD ms)
   nanosleep(&ts, NULL);
 }
 
-// GeneralsX @bugfix Claude 24/09/2026 Fill wMilliseconds like Win32 does. It was always 0, so the
+// GeneralsX: Fill wMilliseconds like Win32 does. It was always 0, so the
 // screenshot name sshot_<date>_<hhmmss>_<ms>.png (W3DScreenshot.cpp) repeated within a second and every
 // capture after the first in that second overwrote the file: a GX_SHOT burst of 16 consecutive frames on
 // macOS left ONE png while logging 16 [GXSHOT] captures. Also makes localtime reentrant (localtime_r).

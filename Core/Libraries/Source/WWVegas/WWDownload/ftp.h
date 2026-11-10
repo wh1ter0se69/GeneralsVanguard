@@ -25,7 +25,7 @@
 #include <cstddef>
 #ifdef _WIN32
 #include <winsock.h>
-// GeneralsX @bugfix Claude 27/07/2026
+// GeneralsX:
 // The POSIX arm below gets strlcpy/strlcat, ARRAY_SIZE and socklen_t for free out of
 // windows_compat.h, so FTP.cpp and Download.cpp were written against them unconditionally.
 // Nothing supplied those names on the Windows arm, which left both sources referencing

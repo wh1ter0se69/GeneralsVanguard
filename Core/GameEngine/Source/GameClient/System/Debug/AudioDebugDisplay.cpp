@@ -93,7 +93,7 @@ static DebugDisplayInterface *debugDisplay;
 
 static void printFunc( char *text )
 {
-	debugDisplay->printf( "%s", text );	// GeneralsX @security Claude 06/10/2026 text carries INI sound names: data, not a format
+	debugDisplay->printf( "%s", text );	// GeneralsX: text carries INI sound names: data, not a format
 }
 
 //----------------------------------------------------------------------------

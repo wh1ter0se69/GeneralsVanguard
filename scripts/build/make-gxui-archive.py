@@ -8,7 +8,7 @@ we do not care about - fonts, draw data, colours, header templates - stays exact
 """
 import os, re, sys
 
-# GeneralsX @feature Claude 17/08/2026 GX_WINDOW_BIG overrides the source archive.
+# GeneralsX: GX_WINDOW_BIG overrides the source archive.
 #
 # The default is the Mac's install and was the only path this script could ever read, which is
 # precisely why the archive it produces existed on one machine. The Windows and Linux packagers

@@ -186,7 +186,7 @@ set(GAMEENGINEDEVICE_SRC
     Source/W3DDevice/GameLogic/W3DTerrainLogic.cpp
 )
 
-# GeneralsX @TheSuperHackers @build BenderAI 11/02/2026 Separate Windows and Linux platform-specific files
+# GeneralsX: Separate Windows and Linux platform-specific files
 if(WIN32)
     # Windows-specific files (DirectX 8, Miles Sound, Win32 API)
     list(APPEND GAMEENGINEDEVICE_SRC
@@ -196,7 +196,7 @@ if(WIN32)
 #        Source/Win32Device/Common/Win32LocalFile.cpp
 #        Source/Win32Device/Common/Win32LocalFileSystem.cpp
         Source/Win32Device/Common/Win32OSDisplay.cpp
-# GeneralsX @bugfix Claude 27/07/2026 Win32DIKeyboard.cpp and Win32Mouse.cpp live only under
+# GeneralsX: Win32DIKeyboard.cpp and Win32Mouse.cpp live only under
 # Core/GameEngineDevice and are built from there; listing them here pointed at paths that do not
 # exist and failed the Windows configure. See Core/GameEngineDevice/CMakeLists.txt.
 #        Source/Win32Device/GameClient/Win32DIKeyboard.cpp
@@ -222,7 +222,7 @@ else()
     endif()
 endif()
 
-# GeneralsX @feature Claude 07/08/2026 iOS background execution.
+# GeneralsX: iOS background execution.
 #
 # This is the FIRST Objective-C++ translation unit in the build - nothing else here compiles as
 # ObjC++ and no target enabled the language - so the whole shim is deliberately behind extern "C"
@@ -286,12 +286,12 @@ target_link_libraries(z_gameenginedevice PUBLIC
 )
 
 # Linux SDL3 windowing/input (Phase 1)
-# GeneralsX @build BenderAI 11/02/2026
+# GeneralsX:
 if(SAGE_USE_SDL3)
     target_link_libraries(z_gameenginedevice PUBLIC sdl3lib)
 endif()
 # Phase 3: Video playback (FFmpeg) + Phase 2: Audio decoding (FFmpeg)
-# GeneralsX @feature BenderAI 21/02/2026 OpenAL audio backend (Audio + Video via FFmpeg)
+# GeneralsX: OpenAL audio backend (Audio + Video via FFmpeg)
 if(SAGE_USE_OPENAL)
     # GeneralsX @build fbraz 24/02/2026 - On macOS prefer openal-soft over deprecated Apple framework
     # GeneralsX @bugfix fbraz 10/03/2026 - openal.cmake included from root CMakeLists.txt; OpenAL::OpenAL already defined
@@ -303,7 +303,7 @@ if(SAGE_USE_OPENAL)
 endif()
 
 # Phase 3: Video playback with FFmpeg (configured by Core/GameEngineDevice when RTS_BUILD_OPTION_FFMPEG=ON)
-# GeneralsX @feature BenderAI 21/02/2026 Video playback framework
+# GeneralsX: Video playback framework
 if(RTS_BUILD_OPTION_FFMPEG)
     # Add VideoDevice FFmpeg implementation (video playback)
     target_sources(z_gameenginedevice PUBLIC

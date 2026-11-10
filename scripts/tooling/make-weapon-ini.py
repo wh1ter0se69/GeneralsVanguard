@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# GeneralsX @feature Claude 24/09/2026 Data/INI/Weapon.ini: the Community Patch's Weapon.ini plus
+# GeneralsX: Data/INI/Weapon.ini: the Community Patch's Weapon.ini plus
 # GeneralsX's balance edits. A RECIPE, NOT A COPY.
 #
 #   make-weapon-ini.py --out <Data/INI/Weapon.ini> --search <dir> [--search <dir>]...
@@ -179,7 +179,7 @@ def edit_block(text, head, pairs, what):
     return text[:start] + block[:-2] + text[stop:]
 
 
-# GeneralsX @feature Claude 06/10/2026 Flares you can read (owner GO 05/10: "must look like the 2003 game, only better").
+# GeneralsX: Flares you can read (owner GO 05/10: "must look like the 2003 game, only better").
 # A missile turning onto a flare is the whole point of the Countermeasures upgrade and was hard to see: five to ten small
 # short-lived sparks and a thin faint smoke thread. Same effect, same textures, same colour family: bigger and more
 # numerous sparks, a hotter white core, a smoke trail that lives about twice as long and is denser. Client-only: particles
@@ -197,7 +197,7 @@ FLARE_EDITS = [
         (b"\r\nSize = 0.50 1.00\r\n", b"\r\nSize = 0.90 1.60\r\n"),
         (b"\r\nAlpha1 = 0.10 0.25 0\r\n", b"\r\nAlpha1 = 0.22 0.40 0\r\n"),
         # The fade-out keyframe is an absolute particle age: left at 150 the longer-lived smoke would reach zero alpha and be
-        # culled there (Codex flare-look-r1 P2). Stretched to the new longest life it fades over the whole life instead.
+        # culled there. Stretched to the new longest life it fades over the whole life instead.
         (b"\r\nAlpha2 = 0.00 0.00 150\r\n", b"\r\nAlpha2 = 0.00 0.00 270\r\n"),
         (b"\r\nBurstDelay = 3.00 5.00\r\n", b"\r\nBurstDelay = 2.00 3.00\r\n"),
     ]),
@@ -226,17 +226,17 @@ RECIPE_FILES = [
     ("Data\\INI\\Object\\Shared\\Weapon\\SupW_AuroraFuelAirGas.ini",
      "2a2ee8c1a332586e0504493c0645d5df2aab0d0e7d76fcf73544b3d7c5953f2f", edit_aurora_gas),
 ]
-# GeneralsX @feature Claude 29/09/2026 The skirmish-AI script file rides the same call sites: every packager and
+# GeneralsX: The skirmish-AI script file rides the same call sites: every packager and
 # deploy step that already runs this recipe and stages `--list` now also gets Data/Scripts/SkirmishScripts.scb, cut
 # from the retail loose copy by scripts/tooling/make-skirmish-scripts.py (sha256-pinned, deterministic, moves dataID).
 import importlib.util as _ilu
 _spec = _ilu.spec_from_file_location("make_skirmish_scripts", os.path.join(os.path.dirname(os.path.abspath(__file__)), "make-skirmish-scripts.py"))
 SKIRMISH = _ilu.module_from_spec(_spec)
 _spec.loader.exec_module(SKIRMISH)
-# GeneralsX @feature Claude 08/11/2026 The skirmish AI's base layouts (Data/INI/AIData.ini, doors facing the base front) ride the same call
+# GeneralsX: The skirmish AI's base layouts (Data/INI/AIData.ini, doors facing the base front) ride the same call
 # sites: cut from the SAME CoreINI archive by scripts/tooling/make-aidata-layouts.py (its source member sha256-pinned, its default = the
 # shipped file, both keys on every list but SHIP_OFF). It moves dataID, so a package without it is refused by one that has it (DATA_DIFFERS).
-# Before this, nothing staged it and the base-layout engine half shipped with no layouts to read (Codex vnext1108-r1 P2).
+# Before this, nothing staged it and the base-layout engine half shipped with no layouts to read.
 _aspec = _ilu.spec_from_file_location("make_aidata_layouts", os.path.join(os.path.dirname(os.path.abspath(__file__)), "make-aidata-layouts.py"))
 AIDATA = _ilu.module_from_spec(_aspec)
 _aspec.loader.exec_module(AIDATA)
@@ -381,14 +381,14 @@ def root_search(root, extra):
     # loadPrimaryGameAssets mounts ONE asset root, before the overlay: the first of these variables
     # naming a folder with archives in it, else the executable's folder. On a filename tie the archive
     # mounted first wins (loadIntoDirectoryTreeAtPriority), so the asset root is searched first.
-    # ponytail: Options.ini [Paths] AssetPath and the registry InstallPath, tried by the engine between
+    # Trade-off: Options.ini [Paths] AssetPath and the registry InstallPath, tried by the engine between
     # these and the executable's folder, are not read; name such a root in CNC_GENERALS_ZH_PATH.
     legacy = os.environ.get("CNC_ZH_INSTALLPATH", "")  # the engine takes this one raw
     primary = next((d for d in (env_path("CNC_GENERALS_ZH_PATH", root), env_path("GENERALSX_ASSET_PATH", root),
                                 legacy and os.path.join(root, legacy)) if has_big(d)), root)
     # resolvePatchOverlayDirectory: GENERALSX_PATCH_PATH when set - a folder that is not there turns the
     # overlay OFF, never falls back - else <exe dir>/GeneralsXPatch. The engine never looks at
-    # <root>/../GeneralsXPatch, so neither does this (Codex batch-r3): searching it unasked cut Weapon.ini
+    # <root>/../GeneralsXPatch, so neither does this: searching it unasked cut Weapon.ini
     # from an archive a go.bat peer never loads and hid that its overlay was missing. A launcher that
     # mounts the sibling exports it as GENERALSX_PATCH_PATH, and its caller does the same for this call.
     overlay = env_path("GENERALSX_PATCH_PATH", root) or os.path.join(root, "GeneralsXPatch")
@@ -510,7 +510,7 @@ def selftest():
         assert pick(run, CNC_GENERALS_ZH_PATH=nobig) == run
         os.remove(os.path.join(run, ARCHIVE))
         os.remove(os.path.join(inf, ARCHIVE))
-        # Codex batch-r3: the engine never mounts the sibling on its own, so neither does the search. A launcher that
+        # the engine never mounts the sibling on its own, so neither does the search. A launcher that
         # mounts it says so in GENERALSX_PATCH_PATH (run.sh, and deploy-*-zh.sh for this call); go.bat does not.
         assert pick(run) is None, "no engine default and no GENERALSX_PATCH_PATH: the sibling is NOT the overlay"
     print("selftest OK")

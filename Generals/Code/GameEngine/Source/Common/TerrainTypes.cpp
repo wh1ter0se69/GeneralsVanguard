@@ -136,13 +136,13 @@ void TerrainTypeCollection::noteOverrideLoad( TerrainType *terrain, Bool created
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/10/2026 Undo exactly what a map.ini did to the terrain types (Codex mapini-rollback-adv-r1 P1).
+// GeneralsX: Undo exactly what a map.ini did to the terrain types.
 // INI::parseTerrainDefinition parses into an existing type IN PLACE and this reset() was empty, so a map's terrain edits outlived
 // it - and RestrictConstruction is read by the simulation (BuildAssistant's legality check, which DozerAIUpdate builds by): the
 // next game's build placement differed from a fresh peer's. The pristine values go back INTO the live type (its list link kept),
 // and the types a map invented leave the list - unlinked, not freed: the terrain and road-buffer code keep TerrainType pointers.
 // They were prepended (newTerrain), so unlinking them restores the list's order.
-// ponytail: retired types are freed only in the destructor - a few per custom map, per process.
+// Trade-off: retired types are freed only in the destructor - a few per custom map, per process.
 void TerrainTypeCollection::reset()
 {
 	for( size_t i = 0; i < m_overrideBackups.size(); ++i )

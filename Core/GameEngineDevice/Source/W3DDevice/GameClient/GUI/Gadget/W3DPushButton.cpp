@@ -154,7 +154,7 @@ static void drawButtonText( GameWindow *window, WinInstanceData *instData )
 // every repopulate, and would need freeing in GWM_DESTROY where PushButtonData is deleted as a
 // plain struct.
 //
-// GeneralsX @tweak Claude 27/09/2026 Keyed by glyph AND font. The letter's size now follows its button (see
+// GeneralsX: Keyed by glyph AND font. The letter's size now follows its button (see
 // getHotKeyFont), and the command bar, the shortcut bar and the General's Points panel are different heights on
 // screen at once, so one 'S' shared across them would re-lay its text on every draw.
 static DisplayString *getHotKeyDisplayString( const UnicodeString& label, GameFont *font )
@@ -179,7 +179,7 @@ static DisplayString *getHotKeyDisplayString( const UnicodeString& label, GameFo
 	return ds;
 }
 
-// GeneralsX @tweak Claude 27/09/2026 The letter's size follows the BUTTON, not the button's font (wh1ter0se, 27/09: "on
+// GeneralsX: The letter's size follows the BUTTON, not the button's font (wh1ter0se, 27/09: "on
 // the actual items make the slightly bolder and bigger but make the ones appearing on the right side in the
 // powerups stuff smaller").
 //
@@ -196,7 +196,7 @@ static DisplayString *getHotKeyDisplayString( const UnicodeString& label, GameFo
 // pixels the glyphs are rasterised in. Fonts live until the game exits (FontLibrary::reset runs only in
 // GameClient's destructor), so caching the pointers is safe.
 //
-// GeneralsX @feature Claude 29/09/2026 `scale` is the player's badge size (HotKeyManager::getBadgeScale, the launcher's
+// GeneralsX: `scale` is the player's badge size (HotKeyManager::getBadgeScale, the launcher's
 // Keybinds page): 1.0 is the size above.
 static GameFont *getHotKeyFont( Int buttonHeight, Real scale )
 {
@@ -247,7 +247,7 @@ static void drawHotKeyLabel( GameWindow *window, const ICoord2D& start, const IC
 	// plate behind the glyph instead, so legibility does not depend on what the artwork happens to
 	// be doing in that corner.
 	//
-	// GeneralsX @feature Claude 29/09/2026 In the corner the player picked on the Keybinds page (bottom-left until
+	// GeneralsX: In the corner the player picked on the Keybinds page (bottom-left until
 	// then). The plate sits flush in that corner and overhangs the two outer edges by `bleed`, as the bottom-left one
 	// always has; the glyph keeps its place inside the plate.
 	const Int pad = 2;
@@ -262,7 +262,7 @@ static void drawHotKeyLabel( GameWindow *window, const ICoord2D& start, const IC
 
 	const Bool enabled = BitIsSet( window->winGetStatus(), WIN_STATUS_ENABLED ) != 0;
 
-	// GeneralsX @bugfix Claude 25/09/2026 A letter whose key another button owns right now (a
+	// GeneralsX: A letter whose key another button owns right now (a
 	// selected unit's command set takes S from the general's-power shortcut, as in retail) is
 	// drawn darker than a disabled one instead of being hidden, so it never disappears and never
 	// looks live. Asked per frame: the owner changes with every selection (ControlBar.cpp
@@ -277,10 +277,10 @@ static void drawHotKeyLabel( GameWindow *window, const ICoord2D& start, const IC
 	const Color dropColor = GameMakeColor( 0, 0, 0, 255 );
 	const Int textX = plateX + bleed + pad;
 
-	// GeneralsX @feature Claude 29/09/2026 The badge's look (Keybinds page): PLATE is the look above; FRAMED adds a
+	// GeneralsX: The badge's look (Keybinds page): PLATE is the look above; FRAMED adds a
 	// one-pixel gold edge round the plate, dimmed with the letter. Both are one text pass. No plate-less look: the plate
 	// is what keeps a light letter readable over a light cameo (above), and an outline drawn round the glyph costs a
-	// text pass per ring offset on every button, every frame (Codex hotkeys-genhub-r6) - so it was taken out.
+	// text pass per ring offset on every button, every frame - so it was taken out.
 	const HotKeyManager::BadgeStyle style = TheHotKeyManager->getBadgeStyle();
 	TheDisplay->drawFillRect( plateX, plateY, plateW, plateH,
 													  GameMakeColor( 0, 0, 0, shadowed ? 110 : ( enabled ? 190 : 140 ) ) );

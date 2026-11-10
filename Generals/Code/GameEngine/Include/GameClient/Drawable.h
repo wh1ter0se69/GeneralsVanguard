@@ -201,7 +201,7 @@ private:
 	Vector3							m_decayRate;			///< step amount to make tint turn off slow or fast
 	Vector3							m_peakColor;			///< um, the peak color, what color we are headed toward during attack
 	Vector3							m_currentColor;		///< um, the current color, how we are colored, now
-	// GeneralsX @bugfix Claude 24/09/2026 double, from upstream PR #3127 (b44fa780e): a float cannot hold
+	// GeneralsX: double, from upstream PR #3127 (b44fa780e): a float cannot hold
 	// SUSTAIN_INDEFINITELY (0xfffffffe) - it rounds to 2^32, which the retail-format save then converts
 	// to UnsignedInt out of range (0 on x86-64), so a disabled object lost its dark tint on save.
 	double							m_sustainCounter;
@@ -690,7 +690,7 @@ private:
 	FadingMode		m_fadeMode;
 	UnsignedInt		m_timeElapsedFade;			///< for how many frames have i been fading
 
-	// GeneralsX @feature Claude 28/09/2026 Render interpolation (Drawable::interpolateTransform): the logic transform
+	// GeneralsX: Render interpolation (Drawable::interpolateTransform): the logic transform
 	// at the last two logic frames. Render-local copies; never saved, never read by logic.
 	// Mutable: refreshed on demand by const queries (the icon UI, bone positions), not only by draw().
 	mutable Matrix3D		m_interpPrev;
@@ -699,7 +699,7 @@ private:
 	mutable Real		m_interpTurretPrev[MAX_TURRETS][2];	///< turret angle and pitch, relative to the hull, at the logic frames of m_interpPrev and m_interpCur
 	mutable Real		m_interpTurretCur[MAX_TURRETS][2];
 
-	// GeneralsX @bugfix Claude 06/08/2026 The class-C animation gate.
+	// GeneralsX: The class-C animation gate.
 	//
 	// updateDrawable() is driven once per MAIN LOOP ITERATION, not once per logic frame:
 	// GameEngine::update() calls TheGameClient->UPDATE() unconditionally while TheGameLogic->UPDATE()
@@ -744,7 +744,7 @@ private:
 	DrawableInfo				m_drawableInfo;		///< structure pointed to by W3D render objects so they know which drawable they belong to.
 
 	ModelConditionFlags	m_conditionState;				///< The Drawables current behavior state
-	// GeneralsX @performance Claude 23/09/2026 Was a Real holding the raw construction percent; now the percent as displayed (issue #3095).
+	// GeneralsX: Was a Real holding the raw construction percent; now the percent as displayed (issue #3095).
 	Int									m_lastConstructDisplayed;						///< gxConstructPercentKey of the number the string shows (GXConstructPercentKey.h), -1 = rebuild it
 	DisplayString*			m_constructDisplayString;  ///< string to display construction % complete
 	DisplayString*			m_captionDisplayString;		///< string to display caption
@@ -816,7 +816,7 @@ private:
 
 #ifdef DIRTY_CONDITION_FLAGS
 	static Int							s_modelLockCount;
-	// GeneralsX @performance Claude 23/09/2026 TRUE whenever some drawable MAY have m_isModelDirty set.
+	// GeneralsX: TRUE whenever some drawable MAY have m_isModelDirty set.
 	// Every write of m_isModelDirty = true sets it too; only friend_lockDirtyStuffForIteration clears it,
 	// right before the walk that cleans every dirty drawable. FALSE therefore proves the walk is a no-op.
 	// Mirrors the Zero Hour change (review of cc426e50c).

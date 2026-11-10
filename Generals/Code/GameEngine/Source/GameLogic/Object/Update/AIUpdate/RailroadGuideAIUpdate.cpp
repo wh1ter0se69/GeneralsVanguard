@@ -280,7 +280,7 @@ void RailroadBehavior::onCollide( Object *other, const Coord3D *loc, const Coord
 
 	// maybe we don't want to trample this unit?
 	const RailroadBehaviorModuleData *modData = getRailroadBehaviorModuleData();
-	// GeneralsX @fix Claude 23/09/2026 The whole train model is per 30 Hz frame. Speeds (SpeedMax, KillSpeedMin,
+	// GeneralsX: The whole train model is per 30 Hz frame. Speeds (SpeedMax, KillSpeedMin,
 	// RunningGarrisonSpeedMax, the restart and stop speeds, the infantry-hurl limit) halve; the start push
 	// (+0.02 per frame, a per-frame^2 acceleration) quarters; the Acceleration/Braking/Friction multipliers
 	// take the square root (sqrtf, IEEE correctly rounded). The per-contact victim kick is applied every
@@ -1494,7 +1494,7 @@ void RailroadBehavior::FindPosByPathDistance( Coord3D *pos, const Real dist, con
 						TheAudio->addAudioEvent( &m_clicketyClackSound );
 						m_clicketyClackSound.setPosition( getObject()->getPosition() );
 #if GX_LOGIC_60HZ
-						// GeneralsX @fix Claude 23/09/2026 speed is per 60 Hz frame now (half the retail number):
+						// GeneralsX: speed is per 60 Hz frame now (half the retail number):
 						// /5 keeps the retail loudness for the same wall-clock train speed.
 						m_clicketyClackSound.setVolume( (Real)conductorPullInfo.speed / 5.0f );//assumed max speed
 #else

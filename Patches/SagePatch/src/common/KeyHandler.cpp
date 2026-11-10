@@ -12,7 +12,7 @@ bool handleKeyDown(const SDL_KeyboardEvent& ev) {
 
     const bool ctrl = (ev.mod & SDL_KMOD_CTRL) != 0;
 
-    // GeneralsX @bugfix Claude 17/08/2026 Window snap must not sit on Ctrl+1..5.
+    // GeneralsX: Window snap must not sit on Ctrl+1..5.
     //
     // This was the "team assignment doesn't work on macOS" report, and the engine was innocent.
     // The interposer that calls this function EATS the SDL_EVENT_KEY_DOWN whenever we return

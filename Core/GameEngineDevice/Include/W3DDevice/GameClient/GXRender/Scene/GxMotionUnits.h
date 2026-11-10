@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-motion-units-1 13/10/2026 The object-velocity bridge (PREREG_T A35, modernize/render-dlss/
+// GeneralsX: The object-velocity bridge (PREREG_T A35, modernize/render-dlss/
 // DESIGN_motion-units.md): per-object motion vectors for moved rigid meshes and CPU-skinned meshes, until the MRT path replaces it
 // after A22 + A25 (then this file is DELETED, not kept as a second path). Native renderer only.
 //

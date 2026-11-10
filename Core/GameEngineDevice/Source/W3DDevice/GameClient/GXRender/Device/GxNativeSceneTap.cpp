@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-fdepth-plus 17/10/2026 IGxSceneTap on the native device (GxSceneTap.h; F-depth+, GxSceneCopy.h).
+// GeneralsX: IGxSceneTap on the native device (GxSceneTap.h; F-depth+, GxSceneCopy.h).
 //
 // Front halves here; the copies are ONE async command per frame (A23-B: owned arguments, stream-ordered with the draws around it -
 // it runs on gx-native-cs when the worker is on, which is wh1ter0se's default with GXUpscaler off).
@@ -83,7 +83,7 @@ void GxNativeDevice::logSceneStats()
 
 bool GxNativeDevice::testReadSceneProbe(float out[4])
 {
-	// E · seam-worker-2 (Codex seam2 design r1 P2): an S body, not a bare csSync - endFrameForHost below is an ownership boundary, and a
+	// E · seam-worker-2 (seam2 design r1 P2): an S body, not a bare csSync - endFrameForHost below is an ownership boundary, and a
 	// drain alone (m_inline 0) counted it as a front recording whenever the worker was on
 	std::optional<SScope> sc;
 	if (m_debug.accessorBareSync)

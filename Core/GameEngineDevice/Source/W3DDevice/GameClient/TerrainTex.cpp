@@ -69,7 +69,7 @@
 #include "W3DDevice/GameClient/W3DShaderManager.h"
 
 //=============================================================================
-// GeneralsX @feature Claude 17/10/2026 THE REMASTERED GROUND, slice 1 (D · look-director-2; productised from C · look-ground-2's
+// GeneralsX: THE REMASTERED GROUND, slice 1 (D · look-director-2; productised from C · look-ground-2's
 // test/look-ground-2 4fe7f0db9, itself grown from B · look-ground-plan's per-pixel relief; wh1ter0se 14/10 "new ground looks
 // better"). The switch, its A/B override, the vetoes and the governor steps are GameClient/GXGroundSteps.h: Options.ini
 // GXGround = yes (absent = kGxGroundKeyDefault: ON since wh1ter0se 17/10), GX_GROUND = off | "shade,blend,detail,macro,noise". OFF = today's ground byte for byte: nothing
@@ -87,7 +87,7 @@
 //    = 0.333 keeps a' = a exactly at a = 0 and a = 1, so a cell that blends nothing never shows its (arbitrary) second tile. The colour is then multiplied
 //    by light = sat(vertex light x shade factor), the shade lerped by the same a'. The saturate is the engine's own rule: doTheLight
 //    clamps every vertex's light at 1.0 per channel, so a relief-lit facet gets at most full light, as a sun-facing slope does
-//    today, and colour x light never exceeds 1.0 in the 8-bit framebuffer before MULT darkens it (Codex ground2-r1/r2 P1).
+//    today, and colour x light never exceeds 1.0 in the 8-bit framebuffer before MULT darkens it.
 //  MULT (one extra pass, framebuffer *= 2*src): the stock cloud map and macro noise with the stock texture matrices (the noise's
 //    depth softened, the preset's 5th value; 100 = stock), times a world-projected high-frequency DETAIL grain whose mips fade to
 //    neutral (it shows only close up, no shimmer at the normal camera), times a world-projected low-frequency MACRO variation
@@ -102,7 +102,7 @@
 // from HeightMapRenderObjClass::staticLightingChanged - W3DTerrainLogic::loadMap's setTimeOfDay reaches it once the map's lights
 // are final (TerrainVisual::load built the atlas just before) - and again only when a time-of-day change relights the terrain.
 // The first base pass bakes only if neither ran (after a device reset dropped the atlas), and says so in its log line. A failed
-// bake latches the stock path for that atlas and device: no retry per frame (Codex ground2-r1 P2).
+// bake latches the stock path for that atlas and device: no retry per frame.
 // Test hooks (read once): GX_GROUND2 / GX_GROUND3 = more presets; GX_GROUND_AT="<frame>:<mode>,..." switches mode in-run from that
 // logic frame on (0 = stock, 1-3 = preset; default 1) for one-run tuning sweeps; GX_GROUND_BAKE="depth,shadow,cavity" (texels x10,
 // percent, x100; default 120,80,160); GX_GROUND_FLIP=1 bakes the lights from the opposite side (fail arm).
@@ -111,7 +111,7 @@
 // stock where its alpha reaches 1, and roads stay stock; cliff cells whose UVs AdjustCliffTextures remaps along the slope are
 // shaded with the flat-tile axes; the detail and macro layers are projected straight down, so they stretch on steep cliffs; the
 // native renderer has no port (GXGroundSteps.h vetoes it).
-// Ownership as in the relief prototype (Codex ground-r1..r3): the shade atlas belongs to ONE colour atlas (the TerrainTextureClass
+// Ownership as in the relief prototype: the shade atlas belongs to ONE colour atlas (the TerrainTextureClass
 // whose texels it was baked from) on ONE device; every device object is dropped in W3DShaderManager::shutdown (device alive) and
 // rebuilt from the kept luminance copy.
 //=============================================================================
@@ -138,7 +138,7 @@ static float s_gxgBakedLights[16];					// the light set the shade atlas was bake
 static Bool s_gxgBaseActive = false;				// the base pass was replaced this Render: the MULT pass must follow
 static Bool s_gxgMultSet = false;					// MultBegin changed device state: MultEnd must restore it
 static Bool s_gxgBakeFailed = false;				// the shade atlas could not be created for this atlas/device: stock path, no
-													// per-frame retry (Codex ground2-r1 P2); cleared by a new atlas or a shutdown
+													// per-frame retry; cleared by a new atlas or a shutdown
 static Int s_gxgWhy = GXGROUND_OFF_KEY;				// this map's decision (GXGroundSteps.h), taken when its atlas is built
 static Bool s_gxgOn = false;						// that decision is on AND the atlas is one this can bake from
 static GXGroundPreset s_gxgP[3];					// 1 = this map's (GX_GROUND list or the key's values); 2, 3 = GX_GROUND2/3
@@ -526,7 +526,7 @@ static Bool gxgBake(IDirect3DDevice8 *device, const GXGroundLight *L, Int nl, fl
 
 // The shade atlas for the lights the vertices are lit with now (doTheLight's set): kept while those lights are the ones it was
 // baked for, baked when it is missing or they changed. FALSE = the stock path; a failed bake latches it until a new atlas or a
-// device shutdown, so nothing retries per frame (Codex ground2-r1 P2).
+// device shutdown, so nothing retries per frame.
 static Bool gxgEnsureShade(IDirect3DDevice8 *device, const char *at)
 {
 	if (s_gxgBakeFailed) return FALSE;
@@ -725,7 +725,7 @@ static Bool gxgEnsureDevice(IDirect3DDevice8 *device)
 	return true;
 }
 
-// GeneralsX @feature Claude 17/10/2026 Map load (HeightMapRenderObjClass::staticLightingChanged): everything the ground draws with
+// GeneralsX: Map load (HeightMapRenderObjClass::staticLightingChanged): everything the ground draws with
 // is built here, while the loading screen is up - the device objects and the shade atlas for the map's final lights (the ~350 ms
 // look-ground-2 used to spend in the first frame). Called again on a time-of-day change, it re-bakes only if the lights moved.
 // The same gates as the base pass, so nothing is built that the base pass would not use. FALSE = the stock path for now.
@@ -956,7 +956,7 @@ static void gxgKeepAtlas(const UnsignedByte *bits, Int width, Int height, Int pi
 /** Constructor. Calls parent constructor to create a 32 bit per pixel D3D
 texture of the desired height and mip level. */
 //=============================================================================
-// GeneralsX @tweak Claude 28/09/2026 The tile atlas was A1R5G5B5, so every map's 8-bit-per-channel ground art
+// GeneralsX: The tile atlas was A1R5G5B5, so every map's 8-bit-per-channel ground art
 // was stored at 5 bits per channel (visible as banding on smooth snow and sand). A8R8G8B8 costs 2x the atlas
 // bytes: 2048 x height x 4 with 3 mips, e.g. 10.5 MiB instead of 5.25 at height 1024 (DXVK keeps a second,
 // staging copy of a MANAGED texture, so resident memory grows by twice the difference). Load-time only.
@@ -964,7 +964,7 @@ texture of the desired height and mip level. */
 // Built exactly as before (16-bit), then upgraded: the 32-bit atlas is created with a call that cannot assert, and
 // replaces the 16-bit one only when the device supports the format, the allocation succeeds and the surface really is
 // 32-bit. Anything else keeps the atlas that always fit - never a substituted format update() cannot write, and never
-// a missing texture or a debug assertion on a map too big for the doubled atlas (Codex gfxa-atlas-r1/r2/r3).
+// a missing texture or a debug assertion on a map too big for the doubled atlas.
 TerrainTextureClass::TerrainTextureClass(int height) :
 	TextureClass(TEXTURE_WIDTH, height,
 		WW3D_FORMAT_A1R5G5B5, MIP_LEVELS_3 )
@@ -1005,7 +1005,7 @@ TerrainTextureClass::TerrainTextureClass(int height, int width) :
 	pixel borders around them, so that when the tiles are scaled and bilinearly
 	interpolated, you don't get seams between the tiles.  */
 //=============================================================================
-// GeneralsX @feature Claude 17/10/2026 (from C · look-ground-2's prototype, 14/10): the REMASTERED ground's shade atlas and
+// GeneralsX: the REMASTERED ground's shade atlas and
 // luminance copy live and die with the colour atlas they were read from (see gxgKeepAtlas).
 TerrainTextureClass::~TerrainTextureClass()
 {
@@ -1017,8 +1017,8 @@ TerrainTextureClass::~TerrainTextureClass()
 int TerrainTextureClass::update(WorldHeightMap *htMap)
 {
 	// D3DTexture is our texture;
-	// GeneralsX @feature Claude 17/10/2026 (from C · look-ground-2's prototype, 14/10): drop the REMASTERED ground's copy first -
-	// every early return leaves none, so a map never draws another map's shade (Codex ground-r1 P1 on the relief prototype).
+	// GeneralsX: drop the REMASTERED ground's copy first -
+	// every early return leaves none, so a map never draws another map's shade (on the relief prototype).
 	gxgForgetAtlas();
 
 	IDirect3DSurface8 *surface_level;
@@ -1129,7 +1129,7 @@ int TerrainTextureClass::update(WorldHeightMap *htMap)
 
 	}
 
-	// GeneralsX @diagnostic Claude 28/09/2026 [GXATLAS], with GX_ATLAS set: read the level-0 tiles back and compare them
+	// GeneralsX: [GXATLAS], with GX_ATLAS set: read the level-0 tiles back and compare them
 	// with their source art, once per atlas build (map load). maxerr is the largest per-channel difference (0 when the
 	// atlas holds the art exactly, up to 7 at 5 bits per channel); translucent counts texels whose alpha is not opaque,
 	// which must be 0 because the blend pass multiplies by it.
@@ -1171,7 +1171,7 @@ int TerrainTextureClass::update(WorldHeightMap *htMap)
 			htMap->m_numBitmapTiles, texels, maxErr, errTexels, translucent);
 		fflush(stderr);
 	}
-	// GeneralsX @feature Claude 17/10/2026 (from C · look-ground-2's prototype, 14/10): this map's REMASTERED ground switch, and -
+	// GeneralsX: this map's REMASTERED ground switch, and -
 	// when on - the level-0 texels its shade atlas is baked from (at map load, once the map's lights are final: GXGround_Prepare).
 	// The 16-bit atlas has no 8-bit texels to read: the ground stays off there and says so.
 	{
@@ -1971,7 +1971,7 @@ void CloudMapTerrainTextureClass::Apply(unsigned int stage)
 	D3DXMATRIX offset;
 
 	Int delta = m_curTick;
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): GetTickCount() without GX_SHOT.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): GetTickCount() without GX_SHOT.
 	m_curTick = (Int)gxRenderTickMs();
 	delta = m_curTick-delta;
 	m_xOffset += m_xSlidePerSecond*delta/1000;

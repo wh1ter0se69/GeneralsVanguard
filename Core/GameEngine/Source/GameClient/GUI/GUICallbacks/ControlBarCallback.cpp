@@ -57,7 +57,7 @@
 
 //external declarations of the Gadgets the callbacks can use
 WindowLayout *popupCommunicatorLayout = nullptr;
-// GeneralsX @feature Claude 06/10/2026 Set by GXSpectatorHud.inl: the Communicator button opens the player Tab board in the
+// GeneralsX: Set by GXSpectatorHud.inl: the Communicator button opens the player Tab board in the
 // GeneralsX player look (returns TRUE when it did); null or FALSE = retail's Diplomacy window. Display only.
 Bool (*gxCommunicatorHook)() = nullptr;
 
@@ -609,7 +609,7 @@ void ToggleControlBar( Bool immediate )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 13/08/2026 TOGGLE_GAME_HUD - hide the retail game chrome for a clean
+/** GeneralsX: TOGGLE_GAME_HUD - hide the retail game chrome for a clean
 	* view of the world, and put it back exactly as it was.
 	*
 	* WHAT THIS HIDES is one window and therefore its whole subtree: ControlBar.wnd:ControlBarParent

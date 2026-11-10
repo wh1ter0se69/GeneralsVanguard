@@ -87,7 +87,7 @@ void PartitionSolver::solve()
 
 	// we want to attempt to place the largest things first. This allows us to throw
 	// out whole classes of solutions
-	// GeneralsX @bugfix Claude 06/10/2026 stable_sort, not sort: greater_than ties on equal sizes - the normal case
+	// GeneralsX: stable_sort, not sort: greater_than ties on equal sizes - the normal case
 	// (infantry are all 1, one kind of transport shares a capacity) - and std::sort's order among equals is up to the
 	// standard library (libc++, libstdc++ and MSVC's differ), so peers on different platforms seated different units
 	// in different transports = desync. Equals now keep the order the caller passed, which every peer builds the same

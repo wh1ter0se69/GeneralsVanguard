@@ -324,7 +324,7 @@ WorldHeightMapEdit::WorldHeightMapEdit(ChunkInputStream *pStrm):
 Bool WorldHeightMapEdit::remapTextures()
 {
 	Int i;
-	// GeneralsX @bugfix Claude 14/09/2026 anyChanges was read uninitialized when the user
+	// GeneralsX: anyChanges was read uninitialized when the user
 	// cancelled every TerrainModal, so optimizeTiles() and the return value were garbage.
 	// Upstream TheSuperHackers PR #3201 (21aa5080f).
 	Bool anyChanges = false;
@@ -3368,7 +3368,7 @@ void WorldHeightMapEdit::findBoundaryNear(Coord3D *pt, float okDistance, Int *ou
 
 	if (!pt) {
 		(*outNdx) = -1;
-		// GeneralsX @bugfix Claude 14/09/2026 without this return the loop below dereferenced
+		// GeneralsX: without this return the loop below dereferenced
 		// the null pt. Upstream TheSuperHackers PR #3201 (21aa5080f).
 		return;
 	}

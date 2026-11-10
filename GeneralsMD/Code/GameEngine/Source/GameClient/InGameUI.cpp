@@ -76,7 +76,7 @@
 #include "GameClient/InGameUI.h"
 #include "GameClient/GXNoShroud.h"
 #include "GameClient/GXSpectatorFeed.h"
-#include "GameClient/GXRenderSplit.h"	// GeneralsX @feature Claude 06/10/2026 render-split step 1
+#include "GameClient/GXRenderSplit.h"	// GeneralsX: render-split step 1
 
 #include "GameClient/VideoPlayer.h"
 #include "GameClient/Mouse.h"
@@ -109,7 +109,7 @@
 
 #include "GameNetwork/GameInfo.h"
 #include "GameNetwork/NetworkInterface.h"
-// GeneralsX @feature Claude 08/08/2026 The [GXNET] loss counters, read as externs for the HUD
+// GeneralsX: The [GXNET] loss counters, read as externs for the HUD
 // resend readout. INCLUDING a digested header does not modify it; adding an accessor to one would,
 // so the free-running globals are read directly exactly as ConnectionManager's own probe does.
 #include "GameNetwork/networkutil.h"
@@ -117,7 +117,7 @@
 #include "GameClient/GXWorldLabelScale.h"
 #include "Common/UnitTimings.h" //Contains the DO_UNIT_TIMINGS define jba.
 
-// GeneralsX @feature Claude 06/10/2026 render-split step 1: a deferred call carries its own copy of the text. A
+// GeneralsX: render-split step 1: a deferred call carries its own copy of the text. A
 // UnicodeString copy shares a reference-counted buffer that is not thread-safe; set() allocates a private one.
 static UnicodeString gxDetachedCopy( const UnicodeString& s )
 {
@@ -132,7 +132,7 @@ static AsciiString gxDetachedCopy( const AsciiString& s )
 	return copy;
 }
 
-// GeneralsX @feature Claude 07/10/2026 render-split step 3: what addSuperweapon reads from the owner, read when the
+// GeneralsX: render-split step 3: what addSuperweapon reads from the owner, read when the
 // simulation calls it. A deferred call carries it; the replayed command hands it over here just before it calls
 // addSuperweapon again, which takes it instead of reading the player at the end of the tick. Not a member and not a
 // parameter: InGameUI.h is digested whole (resources/gitinfo/simsourcedigest_watcher.cmake).
@@ -174,7 +174,7 @@ static UnicodeString formatMoneyValue(UnsignedInt amount)
 	return result;
 }
 
-// GeneralsX @feature Claude 19/08/2026 Digit grouping for the player table.
+// GeneralsX: Digit grouping for the player table.
 //
 // formatMoneyValue above abbreviates past 100k and formatIncomeValue ROUNDS - +9,637/min renders as
 // "9600". Both are right for the command bar, where the figure has one line and must not push the
@@ -186,7 +186,7 @@ static UnicodeString formatMoneyValue(UnsignedInt amount)
 // column measured in the game's own font, and a locale grouping with a space (fr) or by lakh (hi)
 // would silently change the column width per machine. If that is ever wanted it belongs in a GUI:
 // string, not a runtime locale query.
-// GeneralsX @feature Claude 19/08/2026 Short army labels for the player table.
+// GeneralsX: Short army labels for the player table.
 //
 // "USA Super Weapon General" is 24 characters and the Army column is sized by its widest cell, so
 // one super-weapon player stretched that column past everything else in the table. The full name
@@ -205,7 +205,7 @@ static UnicodeString formatMoneyValue(UnsignedInt amount)
 // Not localised, deliberately: these are abbreviations with no .csf entries, and adding entries
 // would mean editing a .csf inside a shipped .big, which moves dataID and makes every peer refuse
 // the join. A localised label belongs in a GUI: string when one can be shipped.
-// GeneralsX @tweak Claude 19/08/2026 Player colours, lifted for text.
+// GeneralsX: Player colours, lifted for text.
 //
 // The lobby colours are chosen to read as UNIT paint on a lit 3D battlefield, where the renderer's
 // lighting lifts them. Drawn flat as small text on a dark panel nothing lifts them, and the darker
@@ -465,7 +465,7 @@ void toggleReplayControls()
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 21/08/2026 ONE definition of the countdown point size.
+// GeneralsX: ONE definition of the countdown point size.
 //
 // 537c45ca3 parked the superweapon countdowns under the game clock and made them two points
 // smaller than SuperweaponCountdownNormalFont asks for. It applied that at the three setFont calls
@@ -801,7 +801,7 @@ SuperweaponInfo* InGameUI::findSWInfo(Int playerIndex, const AsciiString& powerN
 // ------------------------------------------------------------------------------------------------
 void InGameUI::addSuperweapon(Int playerIndex, const AsciiString& powerName, ObjectID id, const SpecialPowerTemplate *powerTemplate)
 {
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3: called from inside the logic tick, the entry is queued and
+	// GeneralsX: render-split step 3: called from inside the logic tick, the entry is queued and
 	// added when the tick ends, with the owner's science and colour read now (GXSuperweaponCallState, GXRenderSplit.h).
 	// The draw walks m_superweapons (postDraw); the simulation never reads it back.
 	GXRenderSplit &split = GXRenderSplit::get();
@@ -861,7 +861,7 @@ void InGameUI::addSuperweapon(Int playerIndex, const AsciiString& powerName, Obj
 // ------------------------------------------------------------------------------------------------
 Bool InGameUI::removeSuperweapon(Int playerIndex, const AsciiString& powerName, ObjectID id, const SpecialPowerTemplate *powerTemplate)
 {
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3: as addSuperweapon. Deferred, it answers FALSE: its one
+	// GeneralsX: render-split step 3: as addSuperweapon. Deferred, it answers FALSE: its one
 	// simulation caller (~SpecialPowerModule) ignores the answer, and objectChangedTeam's calls run inside its own replay.
 	GXRenderSplit &split = GXRenderSplit::get();
 	if( split.simSide() )
@@ -905,7 +905,7 @@ void InGameUI::objectChangedTeam(const Object *obj, Int oldPlayerIndex, Int newP
 	// if we already had it listed, remove and re-add it
 	if (obj && oldPlayerIndex >= 0 && newPlayerIndex >= 0)
 	{
-		// GeneralsX @feature Claude 07/10/2026 render-split step 3: what the object and its new owner say is read now - its
+		// GeneralsX: render-split step 3: what the object and its new owner say is read now - its
 		// powers, the frame-0 rule, the new owner's science and colour - and one body applies the moves: directly, or from
 		// inside the logic tick when the tick ends (GXRenderSplit.h), by ID, as the object may be gone by then.
 		struct Power
@@ -962,7 +962,7 @@ void InGameUI::objectChangedTeam(const Object *obj, Int oldPlayerIndex, Int newP
 void InGameUI::hideObjectSuperweaponDisplayByScript(const Object *obj)
 {
 	ObjectID objID = obj->getID();
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3: from inside the logic tick, by ID when the tick ends
+	// GeneralsX: render-split step 3: from inside the logic tick, by ID when the tick ends
 	// (GXRenderSplit.h). The draw reads m_hiddenByScript (postDraw); the simulation never does.
 	GXRenderSplit &split = GXRenderSplit::get();
 	auto apply = [this, objID, &split]()
@@ -996,7 +996,7 @@ void InGameUI::hideObjectSuperweaponDisplayByScript(const Object *obj)
 void InGameUI::showObjectSuperweaponDisplayByScript(const Object *obj)
 {
 	ObjectID objID = obj->getID();
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3: from inside the logic tick, by ID when the tick ends
+	// GeneralsX: render-split step 3: from inside the logic tick, by ID when the tick ends
 	// (GXRenderSplit.h). The draw reads m_hiddenByScript (postDraw); the simulation never does.
 	GXRenderSplit &split = GXRenderSplit::get();
 	auto apply = [this, objID, &split]()
@@ -1029,7 +1029,7 @@ void InGameUI::showObjectSuperweaponDisplayByScript(const Object *obj)
 // ------------------------------------------------------------------------------------------------
 void InGameUI::setSuperweaponDisplayEnabledByScript(Bool enable)
 {
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3: from inside the logic tick, when the tick ends
+	// GeneralsX: render-split step 3: from inside the logic tick, when the tick ends
 	// (GXRenderSplit.h). postDraw reads the flag; its getter has no caller.
 	GXRenderSplit &split = GXRenderSplit::get();
 	if( split.simSide() )
@@ -1053,7 +1053,7 @@ Bool InGameUI::getSuperweaponDisplayEnabledByScript() const
 // ------------------------------------------------------------------------------------------------
 void InGameUI::addNamedTimer( const AsciiString& timerName, const UnicodeString& text, Bool isCountdown )
 {
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3: called from inside the logic tick (a script action), the
+	// GeneralsX: render-split step 3: called from inside the logic tick (a script action), the
 	// timer is queued and created when the tick ends, with its own copies of the name and the text (GXRenderSplit.h).
 	// It allocates a display string and a font; postDraw draws it. The simulation never reads m_namedTimers back.
 	GXRenderSplit &split = GXRenderSplit::get();
@@ -1088,7 +1088,7 @@ void InGameUI::addNamedTimer( const AsciiString& timerName, const UnicodeString&
 // ------------------------------------------------------------------------------------------------
 void InGameUI::removeNamedTimer( const AsciiString& timerName )
 {
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3: as addNamedTimer.
+	// GeneralsX: render-split step 3: as addNamedTimer.
 	GXRenderSplit &split = GXRenderSplit::get();
 	if( split.simSide() )
 	{
@@ -1111,7 +1111,7 @@ void InGameUI::removeNamedTimer( const AsciiString& timerName )
 // ------------------------------------------------------------------------------------------------
 void InGameUI::showNamedTimerDisplay( Bool show )
 {
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3: as addNamedTimer; postDraw reads the flag.
+	// GeneralsX: render-split step 3: as addNamedTimer; postDraw reads the flag.
 	GXRenderSplit &split = GXRenderSplit::get();
 	if( split.simSide() )
 	{
@@ -1269,10 +1269,10 @@ const FieldParse InGameUI::s_fieldParseTable[] =
 //-------------------------------------------------------------------------------------------------
 /** Parse MouseCursor entry */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/10/2026 A map.ini's InGameUI block writes the in-game UI IN PLACE, and of its fields only
+// GeneralsX: A map.ini's InGameUI block writes the in-game UI IN PLACE, and of its fields only
 // MaxSelectionSize does more than change how something looks: it caps the local selection, which a solo script condition reads
 // (ScriptConditions.cpp, "player has selected") - so a map's limit leaking into the next solo game could take another script
-// branch than a fresh process (Codex mapini-rollback-adv-r2 P2). It goes back in InGameUI::reset. The other fields (caption,
+// branch than a fresh process. It goes back in InGameUI::reset. The other fields (caption,
 // message, timer and superweapon fonts, colors, positions; radius cursors; floating text) are only drawn, and stay as the map left
 // them, as on 0.9.61 (fixes/mapini-rollback/closure/UI-STORES-NOT-SIM.md).
 static Int s_maxSelectCountBeforeMap = 0;
@@ -1317,7 +1317,7 @@ namespace
 	constexpr const Int kHudAnchorDefaultX = 32;
 	constexpr const Int kHudAnchorDefaultY = 10;
 #else
-	// GeneralsX @bugfix Claude 21/09/2026 Y WAS -1, WHICH PUTS THE FIRST TEXT ROW ABOVE THE SCREEN.
+	// GeneralsX: Y WAS -1, WHICH PUTS THE FIRST TEXT ROW ABOVE THE SCREEN.
 	//
 	// It is an inset from the top edge, not a margin that can be negative, so -1 asks the readout
 	// stack to start one pixel off-surface and the top row of every glyph is clipped away. Captured
@@ -1334,7 +1334,7 @@ namespace
 #endif
 	constexpr const Int kHudGapPx = 6;
 
-	// GeneralsX @bugfix Claude 25/09/2026 A CEILING ON EVERY HUD NUMBER (owner: "limit those to something").
+	// GeneralsX: A CEILING ON EVERY HUD NUMBER (owner: "limit those to something").
 	//
 	// At size 72 the frame-rate readout drew "60 [60]" across a third of the screen and over the
 	// clock, and a HudAnchorY of 1079 on a 1080-line display started the stack on the last pixel row
@@ -1354,7 +1354,7 @@ namespace
 		return (extent > 0 && v > hi) ? hi : v;
 	}
 
-	// GeneralsX @feature Claude 17/08/2026 THE READOUT STACK'S ORIGIN IS A SETTING NOW.
+	// GeneralsX: THE READOUT STACK'S ORIGIN IS A SETTING NOW.
 	//
 	// Everything drawHudReadouts draws - latency, resends, fps, tps, system time - stacks downward
 	// from one shared anchor in the top-left, so moving the anchor moves the block together. That is
@@ -1377,7 +1377,7 @@ namespace
 	//
 	// Missing file, missing key or garbage all fall back to the platform default, so a player who
 	// never opens the launcher sees exactly what they see today.
-	// GeneralsX @bugfix Claude 17/08/2026 Portable case-insensitive prefix compare.
+	// GeneralsX: Portable case-insensitive prefix compare.
 	//
 	// This used strncasecmp, which is POSIX and does not exist in MSVC's CRT - it broke the Windows
 	// build with C3861 while compiling clean on macOS, Linux and iOS. The obvious fix is _strnicmp
@@ -1478,7 +1478,7 @@ namespace
 		return (h > sofar) ? h : sofar;
 	}
 
-	// GeneralsX @feature Claude 04/08/2026 Latency HUD, in milliseconds and colour banded.
+	// GeneralsX: Latency HUD, in milliseconds and colour banded.
 	//
 	// The bands are deliberately generous rather than esports-tight, because this is LOCKSTEP: the
 	// lobby already runs at the slowest peer by construction, so a link in the yellow band is a
@@ -1500,7 +1500,7 @@ namespace
 	// or resource change.
 	constexpr const UnsignedInt NETWORK_LATENCY_NO_SAMPLE = ~0u;
 
-	// GeneralsX @feature Claude 08/08/2026 Observed logic rate (tps) and packet resends.
+	// GeneralsX: Observed logic rate (tps) and packet resends.
 	//
 	// Same sentinel discipline as the latency readout above, and for the same reason: a confident 0
 	// on an unmeasured counter asserts a healthy machine. 0 tps and 0 resends are both legitimate
@@ -1752,7 +1752,7 @@ InGameUI::InGameUI()
 	m_replayWindow = nullptr;
 	m_messagesOn = TRUE;
 
-	// GeneralsX @feature Claude 13/08/2026 Starts visible, always. This is a runtime override, not a
+	// GeneralsX: Starts visible, always. This is a runtime override, not a
 	// preference - what you normally see is decided by the per-readout font sizes in Options.ini,
 	// and a hide that survived a restart would look exactly like those preferences being lost.
 	m_hudOverlayHidden = FALSE;
@@ -1924,7 +1924,7 @@ InGameUI::~InGameUI()
 	TheControlBar = nullptr;
 	// GX-SIMID-END
 
-	// GeneralsX @feature Claude 06/10/2026 render-split step 1: nothing queued may outlive the UI it calls into, nor reach the
+	// GeneralsX: render-split step 1: nothing queued may outlive the UI it calls into, nor reach the
 	// static queue's own destructor after the memory manager is gone (a -replay simulation's last tick never reaches step).
 	GXRenderSplit::get().discard();
 
@@ -1966,7 +1966,7 @@ void InGameUI::init()
 	INI ini;
 	ini.loadFileDirectory( "Data\\INI\\InGameUI", INI_LOAD_OVERWRITE, nullptr );
 
-	// GeneralsX @feature Claude 20/08/2026 Chat/system message display time is a per-user setting.
+	// GeneralsX: Chat/system message display time is a per-user setting.
 	//
 	// MessageDelayMS is an InGameUI.ini DATA field (the shipped Data\INI\InGameUI.ini sets 75000),
 	// so a player who wants messages to linger longer or leave sooner had no knob at all: editing
@@ -2008,7 +2008,7 @@ void InGameUI::init()
 			m_messageBold = TheGlobalLanguageData->m_messageFont.bold;
 		}
 
-		// GeneralsX @feature Claude 13/08/2026 The player's own size wins, and it is applied HERE -
+		// GeneralsX: The player's own size wins, and it is applied HERE -
 		// after the language data - because the language block would otherwise overwrite it.
 		//
 		// Only the SIZE is taken. The face and the bold flag stay with the localisation, which is
@@ -2079,7 +2079,7 @@ void InGameUI::init()
 		// make the tactical display the full screen width and height
 		TheTacticalView->setWidth( TheDisplay->getWidth() );
 		TheTacticalView->setHeight( TheDisplay->getHeight() );
-		// GeneralsX @tweak Copilot 24/03/2026 Preserve cross-platform tactical camera height limits.
+		// GeneralsX: Preserve cross-platform tactical camera height limits.
 		TheTacticalView->setCameraHeightAboveGroundLimitsToDefault();
 	}
 
@@ -2115,7 +2115,7 @@ void InGameUI::setRadiusCursor(RadiusCursorType cursorType, const SpecialPowerTe
 
 	m_curRadiusCursor.clear();
 	m_curRcType = RADIUSCURSOR_NONE;
-	TheGXPickPreview.valid = FALSE;	// GeneralsX @diagnostic Claude 25/09/2026 [GXPICK] no stale preview
+	TheGXPickPreview.valid = FALSE;	// GeneralsX: [GXPICK] no stale preview
 	TheGXPickPreview.drawnValid = FALSE;
 
 	if (cursorType == RADIUSCURSOR_NONE)
@@ -2251,7 +2251,7 @@ void InGameUI::handleRadiusCursor()
 				m_curRadiusCursor.setPosition(pos);	//world space position of center of decal
 				m_curRadiusCursor.update();
 
-				// GeneralsX @diagnostic Claude 25/09/2026 [GXPICK] what the decal sits on, for the send side.
+				// GeneralsX: [GXPICK] what the decal sits on, for the send side.
 				TheGXPickPreview.valid = TRUE;
 				TheGXPickPreview.fromRadar = fromRadar;
 				TheGXPickPreview.pixel = mouseIO->pos;
@@ -2558,7 +2558,7 @@ void InGameUI::update()
 	Int i;
 
 #if defined(GX_TEST_INSTRUMENTS)
-	// GeneralsX @test Claude 11/10/2026 GX_TEST_UIMSG="<firstFrame>|<line>|<line>|..." posts one line into the retail message
+	// GeneralsX: GX_TEST_UIMSG="<firstFrame>|<line>|<line>|..." posts one line into the retail message
 	// list every 45 logic frames from firstFrame, so the list's layout (wrap at the players bar) can be photographed without a
 	// real chat. Off unless the variable is set; client-only, no simulation state touched.
 	{
@@ -2634,7 +2634,7 @@ void InGameUI::update()
 	//
 	UnsignedInt currLogicFrame = TheGameLogic->getFrame();
 
-	// GeneralsX @bugfix Claude 06/08/2026 This computed ZERO at every tick rate, so the hold before
+	// GeneralsX: This computed ZERO at every tick rate, so the hold before
 	// fading never happened at all and every message began fading on the frame after it was posted.
 	//
 	// The division order was inverted. MessageDelayMS is a WALL-CLOCK duration (5000) and the
@@ -2647,7 +2647,7 @@ void InGameUI::update()
 	// Correct value: 300 frames at 60 Hz, 150 at 30 Hz - five seconds at either rate.
 	const Int messageTimeout = (m_messageDelayMS * (Int)LOGICFRAMES_PER_SECOND) / 1000;
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C: the alpha subtraction below runs once per MAIN
+	// GeneralsX: Class-C: the alpha subtraction below runs once per MAIN
 	// LOOP ITERATION (GameClient::update -> TheInGameUI->UPDATE), not once per logic frame, so a
 	// message lost its alpha up to 8x too fast and vanished before it could be read. Gated here
 	// rather than at the call site because the rest of update() is legitimately per-render.
@@ -2729,7 +2729,7 @@ void InGameUI::update()
 				// if that letter is a return, add a new line
 				if(tempWChar == L'\n')
 				{
-					// GeneralsX @bugfix Claude 06/10/2026 Check for a free line BEFORE moving to it. The count used to be
+					// GeneralsX: Check for a free line BEFORE moving to it. The count used to be
 					// bumped first, so a caption with a 4th newline left currentDisplayString == MAX_SUBTITLE_LINES and the
 					// draw and removal loops then used displayStrings[4] - the count field itself read as a pointer - and
 					// crashed. Caption text comes from the map's own map.str, which arrives with the map from the host.
@@ -2930,19 +2930,19 @@ void InGameUI::unregisterWindowLayout( WindowLayout *layout )
 //-------------------------------------------------------------------------------------------------
 /** Reset the in game user interface */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 05/10/2026 The GeneralsX spectator HUD (GXSpectatorHud.inl, included at the end of this
+// GeneralsX: The GeneralsX spectator HUD (GXSpectatorHud.inl, included at the end of this
 // file): drawn from postWindowDraw, its per-match state cleared from reset().
 static Bool gxSpectatorHudDraw();
 static void gxSpectatorHudReset();
 static void gxSpectatorHudNotDrawn();
-// GeneralsX @feature Claude 06/10/2026 The replay strip (GXReplayStrip.inl, included after the HUD at the end of this file).
+// GeneralsX: The replay strip (GXReplayStrip.inl, included after the HUD at the end of this file).
 static Bool gxReplayStripDraw();
 static void gxReplayStripNotDrawn();
 Int gxSpectatorHudTopInset();
 Bool gxSpectatorHudInsetSpan( Int *x0, Int *x1, Int *y0 );
 Bool gxSpectatorHudToastZone( Int *x0, Int *x1, Int *y0, Int *y1 );
-// GeneralsX @bugfix Claude 03/11/2026 Where the superweapon countdowns were drawn this frame, { x0, y0, x1, y1 } (off = none), for the
-// spectator HUD's event toasts to keep off (GXSpectatorHud.inl toastLayoutNow, Codex spec-toasts-r3 P2): a modded GameTimePosition or a
+// GeneralsX: Where the superweapon countdowns were drawn this frame, { x0, y0, x1, y1 } (off = none), for the
+// spectator HUD's event toasts to keep off (GXSpectatorHud.inl toastLayoutNow): a modded GameTimePosition or a
 // long localized name can bring the rows under the stack. Display state only, reset where the countdowns start each frame.
 static Bool s_gxSwDrawnOn = FALSE;
 static Int s_gxSwDrawn[ 4 ] = { 0, 0, 0, 0 };
@@ -2959,13 +2959,13 @@ static void gxSwDrawnAdd( Int x0, Int y0, Int x1, Int y1 )
 	s_gxSwDrawn[ 0 ] = min( s_gxSwDrawn[ 0 ], x0 ); s_gxSwDrawn[ 1 ] = min( s_gxSwDrawn[ 1 ], y0 );
 	s_gxSwDrawn[ 2 ] = max( s_gxSwDrawn[ 2 ], x1 ); s_gxSwDrawn[ 3 ] = max( s_gxSwDrawn[ 3 ], y1 );
 }
-// GeneralsX @feature Claude 11/10/2026 Bottom edge of the top-left readout row (fps/tps/clock) this frame, 0 = none drawn:
+// GeneralsX: Bottom edge of the top-left readout row (fps/tps/clock) this frame, 0 = none drawn:
 // the retail message list starts under it. File-static, not a member: InGameUI.h stays untouched.
 static Int s_gxHudRowX0 = 0, s_gxHudRowX1 = 0, s_gxHudRowTop = 0, s_gxHudRowBottom = 0;
 static Int s_gxClockX0 = 0, s_gxClockX1 = 0, s_gxClockTop = 0, s_gxClockBottom = 0;	// the game clock's drawn rectangle (0 = not drawn)
-// GeneralsX @bugfix Claude 03/11/2026 Each readout drawn this frame (fps, its limit, logic rate, latency, resends, system time, the
+// GeneralsX: Each readout drawn this frame (fps, its limit, logic rate, latency, resends, system time, the
 // game clock and its frame, fast forward) as { x, y, w, h }, wherever HudAnchorX/Y or a mod's own positions put it: the spectator
-// HUD's event toasts keep off them (GXSpectatorHud.inl toastLayoutNow, Codex spec-toasts-r4 P2). One rect each, never a union: a
+// HUD's event toasts keep off them (GXSpectatorHud.inl toastLayoutNow). One rect each, never a union: a
 // union of a top-left row and a bottom badge would cover the screen. Display state only, reset before the first readout each frame.
 enum { GX_READOUT_MAX = 16 };
 static Int s_gxReadoutCount = 0;
@@ -2982,10 +2982,10 @@ static void gxReadoutDraw( DisplayString *ds, Int x, Int y, Color color, Color d
 	}
 }
 // The message list's failed-wrap memory (postDraw). File scope so addMessageText can forget a display string the pool hands to a
-// new line (Codex r4b-round P3); 8 >= MAX_UI_MESSAGES, checked in postDraw, so every message has a slot.
+// new line; 8 >= MAX_UI_MESSAGES, checked in postDraw, so every message has a slot.
 static GXWrapMemory<8> s_gxNoWrap;
 static Bool s_gxHudReadoutsCustom = FALSE;	// a readout sits at a mod's own position: the row rectangle is not the whole story
-// GeneralsX @feature Claude 06/10/2026 The vote-kick banner (GXVoteKickHud.inl, included after GXSpectatorHud.inl).
+// GeneralsX: The vote-kick banner (GXVoteKickHud.inl, included after GXSpectatorHud.inl).
 static void gxVoteKickDraw();
 static void gxSpectatorHudUnderWindows( Bool overlayHidden );
 
@@ -3019,16 +3019,16 @@ void InGameUI::reset()
 	// free any message resources allocated
 	freeMessageResources();
 
-	// GeneralsX @feature Claude 06/10/2026 render-split step 1: render calls the old game's last tick queued must not reach
+	// GeneralsX: render-split step 1: render calls the old game's last tick queued must not reach
 	// the next game (a game ended inside a tick resets here, before the tick's queue is replayed).
 	GXRenderSplit::get().discard();
 
-	// GeneralsX @bugfix Claude 24/08/2026 The upgrade-announcement ledger has NO time window by
+	// GeneralsX: The upgrade-announcement ledger has NO time window by
 	// design (see announceUpgrade), so it MUST be forgotten between games. Without this the second
 	// replay watched in one process would have every banner suppressed as a duplicate of the first.
 	m_announcedUpgrades.clear();
 
-	// GeneralsX @bugfix Claude 24/08/2026 Same reason, different data: the set of sciences a "used"
+	// GeneralsX: Same reason, different data: the set of sciences a "used"
 	// banner can name is derived from TheSpecialPowerStore, and a map's INI overrides change what is
 	// in that store. Carrying it into the next game would classify the next game's purchases against
 	// the previous game's power list. Rebuilt lazily on the first announcement.
@@ -3061,7 +3061,7 @@ void InGameUI::reset()
 	m_namedTimers.clear();
 	m_namedTimerLastFlashFrame = 0;
 	m_namedTimerUsedFlashColor = TRUE; // so next one is false
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3 (review r1 P3): a reset is a lifecycle call, so it writes these
+	// GeneralsX: render-split step 3 (review r1 P3): a reset is a lifecycle call, so it writes these
 	// two directly instead of through their converted setters - in a window left open by a time-frozen tick the setters
 	// would queue, and a save loaded before the window closed (GameEngine::update's autoload) would have its loaded values
 	// overwritten by the queued defaults.
@@ -3109,7 +3109,7 @@ void InGameUI::reset()
 	UpdateDiplomacyBriefingText(AsciiString::TheEmptyString, TRUE);
 
 	gxSpectatorHudReset();
-	// GeneralsX @bugfix Claude 07/10/2026 The announcement ring is wall-clock and used to survive a match: the next game's
+	// GeneralsX: The announcement ring is wall-clock and used to survive a match: the next game's
 	// load screen drew "<AI> completed <upgrade>  0:02 AGO" from the previous one. bornMs 0 = nothing announced.
 	for (Int i = 0; i < SKILL_BANNER_SLOTS; ++i)
 	{
@@ -3181,7 +3181,7 @@ void InGameUI::freeCustomUiResources()
 // srj sez: passing as const-ref screws up varargs for some reason. dunno why. just pass by value.
 void InGameUI::message( AsciiString stringManagerLabel, ... )
 {
-	// GeneralsX @security Claude 06/10/2026 The fetched text is the printf format below, and fetch() falls back to the map's
+	// GeneralsX: The fetched text is the printf format below, and fetch() falls back to the map's
 	// map.str (it arrives with the map from the lobby host) for a label the game's own tables lack - so a map could supply "%n"
 	// for such a label and crash every client that showed the line. Only text from the game's tables is formatted, as
 	// fetchFormat() does; any other text (the map's, or the MISSING line) is shown as it is.
@@ -3193,7 +3193,7 @@ void InGameUI::message( AsciiString stringManagerLabel, ... )
 		return;
 	}
 
-	// GeneralsX @bugfix copilot 19/04/2026 Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
+	// GeneralsX: Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
 	UnicodeString formattedMessage;
 	va_list args;
 	va_start( args, stringManagerLabel );
@@ -3226,7 +3226,7 @@ InGameUI::SkillBanner::SkillBanner()
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 19/08/2026 Draw the general's-skill announcements.
+/** GeneralsX: Draw the general's-skill announcements.
  *
  * Their own channel, so the shared message list keeps its position, lifetime and plain look for
  * "Structure under attack", defeat notices and chat.
@@ -3250,7 +3250,7 @@ void InGameUI::drawGeneralSkillBanners()
 	// so it reads as an announcement rather than as another line of chat. adjustFontSize is the
 	// language hook the rest of the UI goes through - skipping it makes CJK unreadable at 12pt.
 	//
-	// GeneralsX @bugfix Claude 20/08/2026 THE CODE DID NOT DO WHAT THE PARAGRAPH ABOVE SAYS, on all
+	// GeneralsX: THE CODE DID NOT DO WHAT THE PARAGRAPH ABOVE SAYS, on all
 	// three parameters: it asked for m_playerInfoListFont rather than m_messageFont, and for
 	// max(6, listSize - 1) = 7 rather than messageSize + 2 = 12. At this fleet's adjustFontSize
 	// factor of 1.98 that drew the announcement at ~14 against a ~16 player table and ~20 ordinary
@@ -3368,7 +3368,7 @@ void InGameUI::drawGeneralSkillBanners()
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 02/10/2026 THE ONE GATE for the opponent feed - the general's-skill and
+/** GeneralsX: THE ONE GATE for the opponent feed - the general's-skill and
  * upgrade banners and the observer table's intel columns. Replay playback, or a local player who is
  * not active: an observer seat or a defeated player. A player who is still playing gets NO. The
  * reasoning, and why a defeated player is included, is in GXSpectatorFeed.h; the decision itself is
@@ -3429,7 +3429,7 @@ static void gxFindUpgradeSeller( Object *o, void *userData )
 	}
 }
 
-/** GeneralsX @feature Claude 19/08/2026 Announce a completed upgrade during replay playback.
+/** GeneralsX: Announce a completed upgrade during replay playback.
  *
  * The intelligence half of the feed - "CIA Intelligence", the radar and detection upgrades, the
  * strategy unlocks. A replay viewer cannot see an upgrade land any other way: nothing on the map
@@ -3440,7 +3440,7 @@ static void gxFindUpgradeSeller( Object *o, void *userData )
  * a player who is still playing gets nothing, because this is a running readout of what his
  * opponents have teched into, which is intel the game deliberately does not give him.
  *
- * @feature Claude 02/10/2026 Was playback only; an observer seat or a defeated player in a live
+ * GeneralsX: Was playback only; an observer seat or a defeated player in a live
  * match now sees it from the first frame (the owner, spectating a live 6v6: "who's using what power
  * ups just like in a replay"). A player defeated mid-match sees upgrades from his defeat on; one
  * that completed earlier and is RE-granted later (Nationalism, per building) announces once, late -
@@ -3586,7 +3586,7 @@ void InGameUI::announceUpgrade( Player *player, const UpgradeTemplate *upgrade )
 	* point spent is bookkeeping, and the feed is a few slots deep, so the purchase line was pushing
 	* real events off the screen to say something that had not happened yet.
 	*
-	* @bugfix Claude 24/08/2026 That was first written as a blanket `if( !used ) return;`, and a
+	* GeneralsX: That was first written as a blanket `if( !used ) return;`, and a
 	* blanket return is wrong, because MOST general's points do not buy an activatable anything.
 	* SpecialPowerModule.cpp:496 only reaches this with used=TRUE for a power whose template sets
 	* RequiredScience; a point spent on Paladin Tank, Pathfinder, Marauder Tank or any rank-2/rank-3
@@ -3605,7 +3605,7 @@ void InGameUI::announceUpgrade( Player *player, const UpgradeTemplate *upgrade )
 	* the same reason: the two call sites do not change.
 	*
 	* REPLAY PLAYBACK OR A LIVE SPECTATOR (gxViewerMaySeeFeed, reasoning in GXSpectatorFeed.h).
-	* @feature Claude 02/10/2026 Was playback only. A live observer seat or a defeated player now
+	* GeneralsX: Was playback only. A live observer seat or a defeated player now
 	* sees who bought and fired what from the first frame; a player who is still playing gets nothing.
 	* The answer differs between peers in one match now - that is the point - and it is safe because
 	* it only decides what THIS client draws: nothing below writes simulation state, so no peer can
@@ -3626,7 +3626,7 @@ void InGameUI::announceGeneralSkill( Player *player, ScienceType science, Bool u
 	if( player == nullptr || science == SCIENCE_INVALID || TheScienceStore == nullptr )
 		return;
 
-	// GeneralsX @bugfix Claude 24/08/2026 A purchase is silent only when a "used" banner is coming.
+	// GeneralsX: A purchase is silent only when a "used" banner is coming.
 	// See the note above the function and GXSkillAnnouncePolicy.h.
 	//
 	// The set is the sciences some SpecialPowerTemplate names, walked once per game and then
@@ -3696,7 +3696,7 @@ void InGameUI::announceGeneralSkill( Player *player, ScienceType science, Bool u
 	// genuinely empty local is what makes the guard mean anything: if the format fails, the string
 	// stays empty and nothing is announced. Player display names arrive off the wire, so the
 	// failing input is reachable rather than theoretical.
-	// GeneralsX @bugfix Claude 24/08/2026 The ternary is BACK, and it is reachable again. It was
+	// GeneralsX: The ternary is BACK, and it is reachable again. It was
 	// collapsed to the used label alone when the purchase banner was unconditionally suppressed;
 	// with the suppression narrowed to sciences that actually activate, the purchase arm draws for
 	// every passive and unit-unlock science and both strings must be in the binary.
@@ -3717,16 +3717,16 @@ void InGameUI::announceGeneralSkill( Player *player, ScienceType science, Bool u
 	record.used        = used;
 	m_announcedSkillNext = (m_announcedSkillNext + 1) % ANNOUNCED_SKILL_HISTORY;
 
-	// GeneralsX @feature Claude 12/10/2026 A "used" line carries its skill, so the spectator toast's click can find where the power
+	// GeneralsX: A "used" line carries its skill, so the spectator toast's click can find where the power
 	// was aimed (gxNoteSpecialPowerTarget); a purchase has no target.
 	pushReplayBanner( player, line, INVALID_ID, used ? science : SCIENCE_INVALID );
 }
 
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 08/10/2026 Is this superweapon building firing right now? Particle Cannon: its uplink has started its
+/** GeneralsX: Is this superweapon building firing right now? Particle Cannon: its uplink has started its
  * attack (isPowerCurrentlyInUse: m_startAttackFrame, set only by the fire command - isActive() is also true while it charges and
- * prepares, which announced a launch that never happened: Codex r2). Nuclear Missile / SCUD Storm: the silo doors are
+ * prepares, which announced a launch that never happened). Nuclear Missile / SCUD Storm: the silo doors are
  * waiting to close or closing, which only a firing sets (a Saboteur resetting the timer leaves them open). Reads the update
  * module and the drawable's model state; writes nothing. */
 static Bool gxSuperweaponInUse( const Object *obj, SpecialPowerType type )
@@ -3749,7 +3749,7 @@ static Bool gxSuperweaponInUse( const Object *obj, SpecialPowerType type )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 08/10/2026 The line for a superweapon launch. Only the three wh1ter0se named (Particle Cannon, Nuclear
+/** GeneralsX: The line for a superweapon launch. Only the three wh1ter0se named (Particle Cannon, Nuclear
  * Missile, SCUD Storm, with the general-specific variants of each): the building-based superweapons. The general's-power
  * strikes already announce as "<player> used <power>" through announceGeneralSkill, and GPS Scrambler / Sneak Attack are
  * not weapons, so the feed's taste keeps them out. Template absent from the .csf on purpose: the substitute text ships
@@ -3778,7 +3778,7 @@ void InGameUI::gxAnnounceSuperweaponLaunch( const Object *owner, Int specialPowe
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 19/08/2026 One entry point for every replay announcement.
+/** GeneralsX: One entry point for every replay announcement.
  *
  * Shared by the general's-skill and upgrade paths so they cannot drift apart in font, colour or
  * ring handling - the emit site has to resolve the SAME font the renderer measures with, and two
@@ -3789,7 +3789,7 @@ void InGameUI::pushReplayBanner( Player *player, const UnicodeString &line, Obje
 	if( player == nullptr || line.isEmpty() )
 		return;
 
-	// GeneralsX @feature Claude 02/10/2026 The sink re-asks the gate both announce paths already
+	// GeneralsX: The sink re-asks the gate both announce paths already
 	// asked, so a feed added later through this function cannot forget it.
 	if( !gxViewerMaySeeFeed() )
 	{
@@ -3803,7 +3803,7 @@ void InGameUI::pushReplayBanner( Player *player, const UnicodeString &line, Obje
 		fflush( stderr );
 	}
 
-	// GeneralsX @feature Claude 07/10/2026 render-split step 3: the ring is what the draw reads (drawGeneralSkillBanners,
+	// GeneralsX: render-split step 3: the ring is what the draw reads (drawGeneralSkillBanners,
 	// the spectator HUD). Called from inside the logic tick, the write is queued and done when the tick ends (GXRenderSplit.h);
 	// the gate and the log line above, the owner's colour and the birth time are taken now, as a direct call takes them.
 	const Color color = brightenForText( player->getPlayerColor() );
@@ -3859,7 +3859,7 @@ void InGameUI::message( UnicodeString format, ... )
 {
 	UnicodeString formattedMessage;
 
-	// GeneralsX @bugfix copilot 19/04/2026 Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
+	// GeneralsX: Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
 	va_list args;
 	va_start( args, format );
 	formattedMessage.format_va(format, args);
@@ -3877,7 +3877,7 @@ void InGameUI::messageColor( const RGBColor *rgbColor, UnicodeString format, ...
 {
 	UnicodeString formattedMessage;
 
-	// GeneralsX @bugfix copilot 19/04/2026 Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
+	// GeneralsX: Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
 	va_list args;
 	va_start( args, format );
 	formattedMessage.format_va(format, args);
@@ -3891,7 +3891,7 @@ void InGameUI::messageColor( const RGBColor *rgbColor, UnicodeString format, ...
 //-------------------------------------------------------------------------------------------------
 void InGameUI::addMessageText( const UnicodeString& formattedMessage, const RGBColor *rgbColor )
 {
-	// GeneralsX @feature Claude 06/10/2026 render-split step 1: called from inside the logic tick, the message is queued
+	// GeneralsX: render-split step 1: called from inside the logic tick, the message is queued
 	// and replayed when the tick ends, stamped with the frame of the call (GXRenderSplit.h). Every message() and
 	// messageNoFormat() overload formats first and ends here. The simulation never reads m_uiMessages back.
 	GXRenderSplit &split = GXRenderSplit::get();
@@ -3911,13 +3911,13 @@ void InGameUI::addMessageText( const UnicodeString& formattedMessage, const RGBC
 
 	if (rgbColor)
 	{
-		// GeneralsX @feature Claude 17/10/2026 A near-black sender (Black, R1) is lifted like the players bar's names (GXTextColor.h).
+		// GeneralsX: A near-black sender (Black, R1) is lifted like the players bar's names (GXTextColor.h).
 		colorKey = rgbColor->getAsInt() | GameMakeColor( 0, 0, 0, 255 );	// the sender's colour, for coalescing: two senders never fold into one line
 		color1 = gxPlayerTextColor( colorKey );
 		color2 = color1;
 	}
 
-	// GeneralsX @bugfix Claude 24/08/2026 An immediate repeat is FOLDED IN, not pushed.
+	// GeneralsX: An immediate repeat is FOLDED IN, not pushed.
 	//
 	// The list is six slots deep and every call shifts it, so anything that emits the same line in
 	// a burst wipes the entire list and leaves six copies of one sentence. The case that prompted
@@ -3994,7 +3994,7 @@ void InGameUI::addMessageText( const UnicodeString& formattedMessage, const RGBC
 	m_uiMessages[ 0 ].coalesceKey = colorKey;
 	m_uiMessages[ 0 ].repeatCount = 1;
 	m_uiMessages[ 0 ].displayString = TheDisplayStringManager->newDisplayString();
-	gxWrapForget( s_gxNoWrap, m_uiMessages[ 0 ].displayString );	// a reused string is a new message (Codex r4b-round P3)
+	gxWrapForget( s_gxNoWrap, m_uiMessages[ 0 ].displayString );	// a reused string is a new message
 	m_uiMessages[ 0 ].displayString->setFont( TheFontLibrary->getFont( m_messageFont,
 																						TheGlobalLanguageData->adjustFontSize(m_messagePointSize), m_messageBold ) );
 	m_uiMessages[ 0 ].displayString->setText( m_uiMessages[ 0 ].fullText );
@@ -4417,7 +4417,7 @@ void InGameUI::createCommandHint( const GameMessage *msg )
 	{
 		const Object* obj = draw->getObject();
 		const Int localPlayerIndex = rts::getObservedOrLocalPlayer()->getPlayerIndex();
-		// GeneralsX @probe Claude 23/09/2026 query first, then drop it: getShroudedStatus recomputes a lazy sim cache
+		// GeneralsX: query first, then drop it: getShroudedStatus recomputes a lazy sim cache
 		// (m_everSeenByPlayer) logic reads, so -noshroud / GX_NOSHROUD must not change which queries run (review r1).
 		ObjectShroudStatus ss = (!obj) ? OBJECTSHROUD_CLEAR : obj->getShroudedStatus(localPlayerIndex);
 #if ENABLE_CONFIGURABLE_SHROUD
@@ -4772,7 +4772,7 @@ void InGameUI::setGUICommand( const CommandButton *command )
 	if (TheRecorder->getMode() == RECORDERMODETYPE_PLAYBACK)
 		return;
 
-	// GeneralsX @probe Claude 25/09/2026 GX_KEYTRACE (HotKey.h): the pending GUI command is armed and cleared only here,
+	// GeneralsX: GX_KEYTRACE (HotKey.h): the pending GUI command is armed and cleared only here,
 	// so a right-click or a selection change that cancels an armed attack-move shows up as "cleared".
 	if( GXKeyTraceEnabled() && command != m_pendingGUICommand )
 	{
@@ -5345,16 +5345,16 @@ void InGameUI::disregardDrawable( Drawable *draw )
 //-------------------------------------------------------------------------------------------------
 void InGameUI::postWindowDraw()
 {
-	// GeneralsX @feature Claude 13/08/2026 The hide-everything switch, bound to TOGGLE_HUD_OVERLAY.
+	// GeneralsX: The hide-everything switch, bound to TOGGLE_HUD_OVERLAY.
 	//
 	// Returning here rather than gating each readout is the point: this must hide ALL of them,
 	// including any added later, and a per-readout check is a list somebody has to remember to
 	// extend. Anything that must survive the toggle belongs above this line, deliberately.
 	//
-	// GeneralsX @feature Claude 30/09/2026 ...and fast forward is one: a match running at 10x is state nobody should be
+	// GeneralsX: ...and fast forward is one: a match running at 10x is state nobody should be
 	// able to hide from themselves.
 	//
-	// GeneralsX @bugfix Claude 07/10/2026 Everything below waits for the match: the load screen is up from
+	// GeneralsX: Everything below waits for the match: the load screen is up from
 	// GameLogic::startNewGame until its last line. The HUD state of the match that just ended is dropped on the way in.
 	static GXSpectatorHud::LoadEdge s_loadEdge;
 	const Bool gxLoadUp = !GXSpectatorHud::mayDrawOverlays( TheGlobalData->m_loadScreenRender,
@@ -5369,11 +5369,11 @@ void InGameUI::postWindowDraw()
 	}
 	s_gxReadoutCount = 0;	// GeneralsX: this frame's readouts, from here (gxReadoutDraw)
 	drawFastForward();
-	// GeneralsX @feature Claude 06/10/2026 ...and so is a vote kick that may be waiting for this player's ballot: the banner
+	// GeneralsX: ...and so is a vote kick that may be waiting for this player's ballot: the banner
 	// has its own HIDE (GXVoteKickHud.inl).
 	gxVoteKickDraw();
 
-	// GeneralsX @bugfix Claude 08/10/2026 The Debug screen owns the picture while it is up: it is a code-built window, so
+	// GeneralsX: The Debug screen owns the picture while it is up: it is a code-built window, so
 	// everything drawn from here (the money box, players bar, board, replay strip, chips, readouts) landed ON TOP of its panel and
 	// looked clickable though the panel swallows the click. Hidden like F11 hides it, with the same not-drawn bookkeeping so the HUD
 	// takes no click or key meanwhile; both come back the frame it closes. Client-only: nothing here is digested.
@@ -5389,11 +5389,11 @@ void InGameUI::postWindowDraw()
 
 	Int hudOffsetX = 0;
 	Int hudOffsetY = 0;
-	// GeneralsX @bugfix Claude 25/09/2026 How tall the anchored row came out, so drawGameTime can keep
+	// GeneralsX: How tall the anchored row came out, so drawGameTime can keep
 	// the timer off it. hudOffsetX is already its width (plus one trailing gap).
 	Int hudRowHeight = 0;
 
-	// GeneralsX @feature Claude 08/08/2026 Two readouts joined the row, each gated by the EXISTING
+	// GeneralsX: Two readouts joined the row, each gated by the EXISTING
 	// preference of the number it is twinned with rather than by a new one - a new key would live in
 	// Core/GameEngine/{Include,Source}/Common, inside the SimID digest, and no HUD readout may be
 	// able to make a peer refuse a join.
@@ -5454,7 +5454,7 @@ void InGameUI::postWindowDraw()
 		s_gxClockBottom = 0;
 	}
 
-	// GeneralsX @feature Claude 05/10/2026 SpectatorUI=generalsx replaces the observer table and the banner stack with
+	// GeneralsX: SpectatorUI=generalsx replaces the observer table and the banner stack with
 	// the caster layout and its Tab scoreboard (GXSpectatorHud.inl). FALSE = not a spectator, or SpectatorUI=legacy:
 	// both legacy readouts below then run exactly as before.
 	const Bool gxSpectatorHud = gxSpectatorHudDraw();
@@ -5468,7 +5468,7 @@ void InGameUI::postWindowDraw()
 	// Not gated on the observer control bar the way the table is: tying them to the bar would hide
 	// them from a replay viewer who has it closed - which is most of them.
 	//
-	// GeneralsX @feature Claude 02/10/2026 Gated on gxViewerMaySeeFeed instead, the same question the
+	// GeneralsX: Gated on gxViewerMaySeeFeed instead, the same question the
 	// announce paths ask. They already refuse to record anything for a player who is still playing;
 	// this is the last line, because the ring is wall-clock and is NOT cleared by reset(), so a
 	// replay's last banners would otherwise slide over the first seconds of the next live match.
@@ -5483,7 +5483,7 @@ void InGameUI::postWindowDraw()
 //-------------------------------------------------------------------------------------------------
 void InGameUI::postDraw()
 {
-	// GeneralsX @feature Claude 05/10/2026 The GeneralsX UI's work that must land BEFORE the windows paint (W3DInGameUI::draw:
+	// GeneralsX: The GeneralsX UI's work that must land BEFORE the windows paint (W3DInGameUI::draw:
 	// postDraw, winRepaint, postWindowDraw): the control bar's look this frame and the panels under the bar's windows.
 	gxSpectatorHudUnderWindows( m_hudOverlayHidden );
 
@@ -5495,8 +5495,8 @@ void InGameUI::postDraw()
 		UnsignedByte r, g, b, a;
 
 		x = m_messagePosition.x;
-		// GeneralsX @bugfix Claude 11/10/2026 (owner 11/10: "when we have the players tab docked, move those up under the fps
-		// stuff"). The list used to start below the spectator bar's whole-width inset, far under the counter line even though
+		// GeneralsX:
+		// The list used to start below the spectator bar's whole-width inset, far under the counter line even though
 		// the bar is centred and the column is on the left. It now starts just under the readout row, and only the lines
 		// that would reach the bar's HOME span (never the dragged position, owner 06/10) are held back: a line that would
 		// run under the bar WRAPS at the bar's left edge; if there is no room left of the bar it starts below it instead.
@@ -5509,7 +5509,7 @@ void InGameUI::postDraw()
 		const Bool barSpan = barInset > 0 && gxSpectatorHudInsetSpan( &barX0, &barX1, &barY0 );
 		const Int spanPad = 8;
 		// Messages whose wrap was tried and could not fit (an unbreakable word the heuristic underestimated): remembered by their
-		// display string so the wrap width is never toggled again, which would re-measure the text every frame (Codex r11).
+		// display string so the wrap width is never toggled again, which would re-measure the text every frame.
 		// s_gxNoWrap holds the room the failure was measured in: a wider room retries.
 		static_assert( MAX_UI_MESSAGES <= 8, "s_gxNoWrap needs a slot per message" );
 		for( Int k = 0; k < 8; ++k )
@@ -5524,7 +5524,7 @@ void InGameUI::postDraw()
 		// its own rectangle), as { top, bottom, x0, x1 }.
 		const int rowRect[ 4 ] = { s_gxHudRowTop, s_gxHudRowBottom, s_gxHudRowX0, s_gxHudRowX1 };
 		const int clockRect[ 4 ] = { s_gxClockTop, s_gxClockBottom, s_gxClockX0, s_gxClockX1 };
-		// GeneralsX @bugfix Claude 03/11/2026 The spectator HUD's event toasts (up to three, under the PLAYERS tab) no longer push the
+		// GeneralsX: The spectator HUD's event toasts (up to three, under the PLAYERS tab) no longer push the
 		// whole list down through the inset: only a line long enough to run into where the stack can be (asked now, not last frame's:
 		// the HUD draws after this list) starts under it.
 		Int toastX0 = 0, toastX1 = 0, toastY0 = 0, toastY1 = 0;
@@ -5543,7 +5543,7 @@ void InGameUI::postDraw()
 				GameFont *font = ds->getFont();
 				Int lineH = font ? font->height : 0;
 				{
-					// Explicit newlines (scripted or localized messages) make the block taller than one line (Codex r6 P2).
+					// Explicit newlines (scripted or localized messages) make the block taller than one line.
 					Int rows = 1;
 					for( const WideChar *c = m_uiMessages[ i ].fullText.str(); *c != 0; ++c )
 						if( *c == L'\n' )
@@ -5551,12 +5551,12 @@ void InGameUI::postDraw()
 					lineH *= rows;
 				}
 				Int wrapW = 0;		// 0 = retail: one unwrapped line
-				// getWidth() sums the glyphs of EVERY line of a message with explicit newlines: use the widest line (Codex r13).
+				// getWidth() sums the glyphs of EVERY line of a message with explicit newlines: use the widest line.
 				Int textW = ds->getWidth();
 				if( lineH > ( font ? font->height : 0 ) )
 				{
 					Int widest = 0, from = 0, upTo = 0;
-					const UnicodeString shownText = ds->getText();	// the displayed text: a coalesced "(xN)" suffix is in it (Codex r14)
+					const UnicodeString shownText = ds->getText();	// the displayed text: a coalesced "(xN)" suffix is in it
 					const WideChar *t = shownText.str();
 					for( Int c = 0; ; ++c )
 					{
@@ -5574,7 +5574,7 @@ void InGameUI::postDraw()
 					textW = widest;
 				}
 				// A line that would run through the readout row or the clock starts under it: row, clock, row, so moving below one
-				// never lands on the other (Codex r13, r4b).
+				// never lands on the other.
 				if (font)
 					y = gxClearRowAndClock( y, lineH, x, textW, rowRect, clockRect );
 				if (barSpan && y < barInset && y + lineH > barY0 && x < barX1 && font)
@@ -5584,7 +5584,7 @@ void InGameUI::postDraw()
 					{
 						// Longest unbroken run of characters x average glyph width: wider than the room means wrapping cannot
 						// help, so the line goes below the bar WITHOUT touching the string's wrap width (a toggle re-measures
-						// the string every frame - Codex r7 P2).
+						// the string every frame).
 						Int run = 0, longest = 0, total = 0;
 						for( const WideChar *c = m_uiMessages[ i ].fullText.str(); *c != 0; ++c, ++total )
 						{
@@ -5618,13 +5618,13 @@ void InGameUI::postDraw()
 					}
 					else
 					{
-						// Wrapped, the block is taller than the one line the tests above measured (Codex r5 P2).
+						// Wrapped, the block is taller than the one line the tests above measured.
 						lineH = max( lineH, h );
 						drawnW = w;
 					}
 				}
 				// The FINAL placement - wrapped in place, unwrapped, or dropped below the bar - clears the row and the clock with the
-				// final size. The two drops below the bar used to skip it and could land on a clock placed there (Codex r4b-round P2).
+				// final size. The two drops below the bar used to skip it and could land on a clock placed there.
 				if (font)
 					y = gxClearRowAndClock( y, lineH, x, drawnW, rowRect, clockRect );
 				if (font && toastSpan)
@@ -5679,7 +5679,7 @@ void InGameUI::postDraw()
 	if (TheGameLogic->getFrame() > 0 )
 	{
 //	Int superweaponCount = 0;
-		// GeneralsX @tweak Claude 19/08/2026 Park the countdowns under the game clock rather than at
+		// GeneralsX: Park the countdowns under the game clock rather than at
 		// their own absolute fraction of the screen.
 		//
 		// SuperweaponCountdownPosition is an absolute fraction, and the clock is anchored from the
@@ -5717,13 +5717,13 @@ void InGameUI::postDraw()
 			for (SuperweaponMap::iterator mapIt = m_superweapons[i].begin(); mapIt != m_superweapons[i].end(); ++mapIt)
 			{
 				AsciiString templateName = mapIt->first;
-				// GeneralsX @feature Claude 08/10/2026 Spectator toast "<player> launched <weapon>". Its own pass over EVERY launcher, before the
+				// GeneralsX: Spectator toast "<player> launched <weapon>". Its own pass over EVERY launcher, before the
 				// countdown pass below: that pass breaks after the first building of a shared-timer power (isSharedNSync) and skips timers a script
-				// or a missing science hides, and a launch from any of those buildings must still be seen (Codex r3). The launch edge is the launcher going IN
+				// or a missing science hides, and a launch from any of those buildings must still be seen. The launch edge is the launcher going IN
 				// USE (gxSuperweaponInUse), not the ready frame moving: a Saboteur's startPowerRecharge() and a held building both move the ready frame
-				// without firing, and fast-forward skips the READY frames a ready-edge needs (Codex r1, Claude review). Read-only; nothing in the
+				// without firing, and fast-forward skips the READY frames a ready-edge needs. Read-only; nothing in the
 				// simulation changed, each peer draws its own line, and pushReplayBanner's gate keeps a still-playing client from seeing any of it.
-				for (SuperweaponList::iterator watchIt = mapIt->second.begin(); watchIt != mapIt->second.end() && gxViewerMaySeeFeed(); ++watchIt)	// a still-playing client samples nothing (Codex r6)
+				for (SuperweaponList::iterator watchIt = mapIt->second.begin(); watchIt != mapIt->second.end() && gxViewerMaySeeFeed(); ++watchIt)	// a still-playing client samples nothing
 				{
 					SuperweaponInfo *watched = *watchIt;
 					Object *launcher = watched != nullptr ? TheGameLogic->findObjectByID( watched->m_id ) : nullptr;
@@ -5759,7 +5759,7 @@ void InGameUI::postDraw()
 							info->setFont( m_superweaponReadyFont, superweaponCountdownPointSize(m_superweaponNormalPointSize), m_superweaponNormalBold );
 							info->drawTime( startX,	startY, m_superweaponFlashColor, bgColor );
 							gxSwDrawnAdd( startX, startY, startX + info->gxTimeWidth(), startY + (Int)info->getHeight() );
-							// GeneralsX @bugfix Claude 23/09/2026 The ellipsis overwrote this timer's text and font; force a rebuild when it fits again, or a READY timer (whose secs and ready flag never change) stays "...: ..." until it fires.
+							// GeneralsX: The ellipsis overwrote this timer's text and font; force a rebuild when it fits again, or a READY timer (whose secs and ready flag never change) stays "...: ..." until it fires.
 							info->m_forceUpdateText = true;
 
 							marginExceeded = TRUE;
@@ -5872,7 +5872,7 @@ void InGameUI::postDraw()
 									  }
 									  else
 									  {
-										  // GeneralsX @bugfix Claude 23/09/2026 A forced rebuild also resets the font: the overflow ellipsis leaves ReadyFont on a not-ready timer.
+										  // GeneralsX: A forced rebuild also resets the font: the overflow ellipsis leaves ReadyFont on a not-ready timer.
 										  // if we were at 0, we've just fired - kill the bold
 										  if (info->m_timestamp == 0 || info->m_forceUpdateText)
 										  {
@@ -5957,7 +5957,7 @@ void InGameUI::postDraw()
 			{
 				// found one - draw it
 				UnicodeString line;
-				// GeneralsX @bugfix Claude 06/10/2026 getCounter() is null for a counter no script has set yet (DisplayCounter
+				// GeneralsX: getCounter() is null for a counter no script has set yet (DisplayCounter
 				// only registers this HUD entry), and a map that displays one first crashed every client here. Unset reads 0,
 				// as the logic's own counter conditions see it (sweep c082-01).
 				const TCounter *counter = TheScriptEngine->getCounter(timerName);
@@ -7200,7 +7200,7 @@ void InGameUI::buildRegion( const ICoord2D *anchor, const ICoord2D *dest, IRegio
 //-------------------------------------------------------------------------------------------------
 void InGameUI::addFloatingText(const UnicodeString& text,const Coord3D *pos, Color color)
 {
-	// GeneralsX @feature Claude 06/10/2026 render-split step 1: called from inside the logic tick, the text is queued and
+	// GeneralsX: render-split step 1: called from inside the logic tick, the text is queued and
 	// replayed when the tick ends, with the frame of the call (GXRenderSplit.h). The icon-UI switch and the position are
 	// read now - the rest of the tick may toggle the one or move the object the other points into - and the replay does
 	// not ask the switch again. The simulation never reads m_floatingTextList back.
@@ -7248,7 +7248,7 @@ inline Bool isClose(const Coord3D& a, const Coord3D& b)
 }
 void InGameUI::DEBUG_addFloatingText(const AsciiString& text, const Coord3D * pos, Color color)
 {
-	// GeneralsX @feature Claude 06/10/2026 render-split step 1: as addFloatingText. The text is copied into a private
+	// GeneralsX: render-split step 1: as addFloatingText. The text is copied into a private
 	// buffer the same way (AsciiString shares a reference-counted one too).
 	GXRenderSplit &split = GXRenderSplit::get();
 	if( split.simSide() )
@@ -7586,7 +7586,7 @@ static const UnsignedInt FRAMES_BEFORE_EXPIRE_TO_FADE = static_cast<float>(LOGIC
 void InGameUI::updateAndDrawWorldAnimations()
 {
 	// TheSuperHackers @tweak bobtista World animation Z-rise is now decoupled from the render update.
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
 	const Real zRiseTimeScale = gxRenderTimeScale();
 
 	// go through all animations
@@ -7660,7 +7660,7 @@ void InGameUI::updateAndDrawWorldAnimations()
 
 			// scale the width and height given the camera zoom level
 			// TheSuperHackers @todo Rework this with sane values. scaler=1.3 originally came from TheTacticalView::getMaxZoom()
-			// GeneralsX @bugfix Claude 02/10/2026 THE ZOOM RETAIL WOULD REPORT, AND THE GENTLE SHRINK ABOVE ITS CEILING
+			// GeneralsX: THE ZOOM RETAIL WOULD REPORT, AND THE GENTLE SHRINK ABOVE ITS CEILING
 			// (owner, 02/10/2026: the promotion chevrons - LevelGainedAnimation, 32x32 - "are too big"). This divided by
 			// plain getZoom(), which is height / the EFFECTIVE max camera height: with the camera allowed higher than retail's
 			// MaxCameraHeight the same view reports a smaller zoom, so every world animation (promotion, heal, crate cash) grew
@@ -7940,7 +7940,7 @@ void InGameUI::refreshNetworkLatencyResources()
 		m_lastNetworkLatencySlot = -1;
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 The resend readout lives on the latency preference, so it
+	// GeneralsX: The resend readout lives on the latency preference, so it
 	// is created, fonted and freed here rather than in a refresh function of its own. Re-priming the
 	// window on (re)creation is not optional: the string is dropped and rebuilt on a resolution or
 	// font change, and a window whose baseline predates that gap is not a measurement.
@@ -7973,7 +7973,7 @@ void InGameUI::refreshRenderFpsResources()
 		m_lastRenderFpsLimit = ~0u;
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 tps rides the fps preference; see the header. Unlike the
+	// GeneralsX: tps rides the fps preference; see the header. Unlike the
 	// fps string it is NOT primed with a value below - there is nothing to read until a window has
 	// closed, and updateRenderFpsString's equivalent for tps would have to invent one.
 	if (!m_logicRateString)
@@ -8092,7 +8092,7 @@ WindowMsgHandledType IdleWorkerSystem( GameWindow *window, UnsignedInt msg,
 
 void InGameUI::updateRenderFpsString()
 {
-	// GeneralsX @feature Claude 02/10/2026 Frames DRAWN: the average counts every main-loop iteration (it feeds the network
+	// GeneralsX: Frames DRAWN: the average counts every main-loop iteration (it feeds the network
 	// rate negotiation, where a tick catch-up pass is real capacity), so the share that skipped its draw for catch-up comes
 	// off here (FramePacer::getCatchUpPassFraction, over the same ~30 iterations).
 	const Real drawnShare = (TheFramePacer != NULL) ? 1.0f - TheFramePacer->getCatchUpPassFraction() : 1.0f;
@@ -8106,7 +8106,7 @@ void InGameUI::updateRenderFpsString()
 	}
 }
 
-// GeneralsX @feature Claude 04/08/2026 Latency readout in milliseconds, colour banded.
+// GeneralsX: Latency readout in milliseconds, colour banded.
 //
 // WAS run-ahead FRAMES. Frames are a router-internal quantity - they are a function of the
 // negotiated logic rate as well as the wire, so the same 50 ms link reads 2 at 30 fps and 1 at 15,
@@ -8126,7 +8126,7 @@ void InGameUI::drawNetworkLatency(Int &x, Int &y)
 	{
 		m_lastNetworkLatencyUpdateMs = nowMs;
 
-		// GeneralsX @bugfix Claude 13/08/2026 The slot comes back WITH the number, in one call.
+		// GeneralsX: The slot comes back WITH the number, in one call.
 		// Fetching the name separately would let the two straddle a sample and print one peer's
 		// name against another peer's round trip.
 		Int latencySlot = -1;
@@ -8154,7 +8154,7 @@ void InGameUI::drawNetworkLatency(Int &x, Int &y)
 			}
 			else
 			{
-				// GeneralsX @feature Claude 13/08/2026 THIS READOUT IS "MY PING", IN BOTH ROLES.
+				// GeneralsX: THIS READOUT IS "MY PING", IN BOTH ROLES.
 				//
 				// One semantic, stated once so the two branches below cannot drift apart: THE
 				// NUMBER IS ALWAYS THE LOCAL PLAYER'S OWN ROUND TRIP. What differs per role is
@@ -8236,7 +8236,7 @@ void InGameUI::drawNetworkLatency(Int &x, Int &y)
 	}
 }
 
-// GeneralsX @feature Claude 08/08/2026 Packet loss on the HUD, as retransmissions over a trailing
+// GeneralsX: Packet loss on the HUD, as retransmissions over a trailing
 // window.
 //
 // WHAT THIS NUMBER IS. TheGxNetRetries (GameNetwork/networkutil.h) is incremented at exactly one
@@ -8379,7 +8379,7 @@ void InGameUI::drawRenderFps(Int &x, Int &y)
 		updateRenderFpsString();
 	}
 
-	// GeneralsX @feature Claude 27/09/2026 THE BRACKET IS THE LIMIT AGAIN - the one max-FPS setting, "[0]"
+	// GeneralsX: THE BRACKET IS THE LIMIT AGAIN - the one max-FPS setting, "[0]"
 	// for unlimited, exactly as upstream and base Generals print it (wh1ter0se, 27/09: "the max FPS should not
 	// be dynamic; rather that's like the max fps limits that is set, [0] for unlimited").
 	//
@@ -8419,7 +8419,7 @@ void InGameUI::drawRenderFps(Int &x, Int &y)
 	}
 }
 
-// GeneralsX @feature Claude 08/08/2026 The observed LOGIC rate, next to the render rate.
+// GeneralsX: The observed LOGIC rate, next to the render rate.
 //
 // WHY IT IS WORTH A SLOT. fps and tps are the two halves of "the game feels bad" and they have
 // completely different fixes: fps is local and is a GPU/driver/shader-cache problem, tps is the
@@ -8439,7 +8439,7 @@ void InGameUI::drawRenderFps(Int &x, Int &y)
 // this twice in one run. The rate genuinely IS unknown across a reset, so re-baseline and show the
 // sentinel rather than invent a number.
 //
-// GeneralsX @feature Claude 30/09/2026 "FAST FORWARD 10x  (7.4x)", top centre, whenever fast forward is on - requested
+// GeneralsX: "FAST FORWARD 10x  (7.4x)", top centre, whenever fast forward is on - requested
 // speed, then the one reached over the last whole second (FramePacer::getFastForwardAchieved: under 10x when the machine
 // cannot simulate that fast). Own string and font, so it shows with every HUD readout turned off.
 void InGameUI::drawFastForward()
@@ -8595,7 +8595,7 @@ void InGameUI::drawGameTime(Int rowWidth, Int rowHeight)
 	Int hours = gameSeconds / 60 / 60;
 	Int minutes = (gameSeconds / 60) % 60;
 	Int seconds = gameSeconds % 60;
-	// GeneralsX @bugfix Claude 23/09/2026 The frame suffix is the frame within the second: at 60 Hz a hard-coded 30 counted .00-.29 twice a second.
+	// GeneralsX: The frame suffix is the frame within the second: at 60 Hz a hard-coded 30 counted .00-.29 twice a second.
 	Int frame = currentFrame % LOGICFRAMES_PER_SECOND;
 
     UnicodeString gameTimeString;
@@ -8607,24 +8607,24 @@ void InGameUI::drawGameTime(Int rowWidth, Int rowHeight)
     m_gameTimeFrameString->setText(gameTimeFrameString);
 
 	// TheSuperHackers @info this implicitly offsets the game timer from the right instead of left of the screen
-	// GeneralsX @bugfix Claude 25/09/2026 Drawn at the anchor as clamped NOW, so the timer follows an
-	// in-game resolution change together with the readout stack (Codex r2).
+	// GeneralsX: Drawn at the anchor as clamped NOW, so the timer follows an
+	// in-game resolution change together with the readout stack.
 	const Coord2D gameTimePos = hudDrawPos(m_gameTimePosition);
 	int horizontalTimerOffset = TheDisplay->getWidth() - (Int)gameTimePos.x - m_gameTimeString->getWidth() - m_gameTimeFrameString->getWidth();
 	int horizontalFrameOffset = TheDisplay->getWidth() - (Int)gameTimePos.x - m_gameTimeFrameString->getWidth();
 
-	// GeneralsX @bugfix Claude 25/09/2026 NEVER ON TOP OF THE READOUT ROW. The timer is inset from the
+	// GeneralsX: NEVER ON TOP OF THE READOUT ROW. The timer is inset from the
 	// RIGHT by the same anchor X the row is inset from the left, so as X nears the 50% cap the two
 	// ends meet at the screen centre - rendered at the cap, "00:00:39.20" ran straight into
 	// "60[max 60]60tps" (device lane, 25/09/2026). Large sizes at a small resolution do the same at
 	// any X. gxHudTimerTop (GXHudLayout.h) drops the timer one gap under the row when they would meet.
 	//
-	// ONE PLACEMENT PER FRAME, shared with the superweapon countdowns hung under the timer (Codex r1).
+	// ONE PLACEMENT PER FRAME, shared with the superweapon countdowns hung under the timer.
 	// Those are drawn in postDraw, BEFORE the window repaint and before this row has set this frame's
 	// text, so they cannot see this frame's row. Both therefore draw with m_gameTimeShiftY as it stood
 	// when the frame began, and it is re-derived only here, after the timer has drawn, from the row
 	// just drawn (rowWidth = its x advance, trailing gap included; 0 when nothing drew on it).
-	// ponytail: a row that grows across the timer shows the old placement for one frame (~16 ms), and
+	// Trade-off: a row that grows across the timer shows the old placement for one frame (~16 ms), and
 	// a width hovering on the threshold re-decides at the row's refresh rate; add hysteresis if that is
 	// ever seen.
 	const Int timerTop = (Int)gameTimePos.y;
@@ -8638,7 +8638,7 @@ void InGameUI::drawGameTime(Int rowWidth, Int rowHeight)
 	const Int rowTop = hudAnchorY();
 	m_gameTimeShiftY = gxHudTimerTop(rowLeft, rowTop, rowLeft + rowWidth - kHudGapPx, rowTop + rowHeight,
 		horizontalTimerOffset, timerTop, TheDisplay->getWidth() - (Int)gameTimePos.x, timerTop + timerH, kHudGapPx) - timerTop;
-	// The clock's rectangle for the message list (Codex r12): a long line must not run across it.
+	// The clock's rectangle for the message list: a long line must not run across it.
 	s_gxClockX0 = horizontalTimerOffset;
 	s_gxClockX1 = TheDisplay->getWidth() - (Int)gameTimePos.x;
 	s_gxClockTop = drawY;
@@ -8655,7 +8655,7 @@ enum
 };
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 19/08/2026 The table sits in the bottom strip, not above it.
+// GeneralsX: The table sits in the bottom strip, not above it.
 //
 // This first clamped the table to the top of ControlBar.wnd:ControlBarParent, on the reasoning
 // that the command bar is the one piece of furniture whose height moves under us. That is true and
@@ -8721,7 +8721,7 @@ void InGameUI::drawPlayerInfoList()
 	// GeneralsX @feature The extended columns carry intel a live player must not have about an
 	// enemy - science points, kills and losses - so they appear only when nobody can act on the
 	// information: replay playback, or the observer control bar.
-	// GeneralsX @feature Claude 02/10/2026 Now asked through gxViewerMaySeeFeed, the gate the skill
+	// GeneralsX: Now asked through gxViewerMaySeeFeed, the gate the skill
 	// and upgrade banners use, so the table and the feed cannot disagree about who is a spectator.
 	// Same answer as before: the bar is switched on by exactly this !isPlayerActive() test
 	// (ControlBar::setControlBarSchemeByPlayer), so only the source of the answer moved.
@@ -8892,7 +8892,7 @@ void InGameUI::drawPlayerInfoList()
 	if (rowCount <= 0)
 		return;
 
-	// GeneralsX @bugfix Claude 19/08/2026 The HUD is drawn after the shell windows, so without this
+	// GeneralsX: The HUD is drawn after the shell windows, so without this
 	// the table renders straight THROUGH the pause menu - the menu's own buttons end up behind a
 	// twelve-row panel and the screen reads as two overlapping UIs. Every other in-game readout is
 	// small enough that the collision is not obvious; this one covers the middle of the screen.
@@ -8946,7 +8946,7 @@ void InGameUI::drawPlayerInfoList()
 	if (drawY < padY)
 		drawY = padY;
 
-	// GeneralsX @diag Claude 19/08/2026 One line, once, behind GX_UIPOS. Anchoring bugs here are
+	// GeneralsX @diag /08/2026 One line, once, behind GX_UIPOS. Anchoring bugs here are
 	// invisible in a screenshot - "too high" and "the control bar reported a bogus top" look the
 	// same - and the whole geometry is derived, so print the derivation rather than the result.
 	static const Bool s_uiPos = getenv("GX_UIPOS") != nullptr;	// read once: this runs every frame the list is up
@@ -9065,9 +9065,9 @@ void InGameUI::drawPlayerInfoList()
 	}
 }
 
-// GeneralsX @feature Claude 05/10/2026 The GeneralsX spectator HUD - a unity include, not a .cpp: a new source file
+// GeneralsX: The GeneralsX spectator HUD - a unity include, not a .cpp: a new source file
 // would have to be listed in GameEngine/CMakeLists.txt, which is inside the SimID digest. See the file's header.
 #include "GXSpectatorHud.inl"
 #include "GXVoteKickHud.inl"
-// GeneralsX @feature Claude 06/10/2026 The replay strip, same reason; shares the HUD helpers above.
+// GeneralsX: The replay strip, same reason; shares the HUD helpers above.
 #include "GXReplayStrip.inl"

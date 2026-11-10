@@ -63,7 +63,7 @@
 
 #include	<conio.h>
 #include	<imagehlp.h>
-// GeneralsX @bugfix Claude 27/07/2026 GX_CTX_PC/SP/FP, GX_IMAGE_FILE_MACHINE_NATIVE and
+// GeneralsX: GX_CTX_PC/SP/FP, GX_IMAGE_FILE_MACHINE_NATIVE and
 // GXCaptureContextRegisters(): see Dependencies/Utility/Utility/cpu_context_compat.h. The
 // x86 CONTEXT field names and MSVC __asm used below do not exist at x64.
 #include "Utility/cpu_context_compat.h"
@@ -121,7 +121,7 @@ DynamicVectorClass<ThreadInfoType*> ThreadList;
 **
 */
 typedef BOOL  (WINAPI *SymCleanupType) (HANDLE hProcess);
-// GeneralsX @bugfix Claude 27/07/2026 dbghelp.h remaps all of these to their ...64 forms under
+// GeneralsX: dbghelp.h remaps all of these to their ...64 forms under
 // _WIN64, and those take DWORD64 addresses. DWORD_PTR is DWORD at 32-bit and DWORD64 at 64-bit, so
 // both architectures get exactly the type dbghelp declares and the 32-bit build is unchanged.
 typedef BOOL  (WINAPI *SymGetSymFromAddrType) (HANDLE hProcess, DWORD_PTR Address, PDWORD_PTR Displacement, PIMAGEHLP_SYMBOL Symbol);
@@ -415,7 +415,7 @@ void Dump_Exception_Info(EXCEPTION_POINTERS *e_info)
 
 
 	unsigned char symbol [256];
-	// GeneralsX @bugfix Claude 27/07/2026 SymGetSymFromAddr64 writes a DWORD64 displacement.
+	// GeneralsX: SymGetSymFromAddr64 writes a DWORD64 displacement.
 	DWORD_PTR displacement;
 	IMAGEHLP_SYMBOL *symptr = (IMAGEHLP_SYMBOL*)&symbol;
 
@@ -593,7 +593,7 @@ void Dump_Exception_Info(EXCEPTION_POINTERS *e_info)
 	/*
 	** Dump the registers.
 	*/
-	// GeneralsX @bugfix Claude 27/07/2026 The general-purpose register set differs per architecture.
+	// GeneralsX: The general-purpose register set differs per architecture.
 #if defined(_M_X64) || defined(_M_AMD64)
 	sprintf(scrap, "Rip:%016llX\tRsp:%016llX\tRbp:%016llX\r\n", (unsigned long long)context->Rip, (unsigned long long)context->Rsp, (unsigned long long)context->Rbp);
 	Add_Txt(scrap);
@@ -624,7 +624,7 @@ void Dump_Exception_Info(EXCEPTION_POINTERS *e_info)
 	/*
 	** Now the FP registers.
 	*/
-	// GeneralsX @bugfix Claude 27/07/2026 x87 state is x86-only. The x64 CONTEXT has no FloatSave
+	// GeneralsX: x87 state is x86-only. The x64 CONTEXT has no FloatSave
 	// member - it carries an XMM_SAVE_AREA32 called FltSave with a different layout - and x64 code
 	// does its floating point in SSE anyway, so an x87 register dump would be meaningless there.
 #if defined(_M_IX86)
@@ -1202,7 +1202,7 @@ bool Lookup_Symbol(void *code_ptr, char *symbol, int &displacement)
 
 	/*
 	** See if we have the symbol for that address.
-	** GeneralsX @bugfix Claude 27/07/2026 Cannot reinterpret the caller's int& as the DWORD64 out
+	** GeneralsX: Cannot reinterpret the caller's int& as the DWORD64 out
 	** parameter SymGetSymFromAddr64 writes - that would scribble over four bytes of the caller's
 	** stack at x64. Take it into a correctly sized local and narrow afterwards.
 	*/
@@ -1264,7 +1264,7 @@ int Stack_Walk(unsigned long *return_addresses, int num_addresses, CONTEXT *cont
 	STACKFRAME stack_frame;
 	memset(&stack_frame, 0, sizeof(stack_frame));
 
-	// GeneralsX @bugfix Claude 27/07/2026 RtlCaptureContext in place of per-architecture assembly.
+	// GeneralsX: RtlCaptureContext in place of per-architecture assembly.
 	GXCtxReg reg_eip, reg_ebp, reg_esp;
 	CONTEXT walk_context;
 	GXCaptureContextRegisters(&walk_context, &reg_eip, &reg_esp, &reg_ebp);

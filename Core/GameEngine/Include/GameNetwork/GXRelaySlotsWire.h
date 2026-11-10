@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 19/09/2026 - a hosted lobby's SEATS, as the host tells the relay: "GXSLOT".
+// GeneralsX: a hosted lobby's SEATS, as the host tells the relay: "GXSLOT".
 //
 //     GXSLOT <room> <listing> <mapMax> <seat> <seat> ...   host -> relay, on change and every 30 s
 //
@@ -64,7 +64,7 @@ enum GXSeatState
 
 enum
 {
-	// GeneralsX @feature Claude 06/11/2026 scale32: 14 -> 34 seats (32 players + 2 observers), with relay.js SEATS_PER_LOBBY.
+	// GeneralsX: scale32: 14 -> 34 seats (32 players + 2 observers), with relay.js SEATS_PER_LOBBY.
 	GX_RELAY_SEATS_MAX = 34,			///< MAX_SLOTS, and relay.js SEATS_PER_LOBBY
 	GX_RELAY_SEAT_NAME_MAX = 32,		///< a faction, after "Faction" is taken off
 	GX_RELAY_SEAT_COLOUR_MAX = 16,		///< a colour, after "Color:" is taken off

@@ -418,7 +418,7 @@ public:
 	void friend_setPartitionData(PartitionData *pd) { m_partitionData = pd; }
 	PartitionData *friend_getPartitionData() const { return m_partitionData; }
 	const PartitionData *friend_getConstPartitionData() const { return m_partitionData; }
-	/// GeneralsX @feature Claude 02/11/2026 rb-sense-2: where, how far and for whom this object's CURRENT look reveals (look(); isInvalid()
+	/// GeneralsX: rb-sense-2: where, how far and for whom this object's CURRENT look reveals (look(); isInvalid()
 	/// when it does not look) - the AI rule bank's own-sight test reads it, never writes it
 	const SightingInfo *friend_getPartitionLastLook() const { return m_partitionLastLook; }
 	const SightingInfo *friend_getPartitionRevealAllLastLook() const { return m_partitionRevealAllLastLook; }
@@ -596,7 +596,7 @@ public:
 	Bool clearDisabled( DisabledType type );
 
 	void setDisabled( DisabledType type );
-	/// GeneralsX @feature Claude 27/09/2026 neverManned = TRUE: DISABLED_UNMANNED on a vehicle that never had a pilot (a
+	/// GeneralsX: neverManned = TRUE: DISABLED_UNMANNED on a vehicle that never had a pilot (a
 	/// cheat spawn's, GameLogicDispatch.cpp) - none of what a SNIPED pilot's death does: no splatter sound, no car bomb's
 	/// dead-man's trigger, no veterancy or auto-heal reset. Ignored for every other type.
 	void setDisabledUntil( DisabledType type, UnsignedInt frame, Bool neverManned = FALSE );
@@ -607,7 +607,7 @@ public:
 	void pauseAllSpecialPowers( const Bool disabling ) const;
 
 	//Checks any timers and clears disabled statii that have expired.
-	// GeneralsX @performance Claude 23/09/2026 returns the earliest remaining till-frame (0xffffffff if none).
+	// GeneralsX: returns the earliest remaining till-frame (0xffffffff if none).
 	UnsignedInt checkDisabledStatus();
 
 	//When an AIAttackState is over, it needs to clean up any weapons that might be in leech range mode
@@ -740,7 +740,7 @@ private:
 	Real					m_shroudClearingRange;						///< looking range for shroud ONLY
 	Real					m_shroudRange;										///< like looking range, this is how far I shroud others' looks
 
-	// GeneralsX @performance Claude 23/09/2026 WRITER CONTRACT: set a bit / till-frame only through
+	// GeneralsX: WRITER CONTRACT: set a bit / till-frame only through
 	// setDisabledUntil (it calls TheGameLogic->noteDisabledUntil, which keeps
 	// GameLogic::m_disabledExpiryWatermark at or below every set bit's till-frame). A direct write here
 	// would let GameLogic skip the expiry walk past that frame and silently delay the expiry.
@@ -764,7 +764,7 @@ private:
 	BehaviorModule**							m_behaviors;	// BehaviorModule, not BehaviorModuleInterface
 
 	// cache these, for convenience
-	// GeneralsX @performance Claude 05/11/2026 getCollide() of each behavior that has one, in m_behaviors order, null-terminated; nullptr if none. Built once, in the constructor.
+	// GeneralsX: getCollide() of each behavior that has one, in m_behaviors order, null-terminated; nullptr if none. Built once, in the constructor.
 	CollideModuleInterface**			m_collideModules;
 	ContainModuleInterface*				m_contain;
 	BodyModuleInterface*					m_body;

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the `=2` call log's record format (CONTRACT_L2 §4.1, r9b; rw1-G/PLAN_model.md T1).
+// GeneralsX: WS-G Task 5: the `=2` call log's record format (CONTRACT_L2 §4.1, r9b; rw1-G/PLAN_model.md T1).
 // Header-only and ENGINE-FREE on purpose: the wrapper's check-mode hooks write it (T1), the device-less model in GXRender/Scene reads
 // it (GxL2Model.h), and scripts/test/l2-model-test.cpp builds logs by hand. Nothing here runs unless the check is on.
 
@@ -159,7 +159,7 @@ struct Log {
 	std::vector<Record> rec;
 	std::vector<uint8_t> blob;
 	// Payloads start on an 8-byte boundary (the vector's buffer is new-aligned), so get<T> never yields a misaligned pointer for the
-	// payload types (u64 ids, VbDesc, Logical, Material, Light, Mat4, Lenv, DrawRec) - Codex rw1-G-r23 #2.
+	// payload types (u64 ids, VbDesc, Logical, Material, Light, Mat4, Lenv, DrawRec).
 	uint32_t put(const void *p, uint32_t n)
 	{
 		while (blob.size() % 8u) blob.push_back(0);

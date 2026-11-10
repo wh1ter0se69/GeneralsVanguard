@@ -29,7 +29,7 @@
 
 // TheSuperHackers @tweak Mauller 26/08/2025 reduce the minimum runahead from 10
 // This lets network games run at latencies down to 133ms when the network conditions allow
-// GeneralsX @fix Claude 05/08/2026 These are FRAME COUNTS standing in for WALL-CLOCK windows, so at
+// GeneralsX: These are FRAME COUNTS standing in for WALL-CLOCK windows, so at
 // GX_LOGIC_60HZ a fixed count means half the real time. Expressed against the tick rate they hold
 // their meaning at either rate, and every one of them evaluates to its original value at 30 Hz:
 //
@@ -59,7 +59,7 @@ Int MIN_RUNAHEAD = 4;
 Int FRAME_DATA_LENGTH = (MAX_FRAMES_AHEAD+1)*2;
 Int FRAMES_TO_KEEP = (MAX_FRAMES_AHEAD/2) + 1;
 
-// GeneralsX @feature Claude 06/08/2026 [GXNET] counters - see networkutil.h for why they are here.
+// GeneralsX: [GXNET] counters - see networkutil.h for why they are here.
 UnsignedInt TheGxNetRetries   = 0;
 UnsignedInt TheGxNetSendFails = 0;
 UnsignedInt TheGxNetSendDrops = 0;
@@ -231,13 +231,13 @@ Bool CommandRequiresDirectSend(NetCommandMsg *msg) {
 			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTFRAME) ||
 			(msg->getNetCommandType() == NETCOMMANDTYPE_DISCONNECTSCREENOFF) ||
 			(msg->getNetCommandType() == NETCOMMANDTYPE_FRAMERESENDREQUEST) ||
-			(msg->getNetCommandType() == NETCOMMANDTYPE_WRAPPERACK)) {	// GeneralsX @security Claude 06/10/2026 connection-scoped
+			(msg->getNetCommandType() == NETCOMMANDTYPE_WRAPPERACK)) {	// GeneralsX: connection-scoped
 		return TRUE;
 	}
 	return FALSE;
 }
 
-// GeneralsX @security Claude 17/08/2026 See the contract in networkutil.h.
+// GeneralsX: See the contract in networkutil.h.
 //
 // Written as a plain range test over one code unit at a time rather than anything locale aware,
 // because this is compiled for Windows (16-bit wchar_t) and for macOS/Linux/iPadOS (32-bit), and

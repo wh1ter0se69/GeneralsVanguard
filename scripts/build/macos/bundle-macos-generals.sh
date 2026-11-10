@@ -1,10 +1,10 @@
 #!/bin/bash
-# GeneralsX @build Copilot 19/03/2026 Bundle macOS GeneralsX binary + dylibs into a zip archive
+# GeneralsX: Bundle macOS GeneralsX binary + dylibs into a zip archive
 # Packages a self-contained .app for local distribution testing.
 
 set -e
 
-# GeneralsX @build Copilot 19/03/2026 Resolve repository root correctly from scripts/build/macos.
+# GeneralsX: Resolve repository root correctly from scripts/build/macos.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/macos-vulkan"
@@ -28,7 +28,7 @@ if [[ ! -f "${DXVK_D3D9_LIB}" && -f "${DXVK_D3D9_LIB_MESON}" ]]; then
     DXVK_D3D9_LIB="${DXVK_D3D9_LIB_MESON}"
 fi
 
-# GeneralsX @bugfix Copilot 19/03/2026 Resolve @rpath/@loader_path deps while collecting external dylibs for portable bundles.
+# GeneralsX: Resolve @rpath/@loader_path deps while collecting external dylibs for portable bundles.
 extract_rpaths() {
     local target="$1"
     otool -l "${target}" 2>/dev/null | awk '
@@ -65,7 +65,7 @@ resolve_dep_path() {
     if [[ "${dep}" == @rpath/* ]]; then
         dep_name="${dep#@rpath/}"
 
-        # GeneralsX @bugfix Copilot 24/03/2026 Resolve @rpath deps already staged in the same lib directory before scanning LC_RPATH.
+        # GeneralsX: Resolve @rpath deps already staged in the same lib directory before scanning LC_RPATH.
         candidate="${loader_dir}/${dep_name}"
         [[ -f "${candidate}" ]] && { echo "${candidate}"; return 0; }
 
@@ -144,7 +144,7 @@ collect_external_dylibs() {
             fi
             resolved_dep="$(resolve_dep_path "${target}" "${dep}" "${executable_dir}" || true)"
             if [[ -z "${resolved_dep}" ]]; then
-                # GeneralsX @bugfix Copilot 20/03/2026 Warn when a non-system dep cannot be resolved instead of silently dropping it.
+                # GeneralsX: Warn when a non-system dep cannot be resolved instead of silently dropping it.
                 echo "WARNING: Unable to resolve dependency '${dep}' for target '${target}'" >&2
                 continue
             fi
@@ -156,7 +156,7 @@ collect_external_dylibs() {
 
             if [[ ! -f "${dep_dst}" ]]; then
                 echo "  + external ${dep_name} (from ${resolved_dep})"
-                # GeneralsX @bugfix Copilot 20/03/2026 Dereference symlinks so we copy the actual dylib, not a dangling symlink.
+                # GeneralsX: Dereference symlinks so we copy the actual dylib, not a dangling symlink.
                 cp -L "${resolved_dep}" "${dep_dst}"
             fi
 
@@ -170,7 +170,7 @@ collect_external_dylibs() {
 # Locate installed Vulkan SDK:
 #  1) Prefer explicit env vars (VULKAN_SDK, then VULKAN_SDK_ROOT)
 #  2) Fall back to ~/VulkanSDK/*/macOS by convention
-# GeneralsX @bugfix Copilot 20/03/2026 Honor VULKAN_SDK/VULKAN_SDK_ROOT before scanning ~/VulkanSDK.
+# GeneralsX: Honor VULKAN_SDK/VULKAN_SDK_ROOT before scanning ~/VulkanSDK.
 if [[ -n "${VULKAN_SDK:-}" ]] && [[ -f "${VULKAN_SDK}/lib/libvulkan.dylib" ]]; then
     VULKAN_SDK_ROOT="${VULKAN_SDK}"
 elif [[ -n "${VULKAN_SDK_ROOT:-}" ]] && [[ -f "${VULKAN_SDK_ROOT}/lib/libvulkan.dylib" ]]; then
@@ -184,7 +184,7 @@ else
     done
 fi
 
-# GeneralsX @feature Copilot 19/03/2026 Produce a macOS .app bundle with internal runtime env defaults.
+# GeneralsX: Produce a macOS .app bundle with internal runtime env defaults.
 APP_NAME="GeneralsX"
 APP_DIR_NAME="${APP_NAME}.app"
 INCLUDE_EXTERNAL_DYLIBS="${GX_BUNDLE_INCLUDE_EXTERNAL_DYLIBS:-1}"
@@ -280,7 +280,7 @@ echo "  + libdxvk_d3d9"
 cp "${DXVK_D3D9_LIB}" "${LIB_DIR}/libdxvk_d3d9.0.dylib"
 ln -sf libdxvk_d3d9.0.dylib "${LIB_DIR}/libdxvk_d3d9.dylib"
 
-# GeneralsX @bugfix Claude 14/09/2026 THE SAME GATE AS bundle-macos-zh.sh, because this is the same
+# GeneralsX: THE SAME GATE AS bundle-macos-zh.sh, because this is the same
 # dylib. Generals and Zero Hour stage DXVK from the same build directory and the same preference
 # order (install copy before meson output), so an unpatched libdxvk_d3d9 reaches players through
 # whichever of the two is packaged. A gate on only one of them is a gate on neither.
@@ -327,7 +327,7 @@ if [[ -n "${VULKAN_SDK_ROOT}" ]]; then
 }
 EOF
 else
-    # GeneralsX @build Copilot 20/03/2026 Fail bundle when Vulkan SDK is missing unless explicitly allowed.
+    # GeneralsX: Fail bundle when Vulkan SDK is missing unless explicitly allowed.
     if [[ "${GX_ALLOW_MISSING_VULKAN_IN_BUNDLE:-0}" == "1" ]]; then
         echo "WARNING: Vulkan SDK not found at ~/VulkanSDK/*/macOS - Vulkan libs will be missing from bundle"
         echo "  GX_ALLOW_MISSING_VULKAN_IN_BUNDLE=1 set; producing bundle without Vulkan for local experiments"
@@ -352,7 +352,7 @@ fi
 echo "  + App launcher"
 cat > "${MACOS_DIR}/run.sh" << 'WRAPPER'
 #!/bin/bash
-# GeneralsX @feature Copilot 19/03/2026 - App launcher with bundled runtime + default asset paths
+# GeneralsX: App launcher with bundled runtime + default asset paths
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONTENTS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
@@ -424,7 +424,7 @@ gx_macho_assert_portable "${APP_DIR}" "${APP_DIR_NAME}" "${BIN_DIR}" || exit 1
 echo "  + run.sh"
 cat > "${STAGE_DIR}/run.sh" << 'RUNNER'
 #!/bin/bash
-# GeneralsX @feature Copilot 19/03/2026 Helper runner for launching the generated .app from terminal.
+# GeneralsX: Helper runner for launching the generated .app from terminal.
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 exec "${SCRIPT_DIR}/GeneralsX.app/Contents/MacOS/run.sh" "$@"
 RUNNER
@@ -441,7 +441,7 @@ python3 -I "${PROJECT_ROOT}/scripts/legal/third_party_notices.py" check-path --p
 
 (cd "${STAGE_DIR}" && zip -r "${OUTPUT_ZIP}" "${APP_DIR_NAME}" run.sh)
 
-# GeneralsX @bugfix Claude 14/09/2026 AND ONCE MORE OUT OF THE FINISHED ZIP - see bundle-macos-zh.sh.
+# GeneralsX: AND ONCE MORE OUT OF THE FINISHED ZIP - see bundle-macos-zh.sh.
 # Both member names are checked: `zip -r` dereferences the unversioned symlink into a second regular
 # file, so the archive carries two independent copies and a check on one says nothing about the other.
 # The trap names BOTH directories because `trap ... EXIT` REPLACES the handler set at STAGE_DIR.

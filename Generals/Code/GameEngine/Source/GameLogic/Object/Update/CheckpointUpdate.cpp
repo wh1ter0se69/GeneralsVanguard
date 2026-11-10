@@ -155,7 +155,7 @@ UpdateSleepTime CheckpointUpdate::update()
 		if ( open )
 		{
 #if GX_LOGIC_60HZ
-			if ( radius > 0 ) geom.setMinorRadius( radius - 0.1665f );	// GeneralsX @fix Claude 23/09/2026 distance per frame, halved
+			if ( radius > 0 ) geom.setMinorRadius( radius - 0.1665f );	// GeneralsX: distance per frame, halved
 #else
 			if ( radius > 0 ) geom.setMinorRadius( radius - 0.333f );
 #endif

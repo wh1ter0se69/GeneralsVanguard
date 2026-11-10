@@ -8,7 +8,7 @@ add_library(gi_always_no_pch INTERFACE) # Use this for Shared Libs with MFC AFX
 target_include_directories(gi_gameengine_include INTERFACE "GameEngine/Include")
 target_include_directories(gi_libraries_source_wwvegas INTERFACE "Libraries/Source/WWVegas")
 target_include_directories(gi_main INTERFACE "Main")
-# GeneralsX @bugfix Claude 27/07/2026 On Windows expose ONLY the d3dx8 headers from CompatLib.
+# GeneralsX: On Windows expose ONLY the d3dx8 headers from CompatLib.
 #
 # CompatLib/Include holds windows.h, dinput.h, comip.h, comutil.h and friends - a shim layer
 # written so the engine can build on Linux/macOS. Its windows.h says it is "only reached if no SDK

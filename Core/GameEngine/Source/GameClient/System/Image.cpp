@@ -60,9 +60,9 @@ const FieldParse Image::m_imageFieldParseTable[] =
 };
 
 // PRIVATE FUNCTIONS //////////////////////////////////////////////////////////////////////////////
-// GeneralsX @feature Claude 22/10/2026 Every field a MappedImage definition writes goes through this table, so the image
+// GeneralsX: Every field a MappedImage definition writes goes through this table, so the image
 // collection hears of every definition parsed after start-up - a map's map.ini / solo.ini - by the parser itself, not by
-// comparing values afterwards (a restatement equal to a value we hold changes nothing a comparison can see; Codex lui-r5,
+// comparing values afterwards (a restatement equal to a value we hold changes nothing a comparison can see;
 // lui-r6). At start-up, and into the scratch collection of gxKeepOriginals, it is a no-op (nothing is swapped yet).
 static void gxNoteRedefined( void *instance )
 {
@@ -268,10 +268,10 @@ const Image *ImageCollection::findImageByName( const char* name ) const
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @fix Claude 05/10/2026 Find an image by name WITHOUT minting a NameKey. findImageByName goes through
+/** GeneralsX: Find an image by name WITHOUT minting a NameKey. findImageByName goes through
 	* nameToLowercaseKey, which creates a key for a name it has never seen, and NameKeys are numbered in one sequence the
 	* simulation shares (a science travels as its key's number), so a lookup only one peer makes can renumber what a later
-	* map defines on that peer alone (Codex codex-batch-1005 p1-spectator; memory namekey-minting-is-a-desync-hazard).
+	* map defines on that peer alone (p1-spectator; memory namekey-minting-is-a-desync-hazard).
 	* addImage interns every image's name, so a name without a key holds no image and the answer is the same. Linear in
 	* the collection: for rare, cached lookups only. */
 //-------------------------------------------------------------------------------------------------
@@ -284,7 +284,7 @@ const Image *ImageCollection::findImageByNameNoMint( const char* name ) const
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 22/10/2026 A GeneralsX LOOK LAYER is a HandCreated MappedImage file named zzGX*.ini
+/** GeneralsX: A GeneralsX LOOK LAYER is a HandCreated MappedImage file named zzGX*.ini
 	* (!GXUISide.big's zzGXSidebar.ini): it REDEFINES retail and Control Bar Pro images in place - the control bar's side
 	* buttons, the General's star button and his experience ladder - so the GeneralsX UI's bar matches its HUD. Being data,
 	* it used to reach the legacy look too (owner 21/10/2026, a legacy screenshot: "These shouldn't change if the UI is
@@ -336,7 +336,7 @@ static void gxLoadMappedImages( Int textureSize, Bool withLookLayers )
 	AsciiString userDataPath;
 	if(TheGlobalData)
 	{
-		// GeneralsX @bugfix copilot 12/03/2026 Use platform-correct separators for user data mapped image paths.
+		// GeneralsX: Use platform-correct separators for user data mapped image paths.
 #ifdef _WIN32
 		userDataPath.format("%sINI\\MappedImages\\*.ini",TheGlobalData->getPath_UserData().str());
 		HANDLE findHandle = FindFirstFile(userDataPath.str(), &findData);
@@ -389,7 +389,7 @@ void ImageCollection::load( Int textureSize )
 
 /** An image swapped only while it still holds the definition this collection last gave it. A map's map.ini may redefine any
 	* MappedImage after start-up (INI.cpp: MappedImage is a map-rules block, and its leftover outlives the match), and that
-	* definition must survive as it does without the layer - not be put back to a start-up one (Codex lui-r2 P2). */
+	* definition must survive as it does without the layer - not be put back to a start-up one. */
 static Bool gxHoldsDef( const Image *im, const AsciiString &filename, const ICoord2D &textureSize, const Region2D &uv,
 												const ICoord2D &imageSize, UnsignedInt status )
 {
@@ -399,7 +399,7 @@ static Bool gxHoldsDef( const Image *im, const AsciiString &filename, const ICoo
 				 im->getImageSize()->y == imageSize.y && im->getStatus() == status;
 }
 
-/** GeneralsX @feature Claude 22/10/2026 With a look layer installed, parse the same files once more WITHOUT the layers into
+/** GeneralsX: With a look layer installed, parse the same files once more WITHOUT the layers into
 	* a scratch collection, and keep, for every image whose definition differs, the definition from before the layers next to
 	* the one it was loaded with. The same parser on the same files, so an original is exactly what the game drew before the
 	* layer existed; every name was interned by the load just done, so the second parse mints no NameKey. At start-up only,
@@ -458,7 +458,7 @@ void ImageCollection::gxKeepOriginals( Int textureSize )
 	}
 	// The look this session starts in, from the same GXHud.ini the HUD reads (the launcher writes it before a launch), applied
 	// NOW: a map's map.ini may redefine these images later, field by field, on top of whatever they hold then - so they must
-	// already hold the right look's art (Codex lui-r3 P2). The HUD keeps it current every frame of a match.
+	// already hold the right look's art. The HUD keeps it current every frame of a match.
 	Bool startGeneralsX = FALSE;
 	if( TheGlobalData )
 	{
@@ -501,7 +501,7 @@ void ImageCollection::gxShowGeneralsXLook( Bool on )
 		const GxImageDef &was = e.showsGeneralsX ? e.generalsx : e.original;
 		Image *im = e.image;
 		// Redefined since this collection last wrote it (a map): theirs from now on, in every look, never reclaimed - even
-		// if a later definition happens to equal one of ours (Codex lui-r3 P2).
+		// if a later definition happens to equal one of ours.
 		if( !gxHoldsDef( im, was.filename, was.textureSize, was.uv, was.imageSize, was.status ) )
 		{
 			e.foreign = TRUE;

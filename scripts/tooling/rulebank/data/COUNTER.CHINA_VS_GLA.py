@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule COUNTER.CHINA_VS_GLA (C·rb-data-13): China fights GLA with Flamers and Gattlings
+# GeneralsX: rule bank DATA rule COUNTER.CHINA_VS_GLA (C·rb-data-13): China fights GLA with Flamers and Gattlings
 # (rows 165: "vs GLA keep both War Factories spamming: Flamers from one, Gats from the other", 169, 262; RULE_BRIEFS 7 COUNTER-PICK). Stock
 # Hard vanilla and Tank China send Battlemaster waves at everyone and field no Dragon before wave 5. This, per general:
 #   MATCHUP 'GLA': the SHARED latch (rb.matchup, group "GX Matchup") sets gxrb_mu_gla once AI_PLAYER_GX_SENSE says my enemy is GLA - from
@@ -47,7 +47,7 @@ def _swap(o, slots, r):
     """the variant's three slots, or None when the team stays stock"""
     pre = PRE[o]
     BM, G, DR = pre + 'ChinaTankBattleMaster', pre + 'ChinaTankGattling', pre + 'ChinaTankDragon'
-    slots = [s if s[2] > 0 else [NONE, 0, 0] for s in slots]       # a slot with max 0 is empty (Codex rbd12-r1 P2)
+    slots = [s if s[2] > 0 else [NONE, 0, 0] for s in slots]       # a slot with max 0 is empty
     types = [t for t, _mn, _mx in slots if t not in (NONE, None)]
     if BM not in types or any(t.endswith(h) for t in types for h in HEAVY):
         return None

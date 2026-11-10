@@ -340,10 +340,10 @@ void W3DGhostObject::snapShot(int playerIndex)
 		("We are supposed to only snapshot things for the initial local player because local player can't change in non-debug game."));
 
 #if ENABLE_CONFIGURABLE_SHROUD
-	// GeneralsX @probe Claude 23/09/2026 -noshroud / GX_NOSHROUD: the live render object stays in the
+	// GeneralsX: -noshroud / GX_NOSHROUD: the live render object stays in the
 	// scene; a static fogged copy must not replace it on this client. freeSnapShot, addToScene and
 	// removeFromScene all key off a non-null m_parentSnapshots[], so a ghost that never snapshotted
-	// is retail's own "seen, never fogged" state and needs nothing else (Codex r2, 23/09).
+	// is retail's own "seen, never fogged" state and needs nothing else.
 	if (!gxShroudDrawn())
 		return;
 #endif
@@ -784,7 +784,7 @@ void W3DGhostObject::xfer( Xfer *xfer )
 
 			// which player index is this data for
 			xfer->xferUnsignedByte( &playerIndex );
-			// GeneralsX @bugfix Claude 06/10/2026 friend_setShroudednessPrevious indexes three MAX_PLAYER_COUNT arrays of the
+			// GeneralsX: friend_setShroudednessPrevious indexes three MAX_PLAYER_COUNT arrays of the
 			// PartitionData with it; refuse a save whose index is past them (sweep c071-01).
 			if( playerIndex >= MAX_PLAYER_COUNT )
 				throw XFER_INVALID_PARAMETERS;

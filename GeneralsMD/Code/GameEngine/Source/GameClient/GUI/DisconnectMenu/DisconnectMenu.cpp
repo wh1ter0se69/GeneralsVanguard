@@ -96,7 +96,7 @@ DisconnectMenu::DisconnectMenu() {
 DisconnectMenu::~DisconnectMenu() {
 }
 
-// GeneralsX @bugfix Claude 12/08/2026 A ROW WITH NO CONTROL NAME MUST NOT REACH nameToKey.
+// GeneralsX: A ROW WITH NO CONTROL NAME MUST NOT REACH nameToKey.
 //
 // The four tables below are declared [MAX_SLOTS] but defined with SEVEN names, so every entry from
 // index 7 upward is a null pointer - and NameKeyGenerator::nameToKey(const char*) dereferences its
@@ -285,7 +285,7 @@ void DisconnectMenu::setPacketRouterTimeoutTime(time_t newTime) {
 }
 
 Bool DisconnectMenu::sendChat(UnicodeString text) {
-	// GeneralsX @bugfix Claude 16/09/2026 THE SHARED CHAT COOLDOWN, WHICH THIS SCREEN WAS MISSING.
+	// GeneralsX: THE SHARED CHAT COOLDOWN, WHICH THIS SCREEN WAS MISSING.
 	//
 	// ChatRateLimit.h's whole premise is that a limiter written into one chat box is not a chat
 	// limiter, it is a limiter on that screen and the next screen is a hole - and the disconnect
@@ -318,7 +318,7 @@ Bool DisconnectMenu::sendChat(UnicodeString text) {
 
 	TheNetwork->sendDisconnectChat(text);
 
-	// GeneralsX @feature Claude 09/09/2026 Channel 'd' of the GXM1 record envelope.
+	// GeneralsX: Channel 'd' of the GXM1 record envelope.
 	//
 	// THIS IS A SECOND SEND PATH AND AN InGameChat-ONLY HOOK MISSES IT ENTIRELY. Disconnect-screen
 	// chat goes through ConnectionManager::sendDisconnectChat (ConnectionManager.cpp:3282) and

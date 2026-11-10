@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-L 11/10/2026 L1: the native d3d8 resource objects (GxNativeDevice.h; DESIGN_l1-device.md §3, §6).
+// GeneralsX: L1: the native d3d8 resource objects (GxNativeDevice.h; DESIGN_l1-device.md §3, §6).
 #include "GxNativeDevice.h"
 
 #include "GxD3D.h"
@@ -83,7 +83,7 @@ GxNativeSurface::GxNativeSurface(GxNativeDevice& dev, uint32_t backBufferIndex)
 	: GxNativeRefs(dev), m_dev(dev), m_kind(Kind::BackBuffer), m_bb(backBufferIndex)
 {
 	++m_dev.frontStats().liveSurfaces;   // a standalone device child the device holds privately (d3d8_device.h:400-404, :458-462)
-	++m_dev.frontStats().losable;   // DXVK counts every back buffer until it is destroyed (d3d9_swapchain.cpp:1035, Codex code-r3 #2)
+	++m_dev.frontStats().losable;   // DXVK counts every back buffer until it is destroyed (d3d9_swapchain.cpp:1035)
 	initFront();   // made right after the swapchain objects (direct): every storage has the same description
 }
 

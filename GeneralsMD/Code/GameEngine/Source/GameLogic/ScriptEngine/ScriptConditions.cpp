@@ -531,8 +531,8 @@ Bool ScriptConditions::evaluatePlayerHasUnitKindInArea(Condition *pCondition, Pa
 	PolygonTrigger *pTrig = TheScriptEngine->getQualifiedTriggerAreaByName(pTriggerParm->getString());
 	if (pTrig == nullptr) return false;
 
-	// GeneralsX @bugfix Claude 06/10/2026 As in ScriptEngine::setPriorityKind: a kind-of bit outside the mask, which a
-	// parameter the file tags as anything but KIND_OF_PARAM can carry, threw out_of_range from isKindOf (Codex mlv-r6 #2).
+	// GeneralsX: As in ScriptEngine::setPriorityKind: a kind-of bit outside the mask, which a
+	// parameter the file tags as anything but KIND_OF_PARAM can carry, threw out_of_range from isKindOf.
 	if (pKindParm->getInt() < 0 || pKindParm->getInt() >= KINDOF_COUNT) {
 		return false;
 	}
@@ -950,12 +950,12 @@ Bool ScriptConditions::evaluateUnitHealth(Parameter *pUnitParm, Parameter* pComp
 
 	Real curHealth = theObj->getBodyModule()->getHealth();
 	Real initialHealth = theObj->getBodyModule()->getInitialHealth();
-	// GeneralsX @bugfix Claude 06/10/2026 NO 0/0 HERE: a cross-platform desync. A named object with no real health (an
+	// GeneralsX: NO 0/0 HERE: a cross-platform desync. A named object with no real health (an
 	// InactiveBody answers 0 for both) made this NaN, and the Int conversion is target-defined for NaN: x64 gives INT_MIN,
 	// arm64 0, so a script testing its health branched differently on Windows and on a Mac or iPad. No health is 0 %, as
 	// arm64 computed and SlowDeathBehavior::getProbabilityModifier decides for max health 0; gx_real_to_int pins the rest
 	// of the range the same way on every target (sweep c019-05). A NEGATIVE initial health (INI accepts one) divides as
-	// before (Codex r1).
+	// before.
 	Int curPercent = initialHealth != 0.0f ? gx_real_to_int((curHealth*100 + initialHealth/2)/initialHealth) : 0;
 
 	switch (pComparisonParm->getInt())
@@ -1929,7 +1929,7 @@ Bool ScriptConditions::evaluateSkirmishSpecialPowerIsReady(Parameter *pSkirmishP
 			for (DLINK_ITERATOR<Object> iter = team->iterate_TeamMemberList(); !iter.done(); iter.advance()) {
 				Object *pObj = iter.cur();
 				if (!pObj) continue;
-				// GeneralsX @perf Claude 25/09/2026 Skip the module search for an object without this power's type bit:
+				// GeneralsX: Skip the module search for an object without this power's type bit:
 				// the Object constructor sets the bit for every special power module's template, and a module matches
 				// only its own template, so such an object has no module for this power and would be skipped below.
 				if( !pObj->hasSpecialPower( power->getSpecialPowerType() ) )
@@ -2220,8 +2220,8 @@ Bool ScriptConditions::evaluateSkirmishPlayerIsFaction(Parameter *pSkirmishPlaye
 	iff the skirmish AI's rule bank knows the player's faction - from the lobby when its slot was not Random, else from 3 different templates
 	of one faction it has fairly seen that player own - and it is the faction named: a BASE side (USA, China, GLA), or the lobby's own side
 	(America, ChinaTankGeneral, ...) when the lobby showed it. FALSE for a player without a rule bank (a human, a campaign AI) as the asker,
-	and FALSE for "<Local Player>" in either seat: that name is a different player on every peer, so it would split the simulation (Codex
-	sense-r1 P1). */
+	and FALSE for "<Local Player>" in either seat: that name is a different player on every peer, so it would split the simulation.
+	*/
 //-------------------------------------------------------------------------------------------------
 Bool ScriptConditions::evaluateAIPlayerGxSense(Parameter *pAiPlayerParm, Parameter *pPlayerParm, Parameter *pFactionParm)
 {
@@ -2243,7 +2243,7 @@ Bool ScriptConditions::evaluateAIPlayerGxSense(Parameter *pAiPlayerParm, Paramet
 	harvesters) they see now inside the TRIGGER_AREA (resolved as SKIRMISH_VALUE_IN_AREA resolves it, so [Skirmish]MyInnerPerimeter
 	works). Owner and template are what a human in the AI's seat sees (a disguise counts as its disguise). FALSE for a player without a
 	rule bank as the asker, for the AI asking about itself, for an unknown area, and for "<Local Player>" in either seat (it names a
-	different player on every peer, Codex sense-r1 P1). No RNG, no order, no state: every ask computes from the world at that moment (GXRuleSense::seenOf). */
+	different player on every peer). No RNG, no order, no state: every ask computes from the world at that moment (GXRuleSense::seenOf). */
 //-------------------------------------------------------------------------------------------------
 Bool ScriptConditions::evaluateAIPlayerGxSeen(Bool value, Parameter *pAiPlayerParm, Parameter *pPlayerParm, Parameter *pComparisonParm,
 	Parameter *pNumberParm, Parameter *pWhatParm)
@@ -2826,7 +2826,7 @@ Bool ScriptConditions::evaluateCondition( Condition *pCondition )
 		case Condition::TEAM_HAS_UNITS:
 			return evaluateHasUnits(pCondition->getParameter(0));
 		case Condition::CAMERA_MOVEMENT_FINISHED:
-			// GeneralsX @bugfix Claude 08/10/2026 The simulation's scripted camera (GameLogic/ScriptedCamera.h), not the view's:
+			// GeneralsX: The simulation's scripted camera (GameLogic/ScriptedCamera.h), not the view's:
 			// a -headless peer's ViewDummy answered TRUE mid-move, a rendered one's could follow the player's own camera keys
 			return TheScriptedCamera.isCameraMovementFinished();
 		case Condition::TEAM_STATE_IS:

@@ -30,7 +30,7 @@
 
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
-// GeneralsX @build Claude 28/07/2026 wcslcpy is a BSD/macOS libc function with no glibc
+// GeneralsX: wcslcpy is a BSD/macOS libc function with no glibc
 // equivalent, so this compiles on macOS and fails on Linux. WWLib/stringex.h provides a portable
 // inline fallback guarded by HAVE_WCSLCPY - the same one LANAPI.cpp already relies on.
 #include "WWLib/stringex.h"
@@ -58,9 +58,9 @@
 #include "GameNetwork/GameSpy/PersistentStorageDefs.h"
 #include "GameNetwork/GameSpy/PersistentStorageThread.h"
 #include "GameNetwork/GameSpy/ThreadUtils.h"
-#include "GameClient/GUICallbacks.h"	// GeneralsX @feature Claude 11/08/2026 GXBuddyOverlayClose
-#include "GameClient/GXPlayerIdentity.h"	// GeneralsX @feature Claude 11/08/2026 the local store
-#include "GameClient/GXBuddyRCData.h"	// GeneralsX @feature Claude 11/08/2026 gx RC payload
+#include "GameClient/GUICallbacks.h"	// GeneralsX: GXBuddyOverlayClose
+#include "GameClient/GXPlayerIdentity.h"	// GeneralsX: the local store
+#include "GameClient/GXBuddyRCData.h"	// GeneralsX: gx RC payload
 
 // PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
 
@@ -102,7 +102,7 @@ static GameWindow *listboxIgnore = nullptr;
 static Bool isOverlayActive = false;
 void insertChat( BuddyMessage msg );
 
-// GeneralsX @feature Claude 11/08/2026 gx mode: this screen re-pointed at the local friends store.
+// GeneralsX: gx mode: this screen re-pointed at the local friends store.
 //
 // On the relay path there is no GameSpy behind these controls - TheGameSpyBuddyMessageQueue is
 // never created and getLocalProfileID() is 0 - so every GameSpy-coupled body below either
@@ -149,7 +149,7 @@ enum { NOTIFICATION_EXPIRES = 3000 };
 
 void setUnignoreText( WindowLayout *layout, AsciiString nick, GPProfile id);
 void refreshIgnoreList();
-// GeneralsX @feature Claude 11/08/2026 gx RC menu creation, shared by both listboxes and the
+// GeneralsX: gx RC menu creation, shared by both listboxes and the
 // lobby roster (through GXBuddyOpenRosterRCMenu).
 static void gxOpenRCMenu( const char *layoutName, Int gxKind, const char *id, Int slot,
 						  UnicodeString nickWide, Int mouseX, Int mouseY, RCItemType itemType,
@@ -200,7 +200,7 @@ enum
 
 void InitBuddyControls(Int type)
 {
-	// GeneralsX @feature Claude 25/09/2026 gx mode needs no TheGameSpyInfo: its list is the local store.
+	// GeneralsX: gx mode needs no TheGameSpyInfo: its list is the local store.
 	// The relay lobby happens to own one, but the game room and a match - where F5 now opens this overlay
 	// too - do not (WOLLobbyMenuShutdown tears it down), and requiring it left the list empty there.
 	// Only the overlay's own controls; the in-game Diplomacy pane keeps the GameSpy rule.
@@ -256,10 +256,10 @@ void InitBuddyControls(Int type)
 WindowMsgHandledType BuddyControlSystem( GameWindow *window, UnsignedInt msg,
 														 WindowMsgData mData1, WindowMsgData mData2)
 {
-	// GeneralsX @feature Claude 11/08/2026 gx mode has no GameSpy profile - that is the point -
+	// GeneralsX: gx mode has no GameSpy profile - that is the point -
 	// so the profile gate applies only to the GameSpy path. TheGameSpyInfo itself still exists on
 	// the relay (SetUpGameSpyForRelayLobby creates it) and every gx body below is its own branch.
-	// GeneralsX @feature Claude 25/09/2026 ...and, since F5 opens the overlay outside the lobby, with no
+	// GeneralsX: ...and, since F5 opens the overlay outside the lobby, with no
 	// TheGameSpyInfo at all in gx mode: every gx branch below reads the local store, never that object.
 	if((!s_gxMode && (!TheGameSpyInfo || TheGameSpyInfo->getLocalProfileID() == 0)) || !buddyControls.isInit)
 	{
@@ -280,7 +280,7 @@ WindowMsgHandledType BuddyControlSystem( GameWindow *window, UnsignedInt msg,
 					if(rc->pos < 0)
 						break;
 
-					// GeneralsX @feature Claude 11/08/2026 gx: friend rows carry INDEX+1 into the
+					// GeneralsX: gx: friend rows carry INDEX+1 into the
 					// copied-id array, pending-request rows carry the NEGATED room slot, and 0 is
 					// an info row that gets no menu.
 					if (s_gxMode)
@@ -315,9 +315,9 @@ WindowMsgHandledType BuddyControlSystem( GameWindow *window, UnsignedInt msg,
 						break;
 					}
 
-					// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+					// GeneralsX: 64-bit safe pointer cast
 					GPProfile profileID = static_cast<GPProfile>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(control, rc->pos, 0)));
-					// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+					// GeneralsX: 64-bit safe pointer cast
 					RCItemType itemType = static_cast<RCItemType>(static_cast<Int>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(control, rc->pos, 1))));
 					UnicodeString nick = GadgetListBoxGetText(control, rc->pos);
 
@@ -364,7 +364,7 @@ WindowMsgHandledType BuddyControlSystem( GameWindow *window, UnsignedInt msg,
 				if(controlID != buddyControls.textEntryEditID)
 					return MSG_IGNORED;
 
-				// GeneralsX @feature Claude 11/08/2026 gx: the pane sends a private message to the
+				// GeneralsX: gx: the pane sends a private message to the
 				// selected FRIEND row, dispatched BY ID through the one social-command seam -
 				// never by P<slot>, because the resolver revalidates id->slot at send time and a
 				// roster reshuffle between selection and send must not deliver to a replacement
@@ -374,7 +374,7 @@ WindowMsgHandledType BuddyControlSystem( GameWindow *window, UnsignedInt msg,
 				// text narrows exactly as a typed /msg does - same constraint, same place.
 				if (s_gxMode)
 				{
-					// GeneralsX @bugfix Claude 25/09/2026 LOBBY ONLY (codex-B P2 on 7a6121659). F5 opens this
+					// GeneralsX: LOBBY ONLY (-B P2 on 7a6121659). F5 opens this
 					// overlay in a game room and a match too, but private messages are the lobby screen's:
 					// replies are drained, and every refusal printed, only while it runs (WOLLobbyMenuUpdate).
 					// Sending from anywhere else would go out with no visible outcome and no reply ever shown,
@@ -432,7 +432,7 @@ WindowMsgHandledType BuddyControlSystem( GameWindow *window, UnsignedInt msg,
 				GadgetListBoxGetSelected(buddyControls.listboxBuddies, &selected);
 				if (selected >= 0)
 				{
-					// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+					// GeneralsX: 64-bit safe pointer cast
 					GPProfile selectedProfile = static_cast<GPProfile>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(buddyControls.listboxBuddies, selected)));
 					BuddyInfoMap *m = TheGameSpyInfo->getBuddyMap();
 					BuddyInfoMap::iterator recipIt = m->find(selectedProfile);
@@ -544,7 +544,7 @@ void insertChat( BuddyMessage msg )
 
 void updateBuddyInfo()
 {
-	// GeneralsX @feature Claude 11/08/2026 gx: the list IS the local store, plus relay presence.
+	// GeneralsX: gx: the list IS the local store, plus relay presence.
 	//
 	// Friends from GXPlayerIdentity, status from GXRelayPresenceFor - the lobby's already-decoded
 	// three-valued answer (1 online / 0 offline / -1 unknown), never a second Transport consumer:
@@ -739,7 +739,7 @@ void updateBuddyInfo()
 
 	GadgetListBoxGetSelected(buddyControls.listboxBuddies, &selected);
 	if (selected >= 0)
-		// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+		// GeneralsX: 64-bit safe pointer cast
 		selectedProfile = static_cast<GPProfile>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(buddyControls.listboxBuddies, selected)));
 
 	selected = -1;
@@ -957,9 +957,9 @@ void HandleBuddyResponses()
 					//!info.m_statusString.compareNoCase(L"Online"))
 					{
 						// insert status into box
-						// GeneralsX @security Claude 06/10/2026 The status text is the peer's own (GameSpy statusString). It used to name the
+						// GeneralsX: The status text is the peer's own (GameSpy statusString). It used to name the
 						// label directly, so a status of "Message" picked Buddy:MessageNotification - a two-argument template given one argument
-						// below (Codex format-strings-r6 P2). Only the six status lines the game ships, each a one-argument (nick) template, are
+						// below. Only the six status lines the game ships, each a one-argument (nick) template, are
 						// selectable; any other status takes the plain online / offline line.
 						AsciiString marker;
 						static const WideChar *const s_statusLines[] = { L"Online", L"Offline", L"Loading", L"Matching", L"Playing", L"Staging" };
@@ -973,7 +973,7 @@ void HandleBuddyResponses()
 						if (newStatus != GP_OFFLINE)
 							++numOnlineInNotification;
 
-						// GeneralsX @security Claude 06/10/2026 The template is a printf format for the nick: game-table text only (a label a
+						// GeneralsX: The template is a printf format for the nick: game-table text only (a label a
 						// localisation lacks fell through fetch() to the loaded map's map.str); a missing one takes the plain line too.
 						Bool exists = FALSE;
 						UnicodeString note;
@@ -1112,7 +1112,7 @@ void WOLBuddyOverlayInit( WindowLayout *layout, void *userData )
 
 	//GadgetTextEntrySetText(textEntry, UnicodeString::TheEmptyString);
 
-	// GeneralsX @feature Claude 11/08/2026 Both calls are GameSpy-fed and one of them crashes on
+	// GeneralsX: Both calls are GameSpy-fed and one of them crashes on
 	// the relay path: updateBuddyInfo dereferences TheGameSpyBuddyMessageQueue->isConnected()
 	// unguarded, and that queue is never created here. The gx population arrives with the store
 	// re-point; until then the overlay opens with its controls live and its lists empty.
@@ -1157,7 +1157,7 @@ void WOLBuddyOverlayShutdown( WindowLayout *layout, void *userData )
 //-------------------------------------------------------------------------------------------------
 void WOLBuddyOverlayUpdate( WindowLayout * layout, void *userData)
 {
-	// GeneralsX @feature Claude 11/08/2026 In gx mode this update DRIVES the screen instead of
+	// GeneralsX: In gx mode this update DRIVES the screen instead of
 	// closing it. The GameSpy branch below closed the overlay whenever the buddy queue was absent
 	// - which on the relay path is always - and that single line is why the retail overlay was
 	// unreachable for as long as it was. The notification expiry lives here too: the GameSpy
@@ -1279,7 +1279,7 @@ WindowMsgHandledType WOLBuddyOverlaySystem( GameWindow *window, UnsignedInt msg,
 					if(rc->pos < 0)
 						break;
 
-					// GeneralsX @feature Claude 11/08/2026 gx: ignore-tab rows carry INDEX+1 into
+					// GeneralsX: gx: ignore-tab rows carry INDEX+1 into
 					// the copied-id array; 0 is an info row. A row that is also a friend gets the
 					// friend menu; anyone else gets the stranger menu - whose Ignore button the
 					// label helper has already flipped to Unignore. The shared creation helper
@@ -1301,7 +1301,7 @@ WindowMsgHandledType WOLBuddyOverlaySystem( GameWindow *window, UnsignedInt msg,
 					}
 
 					Bool isBuddy = false, isRequest = false;
-					// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+					// GeneralsX: 64-bit safe pointer cast
 					GPProfile profileID = static_cast<GPProfile>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(control, rc->pos)));
 					UnicodeString nick = GadgetListBoxGetText(control, rc->pos);
 					BuddyInfoMap *buddies = TheGameSpyInfo->getBuddyMap();
@@ -1358,7 +1358,7 @@ WindowMsgHandledType WOLBuddyOverlaySystem( GameWindow *window, UnsignedInt msg,
 
 				if (controlID == buttonHideID)
 				{
-					// GeneralsX @feature Claude 11/08/2026 The gx layout is not in overlayLayouts[]
+					// GeneralsX: The gx layout is not in overlayLayouts[]
 					// - GameSpyCloseOverlay would find a null entry and the overlay would never
 					// close. Its owner closes it, with the same runShutdown/destroy sequence.
 					if (s_gxMode)
@@ -1592,7 +1592,7 @@ static void closeRightClickMenu(GameWindow *win)
 
 	if(win)
 	{
-		// GeneralsX @bugfix Claude 11/08/2026 Release the manager's lone-window claim BEFORE the
+		// GeneralsX: Release the manager's lone-window claim BEFORE the
 		// destroy. The menu was registered with winSetLoneWindow at creation; destroying it
 		// directly (the transition-close path never goes through the manager's GGM_CLOSE
 		// dispatch) left m_loneWindow pointing at freed memory, and the next mouse event
@@ -1609,7 +1609,7 @@ static void closeRightClickMenu(GameWindow *win)
 		TheWindowManager->winSetLoneWindow(nullptr);
 		s_closing = FALSE;
 
-		// GeneralsX @feature Claude 11/08/2026 A menu dismissed without a click still holds its
+		// GeneralsX: A menu dismissed without a click still holds its
 		// payload - the historical GameSpy path leaked it here. Freed by the DERIVED type after
 		// the sentinel check: the base has no virtual dtor.
 		GameSpyRCMenuData *lingering = (GameSpyRCMenuData *)win->winGetUserData();
@@ -1632,7 +1632,7 @@ static void closeRightClickMenu(GameWindow *win)
 	}
 }
 
-// GeneralsX @feature Claude 11/08/2026 The one gx way to open an RC menu, from either listbox and
+// GeneralsX: The one gx way to open an RC menu, from either listbox and
 // (later) the lobby roster. Mirrors the GameSpy creation sites exactly - runInit, bring to top,
 // screen-edge clamp - then diverges where gx must: the Stats and Play buttons are hidden (no
 // stats service exists here, and Play is a stub even upstream), the Ignore button's label is
@@ -1669,7 +1669,7 @@ static void gxOpenRCMenu( const char *layoutName, Int gxKind, const char *id, In
 	GameWindow *hideMe = TheWindowManager->winGetWindowFromId(rcMenu, buttonStatsID);
 	if (hideMe)
 	{
-		// GeneralsX @feature Claude 18/09/2026 EXCEPT ON THE PLAYER'S OWN ROW. RCLocalPlayerMenu.wnd
+		// GeneralsX: EXCEPT ON THE PLAYER'S OWN ROW. RCLocalPlayerMenu.wnd
 		// has exactly one control, ButtonStats (measured: extracted from stock WindowZH.big), so
 		// hiding it there would open an empty box. There is no stats service to point it at, and
 		// the one thing a player can do to themselves here is sign out - so it keeps EA's button,
@@ -1708,7 +1708,7 @@ static void gxOpenRCMenu( const char *layoutName, Int gxKind, const char *id, In
 	TheWindowManager->winSetLoneWindow(rcMenu);
 }
 
-// GeneralsX @feature Claude 11/08/2026 Close whatever RC menu is open. The menus are independent
+// GeneralsX: Close whatever RC menu is open. The menus are independent
 // lone-window layouts - a roster menu can exist while the overlay itself is closed - so screen
 // transitions must close them EXPLICITLY or a menu survives above the next screen, holding a
 // payload whose slot no longer means anything (cross-model review's catch). rcMenu is nulled by
@@ -1719,7 +1719,7 @@ void GXBuddyCloseRCMenu( void )
 		closeRightClickMenu(rcMenu);
 }
 
-// GeneralsX @feature Claude 11/08/2026 The lobby roster's way in - see GUICallbacks.h. The
+// GeneralsX: The lobby roster's way in - see GUICallbacks.h. The
 // snapshot arrives as the RAW roster nick and is carried into the payload verbatim; roster nicks
 // are GXNICK tokens (seven-bit), so the ascii/wide round trip here is lossless.
 void GXBuddyOpenRosterRCMenu( const char *layoutName, Int slot, const AsciiString &nickSnapshot,
@@ -1731,7 +1731,7 @@ void GXBuddyOpenRosterRCMenu( const char *layoutName, Int slot, const AsciiStrin
 		ITEM_NONE, flipIgnoreLabel);
 }
 
-// GeneralsX @feature Claude 18/09/2026 The player's own roster row - see GUICallbacks.h.
+// GeneralsX: The player's own roster row - see GUICallbacks.h.
 // EA's own "this is me" menu, which the GameSpy lobby opened for the local player and the relay
 // lobby never opened at all. No id, no slot: SELF acts only on this player's own sign-in.
 void GXBuddyOpenSelfRCMenu( Int mouseX, Int mouseY )
@@ -1751,7 +1751,7 @@ void RequestBuddyAdd(Int profileID, AsciiString nick)
 	wcslcpy(req.arg.addbuddy.text, buddyAddstr.str(), MAX_BUDDY_CHAT_LEN);
 	TheGameSpyBuddyMessageQueue->addRequest(req);
 
-	// GeneralsX @security Claude 06/10/2026 Neither invite label is in the game's own tables, so a plain fetch() fell back to the loaded
+	// GeneralsX: Neither invite label is in the game's own tables, so a plain fetch() fell back to the loaded
 	// map's map.str (the buddy overlay opens in game), and both texts are printf formats. Game tables only (a missing label is the
 	// literal MISSING line, as before).
 	UnicodeString s;
@@ -1827,7 +1827,7 @@ WindowMsgHandledType WOLBuddyOverlayRCMenuSystem( GameWindow *window, UnsignedIn
 				if(!rcData)
 					break;
 
-				// GeneralsX @feature Claude 11/08/2026 gx payloads discriminate on the sentinel
+				// GeneralsX: gx payloads discriminate on the sentinel
 				// BEFORE any use of the GameSpy fields, and are deleted as their DERIVED type -
 				// the base has no virtual dtor. Every action routes through the one shared seam
 				// (GXRelayRunSocialCommand) so the format checks, error strings and refusals stay
@@ -1853,7 +1853,7 @@ WindowMsgHandledType WOLBuddyOverlayRCMenuSystem( GameWindow *window, UnsignedIn
 					}
 					else if (gx->m_gxKind == GXRCMenuData::SELF)
 					{
-						// GeneralsX @feature Claude 18/09/2026 Sign Out. NOTHING IS DONE HERE: this
+						// GeneralsX: Sign Out. NOTHING IS DONE HERE: this
 						// only asks the lobby to show its confirmation, next frame, once this menu is
 						// gone. Opening a message box from inside another window's callback is the
 						// wedge MainMenu.cpp documents (a stranded modal, every button dead), and
@@ -2039,7 +2039,7 @@ void setUnignoreText( WindowLayout *layout, AsciiString nick, GPProfile id)
 
 void refreshIgnoreList()
 {
-	// GeneralsX @feature Claude 11/08/2026 gx: the ignore tab reads the local store. The store
+	// GeneralsX: gx: the ignore tab reads the local store. The store
 	// keeps only ids - there is no ignore nick - so a row shows the friend nick when the ignored
 	// id is also a known friend, and a six-character prefix otherwise; never the whole credential.
 	// Rendered in the grey the player list already uses for ignored rows.

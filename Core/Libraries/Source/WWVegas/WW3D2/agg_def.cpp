@@ -43,7 +43,7 @@
 #include "texture.h"
 #include "WWLib/wwstring.h"
 
-// GeneralsX @build BenderAI 10/02/2026 - guard Windows headers
+// GeneralsX: guard Windows headers
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -258,7 +258,7 @@ AggregateDefClass::Find_Subobject
 				if (ptemp_obj == nullptr)
 					continue;
 
-				// GeneralsX @build BenderAI 10/02/2026 - Remove :: for macro
+				// GeneralsX: Remove :: for macro
 				if (lstrcmpi (ptemp_obj->Get_Name (), mesh_path[index]) == 0) {
 					sub_obj = ptemp_obj;
 				} else {
@@ -351,7 +351,7 @@ AggregateDefClass::Load_Assets (const char *passet_name)
 
 		// Determine what the current working directory is
 		char path[MAX_PATH];
-		// GeneralsX @build BenderAI 10/02/2026 - Remove :: for macros
+		// GeneralsX: Remove :: for macros
 		GetCurrentDirectory (sizeof (path), path);
 
 		// Ensure the path is directory delimited
@@ -360,7 +360,7 @@ AggregateDefClass::Load_Assets (const char *passet_name)
 		}
 
 		// Assume the filename is simply the "asset name" + the w3d extension
-		// GeneralsX @build BenderAI 10/02/2026 - Remove :: for macros
+		// GeneralsX: Remove :: for macros
 		lstrcat (path, passet_name);
 		lstrcat (path, ".w3d");
 
@@ -518,7 +518,7 @@ AggregateDefClass::Is_Object_In_List
 		RenderObjClass *prender_obj = node_list[node_index];
 
 		// Is this the render object we were looking for?
-		// GeneralsX @build BenderAI 10/02/2026 - Remove :: for macro
+		// GeneralsX: Remove :: for macro
 		if (prender_obj != nullptr &&
 		    lstrcmpi (prender_obj->Get_Name (), passet_name) == 0) {
 			retval = true;

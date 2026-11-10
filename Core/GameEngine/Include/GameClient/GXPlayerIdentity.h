@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 08/08/2026 A durable per-install player identity, and the friends and
+// GeneralsX: A durable per-install player identity, and the friends and
 // ignore lists keyed by it.
 //
 // WHY THIS EXISTS. A friendship is an edge between two persistent people, and this project had no
@@ -76,7 +76,7 @@
 
 #include "Lib/BaseType.h"
 #include "Common/AsciiString.h"
-// GeneralsX @feature Claude 11/08/2026 GXAssertRole and GX_ASSERTION_MAX. Both under GameClient/,
+// GeneralsX: GXAssertRole and GX_ASSERTION_MAX. Both under GameClient/,
 // so this include adds nothing to the sim digest.
 #include "GameClient/GXIdentityAssertion.h"
 #include "GameClient/GXSignOutFiles.h"	// GXSignInRemoval
@@ -112,7 +112,7 @@ public:
 	static const char *getFriendId(Int i);		///< "" if i is out of range
 	static const char *getFriendNick(Int i);	///< last name we saw them use, "" if never
 	static Bool        isFriend(const char *id);
-	// GeneralsX @feature Claude 08/08/2026 The name cached against an id, "" when the id is not a
+	// GeneralsX: The name cached against an id, "" when the id is not a
 	// friend or has no name yet. Added when the lobby learned how to bind a room slot to a real id
 	// (GXKEY/the friend card): before that there was nothing to look a friend up BY except the name,
 	// so every caller walked the list comparing names and there was no reason for this to exist.
@@ -202,7 +202,7 @@ public:
 
 	static Bool save();		///< write through; callers above already do this on every mutation
 
-	/// GeneralsX @bugfix Claude 23/09/2026 Do not mint a new id this session. WinMain calls it when
+	/// GeneralsX: Do not mint a new id this session. WinMain calls it when
 	/// the one-time Windows migration (GXUserDataMigrate.h) could not bring the old GXPlayer.ini
 	/// across. A minted file would be "already there" to every later retry, and the player's real
 	/// identity and friends list would never arrive. With no id, friends are off for the session -
@@ -210,7 +210,7 @@ public:
 	static void holdNewIdentity();
 	static void reset();	///< test seam: drop all in-memory state so the next call re-reads disk
 
-	// GeneralsX @feature Claude 11/08/2026 A short unguessable token from the SAME CSPRNG the id
+	// GeneralsX: A short unguessable token from the SAME CSPRNG the id
 	// is minted from, base32 so it travels anywhere the id can. The card exchange binds each
 	// offer to one of these: a recycled room slot cannot echo a nonce the previous occupant was
 	// unicast, which is the continuity proof no roster field can give. FALSE (and an empty out)

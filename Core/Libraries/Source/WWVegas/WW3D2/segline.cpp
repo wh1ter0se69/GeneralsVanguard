@@ -143,7 +143,7 @@ void SegmentedLineClass::Set_Points(unsigned int num_points, Vector3 *locs)
 		return;
 	}
 
-	// GeneralsX @performance Claude 23/09/2026 Keep capacity: Delete_All() shrank to 0 (free) and the Adds
+	// GeneralsX: Keep capacity: Delete_All() shrank to 0 (free) and the Adds
 	// below re-allocated, every call, i.e. every rendered frame per streak / laser / projectile stream.
 	PointLocations.Delete_All(false);
 	for (unsigned int i=0; i<num_points; i++) {
@@ -153,7 +153,7 @@ void SegmentedLineClass::Set_Points(unsigned int num_points, Vector3 *locs)
 	// GeneralsX @bugfix wh1ter0se 11/08/2026 New geometry invalidates any V array that described the
 	// old geometry. Dropping it here means the failure mode of forgetting to re-supply them is the
 	// ORIGINAL index-generated mapping, not a silently mismatched one.
-	// GeneralsX @performance Claude 23/09/2026 Keep capacity (see above).
+	// GeneralsX: Keep capacity (see above).
 	PointVCoords.Delete_All(false);
 
 	Invalidate_Cached_Bounding_Volumes();
@@ -161,7 +161,7 @@ void SegmentedLineClass::Set_Points(unsigned int num_points, Vector3 *locs)
 
 void SegmentedLineClass::Set_Point_V_Coords(unsigned int num_points, const float *v_coords)
 {
-	// GeneralsX @performance Claude 23/09/2026 Keep capacity (see Set_Points).
+	// GeneralsX: Keep capacity (see Set_Points).
 	PointVCoords.Delete_All(false);
 	if (!v_coords || num_points != (unsigned int)PointLocations.Count()) {
 		// Ignored rather than asserted: the caller gets the index-generated mapping, which is

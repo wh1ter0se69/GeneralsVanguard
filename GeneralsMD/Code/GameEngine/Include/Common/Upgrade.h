@@ -175,7 +175,7 @@ public:
 	// field access
 	void setUpgradeName( const AsciiString& name ) { m_name = name; }
 	const AsciiString& getUpgradeName() const { return m_name; }
-	/// GeneralsX @fix Claude 05/10/2026 what MSG_QUEUE_UPGRADE / MSG_CANCEL_UPGRADE carry: the name's id, never the NameKey (GXWireId.h)
+	/// GeneralsX: what MSG_QUEUE_UPGRADE / MSG_CANCEL_UPGRADE carry: the name's id, never the NameKey (GXWireId.h)
 	UnsignedInt getWireId() const { return gxWireIdForName( m_name.str() ); }
 	void setUpgradeNameKey( NameKeyType key ) { m_nameKey = key; }
 	NameKeyType getUpgradeNameKey() const { return m_nameKey; }
@@ -247,7 +247,7 @@ public:
 	const UpgradeTemplate *findUpgrade( const AsciiString& name ) const; ///< find and return upgrade by name
 	const UpgradeTemplate *findUpgrade( const char* name ) const; ///< find and return upgrade by name
 	const UpgradeTemplate *findVeterancyUpgrade(VeterancyLevel level) const; ///< find and return upgrade by veterancy level
-	/// GeneralsX @fix Claude 05/10/2026 The template a network message names (UpgradeTemplate::getWireId, GXWireId.h), from
+	/// GeneralsX: The template a network message names (UpgradeTemplate::getWireId, GXWireId.h), from
 	/// the table rebuildWireIds() made at map load: nullptr for an id no template has, or one two templates share.
 	const UpgradeTemplate *findUpgradeByWireId( UnsignedInt wireId ) const;
 	/// Rebuild that table from every template linked now, a map.ini's inventions included. FALSE when two names share an id.
@@ -255,7 +255,7 @@ public:
 
 	UpgradeTemplate *newUpgrade( const AsciiString& name );				///< allocate, link, and return new upgrade
 
-	/// GeneralsX @bugfix Claude 25/09/2026 Moves whenever the SET of templates does - newUpgrade(), or
+	/// GeneralsX: Moves whenever the SET of templates does - newUpgrade(), or
 	/// reset() retiring a map's inventions. A pointer cached across calls must be re-resolved when it
 	/// moves; UpgradeTemplateRef below does exactly that.
 	UnsignedInt getTemplateGeneration() const { return m_templateGeneration; }
@@ -278,7 +278,7 @@ protected:
 	std::map<UnsignedInt, const UpgradeTemplate *> m_wireIds;	///< GeneralsX: wire id -> template, nullptr where two share one (rebuildWireIds)
 	Bool buttonImagesCached;
 
-	// GeneralsX @bugfix Claude 25/09/2026 TheSuperHackers/GeneralsGameCode#1749, adapted
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#1749, adapted
 	//
 	// parseUpgradeDefinition parses a map.ini's Upgrade block INTO the existing template, and reset()
 	// restored nothing, so a custom map's upgrade edits - and the upgrades it invented, with their
@@ -304,14 +304,14 @@ protected:
 extern UpgradeCenter *TheUpgradeCenter;
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @bugfix Claude 25/09/2026 A hard-coded upgrade name, looked up again whenever the set of
+/** GeneralsX: A hard-coded upgrade name, looked up again whenever the set of
 	* upgrade templates changes.
 	*
 	* Replaces `static const UpgradeTemplate *t = TheUpgradeCenter->findUpgrade( "..." );`, which pinned
 	* whatever the FIRST call in the process saw. Once reset() retires the upgrades a map.ini invented
 	* and hands their mask bits back, such a pin could name a retired template whose bit now belongs to
 	* a different upgrade - and which template it named depended on the maps THIS peer had played, so
-	* two peers could disagree about it (Codex P2 on the #1749 adaptation). Same for a pin that saw
+	* two peers could disagree about it (on the #1749 adaptation). Same for a pin that saw
 	* nullptr before a map defined the name. Costs one compare per call once resolved. */
 //-------------------------------------------------------------------------------------------------
 class UpgradeTemplateRef

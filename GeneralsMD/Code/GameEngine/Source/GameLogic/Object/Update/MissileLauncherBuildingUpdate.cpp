@@ -202,7 +202,7 @@ void MissileLauncherBuildingUpdate::switchToState(DoorStateType dst)
 Bool MissileLauncherBuildingUpdate::initiateIntentToDoSpecialPower( const SpecialPowerTemplate *specialPowerTemplate, const Object *targetObj, const Coord3D *targetPos, const Waypoint *way, UnsignedInt commandOptions )
 {
 	// TheSuperHackers @bugfix Mauller 29/06/2025 prevent a game crash when told to launch before ready to do so
-	// GeneralsX @bugfix Claude 04/10/2026 The guard now holds in every build. Without RETAIL_COMPATIBLE_CRC a POWERED
+	// GeneralsX: The guard now holds in every build. Without RETAIL_COMPATIBLE_CRC a POWERED
 	// scaffold that browns out and is repowered wraps its 0xFFFFFFFF ready frame (pauseCountdown adds the paused frames),
 	// so it reads ready while m_specialPowerModule is still unset (update() sets it only once construction ends) and the
 	// dereference below crashed every peer. The sentinel write stays retail-only: there it re-arms the base's and

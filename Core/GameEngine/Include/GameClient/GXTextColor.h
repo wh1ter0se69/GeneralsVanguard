@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @feature Claude 17/10/2026 - ONE rule for a player's colour used as TEXT.
+**	GeneralsX: ONE rule for a player's colour used as TEXT.
 **
 **	Colour set R1 includes Black (40,40,40). A swatch, a unit or a house keeps that exact colour, but the same
 **	colour as text on a dark panel or over terrain is close to unreadable. The players bar already lifts every

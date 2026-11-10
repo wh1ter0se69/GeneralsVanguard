@@ -359,7 +359,7 @@ bool GxPackFF(const GxD3D8FFState& s, GxFFVsBlock* vs, GxFFPsBlock* ps, GxFFSpec
 		const uint32_t* t = s.tss[i];
 		GxFFPsStage& o = ps->Stages[i];
 		// DXVK flips major-ness (d3d9_device.cpp:7475-7480: BumpEnvMat[1][0] = MAT01, [0][1] = MAT10) so the shader's dot for U
-		// reads (MAT00, MAT10) and for V (MAT01, MAT11): u' = u + 00*du + 10*dv, v' = v + 01*du + 11*dv (Codex rw2-D-r1 #1).
+		// reads (MAT00, MAT10) and for V (MAT01, MAT11): u' = u + 00*du + 10*dv, v' = v + 01*du + 11*dv.
 		o.BumpEnvMat[0] = asFloat(t[TSS_BUMPENVMAT00]);
 		o.BumpEnvMat[1] = asFloat(t[TSS_BUMPENVMAT10]);
 		o.BumpEnvMat[2] = asFloat(t[TSS_BUMPENVMAT01]);

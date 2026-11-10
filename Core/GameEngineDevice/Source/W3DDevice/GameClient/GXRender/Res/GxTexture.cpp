@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: 2D textures and standalone surfaces (see GxTexture.h).
+// GeneralsX: WS-C GXRES v0: 2D textures and standalone surfaces (see GxTexture.h).
 #include "GxTexture.h"
 #include "GxD3D.h"
 #include "GxDecode.h"
@@ -93,7 +93,7 @@ bool GxTexture::validRect(uint32_t level, const VkRect2D& r) const
 	if (r.offset.x < 0 || r.offset.y < 0 || r.extent.width == 0 || r.extent.height == 0)
 		return false;
 	const uint32_t x = uint32_t(r.offset.x), y = uint32_t(r.offset.y);
-	// 64-bit sums: {1, 0} + UINT32_MAX would wrap to 0 and pass a 32-bit compare (Codex rw1-C-r5 P2)
+	// 64-bit sums: {1, 0} + UINT32_MAX would wrap to 0 and pass a 32-bit compare
 	if (m_res->debug().wrapRectCheck ? (x + r.extent.width > w || y + r.extent.height > h)
 	                                 : (uint64_t(x) + r.extent.width > w || uint64_t(y) + r.extent.height > h))
 		return false;
@@ -117,7 +117,7 @@ bool GxTexture::restoreLevel(uint32_t level)
 		return true;
 	}
 	// Published only after a successful read-back: a failed restore leaves the level without a host copy, so the next
-	// lock tries again instead of handing out zeros (Codex rw1-C-r1 P2).
+	// lock tries again instead of handing out zeros.
 	std::vector<uint8_t> bytes;
 	if (!m_res->readImage(m_image, level, nullptr, &bytes) || bytes.size() != size)
 		return false;

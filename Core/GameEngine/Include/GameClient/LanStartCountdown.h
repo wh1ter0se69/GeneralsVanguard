@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 08/08/2026 The host-side policy that decides when a LAN match starts.
+// GeneralsX: The host-side policy that decides when a LAN match starts.
 //
 // WHY THIS IS A SEPARATE, ENGINE-FREE HEADER
 //

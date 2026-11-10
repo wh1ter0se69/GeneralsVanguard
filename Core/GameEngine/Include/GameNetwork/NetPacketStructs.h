@@ -86,7 +86,7 @@ inline size_t writeBytes(UnsignedByte *dest, const UnsignedByte* src, size_t len
 	return len;
 }
 
-// GeneralsX @bugfix Claude 17/08/2026 THE IN-GAME CHAT WIRE CHARACTER IS 16 BITS ON EVERY PLATFORM.
+// GeneralsX: THE IN-GAME CHAT WIRE CHARACTER IS 16 BITS ON EVERY PLATFORM.
 //
 // WideChar is `typedef wchar_t` (BaseType.h:36) with no platform guard, and wchar_t is 2 bytes on
 // MSVC and 4 bytes on clang/gcc. Every chat payload in this file used to be sized and copied as
@@ -107,7 +107,7 @@ inline size_t writeBytes(UnsignedByte *dest, const UnsignedByte* src, size_t len
 // treatment. Sixteen bits is also the retail-compatible choice: it is what the Windows build has
 // always put on the wire, so this makes the three SDL3 platforms conform to Windows rather than
 // inventing a third format, and it halves the bytes a chat line costs inside a 476-byte packet.
-// GeneralsX @bugfix Claude 22/09/2026 One definition, not two. This was its own `typedef uint16_t`
+// GeneralsX: One definition, not two. This was its own `typedef uint16_t`
 // until the identical split was found on the GAME COMMAND path (NetPacketGameCommandData, which
 // carries MSG_SET_BEACON_TEXT's per-character WIDECHAR arguments) and in the .rep body. Aliasing
 // GXWireChar rather than restating uint16_t means there is a single answer to "how wide is a wide
@@ -178,7 +178,7 @@ struct NetPacketRelayField
 {
 	NetPacketRelayField() : fieldType(NetPacketFieldTypes::Relay) {}
 	char fieldType;
-	// GeneralsX @feature Claude 12/08/2026 Widened with RelayMaskType (NetworkDefs.h) for 12
+	// GeneralsX: Widened with RelayMaskType (NetworkDefs.h) for 12
 	// human machines - grows the 'R' field by one byte in every game packet. Reader and writer
 	// are sizeof-driven off this member; do not size anything against a literal here.
 	RelayMaskType relay;
@@ -552,7 +552,7 @@ struct NetPacketDestroyPlayerCommandBase
 ////////////////////////////////////////////////////////////////////////////////
 // NetPacketLatencyReportCommand
 //
-// GeneralsX @feature Claude 13/08/2026 The packet router's whole latency row in one fixed-size
+// GeneralsX: The packet router's whole latency row in one fixed-size
 // payload: MAX_SLOTS round trips as UnsignedShort MILLISECONDS, indexed by slot.
 //
 // Milliseconds rather than the Real seconds the engine measures in, for three reasons that all
@@ -575,7 +575,7 @@ struct NetPacketLatencyReportCommandData
 {
 	typedef NetLatencyReportCommandMsg CommandMsg;
 
-	// GeneralsX @feature Claude 06/10/2026 ...and each slot's average render fps as the router holds it, one byte per slot:
+	// GeneralsX: ...and each slot's average render fps as the router holds it, one byte per slot:
 	// 0 = no figure, n = n - 1 fps (0..254). Every peer can then show every player's fps, which until now only the router
 	// knew (clients send theirs to the router alone, NetRunAheadMetricsCommandMsg). MAX_SLOTS more bytes every
 	// m_networkRunAheadMetricsTime (5 s); slot-indexed and fixed-size for the reasons above. A byte cannot carry a NaN.
@@ -882,7 +882,7 @@ struct NetPacketWrapperCommandData
 		UnsignedInt totalDataLength;
 		UnsignedInt dataLength;
 		UnsignedInt dataOffset;
-		// GeneralsX @security Claude 06/10/2026 Appended (wire order: append only). wrapSeq = the wrapping hop's per-connection
+		// GeneralsX: Appended (wire order: append only). wrapSeq = the wrapping hop's per-connection
 		// serialization number; lowWater = min(oldest wrapSeq with an unacked chunk on that connection, wrapSeq), so always
 		// <= wrapSeq. The receiver frees everything of this source below lowWater (DESIGN_wrapper-memory-cap v16 section 2).
 		UnsignedInt wrapSeq;
@@ -914,7 +914,7 @@ struct NetPacketWrapperCommandBase
 // NetPacketWrapperAckCommand
 ////////////////////////////////////////////////////////////////////////////////
 
-// GeneralsX @security Claude 06/10/2026 The ack of one wrapper chunk (NETCOMMANDTYPE_WRAPPERACK). The header is the ack's:
+// GeneralsX: The ack of one wrapper chunk (NETCOMMANDTYPE_WRAPPERACK). The header is the ack's:
 // type and player only.
 struct NetPacketWrapperAckCommandData
 {

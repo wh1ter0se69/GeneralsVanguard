@@ -90,7 +90,7 @@
 
 #include "GameNetwork/GameInfo.h"
 #include "GameNetwork/NetworkInterface.h"
-// GeneralsX @feature Claude 08/08/2026 The [GXNET] loss counters, read as externs for the HUD
+// GeneralsX: The [GXNET] loss counters, read as externs for the HUD
 // resend readout. INCLUDING a digested header does not modify it; adding an accessor to one would,
 // so the free-running globals are read directly exactly as ConnectionManager's own probe does.
 #include "GameNetwork/networkutil.h"
@@ -115,7 +115,7 @@ static UnicodeString formatMoneyValue(UnsignedInt amount)
 	return result;
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 The HUD readout sizes have a ceiling (owner: "limit those to
+// GeneralsX: The HUD readout sizes have a ceiling (owner: "limit those to
 // something"): at 72 the frame-rate readout covers a third of the screen. Same number as Zero Hour's
 // kGxHudMaxPointSize and the launcher's gxio::options::MAX_FONT_SIZE; applied where each size is read,
 // so a file already holding more draws at the ceiling too.
@@ -933,10 +933,10 @@ const FieldParse InGameUI::s_fieldParseTable[] =
 //-------------------------------------------------------------------------------------------------
 /** Parse MouseCursor entry */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/10/2026 A map.ini's InGameUI block writes the in-game UI IN PLACE, and of its fields only
+// GeneralsX: A map.ini's InGameUI block writes the in-game UI IN PLACE, and of its fields only
 // MaxSelectionSize does more than change how something looks: it caps the local selection, which a solo script condition reads
 // (ScriptConditions.cpp, "player has selected") - so a map's limit leaking into the next solo game could take another script
-// branch than a fresh process (Codex mapini-rollback-adv-r2 P2). It goes back in InGameUI::reset. The other fields (caption,
+// branch than a fresh process. It goes back in InGameUI::reset. The other fields (caption,
 // message, timer and superweapon fonts, colors, positions; radius cursors; floating text) are only drawn, and stay as the map left
 // them, as on 0.9.61 (fixes/mapini-rollback/closure/UI-STORES-NOT-SIM.md).
 static Int s_maxSelectCountBeforeMap = 0;
@@ -979,7 +979,7 @@ namespace
 	constexpr const Int kHudGapPx = 6;
 	inline Bool isAtHudAnchorPos(const Coord2D &p) { return p.x == kHudAnchorX && p.y == kHudAnchorY; }
 
-	// GeneralsX @feature Claude 08/08/2026 Latency HUD, ported from the Zero Hour twin.
+	// GeneralsX: Latency HUD, ported from the Zero Hour twin.
 	//
 	// This twin had been left behind: it printed TheNetwork->getRunAhead(), a bare FRAME COUNT with
 	// no unit and no bands, which is not a latency a player can act on - run-ahead is a scheduling
@@ -1007,7 +1007,7 @@ namespace
 	// Distinct from "0 ms", which is a legitimate if unlikely reading.
 	constexpr const UnsignedInt NETWORK_LATENCY_NO_SAMPLE = ~0u;
 
-	// GeneralsX @feature Claude 08/08/2026 Observed logic rate (tps) and packet resends.
+	// GeneralsX: Observed logic rate (tps) and packet resends.
 	//
 	// Same sentinel discipline as the latency readout above, and for the same reason: a confident 0
 	// on an unmeasured counter asserts a healthy machine. 0 tps and 0 resends are both legitimate
@@ -1246,7 +1246,7 @@ InGameUI::InGameUI()
 	m_messagesOn = TRUE;
 
 	// TheSuperHackers @info the default font, size and positions of the various counters were chosen based on GenTools implementation
-	// GeneralsX @feature Claude 13/08/2026 Starts visible; runtime override, never persisted.
+	// GeneralsX: Starts visible; runtime override, never persisted.
 	m_hudOverlayHidden = FALSE;
 
 	m_networkLatencyString = nullptr;
@@ -1501,7 +1501,7 @@ void InGameUI::init()
 		// make the tactical display the full screen width and height
 		TheTacticalView->setWidth( TheDisplay->getWidth() );
 		TheTacticalView->setHeight( TheDisplay->getHeight() );
-		// GeneralsX @tweak Copilot 23/03/2026 Mirror ZH camera defaults for aspect-ratio-aware limits.
+		// GeneralsX: Mirror ZH camera defaults for aspect-ratio-aware limits.
 		TheTacticalView->setCameraHeightAboveGroundLimitsToDefault();
 	}
 
@@ -2077,7 +2077,7 @@ void InGameUI::update()
 				// if that letter is a return, add a new line
 				if(tempWChar == L'\n')
 				{
-					// GeneralsX @bugfix Claude 06/10/2026 Check for a free line BEFORE moving to it. The count used to be
+					// GeneralsX: Check for a free line BEFORE moving to it. The count used to be
 					// bumped first, so a caption with a 4th newline left currentDisplayString == MAX_SUBTITLE_LINES and the
 					// draw and removal loops then used displayStrings[4] - the count field itself read as a pointer - and
 					// crashed. Caption text comes from the map's own map.str, which arrives with the map from the host.
@@ -2291,7 +2291,7 @@ void InGameUI::reset()
 	TheControlBar->reset();
 	// GX-SIMID-END
 
-	// GeneralsX @tweak Copilot 23/03/2026 Keep reset aligned with aspect-ratio-aware camera defaults.
+	// GeneralsX: Keep reset aligned with aspect-ratio-aware camera defaults.
 	TheTacticalView->setCameraHeightAboveGroundLimitsToDefault();
 
 	ResetInGameChat();
@@ -2433,7 +2433,7 @@ void InGameUI::freeCustomUiResources()
 // srj sez: passing as const-ref screws up varargs for some reason. dunno why. just pass by value.
 void InGameUI::message( AsciiString stringManagerLabel, ... )
 {
-	// GeneralsX @security Claude 06/10/2026 The fetched text is the printf format below, and fetch() falls back to the map's
+	// GeneralsX: The fetched text is the printf format below, and fetch() falls back to the map's
 	// map.str (it arrives with the map from the lobby host) for a label the game's own tables lack - so a map could supply "%n"
 	// for such a label and crash every client that showed the line. Only text from the game's tables is formatted, as
 	// fetchFormat() does; any other text (the map's, or the MISSING line) is shown as it is.
@@ -2445,7 +2445,7 @@ void InGameUI::message( AsciiString stringManagerLabel, ... )
 		return;
 	}
 
-	// GeneralsX @bugfix copilot 19/04/2026 Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
+	// GeneralsX: Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
 	UnicodeString formattedMessage;
 	va_list args;
 	va_start( args, stringManagerLabel );
@@ -2478,7 +2478,7 @@ void InGameUI::message( UnicodeString format, ... )
 {
 	UnicodeString formattedMessage;
 
-	// GeneralsX @bugfix copilot 19/04/2026 Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
+	// GeneralsX: Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
 	va_list args;
 	va_start( args, format );
 	formattedMessage.format_va(format, args);
@@ -2496,7 +2496,7 @@ void InGameUI::messageColor( const RGBColor *rgbColor, UnicodeString format, ...
 {
 	UnicodeString formattedMessage;
 
-	// GeneralsX @bugfix copilot 19/04/2026 Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
+	// GeneralsX: Route UI text formatting through UnicodeString for cross-platform wide printf compatibility.
 	va_list args;
 	va_start( args, format );
 	formattedMessage.format_va(format, args);
@@ -3307,7 +3307,7 @@ void InGameUI::setGUICommand( const CommandButton *command )
 	if (TheRecorder->getMode() == RECORDERMODETYPE_PLAYBACK)
 		return;
 
-	// GeneralsX @probe Claude 25/09/2026 GX_KEYTRACE (HotKey.h): the pending GUI command is armed and cleared only here,
+	// GeneralsX: GX_KEYTRACE (HotKey.h): the pending GUI command is armed and cleared only here,
 	// so a right-click or a selection change that cancels an armed attack-move shows up as "cleared".
 	if( GXKeyTraceEnabled() && command != m_pendingGUICommand )
 	{
@@ -3869,7 +3869,7 @@ void InGameUI::disregardDrawable( Drawable *draw )
 //-------------------------------------------------------------------------------------------------
 void InGameUI::postWindowDraw()
 {
-	// GeneralsX @feature Claude 13/08/2026 The hide-everything switch, bound to TOGGLE_HUD_OVERLAY.
+	// GeneralsX: The hide-everything switch, bound to TOGGLE_HUD_OVERLAY.
 	// Returning here rather than gating each readout means readouts added later are covered too.
 	if( m_hudOverlayHidden )
 		return;
@@ -3877,7 +3877,7 @@ void InGameUI::postWindowDraw()
 	Int hudOffsetX = 0;
 	Int hudOffsetY = 0;
 
-	// GeneralsX @feature Claude 08/08/2026 Two readouts joined the row, each gated by the EXISTING
+	// GeneralsX: Two readouts joined the row, each gated by the EXISTING
 	// preference of the number it is twinned with rather than by a new one - a new key would live in
 	// Core/GameEngine/{Include,Source}/Common, inside the SimID digest, and no HUD readout may be
 	// able to make a peer refuse a join.
@@ -4030,7 +4030,7 @@ void InGameUI::postDraw()
 							info->setText( ellipsis, ellipsis );
 							info->setFont( m_superweaponReadyFont, m_superweaponNormalPointSize, m_superweaponNormalBold );
 							info->drawTime( startX,	startY, m_superweaponFlashColor, bgColor );
-							// GeneralsX @bugfix Claude 23/09/2026 The ellipsis overwrote this timer's text and font; force a rebuild when it fits again, or a READY timer (whose secs and ready flag never change) stays "...: ..." until it fires.
+							// GeneralsX: The ellipsis overwrote this timer's text and font; force a rebuild when it fits again, or a READY timer (whose secs and ready flag never change) stays "...: ..." until it fires.
 							info->m_forceUpdateText = true;
 
 							marginExceeded = TRUE;
@@ -4074,7 +4074,7 @@ void InGameUI::postDraw()
 									}
 									else
 									{
-										// GeneralsX @bugfix Claude 23/09/2026 A forced rebuild also resets the font: the overflow ellipsis leaves ReadyFont on a not-ready timer.
+										// GeneralsX: A forced rebuild also resets the font: the overflow ellipsis leaves ReadyFont on a not-ready timer.
 										// if we were at 0, we've just fired - kill the bold
 										if (info->m_timestamp == 0 || info->m_forceUpdateText)
 										{
@@ -4161,7 +4161,7 @@ void InGameUI::postDraw()
 			{
 				// found one - draw it
 				UnicodeString line;
-				// GeneralsX @bugfix Claude 06/10/2026 getCounter() is null for a counter no script has set yet (DisplayCounter
+				// GeneralsX: getCounter() is null for a counter no script has set yet (DisplayCounter
 				// only registers this HUD entry), and a map that displays one first crashed every client here. Unset reads 0,
 				// as the logic's own counter conditions see it (sweep c082-01).
 				const TCounter *counter = TheScriptEngine->getCounter(timerName);
@@ -5747,7 +5747,7 @@ static const UnsignedInt FRAMES_BEFORE_EXPIRE_TO_FADE = LOGICFRAMES_PER_SECOND *
 void InGameUI::updateAndDrawWorldAnimations()
 {
 	// TheSuperHackers @tweak bobtista World animation Z-rise is now decoupled from the render update.
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
 	const Real zRiseTimeScale = gxRenderTimeScale();
 
 	// go through all animations
@@ -5821,7 +5821,7 @@ void InGameUI::updateAndDrawWorldAnimations()
 
 			// scale the width and height given the camera zoom level
 			// TheSuperHackers @todo Rework this with sane values. scaler=1.3 originally came from TheTacticalView::getMaxZoom()
-			// GeneralsX @bugfix Claude 02/10/2026 THE ZOOM RETAIL WOULD REPORT, AND THE GENTLE SHRINK ABOVE ITS CEILING
+			// GeneralsX: THE ZOOM RETAIL WOULD REPORT, AND THE GENTLE SHRINK ABOVE ITS CEILING
 			// (owner, 02/10/2026: the promotion chevrons - LevelGainedAnimation, 32x32 - "are too big"). This divided by
 			// plain getZoom(), which is height / the EFFECTIVE max camera height: with the camera allowed higher than retail's
 			// MaxCameraHeight the same view reports a smaller zoom, so every world animation (promotion, heal, crate cash) grew
@@ -6101,7 +6101,7 @@ void InGameUI::refreshNetworkLatencyResources()
 		m_lastNetworkLatencySlot = -1;
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 The resend readout lives on the latency preference, so it
+	// GeneralsX: The resend readout lives on the latency preference, so it
 	// is created, fonted and freed here rather than in a refresh function of its own. Re-priming the
 	// window on (re)creation is not optional: the string is dropped and rebuilt on a resolution or
 	// font change, and a window whose baseline predates that gap is not a measurement.
@@ -6134,7 +6134,7 @@ void InGameUI::refreshRenderFpsResources()
 		m_lastRenderFpsLimit = ~0u;
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 tps rides the fps preference; see the header. Unlike the
+	// GeneralsX: tps rides the fps preference; see the header. Unlike the
 	// fps string it is NOT primed with a value below - there is nothing to read until a window has
 	// closed, and updateRenderFpsString's equivalent for tps would have to invent one.
 	if (!m_logicRateString)
@@ -6275,7 +6275,7 @@ void InGameUI::drawNetworkLatency(Int &x, Int &y)
 	{
 		m_lastNetworkLatencyUpdateMs = nowMs;
 
-		// GeneralsX @bugfix Claude 13/08/2026 The slot comes back WITH the number, in one call.
+		// GeneralsX: The slot comes back WITH the number, in one call.
 		// Fetching the name separately would let the two straddle a sample and print one peer's
 		// name against another peer's round trip.
 		Int latencySlot = -1;
@@ -6300,7 +6300,7 @@ void InGameUI::drawNetworkLatency(Int &x, Int &y)
 			}
 			else
 			{
-				// GeneralsX @feature Claude 13/08/2026 THIS READOUT IS "MY PING", IN BOTH ROLES.
+				// GeneralsX: THIS READOUT IS "MY PING", IN BOTH ROLES.
 				//
 				// One semantic, stated once so the two branches below cannot drift apart: THE
 				// NUMBER IS ALWAYS THE LOCAL PLAYER'S OWN ROUND TRIP. What differs per role is
@@ -6382,7 +6382,7 @@ void InGameUI::drawNetworkLatency(Int &x, Int &y)
 	}
 }
 
-// GeneralsX @feature Claude 08/08/2026 Packet loss on the HUD, as retransmissions over a trailing
+// GeneralsX: Packet loss on the HUD, as retransmissions over a trailing
 // window.
 //
 // WHAT THIS NUMBER IS. TheGxNetRetries (GameNetwork/networkutil.h) is incremented at exactly one
@@ -6525,7 +6525,7 @@ void InGameUI::drawRenderFps(Int &x, Int &y)
 		updateRenderFpsString();
 	}
 
-	// GeneralsX @bugfix Claude 02/08/2026 Show the cap that is actually in force, not the stored
+	// GeneralsX: Show the cap that is actually in force, not the stored
 	// preference. In a network game the shared FramePacer floors the render cap to 2x the logic
 	// rate, so a peer configured at the default 30 really renders at 60 - and this used to print
 	// "[30]" next to a measured 60, which reads as the limiter being broken.
@@ -6562,7 +6562,7 @@ void InGameUI::drawRenderFps(Int &x, Int &y)
 	}
 }
 
-// GeneralsX @feature Claude 08/08/2026 The observed LOGIC rate, next to the render rate.
+// GeneralsX: The observed LOGIC rate, next to the render rate.
 //
 // WHY IT IS WORTH A SLOT. fps and tps are the two halves of "the game feels bad" and they have
 // completely different fixes: fps is local and is a GPU/driver/shader-cache problem, tps is the
@@ -6704,7 +6704,7 @@ void InGameUI::drawGameTime()
 	Int hours = gameSeconds / 60 / 60;
 	Int minutes = (gameSeconds / 60) % 60;
 	Int seconds = gameSeconds % 60;
-	// GeneralsX @bugfix Claude 23/09/2026 The frame suffix is the frame within the second: at 60 Hz a hard-coded 30 counted .00-.29 twice a second.
+	// GeneralsX: The frame suffix is the frame within the second: at 60 Hz a hard-coded 30 counted .00-.29 twice a second.
 	Int frame = currentFrame % LOGICFRAMES_PER_SECOND;
 
     UnicodeString gameTimeString;

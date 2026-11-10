@@ -62,7 +62,7 @@
 #if defined(DEBUG_CRC) && !RETAIL_COMPATIBLE_NETWORKING
 Int NET_CRC_INTERVAL = 1;
 #else
-// GeneralsX @fix Claude 05/08/2026 A frame count standing in for 3.33 s of wall clock. Left as a
+// GeneralsX: A frame count standing in for 3.33 s of wall clock. Left as a
 // fixed 100 it would fire twice as often at 60 Hz, doubling CRC exchange traffic for no benefit.
 // Evaluates to exactly 100 at the default 30 Hz.
 //
@@ -179,7 +179,7 @@ public:
 	virtual Int getAverageFPS() override { return m_conMgr->getAverageFPS(); }
 	virtual Int getSlotAverageFPS(Int slot) override;
 
-	// GeneralsX @feature Claude 04/08/2026 Latency for the HUD, seconds -> milliseconds here.
+	// GeneralsX: Latency for the HUD, seconds -> milliseconds here.
 	//
 	// Null-guarded unlike getAverageFPS above, deliberately: this one is read by InGameUI on the
 	// render path, which runs during the load screen and the tail of a match teardown, and
@@ -197,11 +197,11 @@ public:
 		// peer it stays zero and the HUD reported a perfect 0 ms connection in green. Observed live
 		// on 2026-08-04 before this was corrected.
 		//
-		// GeneralsX @fix Claude 10/08/2026 Reduced with the MINIMUM, not the mean - the mean adds
+		// GeneralsX: Reduced with the MINIMUM, not the mean - the mean adds
 		// half the local frame time to every reading. The run-ahead path keeps the mean; only the
 		// human-facing number changes.
 		//
-		// GeneralsX @bugfix Claude 13/08/2026 That minimum is now taken WITHIN one peer's samples,
+		// GeneralsX: That minimum is now taken WITHIN one peer's samples,
 		// and the WORST peer is what gets reported, with its slot. Reducing over the shared ring
 		// returned the FASTEST peer in a mixed lobby - the one peer that by construction cannot be
 		// hurting a lockstep match. See FrameMetrics::getWorstPeerLatency for the arithmetic, and
@@ -219,7 +219,7 @@ public:
 		return seconds * 1000.0f;
 	}
 
-	// GeneralsX @feature Claude 13/08/2026 Per-slot ping for the in-game player list.
+	// GeneralsX: Per-slot ping for the in-game player list.
 	//
 	// Null-guarded for the same reason getDisplayLatencyMs above is: this is read from the render
 	// path, which runs while the Diplomacy window is up during match teardown with m_conMgr
@@ -277,7 +277,7 @@ protected:
 	Int m_lastExecutionFrame;																	///< The highest frame number that a command could have been executed on.
 	Int m_lastFrameCompleted;
 	Bool m_didSelfSlug;
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use int64_t instead of __int64 (C99 standard, fighter19 pattern)
+	// GeneralsX: Use int64_t instead of __int64 (C99 standard, fighter19 pattern)
 	int64_t m_perfCountFreq;														///< The frequency of the performance counter.
 
 	int64_t m_lastFrameDelay;	///< GeneralsX: the delay timeForNewFrame last used (self-slug included), for getPacerFramesDue
@@ -404,7 +404,7 @@ void Network::init()
 	m_conMgr->init();
 
 	m_lastFrame = 0;
-	// GeneralsX @fix Claude 05/08/2026 Both were raw 30s. The run-ahead is a LATENCY BUFFER measured
+	// GeneralsX: Both were raw 30s. The run-ahead is a LATENCY BUFFER measured
 	// in frames, so a fixed frame count means a HALVED wall-clock buffer at 60 Hz (1.00 s -> 0.50 s)
 	// - i.e. half the tolerance for a late peer before the whole lobby stalls. Expressed against the
 	// tick rate it stays 1.00 s of real time at either rate. Identical at the default 30 Hz.
@@ -418,7 +418,7 @@ void Network::init()
 
 	m_localStatus = NETLOCALSTATUS_PREGAME;
 
-	// GeneralsX @bugfix GitHubCopilot 27/04/2026 Align Linux network timing with nanosecond clock frequency
+	// GeneralsX: Align Linux network timing with nanosecond clock frequency
 	#ifdef _WIN32
 	QueryPerformanceFrequency((LARGE_INTEGER *)&m_perfCountFreq);
 	#else
@@ -450,9 +450,9 @@ void Network::init()
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 17/08/2026 NAME THE PEERS A DESYNC HAPPENED TO. Retail's whole answer to a
+// GeneralsX: NAME THE PEERS A DESYNC HAPPENED TO. Retail's whole answer to a
 // CRC mismatch is Menus/CRCMismatch.wnd, which names nobody, while the CRC table that answers "who?"
-// is alive at this call site. GeneralsX @refactor Claude 25/09/2026 The report and its window moved to
+// is alive at this call site. GeneralsX: The report and its window moved to
 // GameClient/DesyncReport.{h,cpp} - a table with a column per field, outside the SimID digest, so its
 // wording and layout can change without refusing every peer that has not updated.
 
@@ -480,7 +480,7 @@ void Network::setSawCRCMismatch(const std::map<Int, UnsignedInt> &playerCRCs, In
 
 	TheRecorder->logCRCMismatch();
 
-	// GeneralsX @feature Claude 27/07/2026 Release-visible. Everything below this point is
+	// GeneralsX: Release-visible. Everything below this point is
 	// DEBUG_LOG or #ifdef DEBUG_CRC and vanishes in a shipping build, so the user-visible
 	// behaviour was a CRCMismatch.wnd popup followed by exitGame() 120 frames later with nothing
 	// written anywhere. m_runAhead matters: the divergence happened that many frames BEFORE the
@@ -571,7 +571,7 @@ Bool Network::isMessageTypeWithinNetworkRange(GameMessage::Type type) {
 /**
  * Take commands from TheCommandList and give them to the connection manager for transport.
  */
-// GeneralsX @security Claude 25/09/2026 SIGN THIS PEER'S CHEAT ORDER when it is an admin of a match with more than one
+// GeneralsX: SIGN THIS PEER'S CHEAT ORDER when it is an admin of a match with more than one
 // human (Common/GXAdminOrder.h). Here because every order this peer sends leaves through this one loop - the Debug
 // menu's and GX_TEST_FORGE's alike - and because the signed copy is what the network re-delivers to this peer too, so
 // every simulation checks the same bytes. The one-human sandbox stays unsigned, as before; a peer that is no admin, or
@@ -616,7 +616,7 @@ void Network::GetCommandsFromCommandList() {
 			TheCommandList->removeMessage(msg); // This does not destroy msg's prev and next pointers, so they should still be valid.
 			deleteInstance(msg);
 		} else {
-			// GeneralsX @performance Claude 02/10/2026 The frame tick is eaten here, once processCommand has seen it.
+			// GeneralsX: The frame tick is eaten here, once processCommand has seen it.
 			// Past the translators the network is its only reader (GameClientMessageDispatcher keeps it for us; the
 			// logic and the recorder ignore it), yet it stayed on the list until the logic tick's reset. Every main-
 			// loop pass appends one, so a -headless peer spinning between network frames piled up ~2,200 per tick and
@@ -801,7 +801,7 @@ void Network::processFrameSynchronizedNetCommand(NetCommandRef *msg) {
 }
 
 void Network::processRunAheadCommand(NetRunAheadCommandMsg *msg) {
-	// GeneralsX @bugfix Claude 23/09/2026 Same consumer-side invariant as m_frameRate below, for the
+	// GeneralsX: Same consumer-side invariant as m_frameRate below, for the
 	// run-ahead. The value is a raw wire UnsignedShort. 0 deadlocks the whole lobby: getExecutionFrame()
 	// stops advancing, processCommand's `i < executionFrame` loop never sends FRAMEINFO(G), and the
 	// router's corrective RUNAHEAD would itself execute on G. 65535 queues ~65k ack-required FRAMEINFOs
@@ -811,7 +811,7 @@ void Network::processRunAheadCommand(NetRunAheadCommandMsg *msg) {
 	// constant 1, not MIN_RUNAHEAD, so every peer maps a bad value identically.
 	m_runAhead = clamp<Int>(1, (Int)msg->getRunAhead(), MAX_FRAMES_AHEAD / 2);
 
-	// GeneralsX @bugfix Claude 17/08/2026 Hold the pacing invariant where the value is USED, not
+	// GeneralsX: Hold the pacing invariant where the value is USED, not
 	// only where it is produced.
 	//
 	// m_frameRate is the divisor in timeForNewFrame() (m_perfCountFreq / m_frameRate) and is
@@ -838,7 +838,7 @@ void Network::processRunAheadCommand(NetRunAheadCommandMsg *msg) {
 	m_frameRate = min(max((Int)MIN_LOGIC_FRAMES, (Int)msg->getFrameRate()), (Int)LOGICFRAMES_PER_SECOND);
 
 	time_t frameGrouping = (1000 * m_runAhead) / m_frameRate; // number of miliseconds between packet sends
-	// GeneralsX @feature Claude 06/08/2026 GX_GROUPING_DIV - an EXPERIMENTAL divisor override.
+	// GeneralsX: GX_GROUPING_DIV - an EXPERIMENTAL divisor override.
 	//
 	// Frame grouping is a hard send-DEFERRAL, not batching: Connection::doSend returns without
 	// sending anything at all until m_frameGrouping ms have elapsed (Connection.cpp:264), with no
@@ -865,7 +865,7 @@ void Network::processRunAheadCommand(NetRunAheadCommandMsg *msg) {
 		frameGrouping = 1; // Having a value less than 1 doesn't make sense.
 	}
 
-	// GeneralsX @performance Claude 07/08/2026 CAP the deferral at two logic frames. This is the
+	// GeneralsX: CAP the deferral at two logic frames. This is the
 	// fix the experiment above was written to justify, and the measurement now exists.
 	//
 	// Measured in a live 4-platform match on 2026-08-07: 35 stalls, median 86 ms, and EVERY stall
@@ -903,7 +903,7 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 	if (playerIndex >= MAX_SLOTS)
 		return;
 
-	// GeneralsX @security Claude 18/09/2026, redesigned 19/09/2026. Only the disconnect path may issue
+	// GeneralsX: redesigned 19/09/2026. Only the disconnect path may issue
 	// this, so only the peer the disconnect path elects may send it. The victim is taken from the
 	// payload, so without a gate any peer could defeat any other: measured, a DESTROYPLAYER naming
 	// slot 2 sent from slot 1 defeated slot 2 on all three peers of a match at one frame
@@ -913,7 +913,7 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 	// peer must answer identically or the match splits. The first version read this peer's packet
 	// router and whether the victim was still connected here. Both change only when a DIRECT
 	// DISCONNECTPLAYER arrives, which can land after this order on one peer and before it on another
-	// (Codex, 19/09/2026: a legitimate kick whose DESTROYPLAYER outruns its DISCONNECTPLAYER).
+	// (19/09/2026: a legitimate kick whose DESTROYPLAYER outruns its DISCONNECTPLAYER).
 	// net-kill-gates.sh legit-selfdestroy makes that split repeatable: the router, still connected to
 	// the victim when its own order executes, refused it while the other peers accepted.
 	//
@@ -949,7 +949,7 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 	const UnsignedInt entitled = m_conMgr->lockstepRouter(playerIndex);
 	if (sender != entitled)
 	{
-		static Int s_refusals = 0;	// ponytail: capped so a flood of forgeries cannot turn into a flood of fflush
+		static Int s_refusals = 0;	// Trade-off: capped so a flood of forgeries cannot turn into a flood of fflush
 		if (s_refusals < 32)
 		{
 			++s_refusals;
@@ -963,9 +963,9 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 
 	Player *pPlayer = ThePlayerList->getPlayerFromSlotIndex(playerIndex);
 
-	// GeneralsX @bugfix Claude 25/09/2026 An observer slot is not a Player of its own: every one maps onto
+	// GeneralsX: An observer slot is not a Player of its own: every one maps onto
 	// the ONE ReplayObserver (PlayerList::assignSlotIndices), so self-destructing it would take out the Player
-	// the other observers still are (Codex, 25/09/2026). The slot has already left the succession above, and
+	// the other observers still are. The slot has already left the succession above, and
 	// the disconnect path drops its connection - that IS the observer leaving - so nothing is queued. The
 	// last observer leaving takes this branch too, which changes nothing it did: the ReplayObserver is dead
 	// from its creation (Player::init), so the already-dead check below refused it. The input is the slot
@@ -973,7 +973,7 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 	// legacy replay or save, owns its slot and falls through unchanged.
 	if (pPlayer != nullptr && ThePlayerList->isSharedBySlots(pPlayer->getPlayerIndex()))
 	{
-		static Int s_kept = 0;	// ponytail: capped like the refusals above
+		static Int s_kept = 0;	// Trade-off: capped like the refusals above
 		if (s_kept < 32)
 		{
 			++s_kept;
@@ -984,7 +984,7 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 04/08/2026 Make the destruct idempotent.
+	// GeneralsX: Make the destruct idempotent.
 	//
 	// onSelfDestruct (GameLogicDispatch.cpp) has no already-dead check of its own - it goes
 	// straight to killPlayer(). A player can reach this more than once: they can be voted out
@@ -1026,7 +1026,7 @@ void Network::processDestroyPlayerCommand(NetDestroyPlayerCommandMsg *msg)
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-// GeneralsX @test Claude 18/09/2026 GX_TEST_FORGE - a TEST INSTRUMENT: make THIS peer send one
+// GeneralsX: GX_TEST_FORGE - a TEST INSTRUMENT: make THIS peer send one
 // kill-path order at a chosen logic frame, so scripts/test/net-kill-gates.sh can put the forged and
 // the legitimate form of each order through a real multi-peer match.
 //
@@ -1228,7 +1228,7 @@ void Network::gxTestForge()
 		// real path deletes it, so without it the victim's copy of its own defeat is thrown away unsent
 		// (measured: with the teardown in the same update, the victim logged no DISCONNECTPLAYER at
 		// all). And the issuer still has the victim connected when the order executes while the other
-		// peers do not - the split Codex found (a DESTROYPLAYER outrunning its DISCONNECTPLAYER), put
+		// peers do not - the split review found (a DESTROYPLAYER outrunning its DISCONNECTPLAYER), put
 		// on the issuer where it is repeatable. A gate that reads connection state answers differently
 		// here than on the other peers. The issuer keeps relaying meanwhile, so every peer still has
 		// the frame data for the execution frame, getExecutionFrame() + 1.
@@ -1258,7 +1258,7 @@ void Network::gxTestForge()
 	fflush(stderr);
 }
 
-// GeneralsX @test Claude 06/10/2026 GX_NET_TEST_WRAPFLOOD=<n>@<frame> - a TEST INSTRUMENT (plan Task 9): at logic frame <frame>, in
+// GeneralsX: GX_NET_TEST_WRAPFLOOD=<n>@<frame> - a TEST INSTRUMENT (plan Task 9): at logic frame <frame>, in
 // game, queue <n> forged wrapper chunks on every connection, ignoring the send window (ConnectionManager::gxTestWrapFlood). Once
 // per process. Compiled in only with -DGX_TEST_INSTRUMENTS=ON.
 void Network::gxTestWrapFlood()
@@ -1338,7 +1338,7 @@ void Network::update()
 		}
 	}
 	else {
-		// GeneralsX @bugfix GitHubCopilot 27/04/2026 Keep stall check in nanoseconds on Linux
+		// GeneralsX: Keep stall check in nanoseconds on Linux
 		int64_t curTime;
 		#ifdef _WIN32
 		QueryPerformanceCounter((LARGE_INTEGER *)&curTime);
@@ -1351,7 +1351,7 @@ void Network::update()
 	}
 }
 
-// GeneralsX @perf Claude 02/10/2026 H02 (ROADMAP_2027 M2): the first and the transport half of update(), for the orders
+// GeneralsX: H02 (ROADMAP_2027 M2): the first and the transport half of update(), for the orders
 // GameClient::update translates BEFORE its draw and Present (GameClient.cpp, gxSendOrdersBeforeDraw). It stamps them with
 // getExecutionFrame() exactly as update() would a draw later: no logic tick can run in between (the logic runs only after
 // GameEngine::update's own update() call), so the logic frame, m_runAhead and therefore the execution frame are the ones
@@ -1409,7 +1409,7 @@ void Network::endOfGameCheck() {
 }
 
 Bool Network::timeForNewFrame() {
-	// GeneralsX @feature Claude 30/09/2026 Fast forward (FramePacer::setFastForward): the main loop is the pacer. It iterates
+	// GeneralsX: Fast forward (FramePacer::setFastForward): the main loop is the pacer. It iterates
 	// at k x the tick rate, and a frame is relayed on every pass that has one ready - still at most one per client update,
 	// because both callers of Network::update (GameEngine::update, updateBetweenDraws) run the logic right after it and
 	// the between-draws pass only relays for a client update that has not ticked yet. A second pacer here would only
@@ -1418,7 +1418,7 @@ Bool Network::timeForNewFrame() {
 	// the self-slug above run-ahead is moot for the same reason. Back at 1x m_nextFrameTime is at most one
 	// period ahead (kept current below), so the first 1x frame waits at most one period.
 	const Bool ffBypass = TheFramePacer != nullptr && TheFramePacer->isFastForwardActive();
-	// GeneralsX @feature Claude 30/09/2026 -maxspeed (CommandLine.cpp): a -headless peer in a match with no human - the
+	// GeneralsX: -maxspeed (CommandLine.cpp): a -headless peer in a match with no human - the
 	// harness's -lanobserver AI matches, whose only "human" is this observer seat (GameLogic::gxCheatsAllowed) - is not
 	// paced at all: the headless loop never waits (HeadlessMatch::run leaves the pacer alone), so the match runs as fast
 	// as one core simulates it. Same one-tick-per-client-update loop, so the same tick sequence as 1x. A second human
@@ -1429,7 +1429,7 @@ Bool Network::timeForNewFrame() {
 		// ahead. Left at its pre-bypass value it is far in the past, so the first pass whose commands are not ready reads as
 		// a stall (Network::update: m_isStalling = curTime >= m_nextFrameTime) and the next GameClient::update skips its
 		// drawable/shroud refresh on a pass that would not have been a stall at 1x - client state the simulation reads
-		// (Codex ffwd-r19 P1). A real wait of a whole frame period still reads as one.
+		// A real wait of a whole frame period still reads as one.
 		int64_t now;
 		#ifdef _WIN32
 		QueryPerformanceCounter((LARGE_INTEGER *)&now);
@@ -1442,7 +1442,7 @@ Bool Network::timeForNewFrame() {
 		return TRUE;
 	}
 
-	// GeneralsX @bugfix GitHubCopilot 27/04/2026 Keep network frame pacing in nanoseconds on Linux
+	// GeneralsX: Keep network frame pacing in nanoseconds on Linux
 	int64_t curTime;
 	#ifdef _WIN32
 	QueryPerformanceCounter((LARGE_INTEGER *)&curTime);
@@ -1474,7 +1474,7 @@ Bool Network::timeForNewFrame() {
 	// Check to see if we can run another frame: one frame period per frame, and a pacer that falls more than
 	// debtFrames periods behind forgives the rest (re-anchors to now).
 	//
-	// GeneralsX @feature Claude 02/10/2026 TICK CATCH-UP (Common/CatchUpPolicy.h). Retail forgave anything past TWO
+	// GeneralsX: TICK CATCH-UP (Common/CatchUpPolicy.h). Retail forgave anything past TWO
 	// periods, so a draw longer than two periods (a zoomed-out 6v6 at 27 fps: 37 ms) lost its ticks for good however the
 	// loop tried to repay them. While catch-up is on - a Zero Hour client that draws (W3DDisplay::init) - the pacer keeps
 	// up to CatchUpDebtFrames, and the draws it owes are skipped (FramePacer::isCatchUpDrawSkip) so the logic-only passes
@@ -1487,7 +1487,7 @@ Bool Network::timeForNewFrame() {
 	return CatchUpPolicy::pacerStep(m_nextFrameTime, curTime, frameDelay, debtFrames);
 }
 
-// GeneralsX @feature Claude 02/10/2026 Tick catch-up: how many frame periods the pacer owes this machine now, read at the
+// GeneralsX: Tick catch-up: how many frame periods the pacer owes this machine now, read at the
 // draw, before this iteration's network pass (FramePacer::isCatchUpDrawSkip). 0 outside a running match: before
 // NETLOCALSTATUS_INGAME m_nextFrameTime is the stale value the load left, and reading it as debt would skip the loading
 // screen's draws. 0 too while the frame after the next one has no commands (CatchUpPolicy::framesOwed): that debt is a
@@ -1517,7 +1517,7 @@ Int Network::getPacerFramesDue()
 /**
  * Returns true if the game commands for the next frame have been put on the command list.
  */
-// GeneralsX @info Claude 17/08/2026 KNOWN, DELIBERATELY NOT FIXED HERE: the NETLOCALSTATUS_LEFT
+// GeneralsX: KNOWN, DELIBERATELY NOT FIXED HERE: the NETLOCALSTATUS_LEFT
 // term is a SECOND way the simulation can outrun its tick rate, and it is not the one the
 // 17/08/2026 rate fixes address.
 //

@@ -244,7 +244,7 @@ void EMPUpdate::doDisableAttack()
 
 
 			// handle cases where we do not want allies to be hit by it's own EMP weapons
-			// GeneralsX @bugfix Claude 05/10/2026 Test this FIRST. EA put it at the end of the else-if chain below, which only
+			// GeneralsX: Test this FIRST. EA put it at the end of the else-if chain below, which only
 			// ground vehicles reach, so an EMP mine (DoesNotAffect = ALLIES) still brought down allied aircraft over it and
 			// disabled allied faction buildings. As Zero Hour Reforged (Olcay Seygan, EMPUpdate.cpp, GPL-3.0-or-later).
 			if ( (data->m_rejectMask & WEAPON_AFFECTS_ALLIES) && curVictim->getRelationship( object ) == ALLIES)

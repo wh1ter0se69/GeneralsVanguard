@@ -93,7 +93,7 @@ BOOL MeshMoldOptions::OnInitDialog()
 				AsciiString filename = *it;
 
 				int len = filename.getLength();
-				if (len<5) { ++it; continue; }	// GeneralsX @bugfix Claude 01/10/2026 step on: the ++it below is skipped by continue
+				if (len<5) { ++it; continue; }	// GeneralsX: step on: the ++it below is skipped by continue
 				strlcpy(fileBuf, filename.str(), ARRAY_SIZE(fileBuf));
 				for (i=strlen(fileBuf)-1; i>0; i--) {
 					if (fileBuf[i] == '.') {

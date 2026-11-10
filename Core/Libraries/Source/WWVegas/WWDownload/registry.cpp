@@ -185,7 +185,7 @@ bool SetUnsignedIntInRegistry( std::string path, std::string key, unsigned int v
 
 #else // _WIN32 - Linux: No registry support
 
-// GeneralsX @feature GitHubCopilot 29/03/2026 Persist WWDownload registry values in registry.ini.
+// GeneralsX: Persist WWDownload registry values in registry.ini.
 static const char *getRegistryIniRoot(HKEY root)
 {
 	return root == HKEY_LOCAL_MACHINE ? RegistryIni::LocalMachineRoot() : RegistryIni::CurrentUserRoot();

@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 24/10/2026 RA3 WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterRA3.h).
+// GeneralsX: RA3 WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterRA3.h).
 //
 // Included at the end of W3DWater.cpp, after the clearer- and live-water glue and below every GX-SIMID region. Called from
 // render code only: WaterRenderObjClass::load / ReleaseResources / the destructor and skyBoxMapReset (all outside the SimID
@@ -118,7 +118,7 @@ static void gxWaterRA3FillTint(Real cap)
 static Int gxWaterRA3UploadMips(TextureClass *tex, unsigned *level, Int size, Bool *ok)
 {
 	// The D3D texture's own level count: Get_Mip_Level_Count() returns the constructor's request, and MIP_LEVELS_ALL is 0
-	// (Codex wra3-r1 P2: the loop uploaded nothing and the water sampled an uninitialised texture).
+	// (the loop uploaded nothing and the water sampled an uninitialised texture).
 	const Int levels = (tex->Peek_D3D_Texture() != nullptr) ? (Int)tex->Peek_D3D_Texture()->GetLevelCount() : 0;
 	*ok = levels >= 1 ? TRUE : FALSE;
 	Int written = 0;
@@ -476,7 +476,7 @@ struct GxRA3SavedTSS
 // buffers of its own - the same grid and positions (drawTrapezoidWater's own arithmetic), the tilings' coordinates, the sky x
 // Fresnel. Called from renderWater AFTER drawTrapezoidWater returns: its dynamic buffers are released by then (the shared dynamic
 // buffer moves its offset only when an access ends, so an allocation while drawTrapezoidWater's was alive overlapped the range the
-// water had just drawn from, locked NOOVERWRITE - Codex wra3-2-r1 P1). So this pass sets up its own shroud on stage 3 as live
+// water had just drawn from, locked NOOVERWRITE). So this pass sets up its own shroud on stage 3 as live
 // water's foam does. `stage0` / `stage1` are the textures setupFlatWaterShader bound there (the surface, the sparkles) and `white`
 // the stage-3 stand-in without a shroud.
 static void gxWaterRA3DrawSheen(const Vector3 points[4], TextureClass *stage0, TextureClass *stage1, TextureClass *white)
@@ -745,7 +745,7 @@ static TextureClass *gxWaterRA3RiverSurfaceTexture(TextureClass *retail)
 }
 
 // The river drawRiverWater just drew, once more, ADDED, from buffers of its own (drawRiverWater's dynamic buffers are released by
-// now - the shared dynamic buffer moves its offset only when an access ends; the standing pass's Codex wra3-2-r1 P1). The rows are
+// now - the shared dynamic buffer moves its offset only when an access ends; the standing pass's). The rows are
 // walked exactly as drawRiverWater walks them, and nothing is drawn where it draws nothing. `stage0` / `stage1` are the textures
 // drawRiverWater left there (the river surface or retail's, the sparkles setupJbaWaterShader binds raw).
 static void gxWaterRA3DrawRiverSheen(PolygonTrigger *pTrig, TextureClass *stage0, TextureClass *stage1)

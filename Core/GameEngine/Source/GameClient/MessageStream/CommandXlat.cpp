@@ -94,7 +94,7 @@
 #include "GameNetwork/GameSpy/BuddyThread.h"
 
 #include "WW3D2/ww3d.h"
-// GeneralsX @feature Claude 21/09/2026 isSystemMessage() tells a kick's surrender from a player's by the
+// GeneralsX: isSystemMessage() tells a kick's surrender from a player's by the
 // ticket the order carries; GX_KICK_BYTES_MAX sizes the buffer it unpacks into.
 #include "Common/GXKickTicket.h"
 #include "GameClient/GXKick.h"
@@ -103,7 +103,7 @@
 #include "GameClient/Mouse.h"
 #include "GameClient/View.h"
 
-// GeneralsX @diagnostic Claude 25/09/2026 [GXPICK] the pixel the last left/right click picked the
+// GeneralsX: [GXPICK] the pixel the last left/right click picked the
 // terrain from, set by the click handlers just before they evaluate the context command. See
 // GXPickProbe.h.
 GXPickPreview TheGXPickPreview;
@@ -272,7 +272,7 @@ Bool hasThingsInProduction(PlayerType playerType)
 #endif // defined(RTS_DEBUG) || defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)
 
 
-// GeneralsX @feature Claude 26/07/2026 Declared in GameClient/CommandXlat.h. Do not make these
+// GeneralsX: Declared in GameClient/CommandXlat.h. Do not make these
 // static: the Debug screen drives the same two steps for touch-only devices, which have no way to
 // press the MSG_META_*_MAX_RENDER_FPS / *_LOGIC_TIME_SCALE keys.
 bool changeMaxRenderFps(FpsValueChange change)
@@ -281,13 +281,13 @@ bool changeMaxRenderFps(FpsValueChange change)
 	maxRenderFps = RenderFpsPreset::changeFpsValue(maxRenderFps, change);
 
 	TheFramePacer->setFramesPerSecondLimit(maxRenderFps);
-	// GeneralsX @feature Claude 27/09/2026 The ladder's Uncapped entry IS the unlimited cap (FramePacer
+	// GeneralsX: The ladder's Uncapped entry IS the unlimited cap (FramePacer
 	// stores 0 that way), so this no longer also flips the limiter switch - a second setting that
 	// outlived the match and that the next clearGameData() had to put back.
 	//
 	// A solo game started at a cap at or under the tick rate runs its logic coupled (GameLogic::onNewGame leaves
 	// the scale off), so raising the cap past the tick rate here would run the simulation at the new render rate.
-	// Couple it to the tick rate, as a start at that cap does (Codex W7-r10). A scale already on - a slowed game
+	// Couple it to the tick rate, as a start at that cap does. A scale already on - a slowed game
 	// speed - is left alone, and a network game's logic is paced by the network.
 	if (TheNetwork == nullptr && !TheFramePacer->isLogicTimeScaleEnabled()
 		&& FpsLimitPolicy::needsLogicTimeScale((Int)maxRenderFps, LOGICFRAMES_PER_SECOND))
@@ -372,7 +372,7 @@ bool changeLogicTimeScale(FpsValueChange change)
 	return true;
 }
 
-// GeneralsX @feature Claude 30/09/2026 Fast forward - who may, and the steps (wh1ter0se, 30/09: "if a match is sandboxed with
+// GeneralsX: Fast forward - who may, and the steps (wh1ter0se, 30/09: "if a match is sandboxed with
 // 1 player as viewer and rest AIs even though it's a live game, allow making the whole game move faster from debug").
 //
 // The rule is the cheats' sandbox rule, GameLogic::gxCheatsAllowed: at most one human in the match, observers counted,
@@ -396,7 +396,7 @@ const WideChar *gxFastForwardRefusal()
 	return nullptr;
 }
 
-// GeneralsX @bugfix Claude 07/10/2026 (Codex r11 P2) A replay seek race holds the pacer at 1x and lands at the speed it began at
+// GeneralsX: A replay seek race holds the pacer at 1x and lands at the speed it began at
 // (GXReplayStrip.inl). A speed key pressed meanwhile used to read that suspended 1x: a decrease was a no-op, an increase
 // always chose 2x, and the landing speed never heard of either. The strip sets these two hooks: while a race runs the
 // first answers the speed it lands at (0 = no race), the second takes the one chosen.
@@ -784,7 +784,7 @@ void pickAndPlayUnitVoiceResponse( const DrawableList *list, GameMessage::Type m
 					}
 					// Special case for GLA worker to use a different set of move voices when he has received the worker shoes upgrade
 					Player *player = obj->getControllingPlayer();
-					// GeneralsX @bugfix Claude 25/09/2026 was a process-lifetime static pointer; see UpgradeTemplateRef
+					// GeneralsX: was a process-lifetime static pointer; see UpgradeTemplateRef
 					static UpgradeTemplateRef s_workerShoeTemplate( "Upgrade_GLAWorkerShoes" );
 					const UpgradeTemplate *workerShoeTemplate = s_workerShoeTemplate.get();
 					if (player && workerShoeTemplate && player->hasUpgradeComplete(workerShoeTemplate))
@@ -1406,7 +1406,7 @@ GameMessage::Type CommandTranslator::issueSpecialPowerCommand( const CommandButt
 		msgType = GameMessage::MSG_DO_SPECIAL_POWER_AT_LOCATION;
 		if( commandType == DO_COMMAND )
 		{
-			gxPickLog( command, pos );	// GeneralsX @diagnostic Claude 25/09/2026 [GXPICK]
+			gxPickLog( command, pos );	// GeneralsX: [GXPICK]
 			GameMessage *msg;
 			msg = TheMessageStream->appendMessage( msgType );
 			msg->appendIntegerArgument( command->getSpecialPowerTemplate()->getID() );
@@ -1741,7 +1741,7 @@ GameMessage::Type CommandTranslator::evaluateForceAttack( Drawable *draw, const 
 
 #if RTS_ZEROHOUR
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. Could any selected unit queue-enter this target?
+/** GeneralsX: WAYPOINT ENTER. Could any selected unit queue-enter this target?
 	*
 	* READ-ONLY with respect to the partition's lazy per-object shroud cache, which simulation code reads back
 	* (ActionManager.cpp isObjectShroudedForAction / canTransferSuppliesAt): visibility comes from the object's own
@@ -1846,7 +1846,7 @@ GameMessage::Type CommandTranslator::evaluateContextCommand( Drawable *draw,
 		if( TheInGameUI->isInWaypointMode() )
 		{
 #if RTS_ZEROHOUR
-			// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. A container the selection could board queues an enter
+			// GeneralsX: WAYPOINT ENTER. A container the selection could board queues an enter
 			// instead of a move waypoint on top of it; each selected unit fills it or goes on to its next queued one.
 			if( draw && !TheInGameUI->isInForceAttackMode() && gxSelectionCanQueueEnter( obj ) )
 			{
@@ -2723,7 +2723,7 @@ GameMessage::Type CommandTranslator::evaluateContextCommand( Drawable *draw,
 
 #if defined(GX_TEST_INSTRUMENTS)
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @test Claude 25/09/2026 GX_TEST_DESYNC=<frame>: from that logic frame on, this peer
+// GeneralsX: GX_TEST_DESYNC=<frame>: from that logic frame on, this peer
 // reports a CRC it did not compute. Every peer's validator - this one's included, since its own
 // CRC comes back to it through the command list - then sees this peer disagree with the rest, and
 // the real mismatch path runs: GameLogic's check, Network::setSawCRCMismatch, the desync report and
@@ -3329,7 +3329,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 			disqualifyingKindofs.set(KINDOF_HARVESTER);
 			disqualifyingKindofs.set(KINDOF_IGNORES_SELECT_ALL);
 			Bool selectAircraft = FALSE;
-			// GeneralsX @feature Claude 26/09/2026 Ctrl+I (MetaEventTranslator::onKeyEvent): SELECT_ALL, infantry only.
+			// GeneralsX: Ctrl+I (MetaEventTranslator::onKeyEvent): SELECT_ALL, infantry only.
 			// Same disqualifiers as Q and W (a GLA worker is infantry, and still never picked); same on-screen-then-map.
 			const Bool selectInfantry = t == GameMessage::MSG_META_SELECT_ALL && msg->getArgumentCount() > 0
 				&& msg->getArgument(0)->integer == GX_SELECT_ALL_INFANTRY;
@@ -3357,7 +3357,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 					TheInGameUI->deselectAllDrawables();
 					break;
 				}
-				// GeneralsX @feature Claude 26/09/2026 Ctrl+I: the aircraft rule, for infantry - anything else selected
+				// GeneralsX: Ctrl+I: the aircraft rule, for infantry - anything else selected
 				// is dropped first, so the result is only infantry (a tank added to Ctrl+I's pick would ride along).
 				else if( selectInfantry && (draw->isAnyKindOf( disqualifyingKindofs ) || !draw->isKindOf( KINDOF_INFANTRY )) )
 				{
@@ -3373,7 +3373,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 
 			const Int gxPicked = TheInGameUI->selectAllUnitsByType(requiredKindofs, disqualifyingKindofs);
 
-			// GeneralsX @probe Claude 26/09/2026 GX_KEYTRACE (HotKey.h): what a select-all key picked, and what is
+			// GeneralsX: GX_KEYTRACE (HotKey.h): what a select-all key picked, and what is
 			// selected after it, split into infantry and the rest - the check for Ctrl+I / Alt+I / Q / W.
 			if( GXKeyTraceEnabled() )
 			{
@@ -3506,7 +3506,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 		*/
 
 		//-----------------------------------------------------------------------------------------
-		// GeneralsX @feature Claude 02/10/2026 ...and in a skirmish (owner: "allow that to happen - they chat fine in
+		// GeneralsX: ...and in a skirmish (owner: "allow that to happen - they chat fine in
 		// solo"). EA opened chat only in a LAN/Internet match; the rest of the solo half is in ToggleInGameChat.
 		case GameMessage::MSG_META_CHAT_ALLIES:
 			if ((TheGameLogic->isInMultiplayerGame() || TheGameLogic->isInSkirmishGame()) && !TheGameLogic->isInReplayGame())
@@ -3557,7 +3557,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 				(TheGlobalData->m_netMinPlayers==0 || TheGameInfo->isMultiPlayer()))
 			{
 				Int count;
-				// GeneralsX @bugfix Claude 01/10/2026 A player without a PlayerTemplate (broken faction on a custom map) dereferenced null here; idea from Generals Online d7ad06b19, reimplemented.
+				// GeneralsX: A player without a PlayerTemplate (broken faction on a custom map) dereferenced null here; idea from Generals Online d7ad06b19, reimplemented.
 				const PlayerTemplate *localTemplate = ThePlayerList->getLocalPlayer()->getPlayerTemplate();
 				// No template: GameLogic::onPlaceBeacon would reject the placement too, so do not offer the cursor.
 				if( localTemplate )
@@ -3719,7 +3719,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 		}
 
 		//-----------------------------------------------------------------------------------------
-		// GeneralsX @feature Claude 13/08/2026 THE SPECTATOR HUD - the readouts this project added:
+		// GeneralsX: THE SPECTATOR HUD - the readouts this project added:
 		// ping, resends, fps, tps, the game clock, the per-player cash/income table. Bound in
 		// CommandMap as TOGGLE_HUD_OVERLAY.
 		//
@@ -3744,7 +3744,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 		}
 
 		//-----------------------------------------------------------------------------------------
-		// GeneralsX @feature Claude 13/08/2026 THE GAME HUD - the retail chrome: the command bar with
+		// GeneralsX: THE GAME HUD - the retail chrome: the command bar with
 		// its cameos and money, the minimap, the radar panel. Hiding it is what gives the clean view
 		// of the world. Independent of TOGGLE_HUD_OVERLAY above, so all four combinations of the two
 		// keys are reachable and each is a state somebody might actually want - notably game HUD off
@@ -4337,7 +4337,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 				Coord3D pos;
 				if( !TheTacticalView->screenToTerrain( &msg->getArgument( 0 )->pixel, &pos ) )
 					break;
-				s_gxPickClickPixel = msg->getArgument( 0 )->pixel;	// GeneralsX @diagnostic Claude 25/09/2026 [GXPICK]
+				s_gxPickClickPixel = msg->getArgument( 0 )->pixel;	// GeneralsX: [GXPICK]
 				s_gxPickClickValid = TRUE;
 
 				const CommandButton *command = TheInGameUI->getGUICommand();
@@ -4408,7 +4408,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 			Coord3D pos;
 			if( !TheTacticalView->screenToTerrain( &msg->getArgument( 0 )->pixel, &pos ) )
 				break;
-			s_gxPickClickPixel = msg->getArgument( 0 )->pixel;	// GeneralsX @diagnostic Claude 25/09/2026 [GXPICK]
+			s_gxPickClickPixel = msg->getArgument( 0 )->pixel;	// GeneralsX: [GXPICK]
 			s_gxPickClickValid = TRUE;
 
 			const CommandButton *command = TheInGameUI->getGUICommand();
@@ -5312,7 +5312,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 		case GameMessage::MSG_META_DEMO_MUSIC_NEXT_TRACK:
 		{
 			AsciiString trackName = TheAudio->nextMusicTrack();
-			TheInGameUI->messageNoFormat( TheGameText->FETCH_OR_SUBSTITUTE_FORMAT("GUI:DebugMusicTrack", L"Playing Track: %hs", trackName.str()) );	// GeneralsX @security Claude 06/10/2026 already formatted: the track name must not be a format again
+			TheInGameUI->messageNoFormat( TheGameText->FETCH_OR_SUBSTITUTE_FORMAT("GUI:DebugMusicTrack", L"Playing Track: %hs", trackName.str()) );	// GeneralsX: already formatted: the track name must not be a format again
 			disp = DESTROY_MESSAGE;
 			break;
 		}
@@ -5322,7 +5322,7 @@ GameMessageDisposition CommandTranslator::translateGameMessage(const GameMessage
 		case GameMessage::MSG_META_DEMO_MUSIC_PREV_TRACK:
 		{
 			AsciiString trackName = TheAudio->prevMusicTrack();
-			TheInGameUI->messageNoFormat( TheGameText->FETCH_OR_SUBSTITUTE_FORMAT("GUI:DebugMusicTrack", L"Playing Track: %hs", trackName.str()) );	// GeneralsX @security Claude 06/10/2026 already formatted: the track name must not be a format again
+			TheInGameUI->messageNoFormat( TheGameText->FETCH_OR_SUBSTITUTE_FORMAT("GUI:DebugMusicTrack", L"Playing Track: %hs", trackName.str()) );	// GeneralsX: already formatted: the track name must not be a format again
 			disp = DESTROY_MESSAGE;
 			break;
 		}
@@ -5960,20 +5960,20 @@ static Bool isSystemMessage( const GameMessage *msg )
 		case GameMessage::MSG_GX_CHEAT_DELETE_OBJECTS:
 			return TRUE;
 #if RTS_ZEROHOUR
-		// GeneralsX @feature Claude 06/10/2026 A vote-kick start or ballot is not gameplay input either: a scripted no-input
+		// GeneralsX: A vote-kick start or ballot is not gameplay input either: a scripted no-input
 		// window must not eat a ballot and let the 30 s run out under it.
 		case GameMessage::MSG_GX_VOTEKICK_START:
 		case GameMessage::MSG_GX_VOTEKICK_CAST:
 			return TRUE;
 #endif
 
-		// GeneralsX @feature Claude 19/09/2026, NARROWED 21/09/2026 A KICK's surrender is a system message.
+		// GeneralsX: NARROWED 21/09/2026 A KICK's surrender is a system message.
 		// The in-match kick appends one from the engine, and without an exemption the no-input gate above
 		// destroys it during a cinematic, leaving the kick to the relay's backstop.
 		//
 		// NARROWED because the bare `case` this used to be exempted EVERY surrender, the Surrender button's
 		// included, in both Generals and Zero Hour - so a player could surrender inside a scripted no-input
-		// window, which nobody asked for and which the comment above did not describe. Raised by a Codex
+		// window, which nobody asked for and which the comment above did not describe. Raised by a review
 		// review of this branch.
 		//
 		// The discriminator already exists and costs nothing new: a kick's order carries its ticket packed

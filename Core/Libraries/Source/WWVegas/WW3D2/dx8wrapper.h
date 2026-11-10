@@ -44,7 +44,7 @@
 #include "WWLib/always.h"
 #include <Utility/bit_adapter.h>
 #include "dllist.h"
-// GeneralsX @build BenderAI 10/02/2026
+// GeneralsX:
 // Use angle brackets (not quotes) to skip local d3d8.h stub and get DXVK headers
 // DXVK's d3d8.h includes d3d8types.h internally - no manual includes needed
 #include <d3d8.h>
@@ -61,7 +61,7 @@
 #include "dx8vertexbuffer.h"
 #include "dx8indexbuffer.h"
 #include "WW3D2/vertmaterial.h"
-// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the `=2` call log's record format (engine-free) and the caller a RAW_ACCESS names.
+// GeneralsX: WS-G Task 5: the `=2` call log's record format (engine-free) and the caller a RAW_ACCESS names.
 #include "gxcalllog.h"
 #if defined(__GNUC__) || defined(__clang__)
 #define GX_LOG_CALLER() __builtin_return_address(0)
@@ -150,7 +150,7 @@ struct DX8FrameStatistics
 #define DX8_RECORD_TEXTURE_CHANGE()				FrameStatistics.texture_changes++
 #define DX8_RECORD_RENDER_STATE_CHANGE()		FrameStatistics.render_state_changes++
 #define DX8_RECORD_TEXTURE_STAGE_STATE_CHANGE() FrameStatistics.texture_stage_state_changes++
-// GeneralsX @test Claude 08/10/2026 [GXCENSUS] (GX_DRAWCENSUS=1 with GX_GFX=1; R-CPU roadmap step 2): what the
+// GeneralsX: [GXCENSUS] (GX_DRAWCENSUS=1 with GX_GFX=1; R-CPU roadmap step 2): what the
 // main thread asks of the device, per [GXGFXF] scene sub-span. Every counter is a never-reset total that the
 // GameClient side (GameClient/GXGfxProbe.h) reads as deltas at each sub-span mark, so no reset can drop a pass.
 // "_dev" counters move where a call reaches IDirect3DDevice8, "_same" ones count device calls that re-send the value
@@ -213,7 +213,7 @@ enum DX8CensusCounter
 	DX8C_SKIP_MAT,		// world_same/view_same/mat_same read ~0 because a skipped send is never made; these say what
 	DX8C_SKIP_LIGHT,	// was skipped instead (lights: slots not re-flagged, enabled or already-disabled)
 	DX8C_SKIP_LENV,		// GX_WRAPSKIP 8: Set_Light_Environment calls answered by the input compare (no light rebuilt)
-	// GeneralsX @test Claude 10/10/2026 WS-G L2 census (GX_L2_CENSUS=1 with GX_DRAWCENSUS=1 GX_GFX=1; GXRender/Scene/
+	// GeneralsX: WS-G L2 census (GX_L2_CENSUS=1 with GX_DRAWCENSUS=1 GX_GFX=1; GXRender/Scene/
 	// GxScene.cpp): the classic draw list of each Flush (dx8renderer.h GxClassicDraw), counted before it is drawn.
 	DX8C_L2_FLUSH,		// Flushes with a non-empty list
 	DX8C_L2_TASK,		// base-pass render tasks (one classic draw each, unless sorted), rigid and skin
@@ -244,7 +244,7 @@ enum DX8CensusCounter
 
 extern bool _DX8SingleThreaded;
 
-// GeneralsX @test Claude 10/10/2026 WS-G: called right before each DrawIndexedPrimitive the wrapper issues (DX8Wrapper::Draw and
+// GeneralsX: WS-G: called right before each DrawIndexedPrimitive the wrapper issues (DX8Wrapper::Draw and
 // Draw_Sorting_IB_VB) with the FINAL parameters - the state the draw uses - for the L2 state-check (GXRender/Scene); null unless
 // GX_L2_CHECK installs it. sorting_path: the sorting branch, which binds its own dynamic buffers past render_state.
 extern void (*GxDrawHook)(unsigned primitive_type, unsigned min_vertex_index, unsigned vertex_count, unsigned start_index,
@@ -262,7 +262,7 @@ WWINLINE void DX8_ErrorCode(unsigned res)
 	Log_DX8_ErrorCode(res);
 }
 
-// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: DX8CALL / DX8CALL_HRES are known device calls - _Get_D3D_Device8_Call, never RAW_ACCESS.
+// GeneralsX: WS-G Task 5: DX8CALL / DX8CALL_HRES are known device calls - _Get_D3D_Device8_Call, never RAW_ACCESS.
 #ifdef WWDEBUG
 #define DX8CALL_HRES(x,res) DX8_Assert(); res = DX8Wrapper::_Get_D3D_Device8_Call()->x; DX8_ErrorCode(res); DX8Wrapper::Increment_DX8_CallCount();
 #define DX8CALL(x) DX8_Assert(); DX8_ErrorCode(DX8Wrapper::_Get_D3D_Device8_Call()->x); DX8Wrapper::Increment_DX8_CallCount();
@@ -320,7 +320,7 @@ struct RenderStateStruct
 	D3DLIGHT8 Lights[4];
 	bool LightEnable[4];
   //unsigned lightsHash;
-	// GeneralsX @refactor BenderAI 10/02/2026
+	// GeneralsX:
 	// Changed from D3DMATRIX to Matrix4x4 - fighter19 pattern eliminates conversion functions
 	// Matrices stored transposed, cast to D3DMATRIX* when calling D3D APIs
 	Matrix4x4 world;
@@ -340,7 +340,7 @@ struct RenderStateStruct
 	RenderStateStruct& operator= (const RenderStateStruct& src);
 };
 
-// GeneralsX @performance Claude 08/10/2026 d3d8 call ring SPIKE (R-CPU step 3a, gx-handoff modernize/render-split/
+// GeneralsX: d3d8 call ring SPIKE (R-CPU step 3a, gx-handoff modernize/render-split/
 // PROMPT_d3d8-ring.md). GX_D3D8RING=1: inside Begin_Record/End_Record (RTS3DScene::Flush's opaque + occluded-object
 // flushes) the DX8Wrapper setters and draws are recorded into a byte ring, and a render thread replays them on the
 // device while the main thread keeps collecting. End_Record waits until everything is replayed, so the device is the
@@ -504,7 +504,7 @@ public:
 	// Note that *_DX8_Transform() functions take the matrix in DX8 format - transposed from Westwood convention.
 
 	static void _Set_DX8_Transform(D3DTRANSFORMSTATETYPE transform, const Matrix4x4& m);
-	// GeneralsX @bugfix BenderAI 13/02/2026 Matrix4x4 for GLM compatibility (fighter19 pattern)
+	// GeneralsX: Matrix4x4 for GLM compatibility (fighter19 pattern)
 	static void _Get_DX8_Transform(D3DTRANSFORMSTATETYPE transform, Matrix4x4& m);
 
 	static void Set_DX8_Light(int index,D3DLIGHT8* light);
@@ -625,24 +625,24 @@ public:
 	static unsigned long Get_FrameCount();
 	static void Increment_DX8_CallCount() { DX8_RECORD_DX8_CALLS(); }
 
-	// GeneralsX @feature Claude 28/09/2026 [GXGFX] (GameClient/GXGfxProbe.h) times Present from outside WW3D2,
+	// GeneralsX: [GXGFX] (GameClient/GXGfxProbe.h) times Present from outside WW3D2,
 	// which cannot include GameClient headers: End_Scene calls this before (false) and after (true) Present.
 	// Null unless GX_GFX or GX_HITCH is set, so the unprobed cost is one pointer test per frame.
 	static void (*Present_Probe)(bool after);
-	// GeneralsX @feature Claude 11/10/2026 WS-G S1 seat: called in End_Scene right before Present (flipping frames only) - the C2b digest
+	// GeneralsX: WS-G S1 seat: called in End_Scene right before Present (flipping frames only) - the C2b digest
 	// bracket's frame end (GXRender/Scene GxScene.cpp, GX_DRAWRUN_DIGEST=2). Null otherwise: one pointer test per presented frame.
 	static void (*GxPrePresentHook)();
-	// GeneralsX @feature Claude 10/10/2026 WS-X hybrid spike: every Present call so far (never reset - FrameCount is, at
+	// GeneralsX: WS-X hybrid spike: every Present call so far (never reset - FrameCount is, at
 	// Reset), the submission epoch GxInterop's packet ring keys its progress guard on; and a hook run at the start of
 	// Reset_Device, after the ring drained, so external work can release what it holds on the device.
 	static unsigned long long Get_Present_Count() { return PresentCount; }
 	static void (*Pre_Reset_Hook)();
 	static void (*Pre_Release_Hook)();	// WS-X: external work drains and drops its device references before Release_Device
-	// GeneralsX @feature D · render-hud-seam-1 13/10/2026 W3DWorldSeam drops its D3DPOOL_DEFAULT world targets here, before Reset and
+	// GeneralsX: W3DWorldSeam drops its D3DPOOL_DEFAULT world targets here, before Reset and
 	// before Release_Device (DXVK refuses Reset while DEFAULT-pool resources live). Called next to Pillarbox_Cleanup.
 	static void (*Default_Pool_Release_Hook)();
 
-	// GeneralsX @feature Claude 28/09/2026 A whole-frame draw count at the device boundary (graphics P2 i-02).
+	// GeneralsX: A whole-frame draw count at the device boundary (graphics P2 i-02).
 	// Neither existing counter counts what reaches the D3D8 device: Debug_Statistics' draw_calls ([GXDRAW] draws)
 	// adds sorting inserts and skinned meshes on top of the real draws, and FrameStatistics.draw_calls moves only at
 	// the two wrapper sites and is zeroed by Begin_Render after the shadow/water pre-pass. This total moves at the
@@ -652,7 +652,7 @@ public:
 	static void Record_Direct_Draw() { ++Census[DX8C_DRAW]; }
 	static unsigned long long Get_Draw_Calls_Total() { return Census[DX8C_DRAW]; }
 
-	// GeneralsX @test Claude 08/10/2026 [GXCENSUS] totals (enum DX8CensusCounter above). CensusOn is set once by
+	// GeneralsX: [GXCENSUS] totals (enum DX8CensusCounter above). CensusOn is set once by
 	// W3DDisplay when GX_DRAWCENSUS and GX_GFX are set; nothing below runs a compare or a clock while it is false.
 #if defined(GX_TEST_INSTRUMENTS) || defined(GX_RENDER_CENSUS)
 	static bool								CensusOn;
@@ -675,7 +675,7 @@ public:
 	static void Census_Forget_Transforms() { Forget_Transforms(); }
 	static bool								CensusTransformValid[2];	// [0] world, [1] view
 
-	// GeneralsX @performance Claude 08/10/2026 (E · rcpu-census, R-CPU step 2 cut 2f/2d): stop re-sending state the
+	// GeneralsX: stop re-sending state the
 	// device already holds. The census (GX_DRAWCENSUS) measured, on the G0 whole-map replay, ~12k Set_Light_Environment
 	// calls a frame that rebuild the same four lights, ~6k SetMaterial and ~9k SetTransform(WORLD/VIEW) a frame equal to
 	// the previous send - and DXVK marks its fixed-function constants dirty on EVERY SetMaterial/SetTransform, so each
@@ -694,7 +694,7 @@ public:
 	static unsigned Wrap_Skip() { return WrapSkipMask; }	// a plain load: no static-init guard on these hot paths
 	static unsigned Read_Wrap_Skip();
 	static unsigned							WrapSkipMask;				// 0 (old path) until Do_Onetime_Device_Dependent_Inits
-	// GeneralsX @performance Claude 08/10/2026 (C · rcpu-cuts-2, roadmap 2f) GX_WRAPSKIP 8: bumped by EVERY write to
+	// GeneralsX: GX_WRAPSKIP 8: bumped by EVERY write to
 	// the wrapper's light state (render_state.Lights/LightEnable and their LIGHTn_CHANGED bits, CurrentDX8Lights/
 	// LightEnables/LightValid): Set_Light, Set_DX8_Light, Set_Render_State, Invalidate_Cached_Render_States, Init and
 	// Do_Onetime_Device_Dependent_Inits. Set_Light_Environment skips its per-light rebuild only while this has not moved
@@ -753,7 +753,7 @@ public:
 	static void					Set_Render_Target (IDirect3DSwapChain8 *swap_chain);
 	static bool					Is_Render_To_Texture() { return IsRenderToTexture; }
 
-	// GeneralsX @bugfix Claude 28/09/2026 Render-target nesting (pillarbox -> world -> script filter).
+	// GeneralsX: Render-target nesting (pillarbox -> world -> script filter).
 	// Get returns what is bound NOW, both AddRef'd (the caller releases): rt is CurrentRenderTarget, or
 	// nullptr on the swapchain backbuffer; ds is the DEVICE's bound depth, never CurrentDepthBuffer, which
 	// is null after a (surf,bool) bind. Set binds such a pair (rt nullptr = back to the backbuffer)
@@ -768,7 +768,7 @@ public:
 	static bool					GetNativeDisplaySize(int& outW, int& outH, float& outDensity);
 	static bool					GetWindowSize(int& outW, int& outH, float& outDensity);
 
-	// GeneralsX @feature Claude 25/09/2026 Borderless fullscreen, WINDOWS ONLY. When set, a device that
+	// GeneralsX: Borderless fullscreen, WINDOWS ONLY. When set, a device that
 	// is not windowed presents AS A WINDOW into a popup covering its monitor, at the desktop mode, with
 	// the game resolution pillarboxed into it - the same model SDL3 fullscreen already uses on macOS
 	// and Linux, where this flag is never read. Unset, a non-windowed device mode-sets exclusively,
@@ -777,7 +777,7 @@ public:
 	static void Set_Borderless(bool on) { Borderless = on; }
 	static bool Is_Borderless() { return Borderless; }
 
-	// GeneralsX @bugfix Claude 30/09/2026 Vsync for a WINDOWED present - which is every present on the SDL3
+	// GeneralsX: Vsync for a WINDOWED present - which is every present on the SDL3
 	// platforms, fullscreen included (_PresentParameters.Windowed). D3D8 copies a windowed back buffer to the
 	// window immediately, and DXVK follows it (d3d8_d3d9_util.h: a windowed swapchain gets
 	// D3DPRESENT_INTERVAL_IMMEDIATE, so Vulkan IMMEDIATE, so MoltenVK displaySyncEnabled = NO: tearing). D3D8's
@@ -832,7 +832,7 @@ public:
 
 
 	// d3d8 ring spike: any device access through here waits until the ring is replayed (DX8Ring above)
-	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: an unclassified access while the call log is on is RAW_ACCESS (its caller logged);
+	// GeneralsX: WS-G Task 5: an unclassified access while the call log is on is RAW_ACCESS (its caller logged);
 	// DX8CALL uses _Get_D3D_Device8_Call (the body as it was).
 	static IDirect3DDevice8* _Get_D3D_Device8() { if (GxLogOn && GxLogScope == 0) Gx_Log_Raw_Access(GX_LOG_CALLER()); if (DX8Ring::Pending || DX8Ring::Recording) DX8Ring::Fallback(); return D3DDevice; }
 	static IDirect3DDevice8* _Get_D3D_Device8_Call() { if (DX8Ring::Pending || DX8Ring::Recording) DX8Ring::Fallback(); return D3DDevice; }
@@ -840,12 +840,12 @@ public:
 	static IDirect3DDevice8* D3DDevice_For_Ring() { return D3DDevice; }	// DX8Ring only: no drain
 	typedef void (*DeviceCallFn)(IDirect3DDevice8 *dev, void *ctx);
 	static void Device_Call(DeviceCallFn fn, void *ctx);	// fn(dev, ctx) on the device's thread, in stream order
-	// GeneralsX @test Claude 10/10/2026 GXCAP (GameEngineDevice GXCap.h): when set, Set_Render_Device hands the new device
+	// GeneralsX: GXCAP (GameEngineDevice GXCap.h): when set, Set_Render_Device hands the new device
 	// to this hook right after CreateDevice and keeps what it returns (the recording proxy). nullptr = today's path.
 	typedef IDirect3DDevice8 *(*DeviceWrapHook)(IDirect3DDevice8 *device, UINT adapter, D3DDEVTYPE type, DWORD behavior,
 		const D3DPRESENT_PARAMETERS *pp);
 	static DeviceWrapHook Device_Wrap_Hook;
-	// GeneralsX @feature E · rw3-K 11/10/2026 L1 native device (render-seam/DESIGN_l1-device.md §1): called once in Init right
+	// GeneralsX: L1 native device (render-seam/DESIGN_l1-device.md §1): called once in Init right
 	// after Direct3DCreate8; a non-null result replaces D3DInterface for the whole session (the native proxy forwards every
 	// adapter query to DXVK's interface and decides in CreateDevice). nullptr = today's path.
 	typedef IDirect3D8 *(*InterfaceWrapHook)(IDirect3D8 *dxvk);
@@ -890,9 +890,9 @@ public:
 	static void Set_Transform_Dirty();
 
 	static void Set_Draw_Polygon_Low_Bound_Limit(unsigned n) { DrawPolygonLowBoundLimit=n; }
-	static unsigned Get_Draw_Polygon_Low_Bound_Limit() { return DrawPolygonLowBoundLimit; }	// GeneralsX @feature Claude 11/10/2026 WS-G seat: E1 (GxL2Dry)
+	static unsigned Get_Draw_Polygon_Low_Bound_Limit() { return DrawPolygonLowBoundLimit; }	// GeneralsX: WS-G seat: E1 (GxL2Dry)
 
-	// GeneralsX @test Claude 10/10/2026 WS-G: a read-only view of the wrapper's caches for the L2 state-check (GXRender/Scene,
+	// GeneralsX: WS-G: a read-only view of the wrapper's caches for the L2 state-check (GXRender/Scene,
 	// CONTRACT_L2.md §4): what the wrapper believes the device holds.
 	struct GxShadowView
 	{
@@ -915,7 +915,7 @@ public:
 	// Kept only while GxCaptureOn (GX_L2_CHECK, set before the first frame): every material sent (independent of GX_WRAPSKIP's
 	// MaterialShadow), every projection sent (Set_Transform and Set_Projection_Transform_With_Z_Bias send locals), and every texture
 	// matrix sent (_Set_DX8_Transform and Set_Transform's default path) in an array of its own: Set_Transform_Dirty and
-	// Invalidate_Cached_Render_States zero DX8Transforms while the device keeps the matrices (Codex rw1-G-plan-r1 #6, rw1-G-r5).
+	// Invalidate_Cached_Render_States zero DX8Transforms while the device keeps the matrices.
 	static bool								GxCaptureOn;
 	static D3DMATERIAL8						GxMaterialSent;
 	static bool								GxMaterialSentValid;
@@ -925,7 +925,7 @@ public:
 	static unsigned							GxTexmValid;
 	// DX8Transforms[WORLD/VIEW] as last sent (bit 0 / bit 1), cleared by Forget_Transforms - which Invalidate_Cached_Render_States,
 	// Set_Transform_Dirty and every direct world/view writer call - since those zero or bypass the cache while the device keeps
-	// its matrices (Codex rw1-G-r6 #2: lease c3/c5's C9 VIEW "diff" was a zeroed cache vs a real device view).
+	// its matrices (lease c3/c5's C9 VIEW "diff" was a zeroed cache vs a real device view).
 	static unsigned							GxXformValid;
 	// The VIEW last sent, never zeroed by the cache resets: no code sets the view behind the wrapper (the direct SetTransform calls are
 	// all WORLD, git grep 10/10/2026), so it stays the device's view until a Reset. C9 checks that premise (VIEWSENT); the L2 check's
@@ -938,11 +938,11 @@ public:
 	// c4-c12 straight to the device, so the cache can claim values the device no longer holds).
 	static D3DVIEWPORT8						GxViewportSent;
 	static bool								GxViewportSentValid;
-	static bool								GxViewportCaptureOn;	// set only by the bridge between its Begin and End (codex units-code-r4 #2)
+	static bool								GxViewportCaptureOn;	// set only by the bridge between its Begin and End
 	static const RenderStateStruct& Gx_Render_State() { return render_state; }
 	static void Gx_Forget_VS_Constants(int reg, int count) { memset(&Vertex_Shader_Constants[reg], 0xFF, sizeof(Vector4) * count); }
 	// A device Reset restores the device's default material / projection / texture matrices: the captured ones are unknown
-	// until sent again (Codex rw1-G-r6 #3). WORLD/VIEW go with Invalidate_Cached_Render_States, which Reset_Device calls.
+	// until sent again. WORLD/VIEW go with Invalidate_Cached_Render_States, which Reset_Device calls.
 	static void Gx_Capture_Forget() { GxMaterialSentValid = GxProjSentValid = GxViewSentValid = GxViewportSentValid = false; GxTexmValid = 0; }
 	// Device truth for the L2 contract's E2 (CONTRACT_L2.md r5 §2, rw1-G0): per render / texture-stage state, the value the DEVICE
 	// holds and whether it is known. Seeded by reading the device (Gx_Truth_Enable; again after a Reset, which restores DXVK's
@@ -972,7 +972,7 @@ public:
 		if (GxTruthOn && stage < MAX_TEXTURE_STAGES) { GxTruthTSS[stage][type] = value; GxTruthTSSKnown[stage][type] = true; ++GxTruthRawCalls; }
 	}
 	// GX_SEAT_MUTANT=2 only (WS-G seat): the base vertex the wrapper believes, moved without the setter - nothing is sent.
-	// DX8Wrapper's pending change flags minus the two identity descriptors (0 right after an Apply): GxDrawRun::Truth.wrapperDirty (Codex seat-c7 #1).
+	// DX8Wrapper's pending change flags minus the two identity descriptors (0 right after an Apply): GxDrawRun::Truth.wrapperDirty (seat-c7 #1).
 	static unsigned Gx_Pending_Changes() { return render_state_changed & ~((unsigned)WORLD_IDENTITY | (unsigned)VIEW_IDENTITY); }	// Apply keeps the identity flags (cache descriptors, not pending changes)
 	static void Gx_Poke_Index_Base(unsigned short offset) { render_state.index_base_offset = offset; }
 	static GxShadowView Gx_Shadows()
@@ -984,7 +984,7 @@ public:
 		return v;
 	}
 
-	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the `=2` call log (gxcalllog.h; render-seam/rw1-G/T1_HOOKS_BRIEF.md). The check
+	// GeneralsX: WS-G Task 5: the `=2` call log (gxcalllog.h; render-seam/rw1-G/T1_HOOKS_BRIEF.md). The check
 	// (GXRender/Scene) sets GxLogOn around a modelled flush only; off (the default) every hook is one predicted-false test of it.
 	static bool								GxLogOn;
 	static gxlog::Log *						GxLog;			// where records go (owned by the check)
@@ -1081,7 +1081,7 @@ protected:
 
 	static RenderStateStruct			render_state;
 	static unsigned						render_state_changed;
-	// GeneralsX @refactor BenderAI 10/02/2026 - fighter19 pattern Matrix4x4 not D3DMATRIX
+	// GeneralsX: fighter19 pattern Matrix4x4 not D3DMATRIX
 	static Matrix4x4						DX8Transforms[D3DTS_WORLD+1];
 
 	static bool								IsInitted;
@@ -1135,7 +1135,7 @@ protected:
 
 	static DX8FrameStatistics			FrameStatistics;
 	static bool								CurrentDX8LightEnables[4];
-	// GeneralsX @performance Claude 23/09/2026 Shadow of the D3DLIGHT8 last sent per slot, valid only while
+	// GeneralsX: Shadow of the D3DLIGHT8 last sent per slot, valid only while
 	// CurrentDX8LightValid[slot]; lets Set_DX8_Light skip re-sending an identical enabled light.
 	static D3DLIGHT8						CurrentDX8Lights[4];
 	static bool								CurrentDX8LightValid[4];
@@ -1181,7 +1181,7 @@ protected:
 	static int								ZBias;
 	static float							ZNear;
 	static float							ZFar;
-	// GeneralsX @refactor BenderAI 10/02/2026
+	// GeneralsX:
 	// Changed from D3DMATRIX to Matrix4x4 - fighter19 pattern
 	static Matrix4x4					ProjectionMatrix;
 
@@ -1192,7 +1192,7 @@ protected:
 };
 
 // shader system updates KJM v
-// GeneralsX @test Claude 10/10/2026 WS-G: a render / texture-stage state written behind the wrapper's cache. Records the value in the
+// GeneralsX: WS-G: a render / texture-stage state written behind the wrapper's cache. Records the value in the
 // device truth (DX8Wrapper::GxTruth*, CONTRACT_L2 r5 E2) and sends exactly what the raw call sent. Every audited raw writer uses these
 // (render-seam/rw1-G/RAWAUDIT.md); C9 (GXRender/Scene) compares the truth with the device and shows any writer the audit missed.
 // Off: one branch per call.
@@ -1258,7 +1258,7 @@ WWINLINE void DX8Wrapper::Set_Pixel_Shader_Constant(int reg, const void* data, i
 	DX8CALL(SetPixelShaderConstant(reg,data,count));
 }
 // shader system updates KJM ^
-// GeneralsX @refactor BenderAI 10/02/2026 - fighter19 pattern Matrix4x4 parameter not D3DMATRIX
+// GeneralsX: fighter19 pattern Matrix4x4 parameter not D3DMATRIX
 WWINLINE void DX8Wrapper::_Set_DX8_Transform(D3DTRANSFORMSTATETYPE transform, const Matrix4x4& m)
 {
 	WWASSERT(transform<=D3DTS_WORLD);
@@ -1271,7 +1271,7 @@ WWINLINE void DX8Wrapper::_Set_DX8_Transform(D3DTRANSFORMSTATETYPE transform, co
 			const int v = (transform==D3DTS_VIEW);
 			if (XformShadowValid[v] && memcmp(&DX8Transforms[transform], &m, sizeof(Matrix4x4))==0) {
 				DX8_CENSUS(DX8C_SKIP_XFORM);
-				if (GxLogOn) Gx_Log(gxlog::DX8_XFORM, transform, 0, &m, sizeof(Matrix4x4), 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: skipped
+				if (GxLogOn) Gx_Log(gxlog::DX8_XFORM, transform, 0, &m, sizeof(Matrix4x4), 0);	// GeneralsX: WS-G Task 5: skipped
 				return;
 			}
 			XformShadowValid[v] = true;
@@ -1284,7 +1284,7 @@ WWINLINE void DX8Wrapper::_Set_DX8_Transform(D3DTRANSFORMSTATETYPE transform, co
 			CensusTransformValid[v] = true;
 		}
 		DX8Transforms[transform]=m;
-		if (GxLogOn) Gx_Log(gxlog::DX8_XFORM, transform, 0, &m, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) Gx_Log(gxlog::DX8_XFORM, transform, 0, &m, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX: WS-G Task 5
 		if (GxCaptureOn) {	// WS-G (GxShadowView)
 			if (transform>=D3DTS_TEXTURE0 && transform<=D3DTS_TEXTURE7) {
 				GxTexmSent[transform-D3DTS_TEXTURE0]=m;
@@ -1305,7 +1305,7 @@ WWINLINE void DX8Wrapper::_Set_DX8_Transform(D3DTRANSFORMSTATETYPE transform, co
 	}
 }
 
-// GeneralsX @bugfix BenderAI 13/02/2026 Matrix4x4 for GLM compatibility (fighter19 pattern)
+// GeneralsX: Matrix4x4 for GLM compatibility (fighter19 pattern)
 WWINLINE void DX8Wrapper::_Get_DX8_Transform(D3DTRANSFORMSTATETYPE transform, Matrix4x4& m)
 {
 	DX8CALL(GetTransform(transform,(D3DMATRIX*)&m));
@@ -1319,7 +1319,7 @@ WWINLINE void DX8Wrapper::_Get_DX8_Transform(D3DTRANSFORMSTATETYPE transform, Ma
 
 WWINLINE void DX8Wrapper::Set_Index_Buffer_Index_Offset(unsigned offset)
 {
-	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_INDEX_OFFSET, offset, 0, nullptr, 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_INDEX_OFFSET, offset, 0, nullptr, 0, 0);	// GeneralsX: WS-G Task 5
 	if (render_state.index_base_offset==offset) return;
 	render_state.index_base_offset=offset;
 	render_state_changed|=INDEX_BUFFER_CHANGED;
@@ -1369,13 +1369,13 @@ WWINLINE void DX8Wrapper::Set_DX8_Material(const D3DMATERIAL8* mat)
 	if (Wrap_Skip() & 2u) {	// GX_WRAPSKIP 2: the device already holds this material (see Wrap_Skip)
 		if (MaterialShadowValid && memcmp(&MaterialShadow, mat, sizeof(D3DMATERIAL8))==0) {
 			DX8_CENSUS(DX8C_SKIP_MAT);
-			if (GxLogOn) Gx_Log(gxlog::DX8_MATERIAL, 0, 0, mat, sizeof(D3DMATERIAL8), 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: skipped
+			if (GxLogOn) Gx_Log(gxlog::DX8_MATERIAL, 0, 0, mat, sizeof(D3DMATERIAL8), 0);	// GeneralsX: WS-G Task 5: skipped
 			return;
 		}
 		MaterialShadow = *mat;
 		MaterialShadowValid = true;
 	}
-	if (GxLogOn) Gx_Log(gxlog::DX8_MATERIAL, 0, 0, mat, sizeof(D3DMATERIAL8), gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn) Gx_Log(gxlog::DX8_MATERIAL, 0, 0, mat, sizeof(D3DMATERIAL8), gxlog::SENT);	// GeneralsX: WS-G Task 5
 	DX8_RECORD_MATERIAL_CHANGE();
 	if (GxCaptureOn) { GxMaterialSent = *mat; GxMaterialSentValid = true; }	// WS-G (GxShadowView)
 	if (CensusOn) {	// [GXCENSUS] the wrapper keeps no material cache (Set_Material's is commented out)
@@ -1395,15 +1395,15 @@ WWINLINE void DX8Wrapper::Set_DX8_Light(int index, D3DLIGHT8* light)
 {
 	++LightStateSerial;	// GX_WRAPSKIP 8 (see LightStateSerial)
 	if (light) {
-		// GeneralsX @performance Claude 23/09/2026 Every mesh draw re-applies the same 3-4 scene lights, and
+		// GeneralsX: Every mesh draw re-applies the same 3-4 scene lights, and
 		// only the disable path was cached. Skip SetLight+LightEnable(TRUE) when this slot is already enabled
 		// with byte-identical parameters; the device state is then exactly what the two calls would set.
 		if (CurrentDX8LightEnables[index] && CurrentDX8LightValid[index]
 			&& memcmp(&CurrentDX8Lights[index], light, sizeof(D3DLIGHT8)) == 0) {
-			if (GxLogOn) Gx_Log(gxlog::DX8_LIGHT, index, 1, light, sizeof(D3DLIGHT8), 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: skipped
+			if (GxLogOn) Gx_Log(gxlog::DX8_LIGHT, index, 1, light, sizeof(D3DLIGHT8), 0);	// GeneralsX: WS-G Task 5: skipped
 			return;
 		}
-		if (GxLogOn) Gx_Log(gxlog::DX8_LIGHT, index, 1, light, sizeof(D3DLIGHT8), gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) Gx_Log(gxlog::DX8_LIGHT, index, 1, light, sizeof(D3DLIGHT8), gxlog::SENT);	// GeneralsX: WS-G Task 5
 		DX8_CENSUS(DX8C_LIGHT_DEV);
 		DX8_RECORD_LIGHT_CHANGE();
 		if (DX8Ring::Recording) {
@@ -1419,7 +1419,7 @@ WWINLINE void DX8Wrapper::Set_DX8_Light(int index, D3DLIGHT8* light)
 		SNAPSHOT_SAY(("DX8 - SetLight %d",index));
 	}
 	else if (CurrentDX8LightEnables[index]) {
-		if (GxLogOn) Gx_Log(gxlog::DX8_LIGHT, index, 0, nullptr, 0, gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) Gx_Log(gxlog::DX8_LIGHT, index, 0, nullptr, 0, gxlog::SENT);	// GeneralsX: WS-G Task 5
 		DX8_CENSUS(DX8C_LIGHT_DEV);
 		DX8_RECORD_LIGHT_CHANGE();
 		CurrentDX8LightEnables[index]=false;
@@ -1427,14 +1427,14 @@ WWINLINE void DX8Wrapper::Set_DX8_Light(int index, D3DLIGHT8* light)
 		else { DX8CALL(LightEnable(index,FALSE)); }
 		SNAPSHOT_SAY(("DX8 - DisableLight %d",index));
 	}
-	else if (GxLogOn) Gx_Log(gxlog::DX8_LIGHT, index, 0, nullptr, 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: already off
+	else if (GxLogOn) Gx_Log(gxlog::DX8_LIGHT, index, 0, nullptr, 0, 0);	// GeneralsX: WS-G Task 5: already off
 }
 
 WWINLINE void DX8Wrapper::Set_DX8_Render_State(D3DRENDERSTATETYPE state, unsigned value)
 {
 	// Can't monitor state changes because setShader call to GERD may change the states!
 	if (RenderStates[state]==value) {
-		if (GxLogOn) Gx_Log(gxlog::RS, state, value, nullptr, 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: skipped
+		if (GxLogOn) Gx_Log(gxlog::RS, state, value, nullptr, 0, 0);	// GeneralsX: WS-G Task 5: skipped
 		return;
 	}
 
@@ -1449,7 +1449,7 @@ WWINLINE void DX8Wrapper::Set_DX8_Render_State(D3DRENDERSTATETYPE state, unsigne
 #endif
 
 	RenderStates[state]=value;
-	if (GxLogOn) Gx_Log(gxlog::RS, state, value, nullptr, 0, gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn) Gx_Log(gxlog::RS, state, value, nullptr, 0, gxlog::SENT);	// GeneralsX: WS-G Task 5
 	if (GxTruthOn) { GxTruthRS[state]=value; GxTruthRSKnown[state]=true; }	// WS-G device truth
 	if (DX8Ring::Recording) { DX8Ring::Rec_Render_State(state,value); }
 	else { DX8CALL(SetRenderState( state, value )); }
@@ -1466,7 +1466,7 @@ WWINLINE void DX8Wrapper::Set_DX8_Clip_Plane(DWORD Index, CONST float* pPlane)
 WWINLINE void DX8Wrapper::Set_DX8_Texture_Stage_State(unsigned stage, D3DTEXTURESTAGESTATETYPE state, unsigned value)
 {
   	if (stage >= MAX_TEXTURE_STAGES)
-  	{	if (GxLogOn) Gx_Log(gxlog::TSS, stage<<16|(unsigned)state, value, nullptr, 0, gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+  	{	if (GxLogOn) Gx_Log(gxlog::TSS, stage<<16|(unsigned)state, value, nullptr, 0, gxlog::SENT);	// GeneralsX: WS-G Task 5
   		if (DX8Ring::Recording) { DX8Ring::Rec_Texture_Stage_State(stage,state,value); return; }
   		DX8CALL(SetTextureStageState( stage, state, value ));
   		return;
@@ -1474,7 +1474,7 @@ WWINLINE void DX8Wrapper::Set_DX8_Texture_Stage_State(unsigned stage, D3DTEXTURE
 
 	// Can't monitor state changes because setShader call to GERD may change the states!
 	if (TextureStageStates[stage][(unsigned int)state]==value) {
-		if (GxLogOn) Gx_Log(gxlog::TSS, stage<<16|(unsigned)state, value, nullptr, 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: skipped
+		if (GxLogOn) Gx_Log(gxlog::TSS, stage<<16|(unsigned)state, value, nullptr, 0, 0);	// GeneralsX: WS-G Task 5: skipped
 		return;
 	}
 #ifdef MESH_RENDER_SNAPSHOT_ENABLED
@@ -1489,7 +1489,7 @@ WWINLINE void DX8Wrapper::Set_DX8_Texture_Stage_State(unsigned stage, D3DTEXTURE
 #endif
 
 	TextureStageStates[stage][(unsigned int)state]=value;
-	if (GxLogOn) Gx_Log(gxlog::TSS, stage<<16|(unsigned)state, value, nullptr, 0, gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn) Gx_Log(gxlog::TSS, stage<<16|(unsigned)state, value, nullptr, 0, gxlog::SENT);	// GeneralsX: WS-G Task 5
 	if (GxTruthOn) { GxTruthTSS[stage][(unsigned int)state]=value; GxTruthTSSKnown[stage][(unsigned int)state]=true; }	// WS-G
 	if (DX8Ring::Recording) { DX8Ring::Rec_Texture_Stage_State(stage,state,value); }
 	else { DX8CALL(SetTextureStageState( stage, state, value )); }
@@ -1500,17 +1500,17 @@ WWINLINE void DX8Wrapper::Set_DX8_Texture_Stage_State(unsigned stage, D3DTEXTURE
 WWINLINE void DX8Wrapper::Set_DX8_Texture(unsigned int stage, IDirect3DBaseTexture8* texture)
 {
   	if (stage >= MAX_TEXTURE_STAGES)
-  	{	if (GxLogOn) Gx_Log_Ptr(gxlog::DX8_TEXTURE, stage, 0, texture, gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+  	{	if (GxLogOn) Gx_Log_Ptr(gxlog::DX8_TEXTURE, stage, 0, texture, gxlog::SENT);	// GeneralsX: WS-G Task 5
   		if (DX8Ring::Recording) { DX8Ring::Rec_Texture(stage,texture); return; }
   		DX8CALL(SetTexture(stage, texture));
   		return;
   	}
 
 	if (Textures[stage]==texture) {
-		if (GxLogOn) Gx_Log_Ptr(gxlog::DX8_TEXTURE, stage, 0, texture, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: skipped
+		if (GxLogOn) Gx_Log_Ptr(gxlog::DX8_TEXTURE, stage, 0, texture, 0);	// GeneralsX: WS-G Task 5: skipped
 		return;
 	}
-	if (GxLogOn) Gx_Log_Ptr(gxlog::DX8_TEXTURE, stage, 0, texture, gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn) Gx_Log_Ptr(gxlog::DX8_TEXTURE, stage, 0, texture, gxlog::SENT);	// GeneralsX: WS-G Task 5
 
 	SNAPSHOT_SAY(("DX8 - SetTexture(%x) ",texture));
 
@@ -1772,7 +1772,7 @@ WWINLINE void DX8Wrapper::Get_Shader(ShaderClass& shader)
 WWINLINE void DX8Wrapper::Set_Texture(unsigned stage,TextureBaseClass* texture)
 {
 	WWASSERT(stage<(unsigned int)CurrentCaps->Get_Max_Textures_Per_Pass());
-	if (GxLogOn && GxLogParent == 0) Gx_Log_Ptr(gxlog::SET_TEXTURE, stage, 0, texture, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log_Ptr(gxlog::SET_TEXTURE, stage, 0, texture, 0);	// GeneralsX: WS-G Task 5
 	if (texture==render_state.Textures[stage]) return;
 	DX8_CENSUS(DX8C_TEX);
 	REF_PTR_SET(render_state.Textures[stage],texture);
@@ -1790,7 +1790,7 @@ WWINLINE void DX8Wrapper::Set_Material(const VertexMaterialClass* material)
 //	if (material==render_state.material) {
 //		return;
 //	}
-	if (GxLogOn && GxLogParent == 0) Gx_Log_Ptr(gxlog::SET_MATERIAL, 0, 0, material, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log_Ptr(gxlog::SET_MATERIAL, 0, 0, material, 0);	// GeneralsX: WS-G Task 5
 	DX8_CENSUS(DX8C_MAT);
 	REF_PTR_SET(render_state.material,const_cast<VertexMaterialClass*>(material));
 	render_state_changed|=MATERIAL_CHANGED;
@@ -1799,7 +1799,7 @@ WWINLINE void DX8Wrapper::Set_Material(const VertexMaterialClass* material)
 
 WWINLINE void DX8Wrapper::Set_Shader(const ShaderClass& shader)
 {
-	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_SHADER, shader.Get_Bits(), 0, nullptr, 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_SHADER, shader.Get_Bits(), 0, nullptr, 0, 0);	// GeneralsX: WS-G Task 5
 	if (!ShaderClass::ShaderDirty && ((unsigned&)shader==(unsigned&)render_state.shader)) {
 		return;
 	}
@@ -1812,7 +1812,7 @@ WWINLINE void DX8Wrapper::Set_Shader(const ShaderClass& shader)
 	SNAPSHOT_SAY(("DX8Wrapper::Set_Shader(%s)",shader.Get_Description(str).str()));
 }
 
-// GeneralsX @refactor BenderAI 10/02/2026
+// GeneralsX:
 // Applied fighter19 pattern: store Matrix4x4 transposed, cast to D3DMATRIX* for D3D calls
 WWINLINE void DX8Wrapper::Set_Projection_Transform_With_Z_Bias(const Matrix4x4& matrix, float znear, float zfar)
 {
@@ -1827,12 +1827,12 @@ WWINLINE void DX8Wrapper::Set_Projection_Transform_With_Z_Bias(const Matrix4x4& 
 		tmp_zbias*=1.0f / (ZFar - ZNear);
 		tmp[2][2]-=tmp_zbias*tmp[3][2];
 		if (GxCaptureOn) { GxProjSent = tmp; GxProjSentValid = true; }	// WS-G
-		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, D3DTS_PROJECTION, 0, &tmp, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, D3DTS_PROJECTION, 0, &tmp, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX: WS-G Task 5
 		DX8CALL(SetTransform(D3DTS_PROJECTION,(D3DMATRIX*)&tmp));
 	}
 	else {
 		if (GxCaptureOn) { GxProjSent = ProjectionMatrix; GxProjSentValid = true; }	// WS-G
-		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, D3DTS_PROJECTION, 0, &ProjectionMatrix, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, D3DTS_PROJECTION, 0, &ProjectionMatrix, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX: WS-G Task 5
 		DX8CALL(SetTransform(D3DTS_PROJECTION,(D3DMATRIX*)&ProjectionMatrix));
 	}
 }
@@ -1845,15 +1845,15 @@ WWINLINE void DX8Wrapper::Set_DX8_ZBias(int zbias)
 	ZBias=zbias;
 
 	if (!Get_Current_Caps()->Support_ZBias() && ZNear!=ZFar) {
-		// GeneralsX @refactor BenderAI 10/02/2026
+		// GeneralsX:
 		// Changed D3DMATRIX → Matrix4x4 to match ProjectionMatrix type change
 		Matrix4x4 tmp=ProjectionMatrix;
 		float tmp_zbias=ZBias;
 		tmp_zbias*=(1.0f/16.0f);
 		tmp_zbias*=1.0f / (ZFar - ZNear);
 		tmp[2][2]-=tmp_zbias*tmp[3][2];
-		if (GxCaptureOn) { GxProjSent = tmp; GxProjSentValid = true; }	// GeneralsX @fix Claude 10/10/2026 WS-G Task 5: the capture missed this send
-		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, D3DTS_PROJECTION, 0, &tmp, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxCaptureOn) { GxProjSent = tmp; GxProjSentValid = true; }	// GeneralsX: WS-G Task 5: the capture missed this send
+		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, D3DTS_PROJECTION, 0, &tmp, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX: WS-G Task 5
 		DX8CALL(SetTransform(D3DTS_PROJECTION,(D3DMATRIX*)&tmp));
 	}
 	else {
@@ -1861,20 +1861,20 @@ WWINLINE void DX8Wrapper::Set_DX8_ZBias(int zbias)
 	}
 }
 
-// GeneralsX @refactor BenderAI 10/02/2026
+// GeneralsX:
 // Applied fighter19 pattern: transpose and store as Matrix4x4, cast pointer for D3D calls
 WWINLINE void DX8Wrapper::Set_Transform(D3DTRANSFORMSTATETYPE transform,const Matrix4x4& m)
 {
 	switch ((int)transform) {
 	case D3DTS_WORLD:
 		render_state.world=m.Transpose();
-		if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_TRANSFORM, transform, 0, &render_state.world, sizeof(Matrix4x4), 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_TRANSFORM, transform, 0, &render_state.world, sizeof(Matrix4x4), 0);	// GeneralsX: WS-G Task 5
 		render_state_changed|=(unsigned)WORLD_CHANGED;
 		render_state_changed&=~(unsigned)WORLD_IDENTITY;
 		break;
 	case D3DTS_VIEW:
 		render_state.view=m.Transpose();
-		if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_TRANSFORM, transform, 0, &render_state.view, sizeof(Matrix4x4), 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_TRANSFORM, transform, 0, &render_state.view, sizeof(Matrix4x4), 0);	// GeneralsX: WS-G Task 5
 		render_state_changed|=(unsigned)VIEW_CHANGED;
 		render_state_changed&=~(unsigned)VIEW_IDENTITY;
 		break;
@@ -1884,7 +1884,7 @@ WWINLINE void DX8Wrapper::Set_Transform(D3DTRANSFORMSTATETYPE transform,const Ma
 			ZFar=0.0f;
 			ZNear=0.0f;
 			if (GxCaptureOn) { GxProjSent = ProjectionMatrix; GxProjSentValid = true; }	// WS-G
-			if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, transform, 0, &ProjectionMatrix, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+			if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, transform, 0, &ProjectionMatrix, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX: WS-G Task 5
 			if (DX8Ring::Recording) { DX8Ring::Rec_Transform(D3DTS_PROJECTION,(const D3DMATRIX*)&ProjectionMatrix); break; }
 			DX8CALL(SetTransform(D3DTS_PROJECTION,(D3DMATRIX*)&ProjectionMatrix));
 		}
@@ -1896,27 +1896,27 @@ WWINLINE void DX8Wrapper::Set_Transform(D3DTRANSFORMSTATETYPE transform,const Ma
 			GxTexmSent[transform-D3DTS_TEXTURE0]=m2;
 			GxTexmValid|=1u<<(transform-D3DTS_TEXTURE0);
 		}
-		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, transform, 0, &m2, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, transform, 0, &m2, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX: WS-G Task 5
 		if (DX8Ring::Recording) { DX8Ring::Rec_Transform(transform,(const D3DMATRIX*)&m2); break; }
 		DX8CALL(SetTransform(transform,(D3DMATRIX*)&m2));
 		break;
 	}
 }
 
-// GeneralsX @refactor BenderAI 10/02/2026
+// GeneralsX:
 // Applied fighter19 pattern: convert Matrix3D to Matrix4x4, transpose, cast for D3D calls
 WWINLINE void DX8Wrapper::Set_Transform(D3DTRANSFORMSTATETYPE transform,const Matrix3D& m)
 {
 	switch ((int)transform) {
 	case D3DTS_WORLD:
 		render_state.world=Matrix4x4(m).Transpose();
-		if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_TRANSFORM, transform, 0, &render_state.world, sizeof(Matrix4x4), 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_TRANSFORM, transform, 0, &render_state.world, sizeof(Matrix4x4), 0);	// GeneralsX: WS-G Task 5
 		render_state_changed|=(unsigned)WORLD_CHANGED;
 		render_state_changed&=~(unsigned)WORLD_IDENTITY;
 		break;
 	case D3DTS_VIEW:
 		render_state.view=Matrix4x4(m).Transpose();
-		if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_TRANSFORM, transform, 0, &render_state.view, sizeof(Matrix4x4), 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_TRANSFORM, transform, 0, &render_state.view, sizeof(Matrix4x4), 0);	// GeneralsX: WS-G Task 5
 		render_state_changed|=(unsigned)VIEW_CHANGED;
 		render_state_changed&=~(unsigned)VIEW_IDENTITY;
 		break;
@@ -1927,7 +1927,7 @@ WWINLINE void DX8Wrapper::Set_Transform(D3DTRANSFORMSTATETYPE transform,const Ma
 			GxTexmSent[transform-D3DTS_TEXTURE0]=m2;
 			GxTexmValid|=1u<<(transform-D3DTS_TEXTURE0);
 		}
-		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, transform, 0, &m2, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) Gx_Log(gxlog::XFORM_RAW, transform, 0, &m2, sizeof(Matrix4x4), gxlog::SENT);	// GeneralsX: WS-G Task 5
 		if (DX8Ring::Recording) { DX8Ring::Rec_Transform(transform,(const D3DMATRIX*)&m2); break; }
 		DX8CALL(SetTransform(transform,(D3DMATRIX*)&m2));
 		break;
@@ -1944,7 +1944,7 @@ WWINLINE bool DX8Wrapper::Is_View_Identity()
 	return !!(render_state_changed&(unsigned)VIEW_IDENTITY);
 }
 
-// GeneralsX @refactor BenderAI 10/02/2026
+// GeneralsX:
 // Applied fighter19 pattern: transpose back when reading stored matrices
 WWINLINE void DX8Wrapper::Get_Transform(D3DTRANSFORMSTATETYPE transform, Matrix4x4& m)
 {
@@ -1981,7 +1981,7 @@ WWINLINE bool DX8Wrapper::Is_Light_Enabled(unsigned index)
 WWINLINE void DX8Wrapper::Set_Render_State(const RenderStateStruct& state)
 {
 	int i;
-	if (GxLogOn && GxLogParent == 0) Gx_Log_Render_State(gxlog::SET_RENDER_STATE, 0, state);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log_Render_State(gxlog::SET_RENDER_STATE, 0, state);	// GeneralsX: WS-G Task 5
 
 	if (render_state.index_buffer) {
 		render_state.index_buffer->Release_Engine_Ref();

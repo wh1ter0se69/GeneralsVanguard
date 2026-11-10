@@ -45,7 +45,7 @@ typedef void* HKEY;  // Stub type for Linux (unused but needed for compilation)
 #include <unistd.h>
 #endif
 
-// GeneralsX @bugfix Claude 01/10/2026 The language autodetect below was Unix-only; Windows needs it too when
+// GeneralsX: The language autodetect below was Unix-only; Windows needs it too when
 // the registry has no Language key (a non-English Steam install), else the game asks for English assets that
 // are not there. Moved out of the _UNIX block unchanged (stat/getenv exist on MSVC). tsh batch2 #373, idea of
 // Generals Online 9b43c29e6 (reimplemented).
@@ -53,7 +53,7 @@ typedef void* HKEY;  // Stub type for Linux (unused but needed for compilation)
 #include <stdlib.h>
 #include <sys/stat.h>
 
-// GeneralsX @bugfix GitHubCopilot 16/03/2026 Detect language BIGs in configured asset roots, not only CWD.
+// GeneralsX: Detect language BIGs in configured asset roots, not only CWD.
 static Bool doesLanguageBigExist(const char* rootPath, const char* bigFile)
 {
 	struct stat st;
@@ -152,13 +152,13 @@ static Bool tryAutoDetectLanguage(AsciiString& val)
 // Game gracefully degrades to default values (later can be replaced with INI files)
 #ifdef _UNIX
 
-// GeneralsX @feature GitHubCopilot 29/03/2026 Persist non-Windows registry values in registry.ini.
+// GeneralsX: Persist non-Windows registry values in registry.ini.
 static const char *getRegistryIniRoot(HKEY root)
 {
 	return root == HKEY_LOCAL_MACHINE ? RegistryIni::LocalMachineRoot() : RegistryIni::CurrentUserRoot();
 }
 
-// GeneralsX @feature GitHubCopilot 29/03/2026 Route low-level non-Windows registry reads through registry.ini.
+// GeneralsX: Route low-level non-Windows registry reads through registry.ini.
 Bool  getStringFromRegistry(HKEY root, AsciiString path, AsciiString key, AsciiString& val)
 {
 	std::string storedValue;
@@ -408,7 +408,7 @@ Bool GetStringFromRegistry(AsciiString path, AsciiString key, AsciiString& val)
 		return TRUE;
 	}
 
-	// GeneralsX @bugfix Claude 01/10/2026 No Language key in either hive: detect it from the language BIGs, as the
+	// GeneralsX: No Language key in either hive: detect it from the language BIGs, as the
 	// Unix build already does (tsh batch2 #373).
 	if (key == "Language")
 		return tryAutoDetectLanguage(val);

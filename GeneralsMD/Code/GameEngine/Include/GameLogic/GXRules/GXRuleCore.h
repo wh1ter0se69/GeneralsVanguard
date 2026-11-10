@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 30/10/2026 AI RULE BANK core (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.2, 2.2.4, 2.2.5, 2.2.8; rb-core
+// GeneralsX: AI RULE BANK core (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.2, 2.2.4, 2.2.5, 2.2.8; rb-core
 // plan D3/D4). Everything the bank decides that does not need the engine, as plain C++17 over a Registry: one AI player's configuration
 // (the three scb actions' clamp / unknown / tier / window / conflict rules), the unit-claim and money-reserve tables, the scheduler's
 // due-test, gxRuleHash, and the bank's save block over an abstract byte stream. No engine type, no global state, no I/O, no RNG;
@@ -540,7 +540,7 @@ public:
 	virtual void xferState(int rule, unsigned short savedVersion, ByteIO &io) = 0;	///< save: the binary's version; load: the saved one
 };
 
-/// One rule's state block on LOAD, held to the block's saved size (Codex core-r1-lensA P1: XferLoad::endBlock checks nothing, so a rule
+/// One rule's state block on LOAD, held to the block's saved size (XferLoad::endBlock checks nothing, so a rule
 /// that read more than it saved would eat the next rule's bytes). A read that would pass the budget refuses the load at once; a rule
 /// that read LESS (an older layout it knows how to read) has the rest of its block skipped.
 class BudgetIO : public ByteIO
@@ -552,7 +552,7 @@ public:
 	virtual void u16(unsigned short *v) override { take(2); m_io.u16(v); }
 	virtual void i32(int *v) override { take(4); m_io.i32(v); }
 	virtual void u32(unsigned *v) override { take(4); m_io.u32(v); }
-	/// the length byte FIRST, checked against the budget, then exactly that many bytes (Codex core-r2-lensA P1: the stream's own string read
+	/// the length byte FIRST, checked against the budget, then exactly that many bytes (the stream's own string read
 	/// would consume the whole announced payload before any check could refuse it; embedded NULs are kept as bytes)
 	virtual void str(std::string *v) override
 	{
@@ -885,7 +885,7 @@ inline int seenOwner(int realOwner, bool disguised, int disguiseOwner, int realO
 	return (disguised && disguiseOwner >= 0 && realOwnerToViewer != REL_ALLIES) ? disguiseOwner : realOwner;
 }
 /// a SEEN object adds its cost to enemyValueNear only when its (seen) template can carry a weapon and is neither a dozer nor a harvester
-/// (Codex core-r2-lensB P2: each exclusion tested on its own here - no harvester in the data is armed, so a fixture cannot)
+/// (each exclusion tested on its own here - no harvester in the data is armed, so a fixture cannot)
 inline bool countsAsThreat(bool armed, bool dozer, bool harvester)
 {
 	return armed && !dozer && !harvester;
@@ -952,14 +952,14 @@ inline bool senseOpen(const FactionSense &s)
 }
 /// whether a bank runs the sighting pass at all: decided ONCE per game from the scripts (scriptsAsk = some loaded script list holds an
 /// AI_PLAYER_GX_SENSE condition - the same on every peer and in a replay), never by a question being evaluated: a client-local condition
-/// before it in an AND would make only some peers look (Codex sense-r3 P1). Never in a RETAIL_COMPATIBLE_XFER_SAVE build: its saves carry
-/// no bank block, so a faction learned by sight would be lost by a save/load (Codex sense-r1 P1) - there a Random slot stays unknown.
+/// before it in an AND would make only some peers look. Never in a RETAIL_COMPATIBLE_XFER_SAVE build: its saves carry
+/// no bank block, so a faction learned by sight would be lost by a save/load - there a Random slot stays unknown.
 inline bool senseShouldSample(bool scriptsAsk, bool retailSave)
 {
 	return scriptsAsk && !retailSave;
 }
-/// a LOADED sighting state stands only on a player the lobby showed as Random (tracked): anything else is a crafted save (Codex sense-r3
-/// P1: "known by sight" on the neutral player or a lobby-known slot would answer TRUE) and refuses the load
+/// a LOADED sighting state stands only on a player the lobby showed as Random (tracked): anything else is a crafted save (:
+/// "known by sight" on the neutral player or a lobby-known slot would answer TRUE) and refuses the load
 inline bool senseStateFitsLobby(const std::vector<FactionSense> &all)
 {
 	for (size_t i = 0; i < all.size(); ++i)
@@ -967,7 +967,7 @@ inline bool senseStateFitsLobby(const std::vector<FactionSense> &all)
 			return false;
 	return true;
 }
-/// a LOADED sighting state names only what the pass can have seen (Codex sense-r4 P1): every template it holds exists and is of its seen
+/// a LOADED sighting state names only what the pass can have seen: every template it holds exists and is of its seen
 /// side (baseOf(name) = the template's BASE side, "" for none or no such template - so the seen side is a base side, never a general's;
 /// senseXfer already refuses a seen side with no template)
 template <class BaseOf>
@@ -1073,7 +1073,7 @@ inline void senseXfer(ByteIO &io, std::vector<FactionSense> &all, bool *wanted)
 		io.u8(&nt);
 		if (idx >= all.size() || seen[idx] || mixed > 1 || nt > (unsigned char)SENSE_SIGHT_TEMPLATES)
 			io.refuse();
-		// a NUL inside a name: the engine's C strings end there, so "a\0x" would be "a" again (Codex sense-r5 P1)
+		// a NUL inside a name: the engine's C strings end there, so "a\0x" would be "a" again
 		if (known.find('\0') != std::string::npos || base.find('\0') != std::string::npos)
 			io.refuse();
 		seen[idx] = true;
@@ -1084,7 +1084,7 @@ inline void senseXfer(ByteIO &io, std::vector<FactionSense> &all, bool *wanted)
 			io.str(&t);
 			for (size_t j = 0; j < s.tmpl.size(); ++j)
 				if (s.tmpl[j] == t)
-					io.refuse();	// one template twice is not two sightings (Codex sense-r1 P1)
+					io.refuse();	// one template twice is not two sightings
 			if (t.empty() || t.find('\0') != std::string::npos)
 				io.refuse();
 			s.tmpl.push_back(t);
@@ -1098,14 +1098,14 @@ inline void senseXfer(ByteIO &io, std::vector<FactionSense> &all, bool *wanted)
 		if (base.empty() && (nt != 0 || mixed != 0))
 			io.refuse();	// a template or a second side is only ever recorded against a first seen side
 		if (!base.empty() && nt == 0)
-			io.refuse();	// ...and a first seen side always with its template (Codex sense-r2 P1: else it would block learning for good)
+			io.refuse();	// ...and a first seen side always with its template (else it would block learning for good)
 		s.known = known;
 		s.seenBase = base;
 		s.mixed = mixed != 0;
 	}
 }
 
-/// the bank's loader of its SENSE block: ONE per bank block (Codex sense-r4 P1: a crafted second one would clear what the first restored
+/// the bank's loader of its SENSE block: ONE per bank block (a crafted second one would clear what the first restored
 /// and leave the lobby half unread), then senseXfer
 inline void senseLoadBlock(ByteIO &io, std::vector<FactionSense> &all, bool *wanted, bool *loadedOnce)
 {

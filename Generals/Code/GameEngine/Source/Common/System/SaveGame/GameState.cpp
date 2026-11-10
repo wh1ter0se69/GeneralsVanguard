@@ -344,7 +344,7 @@ void GameState::init()
 	addSnapshotBlock( "CHUNK_ParticleSystem",					TheParticleSystemManager,	SNAPSHOT_SAVELOAD );
 	addSnapshotBlock( "CHUNK_TerrainVisual",					TheTerrainVisual,					SNAPSHOT_SAVELOAD );
 	addSnapshotBlock( "CHUNK_GhostObject",						TheGhostObjectManager,		SNAPSHOT_SAVELOAD );
-	// GeneralsX @bugfix Claude 25/09/2026 LAST, and only in a save: a loader that does not know it skips it by its size.
+	// GeneralsX: LAST, and only in a save: a loader that does not know it skips it by its size.
 	addSnapshotBlock( "CHUNK_GXCheatReveal",					TheGXCheatRevealState,		SNAPSHOT_SAVELOAD );
 	addSnapshotBlock( "CHUNK_GXPathfindQueue",				TheGXPathfindQueueState,	SNAPSHOT_SAVELOAD );
 
@@ -590,15 +590,15 @@ SaveResult GameState::saveGame( AsciiString filename, UnicodeString desc,
 	m_gameInfo.description = desc;
 
 	// open the save file
-	// GeneralsX @bugfix Claude 06/10/2026 Write the save to a temporary file and put it in place of the save only once it
+	// GeneralsX: Write the save to a temporary file and put it in place of the save only once it
 	// is complete. Opening the real path truncated it before the first block was written, so a save that failed halfway
 	// (a full disk, a block error) left a truncated file where the player's earlier save in that slot had been, and the
 	// list then silently dropped it (sweep c153-02).
 	// The temporary sits next to the save (same folder, same volume, whatever links the player made: one rename puts it
-	// in place) and swaps ".sav" for ".tmp", so its path is no longer than the save's (Codex r1). It is only ever
+	// in place) and swaps ".sav" for ".tmp", so its path is no longer than the save's. It is only ever
 	// CREATED (openNew): an existing file under that name - a leftover, or the map a crafted save extracted as an alias
-	// of it, which this very save reads back - is never truncated; the next of ten names is tried instead (Codex r2-r4).
-	// ponytail: ten names, so ten leftovers from saves killed mid-write make this slot unsavable (SC_UNABLE_TO_OPEN_FILE);
+	// of it, which this very save reads back - is never truncated; the next of ten names is tried instead.
+	// Trade-off: ten names, so ten leftovers from saves killed mid-write make this slot unsavable (SC_UNABLE_TO_OPEN_FILE);
 	// delete stale ".tm?" files in the save list's scan if that ever happens.
 	AsciiString tmpBase = filepath;
 	if( tmpBase.endsWithNoCase( ".sav" ) )
@@ -865,7 +865,7 @@ void GameState::loadQueuedSaveGame()
 AsciiString GameState::getSaveDirectory() const
 {
 	AsciiString tmp = TheGlobalData->getPath_UserData();
-	// GeneralsX @bugfix copilot 12/03/2026 Use POSIX separator on non-Windows so saves are created inside a real Save directory.
+	// GeneralsX: Use POSIX separator on non-Windows so saves are created inside a real Save directory.
 #ifdef _WIN32
 	tmp.concat("Save\\");
 #else
@@ -940,7 +940,7 @@ static const char* findLastPathSeparatorInRangeInclusive(const char* start, cons
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/08/2026 Portable map paths are NOT separator-portable, and the map
+// GeneralsX: Portable map paths are NOT separator-portable, and the map
 // cache key is a raw string compare, so the two have to be brought into the same shape here.
 //
 // MapCache keys are whatever the enumerator returned, which is platform-native throughout:
@@ -978,7 +978,7 @@ static AsciiString toPlatformPathSeparators(const AsciiString& in)
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/08/2026 Make the PORTABLE path actually portable.
+// GeneralsX: Make the PORTABLE path actually portable.
 //
 // A portable map path goes ON THE WIRE and is CRC'd on both sides: LANAPI::RequestHasMap CRCs it
 // into MapStatus.mapCRC, and LANAPI::handleHasMap recomputes it locally and SILENTLY RETURNS on a
@@ -1066,7 +1066,7 @@ AsciiString GameState::realMapPathToPortableMapPath(const AsciiString& in) const
 		DEBUG_CRASH(("Map file was not found in any of the expected directories; this is impossible"));
 		//throw INI_INVALID_DATA;
 		// uncaught exceptions crash us. better to just use a bad path.
-		// GeneralsX @bugfix Claude 11/08/2026 Release-visible, capped: this "bad path" is invisible
+		// GeneralsX: Release-visible, capped: this "bad path" is invisible
 		// in shipping builds (DEBUG_CRASH compiles out) yet it used to go on the WIRE as a
 		// "portable" name the far side silently refuses. The send path now checks
 		// isPortableFilePath and refuses to announce; this log is how an operator learns which
@@ -1080,7 +1080,7 @@ AsciiString GameState::realMapPathToPortableMapPath(const AsciiString& in) const
 		}
 		prefix = in;
 	}
-	// GeneralsX @bugfix Claude 10/08/2026 Canonical separator BEFORE toLower, so the string this
+	// GeneralsX: Canonical separator BEFORE toLower, so the string this
 	// returns is byte-identical on every platform. It is CRC'd across the wire - see
 	// toPortablePathSeparators above for what a per-platform spelling costs.
 	prefix = toPortablePathSeparators(prefix);
@@ -1089,7 +1089,7 @@ AsciiString GameState::realMapPathToPortableMapPath(const AsciiString& in) const
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 11/08/2026 TRUE iff this string is a genuinely portable path - one of
+// GeneralsX: TRUE iff this string is a genuinely portable path - one of
 // the three PORTABLE_* families realMapPathToPortableMapPath can produce on its non-fallback
 // branches. The fallback ships the raw local input as a "portable" name; every receiver's
 // normalization refuses that silently, so the sender must be able to recognise it BEFORE putting
@@ -1122,7 +1122,7 @@ AsciiString GameState::portableMapPathToRealMapPath(const AsciiString& in) const
 		containingBasePath = prefix;
 		prefix.concat(getMapLeafAndDirName(in));
 
-		// GeneralsX @bugfix Claude 10/08/2026 Platform-native separators, computed DETERMINISTICALLY.
+		// GeneralsX: Platform-native separators, computed DETERMINISTICALLY.
 		// archive-backed (backslash key on every platform) or loose on disk (native key), so this
 		// has to follow the cache rather than assume either.
 		prefix = toPlatformPathSeparators(prefix);
@@ -1136,7 +1136,7 @@ AsciiString GameState::portableMapPathToRealMapPath(const AsciiString& in) const
 		containingBasePath = prefix;
 		prefix.concat(getMapLeafAndDirName(in));
 
-		// GeneralsX @bugfix Claude 10/08/2026 The reported bug. User maps are always loose on disk,
+		// GeneralsX: The reported bug. User maps are always loose on disk,
 		// so the key is platform-native, while this string was built with a hard-coded '\\' join and
 		// a tail that crossed the wire un-normalised. Same cache-following treatment as the stock
 		// branch, which also gets the not-yet-cached case right: a map being RECEIVED is not in the
@@ -1157,7 +1157,7 @@ AsciiString GameState::portableMapPathToRealMapPath(const AsciiString& in) const
 		DEBUG_LOG(("Normalized file path for '%s' was outside the expected base path of '%s'.", prefix.str(), containingBasePath.str()));
 		return AsciiString::TheEmptyString;
 	}
-	// GeneralsX @bugfix Copilot 02/04/2026 Preserve path casing on macOS/Linux to avoid load failures on case-sensitive filesystems.
+	// GeneralsX: Preserve path casing on macOS/Linux to avoid load failures on case-sensitive filesystems.
 #ifdef _WIN32
 	prefix.toLower();
 #endif
@@ -1485,7 +1485,7 @@ void GameState::iterateSaveFiles( IterateSaveFileCallback callback, void *userDa
 	if( callback == nullptr )
 		return;
 
-	// GeneralsX @bugfix Claude 01/10/2026 Both branches used to change the process working directory
+	// GeneralsX: Both branches used to change the process working directory
 	// to the Save folder for the scan (and the Windows one ignored a failed change, then listed the
 	// game directory). The cwd is process-wide - dataID and any other thread's relative path resolve
 	// against it - and nothing here needs it: the callbacks get bare leaf names and resolve them
@@ -1495,7 +1495,7 @@ void GameState::iterateSaveFiles( IterateSaveFileCallback callback, void *userDa
 	WIN32_FIND_DATA item;  // search item
 	HANDLE hFile = INVALID_HANDLE_VALUE;  // handle for search resources
 #else
-	// GeneralsX @bugfix Copilot 02/04/2026 Add robust save-file iteration on macOS/Linux.
+	// GeneralsX: Add robust save-file iteration on macOS/Linux.
 	AsciiString saveDirPath = getSaveDirectory();
 
 	try {
@@ -1729,7 +1729,7 @@ void GameState::xferSaveData( Xfer *xfer, SnapshotType which )
 				catch( XferStatus status )
 				{
 
-					// GeneralsX @bugfix Claude 06/10/2026 say WHY a load failed (the generic catch below prints nothing in a release build)
+					// GeneralsX: say WHY a load failed (the generic catch below prints nothing in a release build)
 					fprintf( stderr, "[SAVELOAD] load failed in block '%s' of '%s': xfer status %d\n",
 						blockInfo->blockName.str(), xfer->getIdentifier().str(), (Int)status );
 					throw;
@@ -1835,7 +1835,7 @@ void GameState::xfer( Xfer *xfer )
 {
 
 	// version
-	// GeneralsX @feature Claude 06/11/2026 3: marks the 40-Player layout (MAX_PLAYER_COUNT 16 -> 40, 64-bit player
+	// GeneralsX: 3: marks the 40-Player layout (MAX_PLAYER_COUNT 16 -> 40, 64-bit player
 	// masks, shared Core header) of every later block. Version 2 and older are refused at load, as in Zero Hour.
 	XferVersion currentVersion = 3;
 	XferVersion version = currentVersion;

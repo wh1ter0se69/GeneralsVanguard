@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank, DATA half: the ruleset compiler (C·rb-data; gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.9,
+# GeneralsX: rule bank, DATA half: the ruleset compiler (C·rb-data; gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.9,
 # CONTRACT v1 in 2.6). A ruleset file (JSON, schema gx-ruleset/1) compiles to a loose SkirmishScripts.scb plus a manifest:
 #
 #   base   = the recipe's own output (make-skirmish-scripts.py build_base, BASE_SHA256) - never edited in place
@@ -374,7 +374,7 @@ def static_checks(entries, registry, rule_ids, mods, gate, groups=None, stock_te
             if a['id'] in mods and b['id'] in mods:
                 ca, cb, shared = claims_of(mods[a['id']]), claims_of(mods[b['id']]), set(a['generals']) & set(b['generals'])
                 ka, kb = matchup_key(mods[a['id']]), matchup_key(mods[b['id']])
-                # a stock group's claim covers its member scripts: switching the group off reaches every one (Codex rbd-r4-lensB 6)
+                # a stock group's claim covers its member scripts: switching the group off reaches every one
                 cover = lambda c: {tuple(x) for x in c['scripts'] + c['groups'] if x[0] in shared} | \
                     {(o, m) for o, g in c['groups'] if o in shared for m in (groups or {}).get(o, {}).get(g, [])}
                 hit = sorted(cover(ca) & cover(cb))
@@ -410,7 +410,7 @@ def apply_tier(mss, base, entries, mods, ctx, audit, toc=None):
             mods[e['id']].apply(scb, list(e['generals']), dict(e['params']))
         except AssertionError as x:
             raise Refused('%s: the module refused to apply: %s' % (e['id'], x))
-        except Exception as x:                  # e.g. a write into the read-only team view (Codex rbd-r2-lensB 8)
+        except Exception as x:                  # e.g. a write into the read-only team view
             raise Refused('%s: the module crashed: %s: %s' % (e['id'], type(x).__name__, x))
         scb = mss.SCB(scb.write())          # judge what was written, not the module's objects
         try:
@@ -437,7 +437,7 @@ def apply_tier(mss, base, entries, mods, ctx, audit, toc=None):
     keys = {e['id']: matchup_key(mods[e['id']]) for e in on}
     GUARDS.final_claims_overlap(SCBX, scb, on, ctx['claims'], Refused, keys, ctx['stock_teams'])
     GUARDS.matchup_final(SCBX, mss.SCB(base), scb, on, keys, ctx['claims'], Refused)
-    sets = audit.setdefault('new_priority_sets', {})                  # every tier's, not the last one's (Codex rbd-r8-lensA)
+    sets = audit.setdefault('new_priority_sets', {})                  # every tier's, not the last one's
     for v, owners in GUARDS.whole_file(SCBX, scb, ctx).items():
         sets[v] = sorted(set(sets.get(v, [])) | set(owners))
     return scb
@@ -560,7 +560,7 @@ def promote_default(manifest, ruleset_data, scb_data, dst, mss=None, base=None, 
     out, _man = compile_ruleset(mss, base, ruleset_data, tier_gate='on', registry=registry, rule_ids=rule_ids, module_dirs=module_dirs)
     if out != scb_data:
         raise Refused('promote: the ruleset recompiles to %s, not the scb given (%s)' % (sha256(out)[:12], sha256(scb_data)[:12]))
-    for k in ('counters', 'flags'):                  # a shipped default meets every lobby, not a retail map (Codex rbd-r11-lensB)
+    for k in ('counters', 'flags'):                  # a shipped default meets every lobby, not a retail map
         mp = _man['pool_budget'][k]['max_players']
         if mp < GUARDS.LOBBY_PLAYERS:
             raise Refused('promote: %d players of the heaviest general fill the engine\'s %s pool (%d per player, %d slots), a lobby holds'

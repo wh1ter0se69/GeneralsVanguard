@@ -58,7 +58,7 @@ TextureFilterClass::TextureFilterMode TextureFilterClass::getTextureFilterMode(c
 	return TextureFilterClass::TEXTURE_FILTER_NONE;
 }
 
-// GeneralsX @bugfix Claude 05/10/2026 THE DEFAULT IS WHAT PLAYERS ACTUALLY SAW: ANISOTROPIC 16X.
+// GeneralsX: THE DEFAULT IS WHAT PLAYERS ACTUALLY SAW: ANISOTROPIC 16X.
 //
 // Every shipped dxvk.conf forced d3d9.samplerAnisotropy = 16, which DXVK applies to every mipped
 // sampler above POINT whatever the game asked for (d3d9_device.cpp, BindSampler). So Bilinear,

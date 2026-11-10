@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 09/09/2026 The GXM1 in-match record envelope - the format half.
+// GeneralsX: The GXM1 in-match record envelope - the format half.
 //
 // WHAT THIS IS FOR. In-game chat is AUDIENCE-SCOPED: InGameChat.cpp builds a playerMask per chat
 // type and ConnectionManager.cpp:1028 enforces it on receive. The relay's GXCHT carries no mask and
@@ -27,13 +27,13 @@
 // receive it.
 //
 //   GXREC <room> GXM3 <mask:16 hex lowercase> <slot:2 hex> <chan:[eapd]> <flags:1 hex> <utf8 text>
-//   (GeneralsX @feature Claude 06/11/2026 scale32: THIS CLIENT NOW WRITES GXM3. 34 slots need a 34-bit mask; the contract with
+//   (GeneralsX: scale32: THIS CLIENT NOW WRITES GXM3. 34 slots need a 34-bit mask; the contract with
 //   the relay (D scale32-relay) is a fixed 16-digit field = a 64-bit RelayMaskType, slot at most 0x21, header 29 bytes, text
 //   budget 171. GXM2 - "GXREC <room> GXM2 <mask:4 hex> <slot:2 hex> <chan> <flags> <text>", header 17, text 183, mask at most
 //   0x3FFF, slot at most 0x0D - is what 14-slot clients wrote; this header no longer parses or writes it, the relay still reads it.)
 //   (GXM1 was "GXCHT <room> GXM1 <mask:3 hex> ...", and briefly "GXREC <room> GXM1 ..." - see below)
 //
-// GeneralsX @bugfix Claude 25/09/2026 GXREC, NOT GXCHT. The envelope used to ride GXCHT, which every relay
+// GeneralsX: GXREC, NOT GXCHT. The envelope used to ride GXCHT, which every relay
 // older than parseMatchRecord fans out to the room as chat - so a client that wrongly believed its relay
 // records (a relay rolled back mid-match) published the line it was protecting. An unknown GXREC is dropped
 // by every relay since 07/08/2026 instead (relay.js forward()). The relay still reads GXCHT GXM1 from a
@@ -43,7 +43,7 @@
 // field: an anchored, exact-width grammar is the only thing standing between a record and a chat
 // line a player typed by hand, and a variable-width header cannot be anchored.
 //
-// GeneralsX @feature Claude 25/09/2026 AND THIS IS THAT BUMP. GXM1 carried a three-digit mask and a slot
+// GeneralsX: AND THIS IS THAT BUMP. GXM1 carried a three-digit mask and a slot
 // of at most 0x0b, because MAX_SLOTS was 12. Fourteen slots (12 players + 2 observers) need a fourteen-bit
 // mask - four digits - so this client writes GXM2, which differs from GXM1 in the mask width and the
 // bounds alone - and in its CARRIER: GXM2 rides "GXREC", never "GXCHT", because a relay that knows only
@@ -86,7 +86,7 @@ static const int GX_MATCH_SLOT_MAX = 0x21;
 /// Does this GX_MATCH_RECORD value turn recording ON? `value` is getenv's answer, so a NULL means
 /// the variable is not set at all.
 ///
-/// GeneralsX @bugfix Claude 16/09/2026 DARK BY DEFAULT, AND THE POLARITY IS THE WHOLE FIX.
+/// GeneralsX: DARK BY DEFAULT, AND THE POLARITY IS THE WHOLE FIX.
 ///
 /// This used to be the other way round: recording was on unless the variable said "0". That default
 /// is the leak this envelope exists to prevent, wearing the envelope's own clothes. The envelope is
@@ -115,7 +115,7 @@ inline int gxMatchRecordOptInFromEnv( const char *value )
 /// WHAT WAS MISSING, written on the code rather than in a dropoff: a relay->client statement that the relay
 /// records the envelope, so that a client need not rely on the GX_MATCH_RECORD environment variable nobody sets.
 ///
-/// GeneralsX @bugfix Claude 25/09/2026 LANDED, AND IT IS A HINT, NOT THE GATE. The word is 'gxm1' on GXAUTH
+/// GeneralsX: LANDED, AND IT IS A HINT, NOT THE GATE. The word is 'gxm1' on GXAUTH
 /// (relay.js GXM1_CAP) - "this relay records the in-match envelope", GXM1 or GXM2 - read by the lobby presence
 /// socket and by the match transport (GXMatchChat.h gxMatchRecordEnabled). But no capability can take
 /// recording dark "within one keepalive" of a rollback: the presence socket is suspended for the match and never
@@ -438,7 +438,7 @@ inline int gxMatchWideFromCodepoint( unsigned int cp, wchar_t *out, int outCount
 /// must produce no datagram at all rather than a well-formed datagram claiming an audience the
 /// sender never chose.
 ///
-/// GeneralsX @bugfix Claude 16/09/2026 WHAT A HAND-TYPED ENVELOPE ACTUALLY COSTS, corrected. This
+/// GeneralsX: WHAT A HAND-TYPED ENVELOPE ACTUALLY COSTS, corrected. This
 /// note used to be filed under "self-inflicted, visible to nobody else, and costs one line", and
 /// that is true of only the fields the relay overrides. relay.js takes nick, sub, member_ip, room
 /// and session_id from the MEMBER RECORD (relay.js matchRecord, the `sinkEmit` call) and cannot be

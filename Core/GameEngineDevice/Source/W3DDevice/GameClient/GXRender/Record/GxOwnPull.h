@@ -1,4 +1,4 @@
-// GeneralsX @feature E · look-shadowmaps-7 18/10/2026 S7 PREREG A79 / A79a-c: the OWN-LIGHT PULL, the one definition both sides use.
+// GeneralsX: S7 PREREG A79 / A79a-c: the OWN-LIGHT PULL, the one definition both sides use.
 //
 // A clamped instance's caster copy is A41's vertical scale S (z' = z0 + mu (z - z0)). For the 89-deg class (aircraft, helicopters) mu is
 // ~0.005-0.025, so the copy is a sheet ~0.2-0.5 wu above the ground, while the caster pass's slope bias pushes it ~2-3 wu back along the

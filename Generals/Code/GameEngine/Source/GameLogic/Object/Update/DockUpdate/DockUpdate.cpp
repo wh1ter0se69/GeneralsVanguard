@@ -36,7 +36,7 @@
 #include "GameLogic/PartitionManager.h"
 #include "GameLogic/Module/DockUpdate.h"
 
-// GeneralsX @bugfix Claude 06/10/2026 The most approach positions a dynamic dock grows to, and so the most a save may hold
+// GeneralsX: The most approach positions a dynamic dock grows to, and so the most a save may hold
 // (reserveApproachPosition, xfer) - one per simultaneous docker; no game comes near it (sweep c041-01).
 static const Int MAX_DYNAMIC_APPROACH_POSITIONS = 65536;
 
@@ -169,8 +169,8 @@ Bool DockUpdate::reserveApproachPosition( Object* docker, Coord3D *position, Int
 	}
 
 	// If I make it out of the loop, I am full, so dynamic approach buildings should make a new entry instead of saying no
-	// GeneralsX @bugfix Claude 06/10/2026 ...up to MAX_DYNAMIC_APPROACH_POSITIONS, the most a save may hold (xfer refuses more):
-	// without this cap a dock could grow past what its own save can load (Codex r1, sweep c041-01). No game comes near it.
+	// GeneralsX: ...up to MAX_DYNAMIC_APPROACH_POSITIONS, the most a save may hold (xfer refuses more):
+	// without this cap a dock could grow past what its own save can load (sweep c041-01). No game comes near it.
 	if( m_numberApproachPositions == DYNAMIC_APPROACH_VECTOR_FLAG && (Int)m_approachPositions.size() < MAX_DYNAMIC_APPROACH_POSITIONS )
 	{
 		Coord3D zero;
@@ -577,9 +577,9 @@ void DockUpdate::xfer( Xfer *xfer )
 
 	// # approach positions
 	const Int numberApproachPositionsFromData = m_numberApproachPositions;	// the constructor set it from the module data
-	// GeneralsX @bugfix Claude 06/10/2026 A load that fails from here on - a refusal below, or a short read (even one that
+	// GeneralsX: A load that fails from here on - a refusal below, or a short read (even one that
 	// half-writes this count) - leaves the dock as a consistent one: its constructor's count, and three vectors of one size.
-	// The refused load still runs game code before its reset (Codex r1-r3, sweep c041-01).
+	// The refused load still runs game code before its reset (sweep c041-01).
 	try
 	{
 
@@ -591,13 +591,13 @@ void DockUpdate::xfer( Xfer *xfer )
 	// approach positions
 	Int vectorSize = m_approachPositions.size();
 	xfer->xferInt( &vectorSize );
-	// GeneralsX @bugfix Claude 06/10/2026 Refuse a save whose counts this dock cannot have. All three sizes came from the
+	// GeneralsX: Refuse a save whose counts this dock cannot have. All three sizes came from the
 	// file with no bound: a negative or huge one allocated gigabytes (or, through the allocator's Int narrowing, a tiny
 	// block), and owners/reached larger than the positions let reserveApproachPosition index past m_approachPositions.
 	// Only a dynamic dock (DYNAMIC_APPROACH_VECTOR_FLAG) ever grows, one entry per simultaneous docker; a fixed one keeps
 	// m_numberApproachPositions entries, a count that never changes after the constructor (loadDockPositions copies that
 	// many bones into a DEFAULT_APPROACH_VECTOR_SIZE stack array) (sweep c041-01).
-	// A refusal leaves the dock as its constructor made it: the refused load still runs game code before its reset (Codex r1).
+	// A refusal leaves the dock as its constructor made it: the refused load still runs game code before its reset.
 	if( xfer->getXferMode() == XFER_LOAD )
 	{
 		const Bool isDynamic = ( m_numberApproachPositions == DYNAMIC_APPROACH_VECTOR_FLAG );
@@ -619,7 +619,7 @@ void DockUpdate::xfer( Xfer *xfer )
 	vectorSize = m_approachPositionOwners.size();
 	xfer->xferInt( &vectorSize );
 	if( xfer->getXferMode() == XFER_LOAD && vectorSize != (Int)m_approachPositions.size() )
-		throw XFER_INVALID_PARAMETERS;	// GeneralsX @bugfix Claude 06/10/2026 one owner per position (sweep c041-01)
+		throw XFER_INVALID_PARAMETERS;	// GeneralsX: one owner per position (sweep c041-01)
 	m_approachPositionOwners.resize(vectorSize);
 	for( vectorIndex = 0; vectorIndex < vectorSize; ++vectorIndex )
 	{
@@ -630,14 +630,14 @@ void DockUpdate::xfer( Xfer *xfer )
 	vectorSize = m_approachPositionReached.size();
 	xfer->xferInt( &vectorSize );
 	if( xfer->getXferMode() == XFER_LOAD && vectorSize != (Int)m_approachPositions.size() )
-		throw XFER_INVALID_PARAMETERS;	// GeneralsX @bugfix Claude 06/10/2026 one flag per position (sweep c041-01)
+		throw XFER_INVALID_PARAMETERS;	// GeneralsX: one flag per position (sweep c041-01)
 	m_approachPositionReached.resize(vectorSize);
 	for( vectorIndex = 0; vectorIndex < vectorSize; ++vectorIndex )
 	{
 		// Vector of Bool gets packed as bitfield internally
 		Bool unpack = m_approachPositionReached[vectorIndex];
 		xfer->xferBool( &unpack );
-		// GeneralsX @bugfix Claude 24/09/2026 Ported by hand from upstream PR #3117 (5da068845). The load
+		// GeneralsX: Ported by hand from upstream PR #3117 (5da068845). The load
 		// direction never copied the temporary back, so every "approach reached" flag came out of a
 		// savegame FALSE. Zero Hour's copy already had this fix (GeneralsX, 25/07/2026).
 		m_approachPositionReached[vectorIndex] = unpack;

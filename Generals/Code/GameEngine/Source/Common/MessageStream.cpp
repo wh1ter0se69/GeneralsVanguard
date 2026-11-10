@@ -650,7 +650,7 @@ const char *GameMessage::getCommandTypeAsString(GameMessage::Type t)
 	CASE_LABEL(MSG_ENABLE_RETALIATION_MODE)
 	CASE_LABEL(MSG_BEGIN_DEBUG_NETWORK_MESSAGES)
 
-// GeneralsX @bugfix Claude 10/08/2026 Combined gate, matching the enum declaration and the
+// GeneralsX: Combined gate, matching the enum declaration and the
 // GeneralsMD twin - a cheats-in-release build dispatches these, and without the labels the
 // recorder and logic diagnostics report them as UnknownMessage.
 #if defined(RTS_DEBUG) || defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)

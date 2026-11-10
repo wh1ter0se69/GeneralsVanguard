@@ -29,7 +29,7 @@
 // ============================================================================
 // ============================================================================
 // ============================================================================
-// GeneralsX @bugfix Claude 08/10/2026 The arithmetic is ScriptedCameraClock::Ease (Common/ScriptedCameraClock.h): a scripted
+// GeneralsX: The arithmetic is ScriptedCameraClock::Ease (Common/ScriptedCameraClock.h): a scripted
 // camera move's time multiplier follows it, so it is simulation code now and lives in the digest. This class keeps its
 // debug reports.
 void

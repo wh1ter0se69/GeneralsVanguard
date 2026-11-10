@@ -48,7 +48,7 @@
 
 
 // PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
-// GeneralsX @feature Claude 12/08/2026 The shipped .wnd layouts carry exactly this many slot
+// GeneralsX: The shipped .wnd layouts carry exactly this many slot
 // rows. MAX_SLOTS is now larger; lookups for rows past this legitimately return null until the
 // dynamic-row lobby rebuild lands, so the per-row assert below tolerates them.
 enum { LEGACY_WND_SLOT_ROWS = 8 };
@@ -69,7 +69,7 @@ static NameKeyType buttonMapStartPositionID[MAX_SLOTS] = { NAMEKEY_INVALID,NAMEK
 																										NAMEKEY_INVALID,NAMEKEY_INVALID,
 																										NAMEKEY_INVALID,NAMEKEY_INVALID };
 
-// GeneralsX @feature Claude 27/07/2026 Map search field, built in code. LanMapSelectMenu.wnd lives
+// GeneralsX: Map search field, built in code. LanMapSelectMenu.wnd lives
 // inside WindowZH.big and the .wnd editor is Windows-only, so the row is created at runtime against
 // ListboxMap's real rect. Its windows are children of LanMapSelectMenuParent, so the Back/OK paths
 // tear them down with the rest of the overlay.
@@ -134,7 +134,7 @@ static void NullifyControls()
 //-------------------------------------------------------------------------------------------------
 /** Refill the map listbox from the current source radio and the current search filter */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 27/07/2026 One choke point for every repopulate, so the source radio
+// GeneralsX: One choke point for every repopulate, so the source radio
 // and the search text can never drift apart.
 static void repopulateLanMapList( void )
 {
@@ -205,7 +205,7 @@ void LanMapSelectMenuInit( WindowLayout *layout, void *userData )
 	else
 		GadgetRadioSetSelection( radioButtonUserMaps, FALSE );
 
-	// GeneralsX @bugfix Claude 25/09/2026 A 12-PLAYER MAP SHOWED EIGHT START MARKERS.
+	// GeneralsX: A 12-PLAYER MAP SHOWED EIGHT START MARKERS.
 	//
 	// The shipped .wnd authors ButtonMapStartPosition0..7 (the 12/08 note below), so the loop that
 	// follows found nothing for 8.., skipped it, and GXCircle12 / GXCauldron12 drew no marker on
@@ -221,7 +221,7 @@ void LanMapSelectMenuInit( WindowLayout *layout, void *userData )
 		tmpString.format("LanMapSelectMenu.wnd:ButtonMapStartPosition%d", i);
 		buttonMapStartPositionID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		buttonMapStartPosition[i] = TheWindowManager->winGetWindowFromId( winMapPreview, buttonMapStartPositionID[i] );
-		// GeneralsX @bugfix Claude 12/08/2026 SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
+		// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
 		//
 		// The shipped layouts author ButtonMapStartPosition0..7 - read out of WindowZH.big, all
 		// three map screens, exactly 8 rows. MAX_SLOTS became 12, so winGetWindowFromId returns
@@ -249,7 +249,7 @@ void LanMapSelectMenuInit( WindowLayout *layout, void *userData )
 	mapList = TheWindowManager->winGetWindowFromId( parent, mapListID );
 	if( mapList )
 	{
-		// GeneralsX @feature Claude 27/07/2026 Reset the search state up front rather than trusting
+		// GeneralsX: Reset the search state up front rather than trusting
 		// NullifyControls: winDestroy unlinks the windows immediately but GWM_DESTROY is delivered
 		// later from processDestroyList, so a stale entry pointer can still be set when the overlay
 		// is reopened in the frame it was closed.
@@ -411,7 +411,7 @@ WindowMsgHandledType LanMapSelectMenuSystem( GameWindow *window, UnsignedInt msg
 				break;
 			}
 		//---------------------------------------------------------------------------------------------
-		// GeneralsX @feature Claude 27/07/2026 Live map search. GadgetTextEntryInput sends
+		// GeneralsX: Live map search. GadgetTextEntryInput sends
 		// GEM_UPDATE_TEXT to the entry's OWNER on every accepted character and every backspace, and
 		// GEM_EDIT_DONE on Return. The field parents itself to the listbox's parent, which is
 		// LanMapSelectMenuParent — the window this callback is bound to. No .wnd change involved.
@@ -427,7 +427,7 @@ WindowMsgHandledType LanMapSelectMenuSystem( GameWindow *window, UnsignedInt msg
 		{
 			GameWindow *control = (GameWindow *)mData1;
 
-			// GeneralsX @feature Claude 27/07/2026 The clear button is code-created and belongs to no
+			// GeneralsX: The clear button is code-created and belongs to no
 			// .wnd, so let the search field claim it by pointer before anything reads an id off
 			// `control`.
 			if ( lanMapSearchField.handleSystemMsg( msg, control ) )

@@ -42,7 +42,7 @@
 // definition further down for what the missing bound allowed a remote peer to do.
 static NetCommandMsg * readFileMessageBounded(UnsignedByte *data, Int &i, Int bytesAvailable);
 
-// GeneralsX @security Claude 06/10/2026 Zeroed bytes both command walkers parse past the real end of what they were
+// GeneralsX: Zeroed bytes both command walkers parse past the real end of what they were
 // handed, so a reader that takes no length (every fixed-size one; the largest, the latency report, is 2 bytes per slot)
 // or a field header at the very end reads zeros instead of leaving the buffer. The walkers then refuse a command whose
 // reader went past the real end. See getCommandList and ConstructNetCommandMsgFromRawData.
@@ -63,11 +63,11 @@ NetCommandRef * NetPacket::ConstructNetCommandMsgFromRawData(UnsignedByte *data,
 	NetCommandRef *ref = nullptr;
 	NetCommandMsg *msg = nullptr;
 
-	// GeneralsX @bugfix Claude 23/09/2026 A field header plus its value must lie inside the buffer. This
+	// GeneralsX: A field header plus its value must lie inside the buffer. This
 	// buffer is a reassembled wrapper, i.e. peer-supplied; the fixed-size reads below trusted it.
 	auto fieldFits = [&](size_t valueBytes) { return (size_t)offset + 1 + valueBytes <= (size_t)dataLength; };
 
-	// GeneralsX @security Claude 06/10/2026 The body readers below that take no length - every fixed-size one
+	// GeneralsX: The body readers below that take no length - every fixed-size one
 	// (readLatencyReportMessage reads 2 bytes per slot, ...) - trusted the buffer to hold their body, and this one is a
 	// heap block of exactly dataLength bytes, so a 3-byte LATENCYREPORT was read as 28 off its end (sweep v-net-05).
 	// Parse from a copy with zeroed slack after the real bytes, wider than any fixed body, and refuse a command whose
@@ -241,7 +241,7 @@ NetCommandRef * NetPacket::ConstructNetCommandMsgFromRawData(UnsignedByte *data,
 			return ref;
 
 		default:
-			// GeneralsX @bugfix Claude 23/09/2026 This switch had no default, so an unknown field byte
+			// GeneralsX: This switch had no default, so an unknown field byte
 			// left offset where it was and the while loop spun forever - a remote hang from one
 			// malformed wrapper (e.g. a reassembled buffer whose unsent bytes are 0x00). getCommandList's
 			// own default skips a byte; here the buffer holds exactly one command, so drop it.
@@ -255,7 +255,7 @@ NetCommandRef * NetPacket::ConstructNetCommandMsgFromRawData(UnsignedByte *data,
 	return ref;
 }
 
-// GeneralsX @security Claude 06/10/2026 The receiver reserves the whole buffer plus one Bool per chunk the moment a serialization's
+// GeneralsX: The receiver reserves the whole buffer plus one Bool per chunk the moment a serialization's
 // first chunk arrives (NetCommandWrapperListNode); the sender charges its window exactly that, from the same geometry as below.
 UnsignedInt NetPacket::GetWrapCharge(NetCommandMsg *msg, UnsignedInt *numChunks)
 {
@@ -269,7 +269,7 @@ UnsignedInt NetPacket::GetWrapCharge(NetCommandMsg *msg, UnsignedInt *numChunks)
 	return GXWrapReserve(bufferSize, chunks);
 }
 
-// GeneralsX @security Claude 06/10/2026 The command IDs a chunk of @p player must not take: NetCommandList::addMessage drops a command
+// GeneralsX: The command IDs a chunk of @p player must not take: NetCommandList::addMessage drops a command
 // equal by (player, ID) to one it holds, whatever its type.
 static void gxTakenChunkIds(NetCommandList *queued, UnsignedInt player, std::set<UnsignedShort> &taken)
 {
@@ -320,12 +320,12 @@ NetCommandList *NetPacket::ConstructBigCommandList(NetCommandRef *ref, NetComman
 
 	NetCommandList *commandList = newInstance(NetCommandList);
 
-	// GeneralsX @security Claude 06/10/2026 The (player, ID) pairs a chunk must not take: NetCommandList::addMessage drops a command
+	// GeneralsX: The (player, ID) pairs a chunk must not take: NetCommandList::addMessage drops a command
 	// equal by (player, ID) to one it holds, and a dropped chunk would never arrive, so its serialization could never complete and
-	// the window would count a chunk nobody can ack (design v16 section 3, Codex r1's per-connection ID skip). The counter is
+	// the window would count a chunk nobody can ack (design v16 section 3, per-connection ID skip). The counter is
 	// 16-bit and shared by every command this peer numbers, so during a transfer it wraps onto IDs still queued.
 	// Not enough free IDs left for every chunk: refuse the whole wrap rather than queue a partial serialization that would be acked
-	// and retired as delivered (Codex wrapcap-impl-r1 P2). Connection::pumpPendingWraps checks first and postpones it.
+	// and retired as delivered. Connection::pumpPendingWraps checks first and postpones it.
 	std::set<UnsignedShort> takenIds;
 	gxTakenChunkIds(skipIdsQueuedIn, msg->getPlayerID(), takenIds);
 	if (0x10000u - (UnsignedInt)takenIds.size() < numChunks) {
@@ -342,7 +342,7 @@ NetCommandList *NetPacket::ConstructBigCommandList(NetCommandRef *ref, NetComman
 
 	DEBUG_ASSERTCRASH(bufferSize > 0 && numChunks > 0, ("buffer size for command must be bigger than 0"));
 
-	// GeneralsX @tweak Claude 21/09/2026 Kept the old `currentChunk < numChunks` loop condition
+	// GeneralsX: Kept the old `currentChunk < numChunks` loop condition
 	// rather than upstream's `while (true)`. It costs nothing and it is the only thing standing
 	// between a zero-length command and one zero-length wrapper chunk announcing numChunks == 0,
 	// which is exactly what the assert above only reports in a debug build.
@@ -534,7 +534,7 @@ Bool NetPacket::addCommand(NetCommandRef *msg) {
 		if (select.useRelay)
 		{
 			m_lastRelay = msg->getRelay();
-			// GeneralsX @feature Claude 14/08/2026 [GXPKT] - count what the widened mask actually
+			// GeneralsX: [GXPKT] - count what the widened mask actually
 			// costs. Delta-encoded, so this fires on a mask CHANGE, not on every command.
 			m_relayFieldBytes += (Int)sizeof(NetPacketRelayField);
 		}
@@ -581,7 +581,7 @@ Bool NetPacket::isFrameRepeat(NetCommandRef *msg) {
 	if (framemsg->getID() != (lastmsg->getID() + 1)) {
 		return FALSE;
 	}
-	// GeneralsX @bugfix Claude 01/10/2026 The repeat must be the SAME originator's. The 'Z' reader rebuilds a repeated
+	// GeneralsX: The repeat must be the SAME originator's. The 'Z' reader rebuilds a repeated
 	// FRAMEINFO with the player id of the command before it, and nothing above compared it: on the packet router one
 	// destination's packet holds several originators' FRAMEINFOs, so originator C's FRAMEINFO(N+1, id k+1) written right
 	// after originator A's (N, id k) went out as a one-byte repeat and was read as A's. C's input for N+1 was lost at
@@ -626,7 +626,7 @@ Bool NetPacket::isAckBothRepeat(NetCommandRef *msg) {
 	if (msg->getRelay() != m_lastCommand->getRelay()) {
 		return FALSE;
 	}
-	// GeneralsX @bugfix Claude 01/10/2026 Same rule as isFrameRepeat: the reader takes a repeated ack's player id (the
+	// GeneralsX: Same rule as isFrameRepeat: the reader takes a repeated ack's player id (the
 	// acker) from the command before it, so acks from two ackers - which the packet router relays together - must never
 	// be merged into a repeat.
 	if (lastAck->getPlayerID() != ack->getPlayerID()) {
@@ -647,7 +647,7 @@ Bool NetPacket::isAckStage1Repeat(NetCommandRef *msg) {
 	if (msg->getRelay() != m_lastCommand->getRelay()) {
 		return FALSE;
 	}
-	// GeneralsX @bugfix Claude 01/10/2026 Same rule as isFrameRepeat: the reader takes a repeated ack's player id (the
+	// GeneralsX: Same rule as isFrameRepeat: the reader takes a repeated ack's player id (the
 	// acker) from the command before it, so acks from two ackers - which the packet router relays together - must never
 	// be merged into a repeat.
 	if (lastAck->getPlayerID() != ack->getPlayerID()) {
@@ -668,7 +668,7 @@ Bool NetPacket::isAckStage2Repeat(NetCommandRef *msg) {
 	if (msg->getRelay() != m_lastCommand->getRelay()) {
 		return FALSE;
 	}
-	// GeneralsX @bugfix Claude 01/10/2026 Same rule as isFrameRepeat: the reader takes a repeated ack's player id (the
+	// GeneralsX: Same rule as isFrameRepeat: the reader takes a repeated ack's player id (the
 	// acker) from the command before it, so acks from two ackers - which the packet router relays together - must never
 	// be merged into a repeat.
 	if (lastAck->getPlayerID() != ack->getPlayerID()) {
@@ -693,15 +693,15 @@ NetCommandList * NetPacket::getCommandList() {
 	RelayMaskType relay = 0;
 	NetCommandRef *lastCommand = nullptr;
 
-	// GeneralsX @security Claude 17/08/2026 m_packetLen is the length the SENDER claimed and the
+	// GeneralsX: m_packetLen is the length the SENDER claimed and the
 	// constructor never clamps it (same observation as the NETCOMMANDTYPE_FILE bound below), so the
 	// walk has to be capped by the array too or the field switch reads off the end of m_packet
 	// before any individual reader gets a chance to object.
 	const Int packetEnd = min(m_packetLen, MAX_PACKET_SIZE);
 
-	// GeneralsX @security Claude 06/10/2026 The fixed-size readers and the field headers read their width with no
+	// GeneralsX: The fixed-size readers and the field headers read their width with no
 	// check against packetEnd, so a command at the end of the datagram read past what arrived - and past m_packet when
-	// the datagram filled it (Codex net-hardening reader-bounds-r1). Walk a copy with READER_SLACK zeroed bytes after
+	// the datagram filled it (net-hardening reader-bounds-r1). Walk a copy with READER_SLACK zeroed bytes after
 	// the received ones, and refuse a command whose reader went past packetEnd (below). One copy of at most
 	// MAX_PACKET_SIZE bytes per datagram.
 	UnsignedByte data[MAX_PACKET_SIZE + READER_SLACK];
@@ -731,7 +731,7 @@ NetCommandList * NetPacket::getCommandList() {
 			break;
 		case NetPacketFieldTypes::Relay:
 			++i;
-			// GeneralsX @bugfix Claude 12/08/2026 THE 9-PEER STALL. This read was the one place the
+			// GeneralsX: THE 9-PEER STALL. This read was the one place the
 			// RelayMaskType byte->short widening did not reach: the writer emits
 			// sizeof(RelayMaskType) bytes (NetPacketRelayField, pack(1)), and the sibling parser in
 			// NetPacket::getCommandList's static counterpart above reads sizeof(relay) - but this
@@ -895,7 +895,7 @@ NetCommandList * NetPacket::getCommandList() {
 			}
 
 			if (msg == nullptr) {
-				// GeneralsX @security Claude 17/08/2026 `continue` was wrong, and it is why a reader
+				// GeneralsX: `continue` was wrong, and it is why a reader
 				// in here can only ever be half-hardened. A reader returns null precisely when a
 				// length field it was handed did not describe the bytes that arrived - at which
 				// point `i` no longer points at a command boundary, so resuming the walk decodes
@@ -956,7 +956,7 @@ NetCommandList * NetPacket::getCommandList() {
 				continue;
 			}
 
-			// GeneralsX @bugfix Claude 23/09/2026 The ack branches below cast lastCommand to the CURRENT commandType's
+			// GeneralsX: The ack branches below cast lastCommand to the CURRENT commandType's
 			// class. A sender that sets the type field and then sends 'Z' after, say, a keep-alive gets
 			// a NetKeepAliveCommandMsg (no fields past the base) read as a NetAckCommandMsg - past the
 			// end of the object.
@@ -1056,7 +1056,7 @@ NetCommandList * NetPacket::getCommandList() {
 	return retval;
 }
 
-// GeneralsX @bugfix Claude 23/09/2026 Bytes readGameMessageArgumentFromPacket consumes for one
+// GeneralsX: Bytes readGameMessageArgumentFromPacket consumes for one
 // argument of `type` - the same sizeof expressions that function uses, so the two cannot drift
 // apart silently. 0 for a type that function has no case for.
 static Int gameMessageArgumentWireSize(GameMessageArgumentDataType type)
@@ -1082,7 +1082,7 @@ static Int gameMessageArgumentWireSize(GameMessageArgumentDataType type)
  */
 NetCommandMsg * NetPacket::readGameMessage(UnsignedByte *data, Int &i, Int bytesAvailable)
 {
-	// GeneralsX @bugfix Claude 23/09/2026 Every count below is a wire byte: up to 255 (type, count) pairs and up to
+	// GeneralsX: Every count below is a wire byte: up to 255 (type, count) pairs and up to
 	// 255*255 arguments of up to 16 bytes each were read with no bound - roughly 1 MiB past a
 	// 476-byte m_packet, and 65k addArgument allocations, from one packet. Bounded like the chat and
 	// file readers now. Each argument's wire width is checked before it is read
@@ -1127,9 +1127,9 @@ NetCommandMsg * NetPacket::readGameMessage(UnsignedByte *data, Int &i, Int bytes
 		memcpy(&argCount, data + i, sizeof(argCount));
 		i += sizeof(argCount);
 
-		// GeneralsX @security Claude 06/10/2026 An empty group desyncs the argument walk below: it starts on the first
+		// GeneralsX: An empty group desyncs the argument walk below: it starts on the first
 		// group's type and moves on only when a count runs down to zero, so (INTEGER,0),(PIXELREGION,1) read one INTEGER
-		// for the region and left the rest of its bytes to be parsed as more commands (Codex net-hardening
+		// for the region and left the rest of its bytes to be parsed as more commands (net-hardening
 		// reader-bounds-r1). An honest message never has one (GameMessageParser groups non-empty runs).
 		if (argCount == 0) {
 			deleteInstance(parser);
@@ -1150,7 +1150,7 @@ NetCommandMsg * NetPacket::readGameMessage(UnsignedByte *data, Int &i, Int bytes
 		argsLeftForType = parserArgType->getArgCount();
 	}
 	for (j = 0; j < totalArgCount; ++j) {
-		// GeneralsX @bugfix Claude 23/09/2026 Check the argument's wire width BEFORE reading it: the
+		// GeneralsX: Check the argument's wire width BEFORE reading it: the
 		// reader memcpys up to 16 bytes, so a check after the read still over-read by up to 15. A
 		// type with no known width (not a real argument type) ends the walk the same way.
 		const Int argWidth = gameMessageArgumentWireSize(lasttype);
@@ -1214,10 +1214,10 @@ void NetPacket::readGameMessageArgumentFromPacket(GameMessageArgumentDataType ty
 
 	case ARGUMENTDATATYPE_BOOLEAN:
 	{
-		// GeneralsX @bugfix Claude 06/10/2026 A peer's BYTE, not a bool: copying 0x02 into a bool is an invalid object
+		// GeneralsX: A peer's BYTE, not a bool: copying 0x02 into a bool is an invalid object
 		// representation (undefined; Clang read it as FALSE), and a vote-kick ballot decides a kick on it. Read the byte
 		// and normalise it here, where every network BOOLEAN argument is parsed, so every peer decides the same
-		// (Codex batch0958 r1-robustness P2).
+		// (batch0958 r1-robustness P2).
 		static_assert(sizeof(Bool) == sizeof(UnsignedByte), "a BOOLEAN argument is one byte on the wire");
 		UnsignedByte thebyte;
 		memcpy(&thebyte, data + i, sizeof(thebyte));
@@ -1283,7 +1283,7 @@ void NetPacket::readGameMessageArgumentFromPacket(GameMessageArgumentDataType ty
 		msg->addArgument(type, arg);
 		break;
 
-	// GeneralsX @bugfix Claude 22/09/2026 The reader half of the game-command WIDECHAR width fix.
+	// GeneralsX: The reader half of the game-command WIDECHAR width fix.
 	// This used to advance `i` by sizeof(WideChar) - 4 bytes under clang/gcc, 2 under MSVC - and
 	// `i` is the ONE cursor NetPacket::getCommandList walks through the whole datagram, so a
 	// cross-platform beacon caption left every command packed behind it being decoded from the
@@ -1460,14 +1460,14 @@ NetCommandMsg * NetPacket::readDestroyPlayerMessage(UnsignedByte *data, Int &i) 
 /**
  * Reads the packet router's latency row at this position in the packet.
  *
- * GeneralsX @feature Claude 13/08/2026 Fixed size, so the advance of `i` does not depend on any
+ * GeneralsX: Fixed size, so the advance of `i` does not depend on any
  * value read out of the packet - there is no count field a hostile peer could inflate to walk the
  * reader off the end of the buffer. Every element is an UnsignedShort, so the full 16-bit range
  * is a legal value and the read itself cannot fail; the SEMANTIC clamp (is this a plausible round
  * trip?) belongs to the consumer and lives in ConnectionManager::processLatencyReport.
  */
 NetCommandMsg * NetPacket::readLatencyReportMessage(UnsignedByte *data, Int &i, Int bytesAvailable) {
-	// GeneralsX @security Claude 06/10/2026 Bounded like readDisconnectChatMessage (Codex peer-fps-r2 P1): the fixed payload is now
+	// GeneralsX: Bounded like readDisconnectChatMessage: the fixed payload is now
 	// the latency row AND the fps row, and a reassembled wrapper hands this an exactly sized buffer - a report that ends early
 	// must not be read past. Short = the walk ends here and the command is dropped by the caller.
 	const Int need = MAX_SLOTS * (Int)(sizeof(UnsignedShort) + sizeof(UnsignedByte));
@@ -1485,7 +1485,7 @@ NetCommandMsg * NetPacket::readLatencyReportMessage(UnsignedByte *data, Int &i, 
 		i += sizeof(UnsignedShort);
 		msg->setLatencyMs(slot, ms);
 	}
-	// GeneralsX @feature Claude 06/10/2026 The fps row, after the latency row (NetPacketLatencyReportCommandData::FixedData).
+	// GeneralsX: The fps row, after the latency row (NetPacketLatencyReportCommandData::FixedData).
 	for (Int slot = 0; slot < MAX_SLOTS; ++slot) {
 		const UnsignedByte fpsPlusOne = data[i];
 		i += sizeof(UnsignedByte);
@@ -1547,7 +1547,7 @@ NetCommandMsg * NetPacket::readPacketRouterAckMessage(UnsignedByte *data, Int &i
 	return msg;
 }
 
-// GeneralsX @security Claude 17/08/2026 The one place remote chat text becomes a string.
+// GeneralsX: The one place remote chat text becomes a string.
 //
 // Reads a length-prefixed run of 16-bit wire characters (see NetPacketStructs.h - the wire unit is
 // deliberately NOT WideChar, which is 2 bytes on MSVC and 4 on clang/gcc), refusing any length the
@@ -1652,7 +1652,7 @@ NetCommandMsg * NetPacket::readChatMessage(UnsignedByte *data, Int &i, Int bytes
 		return nullptr;
 	}
 
-	// GeneralsX @feature Claude 06/11/2026 scale32: 64-bit recipient mask, as NetPacketChatCommandData::copyBytes writes it.
+	// GeneralsX: scale32: 64-bit recipient mask, as NetPacketChatCommandData::copyBytes writes it.
 	RelayMaskType playerMask = 0;
 	memcpy(&playerMask, data + i, sizeof(playerMask));
 	i += sizeof(playerMask);
@@ -1707,7 +1707,7 @@ NetCommandMsg * NetPacket::readTimeOutGameStartMessage(UnsignedByte *data, Int &
 }
 
 NetCommandMsg * NetPacket::readWrapperMessage(UnsignedByte *data, Int &i, Int bytesAvailable) {
-	// GeneralsX @bugfix Claude 23/09/2026 The chunk length below is a raw 32-bit wire value that sized an allocation
+	// GeneralsX: The chunk length below is a raw 32-bit wire value that sized an allocation
 	// and a memcpy out of `data` with nothing checking it against the bytes that exist - 0xFFFFFFFF
 	// was a 4 GiB NEW and read. A real chunk is at most one packet (ConstructBigCommandList;
 	// copyChunkData rejects anything larger anyway, but only after this copy had happened).
@@ -1758,7 +1758,7 @@ NetCommandMsg * NetPacket::readWrapperMessage(UnsignedByte *data, Int &i, Int by
 	i += sizeof(dataOffset);
 	DEBUG_LOG_LEVEL(DEBUG_LEVEL_NET, ("NetPacket::readWrapperMessage - data offset = %d", dataOffset));
 
-	// GeneralsX @security Claude 06/10/2026 The window fields, appended after dataOffset (NetPacketWrapperCommandData::FixedData).
+	// GeneralsX: The window fields, appended after dataOffset (NetPacketWrapperCommandData::FixedData).
 	UnsignedInt wrapSeq = 0;
 	memcpy(&wrapSeq, data + i, sizeof(wrapSeq));
 	msg->setWrapSeq(wrapSeq);
@@ -1783,7 +1783,7 @@ NetCommandMsg * NetPacket::readWrapperMessage(UnsignedByte *data, Int &i, Int by
 }
 
 /**
- * GeneralsX @security Claude 06/10/2026 Reads a WRAPPERACK's (original player, wrapSeq, chunk number). Fixed size, like the ack
+ * GeneralsX: Reads a WRAPPERACK's (original player, wrapSeq, chunk number). Fixed size, like the ack
  * readers: both callers walk a copy with READER_SLACK zeroed bytes after the real ones and refuse a command whose reader went past
  * the real end. Never a 'Z' repeat (NetPacket::addCommand repeats only the base ack types and FRAMEINFO).
  */
@@ -1817,7 +1817,7 @@ static const UnsignedInt MAX_NET_FILE_TRANSFER_BYTES = 5 * 1024 * 1024;
 // bytesAvailable is how much of the buffer really exists (both callers know it: the packet's length, or
 // the reassembled command's).
 //
-// GeneralsX @security Claude 06/10/2026 The file name is scanned within bytesAvailable too (sweep
+// GeneralsX: The file name is scanned within bytesAvailable too (sweep
 // v-files-03). strlcpy bounds the COPY but runs strlen over the whole source, so a name with no
 // terminator inside the buffer read past its end, and the length after it was read from there.
 static Bool readWireFileName(UnsignedByte *data, Int &i, Int bytesAvailable, char *filename, size_t filenameSize) {
@@ -1883,7 +1883,7 @@ NetCommandMsg * NetPacket::readFileMessage(UnsignedByte *data, Int &i, Int bytes
 NetCommandMsg * NetPacket::readFileAnnounceMessage(UnsignedByte *data, Int &i, Int bytesAvailable) {
 	char filename[_MAX_PATH];
 
-	// GeneralsX @security Claude 06/10/2026 Bounded, as readFileMessageBounded (sweep v-files-03).
+	// GeneralsX: Bounded, as readFileMessageBounded (sweep v-files-03).
 	if (!readWireFileName(data, i, bytesAvailable, filename, ARRAY_SIZE(filename))
 		|| ((bytesAvailable - i) < (Int)(sizeof(UnsignedShort) + sizeof(RelayMaskType)))) {
 		DEBUG_LOG(("NetPacket::readFileAnnounceMessage - announce runs past the %d bytes available; dropping.", bytesAvailable));

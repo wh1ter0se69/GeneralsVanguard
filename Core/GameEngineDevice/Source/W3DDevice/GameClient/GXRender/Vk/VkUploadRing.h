@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0: a host-visible upload ring that is safe under DELAYED
+// GeneralsX: WS-B VkCtx v0: a host-visible upload ring that is safe under DELAYED
 // consumption.
 //
 // Every allocation carries the timeline value of the submission that consumes it (default: the consumer queue's next

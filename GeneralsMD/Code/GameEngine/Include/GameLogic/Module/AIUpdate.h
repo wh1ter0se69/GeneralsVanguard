@@ -347,7 +347,7 @@ public:
 
 	// AI Interface implementation -----------------------------------------------------------------------
 	virtual Bool isIdle() const;
-	// GeneralsX @performance Claude 04/11/2026 TRUE when an AI move order to this object cannot read its position: an immobile
+	// GeneralsX: TRUE when an AI move order to this object cannot read its position: an immobile
 	// object's privateMoveToPosition returns at its first line. processCollision then skips the destination spiral whose only
 	// output is that position (a stack of n immobile tanks ran it n^2 times a tick, 8% of late-game logic). A class overriding
 	// aiDoCommand may read the position before that line, so it must override this to FALSE.
@@ -459,7 +459,7 @@ public:
 	void clearWaypointQueue();								///< reset the waypoint queue to empty
 	void executeWaypointQueue();							///< start moving along queued waypoints
 
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER ------------------------------------------------------------
+	// GeneralsX: WAYPOINT ENTER ------------------------------------------------------------
 	// Waypoint mode + clicks on several containers: each unit keeps its OWN queue of containers, carried by its
 	// current AI_ENTER / AI_FOLLOW_PATH. When that state ends by itself the unit's update() boards the next one that
 	// still has room; anything else ending it (a new order, death, a reset) drops the queue. All of it is simulation
@@ -748,7 +748,7 @@ private:
 	Int								m_waypointIndex;										///< current waypoint we are moving to
 	const Waypoint*		m_completedWaypoint;								///< Set to the last waypoint in a path when the FollowWaypointPath is complete.
 
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. Not saved (retail save format); hashed by Object::crc only
+	// GeneralsX: WAYPOINT ENTER. Not saved (retail save format); hashed by Object::crc only
 	// while in use (gxEnterQueueCrc).
 	void gxAdvanceEnterQueue();
 	enum { GX_MAX_ENTER_QUEUE = 16 };

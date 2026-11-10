@@ -514,7 +514,7 @@ void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 		case DAMAGE_STATUS:
 		{
 			// Damage amount is msec time we set the status given in damageStatusType
-			// GeneralsX @feature Claude 05/10/2026 rounded on the tick-rate grid at 60 Hz too, as Generals Online (was the retail grid,
+			// GeneralsX: rounded on the tick-rate grid at 60 Hz too, as Generals Online (was the retail grid,
 			// 23/09): e.g. an Avenger's faerie fire, which gives every attacker of the marked target a rate-of-fire bonus, lasts GO's frames.
 			Real realFramesToStatusFor = ConvertDurationFromMsecsToFrames(amount);
 			obj->doStatusDamage( damageInfo->in.m_damageStatusType , REAL_TO_INT_CEIL(realFramesToStatusFor) );
@@ -602,7 +602,7 @@ void ActiveBody::attemptDamage( DamageInfo *damageInfo )
 		// (object pointer loses scope as soon as atteptdamage's caller ends)
 		// m_lastDamageTimestamp is initialized to FFFFFFFFFF, so doing a < compare is problematic.
 		// jba.
-		// GeneralsX @feature Claude 05/10/2026 "this frame or the one before" at either rate, as Generals Online (was one RETAIL frame,
+		// GeneralsX: "this frame or the one before" at either rate, as Generals Online (was one RETAIL frame,
 		// 23/09): who last attacked a unit (mood targeting, guard retaliation) is recorded on GO's frames.
 		if (m_lastDamageTimestamp!=TheGameLogic->getFrame() && m_lastDamageTimestamp != TheGameLogic->getFrame()-1) {
 			m_lastDamageInfo = *damageInfo;
@@ -1081,7 +1081,7 @@ void ActiveBody::createParticleSystems( const AsciiString &boneBaseName,
 		// pick a bone index to place this particle system at
 		// MDC: moving to GameLogicRandomValue.  This does not need to be synced, but having it so makes searches *so* much nicer.
 		// DTEH: Moved back to GameClientRandomValue because of desync problems. July 27th 2003.
-		// GeneralsX @feature Claude 06/10/2026 render-split step 2: the simulation's cosmetic stream now, not the client's
+		// GeneralsX: render-split step 2: the simulation's cosmetic stream now, not the client's
 		// (RandomValue.cpp): still outside lockstep, and the client stream is left to the render side.
 		Int boneIndex = GameLogicCosmeticRandomValue( 0, maxSystems - i - 1 );
 
@@ -1175,9 +1175,9 @@ void ActiveBody::deleteAllParticleSystems()
 // ------------------------------------------------------------------------------------------------
 void ActiveBody::updateBodyParticleSystems()
 {
-	// GeneralsX @bugfix Claude 10/10/2026 Looked up on every call (a body state change), no longer cached in function statics on
+	// GeneralsX: Looked up on every call (a body state change), no longer cached in function statics on
 	// the FIRST call: that kept whatever the first match to burn something had - a map.ini's GameData names, or a template a map
-	// invented and ParticleSystemManager::reset has since retired - for the rest of the process (Codex mapini-rollback-r1 P2).
+	// invented and ParticleSystemManager::reset has since retired - for the rest of the process.
 	const ParticleSystemTemplate *fireSmallTemplate   = TheParticleSystemManager->findTemplate( TheGlobalData->m_autoFireParticleSmallSystem );
 	const ParticleSystemTemplate *fireMediumTemplate  = TheParticleSystemManager->findTemplate( TheGlobalData->m_autoFireParticleMediumSystem );
 	const ParticleSystemTemplate *fireLargeTemplate   = TheParticleSystemManager->findTemplate( TheGlobalData->m_autoFireParticleLargeSystem );

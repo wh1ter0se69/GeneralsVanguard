@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: vertex and index buffers (see GxBuffer.h).
+// GeneralsX: WS-C GXRES v0: vertex and index buffers (see GxBuffer.h).
 #include "GxBuffer.h"
 #include "GxD3D.h"
 #include <cstring>
@@ -8,7 +8,7 @@ namespace GXRender { namespace Res {
 using Vk::QueueKind;
 
 namespace {
-// ponytail: a fixed slice cap; past it a DISCARD waits for the oldest SUBMITTED slice. Slices only the open (unsubmitted)
+// Trade-off: a fixed slice cap; past it a DISCARD waits for the oldest SUBMITTED slice. Slices only the open (unsubmitted)
 // frame reads cannot be waited for: the buffer grows past the cap instead (sliceOverflows). Size from the census if one hits it.
 constexpr size_t kMaxSlices = 64;
 constexpr VkBufferUsageFlags kUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
@@ -21,7 +21,7 @@ bool GxBuffer::init(GxResources& res, const BufferDesc& desc, std::string* why)
 	m_res = &res;
 	m_desc = desc;
 	if (!res.debug().keepLastUseOnInit)
-		m_lastUse = 0; // a previous life's tag (another context's timeline) would delay this allocation's destroy (Codex rw1-C-r5 P2)
+		m_lastUse = 0; // a previous life's tag (another context's timeline) would delay this allocation's destroy
 	m_touch = 0;
 	m_mainWrite = 0;
 	if (desc.bytes == 0) {
@@ -94,7 +94,7 @@ bool GxBuffer::createSlice(Slice* s)
 	ai.usage = VMA_MEMORY_USAGE_AUTO;
 	ai.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
 	// Coherent only: a NOOVERWRITE append flushed on non-coherent memory would rewrite whole atoms that an earlier, still
-	// running draw reads (Codex rw1-C-r1 P2). Every target GPU has coherent host-visible memory; none = no slice.
+	// running draw reads. Every target GPU has coherent host-visible memory; none = no slice.
 	ai.requiredFlags = VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 	VmaAllocationInfo info = {};
 	if (Vk::gxCreateBuffer(m_res->allocator(), m_res->allocPolicy(), "slice", &ci, &ai, &s->buffer, &s->allocation, &info) != VK_SUCCESS)
@@ -141,7 +141,7 @@ bool GxBuffer::newSlice(bool keepContents)
 			const Vk::Timeline& tl = m_res->ctx().queue(QueueKind::Graphics).timeline;
 			if (oldest && last(oldest) > tl.lastSubmitted() && !m_res->debug().sliceCapWaitsUnsubmitted) {
 				// every slice is read by the frame still being recorded (64 DISCARDs before one submission): waiting would be
-				// refused, so a lock would fail where DXVK renames (Codex rw3L-code-r8 #1). Grow past the cap.
+				// refused, so a lock would fail where DXVK renames. Grow past the cap.
 				st.sliceOverflows++;
 			} else {
 				st.sliceWaits++;

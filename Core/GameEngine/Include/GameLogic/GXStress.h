@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 23/09/2026 THE LOBBY-AGREED STRESS BATTLEFIELD - the parts that must be
+// GeneralsX: THE LOBBY-AGREED STRESS BATTLEFIELD - the parts that must be
 // bit-identical on every peer, with no engine in them so scripts/test/stress-option-test.cpp can
 // exercise them standalone.
 //

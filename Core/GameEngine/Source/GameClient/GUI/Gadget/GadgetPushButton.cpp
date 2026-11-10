@@ -202,7 +202,7 @@ WindowMsgHandledType GadgetPushButtonInput( GameWindow *window,
 		}
 
 		//-------------------------------------------------------------------------
-		// GeneralsX @bugfix BenderAI 07/03/2026 Handle double-click as a regular click.
+		// GeneralsX: Handle double-click as a regular click.
 		// Without this, rapid clicking on production buttons causes GWM_LEFT_DOUBLE_CLICK
 		// to fall through to default (MSG_IGNORED), leaving WIN_STATE_SELECTED stuck.
 		case GWM_LEFT_DOUBLE_CLICK:

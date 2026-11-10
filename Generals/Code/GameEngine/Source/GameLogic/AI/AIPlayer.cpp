@@ -62,7 +62,7 @@
 #include "GameLogic/PartitionManager.h"
 #include "GameNetwork/GameInfo.h"
 
-// GeneralsX @bugfix E·wh1ter0se-bugs-1015 16/10/2026 The AI tests a structure spot as standing ON THE GROUND. Its spot searches move a
+// GeneralsX: The AI tests a structure spot as standing ON THE GROUND. Its spot searches move a
 // candidate in x and y only, keeping the height of the spot they started from (the build-list spot, the warehouse, the base
 // centre), and isLocationLegalToBuild sees an object only when the two boxes overlap in height too
 // (PartitionManager::geomCollidesWithGeom). So from a spot on a ridge, every candidate on the low ground below was tested as a box
@@ -569,7 +569,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 				limit = 120*PATHFIND_CELL_SIZE_F;
 			}
 			Coord3D newPos = pos;
-			// GeneralsX @bugfix Claude 26/09/2026 A skirmish AI searches the same rings a second time without
+			// GeneralsX: A skirmish AI searches the same rings a second time without
 			// CLEAR_PATH before giving up, the build-list spot first: reaching the spot is not required, because an
 			// unreachable dozer is teleported below (a dozer boxed in by its own base reaches nothing at all).
 			UnsignedInt flags = BuildAssistant::CLEAR_PATH | BuildAssistant::TERRAIN_RESTRICTIONS | BuildAssistant::NO_OBJECT_OVERLAP;
@@ -596,7 +596,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 						if (valid) break;
 						newPos.y = yPos+posOffset;
 						valid = gxLegalToBuildOnGround( &newPos, bldgPlan, angle, flags, dozer, m_player ) == LBC_OK;
-						// GeneralsX @bugfix Claude 26/09/2026 Stop on this candidate too. Without the break the next step
+						// GeneralsX: Stop on this candidate too. Without the break the next step
 						// overwrote a legal top- (here) or right-edge (below) candidate, so bar each ring's last one only the
 						// bottom and left edges counted: a base near a map edge or corner found no spot and fell back to
 						// building over its own structures (Mayhem - Defcon 51).
@@ -612,14 +612,14 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 						if (valid) break;
 						newPos.x = xPos+posOffset;
 						valid = gxLegalToBuildOnGround( &newPos, bldgPlan, angle, flags, dozer, m_player ) == LBC_OK;
-						if (valid) break;	// GeneralsX @bugfix Claude 26/09/2026 See the top-edge break above.
+						if (valid) break;	// GeneralsX: See the top-edge break above.
 					}
 					if (valid) break;
 				}
 			}
 			if (valid) pos = newPos;
 			if (!valid) {
-				// GeneralsX @bugfix Claude 26/09/2026 With no legal spot found, retail builds on the build-list spot
+				// GeneralsX: With no legal spot found, retail builds on the build-list spot
 				// anyway and refuses it only for enemies. A skirmish AI's spot is a template offset from its Command
 				// Center, so that put buildings on its own structures, on neutral supply docks and over cliffs (wh1ter0se's
 				// Mayhem game). Both passes above found nothing, so a skirmish AI retries this entry after the rebuild
@@ -641,7 +641,7 @@ Object *AIPlayer::buildStructureWithDozer(const ThingTemplate *bldgPlan, BuildLi
 	}
 
 	TheTerrainVisual->removeAllBibs();	// isLocationLegalToBuild adds bib feedback, turn it off.  jba.
-	// GeneralsX @bugfix E·wh1ter0se-bugs-1015 16/10/2026 (batch-0965 Codex r2 P2) Hand on the spot as tested: on the ground. The searches
+	// GeneralsX: Hand on the spot as tested: on the ground. The searches
 	// above test grounded copies, but a candidate still carries its start spot's height, and the dozer's and the worker's
 	// construct() re-check this exact position for a computer player - at the stale height they could refuse the spot the search
 	// accepted (an elevated object overlapping the box tested up there), and the AI would pick the same spot again every pass.
@@ -893,9 +893,9 @@ void AIPlayer::aiPreTeamDestroy( const Team *deletedTeam )
 	{
 		for (DLINK_ITERATOR<TeamInQueue> iter = iterate_TeamBuildQueue(); !iter.done(); )
 		{
-			// GeneralsX @bugfix Claude 01/10/2026 Advance only past an entry that stays. After a removal the iterator
+			// GeneralsX: Advance only past an entry that stays. After a removal the iterator
 			// restarts at the head, and the loop's own advance() then skipped that head: of two consecutive entries for
-			// the team, the second stayed queued with a dangling pointer (Codex tsh-b2-r2, tsh batch2 #417).
+			// the team, the second stayed queued with a dangling pointer (tsh batch2 #417).
 			TeamInQueue *team = iter.cur();
 			if (team->m_team == deletedTeam) {
 				// The members of the team all got killed before we could finish building the team.
@@ -910,7 +910,7 @@ void AIPlayer::aiPreTeamDestroy( const Team *deletedTeam )
 	{
 		for ( DLINK_ITERATOR<TeamInQueue> iter = iterate_TeamReadyQueue(); !iter.done(); )
 		{
-			// GeneralsX @bugfix Claude 01/10/2026 Same as the build queue above.
+			// GeneralsX: Same as the build queue above.
 			TeamInQueue *team = iter.cur();
 			if (team->m_team == deletedTeam) {
 				// The members of the team all got killed before we could activate the team.
@@ -950,7 +950,7 @@ void AIPlayer::guardSupplyCenter( Team *team, Int minSupplies )
 #endif
 		Coord3D location = *warehouse->getPosition();
 		// It's probably a defensive move - position towards the enemy.
-		// GeneralsX @bugfix Claude 01/10/2026 getSkirmishEnemyPlayer() may be null (no current script player, or no
+		// GeneralsX: getSkirmishEnemyPlayer() may be null (no current script player, or no
 		// human in the match: AI-only games, the challenge dummy). Guard the warehouse itself then. tsh batch2 #395, idea of
 		// Generals Online b5770a12b (reimplemented).
 		Player *enemy = TheScriptEngine->getSkirmishEnemyPlayer();
@@ -1020,9 +1020,9 @@ Bool AIPlayer::isSupplySourceAttacked()
 					continue;
 				}
 #if !RETAIL_COMPATIBLE_CRC
-				// GeneralsX @bugfix Claude 09/10/2026 With a 10-s window a dozer or harvester killed seconds ago - still allocated
+				// GeneralsX: With a 10-s window a dozer or harvester killed seconds ago - still allocated
 				// while it dies - would win the scan, and TEAM_GUARD_SUPPLY_CENTER would send its team to the wreck instead of a
-				// live target or the fallback supply center (Codex tsh3-3380-adv-r1 P2).
+				// live target or the fallback supply center.
 				if (obj->isEffectivelyDead()) {
 					continue;
 				}
@@ -1062,7 +1062,7 @@ Bool AIPlayer::isSupplySourceSafe( Int minSupplies )
 	return (isLocationSafe(warehouse->getPosition(), warehouse->getTemplate()));
 }
 
-// GeneralsX @bugfix C·ai-stash-ignore-1016 16/10/2026 A scan marker is not an enemy presence. The USA spy-satellite ping
+// GeneralsX: A scan marker is not an enemy presence. The USA spy-satellite ping
 // (SpySatellitePing: NO_COLLIDE IMMOBILE UNATTACKABLE INERT, gone after 13 s), the radar-van ping, vision objects and spy drones are
 // all INERT. Counting them meant an enemy scan of an AI base marked its home dock - and every build spot near its command center -
 // unsafe while the ping lived, and the supply expansion (which skips unsafe docks) built its stash at a far dock for good: wh1ter0se's
@@ -1077,7 +1077,7 @@ public:
 		if( !other->isKindOf( KINDOF_INERT ) || other->isKindOf( KINDOF_CLEANUP_HAZARD ) )
 			return TRUE;
 		// The strike marker by template, not by name: a map may override or reskin it, and ThingFactory::newObject builds one of its
-		// BuildVariations when it has any (Codex scan-safe-r2 P2). Reached only for an INERT non-hazard object near the spot.
+		// BuildVariations when it has any. Reached only for an INERT non-hazard object near the spot.
 		const ThingTemplate *view = TheThingFactory->findTemplate( TheGlobalData->m_specialPowerViewObjectName, FALSE );
 		if( view == nullptr )
 			return FALSE;
@@ -1189,7 +1189,7 @@ void AIPlayer::onUnitProduced( Object *factory, Object *unit )
 					team->m_reinforcementID = unit->getID();
 				}
 				AIUpdateInterface *ai = unit->getAIUpdateInterface();
-				// GeneralsX @bugfix Claude 01/10/2026 The null check two lines up did not cover this dereference (tsh batch2 #417).
+				// GeneralsX: The null check two lines up did not cover this dereference (tsh batch2 #417).
 				if (team->m_team && team->m_team->getPrototype()->getTemplateInfo()->m_hasHomeLocation) {
 					if (ai) {
 						std::vector<Coord3D> path;
@@ -1287,9 +1287,9 @@ void AIPlayer::computeSuperweaponTarget(const SpecialPowerTemplate *power, Coord
 	Coord3D pos;
 	Coord3D bestPos;
 	Int i, j;
-	// GeneralsX @bugfix Claude 10/10/2026 Both searches below take their first sample while nothing has beaten it: when every
+	// GeneralsX: Both searches below take their first sample while nothing has beaten it: when every
 	// value is <= -1 (a map can make costs negative), bestPos / veryBestPos were read uninitialised and the superweapon fired
-	// at a position that differed by peer (Codex tsh3-clamp-adv-r3). Whenever some value is >= 0 the result is unchanged.
+	// at a position that differed by peer. Whenever some value is >= 0 the result is unchanged.
 	// Zero Hour returns FALSE there instead, and its caller does not fire.
 	Bool found = FALSE;
 
@@ -1382,8 +1382,8 @@ Int AIPlayer::getPlayerSuperweaponValue(Coord3D *center, Int playerNdx, Real rad
 			}
 		}
 	}
-	// GeneralsX @bugfix Claude 10/10/2026 Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
-	// conversion of the float sum differs by CPU (Codex tsh3-clamp-adv-r1).
+	// GeneralsX: Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
+	// conversion of the float sum differs by CPU.
 	return REAL_TO_INT(cash);
 }
 // ------------------------------------------------------------------------------------------------
@@ -1416,13 +1416,13 @@ Bool AIPlayer::startTraining( WorkOrder *order, Bool busyOK, AsciiString teamNam
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/10/2026 A Hard skirmish AI sitting on a large bank spends it (wh1ter0se 08/10, 12 Hard AIs on a
+// GeneralsX: A Hard skirmish AI sitting on a large bank spends it (wh1ter0se 08/10, 12 Hard AIs on a
 // $200,000 start still banked $147k-$198k each at 4:00, and "this made 3 airfields yet using only 1?"). Above AI_HOARD_CASH:
 // a team's units are built in parallel (buildSpecificAITeam), teams and structures are picked faster and attack teams may field extra copies (AISkirmishPlayer.cpp, ported from Zero
 // Hour Reforged's cash hoard). Only in a match that STARTED richer than the default cash: Hard's scripted gifts alone lift
 // a bank to ~$50k in a $10,000 start (measured 08/10, ai/HANDBACK_ai-spend-scale.md), so no bank threshold separates the
 // two - the starting cash, a lobby option every peer shares, does. A default-cash match takes none of these branches.
-// ponytail: one fixed threshold for Hard only; a per-difficulty AIData field when Normal/Easy want it.
+// Trade-off: one fixed threshold for Hard only; a per-difficulty AIData field when Normal/Easy want it.
 static const Int AI_HOARD_CASH = 20000;
 
 Int AIPlayer::hoardThreshold()
@@ -1434,7 +1434,7 @@ Int AIPlayer::hoardThreshold()
 	return AI_HOARD_CASH;
 }
 
-// The largest batch any of our factories would build this unit in: a split order may land on any of them (Codex spend-r5).
+// The largest batch any of our factories would build this unit in: a split order may land on any of them.
 Int AIPlayer::unitsPerOrder(const ThingTemplate *thing)
 {
 	Int most = 1;
@@ -1522,8 +1522,8 @@ Bool AIPlayer::isPossibleToBuildTeam( TeamPrototype *proto, Bool requireIdleFact
 				// Found an idle factory.
 				anyIdle = true;
 			}
-			// GeneralsX @bugfix Claude 10/10/2026 Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
-			// conversion of the float sum differs by CPU (Codex tsh3-clamp-adv-r1).
+			// GeneralsX: Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
+			// conversion of the float sum differs by CPU.
 			cost = REAL_TO_INT(cost + thingCost * ((unitInfo[i].maxUnits+unitInfo[i].minUnits)/2.0f));
 		}
 	}
@@ -1932,7 +1932,7 @@ void AIPlayer::buildBySupplies(Int minimumCash, const AsciiString& thingName)
 		offset.y = location.y - m_baseCenter.y;
 		offset.normalize();
 		Real radius = 3*PATHFIND_CELL_SIZE_F;
-		// GeneralsX @bugfix Claude 01/10/2026 getSkirmishEnemyPlayer() may be null (no current script player, or no
+		// GeneralsX: getSkirmishEnemyPlayer() may be null (no current script player, or no
 		// human in the match: AI-only games, the challenge dummy). Keep the base-relative offset then. tsh batch2 #395, idea of
 		// Generals Online b5770a12b (reimplemented).
 		Player *enemy = TheScriptEngine->getSkirmishEnemyPlayer();
@@ -2318,12 +2318,12 @@ void AIPlayer::buildSpecificAITeam( TeamPrototype *teamProto, Bool priorityBuild
 		const TCreateUnitsInfo *unitInfo = &teamProto->getTemplateInfo()->m_unitsInfo[0];
 		WorkOrder *orders = nullptr;
 		Int i;
-		// GeneralsX @feature Claude 08/10/2026 Hoarding: one order per unit. An order holds ONE factory until its unit is out
+		// GeneralsX: Hoarding: one order per unit. An order holds ONE factory until its unit is out
 		// (WorkOrder::isWaitingToBuild), so "4 Raptors" came out of one airfield one at a time while the others idled. Split,
 		// each unit takes the next idle factory; completion, recruiting and minimum-built work per order as before. A unit
 		// built in batches (QuantityModifier: one queued Red Guard yields a pair) keeps retail's single order: its twin is
 		// recruited by that order's next pass, and split orders sharing one factory would each claim a batch member and
-		// re-buy the rest (Codex spend-r3, r4).
+		// re-buy the rest.
 		const Bool parallel = isHoarding();
 		// Queue up optional units.
 		for( i=0; i<teamProto->getTemplateInfo()->m_numUnitsInfo; i++ )
@@ -2384,7 +2384,7 @@ void AIPlayer::buildSpecificAITeam( TeamPrototype *teamProto, Bool priorityBuild
 			// create inactive team to place members into as they are built
 			// when team is complete, the team is activated
 			team->m_team = TheTeamFactory->createInactiveTeam( teamProto->getName() );
-			// GeneralsX @bugfix Claude 01/10/2026 A queue entry without a team can never complete, and the build and
+			// GeneralsX: A queue entry without a team can never complete, and the build and
 			// ready queues dereference m_team everywhere. Drop it instead (tsh batch2 #417, idea of Generals Online
 			// a0fc36d70, reimplemented at queue level).
 			if (team->m_team == nullptr) {
@@ -2540,11 +2540,11 @@ void AIPlayer::queueUnits()
 	for ( DLINK_ITERATOR<TeamInQueue> iter = iterate_TeamBuildQueue(); !iter.done(); iter.advance())
 	{
 		TeamInQueue *team = iter.cur();
-		// GeneralsX @performance Claude 08/10/2026 A recruit search that found nothing is not repeated for another order of the
+		// GeneralsX: A recruit search that found nothing is not repeated for another order of the
 		// same unit in this team in this pass: Team::tryToRecruit is a pure scan of the whole object list (no RNG, no state),
 		// its arguments are the same, and nothing between the two calls can add a candidate - a failed search changes
 		// nothing, and a unit recruited for another order joins THIS team, which the search never takes from. A hoarding AI
-		// splits a team's units into one order each, which would otherwise repeat the scan per unit (Codex spend-r9).
+		// splits a team's units into one order each, which would otherwise repeat the scan per unit.
 		const ThingTemplate *noRecruit[8];
 		Int numNoRecruit = 0;
 		for( WorkOrder *order = team->m_workOrders; order; order = order->m_next )
@@ -3362,7 +3362,7 @@ void AIPlayer::xfer( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void AIPlayer::loadPostProcess()
 {
-	// GeneralsX @bugfix Claude 01/10/2026 A queued team that no longer exists loads back as a null m_team (the
+	// GeneralsX: A queued team that no longer exists loads back as a null m_team (the
 	// TeamInQueue xfer looks it up by ID); drop those entries like a destroyed team's (tsh batch2 #417).
 	AIPlayer::aiPreTeamDestroy( nullptr );
 }
@@ -3484,7 +3484,7 @@ void TeamInQueue::disband()
 }
 
 // -------------------------------------------------------------------------------------------------
-// GeneralsX @performance Claude 23/09/2026 Same result as TheScriptEngine->findScriptByName(name): the first script with that
+// GeneralsX: Same result as TheScriptEngine->findScriptByName(name): the first script with that
 // name in side/list/group order. Cached per TeamInQueue and re-resolved whenever the condition name differs.
 const Script *TeamInQueue::getProductionConditionScript()
 {

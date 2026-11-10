@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G: see GxL2Dry.h.
+// GeneralsX: WS-G: see GxL2Dry.h.
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Dry.h"
 #include "WW3D2/dx8renderer.h"
@@ -78,7 +78,7 @@ void GxL2Dry_FillCat(DX8TextureCategoryClass *cat, DX8PolygonRendererClass *pr, 
 	const ShaderClass sh = cat->Get_Shader();
 	c.shader.bits = sh.Get_Bits();
 	// PROXY from the bits, for the static census only: E4 proper is decoded from the effective post-Apply state at the run
-	// (CONTRACT_L2.md §2 E4, Codex contract r2 #3), which a raw write can make differ from these bits.
+	// (CONTRACT_L2.md §2 E4, contract r2 #3), which a raw write can make differ from these bits.
 	c.shader.blendOff = sh.Get_Src_Blend_Func() == ShaderClass::SRCBLEND_ONE && sh.Get_Dst_Blend_Func() == ShaderClass::DSTBLEND_ZERO;
 	c.shader.zEnable = true;
 	c.shader.depthWrite = sh.Get_Depth_Mask() == ShaderClass::DEPTH_WRITE_ENABLE;
@@ -88,8 +88,8 @@ void GxL2Dry_FillCat(DX8TextureCategoryClass *cat, DX8PolygonRendererClass *pr, 
 }
 
 // The task's facts the static rules need, from pure field reads only (dx8renderer.cpp:1830-1908): no Get_Transform /
-// Is_Transform_Identity here - they validate transforms (rendobj.h:598) and are read at the task's execution instead (Codex
-// rw1-G-plan-r1 #2). Get_Container is a plain pointer read.
+// Is_Transform_Identity here - they validate transforms (rendobj.h:598) and are read at the task's execution instead.
+// Get_Container is a plain pointer read.
 void GxL2Dry_FillTask(MeshClass *mesh, DX8PolygonRendererClass *pr, int batch, gxl2::TaskState &t)
 {
 	MeshModelClass *mdl = mesh->Peek_Model();
@@ -133,7 +133,7 @@ void GxL2Dry_FillFlush(int site, gxl2::FlushCtx &f)
 	f.pass.texturingEnabled = WW3D::Is_Texturing_Enabled();
 	f.pass.coloringEnabled = WW3D::Is_Coloring_Enabled();
 	f.pass.debugSwitches = DX8RendererDebugger::Is_Enabled() || !DX8Wrapper::_Is_Triangle_Draw_Enabled()
-		|| DX8Wrapper::Get_Draw_Polygon_Low_Bound_Limit() != 0;	// GeneralsX @feature Claude 11/10/2026 WS-G seat (Codex rw1-G-seat-r1 #6): Draw's low bound skips draws
+		|| DX8Wrapper::Get_Draw_Polygon_Low_Bound_Limit() != 0;	// GeneralsX: WS-G seat: Draw's low bound skips draws
 #ifdef WWDEBUG
 	f.pass.debugSwitches = f.pass.debugSwitches || WW3D::Expose_Prelit();	// the classic loop's prelit texture override (dx8renderer.cpp Render)
 #endif
@@ -253,9 +253,9 @@ void GxL2Dry_Plan(const std::vector<GxClassicDraw> &list, int site, GxL2FlushPla
 	GxL2Dry_RunCounters(list, out.reason, out.taskFlags, out);
 }
 
-// §6 census asks: history-sensitive tasks in a body that has a run (each body once - Codex rw1-G-r5); null-light tasks and decals
+// §6 census asks: history-sensitive tasks in a body that has a run (each body once); null-light tasks and decals
 // after the first run. The task facts are static, so the execution-judged runs (GxScene.cpp) reuse the flush-start plan's flags
-// (Codex rw1-G-r10 #2).
+//
 void GxL2Dry_RunCounters(const std::vector<GxClassicDraw> &list, const std::vector<gxl2::Reason> &reason,
 	const std::vector<uint8_t> &taskFlags, GxL2FlushPlan &out)
 {
@@ -265,7 +265,7 @@ void GxL2Dry_RunCounters(const std::vector<GxClassicDraw> &list, const std::vect
 		if (list[b0].kind != GxClassicDraw::TASK) { ++b0; continue; }
 		int b1 = b0;
 		while (b1 + 1 < n && list[b1 + 1].kind == GxClassicDraw::TASK && list[b1 + 1].cat == list[b0].cat) ++b1;
-		bool hasRun = false;	// a body with an actual run, not merely an OK reason (a no-draw task keeps OK - Codex rw1-G-r11)
+		bool hasRun = false;	// a body with an actual run, not merely an OK reason (a no-draw task keeps OK)
 		for (const GxL2Run &r : out.runs) hasRun = hasRun || (r.first >= b0 && r.first <= b1);
 		if (hasRun)
 			for (int k = b0; k <= b1; ++k)
@@ -293,7 +293,7 @@ struct GxSiteAcc
 {
 	unsigned long long flushes, tasks, runs, keys, bins, claimed, historyNext, nullLenvAfter, decalAfter, multiTaskMeshes, multiTaskTasks,
 		packetsB, packetsBB, packetsBS, flushesWithRun;	// packetsBB: Mode B with bounds (exec, sampled flushes); packetsBS: packetsB on the SAME
-		// sampled flushes (Codex rw1-G-r20 #2); flushesWithRun: the LOWER bound of Mode B packets (one per flush if bounds allowed every merge)
+		// sampled flushes; flushesWithRun: the LOWER bound of Mode B packets (one per flush if bounds allowed every merge)
 	unsigned long long reason[32];
 };
 // [0] stage=static: the flush-start plan (E2/E4 from the shader bits, a PROXY); [1] stage=exec: every task judged at its own draw

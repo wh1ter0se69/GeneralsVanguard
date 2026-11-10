@@ -1,4 +1,4 @@
-// GeneralsX @test Claude 10/10/2026 GXCAP recorder core (WS-I). Game-independent: d3d8 + GXCapFormat.h only, so
+// GeneralsX: GXCAP recorder core (WS-I). Game-independent: d3d8 + GXCapFormat.h only, so
 // gxcap-selftest can drive it against a real DXVK device. The game glue (GXCap.cpp) decides when windows open/close.
 #pragma once
 
@@ -24,7 +24,7 @@ bool Rec_Shot_Seen();	// a SHOT_BEGIN/END pair was recorded in the open window
 void Rec_Open(uint32_t logicFrame, uint32_t drawFrame, uint32_t span);
 void Rec_Close(bool truncated);
 
-// W3DScreenshot brackets its back-buffer readback with these (the GX_SHOT marker, Codex gxcap-design-r1 #10).
+// W3DScreenshot brackets its back-buffer readback with these (the GX_SHOT marker).
 void Rec_Shot_Begin(uint32_t logicFrame, bool requested, const char *name);
 void Rec_Shot_End(bool completed);
 }

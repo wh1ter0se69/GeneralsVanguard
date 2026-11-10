@@ -33,7 +33,7 @@ if(SAGE_USE_OPENAL)
         openal_soft
         URL "https://github.com/kcat/openal-soft/archive/refs/tags/1.24.2.tar.gz"
         URL_HASH "SHA256=7efd383d70508587fbc146e4c508771a2235a5fc8ae05bf6fe721c20a348bd7c"
-        # GeneralsX @bugfix Claude 24/09/2026 StartSources must not dereference a null voice (the
+        # GeneralsX: StartSources must not dereference a null voice (the
         # alSourcePlay crash in mass kill-and-replace bursts, macOS and Windows). See the script.
         PATCH_COMMAND "${CMAKE_COMMAND}" "-DSRC=<SOURCE_DIR>" -P "${CMAKE_CURRENT_LIST_DIR}/openal-startsources-guard.cmake"
     )

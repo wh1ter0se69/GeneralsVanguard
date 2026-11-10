@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 17/10/2026 CLEARER WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterClear.h).
+// GeneralsX: CLEARER WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterClear.h).
 //
 // Included at the end of W3DWater.cpp, below every GX-SIMID region, and called from three places that are outside the SimID
 // closure: WaterRenderObjClass::load and ::update (simdigest_exclusions.txt: the water object's own load and per-frame update)
@@ -86,7 +86,7 @@ static void gxWaterClearApplyNow(const char *why)
 		: (const WaterTransparencySetting *)head->friend_getFinalOverride();
 	GxWaterClearValues v = gxWaterClearApply(own->m_transparentWaterDepth, own->m_minWaterOpacity,
 		s_gxWaterOn ? s_gxWaterStrength : 0.0f, s_gxWaterTargets);
-	// GeneralsX @feature Claude 24/10/2026 RA3 water, while on, supplies both values itself (its longer Beer-Lambert band and
+	// GeneralsX: RA3 water, while on, supplies both values itself (its longer Beer-Lambert band and
 	// its own cap, GameClient/GXWaterRA3.h), whatever this option's key says; off, this returns false and nothing changes.
 	const Bool ra3 = gxWaterRA3OverrideValues(own->m_transparentWaterDepth, own->m_minWaterOpacity, &v.depth, &v.minOpacity) ? TRUE : FALSE;
 	const Bool wanted = (v.depth != own->m_transparentWaterDepth || v.minOpacity != own->m_minWaterOpacity);

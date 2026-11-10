@@ -97,7 +97,7 @@ struct FFResources {
 		uint32_t s = seed * 2654435761u + 1u;
 		for (uint32_t i = 0; i < bytes * 8; i++)
 			px[i] = uint8_t(rng(s) >> 24);
-		vmaFlushAllocation(vma, stageMem, 0, VK_WHOLE_SIZE);   // no-op on coherent memory (Codex rw2-D-r1 #3)
+		vmaFlushAllocation(vma, stageMem, 0, VK_WHOLE_SIZE);   // no-op on coherent memory
 		VkCommandPoolCreateInfo pci = { VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO };
 		pci.queueFamilyIndex = c.queue(Vk::QueueKind::Graphics).family;
 		VkCommandPool cp = VK_NULL_HANDLE;

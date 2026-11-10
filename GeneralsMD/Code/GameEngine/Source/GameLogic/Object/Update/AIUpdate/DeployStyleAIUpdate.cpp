@@ -99,7 +99,7 @@ UpdateSleepTime DeployStyleAIUpdate::update()
 	Object *self = getObject();
 	Weapon *weapon = self->getCurrentWeapon();
 #if GX_LOGIC_60HZ
-	UnsignedInt now = TheGameLogic->getFrame() / 2;	// GeneralsX @feature Claude 05/10/2026 GO's 30 Hz legacy frames: see getUnpackTime
+	UnsignedInt now = TheGameLogic->getFrame() / 2;	// GeneralsX: GO's 30 Hz legacy frames: see getUnpackTime
 #else
 	UnsignedInt now = TheGameLogic->getFrame();
 #endif
@@ -245,7 +245,7 @@ UpdateSleepTime DeployStyleAIUpdate::update()
 			if( data->m_manualDeployAnimations )
 			{
 #if GX_LOGIC_60HZ
-				// GeneralsX @feature Claude 05/10/2026 as GO: the manual animation step (and the busy state and locomotor stop
+				// GeneralsX: as GO: the manual animation step (and the busy state and locomotor stop
 				// after it) runs only on GO's 30 Hz legacy frames, the even frames from 2 on.
 				if( TheGameLogic->getFrame() == 0 || (TheGameLogic->getFrame() & 1) != 0 )
 					break;
@@ -265,7 +265,7 @@ UpdateSleepTime DeployStyleAIUpdate::update()
 			if( data->m_manualDeployAnimations )
 			{
 #if GX_LOGIC_60HZ
-				// GeneralsX @feature Claude 05/10/2026 as GO: the manual animation step (and the busy state and locomotor stop
+				// GeneralsX: as GO: the manual animation step (and the busy state and locomotor stop
 				// after it) runs only on GO's 30 Hz legacy frames, the even frames from 2 on.
 				if( TheGameLogic->getFrame() == 0 || (TheGameLogic->getFrame() & 1) != 0 )
 					break;
@@ -300,7 +300,7 @@ void DeployStyleAIUpdate::setMyState( DeployStateTypes stateID, Bool reverseDepl
 	m_state = stateID;
 	Object *self = getObject();
 #if GX_LOGIC_60HZ
-	UnsignedInt now = TheGameLogic->getFrame() / 2;	// GeneralsX @feature Claude 05/10/2026 GO's 30 Hz legacy frames: see getUnpackTime
+	UnsignedInt now = TheGameLogic->getFrame() / 2;	// GeneralsX: GO's 30 Hz legacy frames: see getUnpackTime
 #else
 	UnsignedInt now = TheGameLogic->getFrame();
 #endif
@@ -478,11 +478,11 @@ void DeployStyleAIUpdate::xfer( Xfer *xfer )
 		xfer->xferUser(&m_state, sizeof(m_state));
 		xfer->xferUnsignedInt(&m_frameToWaitForDeploy);
 #if GX_LOGIC_60HZ
-		// GeneralsX @fix Claude 05/10/2026 update() and setMyState() count frame / 2 (Generals Online's legacy frames) since
+		// GeneralsX: update() and setMyState() count frame / 2 (Generals Online's legacy frames) since
 		// 17ebfdb98, but a version-4 record holds either clock: whole 60 Hz frames (every 60 Hz save before that commit) or,
 		// from the builds between it and version 5 (05/10/2026, never released), legacy frames already. A whole-frame
 		// deadline loaded raw waited about twice its remaining time plus the whole elapsed match, and a reverse deploy wrapped
-		// it (Codex codex-batch-1005 p1-go-fire); halving a legacy one ended its wait at once (Codex fix-0957-codex r1).
+		// it (p1-go-fire); halving a legacy one ended its wait at once.
 		// GameLogic::xfer restored the saved frame before any object loads, so the two are told apart by range: a legacy
 		// deadline is at most one pack or unpack time past frame / 2, a whole-frame one at least the frame itself. Only a
 		// save from a match's first two such times can fit both; it is read as legacy, and its wait then ends late by at

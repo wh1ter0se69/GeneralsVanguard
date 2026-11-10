@@ -1,5 +1,5 @@
 /*
- * GeneralsX @bugfix Claude 27/07/2026 Architecture-neutral access to the Windows CONTEXT record.
+ * GeneralsX: Architecture-neutral access to the Windows CONTEXT record.
  *
  * The crash reporters (WWLib/Except.cpp, <game>/GameEngine/Source/Common/System/StackDump.cpp and
  * Libraries/Source/debug/debug_*.cpp) were written for 32-bit x86 and hardcode three things that

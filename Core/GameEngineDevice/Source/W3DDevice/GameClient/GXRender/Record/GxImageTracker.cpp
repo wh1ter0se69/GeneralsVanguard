@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: image barriers for the pass graph (see GxImageTracker.h).
+// GeneralsX: WS-F1: image barriers for the pass graph (see GxImageTracker.h).
 #include "GxImageTracker.h"
 
 #include "GxResources.h"
@@ -126,7 +126,7 @@ bool GxImageTracker::need(Res::GxImage& img, const GxImageUse& u)
 	b.dstStageMask = u.stage;
 	b.dstAccessMask = u.access;
 	// a discard (CLEAR / DONT_CARE load) may drop only what the use covers: attachments are level 0, so an image with more
-	// levels keeps them (Codex rw2-F1-r2 #2) - the barrier spans every level and an UNDEFINED old layout would drop them all
+	// levels keeps them - the barrier spans every level and an UNDEFINED old layout would drop them all
 	b.oldLayout = u.discard && img.levels <= 1 ? VK_IMAGE_LAYOUT_UNDEFINED : s.layout;
 	b.newLayout = u.layout;
 	b.srcQueueFamilyIndex = b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -176,7 +176,7 @@ void GxImageTracker::forget(const Res::GxImage* img)
 {
 	m_states.erase(img);
 	// a queued barrier must not outlive the image: a never-submitted image can be destroyed (its handle freed) before flush()
-	// (Codex rw2-F1-r5 #1)
+	//
 	if (img != nullptr)
 		m_barriers.erase(std::remove_if(m_barriers.begin(), m_barriers.end(),
 			[img](const VkImageMemoryBarrier2& b) { return b.image == img->image; }), m_barriers.end());

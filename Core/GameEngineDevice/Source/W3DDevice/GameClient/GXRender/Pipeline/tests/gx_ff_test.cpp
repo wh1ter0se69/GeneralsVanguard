@@ -505,7 +505,7 @@ struct Gpu {
 		if (vmaCreateBuffer(ctx.allocator(), &bi, &ai, &b, &m, &info) != VK_SUCCESS)
 			return false;
 		std::memset(info.pMappedData, 0, size_t(size));
-		vmaFlushAllocation(ctx.allocator(), m, 0, VK_WHOLE_SIZE);   // the zeros (the null stream's) reach the GPU (Codex rw2-D-r2)
+		vmaFlushAllocation(ctx.allocator(), m, 0, VK_WHOLE_SIZE);   // the zeros (the null stream's) reach the GPU
 		if (ptr)
 			*ptr = static_cast<uint8_t*>(info.pMappedData);
 		return true;
@@ -788,7 +788,7 @@ bool prepare(Gpu& g, const FFEntry& e, const GxD3D8FFState& s, uint32_t seed, ui
 		return false;
 	}
 	std::memcpy(g.vbPtr + at, v.data(), v.size());
-	vmaFlushAllocation(g.ctx.allocator(), g.vbMem, at, v.size());   // no-op on coherent memory (Codex rw2-D-r1 #3)
+	vmaFlushAllocation(g.ctx.allocator(), g.vbMem, at, v.size());   // no-op on coherent memory
 	out.vbOffset = at;
 	vbHead = at + uint32_t(v.size());
 	out.frame = e.frame;
@@ -1011,7 +1011,7 @@ int runCold(Gpu& g, const std::string& stream, const std::string& setArg, const 
 	cache.prebuild(parts.data(), parts.size(), &g.cfg, 1, 4);
 	cache.waitPrebuild();
 	const GxPipeStats pre = cache.stats();
-	// The generic set is the contract the replay rests on: an incomplete prebuild fails here, before any timing (Codex rw2-D-r3).
+	// The generic set is the contract the replay rests on: an incomplete prebuild fails here, before any timing.
 	if (!cache.prebuildComplete()) {
 		std::printf("[GXFF] cold prebuild INCOMPLETE (prebuilt=%u prebuild_failed=%u) verdict=FAIL\n", pre.prebuilt, pre.prebuildFailed);
 		cache.shutdown();
@@ -1024,7 +1024,7 @@ int runCold(Gpu& g, const std::string& stream, const std::string& setArg, const 
 	std::vector<double> getMs, frameMs;
 	double worstGet = 0, worstGetCpu = 0, worstCall = 0, worstCallCpu = 0, cpuAtWorst = 0;
 	// Thread CPU time tells "off the CPU" (preempted) from "computing" in a slow frame. POSIX only: MSVC's CRT has no
-	// clock_gettime and GetThreadTimes ticks at the scheduler quantum, so Windows reports -1 (n/a) (Codex rw2-D-r1 #2).
+	// clock_gettime and GetThreadTimes ticks at the scheduler quantum, so Windows reports -1 (n/a).
 	auto threadCpuMs = [] {
 #if defined(_WIN32)
 		return 0.0;
@@ -1069,7 +1069,7 @@ int runCold(Gpu& g, const std::string& stream, const std::string& setArg, const 
 			double tGet = 0, tCpu = 0;
 			// --lookups N: a real frame looks a pipeline up per DRAW (thousands), not per distinct pipeline: getFF is called N
 			// times cycling over the live set; each live pipeline is still drawn once (rw2-D adversarial review P3-8).
-			const size_t calls = std::max(size_t(lookups > 0 ? lookups : 0), live.size());   // every live entry at least once (Codex rw2-D-r3)
+			const size_t calls = std::max(size_t(lookups > 0 ? lookups : 0), live.size());   // every live entry at least once
 			for (size_t c = 0; c < calls && !live.empty(); c++) {
 				const Prepared& p = live[c % live.size()];
 				const double c0 = threadCpuMs();
@@ -1128,14 +1128,14 @@ int runCold(Gpu& g, const std::string& stream, const std::string& setArg, const 
 	// Pre-registered (PLAN_rw2-D.md task 7): the draw thread never compiles a specialised variant: getFF time per frame
 	// <= 1 ms at every frame and prebuild_wait 0. The fail arm (--sync-spec) must break the first clause.
 	const bool noHitch = worstGet <= 1.0 && st.prebuildWait == 0;
-	// The run must have done the work it claims (Codex rw2-D-r1 #4): every stream entry prepared, every lookup a pipeline,
+	// The run must have done the work it claims: every stream entry prepared, every lookup a pipeline,
 	// every frame submitted, and something drawn - an empty or broken stream is a FAIL, never a timing PASS.
 	// ...and the specialised path must really have run (rw2-D adversarial review P3-4): something compiled, nothing failed.
 	const bool ran = arrivals > 0 && drawn > 0 && prepFailed == 0 && nullPipes == 0 && renderFailed == 0 &&
 	                 st.specCompiled > 0 && st.specFailed == 0;
 	// --expect-miss N (the unseen-map arm): N generic misses are the expected outcome - each one a compile on the caller,
 	// i.e. a hitch the miss record bounds to once per machine - so the verdict is the miss count, not the no-hitch rule.
-	// Without --expect-miss a generic miss is a FAIL however fast it compiled (Codex rw2-D-r3): the set must cover the stream.
+	// Without --expect-miss a generic miss is a FAIL however fast it compiled: the set must cover the stream.
 	const bool pass = ran && (expectMiss >= 0 ? (st.genericMiss == uint32_t(expectMiss) && st.prebuildWait == 0 && vErr == 0)
 	                          : syncSpec ? (!noHitch && st.genericMiss == 0) : (noHitch && st.genericMiss == 0 && vErr == 0));
 	std::printf("[GXFF] cold lookups_per_frame=%d stream=%s set=%s parts=%zu prebuilt=%u prebuild_ms=%.1f frames=%d arrivals=%d live=%zu "

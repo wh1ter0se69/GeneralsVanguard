@@ -829,7 +829,7 @@ void ShaderClass::Apply()
 	DX8Wrapper::Set_DX8_Render_State(D3DRS_CULLMODE,Get_Cull_Mode() ? _PolygonCullMode : D3DCULL_NONE);
 
 	// NPATCHES
-	// GeneralsX @performance Claude 07/08/2026 Only set the tessellation level on a device that
+	// GeneralsX: Only set the tessellation level on a device that
 	// actually tessellates. See the long note on the Zero Hour twin of this file: DXVK does not
 	// implement D3DRS_PATCHSEGMENTS and logged a warning at ~2750 lines/second on the render
 	// thread. Every other N-patch site already guards on Support_NPatches(); this one did not.

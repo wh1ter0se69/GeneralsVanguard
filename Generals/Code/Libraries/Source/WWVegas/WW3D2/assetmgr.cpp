@@ -231,7 +231,7 @@ WW3DAssetManager::WW3DAssetManager() :
 	Register_Prototype_Loader (&_RingLoader);
 	Register_Prototype_Loader (&_SphereLoader);
 
-	// GeneralsX @build Copilot 11/05/2026 Keep shader library prototype loader parity with ZH path.
+	// GeneralsX: Keep shader library prototype loader parity with ZH path.
 	SHD_REG_LOADER;
 
 	// allocate the hash table and clear it.
@@ -798,7 +798,7 @@ RenderObjClass * WW3DAssetManager::Create_Render_Obj(const char * name)
 		char filename [MAX_PATH];
 		const char *mesh_name = ::strchr (name, '.');
 		if (mesh_name != nullptr) {
-			// GeneralsX @build Copilot 11/05/2026 Use SIZE_T pointer-delta math to avoid truncation in 64-bit builds.
+			// GeneralsX: Use SIZE_T pointer-delta math to avoid truncation in 64-bit builds.
 			::lstrcpyn (filename, name, ((SIZE_T)mesh_name) - ((SIZE_T)name) + 1);
 			::lstrcat (filename, ".w3d");
 		} else {

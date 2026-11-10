@@ -111,7 +111,7 @@ void Display::attachView( View *view )
 /**
  * Render all views of the world
  */
-// GeneralsX @feature Claude 25/09/2026 Every world render funnels through here (W3DDisplay does not
+// GeneralsX: Every world render funnels through here (W3DDisplay does not
 // override it), so this count says whether the scene was drawn during a window of interest - the
 // map-transfer screen logs its delta, which makes a scene leak under that screen readable from the log.
 static UnsignedInt s_drawViewsCount = 0;
@@ -361,7 +361,7 @@ void Display::flush()
 	}
 }
 
-// GeneralsX @bugfix Claude 06/08/2026 See Display.h. Converts the script's frame count to a
+// GeneralsX: See Display.h. Converts the script's frame count to a
 // wall-clock deadline once, so the caption lasts the authored time at any render rate and still
 // expires inside a frozen-time cinematic.
 void Display::setCinematicTextFrames( Int frames )
@@ -372,7 +372,7 @@ void Display::setCinematicTextFrames( Int frames )
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 28/09/2026 The render interpolation phase. See GXLogicPhase.h for the two sources.
+// GeneralsX: The render interpolation phase. See GXLogicPhase.h for the two sources.
 // GX_INTERP=0 pins it to 1.0f (the same-binary control arm, and a way out); a headless peer never computes it. So does a
 // GX_SHOT capture (GameClient.cpp's capture clock, test/gfx-shotdiff): every render clock then follows the logic frame, so
 // a shot at frame N shows frame N's logic pose whatever the wall clock, and two runs' shots compare.
@@ -421,7 +421,7 @@ void Display::updateLogicPhase()
 	// scale it compares against), as the gate queries the rate - frozen time included.
 	// When the gate ticks on every update without touching its accumulator (the logic rate reaches the render cap, a
 	// script's fast-forward, the replay fast mode: GameEngine::canUpdateRegularGameLogic), the leftover is stale and
-	// every draw already has a fresh frame: the phase is 1 (Codex interp-r6). Same conditions, read the same way;
+	// every draw already has a fresh frame: the phase is 1. Same conditions, read the same way;
 	// the fast mode is taken without its replay-only test, which can only pin more often.
 	const Int gateFps = TheFramePacer->getActualLogicTimeScaleFps(FramePacer::IgnoreFrozenTime);
 	const Bool gateBypassed = TheGlobalData->m_TiVOFastMode || TheFramePacer->isScriptFastForward()

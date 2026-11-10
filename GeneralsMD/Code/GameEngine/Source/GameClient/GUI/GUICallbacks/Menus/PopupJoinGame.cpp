@@ -78,11 +78,11 @@ static NameKeyType buttonCancelID = NAMEKEY_INVALID;
 
 static GameWindow *parentPopup = nullptr;
 static GameWindow *textEntryGamePassword = nullptr;
-// GeneralsX @feature Claude 17/08/2026 Kept as a file static now, not a local of the init. The LAN
+// GeneralsX: Kept as a file static now, not a local of the init. The LAN
 // prompt has to be able to rewrite this field AFTER the layout is up - a second refusal reuses an
 // already-open overlay, and GameSpyOpenOverlay does not re-run runInit in that case.
 static GameWindow *staticTextGameName = nullptr;
-// GeneralsX @fix Claude 17/08/2026 (cross-model review) The caption to the LEFT of that field.
+// GeneralsX: (cross-model review) The caption to the LEFT of that field.
 //
 // It is a plain static carrying TEXT = "GUI:GameName", which the English CSF renders as
 // "Game Name:" - so anything but a game name written into StaticTextGameName is read by the player
@@ -95,7 +95,7 @@ static GameWindow *staticTextGameNameCaption = nullptr;
 static void joinGame( AsciiString password );
 
 //-----------------------------------------------------------------------------
-// GeneralsX @feature Claude 17/08/2026 LAN / relay lobby password prompt.
+// GeneralsX: LAN / relay lobby password prompt.
 //
 // THE LAYOUT IS STOCK AND ALREADY SHIPS. Menus/PopupJoinGame.wnd is inside WindowZH.big and
 // carries the controls this needs - ParentJoinPopUp, TextEntryGamePassword, StaticTextGameName,
@@ -157,7 +157,7 @@ static Bool          s_retryDirect = FALSE;
 static UnicodeString s_retryGameName;
 static UnsignedInt   s_retryIP     = 0;
 
-// GeneralsX @feature Claude 17/08/2026 (cross-model review) A password typed HERE is borrowed, not
+// GeneralsX: (cross-model review) A password typed HERE is borrowed, not
 // adopted.
 //
 // applyLobbyCommand is the only public way to bind a join password, and it deliberately does three
@@ -241,7 +241,7 @@ static void lanPromptApply( void )
 			// The two screens ask about the same secret and must not disagree about showing it.
 			pwEntry->secretText = TRUE;
 
-			// GeneralsX @bugfix Claude 17/08/2026 THE BOX MUST ACCEPT WHAT A HOST CAN SET.
+			// GeneralsX: THE BOX MUST ACCEPT WHAT A HOST CAN SET.
 			//
 			// The shipped .wnd authors this field MAXLEN 10, ALPHANUMERICALONLY 1, ASCIIONLY 1 -
 			// and the accept test is `charPos < maxTextLen-1`, so that is NINE alphanumeric ASCII
@@ -271,7 +271,7 @@ static void lanPromptApply( void )
 	{
 		if( s_lanRefused )
 		{
-			// GeneralsX @fix Claude 17/08/2026 (cross-model review) Take the row over before
+			// GeneralsX: (cross-model review) Take the row over before
 			// writing a status into it.
 			//
 			// The caption to the left says "Game Name:", so a status left beside it reads as the
@@ -444,7 +444,7 @@ static Bool lanPromptOpen( Bool refused, LANGameInfo *theGame )
 //-------------------------------------------------------------------------------------------------
 static void lanPromptSubmit( const UnicodeString &typed )
 {
-	// GeneralsX @fix Claude 17/08/2026 (cross-model review) TRIMMED, and the emptiness test is on
+	// GeneralsX: (cross-model review) TRIMMED, and the emptiness test is on
 	// the trimmed value. The comment this replaces said the opposite and was wrong twice.
 	//
 	// It claimed trimming would break parity with the host, "which binds its password exactly as
@@ -470,7 +470,7 @@ static void lanPromptSubmit( const UnicodeString &typed )
 	if( entered.isEmpty() )
 		return;
 
-	// GeneralsX @fix Claude 17/08/2026 (cross-model review) A lobby that is not there any more is
+	// GeneralsX: (cross-model review) A lobby that is not there any more is
 	// reported as a lobby that is not there, not as a bad password.
 	//
 	// These two branches used to re-show the prompt saying the password was wrong, which is untrue
@@ -563,7 +563,7 @@ class GXLobbyLANAPI : public LANAPI
 {
 public:
 
-	/// GeneralsX @bugfix Claude 18/09/2026 EVERY LOBBY TRANSPORT IS BORN IDENTIFIED.
+	/// GeneralsX: EVERY LOBBY TRANSPORT IS BORN IDENTIFIED.
 	///
 	/// A signed-in player was identified to the relay on ONE screen: the Online lobby handed the
 	/// assertion over on entry (WOLLobbyMenu relayDeclareIdentity). Every other path that reaches a
@@ -643,7 +643,7 @@ public:
 			return;
 		}
 
-		// GeneralsX @fix Claude 17/08/2026 (cross-model review, second pass) RET_GAME_GONE and
+		// GeneralsX: (cross-model review, second pass) RET_GAME_GONE and
 		// RET_TIMEOUT are reported verbatim. A previous revision flattened them into the prompt's
 		// refusal line while a submitted password was outstanding; that was wrong twice over.
 		//
@@ -678,7 +678,7 @@ LANAPI *GXCreateLobbyLANAPI( void )
 //-------------------------------------------------------------------------------------------------
 void PopupJoinGameInit( WindowLayout *layout, void *userData )
 {
-	// GeneralsX @feature Claude 17/08/2026 Whoever opened this popup decides what it is for. The
+	// GeneralsX: Whoever opened this popup decides what it is for. The
 	// GameSpy path calls GameSpyOpenOverlay directly and sets nothing, so it always lands on FALSE;
 	// only lanPromptOpen holds the latch across its own open call.
 	s_lanMode = s_lanOpening;
@@ -690,7 +690,7 @@ void PopupJoinGameInit( WindowLayout *layout, void *userData )
 	textEntryGamePassword = TheWindowManager->winGetWindowFromId(parentPopup, textEntryGamePasswordID);
 	GadgetTextEntrySetText(textEntryGamePassword, UnicodeString::TheEmptyString);
 
-	// GeneralsX @feature Claude 17/08/2026 Asterisks, not the password, on BOTH paths.
+	// GeneralsX: Asterisks, not the password, on BOTH paths.
 	//
 	// The .wnd authors this as an ordinary text box, so it rendered a typed password in the clear
 	// on a screen people stream. Unconditional rather than LAN-only: the GameSpy path has the same
@@ -717,7 +717,7 @@ void PopupJoinGameInit( WindowLayout *layout, void *userData )
 
 	if (s_lanMode)
 	{
-		// GeneralsX @feature Claude 17/08/2026 A LAN/relay join. There is no staging room and
+		// GeneralsX: A LAN/relay join. There is no staging room and
 		// TheGameSpyInfo is NULL on this path by construction - the LAN lobby never runs
 		// SetUpGameSpy - so the lookup below is not merely useless here, it is a null dereference.
 		lanPromptApply();
@@ -768,7 +768,7 @@ WindowMsgHandledType PopupJoinGameInput( GameWindow *window, UnsignedInt msg, Wi
 					//
 					if( BitIsSet( state, KEY_STATE_UP ) )
 					{
-						// GeneralsX @feature Claude 17/08/2026 On the LAN/relay path there is
+						// GeneralsX: On the LAN/relay path there is
 						// nothing to stand down: LANAPI already cleared m_pendingAction when it
 						// handed us the refusal, and SetLobbyAttemptHostJoin gates the GameSpy
 						// screen's own buttons, which this join never touched.
@@ -817,7 +817,7 @@ WindowMsgHandledType PopupJoinGameSystem( GameWindow *window, UnsignedInt msg, W
     //---------------------------------------------------------------------------------------------
 		case GWM_DESTROY:
 		{
-			// GeneralsX @fix Claude 17/08/2026 (cross-model review) The one teardown path this file
+			// GeneralsX: (cross-model review) The one teardown path this file
 			// does not own.
 			//
 			// lanPromptRelease runs on ESC, on Cancel and on every OnGameJoin that is not a
@@ -858,7 +858,7 @@ WindowMsgHandledType PopupJoinGameSystem( GameWindow *window, UnsignedInt msg, W
 			Int controlID = control->winGetWindowId();
 			if (controlID == buttonCancelID)
 			{
-				// GeneralsX @feature Claude 17/08/2026 See the ESC handler for why the LAN path
+				// GeneralsX: See the ESC handler for why the LAN path
 				// does not touch SetLobbyAttemptHostJoin.
 				if( s_lanMode )
 				{
@@ -898,7 +898,7 @@ WindowMsgHandledType PopupJoinGameSystem( GameWindow *window, UnsignedInt msg, W
 				txtInput.set(GadgetTextEntryGetText( textEntryGamePassword ));
 				GadgetTextEntrySetText(textEntryGamePassword, UnicodeString::TheEmptyString);
 
-				// GeneralsX @feature Claude 17/08/2026 The LAN/relay retry. Split out before the
+				// GeneralsX: The LAN/relay retry. Split out before the
 				// GameSpy path's trim only because lanPromptSubmit does its own - and has to, for
 				// a reason that has nothing to do with the GameSpy request below. See it.
 				if( s_lanMode )
@@ -948,7 +948,7 @@ static void joinGame( AsciiString password )
 	req.stagingRoom.id = ourRoom->getID();
 	req.password = password.str();
 	TheGameSpyPeerMessageQueue->addRequest(req);
-	// GeneralsX @bugfix Claude 17/08/2026 This used to print the password itself. A lobby password
+	// GeneralsX: This used to print the password itself. A lobby password
 	// is a credential people reuse, and DEBUG_LOG lands in a file that gets attached to bug
 	// reports - so the one fact worth recording is whether a password was supplied, never which.
 	DEBUG_LOG(("Attempting to join game %d(%ls)%s", ourRoom->getID(), ourRoom->getGameName().str(),

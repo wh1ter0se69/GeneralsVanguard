@@ -110,6 +110,6 @@ void DX8PolygonRendererClass::Log()
 		vertex_index_range,
 		mmc->ident,
 		mmc->Get_Name());
-*/	WWDEBUG_SAY(("%s", (const char *)work));	// GeneralsX @security Claude 06/10/2026 work holds asset names: data, not a format
+*/	WWDEBUG_SAY(("%s", (const char *)work));	// GeneralsX: work holds asset names: data, not a format
 }
 

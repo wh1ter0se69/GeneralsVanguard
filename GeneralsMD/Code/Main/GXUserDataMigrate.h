@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 23/09/2026 - the one-time move into GeneralsX's own user-data folder.
+// GeneralsX: the one-time move into GeneralsX's own user-data folder.
 //
 // Until this build, Windows GeneralsX kept its user data in
 // Documents\<UserDataLeafName, default "Command and Conquer Generals Zero Hour Data">. Retail Zero

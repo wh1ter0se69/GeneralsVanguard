@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 02/10/2026 ai-gym observation logger: the match state as NDJSON, schema v1
+// GeneralsX: ai-gym observation logger: the match state as NDJSON, schema v1
 // (scripts/ai/gym/SCHEMA.md is the contract; bump GXGYM_SCHEMA_VERSION with any change to a line's fields).
 //
 // SELF-CONTAINED ON PURPOSE. The first learned AI will be trained on Generals Online replays decoded by GO's OWN client with
@@ -189,8 +189,8 @@ void gxGymObserveStart(FILE *out, const char *prefix, Int viewPlayerIndex)
 		Player *p = ThePlayerList->getNthPlayer(i);
 		if (!isPlayable(p))
 			continue;
-		// GeneralsX @bugfix Claude 07/11/2026 scale32: 64 bits and every Player, as the frame rows' `vis` below - at MAX_PLAYER_COUNT 40
-		// an ally at index 32+ was dropped from the start record, so the readers split that alliance (Codex vnext1107-r1 P2).
+		// GeneralsX: scale32: 64 bits and every Player, as the frame rows' `vis` below - at MAX_PLAYER_COUNT 40
+		// an ally at index 32+ was dropped from the start record, so the readers split that alliance.
 		UnsignedInt64 allies = 0;
 		for (Int j = 0; j < ThePlayerList->getPlayerCount() && j < MAX_PLAYER_COUNT; ++j)
 			if (j != i && mutualAllies(p, ThePlayerList->getNthPlayer(j)))
@@ -239,7 +239,7 @@ void gxGymObserveFrame(FILE *out, const char *prefix, UnsignedInt frame, Int vie
 	// Everyone who could see a row, as a bit per player index - so one stream serves every player's fog view (a replay
 	// decoded once gives each player's (what it saw, what it did) pairs).
 	std::vector<Player *> seers;
-	for (Int i = 0; i < ThePlayerList->getPlayerCount() && i < MAX_PLAYER_COUNT; ++i)	// GeneralsX 06/11/2026 every Player (was < 32; Codex scale32-r1 P2)
+	for (Int i = 0; i < ThePlayerList->getPlayerCount() && i < MAX_PLAYER_COUNT; ++i)	// GeneralsX 06/11/2026 every Player (was < 32)
 		if (isPlayable(ThePlayerList->getNthPlayer(i)))
 			seers.push_back(ThePlayerList->getNthPlayer(i));
 
@@ -291,13 +291,13 @@ void gxGymObserveFrame(FILE *out, const char *prefix, UnsignedInt frame, Int vie
 	fflush(out);
 }
 
-// GeneralsX @feature Claude 15/10/2026 pro-macro-data: the "ext" line - how each mobile object stands and moves, for
+// GeneralsX: pro-macro-data: the "ext" line - how each mobile object stands and moves, for
 // analysis of decoded replays (which way a truck faces, whether it drives in reverse, which dock it uses, what it is
 // ordered at). Same rules as above: const getters only, no name keys, no random numbers; heading and the forward speed
 // are computed here from getOrientation and the physics velocity, not from Object::getUnitDirectionVector2D.
 // Rows are self-contained (owner, template, x, y) because they also cover what the obs line leaves out: a vehicle whose
 // crew was sniped belongs to the NEUTRAL player while it is unmanned (ActiveBody.cpp: DISABLED_UNMANNED + setTeam(neutral)),
-// and worthARow keeps no neutral mobile object (Codex pro-macro-r1 P2).
+// and worthARow keeps no neutral mobile object.
 namespace
 {
 Bool worthAnExtRow(const Object *o)

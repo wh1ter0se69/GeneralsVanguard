@@ -168,20 +168,20 @@ set(GAMEENGINEDEVICE_SRC
     Source/W3DDevice/GameLogic/W3DTerrainLogic.cpp
 )
 
-# GeneralsX @build BenderAI 10/03/2026 - Separate Windows and Linux platform-specific files
+# GeneralsX: Separate Windows and Linux platform-specific files
 if(WIN32)
     # Windows-specific files (DirectX 8, Miles Sound, Win32 API)
     list(APPEND GAMEENGINEDEVICE_SRC
 #       Source/Win32Device/Common/Win32BIGFile.cpp
 #       Source/Win32Device/Common/Win32BIGFileSystem.cpp
-# GeneralsX @bugfix Claude 27/07/2026 Win32CDManager.cpp exists nowhere in this tree and has zero
+# GeneralsX: Win32CDManager.cpp exists nowhere in this tree and has zero
 # code references - a dead entry that failed the Windows configure.
 #        Source/Win32Device/Common/Win32CDManager.cpp
         Source/Win32Device/Common/Win32GameEngine.cpp
 #       Source/Win32Device/Common/Win32LocalFile.cpp
 #       Source/Win32Device/Common/Win32LocalFileSystem.cpp
         Source/Win32Device/Common/Win32OSDisplay.cpp
-# GeneralsX @bugfix Claude 27/07/2026 Built from Core, where these files actually live.
+# GeneralsX: Built from Core, where these files actually live.
 #        Source/Win32Device/GameClient/Win32DIKeyboard.cpp
 #        Source/Win32Device/GameClient/Win32Mouse.cpp
     )
@@ -232,16 +232,16 @@ target_link_libraries(g_gameenginedevice PUBLIC
 )
 
 # Linux SDL3 windowing/input
-# GeneralsX @build BenderAI 11/02/2026
+# GeneralsX:
 if(SAGE_USE_SDL3)
     target_link_libraries(g_gameenginedevice PUBLIC sdl3lib)
 endif()
 
-# GeneralsX @feature BenderAI 10/03/2026 - OpenAL audio backend (ported from GeneralsMD/Zero Hour)
+# GeneralsX: OpenAL audio backend (ported from GeneralsMD/Zero Hour)
 # GeneralsX @refactor fbraz3 31/03/2026 Headers/sources now in Core/GameEngineDevice; include dirs via corei_gameenginedevice_private/public
 if(SAGE_USE_OPENAL)
     include(${CMAKE_SOURCE_DIR}/cmake/openal.cmake)
-    # GeneralsX @bugfix Claude 06/08/2026 Guard the find_package, matching the two call sites that
+    # GeneralsX: Guard the find_package, matching the two call sites that
     # already do it (GeneralsMD/Code/GameEngineDevice/CMakeLists.txt and
     # Core/GameEngineDevice/CMakeLists.txt). cmake/openal.cmake FetchContents openal-soft and
     # DEFINES OpenAL::OpenAL itself, so an unguarded REQUIRED find_package here searches the system
@@ -254,7 +254,7 @@ if(SAGE_USE_OPENAL)
     target_link_libraries(g_gameenginedevice PUBLIC OpenAL::OpenAL)
 endif()
 
-# GeneralsX @feature BenderAI 10/03/2026 - FFmpeg audio/video decoding
+# GeneralsX: FFmpeg audio/video decoding
 if(RTS_BUILD_OPTION_FFMPEG)
     if(NOT TARGET PkgConfig::FFMPEG)
         find_package(PkgConfig REQUIRED)

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 02/10/2026 ai-gym - a training ground on our own engine (ai/PROMPT_ai-gym.md): OBSERVE a match as
+// GeneralsX: ai-gym - a training ground on our own engine (ai/PROMPT_ai-gym.md): OBSERVE a match as
 // NDJSON (GXGymObserve.cpp) and ACT for this peer's player from lines a training process writes (GXGymProtocol.h).
 //
 // HOW ACTING STAYS HONEST. Every action becomes the GameMessages the UI appends for the same click - MSG_CREATE_SELECTED_GROUP
@@ -42,7 +42,7 @@
 //   GX_ACT_TIMEOUT_MS=<n>    GX_ACT_SYNC: give up waiting after this long and stop acting, default 120000.
 //   GX_GYM_ALLOW_HUMANS=1    allow both in a match with more than one human (the 2-peer lockstep proof). Honoured ONLY in a
 //                            GX_TEST_INSTRUMENTS build (never shipped): in a player's binary it would be a maphack and a bot
-//                            in a stranger's room through -lanjoin (CLAUDE-ONLY review r1 P2).
+//                            in a stranger's room through -lanjoin.
 //
 // WHERE IT MAY RUN. Observing is a full map reveal and acting is a bot, so neither runs in a player's game: only in a
 // command-line harness match (-lanhost / -lanjoin) with at most one human - GameLogic::gxCheatsAllowed, the cheats' own
@@ -428,7 +428,7 @@ void selectGroup(const std::vector<Object *> &group)
 }
 
 /// NULL when the action was sent; otherwise why it was refused. `at` is set for a build: the spot chosen.
-/// GeneralsX @feature Claude 10/10/2026 Track B scenario drills (PLAN_neural.md S2): the TRUSTED controller sets up a
+/// GeneralsX: Track B scenario drills (PLAN_neural.md S2): the TRUSTED controller sets up a
 /// battle with the existing sandbox cheat orders - MSG_GX_CHEAT_SPAWN_UNIT / MSG_GX_CHEAT_DELETE_OBJECTS, whose
 /// handlers (GameLogicDispatch.cpp) refuse them in any match with more than one human. Off unless GX_GYM_SCENARIO=1;
 /// the Python side never lets a policy emit these two verbs.
@@ -725,7 +725,7 @@ const char *perform(const GXGymAction &a, const Player *me, Coord3D *at, Bool *p
 			Coord3D want;
 			if (!onMap(a.x, a.y, &want))
 				return "off the map";
-			// GeneralsX @feature Claude 03/10/2026 ai-train-8: a facing from the bot (wh1ter0se's live watch #15), else the template's -
+			// GeneralsX: ai-train-8: a facing from the bot (wh1ter0se's live watch #15), else the template's -
 			// what a player who clicks without dragging gets (InGameUI). It travels in the message, so every peer builds the same.
 			const Real angle = a.hasAngle ? (Real)a.angleDeg * (PI / 180.0f) : what->getPlacementViewAngle();
 			if (!findBuildSpot(want, what, angle, dozer, at))

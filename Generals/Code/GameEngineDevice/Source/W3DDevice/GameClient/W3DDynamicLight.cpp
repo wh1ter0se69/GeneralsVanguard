@@ -48,7 +48,7 @@ void W3DDynamicLight::On_Frame_Update()
 	if (!m_enabled) {
 		return;
 	}
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate - see m_lastLogicFrameUpdated in the header.
+	// GeneralsX: Class-C gate - see m_lastLogicFrameUpdated in the header.
 	// Only the two COUNTDOWNS are gated. Every `factor =` line, the enable test and the
 	// FarAttenEnd/Ambient/Diffuse writes below stay unconditional, because the renderer re-reads
 	// them on every rendered frame and gating them would make the light flicker rather than fade.
@@ -92,7 +92,7 @@ void W3DDynamicLight::setFrameFade(UnsignedInt frameIncreaseTime, UnsignedInt de
 	m_decayFrameCount = decayFrameTime;
 	m_curDecayFrameCount = decayFrameTime;
 	m_curIncreaseFrameCount = frameIncreaseTime;
-	// GeneralsX @bugfix Claude 06/08/2026 Re-seed the class-C stamp, so a light recycled from the
+	// GeneralsX: Re-seed the class-C stamp, so a light recycled from the
 	// pool steps on its first update instead of losing a frame to a stale stamp.
 	m_lastLogicFrameUpdated = 0xffffffff;
 	m_increaseFrameCount = frameIncreaseTime;

@@ -560,7 +560,7 @@ void GameSpyLaunchGame()
 		GameMessage *msg = TheMessageStream->appendMessage( GameMessage::MSG_NEW_GAME );
 		msg->appendIntegerArgument(GAME_INTERNET);
 
-		// GeneralsX @bugfix Claude 02/08/2026 Do NOT force the render limiter off for the match.
+		// GeneralsX: Do NOT force the render limiter off for the match.
 		// Third instance of the same defect - see LANAPICallbacks.cpp for the full reasoning and
 		// the measurement. Fixed here too so no start path is left spinning unbounded.
 

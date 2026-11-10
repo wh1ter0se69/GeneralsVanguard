@@ -1,6 +1,6 @@
 #version 450
 
-// gx_fg_uialpha.frag - GeneralsX @feature B · dlss-fg-1 14/10/2026 (PREREG A39c): DLSS Frame Generation's UI alpha without marking
+// gx_fg_uialpha.frag - GeneralsX: (PREREG A39c): DLSS Frame Generation's UI alpha without marking
 // a single HUD draw. Both inputs are the SAME back buffer resolved by the SAME present shader - once at HudBegin (the scene, no HUD
 // yet) and once at the present (the final frame) - so wherever no HUD or overlay was drawn the two are bit-identical. alpha = 1 where
 // they differ, 0 elsewhere: Final = UI + (1 - alpha) * Hudless holds exactly (DLSS_G guide 5.1) with UI = Final where alpha = 1.

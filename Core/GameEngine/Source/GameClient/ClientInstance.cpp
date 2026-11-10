@@ -18,7 +18,7 @@
 #include "PreRTS.h"
 #include "GameClient/ClientInstance.h"
 
-// GeneralsX @bugfix Claude 29/07/2026 GeneralsX owns its own single-instance mutex name.
+// GeneralsX: GeneralsX owns its own single-instance mutex name.
 //
 // 685EAFF2-3216-4265-B047-251C5F4B82F3 is retail Generals' GUID, and the Generals Online client
 // uses the identical value (references/generals-online-client/.../ClientInstance.cpp:21). Sharing

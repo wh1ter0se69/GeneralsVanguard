@@ -330,7 +330,7 @@ void W3DTreeBuffer::cull(const CameraClass * camera)
 	m_updateAllKeys = false;
 }
 
-// GeneralsX @bugfix Claude 01/10/2026 A NaN/inf unit position passes the min/max clamps (comparisons are false) and converted to an arbitrary int, so the partition
+// GeneralsX: A NaN/inf unit position passes the min/max clamps (comparisons are false) and converted to an arbitrary int, so the partition
 // index ran out of bounds. Handle non-finite BEFORE the conversion, then clamp: start indices to [0,P-1], exclusive maxima to [0,P].
 // Idea from Generals Online 01cdd0cad, reimplemented.
 static Int clampPartitionIndex(Real scaled, Bool roundUp, Int maxIndex)
@@ -814,7 +814,7 @@ void W3DTreeBuffer::loadTreesInVertexAndIndexBuffers(RefRenderObjListIterator *p
 			if (m_curNumTreeIndices[bNdx]+3*numIndex+6 >= MAX_TREE_INDEX) {
 				break;
 			}
-			// GeneralsX @bugfix Claude 28/09/2026 Stamp the tree only once it is known to fit. It used to be stamped
+			// GeneralsX: Stamp the tree only once it is known to fit. It used to be stamped
 			// above the two checks, so the tree that overflowed the LAST buffer kept bufferNdx/firstIndex for a buffer
 			// it was never written into; if it then toppled or was pushed aside, updateVertexBuffer locked and wrote
 			// [firstIndex, firstIndex+numVertex) past the MAX_TREE_VERTEX+4 allocation, unchecked in release and DXVK.
@@ -924,7 +924,7 @@ void W3DTreeBuffer::loadTreesInVertexAndIndexBuffers(RefRenderObjListIterator *p
 		}
 	}
 
-	// GeneralsX @diagnostic Claude 28/09/2026 [GXTREES]: how many visible trees made it into the buffers. Once per map
+	// GeneralsX: [GXTREES]: how many visible trees made it into the buffers. Once per map
 	// when a visible tree is left out because every buffer is full (Reforged's TREEBUDGET, but visible in release), and
 	// with GX_TREES set on every rebuild whose counts changed - the tree count a same-frame screenshot A/B reads.
 	// stale = trees stamped into a buffer range that was never written (the out-of-bounds shape above): must be 0.
@@ -980,7 +980,7 @@ void W3DTreeBuffer::updateVertexBuffer()
 		VertexFormatXYZNDUV1 *vb;
 		Int curTree;
 	#ifdef USE_STATIC
-		// GeneralsX @performance Claude 23/09/2026 Lock only the vertex range the loop below writes. A size-0
+		// GeneralsX: Lock only the vertex range the loop below writes. A size-0
 		// lock marks the whole 30004-vertex (1.08 MB) MANAGED buffer dirty, so DXVK re-uploaded all of it on
 		// every frame any tree was toppling or pushed aside. This pre-pass mirrors the loop's filters exactly.
 		Int lockStart = MAX_TREE_VERTEX+4;
@@ -1031,7 +1031,7 @@ void W3DTreeBuffer::updateVertexBuffer()
 			DEBUG_ASSERTCRASH(type>=0 && m_treeTypes[type].m_mesh!=nullptr, ("Invalid tree type or mesh."));
 
 			Int startVertex = m_trees[curTree].firstIndex;
-			// GeneralsX @performance Claude 23/09/2026 vb points at vertex lockStart, not vertex 0.
+			// GeneralsX: vb points at vertex lockStart, not vertex 0.
 			curVb = vb+(startVertex-lockStart);
 			Int i;
 			Int numVertex = m_treeTypes[type].m_mesh->Peek_Model()->Get_Vertex_Count();
@@ -1593,7 +1593,7 @@ void W3DTreeBuffer::drawTrees(CameraClass * camera, RefRenderObjListIterator *pD
 	}
 
 	// TheSuperHackers @tweak The tree sway, topple, sink and push-aside time steps are now decoupled from the render update.
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
 	const Real timeScale = gxRenderTimeScale();
 	Vector3 swayFactor[MAX_SWAY_TYPES];
 	Int i;
@@ -1670,7 +1670,7 @@ void W3DTreeBuffer::drawTrees(CameraClass * camera, RefRenderObjListIterator *pD
 				m_trees[curTree].m_mtx.Set_Translation(m_trees[curTree].location);
 			}
 		} else if (m_trees[curTree].pushAsideDelta!=0.0f) {
-			// GeneralsX @bugfix Claude 06/08/2026 Class-C: pushAsideDelta is 1/m_framesToMoveOutward,
+			// GeneralsX: Class-C: pushAsideDelta is 1/m_framesToMoveOutward,
 			// i.e. a per-LOGIC-FRAME step, but drawTrees() runs once per rendered frame. Its three
 			// siblings in this same loop were already scaled and this one was missed, so trees snapped
 			// aside and back instead of bending over the authored MoveOutwardTime/MoveInwardTime.
@@ -1777,13 +1777,13 @@ void W3DTreeBuffer::drawTrees(CameraClass * camera, RefRenderObjListIterator *pD
 	DX8Wrapper::Apply_Render_State_Changes();
 
 	if (m_dwTreeVertexShader) {
-		// GeneralsX @bugfix BenderAI 13/02/2026 Matrix4x4 for GLM compatibility (fighter19 pattern)
+		// GeneralsX: Matrix4x4 for GLM compatibility (fighter19 pattern)
 		Matrix4x4 matProj, matView, matWorld;
 		DX8Wrapper::_Get_DX8_Transform(D3DTS_WORLD, matWorld);
 		DX8Wrapper::_Get_DX8_Transform(D3DTS_VIEW, matView);
 		DX8Wrapper::_Get_DX8_Transform(D3DTS_PROJECTION, matProj);
-		// GeneralsX @feature E · render-motion-1 13/10/2026 the world pass's projection jitter, so the trees VS rasterises with
-		// the rest of the frame under a temporal upscaler (no-op on classic / outside the pass; DESIGN_motion.md §5, Codex #3)
+		// GeneralsX: the world pass's projection jitter, so the trees VS rasterises with
+		// the rest of the frame under a temporal upscaler (no-op on classic / outside the pass; DESIGN_motion.md §5, #3)
 		GxWorldPassJitterProjection(W3DWorldSeam::worldPass(), (float *)&matProj);
 		Matrix4x4 mat;
 		D3DXMatrixMultiply( (D3DXMATRIX*)&mat, (D3DXMATRIX*)&matView, (D3DXMATRIX*)&matProj );

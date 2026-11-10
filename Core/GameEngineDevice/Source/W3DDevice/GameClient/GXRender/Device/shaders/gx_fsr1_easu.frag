@@ -14,7 +14,7 @@ layout(push_constant) uniform Push { uvec4 con0; uvec4 con1; uvec4 con2; uvec4 c
 
 // GX: the 2x2 texels textureGather(p) returns, in its order (i0,j1) (i1,j1) (i1,j0) (i0,j0), each clamped into the camera's rect: the
 // kernel sees the rect's edge replicated, as a cropped source under CLAMP_TO_EDGE would give, never the cleared texels outside it (a
-// control bar that shortens the view; Codex hud-seam-code-r1 P1-3). The three channel callbacks fetch the same texels (one CSE).
+// control bar that shortens the view). The three channel callbacks fetch the same texels (one CSE).
 AF4 gatherRect(AF2 p, int c) {
   ivec2 t = ivec2(floor(p * AF2(textureSize(u_src, 0)) - AF2_(0.5)));
   return AF4(texelFetch(u_src, clamp(t + ivec2(0, 1), pc.rect.xy, pc.rect.zw), 0)[c],

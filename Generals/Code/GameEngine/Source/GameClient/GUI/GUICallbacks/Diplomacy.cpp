@@ -476,7 +476,7 @@ void PopulateInGameDiplomacyPopup()
 			if (slot->isAI())
 				isInGame = true;
 			Player *player = ThePlayerList->getPlayerFromSlotIndex(slotNum);
-			// GeneralsX @bugfix Claude 21/09/2026 isPlayerObserver() below was always an unguarded
+			// GeneralsX: isPlayerObserver() below was always an unguarded
 			// deref (docs/WORKDIR/PLAYER_CEILING_SWEEP_FINDINGS.md:334); the slot-index lookup makes
 			// a miss return nullptr rather than whatever the name lookup happened to find.
 			if (!player)
@@ -573,7 +573,7 @@ void PopulateInGameDiplomacyPopup()
 					}
 				}
 
-				// GeneralsX @feature Claude 13/08/2026 PING PER PLAYER, on the screen the player
+				// GeneralsX: PING PER PLAYER, on the screen the player
 				// already opens with TAB. Kept identical to the Zero Hour twin
 				// (GeneralsMD/.../Diplomacy.cpp) - the engine half of this feature is in Core and
 				// compiles into BOTH games, so letting only one of them render it would leave the
@@ -591,7 +591,7 @@ void PopulateInGameDiplomacyPopup()
 				{
 					Int pingMs = TheNetwork->getPeerPingMs(slotNum);
 
-					// GeneralsX @bugfix Claude 19/08/2026 THE ROUTER'S ROW READ "--ms" FOR EVERY
+					// GeneralsX: THE ROUTER'S ROW READ "--ms" FOR EVERY
 					// PLAYER, including the router itself. Ported from the Zero Hour twin, where
 					// both halves of this were found; leaving the base game behind is how the two
 					// engines drift into behaving differently for the same reason.

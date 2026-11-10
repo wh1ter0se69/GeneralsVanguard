@@ -196,7 +196,7 @@ void ArchiveFile::attachFile(File *file)
 	}
 	m_file = file;
 
-	// GeneralsX @bugfix Claude 29/10/2026 Learn the archive's length once, for isEntryInFile. Every entry the BIG loaders
+	// GeneralsX: Learn the archive's length once, for isEntryInFile. Every entry the BIG loaders
 	// mount ends at or before INT_MAX, so the length only matters up to there - and only up to there can it be read:
 	// File::size() is an Int, and past 2 GB it wraps (negative, clamped to 0, at 3 GB; 1 GB at 5 GB). So a byte at
 	// INT_MAX - 1 is looked for first; if there is one, every mounted entry fits.
@@ -215,9 +215,9 @@ void ArchiveFile::attachFile(File *file)
 //============================================================================
 // ArchiveFile::isEntryInFile
 //============================================================================
-// GeneralsX @bugfix Claude 29/10/2026 An entry that claims more bytes than its archive holds is not opened. RAMFile
+// GeneralsX: An entry that claims more bytes than its archive holds is not opened. RAMFile
 // allocated (and zeroed) the whole claimed size before its read came up short, so a 32-byte archive could cost 2 GB per
-// open, and StreamingArchiveFile opened such an entry outright (Codex tsh1028-3588-sec-r2 F1, batch tsh-1029). The open
+// open, and StreamingArchiveFile opened such an entry outright (F1, batch tsh-1029). The open
 // already failed for every such entry with a byte to read - only the allocation and the streaming open change; an empty
 // entry holds no bytes, so it fits wherever it points, as its open always succeeded. The first few are reported (offsets
 // only: the entry's name is the archive's bytes, not text).
@@ -244,7 +244,7 @@ const ArchivedFileInfo * ArchiveFile::getArchivedFileInfo(const AsciiString& fil
 	tokenizer.toLower();
 	tokenizer.nextToken(&token, "\\/");
 
-	// GeneralsX @bugfix Claude 01/10/2026 TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
+	// GeneralsX: TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
 	// the dot-guessing condition misfiled dotless file names as directories (tsh batch2 #53).
 	while (!tokenizer.isEmpty())
 	{

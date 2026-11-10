@@ -21,7 +21,7 @@
 #include "WWLib/stringex.h"	// GeneralsX: portable strlcpy/strlcat (not in glibc)
 #include "Download.h"
 
-// GeneralsX @refactor BenderAI 10/02/2026
+// GeneralsX:
 // Added platform guards for Windows-specific headers
 #include <assert.h>
 #include <stdlib.h>

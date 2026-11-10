@@ -27,7 +27,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
-** GeneralsX @feature Claude 26/07/2026 CodeGui: build GUI screens in code, no .wnd required.
+** GeneralsX: CodeGui: build GUI screens in code, no .wnd required.
 **
 ** The .wnd editor is Windows-only and the stock layouts live inside WindowZH.big, so every new
 ** screen in this port has to be constructed at runtime. This module encapsulates the correct
@@ -257,7 +257,7 @@ Int CodeGuiRowsEnsure( GameWindow *parent, const char *idFormat, Int rowCount, C
 											 GameWindow *leadRow = nullptr, Int leadIndex = 0 );
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/11/2026 SCROLLING SEAT ROWS (owner, 08/11: "make this max hold 12-14 players with a
+// GeneralsX: SCROLLING SEAT ROWS (owner, 08/11: "make this max hold 12-14 players with a
 // scroll bar downwards like maps"; "for ipad show maximum 10 players then scroll"). The chat box was removed the same
 // day and put back on 08/11 ("add back the lobby chat asap"): the rows take whole rows from the top of the chat history
 // instead of the whole chat.
@@ -291,7 +291,7 @@ void CodeGuiRowsScrollSetup( GameWindow *parent, const char * const *idFormats, 
 														 GameWindow *chatList, Int chatRows, Int chatKeep, GameWindow *lookListbox,
 														 GameWindow *leadRow = nullptr );
 
-/// GeneralsX @feature Claude 25/09/2026 One more checkbox that is INDISTINGUISHABLE from the authored
+/// GeneralsX: One more checkbox that is INDISTINGUISHABLE from the authored
 /// checkbox `tmpl` (whose window name is `tmplName`): same art, font, text colours, height and
 /// windowtransitions.ini animation, created under tmpl's own parent at parent-relative (x, y) and
 /// `width` wide. The same adopt-the-template's-look mechanism CodeGuiRowsEnsure uses for slot rows,

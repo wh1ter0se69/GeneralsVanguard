@@ -60,7 +60,7 @@
 #include "GameLogic/Module/ProductionUpdate.h"
 #include "GameClient/TerrainVisual.h"
 
-// GeneralsX @bugfix E·wh1ter0se-bugs-1015 16/10/2026 The AI tests a structure spot as standing ON THE GROUND. Its spot searches move a
+// GeneralsX: The AI tests a structure spot as standing ON THE GROUND. Its spot searches move a
 // candidate in x and y only, keeping the height of the spot they started from (the build-list spot, the warehouse, the base
 // centre), and isLocationLegalToBuild sees an object only when the two boxes overlap in height too
 // (PartitionManager::geomCollidesWithGeom). So from a spot on a ridge, every candidate on the low ground below was tested as a box
@@ -357,7 +357,7 @@ Bool AISkirmishPlayer::startTraining( WorkOrder *order, Bool busyOK, AsciiString
 }
 
 
-// GeneralsX @feature Claude 08/10/2026 Ported from Zero Hour Reforged (GPL-3.0, Olcay Seygan, commit 87e007e:
+// GeneralsX: Ported from Zero Hour Reforged (GPL-3.0, Olcay Seygan, commit 87e007e:
 // GeneralsMD/Code/GameEngine/Source/GameLogic/AI/AI.cpp aiHoardAdjustedDelay / aiHoardAllowedTeamInstances, AIPlayer.cpp
 // scriptAttacks / aiTeamAttacks), unchanged except NULL -> nullptr, file-local linkage and integer
 // arithmetic in aiHoardAdjustedDelay. The threshold is ours
@@ -398,7 +398,7 @@ static Int aiHoardAllowedTeamInstances( Int maxInstances, Int money, Int hoardAt
 
 /** A script, or one it hands the team on to, that sends the team at the enemy: an attack order, a wait on the flag the
 	* skirmish scripts raise to launch a wave, or a count towards the next one. */
-/** GeneralsX (Codex spend-r6): the action orders the team that runs the script, not some other team. Every retail
+/** GeneralsX: the action orders the team that runs the script, not some other team. Every retail
 	* skirmish attack action names "<This Team>" (254 of 254); a mod's guard hook that sends ANOTHER team does not make
 	* the guard an attacker. */
 static Bool ordersThisTeam( ScriptAction *action )
@@ -413,13 +413,13 @@ static Bool scriptAttacks( const Script *script, Int depth, Bool falseToo )
 {
 	if( script == nullptr || depth > 4 )
 		return FALSE;
-	// GeneralsX (Codex spend-r10): conditions only where they are evaluated - a hook or generic script (depth 0); a
+	// GeneralsX: conditions only where they are evaluated - a hook or generic script (depth 0); a
 	// sequential script runs its action list and ignores its conditions. No retail sequential script attacks only by one.
 	for( OrCondition *orCond = depth == 0 ? script->getOrCondition() : nullptr; orCond; orCond = orCond->getNextOrCondition() )
 		for( Condition *cond = orCond->getFirstAndCondition(); cond; cond = cond->getNext() )
 			if( cond->getConditionType() == Condition::FLAG && cond->getParameter( 0 )->getString().startsWith( "_LAUNCH_ATTACK" ) )
 				return TRUE;
-	// GeneralsX (Codex spend-r7, r8): only branches the engine can run - an OnCreate/OnIdle hook runs through
+	// GeneralsX: only branches the engine can run - an OnCreate/OnIdle hook runs through
 	// executeScript, which takes the false actions when the conditions fail; generic and sequential scripts run the true
 	// actions only. Retail has no attack action in a false branch.
 	for( Int branch = 0; branch < (falseToo ? 2 : 1); ++branch )
@@ -456,7 +456,7 @@ static Bool scriptAttacks( const Script *script, Int depth, Bool falseToo )
 
 /** A team the skirmish scripts send at the enemy at some point, as against one they keep at home on guard: the tunnel
 	* guards, the fire base crew, the palace garrison. */
-// GeneralsX (Codex spend-r13): the script group ScriptEngine::runScript would find for this name (ScriptEngine::findGroup,
+// GeneralsX: the script group ScriptEngine::runScript would find for this name (ScriptEngine::findGroup,
 // which is protected): it looks for a group first.
 static ScriptGroup *findHookGroup( const AsciiString &name )
 {
@@ -473,7 +473,7 @@ static ScriptGroup *findHookGroup( const AsciiString &name )
 /** An OnCreate/OnIdle hook as ScriptEngine::runScript resolves it - a subroutine group (each of its scripts) before a
 	* subroutine script - and executeScript filters it: a script not flagged for the AI's difficulty is skipped, and only a
 	* Hard AI hoards. Only fixed flags are read, never isActive(), which scripts change during the match and a save does not
-	* keep in this cache (Codex spend-r9, r11, r12, r13). All 429 retail Hard hooks are Hard subroutine scripts. */
+	* keep in this cache. All 429 retail Hard hooks are Hard subroutine scripts. */
 static Bool lifecycleHookAttacks( const AsciiString &name )
 {
 	if( name.isEmpty() )
@@ -482,7 +482,7 @@ static Bool lifecycleHookAttacks( const AsciiString &name )
 	{
 		if( !group->isSubroutine() )
 			return FALSE;
-		for( Script *script = group->getScript(); script; script = script->getNext() )	// executeScripts skips subroutines (Codex spend-r14)
+		for( Script *script = group->getScript(); script; script = script->getNext() )	// executeScripts skips subroutines
 			if( !script->isSubroutine() && script->isHard() && scriptAttacks( script, 0, TRUE ) )
 				return TRUE;
 		return FALSE;
@@ -492,7 +492,7 @@ static Bool lifecycleHookAttacks( const AsciiString &name )
 }
 
 static Bool hookAttacks( const AsciiString &name )
-{	// GeneralsX (Codex spend-r1): an empty hook names no script, and findScriptByName scans every side's list to say so
+{	// GeneralsX: an empty hook names no script, and findScriptByName scans every side's list to say so
 	return !name.isEmpty() && scriptAttacks( TheScriptEngine->findScriptByName( name ), 0, FALSE );
 }
 
@@ -521,7 +521,7 @@ Bool AISkirmishPlayer::isAGoodIdeaToBuildTeam( TeamPrototype *proto )
 	const TeamTemplateInfo *info = proto->getTemplateInfo();
 	Int allowedInstances = info->m_maxInstances;
 	// A singleton keeps its one copy: createInactiveTeam hands back the live team and an automatic build skips the
-	// singleton guard, so a raised limit would only pour units into it (Codex spend-r1). The classification is cached
+	// singleton guard, so a raised limit would only pour units into it. The classification is cached
 	// per team for this match - the scripts never change during it.
 	if (proto->countTeamInstances() >= allowedInstances && !proto->getIsSingleton() && isHoarding()
 			&& !info->m_isBaseDefense && !info->m_isPerimeterDefense) {
@@ -1055,7 +1055,7 @@ void AISkirmishPlayer::doBaseBuilding()
 			if (m_structureTimer > 3*LOGICFRAMES_PER_SECOND) {
 				m_structureTimer = 3*LOGICFRAMES_PER_SECOND;
 			}
-			// GeneralsX @feature Claude 08/10/2026 Hoarding: the 3 s beat shrinks with the bank (aiHoardAdjustedDelay, Reforged).
+			// GeneralsX: Hoarding: the 3 s beat shrinks with the bank (aiHoardAdjustedDelay, Reforged).
 			const Int structureCap = aiHoardAdjustedDelay(3*LOGICFRAMES_PER_SECOND, m_player->getMoney()->countMoney(), hoardThreshold());
 			if (m_structureTimer > structureCap) {
 				m_structureTimer = structureCap;
@@ -1112,7 +1112,7 @@ void AISkirmishPlayer::doTeamBuilding()
 			if (m_teamTimer > 3*LOGICFRAMES_PER_SECOND) {
 				m_teamTimer = 3*LOGICFRAMES_PER_SECOND;
 			}
-			// GeneralsX @feature Claude 08/10/2026 Hoarding: the 3 s beat shrinks with the bank (aiHoardAdjustedDelay, Reforged).
+			// GeneralsX: Hoarding: the 3 s beat shrinks with the bank (aiHoardAdjustedDelay, Reforged).
 			const Int teamCap = aiHoardAdjustedDelay(3*LOGICFRAMES_PER_SECOND, m_player->getMoney()->countMoney(), hoardThreshold());
 			if (m_teamTimer > teamCap) {
 				m_teamTimer = teamCap;
@@ -1415,7 +1415,7 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void AISkirmishPlayer::loadPostProcess()
 {
-	// GeneralsX @bugfix Claude 01/10/2026 Chain to the base: it drops build-queue entries whose team no longer
+	// GeneralsX: Chain to the base: it drops build-queue entries whose team no longer
 	// exists (tsh batch2 #417).
 	AIPlayer::loadPostProcess();
 }

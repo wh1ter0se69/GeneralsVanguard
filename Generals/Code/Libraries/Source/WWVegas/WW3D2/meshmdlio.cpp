@@ -90,7 +90,7 @@
 #include "WWLib/realcrc.h"
 #include "dx8wrapper.h"
 
-// GeneralsX @build BenderAI 10/02/2026 - Include osdep.h from WWLib, not osdep/
+// GeneralsX: Include osdep.h from WWLib, not osdep/
 #ifdef _UNIX
 #include "osdep.h"
 #endif

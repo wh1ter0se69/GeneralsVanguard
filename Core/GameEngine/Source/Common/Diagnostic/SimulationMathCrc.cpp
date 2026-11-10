@@ -29,7 +29,7 @@
 #include <fenv.h>
 #endif
 
-// GeneralsX @diag Claude 27/07/2026 De-fold the math probe so it measures libm, not the compiler.
+// GeneralsX @diag /07/2026 De-fold the math probe so it measures libm, not the compiler.
 //
 // Every argument below was a compile-time literal, so the compiler evaluated the calls itself and
 // the resulting CRC compared two CONSTANT FOLDERS rather than two math libraries. Measured with
@@ -93,7 +93,7 @@ UnsignedInt SimulationMathCrc::calculate()
 
     appendSimulationMathCrc(xfer);
 
-    // GeneralsX @diag Claude 27/07/2026 Restore the ENGINE's canonical FP mode, not FE_DFL_ENV.
+    // GeneralsX @diag /07/2026 Restore the ENGINE's canonical FP mode, not FE_DFL_ENV.
     //
     // This previously restored the C default environment, which is not the mode the rest of the
     // engine runs in - setFPMode() is. That was harmless while calculate() had no callers, but it

@@ -34,7 +34,7 @@ std::set<const OpenALAudioStream *> &liveStreams()
 
 double nowSeconds()
 {
-	// GeneralsX @bugfix Claude 06/08/2026 Was clock_gettime(CLOCK_MONOTONIC), which MSVC does not
+	// GeneralsX: Was clock_gettime(CLOCK_MONOTONIC), which MSVC does not
 	// provide. This file had never been compiled on Windows - the OpenAL backend could not build
 	// there at all - so the gap only surfaced once it could. steady_clock IS the monotonic clock
 	// on every platform we target, so this is the same guarantee with no #ifdef and no change in
@@ -108,7 +108,7 @@ OpenALAudioStream::OpenALAudioStream()
     alGenSources(1, &m_source);
     alGenBuffers(AL_STREAM_BUFFER_COUNT, m_buffers);
 
-    // GeneralsX @bugfix BenderAI 22/04/2026 Force video stream source to non-positional direct playback.
+    // GeneralsX: Force video stream source to non-positional direct playback.
     alSourcei(m_source, AL_SOURCE_RELATIVE, AL_TRUE);
     alSource3f(m_source, AL_POSITION, 0.0f, 0.0f, 0.0f);
     alSource3f(m_source, AL_VELOCITY, 0.0f, 0.0f, 0.0f);
@@ -148,9 +148,9 @@ bool OpenALAudioStream::bufferData(const uint8_t *data, size_t data_size, ALenum
     }
 
     ALuint &current_buffer = m_buffers[m_current_buffer_idx];
-    // GeneralsX @bugfix BenderAI 22/04/2026 Detect and reject invalid OpenAL buffer/queue operations.
+    // GeneralsX: Detect and reject invalid OpenAL buffer/queue operations.
     //
-    // GeneralsX @bugfix Claude 28/07/2026 This drain was UNBOUNDED, and alGetError() does not
+    // GeneralsX: This drain was UNBOUNDED, and alGetError() does not
     // always clear. With no current context OpenAL Soft returns AL_INVALID_OPERATION from every
     // call - and logs a warning per call - so `while (alGetError() != AL_NO_ERROR) {}` never
     // terminates. It spins at 100% CPU inside the formatter for that warning.
@@ -280,7 +280,7 @@ void OpenALAudioStream::update()
         }
     }
 
-    // GeneralsX @bugfix BenderAI 22/04/2026 Restart before unqueue to avoid dropping freshly queued
+    // GeneralsX: Restart before unqueue to avoid dropping freshly queued
     // briefing buffers when OpenAL reports AL_STOPPED with processed buffers.
     // GeneralsX @bugfix 14/06/2026 ...but NOT once the stream is at true EOF: a finished one-shot
     // speech (taunt) must be allowed to reach a stable AL_STOPPED so its disallowSpeech flag clears.
@@ -307,7 +307,7 @@ void OpenALAudioStream::update()
     alGetSourcei(m_source, AL_BUFFERS_PROCESSED, &processedBeforeUnqueue);
     DEBUG_LOG(("%i buffers have been processed\n", processedBeforeUnqueue));
 
-    // GeneralsX @bugfix BenderAI 22/04/2026 Only unqueue processed data in active playback states.
+    // GeneralsX: Only unqueue processed data in active playback states.
     ALint processedToUnqueue = ((sourceState == AL_PLAYING || sourceState == AL_PAUSED) ? processedBeforeUnqueue : 0);
 
     // GeneralsX @bugfix Also reap a stopped source whose queue is entirely spent.
@@ -326,7 +326,7 @@ void OpenALAudioStream::update()
         }
     }
 
-    // GeneralsX @feature Claude 17/08/2026 Record what the unqueue actually achieved.
+    // GeneralsX: Record what the unqueue actually achieved.
     //
     // This loop discarded the result of every alSourceUnqueueBuffers call, so a failing unqueue was
     // indistinguishable from a successful one: the counter came down either way and the stream
@@ -372,7 +372,7 @@ void OpenALAudioStream::update()
     DEBUG_LOG(("Having %i buffers queued\n", num_queued));
 
     if (num_queued < AL_STREAM_BUFFER_COUNT / 2 && m_requireDataCallback && !m_endOfData) {
-        // GeneralsX @bugfix BenderAI 22/04/2026 Do not fake queue growth when callback fails to enqueue data.
+        // GeneralsX: Do not fake queue growth when callback fails to enqueue data.
         // Ask for more data to be buffered.
         // Only fill up to the half, because some formats can output
         // more than one buffer per decoded frame.
@@ -389,7 +389,7 @@ void OpenALAudioStream::update()
             ALint refreshedQueued = 0;
             alGetSourcei(m_source, AL_BUFFERS_QUEUED, &refreshedQueued);
             if (refreshedQueued <= num_queued) {
-                // GeneralsX @bugfix Claude 16/08/2026 COUNT THE STALL HERE TOO, or a drained
+                // GeneralsX: COUNT THE STALL HERE TOO, or a drained
                 // stream wedges forever. Observed on the iPad as a permanently silent stream:
                 // "src=1 state=STOPPED queued=0 processed=0 atEof=0".
                 //
@@ -445,7 +445,7 @@ void OpenALAudioStream::update()
         if (processedNow < queuedNowAfterRefill) {
             play();
         }
-        // GeneralsX @bugfix Claude 17/08/2026 THIS IS WHERE MUSIC DIES, AND SKIPPING IS NOT ENOUGH.
+        // GeneralsX: THIS IS WHERE MUSIC DIES, AND SKIPPING IS NOT ENOUGH.
         //
         // Reported as "SFX work but music is dead in the water" and reproduced on a Zero Hour-only
         // install: src=3 state=AL_STOPPED queued=16 processed=16, then silence for the rest of the

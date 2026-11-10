@@ -1,7 +1,7 @@
 #!/bin/bash
 # Refuse to ship a macOS bundle whose DXVK lacks the Retina present-rect fix.
 #
-# GeneralsX @bugfix Claude 14/09/2026 THE OLD GATE PROVED THE SOURCE, NEVER THE ARTIFACT.
+# GeneralsX: THE OLD GATE PROVED THE SOURCE, NEVER THE ARTIFACT.
 #
 # cmake/dx8.cmake applies Patches/dxvk-ios.patch to references/fbraz3-dxvk and checks itself with
 # `git apply --reverse --check`. That asks "is the SOURCE TREE patched". The question that decides

@@ -157,10 +157,10 @@ void XferSave::close()
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @bugfix Claude 06/10/2026 open() for a temporary file: create it, but never open a file that already
+/** GeneralsX: open() for a temporary file: create it, but never open a file that already
 	* exists ("x", C11 - the CRT of every target has it). Whatever name that file goes by - a leftover temporary, or a
 	* map a crafted save extracted under an alias of this name (a trailing dot, an NTFS stream, a junction) - it is
-	* not ours to truncate. FALSE then, so the caller can try another name (sweep c153-02, Codex r2-r4). */
+	* not ours to truncate. FALSE then, so the caller can try another name (sweep c153-02). */
 // ------------------------------------------------------------------------------------------------
 Bool XferSave::openNew( AsciiString identifier )
 {
@@ -186,7 +186,7 @@ Bool XferSave::openNew( AsciiString identifier )
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @bugfix Claude 06/10/2026 Finish a file opened on "<finalPath>.tmp": flush it to the disk,
+/** GeneralsX: Finish a file opened on "<finalPath>.tmp": flush it to the disk,
 	* close it, and replace finalPath with it (GameClient/GXReplaceFile.h). On any failure the written
 	* file is removed, finalPath is left exactly as it was, and FALSE is returned. Lets a save that fails
 	* halfway (full disk, a block error) keep the player's earlier save in that slot (sweep c153-02). */

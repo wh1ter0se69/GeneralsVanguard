@@ -770,7 +770,7 @@ void W3DGhostObject::xfer( Xfer *xfer )
 
 			// which player index is this data for
 			xfer->xferUnsignedByte( &playerIndex );
-			// GeneralsX @bugfix Claude 06/10/2026 friend_setShroudednessPrevious indexes three MAX_PLAYER_COUNT arrays of the
+			// GeneralsX: friend_setShroudednessPrevious indexes three MAX_PLAYER_COUNT arrays of the
 			// PartitionData with it; refuse a save whose index is past them (sweep c071-01).
 			if( playerIndex >= MAX_PLAYER_COUNT )
 				throw XFER_INVALID_PARAMETERS;

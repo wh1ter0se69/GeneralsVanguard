@@ -96,13 +96,13 @@ public:
 	// keeps it). The refused button's letter is still drawn, greyed: see isHotKeyBoundTo.
 	Bool addHotKey( GameWindow *win, const AsciiString& key);
 	Bool executeHotKey( const AsciiString& key); // called front eh HotKeyTranslator
-	// GeneralsX @feature Claude 25/09/2026 TRUE while pressing 'key' would fire 'win'. A button whose
+	// GeneralsX: TRUE while pressing 'key' would fire 'win'. A button whose
 	// letter lost to another (a unit's command set owns S, the general's-power shortcut wants S too)
 	// or whose binding was cleared by a context switch reads FALSE, and its letter is drawn dimmed
 	// instead of being hidden (W3DPushButton.cpp drawHotKeyLabel).
 	Bool isHotKeyBoundTo( const AsciiString& key, const GameWindow *win ) const;
 
-	// GeneralsX @feature Claude 27/09/2026 The General's Points panel's keys, in a layer of their own that
+	// GeneralsX: The General's Points panel's keys, in a layer of their own that
 	// executeHotKey and isHotKeyBoundTo consult FIRST: while the panel is open its keys win over the command bar, whose
 	// letters on the same key grey. reset() - every context switch - leaves this layer alone, because
 	// evaluateContextUI repopulates the open panel BEFORE switchToContext resets the map; the panel owns it instead
@@ -114,7 +114,7 @@ public:
 	AsciiString searchHotKey( const AsciiString& label);
 	AsciiString searchHotKey( const UnicodeString& uStr );
 
-	// GeneralsX @bugfix Claude 26/09/2026 The tooltip's title highlights the letter after its '&' (the name is drawn
+	// GeneralsX: The tooltip's title highlights the letter after its '&' (the name is drawn
 	// with WIN_STATUS_HOTKEY_TEXT), and that letter came straight from the CSF - so after a rebind, or while another
 	// button owns the key, the tooltip named a key that did not fire the button. This returns the label marked for
 	// boundKey instead: unchanged when its '&' already marks that key (retail), the '&' moved to the key's first
@@ -134,7 +134,7 @@ public:
 	// Precedence: the user's keybind file wins; otherwise fall back to the retail '&' marker.
 	AsciiString getCommandButtonHotKey( const AsciiString& commandButtonName, const AsciiString& textLabel );
 
-	// GeneralsX @feature Claude 05/10/2026 True when the user's keybind file names this very button (a cleared "none" counts).
+	// GeneralsX: True when the user's keybind file names this very button (a cleared "none" counts).
 	// A cross-faction shortcut superweapon button takes the key of its normal command unless the user bound IT explicitly.
 	Bool hasCommandButtonOverride( const AsciiString& commandButtonName ) const { return m_commandButtonOverrides.find( commandButtonName ) != m_commandButtonOverrides.end(); }
 
@@ -148,7 +148,7 @@ public:
 	// display preference.
 	Bool getShowCommandButtonIndicators() const { return m_showIndicators; }
 
-	// GeneralsX @feature Claude 29/09/2026 The letter badge, from the launcher's Keybinds page (wh1ter0se, 29/09: "where to
+	// GeneralsX: The letter badge, from the launcher's Keybinds page (wh1ter0se, 29/09: "where to
 	// draw ... also beautify them"): which corner of the button, how big, and how it is drawn. Same file and same
 	// reasoning as the indicators switch above - a per-user display preference, outside the digest. The defaults are the
 	// look before this change (bottom-left, the 27/09 size, a dark plate), so a file without these entries changes nothing.
@@ -175,11 +175,11 @@ private:
 extern HotKeyManager *TheHotKeyManager;
 
 class CommandButton;
-/// GeneralsX @feature Claude 05/10/2026 The button whose key a shortcut-bar superweapon button shows and binds (ControlBar.cpp):
+/// GeneralsX: The button whose key a shortcut-bar superweapon button shows and binds (ControlBar.cpp):
 /// a cross-faction one answers its normal command, everything else answers itself. The tooltip asks it too, so title and cameo agree.
 const CommandButton *gxShortcutKeySource( const CommandButton *shortcut );
 
-// GeneralsX @probe Claude 25/09/2026 GX_KEYTRACE=1 turns on the [GXKEY] trace: one stderr line per step a
+// GeneralsX: GX_KEYTRACE=1 turns on the [GXKEY] trace: one stderr line per step a
 // command-button hotkey takes, from the raw key (WindowXlat, MetaEvent, HotKeyTranslator) through the button it
 // resolves to (addHotKey refusals included) and the button's processing (ControlBar), to the GUI command it arms
 // (InGameUI::setGUICommand) and the order the next click issues or drops (GUICommandTranslator). Off by default and

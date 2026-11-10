@@ -9,7 +9,7 @@ LOG_FILE="logs/build_zh_${PRESET}_docker.log"
 DOCKER_IMAGE="generalsx/mingw-builder:latest"
 CONTAINER_NAME="generalsx-build-mingw-zh-${PRESET}"
 
-# GeneralsX @build BenderAI 24/03/2026 Preserve host file ownership for bind mounts created by cross-builds.
+# GeneralsX: Preserve host file ownership for bind mounts created by cross-builds.
 HOST_UID="$(id -u)"
 HOST_GID="$(id -g)"
 
@@ -28,7 +28,7 @@ fi
 if ! docker image inspect "$DOCKER_IMAGE" &> /dev/null; then
     echo "⚠️  Docker image not found: $DOCKER_IMAGE"
     echo "📦 Building image (this will take a few minutes)..."
-    # GeneralsX @bugfix BenderAI 14/03/2026 Follow scripts/env/docker relocation for builder image bootstrap.
+    # GeneralsX: Follow scripts/env/docker relocation for builder image bootstrap.
     ./scripts/env/docker/docker-build-images.sh mingw
 fi
 

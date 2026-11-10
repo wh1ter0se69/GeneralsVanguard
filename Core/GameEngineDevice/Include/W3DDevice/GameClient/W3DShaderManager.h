@@ -82,7 +82,7 @@ public:
 	static void updateCloud();	///<update the cloud position once every render frame.
 	static ChipsetType getChipset();	///<return current device chipset.
 	static GraphicsVenderID getCurrentVendor() {return m_currentVendor;}	///<return current card vendor.
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use Int64 instead of __int64 for cross-platform builds
+	// GeneralsX: Use Int64 instead of __int64 for cross-platform builds
 	static Int64 getCurrentDriverVersion() {return m_driverVersion; }	///<return current driver version.
 	static Int getShaderPasses(ShaderTypes shader);	///<rendering passes required for shader
 	static Int setShader(ShaderTypes shader, Int pass);	///<enable specific shader pass.
@@ -119,7 +119,7 @@ protected:
 	static TextureClass *m_Textures[8];	///textures assigned to each of the possible stages
 	static ChipsetType m_currentChipset;	///<last video card chipset that was detected.
 	static GraphicsVenderID m_currentVendor;	///<last video card vendor
-	// GeneralsX @bugfix BenderAI 13/02/2026AI - Use Int64 instead of __int64 (cross-platform)
+	// GeneralsX:AI - Use Int64 instead of __int64 (cross-platform)
 	static Int64 m_driverVersion;			///<driver version of last chipset.
 	static ShaderTypes m_currentShader;	///<last shader that was set.
 	static Int m_currentShaderPass;		///<pass of last shader that was set.
@@ -131,7 +131,7 @@ protected:
 	static IDirect3DTexture8 *m_renderTexture;		///<texture into which rendering will be redirected.
 	static IDirect3DSurface8 *m_newRenderSurface;	///<new render target inside m_renderTexture
 	static IDirect3DSurface8 *m_oldDepthSurface;	///<previous depth buffer surface
-	// GeneralsX @bugfix Claude 28/09/2026 m_oldRenderSurface/m_oldDepthSurface are the INIT-time backbuffer
+	// GeneralsX: m_oldRenderSurface/m_oldDepthSurface are the INIT-time backbuffer
 	// pair; they now only decide canRenderToTexture(). The redirect restores what was bound when it began.
 	static IDirect3DSurface8 *m_savedRenderSurface;	///<render target bound at startRenderToTexture (nullptr = backbuffer)
 	static IDirect3DSurface8 *m_savedDepthSurface;	///<depth bound at startRenderToTexture
@@ -171,7 +171,7 @@ public:
 	static void setZoomToPos(const Coord3D *pos) {m_zoomToPos = *pos; m_zoomToValid = true;}
 
 protected:
-	// GeneralsX @bugfix Claude 08/10/2026 MAX_COUNT and COUNT_STEP are the simulation's (Common/ScriptedCameraClock.h): an IN/OUT
+	// GeneralsX: MAX_COUNT and COUNT_STEP are the simulation's (Common/ScriptedCameraClock.h): an IN/OUT
 	// blur answers CAMERA_MOVEMENT_FINISHED for blurLogicFrames() of them
 	enum {MAX_COUNT = ScriptedCameraClock::BLUR_MAX_COUNT,
 				MAX_LIMIT = 30,
@@ -195,7 +195,7 @@ protected:
 ///converts viewport to black & white.
 class ScreenBWFilter : public W3DFilterInterface
 {
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate stamp; see gxFadeFrameAdvanced() in the .cpp.
+	// GeneralsX: Class-C gate stamp; see gxFadeFrameAdvanced() in the .cpp.
 	// Static because every counter it guards in this class is static.
 public:
 	static UnsignedInt m_gxFadeStamp;
@@ -239,7 +239,7 @@ protected:
 ///Fades between 2 different rendered frames.
 class ScreenCrossFadeFilter : public W3DFilterInterface
 {
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate stamp; see gxFadeFrameAdvanced() in the .cpp.
+	// GeneralsX: Class-C gate stamp; see gxFadeFrameAdvanced() in the .cpp.
 	// Static because every counter it guards in this class is static.
 public:
 	static UnsignedInt m_gxFadeStamp;

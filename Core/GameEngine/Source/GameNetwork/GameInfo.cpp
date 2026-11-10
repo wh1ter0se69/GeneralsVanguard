@@ -190,7 +190,7 @@ Int GameSlot::getApparentStartPos() const
 }
 
 
-// GeneralsX @feature Claude 24/09/2026 See GameInfo.h. Both halves of the post-start test are needed: an
+// GeneralsX: See GameInfo.h. Both halves of the post-start test are needed: an
 // original of PLAYERTEMPLATE_OBSERVER alone is also a skirmish seat that has since chosen a faction.
 Bool GameSlot::isObserver() const
 {
@@ -317,7 +317,7 @@ GameInfo::GameInfo()
 	reset();
 }
 
-// GeneralsX @bugfix Claude 01/10/2026 TheGameInfo is a raw pointer to whichever game is current (a LAN game, the
+// GeneralsX: TheGameInfo is a raw pointer to whichever game is current (a LAN game, the
 // skirmish info, a replay's); when that object is deleted the global dangled. Idea of Generals Online 2e1578d57
 // (reimplemented, tsh batch2 #250).
 GameInfo::~GameInfo()
@@ -398,7 +398,7 @@ Int GameInfo::getNumPlayers() const
 	return numPlayers;
 }
 
-// GeneralsX @feature Claude 23/09/2026 The slots the capacity rule charges for (Common/PlayerCapacity.h).
+// GeneralsX: The slots the capacity rule charges for (Common/PlayerCapacity.h).
 // The lobby and GameLogic::tryStartNewGame both count through here.
 Int GameInfo::countSlotsTakingPlayers() const
 {
@@ -568,7 +568,7 @@ Bool GameInfo::amIHost() const
 
 /// Set the lobby's display name, sanitised for the announce.
 ///
-/// GeneralsX @feature Claude 16/08/2026 SANITISED HERE, ONCE, rather than encoded. The announce is
+/// GeneralsX: SANITISED HERE, ONCE, rather than encoded. The announce is
 /// a byte-oriented "KEY=value;" list split with strtok_r on ';' and then on '=', and the slot list
 /// nested inside it splits on ',' and ':'. A name carrying any of those would not corrupt one
 /// field, it would shift every field after it - and ParseAsciiStringToGameInfo abandons the WHOLE
@@ -606,7 +606,7 @@ void GameInfo::setLobbyName( AsciiString name )
 	m_lobbyName.trim();
 }
 
-// GeneralsX @bugfix Claude 02/10/2026 (Codex m1det3-2b-r6 P2) The contents mask advertises only a file that can be SENT:
+// GeneralsX: The contents mask advertises only a file that can be SENT:
 // sendFileAnnounce refuses a zero-byte file, so an empty one in the mask failed the whole transfer. That also stranded a
 // joiner holding a stale non-empty map.ini/solo.ini against a host's EMPTY one, which GetMapDataHash already counts as
 // absent: unadvertised, the joiner's copy is now moved aside after the .map arrives, like any sidecar the host lacks.
@@ -628,7 +628,7 @@ void GameInfo::setMap( AsciiString mapName )
 		const MapMetaData *mapData = TheMapCache->findMap( mapName );
 		if (mapData)
 		{
-			// GeneralsX @note Claude 20/08/2026 DELIBERATELY NOT TRANSLATED HERE, and the reason is
+			// GeneralsX @note /08/2026 DELIBERATELY NOT TRANSLATED HERE, and the reason is
 			// worth keeping: translating the identity to its real on-disk path makes these probes
 			// succeed on iOS, so the host advertises that it HAS the preview, map.ini and map.str -
 			// but DoAnyMapTransfers (FileTransfer.cpp:395-407) still opens game->getMap(), the
@@ -648,7 +648,7 @@ void GameInfo::setMap( AsciiString mapName )
 			if (gxSendableFile(path))
 				m_mapMask |= 2;
 
-			// GeneralsX @bugfix Claude 10/08/2026 This was a hand-rolled token walk that rebuilt the
+			// GeneralsX: This was a hand-rolled token walk that rebuilt the
 			// map's directory - and nextToken skips leading separators, so an absolute POSIX path
 			// lost its leading '/' and the probe opened a RELATIVE path against the CWD. Measured
 			// live 2026-08-10: a host with map.ini on disk advertised contentsMask without bit 4,
@@ -665,8 +665,8 @@ void GameInfo::setMap( AsciiString mapName )
 			if (gxSendableFile(GetReadmeFromMap(m_mapName)))
 				m_mapMask |= 64;
 
-			// GeneralsX @feature Claude 01/10/2026 M1 step 2b: what every joiner's own map.ini/solo.ini must hash to.
-			// KNOWN LIMIT (Codex m1det2-2b-r1 P1): this hashes the RESOLVED sidecars (what loadMapINI loads), while the
+			// GeneralsX: M1 step 2b: what every joiner's own map.ini/solo.ini must hash to.
+			// KNOWN LIMIT: this hashes the RESOLVED sidecars (what loadMapINI loads), while the
 			// mask above probes the unresolved name on purpose (the note above). On an iPadOS host whose user map's on-disk
 			// case differs, the mask can omit a sidecar this hash includes, so a joiner cannot be sent it: it keeps
 			// reporting no map and the start is refused - where before 2b it started and ran other rules. Repairing that
@@ -681,10 +681,10 @@ void GameInfo::setMap( AsciiString mapName )
 	}
 }
 
-// GeneralsX @feature Claude 01/10/2026 See GameInfo.h. Resolved the way GameLogic::loadMapINI resolves it (getPathOnDisk,
+// GeneralsX: See GameInfo.h. Resolved the way GameLogic::loadMapINI resolves it (getPathOnDisk,
 // then the map's own directory), and loadMapINI loads these same two paths - so the hash is of what the match will load.
 //
-// FNV-1a, NOT the engine's CRC class (Codex m1det2-2b-r2 P1): CRC is shift-and-add, and "PrimaryDamage = 12.0" and
+// FNV-1a, NOT the engine's CRC class: CRC is shift-and-add, and "PrimaryDamage = 12.0" and
 // "= 20.0" hashed alike, so two peers with different rules were admitted. Each FNV-1a step h = (h ^ b) * prime is a
 // bijection of h and, for a fixed h, injective in b, so changing any ONE byte always changes the result. 32 bits because
 // the header field is; this guards against stale or edited copies, not against an author forging a collision.
@@ -712,7 +712,7 @@ UnsignedInt GetMapDataHash( AsciiString mapName )
 		if (len <= 0)
 		{
 			// An empty sidecar defines nothing - the same rules as none - and FileTransfer cannot send a zero-byte
-			// file (sendFileAnnounce), so counting it would only strand a joiner (Codex m1det2-2b-r4 P2).
+			// file (sendFileAnnounce), so counting it would only strand a joiner.
 			fp->close();
 			continue;
 		}
@@ -730,7 +730,7 @@ UnsignedInt GetMapDataHash( AsciiString mapName )
 	return (h != 0 && h != MAPDATA_RECORDED_NONE) ? h : 1u;	// 0 = none on the wire; the other is a replay sentinel
 }
 
-// GeneralsX @feature Claude 01/10/2026 A joiner whose .map matches still lacks the map when its own sidecars differ from
+// GeneralsX: A joiner whose .map matches still lacks the map when its own sidecars differ from
 // the host's: the slot reports no map, so the host's next start re-sends the map with its map.ini/solo.ini (the
 // established transfer-only start), and the re-check after the transfer clears it. Without this a stale sidecar was
 // never re-sent - FileTransfer only sends to slots without the map - and the match desynced at the first use of a rule.
@@ -856,7 +856,7 @@ void GameInfo::setStartingCash( const Money & startingCash )
   m_startingCash = startingCash;
 }
 
-// GeneralsX @feature Claude 07/11/2026 The occupied seats as GXAiColours sees them. Returns how many; seats holds MAX_SLOTS.
+// GeneralsX: The occupied seats as GXAiColours sees them. Returns how many; seats holds MAX_SLOTS.
 static Int gxAiColourSeats( const GameInfo *game, GXAiColours::Seat *seats, Int *slotOf )
 {
 	Int count = 0;
@@ -1101,7 +1101,7 @@ Bool GameInfo::isSandbox()
 	return TRUE;
 }
 
-// GeneralsX @feature Claude 27/09/2026 The start rule (GameInfo.h). Retail's setup screens refused a lobby
+// GeneralsX: The start rule (GameInfo.h). Retail's setup screens refused a lobby
 // with no human player (GUI:NeedHumanPlayers) and called fewer than two sides "sandbox mode"; the owner's
 // rule (27/09/2026) lets an all-AI lobby start as a sandbox too. The slots counted are the lobby menus' own -
 // occupied and not observing - and a side is one team, or one player on no team.
@@ -1242,12 +1242,12 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 		game.getStartingCash().countMoney(), game.oldFactionsOnly() ? 'Y' : 'N' );
 #endif
 
-	// GeneralsX @feature Claude 12/08/2026 The writer's /24 network prefix, written ONCE and
+	// GeneralsX: The writer's /24 network prefix, written ONCE and
 	// amortized across every shorthand slot IP below. The reader reconstructs ".N" against THIS
 	// value - never against its own subnet, which it has no reason to share with the writer's
 	// (a joiner on 192.168.2.x hearing a host on 192.168.1.x must not invent 192.168.2.7).
 	// Absent when the writer has no local IP; the parser refuses shorthand without it.
-	// GeneralsX @feature Claude 16/08/2026 The lobby's display name, written ONLY when it has one.
+	// GeneralsX: The lobby's display name, written ONLY when it has one.
 	//
 	// Omitted rather than emitted empty, and that is not a style choice: the reader treats an empty
 	// value as a malformed options string and abandons the entire announce
@@ -1261,7 +1261,7 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 		optionsString.concat(lnField);
 	}
 
-	// GeneralsX @feature Claude 23/09/2026 The lobby-agreed stress battlefield, written ONLY when the
+	// GeneralsX: The lobby-agreed stress battlefield, written ONLY when the
 	// host set one - an ordinary lobby's options string is byte-for-byte what it was. A build that
 	// predates the field rejects the whole string on the unknown key (the final `else` in
 	// ParseAsciiStringToGameInfo), so such a peer never sees this lobby and cannot join it and desync.
@@ -1277,7 +1277,7 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 		}
 	}
 
-	// GeneralsX @feature Claude 07/11/2026 AI in three colours, ONLY in the replay header: it only ever applies with one human, so
+	// GeneralsX: AI in three colours, ONLY in the replay header: it only ever applies with one human, so
 	// no peer needs it, and an announced lobby's string stays byte-for-byte what it was.
 	if (forReplayFile && game.getGxAiColours() != GXAiColours::MODE_ALL)
 	{
@@ -1286,11 +1286,11 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 		optionsString.concat(acField);
 	}
 
-	// GeneralsX @security Claude 25/09/2026 The relay-proven admin slots and their per-match keys - "AD=<mask hex>:
+	// GeneralsX: The relay-proven admin slots and their per-match keys - "AD=<mask hex>:
 	// <key>,<key>..." with one base64url key per set bit, lowest slot first - written ONLY when there are any: an
 	// ordinary lobby's string is byte-for-byte what it was, and a build without the field never sees one that has it
 	// (the unknown-key refusal below). ONLY in a string that is never announced - the REPLAY header, the one caller
-	// that passes a maxLength (Codex r3 P2: an in-progress game keeps announcing, and up to four keys would have eaten
+	// that passes a maxLength (an in-progress game keeps announcing, and up to four keys would have eaten
 	// the announce's 365 bytes and stopped it being listed). The replay header holds exactly what the match ran on.
 	if (withAdmin && game.getGxAdminMask() != 0)
 	{
@@ -1312,7 +1312,7 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 		optionsString.concat(adField);
 	}
 
-	// GeneralsX @feature Claude 01/10/2026 M1 step 2b: the host's map.ini/solo.ini hash, written ONLY when the map has
+	// GeneralsX: M1 step 2b: the host's map.ini/solo.ini hash, written ONLY when the map has
 	// one - a stock-map lobby's string is byte-for-byte what it was. A build without the field refuses the whole string
 	// on the unknown key, so it never sees such a lobby and cannot join it and run other rules.
 	if (game.getMapDataHash() != 0)
@@ -1322,7 +1322,7 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 		optionsString.concat(mdField);
 	}
 
-	// GeneralsX @security Claude 04/11/2026 A replay FILE leaves out the writer's /24 (and its slot IPs below): the reader only
+	// GeneralsX: A replay FILE leaves out the writer's /24 (and its slot IPs below): the reader only
 	// needs NP= to expand ".N" shorthand, and a replay writes none.
 	const UnsignedInt netPrefix = game.getLocalIP() & 0xFFFFFF00u;
 	if (game.getLocalIP() != 0 && !forReplayFile)
@@ -1342,7 +1342,7 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 		AsciiString str;
 		if (slot && slot->isHuman())
 		{
-			// GeneralsX @feature Claude 12/08/2026 Compact slot encoding for 12 humans. Measured
+			// GeneralsX: Compact slot encoding for 12 humans. Measured
 			// (scripts/test/announce/): the legacy fixed fields overflow the 400-byte budget at
 			// NINE humans with names truncated to nothing, so no name policy can close it. The
 			// two compressible fields:
@@ -1355,7 +1355,7 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 			//           silently shift every later field by one).
 			// The parser accepts both compact and legacy forms; legacy replays stay readable.
 			//
-			// GeneralsX @security Claude 04/11/2026 In a replay FILE the IP is a placeholder: slot index + 1 in plain hex, 0 staying 0
+			// GeneralsX: In a replay FILE the IP is a placeholder: slot index + 1 in plain hex, 0 staying 0
 			// (a skirmish human has no address). Playback needs no real value: the local slot is the header's own index
 			// (ReplayGameInfo::getLocalSlotNum), GameLogic's by-IP test is commented out, and gxKickShowLine returns early in
 			// playback. Measured: a replay with two humans' placeholders forged equal plays the same slot and the same CRC. Nonzero
@@ -1388,7 +1388,7 @@ static AsciiString buildGameInfoAsciiString(const GameInfo& game, const AsciiStr
 				slot->getColor(), slot->getPlayerTemplate(),
 				slot->getStartPos(), slot->getTeamNumber(),
 				forReplayFile ? FirewallHelperClass::FIREWALL_TYPE_SIMPLE : slot->getNATBehavior() );
-			// GeneralsX @refactor Claude 21/09/2026 The per-slot truncate-and-repair block that
+			// GeneralsX: The per-slot truncate-and-repair block that
 			// stood here (the 12/08/2026 negative-lenMax clamp and the trailing continuation-byte
 			// strip) is gone. TheSuperHackers #3039 computes every name's length up front instead,
 			// so this loop never cuts a name at all and the repair has nothing to repair. The
@@ -1451,7 +1451,7 @@ AsciiString GameInfoToAsciiString( const GameInfo *game, Int maxLength, Bool for
 
 	// TheSuperHackers @bugfix bobtista 23/08/2026 Prevent an infinite loop when player names exceed
 	// the LAN options limit by rebuilding the payload with bounded UTF-8 names.
-	// GeneralsX @bugfix Claude 21/09/2026 Size against what an ANNOUNCE actually carries (366),
+	// GeneralsX: Size against what an ANNOUNCE actually carries (366),
 	// not against the buffer it is copied into (m_lanMaxOptionsLength, 692). The derivation is
 	// beside g_lanAnnounceOptionsRoom in LANAPI.h. wireSize() stops sending partway through
 	// GameInfo.options for every message type except MSG_GAME_OPTIONS, so a string that passed a
@@ -1463,11 +1463,11 @@ AsciiString GameInfoToAsciiString( const GameInfo *game, Int maxLength, Bool for
 	// below now targets it, which is what makes this a narrowing rather than a new refusal:
 	// strings in 367..692 that used to be accepted-and-silently-truncated now get their player
 	// names rebalanced to fit, and only fail loudly if even that cannot.
-	// GeneralsX @bugfix Claude 23/09/2026 Size against the longest STRING the room carries (365),
+	// GeneralsX: Size against the longest STRING the room carries (365),
 	// not the room itself (366): the terminator has to fit inside the bytes wireSize() sends.
 	// A 366-byte string passed here and arrived unterminated. Every string of 365 bytes or
 	// fewer takes exactly the path it always did, so its announce is byte-identical.
-	// GeneralsX @feature Claude 25/09/2026 Size against the 692-byte buffer (m_lanMaxOptionsLength),
+	// GeneralsX: Size against the 692-byte buffer (m_lanMaxOptionsLength),
 	// because a long announce is now sent at its own length (LANAPI.h LANMessageWireSize) instead of
 	// being cut at the legacy extent. The 365-byte room above was the reason a twelve-human lobby
 	// returned the empty string here: its fixed per-slot fields alone overflow 365, so no name
@@ -1494,11 +1494,11 @@ AsciiString GameInfoToAsciiString( const GameInfo *game, Int maxLength, Bool for
 
 	if (!optionsFit)
 	{
-		// GeneralsX @feature Claude 12/08/2026, kept 21/09/2026 Release-visible overflow trace.
+		// GeneralsX: kept 21/09/2026 Release-visible overflow trace.
 		// Upstream's DEBUG_CRASH here is invisible in a release build, and this is the failure the
 		// twelve-human lobby has to be able to see. It now fires only after the rebalancing retry
 		// has also failed, so a lobby upstream's truncatePlayerNames rescues no longer prints it.
-		// GeneralsX @feature Claude 23/09/2026 Name the stress field when it is part of the overflow,
+		// GeneralsX: Name the stress field when it is part of the overflow,
 		// or a stress lobby that stops announcing reads as a plain slot-count problem.
 		fprintf(stderr, "[GXCAP] GameInfoToAsciiString overflow: %d of %d bytes - too many human slots for the lobby options string%s; this lobby will not announce correctly\n",
 			optionsString.getLength(), optionsRoom,
@@ -1587,7 +1587,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 	Int seed = 0;
 	Int crc = 100;
 	Bool sawCRC = FALSE;
-	// GeneralsX @feature Claude 12/08/2026 The WRITER's /24, carried once as "NP=" and used to
+	// GeneralsX: The WRITER's /24, carried once as "NP=" and used to
 	// expand every ".N" shorthand slot IP below. Reconstructing against the READER's own subnet
 	// would be silently wrong across subnets - a joiner on 192.168.2.x hearing a host on
 	// 192.168.1.x would invent 192.168.2.7 and mesh to an unrelated machine, which presents as
@@ -1754,9 +1754,9 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
     else if (key.compare("SC") == 0 )
     {
       UnsignedInt startingCashAmount = strtoul( val.str(), nullptr, 10 );
-      // GeneralsX @bugfix Claude 06/10/2026 Set, not deposit: Money::deposit records income on player 0's AcademyStats
+      // GeneralsX: Set, not deposit: Money::deposit records income on player 0's AcademyStats
       // whatever its flags, so parsing any peer's lobby announce - even one LANAPI then refuses - wrote game state.
-      // init() + deposit(amount, FALSE, FALSE) and setStartingCash(amount) leave the same Money (Codex net-hardening r6).
+      // init() + deposit(amount, FALSE, FALSE) and setStartingCash(amount) leave the same Money (net-hardening r6).
       startingCash.setStartingCash( startingCashAmount );
       sawStartingCash = TRUE;
     }
@@ -1765,7 +1765,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
       oldFactionsOnly = ( val.compareNoCase( "Y" ) == 0 );
       sawOldFactions = TRUE;
     }
-		// GeneralsX @feature Claude 16/08/2026 The lobby's display name. Optional by design - a
+		// GeneralsX: The lobby's display name. Optional by design - a
 		// lobby created without one omits the field entirely - so there is no `saw` flag and no
 		// validation failure when it is absent. Re-sanitised on the way IN as well as out, because
 		// the writer is a remote machine: this build's own writer cannot emit a delimiter, but
@@ -1774,7 +1774,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 		{
 			lobbyName = val;
 		}
-		// GeneralsX @feature Claude 23/09/2026 The lobby-agreed stress battlefield (GameLogic/GXStress.h).
+		// GeneralsX: The lobby-agreed stress battlefield (GameLogic/GXStress.h).
 		// Strict: the writer is a remote host, so anything malformed or out of range rejects the WHOLE
 		// options string rather than being clamped into a battlefield nobody agreed to.
 		else if (key.compare("ST") == 0)
@@ -1786,7 +1786,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 				break;
 			}
 		}
-		// GeneralsX @feature Claude 07/11/2026 AI in three colours. Strict for the same reason ST= is. A value that parses still
+		// GeneralsX: AI in three colours. Strict for the same reason ST= is. A value that parses still
 		// does nothing in a game with a second human: GameInfo::applyAiColours asks GXAiColours::applies on every peer.
 		else if (key.compare("AC") == 0)
 		{
@@ -1798,16 +1798,16 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 			}
 			aiColours = GXAiColours::MODE_THREE;
 		}
-		// GeneralsX @security Claude 25/09/2026 The relay-proven admin slots and their keys. Strict for the same reason
+		// GeneralsX: The relay-proven admin slots and their keys. Strict for the same reason
 		// ST= is: one hex digit per four slots at most (four for MAX_SLOTS 14 - an admin in slot 12 or 13 writes
-		// AD=1000 and up; Codex batch-r6), naming slots that exist, then exactly one canonical base64url key per set
+		// AD=1000 and up), naming slots that exist, then exactly one canonical base64url key per set
 		// bit, or the whole string is refused.
 		else if (key.compare("AD") == 0)
 		{
 			enum { AD_HEX_MAX = (MAX_SLOTS + 3) / 4 };
 			const char *v = val.str();
 			const char *colon = strchr(v, ':');
-			// GeneralsX @feature Claude 06/11/2026 scale32: the AD= mask is up to 34 bits = 9 hex digits, read and written 64-bit (%llX).
+			// GeneralsX: scale32: the AD= mask is up to 34 bits = 9 hex digits, read and written 64-bit (%llX).
 			unsigned long long m = 0;
 			const Int hexLen = (colon != nullptr) ? (Int)(colon - v) : 0;
 			Bool ok = (hexLen >= 1 && hexLen <= AD_HEX_MAX);
@@ -1863,7 +1863,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 					if( rawSlotBuf )
 						freeMe = rawSlotBuf;
 					rawSlotBuf = nullptr;
-					// GeneralsX @feature Claude 12/08/2026 Tolerate a slot list shorter than
+					// GeneralsX: Tolerate a slot list shorter than
 					// MAX_SLOTS: replays and announces written when MAX_SLOTS was 8 carry exactly
 					// 8 entries, and hitting the default arm on the missing 9th used to reject the
 					// whole options string - which would have orphaned every pre-raise replay,
@@ -1890,7 +1890,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 							}
 							UnicodeString name;
               				name.set(MultiByteToWideCharSingleLine(slotValue.str() +1).c_str());
-							// GeneralsX @bugfix Claude 12/08/2026 Bound the name HERE, where a
+							// GeneralsX: Bound the name HERE, where a
 							// received announce turns into a slot. Memory-safe already (UnicodeString
 							// allocates), but an announce can carry a ~380-character name that is then
 							// rendered in the lobby list.
@@ -1914,7 +1914,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 								DEBUG_LOG(("ParseAsciiStringToGameInfo - slotValue IP address is empty, quitting"));
 								break;
 							}
-							// GeneralsX @feature Claude 12/08/2026 ".<lastOctet>" shorthand, expanded
+							// GeneralsX: ".<lastOctet>" shorthand, expanded
 							// against the WRITER's NP prefix. Validated strictly - this string is
 							// untrusted network input, and a plausible-but-wrong address is worse
 							// than a refusal: ".", ".999", ".-1", ".7.7" and a shorthand with no NP
@@ -1957,7 +1957,7 @@ Bool ParseAsciiStringToGameInfo(GameInfo *game, AsciiString options)
 								DEBUG_LOG(("ParseAsciiStringToGameInfo - slotValue port is empty, quitting"));
 								break;
 							}
-							// GeneralsX @feature Claude 12/08/2026 "." means NETWORK_BASE_PORT_NUMBER.
+							// GeneralsX: "." means NETWORK_BASE_PORT_NUMBER.
 							// A bare dot, never an empty field: strtok_r collapses consecutive
 							// delimiters, so ",," would shift every later field by one.
 							UnsignedInt playerPort = 0;
@@ -2352,14 +2352,14 @@ void SkirmishGameInfo::crc( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void SkirmishGameInfo::xfer( Xfer *xfer )
 {
-	// GeneralsX @feature Claude 25/09/2026 Version 5 in BOTH games: a save of version 5 records which observer layout
+	// GeneralsX: Version 5 in BOTH games: a save of version 5 records which observer layout
 	// its game was started in (the flag at the end of this function), and every older one gave each observer a
 	// Player of its own. The start that rebuilds the save's Player table has to build the one the save holds, or
-	// PlayerList::xfer meets a different count and refuses the load (Codex r2) - so an older save loads in the
+	// PlayerList::xfer meets a different count and refuses the load - so an older save loads in the
 	// legacy layout. Generals was at 2 and jumps to 5 with Zero Hour rather than to 3, because 3 and 4 already
 	// mean Zero Hour's superweapon/cash fields below; a Generals save of version 5 carries those fields exactly
 	// as ZH's does.
-	// GeneralsX @feature Claude 07/11/2026 Version 6 adds the AI colour mode at the end of this function: Player does not save
+	// GeneralsX: Version 6 adds the AI colour mode at the end of this function: Player does not save
 	// its colour, a load takes it from these slots again, and a Restart has to know the mode the game started in.
 	const XferVersion currentVersion = 6;
 	const XferVersion observersShareSince = 5;
@@ -2370,14 +2370,14 @@ void SkirmishGameInfo::xfer( Xfer *xfer )
 		setLegacyObserverLayout(version < observersShareSince);
 
 
-	// GeneralsX @feature Claude 06/11/2026 scale32: m_preorderMask is 64 bit in memory, the save keeps its 32-bit
+	// GeneralsX: scale32: m_preorderMask is 64 bit in memory, the save keeps its 32-bit
 	// Int (skirmish saves hold at most 8 slots, so the low word is the whole mask - save format unchanged).
 	Int preorderLow = (Int)(UnsignedInt)(m_preorderMask & 0xffffffffu);
 	xfer->xferInt(&preorderLow);
 	if (xfer->getXferMode() == XFER_LOAD)
 		m_preorderMask = (RelayMaskType)(UnsignedInt)preorderLow;
 	xfer->xferInt(&m_crcInterval);
-	// GeneralsX @fix Claude 23/09/2026 The one writer that bypassed setCRCInterval's floor: a loaded
+	// GeneralsX: The one writer that bypassed setCRCInterval's floor: a loaded
 	// skirmish runs m_frame % getCRCInterval() (isMultiplayer() is TRUE while TheSkirmishGameInfo is
 	// set, and nothing re-sets the interval on load), so a save holding 0 divided by zero.
 	if (xfer->getXferMode() == XFER_LOAD)
@@ -2387,13 +2387,13 @@ void SkirmishGameInfo::xfer( Xfer *xfer )
 	xfer->xferBool(&m_surrendered);
 	xfer->xferInt(&m_gameID);
 
-	// GeneralsX @bugfix Claude 24/09/2026 A save records how many slots it holds, and a load reads EXACTLY that
+	// GeneralsX: A save records how many slots it holds, and a load reads EXACTLY that
 	// many. The old loop always read MAX_SLOTS records, so every raise of MAX_SLOTS (8 -> 12, then 12 -> 14 for
 	// 12 players + 2 observers) made an older save read the fields that follow its slots as more slots - no slot
 	// came out local, and MultiPlayerLoadScreen::init dereferenced getSlot(-1): SIGSEGV. A record past this build's
 	// MAX_SLOTS is read into a scratch slot and dropped; a slot the save does not hold stays closed. Saving always
 	// writes MAX_SLOTS, so a save written by this build is unchanged.
-	// GeneralsX @bugfix Claude 25/09/2026 (merge of the 25/09 save gate) A count no build has written is not a
+	// GeneralsX: (merge of the 25/09 save gate) A count no build has written is not a
 	// slot table: refused before anything reads it, with no assert ahead of the recovery, so a debug build takes
 	// the same path; the caller is inside GameState::loadGame's catch. A save whose local slot this build drops
 	// is stopped by MultiPlayerLoadScreen's own local-slot guard.
@@ -2495,10 +2495,10 @@ void SkirmishGameInfo::xfer( Xfer *xfer )
     m_startingCash = TheGlobalData->m_defaultStartingCash;
   }
 
-	// GeneralsX @feature Claude 25/09/2026 Version 5 records the observer layout this game was STARTED in, not the
+	// GeneralsX: Version 5 records the observer layout this game was STARTED in, not the
 	// one this build starts new games in: a pre-5 save loaded and saved again without a restart still holds the
 	// legacy Player table (one Player per observer), and a version 5 that implied the shared layout would rebuild a
-	// different table on the next load (Codex r4). An older version implies legacy (set above, before the slots).
+	// different table on the next load. An older version implies legacy (set above, before the slots).
 	if (version >= observersShareSince)
 	{
 		Bool legacy = isLegacyObserverLayout();
@@ -2520,7 +2520,7 @@ void SkirmishGameInfo::loadPostProcess()
 {
 }
 
-// GeneralsX @bugfix Claude 01/10/2026 Idea of TheSuperHackers PR #3200 (Caball009, draft), hand-ported. A restarted
+// GeneralsX: Idea of TheSuperHackers PR #3200 (Caball009, draft), hand-ported. A restarted
 // skirmish's replay header was written from the slots BEFORE tryStartNewGame put the original setup back, so the
 // replay of every restarted skirmish mismatched on playback. Unlike the draft, tryStartNewGame keeps its own loop
 // for every game mode: GameSlot::isObserver() needs the saved original setup in LAN and relay games too. And this only

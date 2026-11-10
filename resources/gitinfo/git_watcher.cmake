@@ -127,14 +127,14 @@ function(GetGitState _working_dir)
 
     if(GIT_EXECUTABLE)
         # Get whether or not the working tree is dirty.
-        # GeneralsX @bugfix Claude 01/10/2026 TRACKED changes anywhere, UNTRACKED files only inside the build inputs. Plain
+        # GeneralsX: TRACKED changes anywhere, UNTRACKED files only inside the build inputs. Plain
         # `status --porcelain` counted every untracked file, so a note, a replay folder or a backup tarball beside the tree
         # stamped every binary "uncommitted" - measured on two build trees, 01/10/2026 - and
         # since M1 4b a dirty build refuses every replay and records replays every other build refuses. An untracked file
         # INSIDE a build input (a stray .cpp under Core, an untracked vcpkg-configuration.json) is compiled or configures the
-        # build, so it still counts (Codex m1det2-gitinfo-r1 P2). The list is verify-4platform.sh's BUILD_INPUTS, which says
+        # build, so it still counts. The list is verify-4platform.sh's BUILD_INPUTS, which says
         # why each entry is there; scripts/test/gitinfo-dirty-test.sh fails if the two drift, and pins every case here.
-        # GeneralsX @bugfix Claude 02/10/2026 SUPERSEDES "TRACKED changes anywhere" above: tracked changes are scoped to what
+        # GeneralsX: SUPERSEDES "TRACKED changes anywhere" above: tracked changes are scoped to what
         # is compiled too, in ONE status. "Tracked anywhere" stamped release builds over files no build reads: the 02/10 release verify's Windows leg failed because
         # references/generals-online-launcher and references/jmarshall-win64-modern had every file staged deleted, and a
         # Linux tree stamped itself over a references/fbraz3-dxvk gitlink move it never compiles. The fork counts only where
@@ -226,7 +226,7 @@ function(GetGitState _working_dir)
             set(ENV{GIT_REV_LIST_COUNT} "0")
         endif()
 
-        # GeneralsX @build BenderAI 21/04/2026 Use --exact-match so GitTag is only set on
+        # GeneralsX: Use --exact-match so GitTag is only set on
         # commits that ARE the tag, never on dev builds with a prior tag in history.
         RunGitCommand(describe --exact-match --tags ${object})
         if(exit_code EQUAL 0)

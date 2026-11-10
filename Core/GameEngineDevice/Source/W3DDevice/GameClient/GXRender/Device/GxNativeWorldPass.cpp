@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-hud-seam-1 13/10/2026 IGxWorldPass on the native device (GxWorldPass.h, DESIGN_hud-seam.md §5).
+// GeneralsX: IGxWorldPass on the native device (GxWorldPass.h, DESIGN_hud-seam.md §5).
 //
 // The game's W3DWorldSeam calls these around the world pass. Each stream adds its work as ONE call per method here and keeps the
 // code in its own files (render-motion-1: GxMotion; the upscaler backends: their own classes), so nobody edits the same lines.
@@ -27,7 +27,7 @@ uint32_t GxNativeDevice::SeamSlots::take(V::VkCtx& ctx, uint64_t now)
 	if (slot >= lastUse.size() || lastUse[slot] == now)
 		return ~0u;
 	// < now: submitted (a foreign submission inside an open frame is fatal, GxPacketWriter.h). A failed wait leaves it possibly
-	// pending: never overwrite its set (Codex hud-seam-code-r2 P2)
+	// pending: never overwrite its set
 	if (lastUse[slot] && !ctx.queue(V::QueueKind::Graphics).timeline.wait(lastUse[slot]))
 		return ~0u;
 	lastUse[slot] = now;   // before recording: a pass that fails half-way may still have bound the set

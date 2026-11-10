@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 18/09/2026 - a clear the optimiser is not allowed to remove.
+// GeneralsX: a clear the optimiser is not allowed to remove.
 //
 // WHY NOT memset. A memset whose result is never read again is a dead store, and the standard lets a
 // compiler delete it - which it does, at -O2, as soon as it can see the buffer is not read before it

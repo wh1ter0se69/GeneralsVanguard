@@ -1,6 +1,6 @@
 // FILE: GXReplayDiag.h ///////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 03/11/2026 Writes the replay diagnostics block (GXReplayDiagFormat.h) while a match records.
+// GeneralsX: Writes the replay diagnostics block (GXReplayDiagFormat.h) while a match records.
 //
 // Here in GameClient/, on the client side of the SimID digest: nothing in this module is read by the simulation, and
 // resources/gitinfo/simdigest_exclusions.txt names the two calls the Recorder makes into it, with that reason.
@@ -34,7 +34,7 @@ typedef void (*GXReplayDiagDeviceFn)( GXReplayDiagPutFn put );
 void gxReplayDiagSetDeviceFacts( GXReplayDiagDeviceFn fn );
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature B · replay-tel-1 05/11/2026 TELEMETRY (wh1ter0se msg 3d92 + 238d): a per-second PERF row (fps, frame-time
+// GeneralsX: TELEMETRY (wh1ter0se msg 3d92 + 238d): a per-second PERF row (fps, frame-time
 // percentiles, TPS, stall, hold, network, own CPU) on the same comment-record path, batched once per window. Bytes and arithmetic:
 // GXReplayDiagFormat.h. Nothing here is read by the simulation, sent on the wire or a CRC input.
 // ------------------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ GxTelLevel gxReplayTelemetryLevel( void );
 /// hitch stays a measured frame. Idempotent; a no-op while nothing records.
 void gxReplayTelSuspend( bool suspended );
 
-/// GeneralsX @bugfix B · tel-bg-1 08/11/2026 The player is away (true) or back (false) while the loop keeps running: iOS inactive or
+/// GeneralsX: The player is away (true) or back (false) while the loop keeps running: iOS inactive or
 /// in the background, a Windows window that is minimised or lost focus, an SDL desktop window that lost focus. Every PERF row that
 /// overlaps it is flagged unfocused (U), so a match that ran on unwatched - fps 0 at 60 TPS - says so. Idempotent; a flag only (never
 /// closes a row, never touches what the simulation does); harmless while nothing records - a recording that starts away begins flagged.
@@ -74,15 +74,15 @@ typedef bool (*GXReplayTelOsFn)( GxTelOsSnapshot *out );
 /// Whether a snapshot may fill the row closing at nowNs that began at rowStartNs: not used before, ended at most 1.5 s ago (spec 2.4),
 /// and of this row's time - it began at most 2.5 s before the row (a missed sample or two is still this run's data). A base taken before
 /// a suspension or a window restart reaches back further and is refused, so the gap's load is never charged to the first row after it
-/// (Codex replay-tel-3-r1). notBeforeNs: when the loop last resumed from a suspension (0: never) - a snapshot that began before it spans
-/// the stopped seconds however short they were, so it is refused too (Codex replay-tel-4-r4: a 2 s stop inside the 2.5 s bound diluted
+/// notBeforeNs: when the loop last resumed from a suspension (0: never) - a snapshot that began before it spans
+/// the stopped seconds however short they were, so it is refused too (a 2 s stop inside the 2.5 s bound diluted
 /// the resumed row's CPU to a third). A snapshot with a counter read after nowNs is a later row's. Otherwise the row says UNKNOWN +
 /// sampler late.
 inline bool gxTelOsUsable( const GxTelOsSnapshot &os, bool haveSeq, uint32_t lastSeq, long long nowNs, long long rowStartNs, long long notBeforeNs )
 {
 	return ( !haveSeq || os.seq != lastSeq ) && os.endNs > os.startNs && nowNs - os.endNs <= 1500000000LL
 #ifndef GX_TEL_RED_FUTURE	// fail arm: a sample read after the row closed (the main thread preempted before fillRow) fills it
-		&& os.endNs <= nowNs	// its seconds are a later row's (Codex replay-tel-5-r10)
+		&& os.endNs <= nowNs	// its seconds are a later row's
 #endif
 		&& os.startNs >= rowStartNs - 2500000000LL
 #ifndef GX_TEL_RED_STAMP_BARRIER	// fail arm: the base sample's stamp, not its pass's start, is held against the barrier
@@ -93,7 +93,7 @@ inline bool gxTelOsUsable( const GxTelOsSnapshot &os, bool haveSeq, uint32_t las
 }
 void gxReplayTelSetOsReader( GXReplayTelOsFn fn );
 
-/// GeneralsX @feature B · replay-tel-3 06/11/2026 Phase 2: the device layer's sampler thread, started and idled by the recording. start 1
+/// GeneralsX: Phase 2: the device layer's sampler thread, started and idled by the recording. start 1
 /// (gxReplayDiagRecordingStarted, level not off): creates the thread on first use, then wakes it. start 0 (gxReplayDiagRecordingEnding):
 /// a flag store, returns at once - the thread is detached and never joined, so a recording never waits on an OS or driver query.
 typedef void (*GXReplayTelControlFn)( int start );

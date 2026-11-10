@@ -132,7 +132,7 @@ public:
 	AsciiString getPingString() const { return m_pingStr; }
 	Int getPingAsInt() const { return m_pingInt; }
 
-	// GeneralsX @feature Claude 07/08/2026 Set a ping that is ALREADY in milliseconds.
+	// GeneralsX: Set a ping that is ALREADY in milliseconds.
 	//
 	// setPingString() cannot be used for this. It hands the string to GameSpyInfo::getPingValue(),
 	// which is a GameSpy-specific scheme: it expects a string of hex byte-pairs, one per GameSpy

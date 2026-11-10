@@ -66,7 +66,7 @@ W3DRopeDraw::W3DRopeDraw( Thing *thing, const ModuleData* moduleData ) : DrawMod
 	m_wobbleAmp = 0.0f;
 	m_segments.clear();
 	m_curWobblePhase = 0.0f;
-	// GeneralsX @bugfix Claude 06/08/2026 m_wobbleRate was the only member left uninitialised here,
+	// GeneralsX: m_wobbleRate was the only member left uninitialised here,
 	// so a rope drawn before initRopeParms() wobbled by whatever was on the stack.
 	m_wobbleRate = 0.0f;
 	m_lastLogicFrameUpdated = 0xffffffff;	// sentinel, so the first call steps
@@ -205,7 +205,7 @@ void W3DRopeDraw::doDrawModule(const Matrix3D* transformMtx)
 		}
 	}
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate - see m_lastLogicFrameUpdated in the header.
+	// GeneralsX: Class-C gate - see m_lastLogicFrameUpdated in the header.
 	// The stamp is taken HERE and not inside the !m_segments.empty() block above, because a rope
 	// with no segments yet must still stamp or it would bank a step and lurch on its first draw.
 	// The geometry above recomputes absolutely and keeps running every rendered frame.

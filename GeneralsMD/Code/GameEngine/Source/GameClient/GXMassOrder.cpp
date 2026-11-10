@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @test Claude 02/10/2026 GX_MASSORDER - one player's mass order, scripted and timed (ROADMAP_2027 H03).
+// GeneralsX: GX_MASSORDER - one player's mass order, scripted and timed (ROADMAP_2027 H03).
 //
 // WHY. H03 spreads the path work of a big group order over several ticks. Its gate needs the same order, at the same
 // frame, with the same army, in both arms: "on matched 100- and 400-unit mass orders, the first and the LAST unit's
@@ -50,7 +50,7 @@
 //   GX_MASSORDER_WATCH=<f>          default 600: frames each order is watched (EVERY must be >= it)
 //   GX_MASSORDER_TL=<f>             default 0 = off: every <f> frames of the watch, one "[GXMASS] tl" timeline line
 //
-// GeneralsX @test Claude 05/10/2026 (mass-order-breaks) Besides the delay line, each order now ends with
+// GeneralsX: (mass-order-breaks) Besides the delay line, each order now ends with
 //   [GXMASS] end order=<k> n=<units> recv=<r> moved=<m> idle=<i> wait=<w> stuck=<s> d0=<p50 start distance>
 //            d50=<p50> d90=<p90> dmax=<max end distance> near=<units within 300 of the target>
 //            away=<units that ended further from the target than they started, by more than 50>

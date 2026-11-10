@@ -87,7 +87,7 @@
 void HideListBox(GameWindow * window);
 static void ShowListBox(GameWindow * window);
 
-// GeneralsX @feature Claude 25/09/2026 LETTER KEYS ON AN OPEN DROP-DOWN.
+// GeneralsX: LETTER KEYS ON AN OPEN DROP-DOWN.
 //
 // Asked for on the game-setup slot lists: with Open / Closed / Easy Army / Medium Army / Hard Army
 // showing, O / C / E / M / H picks that entry at once. Done here, for every NON-EDITABLE combo,
@@ -450,7 +450,7 @@ void HideListBox(GameWindow * window)
 }
 
 // ShowListBox ================================================================
-/** Open the listbox. GeneralsX @refactor Claude 25/09/2026 This body used to be written out twice,
+/** Open the listbox. GeneralsX: This body used to be written out twice,
 	* in the click handler and the drop-down-button handler; GadgetComboBoxOpenList is its third
 	* caller, and it is also the one place that records which drop-down is open. */
 //=============================================================================

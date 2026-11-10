@@ -91,7 +91,7 @@ CountermeasuresBehavior::CountermeasuresBehavior( Thing *thing, const ModuleData
 	m_divertedMissiles = 0;
 	m_incomingMissiles = 0;
 	m_nextVolleyFrame = 0;
-	m_reloadFrame = 0;	// GeneralsX @bugfix Claude 05/10/2026 explicit: the pool zeroes the block, but a save loads it (xfer v3)
+	m_reloadFrame = 0;	// GeneralsX: explicit: the pool zeroes the block, but a save loads it (xfer v3)
 
 	setWakeFrame( getObject(), UPDATE_SLEEP_NONE );
 }
@@ -265,7 +265,7 @@ UpdateSleepTime CountermeasuresBehavior::update()
 			}
 		}
 	}
-	// GeneralsX @bugfix Claude 05/10/2026 A reaction that came due while the aircraft was not airborne (parked, landing)
+	// GeneralsX: A reaction that came due while the aircraft was not airborne (parked, landing)
 	// skipped the volley above and was never cleared: m_reactionFrame stayed set, could never equal `now` again, and the
 	// `m_reactionFrame == 0` test in reportMissileForCountermeasures stopped every later reaction - the aircraft never
 	// launched another flare in its life while missiles kept being decoyed into it. Clear it. From Zero Hour Reforged
@@ -346,7 +346,7 @@ void CountermeasuresBehavior::launchVolley()
 
 		Real velocity = physics->getVelocityMagnitude();
 #if GX_LOGIC_60HZ
-		if( velocity < 0.5f )	// GeneralsX @fix Claude 23/09/2026 per-frame speeds: both halved
+		if( velocity < 0.5f )	// GeneralsX: per-frame speeds: both halved
 		{
 			velocity = -5.0f;
 		}
@@ -392,7 +392,7 @@ void CountermeasuresBehavior::crc( Xfer *xfer )
 /** Xfer method
 	* Version Info:
 	* 1: Initial version
-	* 3: m_reloadFrame (GeneralsX @bugfix Claude 05/10/2026: it was never saved, so loading a save taken while a Comanche's
+	* 3: m_reloadFrame (GeneralsX: it was never saved, so loading a save taken while a Comanche's
 	*    flares were reloading restarted the wait from the load; as Zero Hour Reforged's xfer version 3, Olcay Seygan) */
 //------------------------------------------------------------------------------------------------
 void CountermeasuresBehavior::xfer( Xfer *xfer )

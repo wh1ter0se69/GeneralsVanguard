@@ -1,11 +1,11 @@
 #!/bin/bash
 # GeneralsX @build felipebraz 16/02/2026 Deploy Linux build to runtime directory
-# GeneralsX @bugfix BenderAI 19/02/2026 Add non-empty check to guard against stale CMake placeholder files
+# GeneralsX: Add non-empty check to guard against stale CMake placeholder files
 
 set -e
 
 # Directories
-# GeneralsX @bugfix BenderAI 09/03/2026 Resolve repository root correctly from scripts/build/linux.
+# GeneralsX: Resolve repository root correctly from scripts/build/linux.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/linux64-deploy"
@@ -15,7 +15,7 @@ SDL3_IMAGE_LIB_DIR="${BUILD_DIR}/_deps/sdl3_image-build"
 GAMESPY_LIB="${BUILD_DIR}/libgamespy.so"
 FFMPEG_LIB_DIR="/usr/lib/x86_64-linux-gnu"
 FFMPEG_DEP_LIB_DIR="/lib/x86_64-linux-gnu"
-# GeneralsX @bugfix BenderAI 01/04/2026 Align deploy runtime selection with launcher logic by preferring the directory that contains .big assets.
+# GeneralsX: Align deploy runtime selection with launcher logic by preferring the directory that contains .big assets.
 PREFERRED_RUNTIME_DIR="${HOME}/GeneralsX/GeneralsZH"
 LEGACY_RUNTIME_DIR="${HOME}/GeneralsX/GeneralsMD"
 RUNTIME_DIR="${PREFERRED_RUNTIME_DIR}"
@@ -33,7 +33,7 @@ elif [[ -d "${LEGACY_RUNTIME_DIR}" ]]; then
     echo "INFO: No .big assets found; using existing legacy runtime ${LEGACY_RUNTIME_DIR}"
 fi
 
-# GeneralsX @bugfix Claude 12/08/2026 GX_RUNTIME_DIR overrides the auto-detection above.
+# GeneralsX: GX_RUNTIME_DIR overrides the auto-detection above.
 #
 # THE PEER THE HARNESSES RUN IS NOT THE ONE THIS SCRIPT FINDS. Every cross-platform script
 # defaults to VPS_GAME=/root/gamedata (probe-headless-crc-ab.sh:33, xplat-4platform-play.sh:129
@@ -122,7 +122,7 @@ cp -v "${SDL3_IMAGE_LIB_DIR}"/libSDL3_image.so* "${RUNTIME_DIR}/"
 echo "  Copying GameSpy library..."
 cp -v "${GAMESPY_LIB}" "${RUNTIME_DIR}/"
 
-# GeneralsX @build Claude 25/09/2026 The openal-soft this engine was built against. Never copied
+# GeneralsX: The openal-soft this engine was built against. Never copied
 # before, so the runtime loaded the distro's libopenal.so.1 - see scripts/build/linux/lib-openal.sh.
 # run.sh's LD_LIBRARY_PATH finds it here first, and so does the $ORIGIN runpath set below when
 # patchelf is installed.
@@ -164,7 +164,7 @@ copy_ldd_deps() {
     done < <(ldd "${root}" | awk '{for (i = 1; i <= NF; ++i) { if ($i ~ /^\//) { print $i; break } }}' | sort -u)
 }
 
-# GeneralsX @build GitHubCopilot 17/05/2026 Deploy FFmpeg runtime libs transitively so runtime does not depend on host SONAME layout.
+# GeneralsX: Deploy FFmpeg runtime libs transitively so runtime does not depend on host SONAME layout.
 echo "  Copying FFmpeg runtime libraries..."
 shopt -s nullglob
 ffmpeg_roots=(
@@ -207,7 +207,7 @@ if [[ -f "${SAGE_PATCH_LIB}" ]]; then
     cp -v "${SAGE_PATCH_LIB}" "${RUNTIME_DIR}/"
 fi
 
-# GeneralsX @build BenderAI 08/06/2026 Deploy ExtrasMenu.wnd so the engine can
+# GeneralsX: Deploy ExtrasMenu.wnd so the engine can
 # load it via TheFileSystem (local files override BIG archives).
 EXTRAS_WND_SRC="${PROJECT_ROOT}/GeneralsZH/Data/Window/Menus/ExtrasMenu.wnd"
 if [[ -f "${EXTRAS_WND_SRC}" ]]; then
@@ -215,7 +215,7 @@ if [[ -f "${EXTRAS_WND_SRC}" ]]; then
     cp -v "${EXTRAS_WND_SRC}" "${RUNTIME_DIR}/Window/Menus/ExtrasMenu.wnd"
 fi
 
-# GeneralsX @bugfix Claude 12/08/2026 Deploy the loose Multiplayer.ini (twelve player colours)
+# GeneralsX: Deploy the loose Multiplayer.ini (twelve player colours)
 # and the string table that names them. Mirrors deploy-macos-zh.sh and the iOS bundler; Windows
 # got the same thing in package-windows-share.ps1.
 #
@@ -241,7 +241,7 @@ if [[ -f "${MP_INI_SRC}" ]]; then
     fi
     echo "  Deploying loose player-colour data..."
     mkdir -p "${RUNTIME_DIR}/Data/INI" "${RUNTIME_DIR}/Data/English"
-    # GeneralsX @bugfix Claude 24/08/2026 SKIP A COPY ONTO ITSELF, or the script exits 1 having
+    # GeneralsX: SKIP A COPY ONTO ITSELF, or the script exits 1 having
     # done every real thing correctly. On a build host where RUNTIME_DIR lives INSIDE
     # PROJECT_ROOT - ~/GeneralsX and ~/GeneralsX/GeneralsZH, say -
     # source and destination are the same inode, cp refuses with "are the same file", and
@@ -260,12 +260,12 @@ if [[ -f "${MP_INI_SRC}" ]]; then
     done
 fi
 
-# GeneralsX @feature Claude 24/09/2026 Data/INI/Weapon.ini (the Toxin Tractor balance change), cut
+# GeneralsX: Data/INI/Weapon.ini (the Toxin Tractor balance change), cut
 # from this peer's own CoreINI archive by scripts/tooling/make-weapon-ini.py - never committed, it is
 # the Community Patch's file. It is in iniCRC, so it moves dataID exactly like Multiplayer.ini. A peer
 # with no CoreINI archive anywhere joins nobody anyway (reported at the end), so that alone warns; an
 # archive the recipe refuses (another Community Patch release) is fatal. Mirrors deploy-macos-zh.sh.
-# 25/09/2026 (Codex P2): make-weapon-ini.py --root searches where this peer's engine mounts the
+# 25/09/2026: make-weapon-ini.py --root searches where this peer's engine mounts the
 # archive, $GENERALSX_PATCH_PATH and $CNC_GENERALS_ZH_PATH included, so a custom overlay or asset root
 # is not skipped (run.sh cds here, so the loose file in this folder is the one the engine reads).
 # It follows the ENGINE's order, and run.sh below changes that order: it exports the sibling
@@ -289,7 +289,7 @@ cat > "${RUNTIME_DIR}/run.sh" << 'EOF'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# GeneralsX @feature Claude 12/08/2026 Community-patch overlay.
+# GeneralsX: Community-patch overlay.
 #
 # The archives every peer must load live OUTSIDE this folder, in a GeneralsX-owned sibling, and
 # the engine is pointed at them by environment. The engine's own <exe dir>/GeneralsXPatch
@@ -340,7 +340,7 @@ if [[ -z "${CNC_GENERALS_INSTALLPATH:-}" && -d "${SCRIPT_DIR}/../Generals" ]]; t
     export CNC_GENERALS_INSTALLPATH="${SCRIPT_DIR}/../Generals/"
 fi
 
-# GeneralsX @bugfix BenderAI 06/03/2026 - Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
+# GeneralsX: Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
 # libvulkan_lvp.so (LLVMpipe) crashes during static initialization with LLVM 20.x.
 # Filter hardware-only ICDs via VK_DRIVER_FILES to prevent loading the crashing library.
 # User can override by setting VK_DRIVER_FILES or VK_ICD_FILENAMES before running.
@@ -378,7 +378,7 @@ fi
 # These env vars are read by openal-soft's static constructor at library load time,
 # so they must be set here in the launcher before the binary starts.
 # User can override by setting ALSOFT_DISABLE_CPU_EXTS or ALSOFT_DRIVERS explicitly.
-# GeneralsX @build Claude 25/09/2026 The crashes above were recorded with the DISTRO's 1.25.1;
+# GeneralsX: The crashes above were recorded with the DISTRO's 1.25.1;
 # this runtime now carries the 1.24.2 it was built against. Kept as defaults because nobody has
 # measured that copy without them. See the same note in bundle-linux-zh.sh.
 if [[ -z "${ALSOFT_DISABLE_CPU_EXTS:-}" ]]; then
@@ -400,7 +400,7 @@ exec "./GeneralsXZH" "$@"
 EOF
 chmod +x "${RUNTIME_DIR}/run.sh"
 
-# GeneralsX @feature Claude 12/08/2026 Report where this peer's shared archives are. A report and
+# GeneralsX: Report where this peer's shared archives are. A report and
 # not a refusal - see the same block in deploy-macos-zh.sh for why the shipped-artifact builders
 # are fatal and this is not. Note the Linux test peer at /root/gamedata is deliberately left
 # un-migrated: it has no third-party Zero Hour install to protect, which is the only thing the
@@ -408,7 +408,7 @@ chmod +x "${RUNTIME_DIR}/run.sh"
 # shellcheck source=scripts/build/lib-overlay.sh
 source "${SCRIPT_DIR}/../lib-overlay.sh"
 
-# GeneralsX @feature Claude 17/08/2026 Build this project's own overlay archives onto this peer.
+# GeneralsX: Build this project's own overlay archives onto this peer.
 #
 # THE ONLY OPTIONAL ARCHIVE LINUX CAN ACTUALLY RECEIVE IS ONE IT CAN BUILD, and that is the whole
 # shape of the problem this closes. The community archives are third-party downloads: nothing in
@@ -481,7 +481,7 @@ echo "   SDL3 libs:  ${RUNTIME_DIR}/libSDL3*.so* + ${RUNTIME_DIR}/libSDL3_image*
 echo "   GameSpy:    ${RUNTIME_DIR}/libgamespy.so"
 echo "   OpenAL:     ${RUNTIME_DIR}/libopenal.so.1 (openal-soft, from this build)"
 echo "   FFmpeg:     ${RUNTIME_DIR}/libavcodec*.so* + libavformat*.so* + libavutil*.so*"
-# GeneralsX @tweak BenderAI 28/04/2026 Mirror macOS deploy summary labels/order for cross-platform script UX consistency.
+# GeneralsX: Mirror macOS deploy summary labels/order for cross-platform script UX consistency.
 echo "   DXVK d3d9:  ${RUNTIME_DIR}/libdxvk_d3d9.so*"
 echo "   DXVK d3d8:  ${RUNTIME_DIR}/libdxvk_d3d8.so*"
 echo "   Vulkan:     system loader (not deployed by this script)"
@@ -490,7 +490,7 @@ echo "   VK ICD:     system JSONs (/usr/share/vulkan/icd.d or /etc/vulkan/icd.d)
 echo "   DXVK conf:  not deployed (DXVK defaults/environment)"
 echo "   Wrapper:    ${RUNTIME_DIR}/run.sh"
 echo ""
-# GeneralsX @tweak BenderAI 28/04/2026 Keep Linux deploy run instructions aligned across Generals and Zero Hour scripts.
+# GeneralsX: Keep Linux deploy run instructions aligned across Generals and Zero Hour scripts.
 echo "Run with:"
 echo "  ${PROJECT_ROOT}/scripts/build/linux/run-linux-zh.sh -win"
 echo "  or: cd ~/GeneralsX/GeneralsZH && ./run.sh -win"

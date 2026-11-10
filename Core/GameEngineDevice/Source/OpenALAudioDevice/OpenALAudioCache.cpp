@@ -15,7 +15,7 @@ OpenALAudioFileCache::OpenALAudioFileCache() : m_maxSize(14*1024*1024), m_curren
 {
 }
 
-// GeneralsX @refactor Claude 06/08/2026 Was decodeFFmpeg, and hard-coded to AVFrame. AudioDecoder
+// GeneralsX: Was decodeFFmpeg, and hard-coded to AVFrame. AudioDecoder
 // hands back interleaved PCM on every platform - the planar conversion this function used to carry
 // now lives inside the FFmpeg implementation of the facade, so macOS, Linux and iOS still run
 // exactly the same conversion and produce exactly the same bytes.
@@ -133,7 +133,7 @@ ALuint OpenALAudioFileCache::getBufferForFile(const OpenFileInfo &fileInfo)
 		return 0;
 	}
 
-	// GeneralsX @bugfix Claude 23/09/2026 A failed alGenBuffers (e.g. AL_OUT_OF_MEMORY, no current
+	// GeneralsX: A failed alGenBuffers (e.g. AL_OUT_OF_MEMORY, no current
 	// context) leaves m_buffer 0, and decodeAudio does not check AL errors. Cached with a live
 	// reference that handle could never be closed (closeBuffer(0) returns at once) or evicted, and
 	// every retry would hit it and add another reference. Refuse it here - after the decoder owns
@@ -192,7 +192,7 @@ ALuint OpenALAudioFileCache::getBufferForFile(const OpenFileInfo &fileInfo)
 		}
 	}
 
-	// GeneralsX @bugfix Claude 23/09/2026 The caller that triggered the load holds a reference, as the
+	// GeneralsX: The caller that triggered the load holds a reference, as the
 	// cache-hit path above and Miles' openFile (m_openCount = 1) both count it. Leaving it at 0 made
 	// that caller's closeBuffer wrap the unsigned count to UINT_MAX: a finished sample then looked
 	// "playing" forever and could never be evicted, so once 14 MiB was resident every new sample of

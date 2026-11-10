@@ -53,7 +53,7 @@ void INI::parseParticleSystemDefinition( INI* ini )
 		sysTemplate = TheParticleSystemManager->newTemplate( name );
 	}
 
-	// GeneralsX @bugfix Claude 10/10/2026 A map.ini's particle edits and inventions end with the map (ParticleSystemManager::reset).
+	// GeneralsX: A map.ini's particle edits and inventions end with the map (ParticleSystemManager::reset).
 	if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
 		TheParticleSystemManager->noteOverrideLoad( sysTemplate, created );
 

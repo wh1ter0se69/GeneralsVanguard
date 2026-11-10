@@ -108,7 +108,7 @@ private:
 	static void Save_Registry_Values(HKEY key, char *path, INIClass *ini);
 
 
-	// GeneralsX @bugfix Claude 27/07/2026 Key holds a HKEY, which is a pointer. An int truncates it
+	// GeneralsX: Key holds a HKEY, which is a pointer. An int truncates it
 	// on x64 (harmless at 32-bit, corrupt everywhere else), so store it pointer-wide. Inert on the
 	// macOS/iOS arm: the non-Windows RegistryClass stub only ever initialises this to 0.
 	intptr_t	Key;

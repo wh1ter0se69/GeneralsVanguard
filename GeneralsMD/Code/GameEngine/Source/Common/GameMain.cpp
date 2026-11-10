@@ -56,7 +56,7 @@ Int GameMain()
 	{
 		exitcode = ReplaySimulation::simulateReplays(TheGlobalData->m_simulateReplays, TheGlobalData->m_simulateReplayJobs);
 	}
-	// GeneralsX @feature Claude 28/07/2026 Headless LAN host/join takes the same shape as
+	// GeneralsX: Headless LAN host/join takes the same shape as
 	// replay simulation: it drives the engine itself INSTEAD of TheGameEngine->execute(),
 	// because the lobby phase needs a pump that no engine subsystem provides.
 	else if (HeadlessMatch::isRequested())

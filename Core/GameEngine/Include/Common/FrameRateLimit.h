@@ -26,12 +26,12 @@ class FrameRateLimit
 public:
 	FrameRateLimit();
 
-	// GeneralsX @bugfix Claude 27/09/2026 poll/pollFps: while holding for the cap, call poll() every
+	// GeneralsX: poll/pollFps: while holding for the cap, call poll() every
 	// 1/pollFps s until the deadline or until it returns FALSE (FramePacer::update's network pass).
 	Real wait(UnsignedInt maxFps, UnsignedInt pollFps = 0, Bool (*poll)() = nullptr, UnsignedInt maxDebtPeriods = 1); ///< maxDebtPeriods: how far behind the grid may run before it is forgiven (FramePacer fast forward)
 	void reset(); ///< Move the timing anchor AND the deadline grid to now, discarding any time elapsed since the last call to wait.
 
-	// GeneralsX @feature Claude 02/08/2026 How long the limiter has spent limiting, cumulatively,
+	// GeneralsX: How long the limiter has spent limiting, cumulatively,
 	// as opposed to how long iterations took. Needed because "my own limiter held me" and "I am
 	// blocked on a peer's input" are different problems with different fixes, and nothing in the
 	// engine could tell them apart. wait()'s return value cannot: it is the same number whether
@@ -57,7 +57,7 @@ private:
 	Int64 m_freq;
 	Int64 m_start;
 
-	// GeneralsX @bugfix Claude 14/08/2026 The deadline this frame is being paced to, on an absolute
+	// GeneralsX: The deadline this frame is being paced to, on an absolute
 	// grid advanced by exactly one period per call - NOT re-derived from m_start.
 	//
 	// m_start is the tick wait() last EXITED at, so pacing from it makes every period independently

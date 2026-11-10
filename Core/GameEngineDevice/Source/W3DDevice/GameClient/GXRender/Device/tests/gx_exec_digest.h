@@ -1,4 +1,4 @@
-// GeneralsX @test D · rw3-X-2 13/10/2026 A23-B §7.1 EXEC digest sink, shared by gx_native_test and gx_proxy_test (moved from
+// GeneralsX: A23-B §7.1 EXEC digest sink, shared by gx_native_test and gx_proxy_test (moved from
 // gx_native_test.cpp unchanged). TEST-ONLY.
 #pragma once
 

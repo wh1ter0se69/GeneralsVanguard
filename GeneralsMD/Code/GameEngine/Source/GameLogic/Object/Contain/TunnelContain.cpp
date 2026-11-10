@@ -44,12 +44,12 @@
 #include "GameLogic/PartitionManager.h"
 #if defined(GX_TEST_INSTRUMENTS)
 #include "GameLogic/AIPlayer.h"	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: gxAirWatchRadius, for the transition log below
-// GeneralsX @test Claude 23/10/2026 ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ, Codex ke-prereg-r3 #6/#3/#5, r2 #7): EVERY move of a unit
+// GeneralsX: ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ, /#3/#5, r2 #7): EVERY move of a unit
 // into or out of an air-watching AI's tunnel network, whatever sent it (the guard's own pop, a team target, a tunnel goal, the AI's
 // Return), with the tunnel and the aircraft the network was last told about - the box readers time T's exits and returns from these.
 //   "[GXTAA] f=<frame> p=<player> ev=in|out unit=<id> tmpl=<template> tunnel=<id> nemesis=<stored id, 0 = none> x=<tunnel x> y=<y>"
 // Reads only (gxPeekNemesisID has no side effect, unlike getCurNemesis); nothing here is read by the simulation; release builds: none.
-static Int s_gxForcedOut = 0;	// GeneralsX 28/10/2026 T2 (Codex t2-readers-r15 #2): > 0 while occupants are FORCED out (harm, death, last tunnel)
+static Int s_gxForcedOut = 0;	// GeneralsX 28/10/2026 T2: > 0 while occupants are FORCED out (harm, death, last tunnel)
 struct GXForcedOutScope { GXForcedOutScope() { ++s_gxForcedOut; } ~GXForcedOutScope() { --s_gxForcedOut; } };
 #define GX_TAA_FORCED_OUT_SCOPE GXForcedOutScope gxForcedOutScope
 static void gxTaaTransition(const char *ev, const Object *tunnel, const Object *obj)
@@ -58,7 +58,7 @@ static void gxTaaTransition(const char *ev, const Object *tunnel, const Object *
 		return;	// t2-cheap: T2's diagnostics off (AIPlayer.h)
 	Player *p = (tunnel != nullptr) ? tunnel->getControllingPlayer() : nullptr;
 	AIPlayer *ai = (p != nullptr) ? p->getAIPlayer() : nullptr;
-	if (ai == nullptr || ai->gxAirWatchScanRadius() <= 0 || obj == nullptr)	// GeneralsX 27/10/2026 T2: T0 too (Codex t2-readers-r1 #19)
+	if (ai == nullptr || ai->gxAirWatchScanRadius() <= 0 || obj == nullptr)	// GeneralsX 27/10/2026 T2: T0 too
 		return;
 	const TunnelTracker *tt = p->getTunnelSystem();
 	const Coord3D *pos = tunnel->getPosition();
@@ -381,7 +381,7 @@ const ContainedItemsList* TunnelContain::getContainedItemsList() const
 	{
 		return owningPlayer->getTunnelSystem()->getContainedItemsList();
 	}
-	// GeneralsX @bugfix Claude 01/10/2026 No tunnel system means nothing inside: an empty list, as the getters above
+	// GeneralsX: No tunnel system means nothing inside: an empty list, as the getters above
 	// return 0. nullptr crashed every caller that dereferences the list unguarded (PartitionFilterStealthedAndUndetected,
 	// reached by the skirmish AI's hunt-with-command-button scan). The neutral player has no tunnel system, and
 	// Object::setTeam hands a dead player's new objects to neutral: killPlayer kills a pending Sneak Attack's start
@@ -626,7 +626,7 @@ UpdateSleepTime TunnelContain::update()
 					Object *attacker = TheGameLogic->findObjectByID(attackerID);
 					if( attacker )
 					{
-						// GeneralsX @bugfix Claude 01/10/2026 A neutral tunnel has no tunnel system (see getContainedItemsList).
+						// GeneralsX: A neutral tunnel has no tunnel system (see getContainedItemsList).
 						if (tunnelSystem && obj->getRelationship(attacker) == ENEMIES) {
 							tunnelSystem->updateNemesis(attacker);
 						}

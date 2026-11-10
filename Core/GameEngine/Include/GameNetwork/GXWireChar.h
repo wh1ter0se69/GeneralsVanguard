@@ -18,7 +18,7 @@
 
 #pragma once
 
-// GeneralsX @bugfix Claude 22/09/2026 THE WIDE CHARACTER IS 16 BITS ON THE WIRE AND IN THE .rep,
+// GeneralsX: THE WIDE CHARACTER IS 16 BITS ON THE WIRE AND IN THE .rep,
 // ON EVERY PLATFORM.
 //
 // `WideChar` is a bare `typedef wchar_t` (Lib/BaseType.h:36) with no platform guard, and wchar_t is
@@ -68,7 +68,7 @@ enum { GX_WIRECHAR_BYTES = sizeof(GXWireChar) };
 /// The mask keeps a SIGNED wchar_t (gcc on Linux makes it `int`) from sign-extending into the '?'
 /// branch through the widening cast; it is a no-op for every valid code point on 32-bit hosts.
 ///
-/// GeneralsX @bugfix Claude 23/09/2026 SURROGATE UNITS FOLD TOO, ON BOTH SIDES. A 16-bit host has no
+/// GeneralsX: SURROGATE UNITS FOLD TOO, ON BOTH SIDES. A 16-bit host has no
 /// out-of-BMP value to fold: a Windows edit box holds U+1F600 as the pair 0xD83D 0xDE00
 /// (IMEManager forwards WM_CHAR one UTF-16 unit at a time), and each unit is <= 0xFFFF, so the test
 /// above let both through. A 32-bit peer then rebuilt them as two standalone surrogate values -

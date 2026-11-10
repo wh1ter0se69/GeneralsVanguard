@@ -118,7 +118,7 @@ struct StaticGameLODInfo
 	Bool m_useBuildupScaffolds;		///<draw scaffold during structure building.
 	Bool m_useTreeSway;		///<sway trees to simulate wind.
 	Bool m_useEmissiveNightMaterials; ///<perform second lighting pass on night buildings.
-	// GeneralsX @bugfix Copilot 11/05/2026 Propagate heat effects through static LOD presets.
+	// GeneralsX: Propagate heat effects through static LOD presets.
 	Bool m_useHeatEffects;			///<draw heat distortion effects (i.e Microwave Tank).
 	Int m_textureReduction;	///<reduce texture resolution by dividing in half n times.
 	Bool m_useFpsLimit;	///<don't lock fps to 30hz
@@ -235,7 +235,7 @@ Bool GameLODManager::isParticleSkipped()
 	return (++m_numParticleGenerations & m_dynamicParticleSkipMask) != m_dynamicParticleSkipMask;
 }
 
-// GeneralsX @bugfix Claude 17/08/2026 The two dynamic-LOD fields the SIMULATION reads are pinned to
+// GeneralsX: The two dynamic-LOD fields the SIMULATION reads are pinned to
 // their neutral values whenever the simulation is shared, because the LOD level that selects them is
 // chosen per-machine and no join gate can ever make two peers agree on it. Same change as the Zero
 // Hour twin in GeneralsMD/Code/GameEngine/Include/Common/GameLOD.h; cites below are this tree's.

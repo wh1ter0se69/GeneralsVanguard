@@ -51,7 +51,7 @@ static UnicodeString getUnicodeSavePath( const AsciiString &filename )
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 25/09/2026 Which GeneralsX build wrote a save: a trailer after SG_EOF.
+// GeneralsX: Which GeneralsX build wrote a save: a trailer after SG_EOF.
 //
 // Layout, appended once the save is complete: identity bytes, u16 little-endian length, "GXBUILD1".
 // Identity is the full commit (GitSHA1), plus '~' for a build with uncommitted changes.
@@ -114,7 +114,7 @@ static AsciiString shortIdentity( const AsciiString &id )
 	return s;
 }
 
-// GeneralsX @bugfix Claude 06/10/2026 Returns whether the trailer is on disk: a save without one is now refused on load
+// GeneralsX: Returns whether the trailer is on disk: a save without one is now refused on load
 // (it reads as a retail save), so a failed append must not be reported as "saved".
 static Bool appendBuildTrailer( const AsciiString &filename )
 {
@@ -193,7 +193,7 @@ void presentLoadResult( SaveCode result, const AsciiString &filename )
 		fprintf( stderr, "[SAVELOAD] loaded '%s'\n", filename.str() );
 	else
 	{
-		// GeneralsX @bugfix Claude 25/09/2026 A failed load leaves GameLogic's loading flags set.
+		// GeneralsX: A failed load leaves GameLogic's loading flags set.
 		// GameStateMap::xfer sets m_loadingSave and startNewGame sets m_loadingMap, and only a load that
 		// SUCCEEDS clears them - so a throw anywhere after (a LAN/online save refused by the load screen,
 		// a newer GameStateMap version, a truncated map) left them TRUE for the rest of the process. The
@@ -223,7 +223,7 @@ void presentLoadResult( SaveCode result, const AsciiString &filename )
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 25/09/2026 Read what a save says about itself, before anything is torn down.
+// GeneralsX: Read what a save says about itself, before anything is torn down.
 //
 // One pass over the block list with plain stdio - never XferLoad, whose skip() seeks BACKWARDS on a
 // negative size - collecting what the gate below needs:
@@ -251,7 +251,7 @@ void presentLoadResult( SaveCode result, const AsciiString &filename )
 //         just read, it re-reads the same block for ever. Hang.
 // GameState.cpp, GameStateMap.cpp, GameInfo.cpp and Radar.cpp are simulation source, so reading the save
 // here rather than fixing the readers there keeps the SimID digest where it is.
-// ponytail: a layout change INSIDE a block (a field added without a version bump) can still fault in the
+// Trade-off: a layout change INSIDE a block (a field added without a version bump) can still fault in the
 // middle of the load - measured once, in Player::becomingTeamMember on a garbage battle-plan value. No
 // pre-read can see that short of the real parse; the "another build" warning is what covers it.
 // ------------------------------------------------------------------------------------------------
@@ -327,7 +327,7 @@ static Bool readInt( FILE *fp, Int *out )
 // path as loadMapINI (pristine map, the map cache's on-disk spelling, its folder). The file is READ, not
 // just probed: doesFileExist answered TRUE for a map.ini that Tournament Desert does not have (measured,
 // the archive side), so existence alone would have switched this check off for every map.
-// ponytail: "the INI mentions the name" rather than parsing its Object blocks - it can only err towards
+// Trade-off: "the INI mentions the name" rather than parsing its Object blocks - it can only err towards
 // letting a save through, and the digested build's radar fix covers what that lets through.
 static Bool mapIniMentions( const char *savedPristineMap, const char *templateName )
 {
@@ -552,7 +552,7 @@ static const char *leafName( const AsciiString &filename )
 	return leaf;
 }
 
-// GeneralsX @feature Claude 25/09/2026 "If a load WOULD crash, catch it, PREVENT the crash, say it would
+// GeneralsX: "If a load WOULD crash, catch it, PREVENT the crash, say it would
 // have crashed, and ask to send the crash log" (owner, decision #7). Nothing that would fault has run;
 // the crash log goes through the engine's own writer (GXCrashLog, wired by the ZH main loop) into
 // CrashLogs/, where the launcher's consent card offers to send it. The upload itself stays off until the
@@ -564,7 +564,7 @@ static void reportPreventedCrash( const AsciiString &filename, const char *cause
 	scanSave( filename, &scan );	// for the build that made it; cheap, and the file is still there
 	const AsciiString made = scan.hasIdentity ? shortIdentity( scan.identity ) : AsciiString( "unknown" );
 	const AsciiString mine = shortIdentity( thisBuildIdentity() );
-	// GeneralsX @security Claude 26/09/2026 (Codex P2) NO FILE NAME in the crash log. The player names the
+	// GeneralsX: NO FILE NAME in the crash log. The player names the
 	// save, and a name like "wh1ter0se-MacBook base" is personal data in a report that may be uploaded. The
 	// stderr line below keeps it: stderr stays on this machine. The ingest Worker and the launcher also
 	// strip it from logs written before this change.
@@ -704,7 +704,7 @@ Bool gateSaveLoad( const AsciiString &filename, GameWinMsgBoxFunc retry )
 		return FALSE;
 
 	const AsciiString mine = thisBuildIdentity();
-	// GeneralsX @bugfix Claude 06/10/2026 A save with no build trailer is a retail save or one from a very old
+	// GeneralsX: A save with no build trailer is a retail save or one from a very old
 	// GeneralsX. Measured on the published 0.9.58 (Mini) with two real retail Zero Hour saves: both are well-formed
 	// block by block but the loader reads another layout (RETAIL_COMPATIBLE_XFER_SAVE is 0), fails with an xfer READ
 	// error far past the end of the file, and -loadsave then closes the game. A Yes button there only closed the game
@@ -746,7 +746,7 @@ Bool gateSaveLoad( const AsciiString &filename, GameWinMsgBoxFunc retry )
 	return TRUE;
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 Do not write the save the gate would refuse: it would sit
+// GeneralsX: Do not write the save the gate would refuse: it would sit
 // in the list unloadable here, and a build without that check still crashes on it.
 Bool refuseNetworkMatchSave()
 {

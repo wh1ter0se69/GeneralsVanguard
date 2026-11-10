@@ -88,7 +88,7 @@ void Win32GameEngine::reset()
 void Win32GameEngine::update()
 {
 
-	// GeneralsX @bugfix Claude 23/09/2026 Pump the Windows message queue FIRST (PP-5). It used to
+	// GeneralsX: Pump the Windows message queue FIRST (PP-5). It used to
 	// run only at the END of update(), after GameEngine::update() had already drained the mouse
 	// and drawn - and execute() sleeps in FramePacer right after that. WM_MOUSEMOVE/button (and
 	// WM_CHAR) messages that arrived during that sleep therefore sat unpumped through the whole
@@ -105,7 +105,7 @@ void Win32GameEngine::update()
 		while (ApplicationHWnd && ::IsIconic(ApplicationHWnd)) {
 			// We are alt-tabbed out here.  Sleep a bit, & process windows
 			// so that we can become un-alt-tabbed out.
-			// GeneralsX @bugfix Claude 23/09/2026 Not in a network match (PP-4). There the loop
+			// GeneralsX: Not in a network match (PP-4). There the loop
 			// runs exactly once and breaks below to keep the logic going, so this Sleep(5) was
 			// paid on EVERY main-loop iteration of a minimised peer - logic frames included - and
 			// capped it at 1/(L+5 ms). Under lockstep that cap is charged to the whole lobby.
@@ -123,7 +123,7 @@ void Win32GameEngine::update()
 				TheLAN->update();
 			}
 
-			// GeneralsX @bugfix Claude 01/10/2026 Also keep running once a network session exists (TheNetwork): the start callback creates it BEFORE queueing MSG_NEW_GAME, and
+			// GeneralsX: Also keep running once a network session exists (TheNetwork): the start callback creates it BEFORE queueing MSG_NEW_GAME, and
 			// isInLanGame() only turns true after that message is dispatched by GameEngine::update(), so a minimised peer sat here and never started. The Sleep(5) predicate above
 			// stays identical. Idea from Generals Online a9861ab5c, reimplemented.
 			// If we are running a multiplayer game, keep running the logic.
@@ -134,7 +134,7 @@ void Win32GameEngine::update()
 			}
 		}
 
-		// GeneralsX @bugfix Claude 14/09/2026 ZH-to-Generals parity for the alt-tab audio wake,
+		// GeneralsX: ZH-to-Generals parity for the alt-tab audio wake,
 		// ported from TheSuperHackers PR #3046 (upstream 64dc9877f). GeneralsMD already carried
 		// this block; only this twin was missing it.
 		//
@@ -200,7 +200,7 @@ void Win32GameEngine::serviceWindowsOS()
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 27/09/2026 The refresh rate of the display the game window is on, or 0 when
+/** GeneralsX: The refresh rate of the display the game window is on, or 0 when
   * Windows cannot say. The max-FPS cap's default when the launcher sets none (Common/FpsLimitPolicy.h).
   * MonitorFromWindow picks the monitor holding most of the window; EnumDisplaySettingsW on that monitor's
   * device reads the mode it runs now. dmDisplayFrequency 0 and 1 both mean "the hardware default", i.e.

@@ -134,7 +134,7 @@ UpdateSleepTime BaseRegenerateUpdate::update()
 	else
 	{
 		// we don't really need to heal every frame. do it every 3 frames or so.
-		const Int HEAL_RATE = GX_FRAMES30(3);	// GeneralsX @fix Claude 23/09/2026 every 3 RETAIL frames; the amount below scales with it
+		const Int HEAL_RATE = GX_FRAMES30(3);	// GeneralsX: every 3 RETAIL frames; the amount below scales with it
 
 		// do some healing
 		Real amount = HEAL_RATE * (body->getMaxHealth() * TheGlobalData->m_baseRegenHealthPercentPerSecond) /

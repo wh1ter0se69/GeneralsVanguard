@@ -132,7 +132,7 @@ void W3DProjectileStreamDraw::doDrawModule(const Matrix3D* )
 	static NameKeyType key_ProjectileStreamUpdate = NAMEKEY("ProjectileStreamUpdate");
 	ProjectileStreamUpdate* update = (ProjectileStreamUpdate*)me->findUpdateModule(key_ProjectileStreamUpdate);
 
-	// GeneralsX @bugfix Claude 23/09/2026 A template with W3DProjectileStreamDraw but no ProjectileStreamUpdate
+	// GeneralsX: A template with W3DProjectileStreamDraw but no ProjectileStreamUpdate
 	// (custom map.ini data) dereferenced null below. Only this guard is taken from the upstream PR.
 	// Upstream reference: IamInnocent3X, PR #2051 https://github.com/TheSuperHackers/GeneralsGameCode/pull/2051
 	// Requires ProjectileStreamUpdate for getting Vector Points

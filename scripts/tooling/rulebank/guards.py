@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank, DATA half: the refusals (C·rb-data; gx-handoff ai/rulebank/PLAN_rulebank.md 1.3, 2.2.9).
+# GeneralsX: rule bank, DATA half: the refusals (C·rb-data; gx-handoff ai/rulebank/PLAN_rulebank.md 1.3, 2.2.9).
 # Run after EACH module on the scb it left behind, against the scb it was given; every refusal names the module, the script and why.
 #  scope       only the entry's generals' lists and the teams they own move; nothing outside the script lists and ScriptTeams
 #  difficulty  a changed stock script must be a Hard script (a 011 one is listed as normal_also); a new script is Hard-only; no stock
@@ -63,9 +63,9 @@ OTHER = {'SKIRMISH_PLAYER_FACTION': 'reads the RESOLVED side: it reveals an unsc
 PRIORITY_DEFINE = {'SET_ATTACK_PRIORITY_THING', 'SET_ATTACK_PRIORITY_KIND_OF', 'SET_DEFAULT_ATTACK_PRIORITY'}
 SWITCH = {'ENABLE_SCRIPT', 'DISABLE_SCRIPT'}       # the actions that change another script's (or group's) state for the whole list
 STATE_TYPES = ('FLAG', 'COUNTER', 'TEAM_STATE')   # flags, counters (timers share them) and team states carry decisions between scripts
-MONEY = {'PLAYER_GIVE_MONEY', 'PLAYER_SET_MONEY', 'WAREHOUSE_SET_VALUE'}      # Codex rbd-fw-r1b-lensB 9: every action that makes money
+MONEY = {'PLAYER_GIVE_MONEY', 'PLAYER_SET_MONEY', 'WAREHOUSE_SET_VALUE'}      # every action that makes money
 # The line between the two lists (README "What a DATA rule may KEEP"): an action whose OWN code picks a specific object or place by
-# enemy value or by proximity among objects a human may not see is HIDDEN - never ADDED by a DATA rule (Codex rbd-fw-r1b-lensB 1,
+# enemy value or by proximity among objects a human may not see is HIDDEN - never ADDED by a DATA rule (1,
 # rbd-r3-lensB 3); an order to my own units or buildings whose engine side (unit AI, placement) is fog-blind is ENGINE_READS - the stock
 # AI's own omniscience (AIUpdate adds UNFOGGED only for humans, plan 4.3), allowed and listed for rb-sentient's audit.
 HIDDEN = {'SKIRMISH_ATTACK_NEAREST_GROUP_WITH_VALUE': 'targets the most valuable enemy group through fog',
@@ -82,7 +82,7 @@ HIDDEN = {'SKIRMISH_ATTACK_NEAREST_GROUP_WITH_VALUE': 'targets the most valuable
 ENGINE_READS = {'AI_PLAYER_BUILD_SUPPLY_CENTER': 'AIPlayer::findSupplyCenter rejects piles near enemy structures (no fog filter)',
                 'TEAM_HUNT': 'hunts map-wide (the unit AI ignores fog)', 'TEAM_HUNT_WITH_COMMAND_BUTTON': 'hunts map-wide (the unit AI ignores fog)',
                 'AI_PLAYER_BUILD_TYPE_NEAREST_TEAM': 'places by my team\'s position (placement checks are fog-blind)'}
-# The ACTION allow-list (Codex rbd-r4-lensB 3: a deny-list of fog-reading actions never closes): an added action is one of these, each
+# The ACTION allow-list (a deny-list of fog-reading actions never closes): an added action is one of these, each
 # an order to my own units, buildings, scripts, state or a NEW priority table, its engine side read for hidden-state use. Script
 # targets (ENABLE / DISABLE / CALL / sequential) are checked by the reference rule; ENGINE_READS entries are listed in the manifest.
 ACTIONS_OK = {'NO_OP': 'nothing', 'SET_FLAG': 'my own new flag', 'SET_COUNTER': 'my own new counter',
@@ -97,12 +97,12 @@ ACTIONS_OK = {'NO_OP': 'nothing', 'SET_FLAG': 'my own new flag', 'SET_COUNTER': 
               'TEAM_USE_COMMANDBUTTON_ABILITY': 'my team presses a button that takes no target'}
 ACTIONS_OK.update(ENGINE_READS)
 # actions that write GLOBAL, unqualified state other personalities and stock tables read (setPriorityThing expands a list name first,
-# ScriptEngine.cpp:5966; enemy-count gates use the lists) - never added (Codex rbd-r3-lensB 2)
+# ScriptEngine.cpp:5966; enemy-count gates use the lists) - never added
 GLOBAL_WRITE = {'OBJECTLIST_ADDOBJECTTYPE', 'OBJECTLIST_REMOVEOBJECTTYPE'}
-RESERVED = ('GX Rule ', 'GX Clock', 'GXT.')                  # names only the compiler writes (Codex rbd-fw-r1b-lensB 13)
+RESERVED = ('GX Rule ', 'GX Clock', 'GXT.')                  # names only the compiler writes
 QUALIFIED = ('COUNTER', 'FLAG', 'SCRIPT', 'SCRIPT_SUBROUTINE', 'TEAM')   # Parameter::qualify appends the start index to these
 TEAM_SCRIPT_FIELDS = lambda k: k == 'teamProductionCondition' or (k.startswith('team') and 'Script' in k)
-# team hooks that fire on enemies: Team.cpp:1879's search checks relationship, life and map status, not stealth detection (Codex r2b 5)
+# team hooks that fire on enemies: Team.cpp:1879's search checks relationship, life and map status, not stealth detection
 ENEMY_EVENT_FIELDS = {'teamEnemySightedScript': 'enemy-sighted', 'teamAllClearScript': 'all-clear'}
 MY_AREAS = ('[Skirmish]MyInnerPerimeter', '[Skirmish]MyOuterPerimeter')      # Scripts.h:63-64, qualified to MY start index
 ENEMY_AREAS = ('[Skirmish]EnemyInnerPerimeter', '[Skirmish]EnemyOuterPerimeter')   # the CURRENT enemy's start (ScriptEngine.cpp:6008)
@@ -127,7 +127,7 @@ class Index:
                 if k.name == 'ScriptGroup':
                     gn = rb.node_name(k)
                     gocc[gn] += 1
-                    gk = gkey(gn, gocc[gn] - 1)          # a second group of one name is its own parent (Codex rbd-fw-r1-lensA 8)
+                    gk = gkey(gn, gocc[gn] - 1)          # a second group of one name is its own parent
                     s.groups[(o, gn, gocc[gn] - 1)] = k
                     top.append(('G', gn, gocc[gn] - 1))
                     inner = []
@@ -289,7 +289,7 @@ def gift_reach(rb, scb, owner):
                 if hit:
                     reach[n] = 'names %r' % hit[0]
                     grew = True
-        for g, members in groups.items():                 # a group holding a gift script is a gift (Codex rbd-r2-lensB 2)
+        for g, members in groups.items():                 # a group holding a gift script is a gift
             hit = sorted(m for m in members if m in reach)
             if g not in reach and hit:
                 reach[g] = 'the group holds %r' % hit[0]
@@ -424,8 +424,8 @@ def state_taint(rb, scb, owner):
     for n, _o, _r, w, _x in info:
         for v in w:
             writers[v].add(n)
-    # a team's production condition gates its creation, so every other script the team names runs behind that gate (Codex r1b 10);
-    # an enemy-sighted / all-clear hook runs on an enemy event itself (Codex rbd-r2-lensB 5)
+    # a team's production condition gates its creation, so every other script the team names runs behind that gate;
+    # an enemy-sighted / all-clear hook runs on an enemy event itself
     links, taint, bad_scripts = [], {}, {}
     for d in rb.teams_ro(scb):
         if rb.team_get(d, 'teamOwner') == owner:
@@ -441,7 +441,7 @@ def state_taint(rb, scb, owner):
     grew = True
     while grew:
         grew = False
-        for g, members in groups.items():                 # a tainted group name runs every member (Codex rbd-r2-lensB 6)
+        for g, members in groups.items():                 # a tainted group name runs every member
             if g in bad_scripts:
                 for m in members:
                     if m not in bad_scripts:
@@ -469,7 +469,7 @@ def state_taint(rb, scb, owner):
                     if x not in bad_scripts:
                         bad_scripts[x] = '%r is run by %s' % (x, bad_scripts[n])
                         grew = True
-    return taint, writers, bad_scripts       # bad_scripts: every script whose RUNNING an enemy read can trigger (Codex rbd-r14-lensB 1)
+    return taint, writers, bad_scripts       # bad_scripts: every script whose RUNNING an enemy read can trigger
 
 
 def enemy_blocks(rb, scb, script, taint):
@@ -509,7 +509,7 @@ def tech_near_ok(rb, A, scb, key, script, leaf):
     elif gfl != (1, 0):
         late = 'its group %r is %s' % (rb.node_name(grp), 'inactive' if not gfl[0] else 'a subroutine')
     else:
-        mine = {n} | ({rb.node_name(grp)} if grp is not None else set())        # its group too (Codex rbd-r4-lensB 4)
+        mine = {n} | ({rb.node_name(grp)} if grp is not None else set())        # its group too
         users = sorted(rb.node_name(x) for _gg, _k, x in rb.scripts_of(scb, o) if x is not script and mine & refs_of(rb, scb, x))
         users += sorted(d['teamName'] for d in A.team_list if rb.team_get(d, 'teamOwner') == o
                         and any(TEAM_SCRIPT_FIELDS(k) and v in mine for k, _t, v in d['_e']))
@@ -535,12 +535,12 @@ def check_module(rb, before, after, entry, mod, base_ctx):
             raise bad('changed the %s chunk, outside the script lists and teams' % na.name)
     if len(before.root) != len(after.root):
         raise bad('added or removed a top-level chunk, outside the script lists and teams')
-    # the name table only grows: an existing entry renamed would change what Hard's stock bytes mean (Codex rbd-fw-r1b-lensB 3)
+    # the name table only grows: an existing entry renamed would change what Hard's stock bytes mean
     if after.toc[:len(before.toc)] != before.toc:
         raise bad('rewrites an existing entry of the name table - existing names are immutable, new ones are appended')
     old_n, old_i = {n for n, _i in before.toc}, {i for _n, i in before.toc}
     new_t = after.toc[len(before.toc):]
-    for n_, i_ in new_t:                                # team keys and call names are name-table entries (Codex rbd-r4 A1/A2, B1)
+    for n_, i_ in new_t:                                # team keys and call names are name-table entries (A1/A2, B1)
         if '\x00' in n_:
             raise bad('appends the name-table entry %r: a NUL inside a name - the engine compares it as the C string %r'
                       % (n_, n_.split('\x00')[0]))
@@ -551,13 +551,13 @@ def check_module(rb, before, after, entry, mod, base_ctx):
     if len(la) != len(lb):
         raise bad('changes the number of ScriptLists (%d -> %d) - a rule edits the generals\' lists, it never adds one' % (len(lb), len(la)))
     for i, o in enumerate(base_ctx['owners']):
-        if (lb[i].name, lb[i].ver) != (la[i].name, la[i].ver):     # the engine reads only ScriptList chunks (Codex rbd-r3-lensA 2)
+        if (lb[i].name, lb[i].ver) != (la[i].name, la[i].ver):     # the engine reads only ScriptList chunks
             raise bad('changes the chunk of the %r ScriptList (%s v%s -> %s v%s)' % (o, lb[i].name, lb[i].ver, la[i].name, la[i].ver))
         if o not in owners and rb.canon(before, lb[i]) != rb.canon(after, la[i]):
             raise bad('changed the %r list, outside the script lists of the generals' % o)
 
     # every chunk sits where the shipped file puts its kind: the engine's readers register only those (a group nested in a group is
-    # skipped whole, Scripts.cpp:906) - and Index sees only them (Codex rbd-r11-lensA)
+    # skipped whole, Scripts.cpp:906) - and Index sees only them
     for i, o in enumerate(base_ctx['owners']):
         if o in owners:
             for x in walk(la[i]):
@@ -695,7 +695,7 @@ def check_module(rb, before, after, entry, mod, base_ctx):
             raise bad('%s/%r names %r, which reaches PLAYER_GIVE_MONEY: Hard\'s cash gifts stay frozen' % (o, n, named[0]))
 
     # shared priority tables: a stock script that defines one is frozen like a gift and never newly named - its conditions and timing
-    # decide when a GLOBAL table exists, for every personality that applies it (Codex rbd-r2-lensB 3)
+    # decide when a GLOBAL table exists, for every personality that applies it
     defs = base_ctx['definers']
     switched = []                                     # (owner, name, by): every script / group an added ENABLE / DISABLE switches
     new_refs = []                                     # (owner, via, name, by): every script / group a new or changed leaf newly names
@@ -713,7 +713,7 @@ def check_module(rb, before, after, entry, mod, base_ctx):
             if c[3] in SWITCH:
                 switched += [(o, p[3], '%s/%r' % (o, n)) for p in c[5] if len(p) > 3 and rb.mss.PTYPES[p[0]] in ('SCRIPT', 'SCRIPT_SUBROUTINE')]
 
-    # a changed stock script that writes enemy-derived state (or _ESCALATION) is not edited at all - its timing is the leak (Codex r1b 2);
+    # a changed stock script that writes enemy-derived state (or _ESCALATION) is not edited at all - its timing is the leak;
     # one gated by another player's state gains no new effect: no added action, no header change
     for key, sb, sa in changed:
         o, g, n, occ = key
@@ -738,7 +738,7 @@ def check_module(rb, before, after, entry, mod, base_ctx):
         elif n in invoked0:
             # run behind an enemy gate (a team hook behind a tainted production condition, a call from a gated script) though its own
             # conditions read none: no new action and no new timing; an existing action's parameter may change only to point a team at
-            # this rule's own NEW table (Codex rbd-r14-lensB 1)
+            # this rule's own NEW table
             ma = leaf_multiset(rb, after, sa, ('ScriptAction', 'ScriptActionFalse'))
             mb = leaf_multiset(rb, before, sb, ('ScriptAction', 'ScriptActionFalse'))
             kinds = lambda m: collections.Counter(c[3] for c in m.elements())
@@ -753,7 +753,7 @@ def check_module(rb, before, after, entry, mod, base_ctx):
                 raise bad('%s/%r is run behind an enemy-gated trigger (%s): it gains no new action and no new timing - only a team may'
                           ' be pointed at the rule\'s own new table' % (o, n, invoked0[n]))
 
-    for (o, g, n, occ), sb, sa in changed:              # what a frozen gift or table definer waits on (Codex rbd-r7-lensB 1)
+    for (o, g, n, occ), sb, sa in changed:              # what a frozen gift or table definer waits on
         if n in base_ctx['frozen_inputs'][o]:
             raise bad('%s/%r %s: frozen like the gifts it feeds' % (o, n, base_ctx['frozen_inputs'][o][n]))
 
@@ -766,7 +766,7 @@ def check_module(rb, before, after, entry, mod, base_ctx):
                 replaced.setdefault((rb.team_get(A.teams[tn], 'teamOwner'), nv), set()).add(ov)
 
     # every node of a changed or added script / group carries a version the shipped file uses for that chunk (the engine's reader
-    # picks the payload layout by it: a version-3 Condition is read without its name key, Scripts.cpp:1692; Codex rbd-r5-lensA 1)
+    # picks the payload layout by it: a version-3 Condition is read without its name key, Scripts.cpp:1692)
     for node in [s for _k, _b, s in changed] + [s for _k, s in added] + [A.groups[k] for k in gadded]:
         for x in walk(node):
             if x.ver not in base_ctx['vers'].get(x.name, ()):
@@ -848,7 +848,7 @@ def check_module(rb, before, after, entry, mod, base_ctx):
                     if name in ENGINE_READS:
                         hidden_reads.append([o, n, name, ENGINE_READS[name]])
                     tgt = [v for t, v in ps if (t == 'TRIGGER_AREA' and v in ENEMY_AREAS) or t == 'SKIRMISH_WAYPOINT_PATH']
-                    if tgt:                             # a target, not a read (plan 1.3: NO_ENEMY_OBJECTS) - listed (Codex rbd-r5-lensB 2)
+                    if tgt:                             # a target, not a read (plan 1.3: NO_ENEMY_OBJECTS) - listed
                         hidden_reads.append([o, n, name, 'targets the current enemy\'s start (%s): public in 1v1 and with chosen'
                                              ' starts, unscouted with random starts on larger maps' % tgt[0]])
                 typ, _key, raw = rb.mss.parse_call(after, l.raw)
@@ -872,7 +872,7 @@ def check_module(rb, before, after, entry, mod, base_ctx):
                         raise bad('%s/%r: %s numeric parameter %s carries the string %r (cached)' % (o, n, name, t, p[3]))
 
     # reads of stock state: tainted ones only as the stock gate itself, copied - in a changed script whose actions and timing are
-    # unchanged, or in a new team production condition that keeps the stock one's leaves and actions (Codex r1b 8: no waivers)
+    # unchanged, or in a new team production condition that keeps the stock one's leaves and actions (no waivers)
     for o, names in audits.items():
         taint, writers, _inv = state_taint(rb, after, o)
         for v, uses in list(names.items()):
@@ -885,7 +885,7 @@ def check_module(rb, before, after, entry, mod, base_ctx):
                     same = leaf_multiset(rb, after, sa, ('ScriptAction', 'ScriptActionFalse')) == leaf_multiset(rb, before, sb, ('ScriptAction', 'ScriptActionFalse'))
                     ok = same and cl in {rb.canon(before, x) for x in leaf_list(rb, before, sb)}
                 else:
-                    oks = []                            # a copy must keep EVERY condition it stands in for (Codex rbd-r5-lensB 1)
+                    oks = []                            # a copy must keep EVERY condition it stands in for
                     for stock in replaced.get((o, n), ()):
                         hits = [x for _g, _k, x in rb.scripts_of(before, o) if rb.node_name(x) == stock]
                         s0 = hits[0] if len(hits) == 1 else None
@@ -903,10 +903,10 @@ def check_module(rb, before, after, entry, mod, base_ctx):
             base_ctx['reads'].append((o, v, entry['id'], v in taint))
 
     # references: a new reference (leaf or team field) reaches only clean stock logic, a group of none of the frozen kind, or this
-    # compile's own scripts - a new trigger of stock logic that reads another player adds an enemy input (Codex rbd-r4-lensB 2, 3, 5)
+    # compile's own scripts - a new trigger of stock logic that reads another player adds an enemy input
     er, dg = base_ctx['run_reach'], base_ctx['definer_groups']
     for o, via, x, by, tn in [r + (None,) for r in new_refs] + team_refs:
-        if x.startswith(RESERVED):                    # the clock and the ENGINE lines are generated after every module (Codex rbd-r13-lensB)
+        if x.startswith(RESERVED):                    # the clock and the ENGINE lines are generated after every module
             raise bad('%s names %s/%r through %s: %s names are reserved for what the compiler generates (the clock, ENGINE enable'
                       ' lines, tier marks) - a rule never switches, calls or hooks them' % (by, o, x, via, RESERVED))
         if x in dg.get(o, {}):
@@ -920,7 +920,7 @@ def check_module(rb, before, after, entry, mod, base_ctx):
                 raise bad('%s names %s/%r through %s: it %s - frozen like the gifts it feeds (no switch, call or hook may move it)'
                           % (by, o, x, via, base_ctx['frozen_inputs'][o][x]))
             # a stock script a rule switches, calls, runs as sequential orders or hooks is that rule's too: two rules driving one
-            # stock script are an overlap (a sequential run ignores the script's active bit, Codex rbd-r14-lensB 2)
+            # stock script are an overlap (a sequential run ignores the script's active bit)
             claimed = {tuple(c) for c in base_ctx['claims'][rid]['scripts'] + base_ctx['claims'][rid]['groups']}
             if (o, x) not in claimed:
                 raise bad('%s names the stock %s/%r through %s, which its CLAIMS do not name' % (by, o, x, via))
@@ -942,11 +942,11 @@ def check_module(rb, before, after, entry, mod, base_ctx):
         if n not in ct:
             raise bad('touched team %r, which its CLAIMS do not name' % n)
     # a script or group a new ENABLE / DISABLE switches is this module's too: two modules switching one script are an overlap
-    # (Codex rbd-r2-lensB 10)
+    #
     for o, x, by in switched:
         if (o, x) not in cs and (o, x) not in cg:
             raise bad('%s switches %s/%r (ENABLE_SCRIPT / DISABLE_SCRIPT), which its CLAIMS do not name' % (by, o, x))
-    # a new set this module defines (or defines further) is its claim, whoever defined it first (Codex r1b 11)
+    # a new set this module defines (or defines further) is its claim, whoever defined it first
     mine = set()
     for key, sb, sa in [(k, b, a) for k, b, a in changed] + [(k, None, s) for k, s in added]:
         mb = leaf_multiset(rb, before, sb, ('ScriptAction', 'ScriptActionFalse')) if sb is not None else collections.Counter()
@@ -968,7 +968,7 @@ def priority_definitions(rb, scb, base_sets):
                 if nm in PRIORITY_DEFINE:
                     for t, v in ps:
                         if t == 'ATTACK_PRIORITY_SET' and v not in base_sets:
-                            # with its whole defining script: WHEN a global table is set is part of it (Codex rbd-r3-lensB 6)
+                            # with its whole defining script: WHEN a global table is set is part of it
                             where[v].setdefault(o, []).append((nm, tuple(ps), rb.canon(scb, s)))
     return where
 
@@ -1127,7 +1127,7 @@ def matchup_module(rb, before, after, entry, key, ctx):
     latch = {'%s %s' % (rb.MU_GROUP, f) for f in rb.SENSE_BASE}
     allf = rb.MU_FLAGS + (rb.MU_DECIDED,)
     # every rule, keyed or not: a NEW reference (a leaf's SCRIPT parameter, a team's script field) names stock logic or this rule's own
-    # claims - never a script or group another rule added (Codex rbd13-r1 P1: a GLA rule's team hooking a USA rule's ungated subroutine
+    # claims - never a script or group another rule added (a GLA rule's team hooking a USA rule's ungated subroutine
     # runs it outside its key, and turning the USA rule off would leave the hook dangling)
     mine = {tuple(x) for x in ctx['claims'][rid]['scripts'] + ctx['claims'][rid]['groups']}
     stock = lambda o, x: x in ctx['list_names'][o]
@@ -1173,7 +1173,7 @@ def matchup_module(rb, before, after, entry, key, ctx):
                     raise bad('changes the script %s/%r - a MATCHUP rule changes stock only through a team\'s off gate, and runs its own'
                               ' scripts behind its key' % (o, n))
                 continue
-            if any(l.name == 'ScriptActionFalse' for l in rb.leaves(x)):      # Codex rbd13-r1 P1
+            if any(l.name == 'ScriptActionFalse' for l in rb.leaves(x)):
                 raise bad('%s/%r holds a false action: it runs exactly when the conditions fail, so behind gxrb_mu_%s ON it runs when the'
                           ' key is OFF' % (o, n, key.lower()))
             if rb.mss.script_flags(x)[0][5] and (o, n) in hooked:
@@ -1300,7 +1300,7 @@ def team_hooks(rb, before, after, entry, Refused):
             v = rb.team_get(d, k)
             if not v:
                 return False
-            if old is None or rb.team_get(old, 'teamOwner') != o or rb.team_get(old, k) != v:      # any move, from a non-general too (Codex rbd19-r2): a name reads against its owner's list
+            if old is None or rb.team_get(old, 'teamOwner') != o or rb.team_get(old, k) != v:      # any move, from a non-general too: a name reads against its owner's list
                 return True
             return closure(before, rb.team_get(old, 'teamOwner'), v) != closure(after, o, v)
         for k in ('teamOnDestroyedScript', 'teamOnIdleScript', 'teamOnUnitDestroyedScript'):      # teamEnemySightedScript and teamAllClearScript: check_module
@@ -1312,7 +1312,7 @@ def team_hooks(rb, before, after, entry, Refused):
         launches = [scripts[rb.team_get(d, k)] for k in GENERIC if rb.team_get(d, k) in scripts]
         for u, _lo, hi in rb.team_slots(d):
             if (hi or 0) > 0 and str(u).endswith(NO_GROUND_WEAPON):
-                for k in ['teamOnCreateScript'] + GENERIC:       # the slots or the hook may be what changed (Codex rbd19 r1)
+                for k in ['teamOnCreateScript'] + GENERIC:       # the slots or the hook may be what changed (rbd19 r1)
                     v = rb.team_get(d, k)
                     if v in scripts and hunt in hook_shape(rb, after, scripts[v])[3] and (old is None or rb.team_slots(old) != rb.team_slots(d) or fresh(k)):
                         raise Refused('%s: team %r launches by TEAM_HUNT with %s in it: an empty one has no ground weapon and stays home. Stock runs its Buses down an attack path (rb-data-19, smoke17: 5 of 131 left home)' % (entry['id'], n, u))
@@ -1365,7 +1365,7 @@ def matchup_final(rb, base, scb, entries, keys, claims, Refused):
                 ps = rb.decode(scb, l)[1]
                 if l.name != 'Condition' and any(t == 'FLAG' and v in allf for t, v in ps) and rb.node_name(x) not in latch:
                     raise Refused('%s/%r writes a matchup flag - only the shared latch does' % (o, rb.node_name(x)))
-                # Codex rbd13-r1 P1: an ENABLE / CALL / sequential run of a latch script skips its one-shot and `decided` guard
+                # an ENABLE / CALL / sequential run of a latch script skips its one-shot and `decided` guard
                 hit = [v for t, v in ps if t in ('SCRIPT', 'SCRIPT_SUBROUTINE') and v and shared(v)]
                 if hit:
                     raise Refused('%s/%r names the shared latch / off gate %r - nothing may switch, call or run it' % (o, rb.node_name(x), hit[0]))
@@ -1452,8 +1452,8 @@ def keep_blocks(rb, base, scb, o, n, tn, s0, keeps, ks, entries, keys, claims, R
             if nm == 'PLAYER_HAS_OBJECT_COMPARISON' and ps[:1] == [('SIDE', rb.SIDE_ME)]:
                 continue
             raise Refused('%s/%r: a keep block of %s reads %r - only the rule\'s own flags and own object counts' % (o, n, rid, (nm, ps)))
-    # Codex rbd17-r1 P1: a keep block and a variant of the same stock team (any rule's team the build table records as its copy: its name and
-    # place say nothing, Codex r3, r4) are never producible together - else both waves build. Proven per pair of OR blocks by one leaf of each
+    # a keep block and a variant of the same stock team (any rule's team the build table records as its copy: its name and
+    # place say nothing) are never producible together - else both waves build. Proven per pair of OR blocks by one leaf of each
     # that cannot both hold (excludes()). A variant with no gate script has no OR block: the engine never produces it (Team.cpp:1155)
     for d in rb.teams_ro(scb):
         v = d['teamName']
@@ -1480,7 +1480,7 @@ def excludes(rb, a, b):
     latch sets one at most), or two own-object comparisons of one type with disjoint counts"""
     (na, pa), (nb, pb) = a, b
     if na == nb == 'FLAG' and len(pa) == len(pb) == 2 and pa[0][0] == pb[0][0] == 'FLAG' and pa[1][0] == pb[1][0] == 'BOOLEAN':
-        on = lambda p: p[1][1] != 0                     # ScriptEngine::evaluateFlag reads value != 0: BOOLEAN 2 is ON (Codex rbd17-r2 P1)
+        on = lambda p: p[1][1] != 0                     # ScriptEngine::evaluateFlag reads value != 0: BOOLEAN 2 is ON
         if pa[0] == pb[0]:
             return on(pa) != on(pb)
         mu = {rb.mu_flag(k) for k in rb.SENSE_BASE}
@@ -1561,7 +1561,7 @@ def whole_file(rb, scb, base_ctx):
     check_names(rb, [scb], base_ctx, 'this compile')
     shared_tables(rb, scb, base_ctx)
     # copied stock gates, on the finished file: a team naming one as its production condition is a stock team whose OWN old condition
-    # the copy keeps, and nothing else names it - an earlier module's forward reference included (Codex rbd-r8-lensB 1)
+    # the copy keeps, and nothing else names it - an earlier module's forward reference included
     if base_ctx['copies']:
         bteams = {d['teamName']: d for d in rb.teams_ro(base_ctx['base_scb'])}
         for d in rb.teams_ro(scb):
@@ -1579,7 +1579,7 @@ def whole_file(rb, scb, base_ctx):
                     raise Refused('%s/%r names %r, a copied stock enemy gate - it may only stand in for its team\'s own production'
                                   ' condition' % (o, rb.node_name(s), hit[0]))
     # the cached tech-building test, wherever a module changed its script or newly named it - a later module can postpone a leaf an
-    # earlier one left alone (Codex rbd-r3-lensB 4)
+    # earlier one left alone
     for o in rb.GENERALS:
         idx = None
         for _g, _k, s in rb.scripts_of(scb, o):

@@ -156,7 +156,7 @@ void W3DShellMenuSchemeDraw( GameWindow *window, WinInstanceData *instData )
 	if(TheShell && TheShell->isShellActive())
 		TheShell->getShellMenuSchemeManager()->draw();
 
-	// GeneralsX @bugfix BenderAI 31/03/2026 Draw watermark through active shell callback without replacing root menu draw.
+	// GeneralsX: Draw watermark through active shell callback without replacing root menu draw.
 	W3DGeneralsXCreditDraw(window, instData);
 }
 
@@ -289,7 +289,7 @@ void W3DMainMenuFourDraw( GameWindow *window, WinInstanceData *instData )
 
 	//TheDisplay->drawLine();
 
-	// GeneralsX @bugfix BenderAI 31/03/2026 Draw credits in both menu variants.
+	// GeneralsX: Draw credits in both menu variants.
 	W3DGeneralsXCreditDraw(window, instData);
 
 }
@@ -405,14 +405,14 @@ void W3DClockDraw( GameWindow *window, WinInstanceData *instData )
 	dString->setClipRegion(&clockClipRegion);
 	dString->draw( textPos.x, textPos.y, GameMakeColor(255,255,255,255), GameMakeColor(0,0,0,255) );
 
-	// GeneralsX @bugfix BenderAI 31/03/2026 Draw credit from clock callback to match a proven always-visible main-menu draw path.
+	// GeneralsX: Draw credit from clock callback to match a proven always-visible main-menu draw path.
 	W3DGeneralsXCreditDraw(window, instData);
 
 }
 
 void W3DGeneralsXCreditDraw( GameWindow *window, WinInstanceData *instData )
 {
-	// GeneralsX @bugfix BenderAI 31/03/2026 Reuse callback instance text display string to avoid static managed DisplayString lifetime leaks.
+	// GeneralsX: Reuse callback instance text display string to avoid static managed DisplayString lifetime leaks.
 	if (!instData)
 		return;
 
@@ -441,7 +441,7 @@ void W3DGeneralsXCreditDraw( GameWindow *window, WinInstanceData *instData )
 	clipRegion.hi.x = displayWidth - 1;
 	clipRegion.hi.y = displayHeight - 1;
 
-	// GeneralsX @bugfix BenderAI 31/03/2026 Use display coordinates to avoid clipping in narrow callback windows.
+	// GeneralsX: Use display coordinates to avoid clipping in narrow callback windows.
 	// bottom-left with small margin
 	const Int MARGIN = 4;
 	textPos.x = MARGIN;

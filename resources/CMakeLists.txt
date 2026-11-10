@@ -2,7 +2,7 @@
 set(GIT_PRE_CONFIGURE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/gitinfo/gitinfo.cpp.in")
 set(GIT_POST_CONFIGURE_FILE "${CMAKE_CURRENT_BINARY_DIR}/gitinfo.cpp")
 
-# GeneralsX @feature Claude 27/07/2026 Create simsourcedigest.cpp for the join-time
+# GeneralsX: Create simsourcedigest.cpp for the join-time
 # SimID compatibility check. Reuses the gitinfo directory so no new include path or
 # link edge is needed - it is already PUBLIC on resources, which corei_always links.
 set(SIMDIGEST_PRE_CONFIGURE_FILE "${CMAKE_CURRENT_SOURCE_DIR}/gitinfo/simsourcedigest.cpp.in")
@@ -25,7 +25,7 @@ target_include_directories(resources PUBLIC
     gitinfo
 )
 
-# GeneralsX @feature Claude 27/07/2026 Unlike check_git, make the ordering edge
+# GeneralsX: Unlike check_git, make the ordering edge
 # explicit: the generated .cpp must exist before resources compiles, and BYPRODUCTS
 # alone does not create that edge under Ninja.
 add_dependencies(resources check_sim_source_digest)

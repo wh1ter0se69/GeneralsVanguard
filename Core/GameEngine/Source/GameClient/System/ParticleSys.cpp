@@ -46,7 +46,7 @@
 #include "GameClient/ParticleSys.h"
 #include "GameClient/Smudge.h"
 #include "GameClient/GXNoShroud.h"
-#include "GameClient/GXRenderSplit.h"	// GeneralsX @feature Claude 08/10/2026 render-split step 6
+#include "GameClient/GXRenderSplit.h"	// GeneralsX: render-split step 6
 
 #include "GameLogic/GameLogic.h"
 #include "GameLogic/Object.h"
@@ -223,7 +223,7 @@ static Real angleBetween(const Coord2D *vecA, const Coord2D *vecB);
 // Particle ///////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-// GeneralsX @bugfix Claude 23/09/2026 Logic frames per particle update. ParticleSystemManager::update
+// GeneralsX: Logic frames per particle update. ParticleSystemManager::update
 // steps particles on the legacy 30 Hz cadence, and INI key frames count those updates, but a key is
 // scheduled against TheGameClient->getFrame(), a LOGIC frame. At 60 Hz keys fired after half their
 // authored updates: fades snapped half-done and the last alpha key killed smoke at half its life.
@@ -235,7 +235,7 @@ static const UnsignedInt LOGIC_FRAMES_PER_PARTICLE_UPDATE = (UnsignedInt)(LOGICF
 // ------------------------------------------------------------------------------------------------
 void Particle::computeAlphaRate()
 {
-	// GeneralsX @bugfix Claude 23/09/2026 Past the last key (index MAX_KEYFRAMES, reached when Alpha8 has a frame)
+	// GeneralsX: Past the last key (index MAX_KEYFRAMES, reached when Alpha8 has a frame)
 	// there is no target; reading m_alphaKey[MAX_KEYFRAMES] ran off the array into m_colorKey[0].
 	if (m_alphaTargetKey >= MAX_KEYFRAMES || m_alphaKey[ m_alphaTargetKey ].frame == 0)
 	{
@@ -254,7 +254,7 @@ void Particle::computeAlphaRate()
 // ------------------------------------------------------------------------------------------------
 void Particle::computeColorRate()
 {
-	// GeneralsX @bugfix Claude 23/09/2026 Past the last key (index MAX_KEYFRAMES, reached when Color8 has a frame)
+	// GeneralsX: Past the last key (index MAX_KEYFRAMES, reached when Color8 has a frame)
 	// there is no target; reading m_colorKey[MAX_KEYFRAMES] ran off the array into m_colorScale.
 	if (m_colorTargetKey >= MAX_KEYFRAMES || m_colorKey[ m_colorTargetKey ].frame == 0)
 	{
@@ -341,7 +341,7 @@ Particle::Particle( ParticleSystem *system, const ParticleInfo *info )
 	m_inSystemList = m_inOverallList = FALSE;
 	m_systemPrev = m_systemNext = m_overallPrev = m_overallNext = nullptr;
 
-	// GeneralsX @bugfix Claude 29/10/2026 Start with no system under control (the pointer was never set here). Ports upstream
+	// GeneralsX: Start with no system under control (the pointer was never set here). Ports upstream
 	// PR #3579 (68d1668ab).
 	m_xferSystemUnderControl = false;
 	m_xferSystemUnderControlID = INVALID_PARTICLE_SYSTEM_ID;
@@ -365,7 +365,7 @@ Particle::~Particle()
 	m_system->removeParticle( this );
 
 	// if this particle was controlling another particle system, destroy that system
-	// GeneralsX @bugfix Claude 29/10/2026 Not while the union still holds a loaded ID (upstream PR #3579, 68d1668ab).
+	// GeneralsX: Not while the union still holds a loaded ID (upstream PR #3579, 68d1668ab).
 	if (!m_xferSystemUnderControl && m_systemUnderControl)
 	{
 		m_systemUnderControl->detachControlParticle( this );
@@ -502,7 +502,7 @@ Bool Particle::update()
 	else if (m_color.red > 1.0f)
 		m_color.red = 1.0f;
 
-	// GeneralsX @bugfix Claude 23/09/2026 The green lower clamp tested m_color.red. Upstream fixed it in Particle::draw();
+	// GeneralsX: The green lower clamp tested m_color.red. Upstream fixed it in Particle::draw();
 	// this fork has not taken that split, so the same block is still in Particle::update().
 	// Upstream reference: xezon, PR #2709
 	// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2709
@@ -526,7 +526,7 @@ Bool Particle::update()
 	if (m_lifetimeLeft && --m_lifetimeLeft == 0)
 		return false;
 
-	// GeneralsX @bugfix Claude 23/09/2026 Retire an immortal particle that can never be seen.
+	// GeneralsX: Retire an immortal particle that can never be seen.
 	// Lifetime 0 never counts down, and a zero-size, non-growing particle draws nothing, so once it
 	// no longer anchors a controlled system it only occupies the particle cap. Retail
 	// FireBaseHowitzerPillarArms (Lifetime 0, Size 0, SizeRate 0, ADDITIVE, Color1 R:3 = never below
@@ -646,7 +646,7 @@ Bool Particle::isInvisible()
 			// if color is black, this particle is invisible
 
 			// check that we're not in the process of going to another color
-			// GeneralsX @bugfix Claude 23/09/2026 Bound the key index (see computeColorRate).
+			// GeneralsX: Bound the key index (see computeColorRate).
 			// Upstream reference: xezon, PR #2709 https://github.com/TheSuperHackers/GeneralsGameCode/pull/2709
 			if (m_colorTargetKey >= MAX_KEYFRAMES || m_colorKey[ m_colorTargetKey ].frame == 0)
 			{
@@ -669,7 +669,7 @@ Bool Particle::isInvisible()
 			// if color is white, this particle is invisible
 
 			// check that we're not in the process of going to another color
-			// GeneralsX @bugfix Claude 23/09/2026 Bound the key index (see computeColorRate).
+			// GeneralsX: Bound the key index (see computeColorRate).
 			// Upstream reference: xezon, PR #2709 https://github.com/TheSuperHackers/GeneralsGameCode/pull/2709
 			if (m_colorTargetKey >= MAX_KEYFRAMES || m_colorKey[ m_colorTargetKey ].frame == 0)
 			{
@@ -745,7 +745,7 @@ void Particle::xfer( Xfer *xfer )
 	xfer->xferDrawableID( &drawableID );	//saving for backwards compatibility when we supported drawables.
 
 	// system under control as an id
-	// GeneralsX @bugfix Claude 29/10/2026 A load used to read the ID into a local and drop it, so loadPostProcess looked up
+	// GeneralsX: A load used to read the ID into a local and drop it, so loadPostProcess looked up
 	// whatever the union held. Now the loaded ID is kept (tagged) for loadPostProcess, and a save writes the ID only of a
 	// system that is itself saved (alive and saveable), so the load can find it. Same bytes on disk: one ParticleSystemID.
 	// Ports upstream PR #3579 (68d1668ab).
@@ -779,7 +779,7 @@ void Particle::loadPostProcess()
 	ParticleInfo::loadPostProcess();
 
 	// use the ID to set the m_systemUnderControl pointer
-	// GeneralsX @bugfix Claude 29/10/2026 A system that is not found no longer dereferences null (or throws SC_INVALID_DATA,
+	// GeneralsX: A system that is not found no longer dereferences null (or throws SC_INVALID_DATA,
 	// which failed the whole load): the particle simply controls nothing. Ports upstream PR #3579 (68d1668ab).
 	if( m_xferSystemUnderControlID != INVALID_PARTICLE_SYSTEM_ID )
 	{
@@ -1304,7 +1304,7 @@ ParticleSystem::ParticleSystem( const ParticleSystemTemplate *sysTemplate,
 
 	if ( m_systemID != INVALID_PARTICLE_SYSTEM_ID )
 	{
-		// GeneralsX @feature Claude 08/10/2026 render-split step 6: created inside the tick window, the system is built here
+		// GeneralsX: render-split step 6: created inside the tick window, the system is built here
 		// as before - its ID, its client-random draws, its slave, the pointer the caller configures - but the draw sees it
 		// only when the window's replay publishes it, in creation order (a slave is staged before its master, as it was
 		// listed before it).
@@ -1365,7 +1365,7 @@ ParticleSystem::~ParticleSystem()
 
 	if ( m_systemID != INVALID_PARTICLE_SYSTEM_ID )
 	{
-		// GeneralsX @feature Claude 08/10/2026 render-split step 6: a staged system (only a reset deletes one) was never listed.
+		// GeneralsX: render-split step 6: a staged system (only a reset deletes one) was never listed.
 		if ( m_inManagerList || !TheParticleSystemManager->gxUnstage(this) )
 			TheParticleSystemManager->friend_removeParticleSystem(this);
 	}
@@ -1374,7 +1374,7 @@ ParticleSystem::~ParticleSystem()
 
 // ------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/10/2026 render-split step 6 (DESIGN.md 2.3, GXRenderSplit.h). Each operation below is written
+// GeneralsX: render-split step 6 (DESIGN.md 2.3, GXRenderSplit.h). Each operation below is written
 // as an `apply` that does what the method always did, then `if (!gxDefer(apply)) apply(this);`. Inside the tick window a
 // PUBLISHED system - one the draw walks - gets the operation queued by ID, its arguments copied at the call, and replayed in
 // call order when the window closes. Anything else applies at once: outside the window, GX_RSPLIT=0, or a system still
@@ -1481,7 +1481,7 @@ void ParticleSystem::stop()
 // ------------------------------------------------------------------------------------------------
 void ParticleSystem::destroy()
 {
-	// GeneralsX @bugfix Claude 12/08/2026 Make destroy() idempotent and null the slave after destroying it,
+	// GeneralsX: Make destroy() idempotent and null the slave after destroying it,
 	// exactly as our ~ParticleSystem() already does -- this closes a use-after-free where the two disagreed.
 	// Sequence: master->destroy() marks both master and slave destroyed; ParticleSystemManager::update()
 	// reaps the slave first (m_isDestroyed && no particles -> deleteInstance) and frees it; master->m_slaveSystem
@@ -1517,7 +1517,7 @@ void ParticleSystem::destroy()
 // ------------------------------------------------------------------------------------------------
 void ParticleSystem::getPosition( Coord3D *pos )
 {
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6 (probe only): a simulation-side read that a position change
+	// GeneralsX: render-split step 6 (probe only): a simulation-side read that a position change
 	// queued in this same window has not reached yet would differ from the direct path; counted in [GXRSPART] stale=
 	// (expected 0, see gxDefer).
 	GXRenderSplit &split = GXRenderSplit::get();
@@ -2040,7 +2040,7 @@ Particle *ParticleSystem::createParticle( const ParticleInfo *info,
 		// ALWAYS_RENDER particles are exempt from all count limits, and are always created, regardless of LOD issues.
 		if (priority != ALWAYS_RENDER)
 		{
-			// GeneralsX @feature Claude 17/10/2026 S14 look governor (GameClient/GXLookGovernor.h): a share of the player's own limit while it steps particles down;
+			// GeneralsX: S14 look governor (GameClient/GXLookGovernor.h): a share of the player's own limit while it steps particles down;
 			// the player's 0 (no particles) is honoured below unchanged.
 			int numInExcess = TheParticleSystemManager->getParticleCount() - (UnsignedInt)gxGovParticleLimit(TheGlobalData->m_maxParticleCount);
 			if ( numInExcess > 0)
@@ -2182,7 +2182,7 @@ const ParticleInfo *ParticleSystem::generateParticleInfo( Int particleNum, Int p
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 23/09/2026 m_delayLeft and m_systemLifetimeLeft count down once per
+// GeneralsX: m_delayLeft and m_systemLifetimeLeft count down once per
 // particle update (30 Hz legacy cadence), but callers pass LOGIC frames: FXList InitialDelay via
 // ConvertDurationFromMsecsToFrames, EMPUpdate / SpecialAbilityUpdate parseDurationUnsignedInt
 // durations. At 60 Hz every FX delay and those system lifetimes ran twice as long in wall time.
@@ -2214,7 +2214,7 @@ void ParticleSystem::setSystemLifetime( UnsignedInt logicFrames )
 		apply( this );
 }
 
-// GeneralsX @feature Claude 08/10/2026 render-split step 6: out of line since step 6 (ParticleSys.h), deferred like the rest.
+// GeneralsX: render-split step 6: out of line since step 6 (ParticleSys.h), deferred like the rest.
 void ParticleSystem::setEmissionVolumeSphereRadius( Real newRadius )
 {
 	auto apply = [newRadius]( ParticleSystem *sys )
@@ -2239,9 +2239,9 @@ void ParticleSystem::setEmissionVolumeCylinderRadius( Real newRadius )
 		apply( this );
 }
 
-// GeneralsX @feature Claude 29/09/2026 Render interpolation (Drawable::getDrawnBase): a system attached to a drawable or
+// GeneralsX: Render interpolation (Drawable::getDrawnBase): a system attached to a drawable or
 // to its object - tread debris, exhaust, smoke - emits from the body as it is drawn this frame, not from its logic pose
-// up to a tick ahead of it (Codex interp-r9 P2). Unchanged when the drawable draws its logic pose.
+// up to a tick ahead of it. Unchanged when the drawable draws its logic pose.
 static void gxFollowDrawnPose(const Drawable* draw, Matrix3D& drawn, const Matrix3D*& xfrm, Coord3D& pos)
 {
 	if (draw->getDrawnBase(drawn))
@@ -2313,7 +2313,7 @@ Bool ParticleSystem::update( Int localPlayerIndex  )
 
 		if (objectAttachedTo)
 		{
-			// GeneralsX @probe Claude 23/09/2026 -noshroud / GX_NOSHROUD: emit everywhere on this client. The
+			// GeneralsX: -noshroud / GX_NOSHROUD: emit everywhere on this client. The
 			// query still runs (it recomputes a lazy sim cache logic reads); only its result is dropped.
 			if (!isShrouded)
 				isShrouded = (objectAttachedTo->getShroudedStatus(localPlayerIndex) >= OBJECTSHROUD_FOGGED)
@@ -2660,7 +2660,7 @@ void ParticleSystem::addParticle( Particle *particleToAdd )
 	if (!m_systemParticlesHead)
 	{
 		m_systemParticlesHead = particleToAdd;
-		// GeneralsX @performance Claude 29/09/2026 First particle: this system may be missing from the draw list.
+		// GeneralsX: First particle: this system may be missing from the draw list.
 		TheParticleSystemManager->markRenderableSystemsDirty();
 	}
 
@@ -3355,7 +3355,7 @@ void ParticleSystemManager::init()
 // ------------------------------------------------------------------------------------------------
 void ParticleSystemManager::reset()
 {
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6: always direct, even inside the tick window - a game can end
+	// GeneralsX: render-split step 6: always direct, even inside the tick window - a game can end
 	// and reset inside a tick (InGameUI::reset), and a lifecycle call runs at once (DESIGN.md 2.1). Operations still queued
 	// for the systems deleted here are dropped at the replay (the epoch), and staged systems go with the listed ones.
 	++m_gxEpoch;
@@ -3400,7 +3400,7 @@ void ParticleSystemManager::reset()
 //DECLARE_PERF_TIMER(ParticleSystemManager)
 void ParticleSystemManager::update()
 {
-	// GeneralsX @bugfix Claude 06/08/2026 Advance particles on the LEGACY 30 Hz cadence, not on the
+	// GeneralsX: Advance particles on the LEGACY 30 Hz cadence, not on the
 	// simulation tick rate. At 60 Hz every particle effect ran at DOUBLE SPEED - reported from live
 	// play as smoke, nuclear radiation and exhaust visibly 2x.
 	//
@@ -3456,7 +3456,7 @@ void ParticleSystemManager::update()
 	}
 
 	// GeneralsX @bugfix fbraz 04/05/2026 Skip smudge rendering path in headless replay simulation.
-	const Bool drawSmudge = !TheGlobalData->m_headless && TheSmudgeManager && TheSmudgeManager->getHardwareSupport() && gxGovHeatEffects(TheGlobalData->m_useHeatEffects);	// GeneralsX @feature Claude 17/10/2026 S14 look governor (GameClient/GXLookGovernor.h): heat step
+	const Bool drawSmudge = !TheGlobalData->m_headless && TheSmudgeManager && TheSmudgeManager->getHardwareSupport() && gxGovHeatEffects(TheGlobalData->m_useHeatEffects);	// GeneralsX: S14 look governor (GameClient/GXLookGovernor.h): heat step
 
 	if (drawSmudge)
 	{
@@ -3550,7 +3550,7 @@ ParticleSystem *ParticleSystemManager::findParticleSystem( ParticleSystemID id )
 		return it->second;
 	}
 
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6: created in this tick window and not published yet - the
+	// GeneralsX: render-split step 6: created in this tick window and not published yet - the
 	// caller that stored its ID may look it up in the same tick (a handful per tick: a linear walk).
 	if (!m_gxStaged.empty())
 	{
@@ -3588,15 +3588,15 @@ ParticleSystemTemplate *ParticleSystemManager::findTemplate( const AsciiString &
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/10/2026 Undo exactly what a map.ini did to the templates. Called by GameEngine::resetSubsystems after
-// resetAll(), not from reset(): the particle editor and DO_UNIT_TIMINGS call reset() inside a match to drop live systems (Codex
-// mapini-rollback-adv-r1 P3). INI::parseParticleSystemDefinition parses a map.ini block INTO an existing template (only the fields
+// GeneralsX: Undo exactly what a map.ini did to the templates. Called by GameEngine::resetSubsystems after
+// resetAll(), not from reset(): the particle editor and DO_UNIT_TIMINGS call reset() inside a match to drop live systems.
+// INI::parseParticleSystemDefinition parses a map.ini block INTO an existing template (only the fields
 // it names) and nothing put it back, so a map's particle edits outlived it in every later game of the process. The pristine values
 // go back INTO the live template (every pointer to it stays valid), and the templates a map invented leave the map - unlinked, not
 // freed: raw holders outside the store can keep a template pointer (WaveGuideUpdate's function statics, a cached slave), as
 // UpgradeCenter::reset's retired templates. Every cached slave pointer is dropped, so a template whose slave name found a map's
 // invention this match resolves it again by name, as in a fresh process.
-// ponytail: retired templates are freed only in the destructor - a few per custom map, per process.
+// Trade-off: retired templates are freed only in the destructor - a few per custom map, per process.
 void ParticleSystemManager::undoOverrideLoads()
 {
 	if (m_overrideBackups.empty() && m_overrideAdded.empty())
@@ -3692,7 +3692,7 @@ void ParticleSystemManager::destroyAttachedSystems( Object *obj )
 	if( obj == nullptr )
 		return;
 
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6: inside the tick window, the systems still private to the
+	// GeneralsX: render-split step 6: inside the tick window, the systems still private to the
 	// caller (staged) are matched and destroyed now; the walk over the published ones is queued and replays in order, so it
 	// sees every attach queued before it and none queued after. A system the same replay published was staged at the call
 	// and handled here, so the replayed walk skips it.
@@ -3808,7 +3808,7 @@ void ParticleSystemManager::removeParticle( Particle *particleToRemove)
 void ParticleSystemManager::friend_addParticleSystem( ParticleSystem *particleSystemToAdd )
 {
 	DEBUG_ASSERTCRASH(particleSystemToAdd != nullptr, ("ParticleSystemManager::friend_addParticleSystem: ParticleSystem is null"));
-	// GeneralsX @performance Claude 23/09/2026 Remember the node for O(1) removal (std::list iterators are stable).
+	// GeneralsX: Remember the node for O(1) removal (std::list iterators are stable).
 	particleSystemToAdd->m_managerListIt = m_allParticleSystemList.insert(m_allParticleSystemList.end(), particleSystemToAdd);
 	particleSystemToAdd->m_inManagerList = TRUE;
 	m_systemMap[particleSystemToAdd->getSystemID()] = particleSystemToAdd;
@@ -3822,7 +3822,7 @@ void ParticleSystemManager::friend_addParticleSystem( ParticleSystem *particleSy
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 08/10/2026 render-split step 6: a system created inside the tick window waits here and is
+/** GeneralsX: render-split step 6: a system created inside the tick window waits here and is
 		published by the window's replay, in creation order. */
 // ------------------------------------------------------------------------------------------------
 void ParticleSystemManager::gxStage( ParticleSystem *sys )
@@ -3861,7 +3861,7 @@ Bool ParticleSystemManager::gxUnstage( ParticleSystem *sys )
 // ------------------------------------------------------------------------------------------------
 void ParticleSystemManager::friend_removeParticleSystem( ParticleSystem *particleSystemToRemove )
 {
-	// GeneralsX @performance Claude 23/09/2026 Erase through the stored node instead of a linear std::find.
+	// GeneralsX: Erase through the stored node instead of a linear std::find.
 	// ParticleSystemManager::update has already advanced its iterator past the system being deleted.
 	if (particleSystemToRemove->m_inManagerList) {
 		m_systemMap.erase(particleSystemToRemove->getSystemID());
@@ -3900,7 +3900,7 @@ const std::vector<ParticleSystem *> &ParticleSystemManager::getRenderableSystems
 Int ParticleSystemManager::removeOldestParticles( UnsignedInt count,
 																									ParticlePriorityType priorityCap )
 {
-	// GeneralsX @bugfix Claude 23/09/2026 Count real removals. `while (count--)` left the unsigned count
+	// GeneralsX: Count real removals. `while (count--)` left the unsigned count
 	// at 0xFFFFFFFF, so `countToRemove - count` returned count+1 and createParticle refused every
 	// particle that needed an eviction (half of all requests at the cap), after evicting anyway. It
 	// also kept looping when nothing below priorityCap was left; now it stops.
@@ -3955,7 +3955,7 @@ void ParticleSystemManager::crc( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void ParticleSystemManager::xfer( Xfer *xfer )
 {
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6: every save and load route is GUI code outside the tick window,
+	// GeneralsX: render-split step 6: every save and load route is GUI code outside the tick window,
 	// so no system can be staged here (a staged one would be missing from the save).
 	DEBUG_ASSERTCRASH(m_gxStaged.empty(), ("ParticleSystemManager::xfer: %zu particle systems still staged", m_gxStaged.size()));
 

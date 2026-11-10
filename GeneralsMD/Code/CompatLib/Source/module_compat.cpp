@@ -5,7 +5,7 @@
 #include <dlfcn.h>
 #include <string.h>
 
-// GeneralsX @feature BenderAI 24/02/2026 Phase 5 macOS executable path detection
+// GeneralsX: Phase 5 macOS executable path detection
 #ifdef __APPLE__
 #include <mach-o/dyld.h>
 #endif
@@ -51,7 +51,7 @@ bool GetModuleFileName(HINSTANCE hInstance, char* buffer, int size)
 
 HMODULE LoadLibrary(const char* lpFileName)
 {
-  // GeneralsX @feature BenderAI 24/02/2026 Phase 5 - Platform-agnostic library loading without C++17
+  // GeneralsX: Phase 5 - Platform-agnostic library loading without C++17
   // Check if filename ends with ".dll" and remove extension if so
   const char* ext = strrchr(lpFileName, '.');
   if (ext && strcmp(ext, ".dll") == 0) {

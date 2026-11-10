@@ -156,7 +156,7 @@ void RadarObject::xfer( Xfer *xfer )
 		{
 
 			DEBUG_CRASH(( "RadarObject::xfer - Unable to find object for radar data" ));
-			// GeneralsX @bugfix Claude 25/09/2026 Noted HERE, not for every throw out of this entry: this one
+			// GeneralsX: Noted HERE, not for every throw out of this entry: this one
 			// was the SIGSEGV that xferRadarObjectList now prevents; a short or bad read is a plain "cannot load".
 			notePreventedLoadCrash( "the radar names an object the save does not hold (an object template this build does not have?)" );
 			throw SC_INVALID_DATA;
@@ -1328,7 +1328,7 @@ static void xferRadarObjectList( Xfer *xfer, RadarObject **head )
 			// alloate a new radar object
 			radarObject = newInstance(RadarObject);
 
-			// GeneralsX @bugfix Claude 25/09/2026 Load it BEFORE linking it. RadarObject::xfer throws when the
+			// GeneralsX: Load it BEFORE linking it. RadarObject::xfer throws when the
 			// object it names is not in the save - measured with a save whose object template this build does
 			// not have: GameLogic::xfer skips those objects. Linked first, the entry stayed in the list with a
 			// null object, and the teardown after the caught throw (clearGameData -> GameEngine::reset ->
@@ -1449,11 +1449,11 @@ void Radar::xfer( Xfer *xfer )
 
 	}
 
-	// GeneralsX @bugfix Claude 06/10/2026 Both index m_event[MAX_RADAR_EVENTS]: the next radar event writes
+	// GeneralsX: Both index m_event[MAX_RADAR_EVENTS]: the next radar event writes
 	// m_event[m_nextFreeRadarEvent] and the "jump to last event" key reads m_event[m_lastRadarEvent] (only -1 is tested).
 	// Read into locals and keep them only once both are inside the table, so a refusal - or a read that fails half way -
 	// leaves the cursors as they were: the refused load still runs game code before its reset (a death on the failure
-	// path creates a radar event) (sweep c048-01, Codex r1, r2). Saving writes the same two values as before.
+	// path creates a radar event) (sweep c048-01). Saving writes the same two values as before.
 	Int nextFreeRadarEvent = m_nextFreeRadarEvent;
 	Int lastRadarEvent = m_lastRadarEvent;
 

@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 11/08/2026 The gx right-click payload, shared by every surface that
+// GeneralsX: The gx right-click payload, shared by every surface that
 // opens the buddy RC menus: the overlay's own lists (WOLBuddyOverlay.cpp) and the lobby roster
 // (WOLLobbyMenu.cpp). One shared handler reads whatever payload the menu carries, so the two
 // types must be tellable apart BEFORE any downcast:

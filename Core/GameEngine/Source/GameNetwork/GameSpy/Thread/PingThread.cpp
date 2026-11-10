@@ -490,7 +490,7 @@ Int PingThreadClass::doPing(UnsignedInt IP, Int timeout)
     */
    lpfnIcmpCreateFile = (void * (__stdcall *)())GetProcAddress( (HINSTANCE)hICMP_DLL, "IcmpCreateFile");
    lpfnIcmpCloseHandle = (int (__stdcall *)(void *))GetProcAddress( (HINSTANCE)hICMP_DLL, "IcmpCloseHandle");
-   // GeneralsX @bugfix BenderAI 13/02/2026 Use DWORD instead of unsigned long for cross-platform compatibility
+   // GeneralsX: Use DWORD instead of unsigned long for cross-platform compatibility
    lpfnIcmpSendEcho = (DWORD (__stdcall *)(HANDLE, DWORD, LPVOID, WORD, LPVOID, LPVOID, DWORD, DWORD))GetProcAddress( (HINSTANCE)hICMP_DLL, "IcmpSendEcho" );
 
    if ((!lpfnIcmpCreateFile) ||

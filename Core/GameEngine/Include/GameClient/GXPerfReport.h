@@ -18,7 +18,7 @@
 
 // FILE: GXPerfReport.h //////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 20/09/2026 Per-peer lag telemetry, once a second, on a socket of its own.
+// GeneralsX: Per-peer lag telemetry, once a second, on a socket of its own.
 //
 // THE DEFECT THIS EXISTS TO FIX (inventory Gap 1). The engine already computes, per peer, the four
 // numbers that answer "why is this match lagging": achieved logic rate, render rate, main-loop
@@ -266,7 +266,7 @@ inline void gxPerfCloseWindow( long long now, long long intervalNs,
 }
 
 /*
- * THE LOAD IS NOT A HITCH. GeneralsX @bugfix Claude 23/09/2026
+ * THE LOAD IS NOT A HITCH. GeneralsX:
  *
  * Should gxPerfSample (re)start its window here instead of charging the iteration that just ended?
  * `primed` is false before the first sample of a match. `frameAtIterStart` is the logic frame the
@@ -288,7 +288,7 @@ inline bool gxPerfRestartWindow( bool primed, unsigned int frameAtIterStart )
 }
 
 /*
- * MAX FPS, HONESTLY. GeneralsX @bugfix Claude 24/09/2026
+ * MAX FPS, HONESTLY. GeneralsX:
  *
  * The most frames COUNTED inside one whole wall-clock second (floor(steady ns / 1e9)). Two readers:
  * the HUD's bracket (the best of the last GX_FPS_PEAK_SECONDS completed seconds) and GXPERF's `fx`
@@ -361,7 +361,7 @@ inline int gxFpsPeakTake( GXFpsPeak &p )
 /*
  * MONOTONIC NANOSECONDS, ONE DEFINITION FOR BOTH PROBES.
  *
- * GeneralsX @refactor Claude 21/09/2026 the native clock branch leaves GameClient code.
+ * GeneralsX: the native clock branch leaves GameClient code.
  *
  * This was a hand-rolled `#ifdef _WIN32` QueryPerformanceCounter / POSIX clock_gettime pair,
  * written out TWICE - in GXPerfReport.cpp and again in gxPaceSample (GameClient.cpp) - which is
@@ -635,12 +635,12 @@ void gxPerfSample( void );
 /// Ticked by gxPerfSample on every iteration, match or not.
 int gxPerfPeakFps( void );
 
-/// GeneralsX @feature Claude 22/09/2026 One GXSTAT datagram a second: every player's money, income,
+/// GeneralsX: One GXSTAT datagram a second: every player's money, income,
 /// counters, colour and state, for the console's live match view. Called from GameClient::update()
 /// beside gxPerfSample, and a NO-OP unless GX_MATCH_STATS=1 and this peer is in a relay match.
 void gxStatSample( void );
 
-/// GeneralsX @feature Claude 22/09/2026 One GXEND datagram: the winner and each player's seven
+/// GeneralsX: One GXEND datagram: the winner and each player's seven
 /// end-of-match counters - then, since 27/09/2026, one GXSEAT: who sat where (GXStatFactionWire.h). Call it
 /// while the match is STILL ASSEMBLED - before TheGameEngine->reset() empties ThePlayerList. ON BY DEFAULT
 /// (owner, 27/09/2026); GX_MATCH_STATS=0 turns it off. Sends nothing unless a relay match actually ran and the
@@ -648,7 +648,7 @@ void gxStatSample( void );
 void gxStatMatchEnd( void );
 
 class Player;
-/// GeneralsX @feature Claude 27/09/2026 (wh1ter0se: "Quitter = loser = left record") `player` took himself out while ALIVE -
+/// GeneralsX: `player` took himself out while ALIVE -
 /// the self-destruct order every quit path sends, executed at the same frame on every peer (GameLogic::onSelfDestruct,
 /// through GXKick.cpp gxKickShowLine). Before the end frame that is a quit: gxStatMatchEnd reports him LEFT. Display-side
 /// bookkeeping only; it writes one flag and reads the end frame.

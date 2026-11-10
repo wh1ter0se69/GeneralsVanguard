@@ -182,7 +182,7 @@ Bool W3DBridge::cullBridge(CameraClass * camera)
 #define BRIDGE_FLOAT_AMT (0.25f)
 // GX-SIMID-END
 
-// GeneralsX @feature Claude 20/09/2026 load()'s own stated fallbacks, hoisted so init() can use
+// GeneralsX: load()'s own stated fallbacks, hoisted so init() can use
 // them. They are the numbers the "should these be defaults in INI??? CBD" comment in load() refers
 // to; a bridge whose model never arrives now describes itself with these instead of with whatever
 // the previous occupant of its array slot left behind.
@@ -203,7 +203,7 @@ void W3DBridge::init(Vector3 fromLoc, Vector3 toLoc, AsciiString bridgeTemplateN
 	m_templateName = bridgeTemplateName;
 	m_enabled = true;
 
-	// GeneralsX @bugfix Claude 20/09/2026 A SLOT MUST DESCRIBE ITSELF BEFORE load() RUNS.
+	// GeneralsX: A SLOT MUST DESCRIBE ITSELF BEFORE load() RUNS.
 	//
 	// addBridge now hands this bridge to the LOGIC whether or not load() finds a W3D model, so
 	// getBridgeInfo() can be asked about a slot whose meshes never arrived. Besides m_start/m_end
@@ -563,7 +563,7 @@ void W3DBridge::getIndicesNVertices(UnsignedShort *destination_ib, VertexFormatX
 	m_firstIndex = *curIndexP;
 	m_numVertex = 0;
 	m_numPolygons = 0;
-	// GeneralsX @bugfix Claude 25/09/2026 A bridge with no model draws nothing, and says nothing.
+	// GeneralsX: A bridge with no model draws nothing, and says nothing.
 	//
 	// addBridge keeps a slot for a bridge whose model did not load (its logic object must exist on
 	// every peer), and load() leaves all three meshes null whenever the left one is missing. Past
@@ -879,7 +879,7 @@ void W3DBridgeBuffer::loadBridges(W3DTerrainLogic *pTerrainLogic, Bool saveGame)
 			}
 			if (pMapObj2==nullptr) break;
 			if (!pMapObj2->getFlag(FLAG_BRIDGE_POINT2)) continue;
-			// GeneralsX @note Claude 20/09/2026 THIS Z IS MAP DATA, DESPITE THE OBJECT IT HANGS OFF.
+			// GeneralsX @note /09/2026 THIS Z IS MAP DATA, DESPITE THE OBJECT IT HANGS OFF.
 			//
 			// Flagged when the bridge desync was fixed: a simulation value read through
 			// TheTerrainRenderObject looks exactly like the model-derived footprint that caused
@@ -1148,7 +1148,7 @@ void W3DBridgeBuffer::worldBuilderUpdateBridgeTowers( W3DAssetManager *assetMana
 
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 Is this a live game with somebody else in it? Counted as
+// GeneralsX: Is this a live game with somebody else in it? Counted as
 // GameLogic::gxCheatsAllowed counts humans - observers included, the engine's ReplayObserver not -
 // from the player list, which is already this map's: GameLogic::startNewGame runs
 // ThePlayerList->newGame() before TerrainLogic::newMap loads the bridges. TheNetwork is null in
@@ -1156,7 +1156,7 @@ void W3DBridgeBuffer::worldBuilderUpdateBridgeTowers( W3DAssetManager *assetMana
 // GX-SIMID-BEGIN the simulation reads this - resources/gitinfo/simsourcedigest_watcher.cmake
 static Bool liveGameWithAnotherHuman()
 {
-	// GeneralsX @bugfix Claude 25/09/2026 (observer seats, Codex batch-r8) ASKED OF gxCheatsAllowed ITSELF, not counted
+	// GeneralsX: ASKED OF gxCheatsAllowed ITSELF, not counted
 	// again here: an observer slot shares the ReplayObserver and has no Player of its own, so a copy of the old count
 	// read one player watched by an observer as one human, and let that peer build fallback bridge geometry.
 	return TheNetwork != nullptr && ThePlayerList != nullptr && !GameLogic::gxCheatsAllowed();
@@ -1179,9 +1179,9 @@ void W3DBridgeBuffer::addBridge(Vector3 fromLoc, Vector3 toLoc, AsciiString name
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 25/09/2026 A BRIDGE POINT PAIR NAMING NO BRIDGE IS STILL IGNORED.
+	// GeneralsX: A BRIDGE POINT PAIR NAMING NO BRIDGE IS STILL IGNORED.
 	//
-	// Found by Codex review (r4): the decouple below first applied to this case too, so a map whose
+	// Found by review (r4): the decouple below first applied to this case too, so a map whose
 	// bridge points name a template TerrainRoads does not define gained an invisible GenericBridge
 	// and a pathfind layer made of fallback geometry, where the game has always ignored the pair.
 	// Every peer with the same INI answers this the same way, so it needs no decoupling - only a
@@ -1197,7 +1197,7 @@ void W3DBridgeBuffer::addBridge(Vector3 fromLoc, Vector3 toLoc, AsciiString name
 
 	m_bridges[m_numBridges].init(fromLoc, toLoc, name);
 
-	// GeneralsX @bugfix Claude 20/09/2026 A SIMULATION OBJECT MUST NOT EXIST ONLY WHEN ITS ART DOES.
+	// GeneralsX: A SIMULATION OBJECT MUST NOT EXIST ONLY WHEN ITS ART DOES.
 	//
 	// This used to read `if (load(BODY_PRISTINE)) { ... addBridgeToLogic ...; m_numBridges++; }`,
 	// so on a peer whose install cannot supply the bridge model the map's GenericBridge objects
@@ -1211,11 +1211,11 @@ void W3DBridgeBuffer::addBridge(Vector3 fromLoc, Vector3 toLoc, AsciiString name
 	// renderBridge skips a bridge with none, so an artless bridge still simply is not drawn. It does
 	// now consume an m_bridges slot, which is what keeps info.bridgeIndex pointing at its own slot.
 	if (!m_bridges[m_numBridges].load(BODY_PRISTINE)) {
-		// GeneralsX @bugfix Claude 25/09/2026 THE LAST LINE, where the map's own bridges are built.
+		// GeneralsX: THE LAST LINE, where the map's own bridges are built.
 		//
 		// TerrainVisual::isEveryBridgeModelAvailable refuses network play up front, but it can only
 		// see the bridges TheTerrainRoads held when it was asked - before this map's map.ini, which
-		// may define bridges of its own (Codex review, r4). An artless bridge's footprint comes from
+		// may define bridges of its own. An artless bridge's footprint comes from
 		// fallback numbers, not the model everybody else loaded, so in a live game with another
 		// human the choice is between stopping here, loudly, and a desync nobody can explain. Solo
 		// play keeps the fallback: nobody disagrees with it. The [ASSET_ROOT] WARNING line is what

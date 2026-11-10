@@ -411,7 +411,7 @@ void RailedTransportDockUpdate::doPushOutDocking()
 				Drawable *draw = us->getDrawable();
 				if( unloaderAI && draw )
 				{
-					// GeneralsX @bugfix Claude 25/07/2026 getPristineBonePositions() leaves the output
+					// GeneralsX: getPristineBonePositions() leaves the output
 					// untouched and returns 0 when the bone prefix is not found in the model, and the
 					// return value was being discarded here. On a railed transport model without a
 					// DOCKWAITING07 bone, 'finalPos' stayed uninitialized stack memory, was run through

@@ -117,7 +117,7 @@ Bool W3DTerrainLogic::loadMap( AsciiString filename , Bool query )
 
 	WorldHeightMap *terrainHeightMap;				///< holds raw heightmap data samples
 
-	// GeneralsX @bugfix Claude 19/08/2026 THIS is the open that decides whether a map loads at all.
+	// GeneralsX: THIS is the open that decides whether a map loads at all.
 	//
 	// It runs before the base TerrainLogic::loadMap and returns FALSE on failure, so everything
 	// downstream - sides, teams, objects, scripts, the visual - is skipped silently. On iOS that is

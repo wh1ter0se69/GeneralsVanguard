@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank, DATA half: the tier marks, the compiler's LAST step (C·rb-data; gx-handoff
+# GeneralsX: rule bank, DATA half: the tier marks, the compiler's LAST step (C·rb-data; gx-handoff
 # ai/rulebank/PLAN_rulebank.md 2.8; format agreed with C·rb-core 30/10). Hard, Brutal and Sentient share one script list, and wh1ter0se keeps
 # Hard as it is, so a ruleset's changes never sit in a stock entry:
 #   * every stock script and team stays byte-identical;
@@ -279,7 +279,7 @@ def filter_for(mss, rb, scb_bytes, tier):
     for lst in rb.lists(x):
         lst.kids = _filter_kids(rb, mss, lst.kids, tier)
     ts = rb.teams(x)
-    own = lambda d: rb.team_get(d, 'teamOwner')             # a mark replaces its twin of the SAME owner (Codex rbd-r6-lensA 3)
+    own = lambda d: rb.team_get(d, 'teamOwner')             # a mark replaces its twin of the SAME owner
     kept = {}
     for d in ts:
         p = parse(d['teamName'])

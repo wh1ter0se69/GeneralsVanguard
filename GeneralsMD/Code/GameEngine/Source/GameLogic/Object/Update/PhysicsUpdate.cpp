@@ -49,7 +49,7 @@
 
 const Real DEFAULT_MASS = 1.0f;
 
-// GeneralsX @fix Claude 05/08/2026 Per-frame physics constants, halved under GX_LOGIC_60HZ.
+// GeneralsX: Per-frame physics constants, halved under GX_LOGIC_60HZ.
 //
 // HALVED, NOT sqrt'd - but NOT because friction is "linear". Correction 23/09/2026: the chain
 // :479 `accel.x += -(ff * forwardVel_x)` -> applyForce -> `m_vel.x += m_accel.x` IS a multiplicative
@@ -214,7 +214,7 @@ static void parseFrictionPerSec( INI* ini, void * /*instance*/, void *store, con
 
 #if GX_LOGIC_60HZ
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @fix Claude 23/09/2026 ShockMaxYaw/Pitch/Roll are authored in radians per 30 Hz frame
+// GeneralsX: ShockMaxYaw/Pitch/Roll are authored in radians per 30 Hz frame
 // and seed a per-frame rotation rate, so they halve at 60 Hz exactly like their defaults above.
 // Retail INIZH.big authors none of the three; this keeps mod data at its authored wall-clock spin.
 static void parseShockRatePerFrame30( INI* ini, void *instance, void *store, const void* userData )
@@ -345,7 +345,7 @@ Bool PhysicsBehavior::isIgnoringCollisionsWith(ObjectID id) const
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 04/10/2026 Aircraft grip the air like Generals Online at 60 Hz (owner,
+// GeneralsX: Aircraft grip the air like Generals Online at 60 Hz (owner,
 // 04/10: "yes use go's ... for jets"). GO keeps the per-30-Hz-frame friction defaults and clamps
 // above at 60 Hz, i.e. twice retail's friction per second, so an aircraft's velocity swings onto its
 // nose twice as fast and it slides half as far in a turn (measured, King Raptor: 11.6 vs 24.1 deg).
@@ -356,7 +356,7 @@ Bool PhysicsBehavior::isIgnoringCollisionsWith(ObjectID id) const
 // for aircraft, SlowDeath's and the OCL's per-second values scale as they do in GO). No shipped
 // aircraft authors a friction field (0 of the 81 KINDOF_AIRCRAFT templates in INIZH.big, 0 of the 27
 // the community patch overrides), so doubling the template value is GO for all of them.
-// ponytail: a mod aircraft that authors ForwardFriction/LateralFriction gets it doubled too, where GO
+// Trade-off: a mod aircraft that authors ForwardFriction/LateralFriction gets it doubled too, where GO
 // keeps it; add a "friction authored" flag to the module data if a mod ever needs GO-exact there.
 static Real gxGripScale(const Object *obj)
 {
@@ -459,7 +459,7 @@ void PhysicsBehavior::applyShock( const Coord3D *force )
 	Coord3D resistedForce = *force;
 	resistedForce.scale( 1.0f - min( 1.0f, max( 0.0f, getPhysicsBehaviorModuleData()->m_shockResistance ) ) );
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 A shock is a ONE-SHOT impulse: applyForce -> m_accel -> m_vel
+	// GeneralsX: A shock is a ONE-SHOT impulse: applyForce -> m_accel -> m_vel
 	// in a single frame, so the force is really a per-frame VELOCITY kick authored in 30 Hz units
 	// (ShockWaveAmount, BattleBus ThrowForce). Gravity is already per-frame^2, so an unscaled kick at
 	// 60 Hz doubled launch speed: ~4x throw height, ~2x airtime and ~2x stun. Halving it (exact,
@@ -657,7 +657,7 @@ Bool PhysicsBehavior::handleBounce(Real oldZ, Real newZ, Real groundZ, Coord3D* 
 inline Bool isVerySmall3D(const Coord3D& v)
 {
 #if GX_LOGIC_60HZ
-	const Real THRESH = 0.005f;	// GeneralsX @fix Claude 23/09/2026 a per-frame speed: halved keeps retail's 0.3 units/sec
+	const Real THRESH = 0.005f;	// GeneralsX: a per-frame speed: halved keeps retail's 0.3 units/sec
 #else
 	const Real THRESH = 0.01f;
 #endif
@@ -760,7 +760,7 @@ UpdateSleepTime PhysicsBehavior::update()
 
 		// when vel gets tiny, just clamp to zero
 #if GX_LOGIC_60HZ
-		const Real THRESH = 0.0005f;	// GeneralsX @fix Claude 23/09/2026 per-frame speed, halved (retail 0.03 units/sec)
+		const Real THRESH = 0.0005f;	// GeneralsX: per-frame speed, halved (retail 0.03 units/sec)
 #else
 		const Real THRESH = 0.001f;
 #endif
@@ -973,7 +973,7 @@ UpdateSleepTime PhysicsBehavior::update()
 			// going down hills don't injure themselves (unless the hill is really steep)
 			const Real MIN_ANGLE_TAN = 3.0f;	//	roughly 71 degrees
 #if GX_LOGIC_60HZ
-			const Real TINY_DELTA = 0.005f;	// GeneralsX @fix Claude 23/09/2026 per-frame speed, halved
+			const Real TINY_DELTA = 0.005f;	// GeneralsX: per-frame speed, halved
 #else
 			const Real TINY_DELTA = 0.01f;
 #endif
@@ -981,7 +981,7 @@ UpdateSleepTime PhysicsBehavior::update()
 				(fabs(m_vel.y) <= TINY_DELTA || fabs(activeVelZ / m_vel.y) >= MIN_ANGLE_TAN))
 			{
 #if GX_LOGIC_60HZ
-				// GeneralsX @fix Claude 23/09/2026 Damage is proportional to the PER-FRAME impact speed, which
+				// GeneralsX: Damage is proportional to the PER-FRAME impact speed, which
 				// is half as large at 60 Hz for the same fall (gravity is per-frame^2; the threshold
 				// m_minFallSpeedForDamage = sqrt(2gh) already halves with it). Unscaled, every fall - dead
 				// parachute, shockwave toss, cliff - did half the retail damage. x2 (exact) restores it.
@@ -1134,7 +1134,7 @@ Bool PhysicsBehavior::wasPreviouslyOverlapped(Object *obj) const
 void PhysicsBehavior::scrubVelocityZ( Real desiredVelocity )
 {
 #if GX_LOGIC_60HZ
-	if (fabs(desiredVelocity) < 0.0005f)	// GeneralsX @fix Claude 23/09/2026 per-frame speed threshold, halved
+	if (fabs(desiredVelocity) < 0.0005f)	// GeneralsX: per-frame speed threshold, halved
 #else
 	if (fabs(desiredVelocity) < 0.001f)
 #endif
@@ -1155,7 +1155,7 @@ void PhysicsBehavior::scrubVelocityZ( Real desiredVelocity )
 void PhysicsBehavior::scrubVelocity2D( Real desiredVelocity )
 {
 #if GX_LOGIC_60HZ
-	if (desiredVelocity < 0.0005f)	// GeneralsX @fix Claude 23/09/2026 per-frame speed threshold, halved
+	if (desiredVelocity < 0.0005f)	// GeneralsX: per-frame speed threshold, halved
 #else
 	if (desiredVelocity < 0.001f)
 #endif
@@ -1334,7 +1334,7 @@ void PhysicsBehavior::onCollide( Object *other, const Coord3D *loc, const Coord3
 /// @todo srj -- what the hell is this code doing here? ack!
 		//Before we return, check for a very special case of an infantry colliding with an unmanned vehicle.
 		//If this is the case, it'll become its new pilot!
-		// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. Not when the unit is walking to it as a queued TRANSPORT: a
+		// GeneralsX: WAYPOINT ENTER. Not when the unit is walking to it as a queued TRANSPORT: a
 		// queue target sniped empty after this unit's AI update but before this collision pass would otherwise be crewed.
 		// The unit's AIEnterState fails on its next update and the queue goes on to the next container.
 		if( obj->isKindOf( KINDOF_INFANTRY ) && other->isDisabledByType( DISABLED_UNMANNED ) && ai->gxEnterGoalRejected( other ) )
@@ -1548,7 +1548,7 @@ void PhysicsBehavior::onCollide( Object *other, const Coord3D *loc, const Coord3
 			if (overlap > 5.0f)
 				overlap = 5.0f;
 #if GX_LOGIC_60HZ
-			// GeneralsX @fix Claude 23/09/2026 Applied every frame while two units overlap, so this is an
+			// GeneralsX: Applied every frame while two units overlap, so this is an
 			// ACCELERATION (per frame^2): at 60 Hz it pushed 4x harder in wall-clock terms. x0.25 is exact.
 			// The 5.0 cap is a distance and stays; the immobile branch above is velocity-based and was fine.
 			factor = -overlap * 0.25f;

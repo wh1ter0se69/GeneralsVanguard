@@ -329,7 +329,7 @@ void TextureLoader::Init()
 }
 
 
-// GeneralsX @bugfix Claude 09/08/2026 Stop the loader thread WITHOUT holding the lock it needs.
+// GeneralsX: Stop the loader thread WITHOUT holding the lock it needs.
 //
 // This used to take _BackgroundCriticalSection and then call Stop(). LoaderThreadClass::
 // Thread_Function() takes that same lock whenever the background queue is not empty, so it parked

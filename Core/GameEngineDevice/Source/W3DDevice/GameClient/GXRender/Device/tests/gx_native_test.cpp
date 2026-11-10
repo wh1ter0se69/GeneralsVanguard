@@ -1,4 +1,4 @@
-// GeneralsX @test E · rw3-L 11/10/2026 gx_native_test: the native d3d8 device (GxNativeDevice) driven ONLY through the d3d8
+// GeneralsX: gx_native_test: the native d3d8 device (GxNativeDevice) driven ONLY through the d3d8
 // interfaces, offscreen (no window), on a stub IDirect3D8 (the device forwards caps/identity queries to its parent; the real
 // parent is DXVK's interface, exercised by gxcap-replay --native). One case per behaviour of DESIGN_l1-device.md, each with an
 // X-<case> arm that turns on one GxNativeDebug plant in the PRODUCT device and must make exactly that case fail.
@@ -121,7 +121,7 @@ private:
 };
 
 // Every device log line of the current arm (still echoed to stderr, as the product's null log does). Validation messages arrive
-// from the pipeline workers' threads too: every access holds g_logLock (Codex rw3L2-code-r1).
+// from the pipeline workers' threads too: every access holds g_logLock.
 std::mutex g_logLock;
 std::vector<std::string> g_log;
 namespace exitobs {   // A23-B arm 16's post-line observer (defined with the arm)
@@ -175,7 +175,7 @@ struct Env
 	void* window = nullptr;     // the hidden SDL3 window of a present arm
 	bool devReleased = false;   // the case released the game's device reference itself
 	bool keepWindow = false;    // the case leaks the window too: the process exits with it alive (exit-quiesce, as in the game)
-	bool setupFailed = false;   // the case could not reach its gate (no detection, never a pass - Codex a25-code-r1 #4)
+	bool setupFailed = false;   // the case could not reach its gate (no detection, never a pass)
 	bool a25Symptom = false, a25Other = false;   // A25 cases: a failure that is exactly the plant's stale value / any other failure
 };
 
@@ -193,7 +193,7 @@ bool brokenInputArm(const char* n)
 			return true;
 	return false;
 }
-const char* const kCsContractArms[] = { "present-surface-lost", "present-surface-lost-shown" /* its second plant (Codex r1-oracle P2-2) */,
+const char* const kCsContractArms[] = { "present-surface-lost", "present-surface-lost-shown" /* its second plant */,
 	"present-surface-lost-copy" /* its third (r2-oracle P2-1) */, "present-surface-lost-mirror" /* its fourth (r3-oracle P2-1) */,
 	"present-surface-lost-clip" /* its fifth (r4-oracle P2-1) */, "present-surface-lost-linear" /* its sixth (r5-oracle P2-1) */, "present-submit-fail", "present-retry-frame", "present-side-lost",
 	"present-error", "thread-present-skipped", "thread-present-deferred", "device-lost-mid-present", "stats-line" };
@@ -212,27 +212,27 @@ const char* const kAsyncArms[] = { "cs-getter" /* 1 */, "cs-discard" /* 2 */, "c
 	"cs-worker-selfdrain" /* 28a X */, "cs-reordered-failure" /* 29 */, "cs-reordered-failure-b" /* 29b */, "cs-sbody-alloc" /* 31a */,
 	"cs-terminal-count" /* 31b */, "cs-reorder" /* the hold form of X-cs-reorder (its STRICT form: strict-reorder) */,
 	"cs-tsan-probe" /* the TSan lane */, "cs-mirror-check" /* the mirror-check mode */,
-	/* added after Codex r1-oracle P2-1, before any of their data: */ "cs-constants" /* payload at the call, worker held (as 4-6) */,
+	/* added after, before any of their data: */ "cs-constants" /* payload at the call, worker held (as 4-6) */,
 	"cs-const-bounds" /* a guard-page fault in a child (as 22) */, "cs-wait-publish" /* a hang in a child (as 28a X) */,
-	/* after Codex r2-oracle, before their data: */ "cs-vs-payload" /* payload at the call, worker held (as 4-6) */,
+	/* after, before their data: */ "cs-vs-payload" /* payload at the call, worker held (as 4-6) */,
 	"cs-slice-terminal" /* a terminal allocation failure counted (as 31b) */,
-	/* after Codex r2-res, before its data: */ "thread-cs-recover-latched" /* recovery after a latched refusal (holds gx-vk-submit) */,
-	/* after Codex r3-oracle: */ "cs-ps-payload" /* payload at the call, worker held (as cs-vs-payload) */,
-	/* after Codex r4: */ "cs-ps-bind" /* its binding twin (worker held at creation) */, "thread-cs-recover-latched-worker" /* holds gx-vk-submit */,
+	/* after, before its data: */ "thread-cs-recover-latched" /* recovery after a latched refusal (holds gx-vk-submit) */,
+	/* after: */ "cs-ps-payload" /* payload at the call, worker held (as cs-vs-payload) */,
+	/* after: */ "cs-ps-bind" /* its binding twin (worker held at creation) */, "thread-cs-recover-latched-worker" /* holds gx-vk-submit */,
 	/* the integrator's exit condition: */ "cs-exit-crt" /* a normal (CRT) exit in a child (as 16; no thread- prefix: it runs with the submit thread off too) */, "cs-exit-crt-nowin" /* the same, windowless (rw3-X-3) */,
 	"cs-exit-stuck" /* A60: a stuck worker at the CRT exit - the watchdog (child) */, "cs-exit-slow" /* A60: a slow but progressing one (child) */,
-	/* after Codex r5-oracle: */ "cs-ps-draw", "cs-vs-bind" /* the drawing twins of cs-ps-payload / cs-vs-payload (worker held) */,
-	/* after Codex r6-oracle: */ "cs-ps-bind-late" /* the same arm, its late-bind plant */,
-	/* after Codex r7-oracle: */ "cs-ps-delete-bound", "cs-vs-delete-bound" /* the same arms, their delete-while-bound plant */,
-	/* after Codex r8-oracle: */ "cs-clear-rects" /* payload at the call, worker held (as 4-6) */, "cs-vs-delete-exec" /* as cs-vs-payload */,
-	/* after Codex r9-oracle: */ "cs-ps-delete-exec" /* as cs-ps-payload */,
-	/* rw3-X-3, after Codex r10-oracle (amendment 5): */ "cs-ff-payload-material", "cs-ff-payload-light", "cs-ff-payload-viewport" /* as cs-constants */,
-	/* rw3-X-3, after Codex r12-core: */ "cs-deep-clear" /* a stack overflow in a child (as 22) */,
-	/* rw3-X-3, after Codex r13-oracle: */ "cs-shader-oversize-order" /* worker held, an order sink (as cs-constants) */,
+	/* after: */ "cs-ps-draw", "cs-vs-bind" /* the drawing twins of cs-ps-payload / cs-vs-payload (worker held) */,
+	/* after: */ "cs-ps-bind-late" /* the same arm, its late-bind plant */,
+	/* after: */ "cs-ps-delete-bound", "cs-vs-delete-bound" /* the same arms, their delete-while-bound plant */,
+	/* after: */ "cs-clear-rects" /* payload at the call, worker held (as 4-6) */, "cs-vs-delete-exec" /* as cs-vs-payload */,
+	/* after: */ "cs-ps-delete-exec" /* as cs-ps-payload */,
+	/* rw3-X-3, after (amendment 5): */ "cs-ff-payload-material", "cs-ff-payload-light", "cs-ff-payload-viewport" /* as cs-constants */,
+	/* rw3-X-3, after: */ "cs-deep-clear" /* a stack overflow in a child (as 22) */,
+	/* rw3-X-3, after: */ "cs-shader-oversize-order" /* worker held, an order sink (as cs-constants) */,
 	/* rw3-X-3, the same property for every other oversize S branch: */ "cs-oversize-order" /* worker held, an order sink */,
-	/* rw3-X-3, after Codex r16-oracle: */ "cs-copy-readback-s", "cs-managed-restore-write" /* worker held (as cs-constants) */,
+	/* rw3-X-3, after: */ "cs-copy-readback-s", "cs-managed-restore-write" /* worker held (as cs-constants) */,
 	"cs-host-copy-refused" /* a front-decided refusal: no exec half at CS=1 by design (judged by HRESULT and contents) */,
-	/* rw3-X-3, after Codex r17-oracle: */ "cs-host-copy-refused-count" /* the same arm, its counter plant (judged by the counters too) */,
+	/* rw3-X-3, after: */ "cs-host-copy-refused-count" /* the same arm, its counter plant (judged by the counters too) */,
 	/* rw3-X-3 X': */ "cs-getdesc-nodrain" /* worker held (as cs-constants) */, "cs-getdesc-race" /* a race schedule, the TSan lane */, "cs-drain-attribution" /* worker held (r20-core P2-1) */, "cs-drain-attribution-s" /* the same, its SScope plant (r21-core P2-1) */ };
 bool isAsyncArm(const std::string& a)
 {
@@ -639,7 +639,7 @@ bool casePresent(Env& e, std::string* d)
 	return ok;
 }
 
-// d3d9_texture.h:60-71: SetLOD stores min(new, levels - 1) and returns the previous value (Codex code-r3 #4).
+// d3d9_texture.h:60-71: SetLOD stores min(new, levels - 1) and returns the previous value.
 bool caseLod(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -653,7 +653,7 @@ bool caseLod(Env& e, std::string* d)
 	return ok;
 }
 
-// CopyRects DEFAULT -> DEFAULT between two levels of ONE texture (Codex code-r3 #1, #3): the copy reads the SOURCE's level,
+// CopyRects DEFAULT -> DEFAULT between two levels of ONE texture: the copy reads the SOURCE's level,
 // and the shared image keeps a layout valid for both ends (validation core + sync stays clean). The levels are filled the
 // game's way (UpdateTexture from SYSTEMMEM). A render target bound at a level > 0 is refused by name (no attachment view).
 bool caseCopyMips(Env& e, std::string* d)
@@ -706,7 +706,7 @@ bool caseCopyMips(Env& e, std::string* d)
 	return ok;
 }
 
-// UpdateTexture of a DXT1 texture after a partial lock (Codex rw3L-code-r4 #1): the level-0 dirty box {4,4,8,8} scales to
+// UpdateTexture of a DXT1 texture after a partial lock: the level-0 dirty box {4,4,8,8} scales to
 // offset 2,2 / extent 2x2 at mip 1, inside one 4x4 block - aligned to the block grid as DXVK's UpdateTextureFromBuffer aligns
 // it, the update succeeds and every level holds the source's blocks.
 bool caseUpdateDxt(Env& e, std::string* d)
@@ -754,7 +754,7 @@ bool caseUpdateDxt(Env& e, std::string* d)
 		CHECK(!want.empty() && want == got, ("level " + std::to_string(l) + " holds the source's " + (dt.decoded() ? "decoded texels" : "blocks")).c_str());
 	}
 	// reading the DEFAULT level back into a DXT1 image surface: blocks on a BC device; a decoded texture has none to give
-	// (Codex rw3L-code-r5 #1: its texels must never be written as blocks) - INVALIDCALL
+	// (its texels must never be written as blocks) - INVALIDCALL
 	IDirect3DSurface8 *l0 = nullptr, *img = nullptr;
 	t->GetSurfaceLevel(0, &l0);
 	CHECK(l0 && SUCCEEDED(e.dev->CreateImageSurface(16, 16, D3DFMT_DXT1, &img)) && img, "DXT1 image surface");
@@ -772,7 +772,7 @@ bool caseUpdateDxt(Env& e, std::string* d)
 	return ok;
 }
 
-// CopyRects into an MSAA surface (Codex rw3L-code-r7 #1): a single-sample source is refused by name (DXVK draws it - no game
+// CopyRects into an MSAA surface: a single-sample source is refused by name (DXVK draws it - no game
 // caller), not recorded as an invalid vkCmdCopyImage; validation stays clean.
 bool caseCopyMsaaDst(Env& e, std::string* d)
 {
@@ -796,7 +796,7 @@ bool caseCopyMsaaDst(Env& e, std::string* d)
 }
 
 // DXVK counts back buffers and the auto depth as losable until destroyed (d3d9_swapchain.cpp:1035, d3d9_device.cpp:8650):
-// a back buffer the caller still holds blocks Reset (DEVICELOST, NotReset); released, Reset succeeds (Codex code-r3 #2).
+// a back buffer the caller still holds blocks Reset (DEVICELOST, NotReset); released, Reset succeeds.
 bool caseResetImplicit(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -806,7 +806,7 @@ bool caseResetImplicit(Env& e, std::string* d)
 	D3DPRESENT_PARAMETERS pp = presentParams(true, 1);
 	CHECK(e.dev->Reset(&pp) == D3DERR_DEVICELOST, "Reset with a retained back buffer must be DEVICELOST");
 	D3DSURFACE_DESC sd = {};
-	uint32_t px = 0;   // the held surface is still the surface it was (Codex rw3L-code-r6 #2: DXVK keeps its resource alive)
+	uint32_t px = 0;   // the held surface is still the surface it was (DXVK keeps its resource alive)
 	CHECK(bb && SUCCEEDED(bb->GetDesc(&sd)) && sd.Width == 64 && sd.Height == 64 && sd.Format == D3DFMT_A8R8G8B8,
 		"the held back buffer keeps its description after the failed Reset");
 	CHECK(bb && readPixel(e.dev, bb, 3, 3, &px) && (px & 0xffffff) == 0x3a5b7c, "the held back buffer keeps its content");
@@ -816,7 +816,7 @@ bool caseResetImplicit(Env& e, std::string* d)
 	return ok;
 }
 
-// The auto depth is a DEFAULT-pool surface DXVK counts as losable until destroyed (d3d9_device.cpp:8650; Codex design-r2 #6):
+// The auto depth is a DEFAULT-pool surface DXVK counts as losable until destroyed (d3d9_device.cpp:8650):
 // GetDepthStencilSurface -> held across Reset -> DEVICELOST + NotReset; released -> Reset succeeds.
 bool caseResetDepth(Env& e, std::string* d)
 {
@@ -836,7 +836,7 @@ bool caseResetDepth(Env& e, std::string* d)
 	return ok;
 }
 
-// Reset's phases (DESIGN 8.4 = d3d8_device.cpp:236-247, d3d9_device.cpp:563-618; Codex design-r2 #5):
+// Reset's phases (DESIGN 8.4 = d3d8_device.cpp:236-247, d3d9_device.cpp:563-618):
 // B - d3d9's early validation fails AFTER the lost state became Ok: a NotReset device is Ok again, bindings intact;
 // D - a back-buffer format the swapchain cannot take fails AFTER the unbinding: NotReset, no render target bound.
 bool caseResetPhases(Env& e, std::string* d)
@@ -864,7 +864,7 @@ bool caseResetPhases(Env& e, std::string* d)
 	unk.BackBufferFormat = D3DFMT_UNKNOWN;
 	CHECK(SUCCEEDED(e.dev->Reset(&unk)) && unk.BackBufferFormat == D3DFMT_X8R8G8B8 && unk.BackBufferCount == 1,
 		"Reset with an UNKNOWN back buffer / 0 back buffers is not converted as DXVK converts it");
-	// the failure paths (Codex native-ipad-r3 P3): (1) d3d8 refuses first (a windowed non-DEFAULT interval): INVALIDCALL, the caller's
+	// the failure paths: (1) d3d8 refuses first (a windowed non-DEFAULT interval): INVALIDCALL, the caller's
 	// struct untouched, the device still Ok with its render target bound; (2) d3d8 passes and d3d9's early validation fails (SwapEffect 5):
 	// DXVK has already converted the caller's struct by then (d3d8_device.cpp:253, before GetD3D9()->Reset), so native must have too
 	D3DPRESENT_PARAMETERS bad = presentParams(true, 0);
@@ -899,7 +899,7 @@ bool caseResetPhases(Env& e, std::string* d)
 	return ok;
 }
 
-// DESIGN §9 (Codex design-r2 #4): a resource's last release may come from any thread (SurfaceClass releases directly while
+// DESIGN §9: a resource's last release may come from any thread (SurfaceClass releases directly while
 // the d3d8 ring's render thread draws). It only queues the object; the device destroys it on ITS thread at the next entry
 // point. (1) releases on another thread destroy nothing until the next Present; (2) releases racing draws on the device thread.
 bool caseReleaseThread(Env& e, std::string* d)
@@ -944,7 +944,7 @@ bool caseReleaseThread(Env& e, std::string* d)
 }
 
 // DXVK presents an MSAA back buffer through dxvk_present_frag_ms.frag: every sample to linear light, averaged, back to sRGB
-// (Codex rw3L-design-r2 #1). A white triangle on black over MSAA x4: an edge pixel with k of 4 samples covered presents
+// A white triangle on black over MSAA x4: an edge pixel with k of 4 samples covered presents
 // linear_to_srgb(k/4) = 0 / 137 / 188 / 225 / 255 - vkCmdResolveImage (the X- arm) gives 0 / 64 / 128 / 191 / 255.
 bool caseMsaaPresentMath(Env& e, std::string* d)
 {
@@ -989,8 +989,8 @@ bool caseMsaaPresentMath(Env& e, std::string* d)
 // SAME bytes as the old path (shader into a window-sized target, clear, 1:1 blit). One scene - a background, a triangle with three
 // vertex colours (a gradient, and partially covered edge pixels under MSAA) - presented twice: one-pass first (no window-sized
 // target may exist after it), then the old path (debug().presentDirectOff). Both read back from the swapchain image. expectDirect
-// false (present-direct-shortfit, 72x50: the old path's float fit is 49 rows there, Codex wa-r1 P1): the first present must stay
-// on the old path. Validation is asserted HERE: the harness does not count it for an X- arm (Codex wa-r1 P2 #4).
+// false (present-direct-shortfit, 72x50: the old path's float fit is 49 rows there): the first present must stay
+// on the old path. Validation is asserted HERE: the harness does not count it for an X- arm.
 bool presentDirectCompare(Env& e, std::string* d, bool expectDirect)
 {
 	bool ok = true;
@@ -1044,7 +1044,7 @@ bool presentDirectCompare(Env& e, std::string* d, bool expectDirect)
 	return ok;
 }
 
-// present-direct-frames (the A30 coordination in MR_W-a.md; Codex wa-r5 P2 x2, wa-r6 P2): six one-pass presents per phase. On a tree
+// present-direct-frames (the A30 coordination in MR_W-a.md; wa-r6 P2): six one-pass presents per phase. On a tree
 // with A30 (render/integration 3e830ddae+, where the device, writer and swapchain all take --fif) run at --fif 3, that is every slot of
 // three twice. On a 2-slot tree (this branch alone has no --fif), it is both slots three times.
 // Each frame f has its own scene and its own clear colour, a marker read back at pixel (0,0), outside the triangle. Per path:
@@ -1159,11 +1159,11 @@ bool casePresentDirectInterposed(Env& e, std::string* d)
 	const GxNativeStats s0 = e.nd->stats();
 	CHECK(SUCCEEDED(e.dev->Present(nullptr, nullptr, nullptr, nullptr)), "Present");
 	CHECK(SUCCEEDED(e.dev->Present(nullptr, nullptr, nullptr, nullptr)), "Present 2");
-	// Codex fg3-h3-r2 P2: under the submit thread a Present's driver answer is taken by the NEXT Present - a third one settles the second
+	// under the submit thread a Present's driver answer is taken by the NEXT Present - a third one settles the second
 	CHECK(SUCCEEDED(e.dev->Present(nullptr, nullptr, nullptr, nullptr)), "Present 3");
 	const GxNativeStats s1 = e.nd->stats();
 	const uint64_t direct = s1.presentsDirect - s0.presentsDirect, presents = s1.presents - s0.presents;
-	// Codex fg3-h3-r1 P2: the frames really SHOWN (a skip also answers D3D_OK and counts a present); no answer of the first two failed or
+	// the frames really SHOWN (a skip also answers D3D_OK and counts a present); no answer of the first two failed or
 	// asked for a rebuild
 	CHECK(presents == 3 && s1.presentsShown - s0.presentsShown == 3 && s1.presentsSkipped == s0.presentsSkipped &&
 		s1.presentFailures == s0.presentFailures && s1.swapchainsRecreated == s0.swapchainsRecreated, ("presents " +
@@ -1174,7 +1174,7 @@ bool casePresentDirectInterposed(Env& e, std::string* d)
 	std::vector<uint8_t> px;
 	uint32_t w = 0, h = 0;
 	CHECK(!e.nd->testReadPresent(&px, &w, &h), "the present was read back from images whose TRANSFER_SRC is unproven");
-	CHECK(!e.nd->testSwapchainViewsMade(), "image views were made on images whose COLOR_ATTACHMENT is unproven");   // Codex fg3-h3-r1 P3
+	CHECK(!e.nd->testSwapchainViewsMade(), "image views were made on images whose COLOR_ATTACHMENT is unproven");
 	const GxNativeValidation v = e.nd->validation();
 	CHECK(v.errors == 0 && v.hazards == 0, ("validation " + std::to_string(v.errors) + "/" + std::to_string(v.hazards) + " " + v.first).c_str());
 	if (bb)
@@ -1184,7 +1184,7 @@ bool casePresentDirectInterposed(Env& e, std::string* d)
 bool casePresentDirectFrames(Env& e, std::string* d) { return presentDirectFrames(e, d); }
 
 // DXVK presents a back buffer smaller than the window with dxvk_present_frag_blit.frag's pixel-footprint rule: at 2x it is
-// integer scaling - every window pixel is exactly the back-buffer pixel under it (Codex rw3L-design-r2 #2). A LINEAR blit
+// integer scaling - every window pixel is exactly the back-buffer pixel under it. A LINEAR blit
 // (the X- arm) blends neighbours. Back buffer 64x64 with a distinct colour per pixel, window 128x128.
 bool casePresentScaled(Env& e, std::string* d)
 {
@@ -1281,7 +1281,7 @@ std::string validationText(Env& e)
 
 #if defined(GX_VKCTX_HAS_SDL3)
 
-// Codex rw3x-a23b-code-r1-oracle P2-2 / r2-oracle P2-1: the recovery arms present DISTINGUISHABLE frames and read the WHOLE final
+// / r2-oracle P2-1: the recovery arms present DISTINGUISHABLE frames and read the WHOLE final
 // swapchain image after each (TEST readback in recordPresent; a 2x window keeps the scaled present path too): uniform = that colour. Frame k is cleared to frameColour(k); a shown frame
 // presents its own colour, an unshown one leaves the last shown colour. One "[TEST] SHOWN" line per Present (--strict-tap compares
 // them across the modes). Returns false if the frame could not be presented or read.
@@ -1290,7 +1290,7 @@ uint32_t cornerColour(int k) { return 0xff000000u | (uint32_t(230 - 17 * k) << 1
 struct Shown { uint32_t want, got; };
 bool presentShown(Env& e, int k, std::vector<Shown>* shown)
 {
-	e.nd->debug().testSwapchainReadback = true;   // Codex r2-oracle P2-1: the FINAL swapchain image, whole (set before the Present)
+	e.nd->debug().testSwapchainReadback = true;   // the FINAL swapchain image, whole (set before the Present)
 	// r3-oracle P2-1: an ASYMMETRIC frame - its colour, and a quad of a second colour in the top-left quarter: a mirrored, flipped,
 	// partial or stale copy no longer reads as this frame
 	IDirect3DSurface8* bb = nullptr;
@@ -1359,7 +1359,7 @@ bool shownValid(const std::vector<Shown>& s, int* unshown)
 
 
 // DXVK reads the window's size every Present and recreates the swapchain when it changed (d3d9_swapchain.cpp:1325,
-// dxvk_presenter.cpp:115; Codex rw3L-design-r3 #1): created equal (64), resized to 128 - the next Present recreates at 128 and
+// dxvk_presenter.cpp:115): created equal (64), resized to 128 - the next Present recreates at 128 and
 // presents the 64 back buffer scaled (DXVK's footprint shader), nothing skipped, validation clean.
 bool casePresentResize(Env& e, std::string* d)
 {
@@ -1377,7 +1377,7 @@ bool casePresentResize(Env& e, std::string* d)
 }
 
 // A swapchain recreation that fails skips the frame and is retried at the next Present (DXVK: softError, then the next
-// acquire recreates; the r2 device stopped presenting for good - Codex rw3L-design-r3 #1). The failure is injected.
+// acquire recreates; the r2 device stopped presenting for good). The failure is injected.
 bool casePresentRecreateRetry(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -1394,7 +1394,7 @@ bool casePresentRecreateRetry(Env& e, std::string* d)
 	return ok;
 }
 
-// Everything that can fail is made BEFORE the acquire (Codex rw3L-design-r3 #2): an injected present-target failure skips one
+// Everything that can fail is made BEFORE the acquire: an injected present-target failure skips one
 // frame and leaves no acquired image behind - four more frames reuse both acquire semaphores with validation clean.
 bool casePresentTargetFail(Env& e, std::string* d)
 {
@@ -1410,7 +1410,7 @@ bool casePresentTargetFail(Env& e, std::string* d)
 }
 
 // VK_ERROR_SURFACE_LOST_KHR: a NEW VkSurfaceKHR and swapchain before the next acquire, as DXVK's presenter (dxvk_presenter.cpp:513;
-// Codex rw3L-design-r4 #1). The loss is injected before any image is acquired; the frame is still shown, later frames too.
+// ). The loss is injected before any image is acquired; the frame is still shown, later frames too.
 bool casePresentSurfaceLost(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -1444,7 +1444,7 @@ bool casePresentSurfaceLost(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r7-oracle P2-1: a RECTANGULAR window (96x64 back buffer and window, 1:1). Six Presents: each shows its own whole frame,
+// a RECTANGULAR window (96x64 back buffer and window, 1:1). Six Presents: each shows its own whole frame,
 // nothing is recreated or skipped - the width and height the worker's Present takes are the call's, in order.
 // X-cs-present-transposed (the worker's Present swaps them: every frame looks like a resize) is caught. Both modes.
 bool casePresentRect(Env& e, std::string* d)
@@ -1468,7 +1468,7 @@ bool casePresentRect(Env& e, std::string* d)
 
 // A frame whose submission fails after its acquire is never presented (the present would wait on a semaphore no submission
 // signals, VUID-vkQueuePresentKHR-pWaitSemaphores-03268): terminal - Present and TestCooperativeLevel answer DEVICELOST and no
-// image is acquired again (Codex rw3L-design-r4 #2). No X- arm: presenting on the unsignalled semaphore can hang the driver.
+// image is acquired again. No X- arm: presenting on the unsignalled semaphore can hang the driver.
 bool casePresentSubmitFail(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -1500,7 +1500,7 @@ bool casePresentSubmitFail(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-design-r5 #1: the surface is lost while a recreation is due BEFORE the acquire (a resize): swapchain creation on it
+// the surface is lost while a recreation is due BEFORE the acquire (a resize): swapchain creation on it
 // fails (VkSwapchain answers false; Vulkan answered SURFACE_LOST). As DXVK's recreateSwapChain (dxvk_presenter.cpp:507-523) the
 // device asks the surface, finds it lost, makes a new one and its swapchain in the SAME recreation: the frame is shown.
 // Injected. Planted: the creation failure is not classified - presentation never resumes.
@@ -1519,7 +1519,7 @@ bool casePresentCreateLost(Env& e, std::string* d)
 }
 
 // The same loss, and the REPLACEMENT surface's creation fails once (transient): that frame is skipped, the next Present makes
-// the surface and recovers (Codex rw3L-design-r5 #1's closure). Planted: a lost surface is never made again.
+// the surface and recovers ('s closure). Planted: a lost surface is never made again.
 bool casePresentCreateLostRetry(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -1567,7 +1567,7 @@ bool casePresentSideLost(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-design-r5 #2: the acquire fails (surface lost), the recreation succeeds, but the writer frame after it cannot begin.
+// the acquire fails (surface lost), the recreation succeeds, but the writer frame after it cannot begin.
 // The RETRY acquire must be checked like the first: the frame is skipped BEFORE acquiring (D3D_OK, counted) and the next Present
 // recovers. Injected. Planted: the retry acquires without a frame - its submission is empty and Present goes DEVICELOST for good.
 bool casePresentRetryFrame(Env& e, std::string* d)
@@ -1607,7 +1607,7 @@ bool casePresentRetryFrame(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-code-r10 #1: a Present reports SURFACE_LOST and the game Resets before the next Present. The Reset's swapchain is
+// a Present reports SURFACE_LOST and the game Resets before the next Present. The Reset's swapchain is
 // built on a NEW surface (the lost one would fail every retry, and a failed Reset leaves no swapchain for a Present to recover).
 // Injected; the old surface stays lost. Planted: the lost surface is never made again - the Reset fails.
 bool caseResetSurfaceLost(Env& e, std::string* d)
@@ -1642,7 +1642,7 @@ int fatalLines()
 }
 
 // The frame's submit is REFUSED at the thread while it and its present are queued: the present never reaches the driver, its
-// answer is DeviceLost, the next Present answers DEVICELOST, ONE FATAL line names the refused frame submit (Codex
+// answer is DeviceLost, the next Present answers DEVICELOST, ONE FATAL line names the refused frame submit (
 // rw3V-design-r1 P2-4; integrator condition 3). X-: a skipped present reads Ok.
 bool caseThreadPresentSkipped(Env& e, std::string* d)
 {
@@ -1750,7 +1750,7 @@ bool caseThreadPresentDeferred(Env& e, std::string* d)
 }
 
 // SURFACE_LOST injected at the thread, the surface then behaving as lost, and the game Resets before the next Present: Reset takes
-// the answer first and builds on a NEW surface, nothing stale is left for the next Present (Codex rw3V-design-r1 P2-3; the
+// the answer first and builds on a NEW surface, nothing stale is left for the next Present (the
 // boundary of reset-surface-lost, unchanged). X-: Reset leaves the answer pending - it turns up stale at the next Present.
 bool caseThreadResetDeferred(Env& e, std::string* d)
 {
@@ -1780,7 +1780,7 @@ bool caseThreadResetDeferred(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-code-r10 #2: the window reports a size the surface clamps away (MoltenVK's currentExtent wins: the swapchain stays
+// the window reports a size the surface clamps away (MoltenVK's currentExtent wins: the swapchain stays
 // 64x64 while 80x80 was asked). One size change = ONE recreation, not one per Present. Injected (the drawable size + 16).
 // Planted: the resize test compares the window with the ACTUAL extent - every Present recreates.
 bool casePresentClampedExtent(Env& e, std::string* d)
@@ -1803,7 +1803,7 @@ bool casePresentClampedExtent(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-code-r11: a Reset that builds the swapchain and then cannot allocate its back buffer leaves the device NotReset.
+// a Reset that builds the swapchain and then cannot allocate its back buffer leaves the device NotReset.
 // Present then answers D3DERR_DEVICELOST and presents nothing, as DXVK's (d3d9_swapchain.cpp:116-117); a later good Reset
 // recovers. Injected (the back-buffer allocation). Planted: Present runs while NotReset - it reaches the empty back-buffer
 // storage (the guard skips the frame rather than dereferencing null) and answers D3D_OK.
@@ -1826,7 +1826,7 @@ bool caseResetFailPresent(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-code-r12: vkQueuePresentKHR fails with OUT_OF_*_MEMORY - the present is not enqueued, its image stays acquired and
+// vkQueuePresentKHR fails with OUT_OF_*_MEMORY - the present is not enqueued, its image stays acquired and
 // its semaphore unwaited. As DXVK (every status but VK_SUCCESS marks the swapchain dirty, dxvk_presenter.cpp:247-252) the next
 // Present rebuilds it before acquiring, which retires the stranded image. Injected (the call is skipped, as such a failure leaves
 // it). Planted: the failure is ignored - no rebuild, the image stays stranded.
@@ -1859,7 +1859,7 @@ bool casePresentError(Env& e, std::string* d)
 	return ok;
 }
 
-// A present shader that cannot draw shows BLACK, counted - never the target's previous content (Codex rw3L-design-r3 #3). The
+// A present shader that cannot draw shows BLACK, counted - never the target's previous content. The
 // one-pass present (rw3-W W-a) has no target of its own: what it could show stale is the swapchain image, so four red frames
 // first - every swapchain image last held red. present-shader-fail-old runs the same on the old path (window-sized target).
 bool casePresentShaderFail(Env& e, std::string* d)
@@ -2133,7 +2133,7 @@ bool caseConfigPresentKeys(Env& e, std::string* d)
 	return ok;
 }
 
-// DESIGN S9 (Codex r1 #7): a device whose physical device's deviceUUID differs from the adapter's DeviceIdentifier is not
+// DESIGN S9: a device whose physical device's deviceUUID differs from the adapter's DeviceIdentifier is not
 // created (why names it) and leaves nothing behind; the matching UUID creates it. One live device at a time: VkCtx loads the
 // device functions into volk's process-global table (VkCtx.cpp volkLoadDevice), so the arm's own device goes first.
 bool caseUuidGate(Env& e, std::string* d)
@@ -2173,7 +2173,7 @@ bool caseUuidGate(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-code-r8 #1 (GxBuffer = DXVK's renaming): more DISCARD lock + draw cycles on one dynamic VB inside ONE frame than the
+// (GxBuffer = DXVK's renaming): more DISCARD lock + draw cycles on one dynamic VB inside ONE frame than the
 // slice cap (64). Every slice is then read by the frame still being recorded, so none can be waited for: the buffer grows past the
 // cap (sliceOverflows) and every Lock succeeds. Planted: the capped buffer waits for the unsubmitted value and the lock fails.
 bool caseBufferDiscardCap(Env& e, std::string* d)
@@ -2225,7 +2225,7 @@ bool caseBufferDiscardCap(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-code-r8 #2: a whole-target Clear waits in the writer's pass as its load op. Clear the back buffer with a temporary
+// a whole-target Clear waits in the writer's pass as its load op. Clear the back buffer with a temporary
 // depth bound, unbind the depth, release it, then CreateImageSurface (which destroys the depth on the device thread, DESIGN §9):
 // the clear must still reach the back buffer. Planted: forgetting the depth drops the pass with its pending clear.
 bool caseForgetPendingClear(Env& e, std::string* d)
@@ -2258,7 +2258,7 @@ bool caseForgetPendingClear(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-code-r8 #3 (DXVK Clear -> ClearImageView on the bound depth, whatever the colour target): the water mirror binds a
+// (DXVK Clear -> ClearImageView on the bound depth, whatever the colour target): the water mirror binds a
 // single-sample render-target texture over the MSAA depth (WaterRenderObjClass::renderMirror) and clears target + Z. The writer
 // draws that pair without its depth, but the Z clear must still reach the depth: a later draw on the MSAA back buffer at z 0.5
 // with ZFUNC LESS against the cleared 0.0 is rejected. Planted: the clear follows the depth drop (Z stays 1.0, the quad draws).
@@ -2314,7 +2314,7 @@ bool caseClearDroppedDepth(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-code-r13 #1: two checked devices one after the other in one process (gxcap-replay --native over several windows).
+// two checked devices one after the other in one process (gxcap-replay --native over several windows).
 // The first must uninstall GxOrderCheck before its VkDevice goes: else the second's install() is a no-op while its VkCtx::init
 // overwrites volk's hooks, and its "0 violations" is vacuous. Both devices must have their draws seen by the checker. Planted:
 // the first device is destroyed without uninstalling (the second sees nothing).
@@ -2364,7 +2364,7 @@ bool caseOrderCheckReinstall(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3L-code-r13 #2: GetRenderState(D3DRS_SOFTWAREVERTEXPROCESSING) answers the ACTIVE mode (d3d8_device.cpp: d3d9's
+// GetRenderState(D3DRS_SOFTWAREVERTEXPROCESSING) answers the ACTIVE mode (d3d8_device.cpp: d3d9's
 // GetSoftwareVertexProcessing), consistent with GetDeviceCaps' MaxVertexBlendMatrixIndex (255 software / 8 hardware). The arm's
 // device is MIXED. Planted: the getter answers the translator's slot (always 0).
 bool caseSwvpState(Env& e, std::string* d)
@@ -2426,7 +2426,7 @@ bool caseStatsLine(Env& e, std::string* d)
 	return ok;
 }
 
-// DESIGN §8.6 (Codex rw3-T-cut2-r1 P1-a): once VkCtx has latched VK_ERROR_DEVICE_LOST (at any submit or wait; simulated here with
+// DESIGN §8.6 (-a): once VkCtx has latched VK_ERROR_DEVICE_LOST (at any submit or wait; simulated here with
 // VkCtx's own test hook), every Present answers D3DERR_DEVICELOST - offscreen too - and TestCooperativeLevel agrees; the game's
 // draws after the loss are not kept in an open frame; "[GXNATIVE] FATAL device lost" is printed once. Planted: Present ignores
 // the latched loss (D3D_OK).
@@ -2458,7 +2458,7 @@ bool caseDeviceLost(Env& e, std::string* d)
 }
 
 // GetIndices = d3d8_device.cpp's: the bound index buffer (AddRef'd) and the SetIndices base vertex; a null out-pointer -> INVALIDCALL
-// with *pp cleared. L2's whole-run fallback calls it, so it is not a never-called method any more (rw3-G-3, Codex
+// with *pp cleared. L2's whole-run fallback calls it, so it is not a never-called method any more (rw3-G-3,
 // rw3G-l2design-r4 P3). Planted: still counted as never called.
 bool caseGetIndices(Env& e, std::string* d)
 {
@@ -2494,7 +2494,7 @@ bool caseStateGetters(Env& e, std::string* d)
 	CHECK(SUCCEEDED(e.dev->CreateTexture(8, 8, 1, 0, D3DFMT_A8R8G8B8, D3DPOOL_MANAGED, &t)) && t, "CreateTexture");
 	CHECK(SUCCEEDED(e.dev->CreateVertexBuffer(64, D3DUSAGE_WRITEONLY, D3DFVF_XYZRHW | D3DFVF_TEX1, D3DPOOL_MANAGED, &vb)) && vb,
 		"CreateVertexBuffer");
-	if (!t || !vb) {   // release whichever was made: a live resource keeps the device alive past the arm (Codex code-r4 P3)
+	if (!t || !vb) {   // release whichever was made: a live resource keeps the device alive past the arm
 		if (t)
 			t->Release();
 		if (vb)
@@ -2532,7 +2532,7 @@ bool caseStateGetters(Env& e, std::string* d)
 // A22's per-draw set reuse. One textured quad drawn three times in one frame: bias 0, bias 0 again (no new sampler, no new texture
 // set: A22 reuses), then bias -1 (a new sampler key, so a new set). Both directions in one arm. The key is the REQUESTED bias;
 // MoltenVK then clamps the VkSampler's mipLodBias to 0 (GxSamplers.cpp, residual R29): this checks the plumbing, not the picture.
-// What a draw BINDS (Codex hud-seam-rebase-r1 P2: allocation counts alone do not prove a rebind): the arm wraps the two entry points
+// What a draw BINDS (allocation counts alone do not prove a rebind): the arm wraps the two entry points
 // the writer records through (volk globals, the same ones gx_cmd_tap swaps) and remembers each texture set's stage-0 sampler from
 // its descriptor writes (binding i = stage i) and the sets last bound for graphics.
 PFN_vkCmdBindDescriptorSets g_spyRealBind = nullptr;
@@ -2682,7 +2682,7 @@ bool caseLodBiasSampler(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3-T-cut2a-r1 #5c: a loss latched DURING a Present (rw3-T's VkCtx latches it in the frame-ring slot wait inside
+// #5c: a loss latched DURING a Present (rw3-T's VkCtx latches it in the frame-ring slot wait inside
 // ensureFrame) makes THAT Present answer DEVICELOST - not one more D3D_OK - with one FATAL line. Injected right after ensureFrame.
 // Planted: Present does not re-check before it returns.
 bool caseDeviceLostMidPresent(Env& e, std::string* d)
@@ -2848,7 +2848,7 @@ struct VelScene
 // E · look-shadowmaps-9 (sm-vel-*, sm-seam-*): with g_velShadow set, the world draws are a CLAMPED OWN-LIGHT CASTER (CAST, the own light
 // mu 0.5 / z0 0) in a shadow-map frame, followed by a receiver on the back buffer (velShadowWorld, with the S7 cases below)
 IGxShadowMap* g_velShadow = nullptr;
-bool g_velProbeRepacked = false;   // velShadowWorld's WORLD probe was drawn from a FULL repack (its precondition, Codex tc-r2 #1)
+bool g_velProbeRepacked = false;   // velShadowWorld's WORLD probe was drawn from a FULL repack (its precondition)
 void velShadowWorld(Env& e, IGxShadowMap* sm, bool begin);
 
 // The world pass: back buffer + depth cleared, the quad (and an optional occluder at z 0.25 over x < 0) drawn FF with depth write.
@@ -3071,7 +3071,7 @@ bool caseFdepthVelOccluded(Env& e, std::string* d)
 	return ok;
 }
 
-// codex units-code-r1 #7 + r2 #4/#6: the FF-exactness claim itself, with an EQUAL depth gate (a replay depth that is merely nearer fails).
+// + r2 #4/#6: the FF-exactness claim itself, with an EQUAL depth gate (a replay depth that is merely nearer fails).
 // (a) parallel quad: a rotated + translated world, a translated view, a perspective projection; the replay builds its constants as the
 //     bridge does (WorldView = GxPackFFWorld's dxm product, columns uploaded). Under ZFUNC EQUAL the replay must cover EXACTLY the FF
 //     draw's pixels, with one uniform velocity: the quad's z = 0.5 + view 2 = depth 2.5, and the previous world shifted by dx = -0.1
@@ -3184,8 +3184,8 @@ bool caseVelRigidPersp(Env& e, std::string* d)
 					want(x, y, &wx, &wy);
 					const float dx = std::fabs(halfToFloat(h[0]) - wx), dy = std::fabs(halfToFloat(h[1]) - wy);
 					*worst = std::max(*worst, std::max(dx, dy));
-					// a NaN component counts (codex units-code-r5 #2); so does any alpha but gx:vel-ps's exact 1 - the shared decoder
-					// reads a half NaN as infinity, which passes the "written" test above (codex units-rb-r1)
+					// a NaN component counts; so does any alpha but gx:vel-ps's exact 1 - the shared decoder
+					// reads a half NaN as infinity, which passes the "written" test above
 					*badVel += !(dx <= 0.01f && dy <= 0.01f && halfToFloat(h[3]) == 1.f);
 				}
 			}
@@ -3220,7 +3220,7 @@ bool caseVelRigidPersp(Env& e, std::string* d)
 	CHECK(covered > 200, ("(b) FF tilted quad covers " + std::to_string(covered) + " px").c_str());
 	CHECK(mismatch == 0, ("(b) EQUAL-depth jittered replay coverage differs from the jittered FF draw on " + std::to_string(mismatch) + " px").c_str());
 	CHECK(badVel == 0, ("(b) jitter leaked into the velocity: up to " + std::to_string(worst) + " px on " + std::to_string(badVel) + " px").c_str());
-	// (c) codex units-code-r3 #6: the tilted quad (clip w varies) with the previous camera rotated 10 deg about its view axis: the
+	// (c): the tilted quad (clip w varies) with the previous camera rotated 10 deg about its view axis: the
 	// previous view-space position is (x c - y s, x s + y c, z), so every pixel's previous NDC is its current NDC rotated by 10 deg -
 	// a per-pixel velocity that varies across the quad and does not depend on depth. A shader that divided the clip positions at the
 	// vertices (then interpolated) would miss it wherever w varies.
@@ -3239,7 +3239,7 @@ bool caseVelRigidPersp(Env& e, std::string* d)
 	CHECK(arm(tvb, W, nullptr, P, noJit, pcC, rotField, &covered, &mismatch, &badVel, &worst), "(c) tilted rotating-camera arm");
 	CHECK(mismatch == 0, ("(c) EQUAL-depth replay coverage differs from the FF draw on " + std::to_string(mismatch) + " px").c_str());
 	CHECK(badVel == 0, ("(c) per-pixel velocity off the rotation's by up to " + std::to_string(worst) + " px on " + std::to_string(badVel) + " px").c_str());
-	// Skins (codex units-code-r4 #6: vel-skin's identity matrices cannot see the previous-camera path). A skin draws CPU-skinned
+	// Skins (vel-skin's identity matrices cannot see the previous-camera path). A skin draws CPU-skinned
 	// WORLD-space positions with world = identity; the bridge copies them into its (current, previous) buffer and replays with
 	// c0-3 = view * identity, c4-7 = the projection, c8-11 = the previous view * projection (GxMotionUnits.cpp onDraw).
 	// (d) the tilted quad's world positions, previous = current in the stream, previous camera = arm (c)'s: EQUAL coverage and (c)'s
@@ -3295,7 +3295,7 @@ bool caseVelRigidPersp(Env& e, std::string* d)
 }
 
 // key off (host.motionUnits false): the GXRA format is not registered (O cannot even be created) and the velocity programs have no
-// module, so a gx:vel draw is refused (codex units-code-r2 #2: key off probes and knows no new format)
+// module, so a gx:vel draw is refused (key off probes and knows no new format)
 bool caseVelOff(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -3398,7 +3398,7 @@ bool fgGuardCase(Env& e, std::string* d, bool expectOff)
 bool caseFgGuardFrameGen(Env& e, std::string* d) { return fgGuardCase(e, d, true); }
 bool caseFgGuardReflex(Env& e, std::string* d) { return fgGuardCase(e, d, true); }
 bool caseFgGuardOff(Env& e, std::string* d) { return fgGuardCase(e, d, false); }
-// E · seam-worker-2 (dlss-integrator's ruling 18/10, Codex seam2 design r1 P1): a LOADED Streamline alone (no FrameGen, no Reflex: DLSS SR
+// E · seam-worker-2 (dlss-integrator's ruling 18/10, seam2 design r1 P1): a LOADED Streamline alone (no FrameGen, no Reflex: DLSS SR
 // or GX_STREAMLINE_FORCE_LOAD=1) turns the submit thread off too - its present hooks must not run on gx-vk-submit while the producer
 // evaluates. The harness injects a fake host.streamline (fgguard-streamline): a non-Streamline gx_device never dereferences it (dlssInit and
 // the loader root are stubs there), a Streamline build would - SKIP there. X- (fgGuardSkipped): the guard skipped leaves the thread ON.
@@ -3727,7 +3727,7 @@ std::string hex(uint32_t v)
 	return b;
 }
 
-// An X- arm is a detection only when its failure IS the plant's stale value (Codex a25-code-r3): A25_CHECK = an assertion the plant
+// An X- arm is a detection only when its failure IS the plant's stale value: A25_CHECK = an assertion the plant
 // must NOT break (setup, the first draw, readback, reuse counts, refusals); A25_SYM(good, stale, what) = one it MUST break, whose
 // failure counts as the symptom only when the observed value is exactly what the stale state produces - anything else is "other".
 #define A25_CHECK(cond, what) do { if (!(cond)) { *d += std::string(" ") + (what); ok = false; e.a25Other = true; } } while (0)
@@ -3787,7 +3787,7 @@ bool caseA25Cull(Env& e, std::string* d)
 	const uint32_t p0 = a25Px(e, bb, 8), pcw = a25Px(e, bb, 32), pccw = a25Px(e, bb, 56);
 	A25_CHECK(p0 == 0x22aa66, ("CULL NONE pixel " + hex(p0)).c_str());
 	// the quad is clockwise on screen: D3D's front face (VK_FRONT_FACE_CLOCKWISE through the negative-height viewport), so CULL_CW
-	// removes it and CULL_CCW keeps it (Codex a25-code-r1 #6: exact outcomes, not just "one of the two")
+	// removes it and CULL_CCW keeps it (exact outcomes, not just "one of the two")
 	A25_SYM(pcw == 0, pcw == 0x22aa66, ("CULL CW pixel " + hex(pcw) + " (want 000000: the clockwise quad is culled)").c_str());
 	A25_CHECK(pccw == 0x22aa66, ("CULL CCW pixel " + hex(pccw) + " (want 22aa66)").c_str());
 	A25_CHECK(e.nd->stats().drawsRefused == 0, "a draw was refused");
@@ -3797,7 +3797,7 @@ bool caseA25Cull(Env& e, std::string* d)
 }
 
 // stencil cleared to 0x10; EQUAL/0x10 drawn, then STENCILREF 0x20 (EQUAL rejects), then STENCILFUNC GREATER (D3D compares ref OP
-// stencil: 0x20 > 0x10 passes - a stale EQUAL with the live reference would reject; Codex a25-code-r1 #3)
+// stencil: 0x20 > 0x10 passes - a stale EQUAL with the live reference would reject)
 bool caseA25Stencil(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -4069,7 +4069,7 @@ namespace smrcv {
 struct V { float x, y, z; DWORD c; };
 const DWORD kShadow = 0xff4080c0;
 // A39/A41 (D · look-shadowmaps-3): persp = a PERSPECTIVE light at L = (2, 0, -1) looking along +z, the caster's edge at x = 0.8: the
-// receivers' boundary lands at x = 0.56 (1.2 x 0.8 - 0.4); read WITHOUT the perspective divide it would land at 0.4 (Codex code-a39-r1:
+// receivers' boundary lands at x = 0.56 (1.2 x 0.8 - 0.4); read WITHOUT the perspective divide it would land at 0.4 (
 // an edge at clip x 0 cannot tell the two apart); own = 1: the caster is captured under an own light (mu 0.5, z0 0) and the
 // receiver (z 0.2) drawn WITHOUT it, own = 2: the receiver drawn with it too (A41: see caseSmOwnLight)
 // A44 (D · look-shadowmaps-4): drops = 1 adds two NON-casters over the right half under CAST_ONLY (no CAST; CAST with z write off),
@@ -4080,12 +4080,12 @@ const DWORD kShadow = 0xff4080c0;
 // vertices or the indices shadows nothing); 2 = the other VERTICES written BEFORE the capture (sensitivity: the shadow must leave the
 // right half); 3 = CAST_ONLY|SOLID without CAST (g); 4 = z test off (h); 5 = the drawn path, CAST|SOLID without CAST_ONLY (j: SOLID
 // ignored, z write off -> not captured); 6 = the right quad with the degenerate INDICES written before the capture (A64: IB sensitivity).
-// The worker is drained between the capture and the refills (A64, Codex a61-code-r1 #3): a deterministic schedule in which only the
+// The worker is drained between the capture and the refills (A64): a deterministic schedule in which only the
 // slice's lastUse stamp keeps a DISCARD off the captured slice, at CS0 and CS1 alike.
 bool frame(Env& e, IGxShadowMap* sm, uint32_t step, bool copyMid, std::vector<uint8_t>* px, uint32_t* w, uint32_t* h, std::string* d,
 	bool c0Away = false, bool realView = false, bool persp = false, int own = 0, int drops = 0, int solid = 0)
 {
-	// Codex code-p2-r2: a draw the worker refuses still returns D3D_OK - every error counter is snapshotted by value and compared after
+	// a draw the worker refuses still returns D3D_OK - every error counter is snapshotted by value and compared after
 	// the synchronized readback, so a refusal is infrastructure, never a "detection"
 	auto errors = [&] {
 		const GxNativeStats s = e.nd->stats();
@@ -4095,7 +4095,7 @@ bool frame(Env& e, IGxShadowMap* sm, uint32_t step, bool copyMid, std::vector<ui
 	e.nd->csSync();
 	const uint64_t err0 = errors();
 	const GXRender::Rec::GxCasterStats cs0 = e.nd->testCasters().stats();
-	// Codex code-p2-r3: the readback must be THIS frame's - a per-frame clear colour in the border the receiver leaves must come back
+	// the readback must be THIS frame's - a per-frame clear colour in the border the receiver leaves must come back
 	// exactly (a refused late submission would hand back the previous capture)
 	static uint32_t s_frameNo = 0;
 	const DWORD clear = 0xff000000u | ((0x2a1b0cu * ++s_frameNo) & 0x7f7f7fu);
@@ -4110,7 +4110,7 @@ bool frame(Env& e, IGxShadowMap* sm, uint32_t step, bool copyMid, std::vector<ui
 	f.rect[1][2] = f.rect[1][3] = 2048;
 	for (int i = 0; i < 4; ++i)
 		f.lightViewProj[0][i * 5] = f.lightViewProj[1][i * 5] = 1.f;
-	if (c0Away)   // c0's depth range moved off the receiver (z' = z + 1: the receiver at 1.5) - only c1 covers it (Codex code-p2-r1)
+	if (c0Away)   // c0's depth range moved off the receiver (z' = z + 1: the receiver at 1.5) - only c1 covers it
 		f.lightViewProj[0][14] = 1.f;
 	f.shadowColor = kShadow;
 	f.depthRangeWU[0] = f.depthRangeWU[1] = 1.f;
@@ -4206,7 +4206,7 @@ bool frame(Env& e, IGxShadowMap* sm, uint32_t step, bool copyMid, std::vector<ui
 			SUCCEEDED(e.dev->CreateIndexBuffer(24 * sizeof(uint16_t), D3DUSAGE_DYNAMIC | D3DUSAGE_WRITEONLY, D3DFMT_INDEX16, D3DPOOL_DEFAULT,
 				&sib));
 		auto fill = [&](UINT slot, const V* q, DWORD flags, bool degenerate) {   // slot k: vertices [4k, 4k + 4), indices [6k, 6k + 6)
-			// the INDEX buffer first (Codex a64-r2 #1): a VB DISCARD rename queues a worker command, after which an IB DISCARD must take a
+			// the INDEX buffer first: a VB DISCARD rename queues a worker command, after which an IB DISCARD must take a
 			// fresh slice whatever its stamp - so an IB lock after it could never show an IB-only retention failure at CS1
 			if (!svb || !sib)
 				return false;
@@ -4295,7 +4295,7 @@ bool frame(Env& e, IGxShadowMap* sm, uint32_t step, bool copyMid, std::vector<ui
 	}
 	if (bb)
 		bb->Release();
-	if (!ok) {   // infrastructure, never a detection (Codex code-p2-r1: an X- arm must fail on its own symptom only)
+	if (!ok) {   // infrastructure, never a detection (an X- arm must fail on its own symptom only)
 		*d += " [frame setup/draw/copy/present/read failed]";
 		e.setupFailed = true;
 	}
@@ -4691,7 +4691,7 @@ bool caseSmStepCompile(Env& e, std::string* d)
 		return uint64_t(s.genericMiss) + s.customMiss + s.customBuilt + s.specQueued + s.failed + s.prebuildWait;
 	};
 	const uint64_t c0 = compiles();
-	// E · look-shadowmaps-9 (PREREG 3.3 "0 image creations", integrator 02:1xZ 19/10; Codex wb-tests-r1 #3, tc-r1 #1): the atlas image
+	// E · look-shadowmaps-9 (PREREG 3.3 "0 image creations", integrator 02:1xZ 19/10; tc-r1 #1): the atlas image
 	// itself, every device-level creation (GxNativeStats::creates) and every VMA allocation (images and buffers) stay put across the step
 	// changes - snapshotted after EVERY step frame. Residual limit (integrator 2056): an image created and destroyed between two snapshots
 	// is not seen; shadowMapCreate, S7's only image creation, runs at device init only.
@@ -4731,7 +4731,7 @@ bool caseSmStepCompile(Env& e, std::string* d)
 	const uint64_t creates1 = e.nd->stats().creates, allocs1 = allocs();
 	if (extra)
 		extra->Release();
-	// Codex tc-r2 #2: a refused control draw (its new pipeline failed) would still move the compile counters - smrcv's refusal / error
+	// a refused control draw (its new pipeline failed) would still move the compile counters - smrcv's refusal / error
 	// counters around it: any increase is setup, never a pass nor a detection
 	auto errors = [&] {
 		const GxNativeStats s = e.nd->stats();
@@ -4880,7 +4880,7 @@ void velShadowWorld(Env& e, IGxShadowMap* sm, bool begin)
 		return;
 	}
 	sm->SetOwnLight(0);
-	// Codex tc-r1 #4: the world quad again as a plain depth draw (own light 0, no tag) WITHOUT re-setting WORLD (the stream is still
+	// the world quad again as a plain depth draw (own light 0, no tag) WITHOUT re-setting WORLD (the stream is still
 	// velWorld's quad): a translator that scaled its STORED world in place while capturing would write depth 0.25 here, and the velocity
 	// replay at 0.5 fails its LESSEQUAL test - WORLD is restored only after this probe. tc-r2 #1: own light and tags do not invalidate the
 	// translator's cached FF pack, so TEXTUREFACTOR (a GxPackFF input this draw does not shade with: COLOROP SELECTARG2 diffuse) changes
@@ -5018,7 +5018,7 @@ bool caseSmCastOnlyNoScope(Env& e, std::string* d)
 	return pixels && flushScopes == 0 && flushMain == 0 && castOnly == 1 && worldScopes == 1;
 }
 
-// Codex wb-tests-r1 #1 (integrator 02:3xZ 19/10; PREREG 3.3 "caster captured only under cast=1"): an ORDINARY mesh (the drawn path, no
+// (integrator 02:3xZ 19/10; PREREG 3.3 "caster captured only under cast=1"): an ORDINARY mesh (the drawn path, no
 // CAST_ONLY: z test + z write) is captured iff its draw carries CAST - the translator's tag guard decides, not the test. Two frames, the same
 // mesh over the left half: tag NONE -> captured +0 and the grey receiver unshadowed; tag CAST -> captured +1 and its left half shadowed.
 // X-sm-cast-ordinary (BROKEN INPUT): the NONE frame's mesh tagged CAST - its "not captured, not shadowed" checks fail.
@@ -5062,7 +5062,7 @@ bool caseSmCastOrdinary(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex wb-tests-r1 #2 (integrator 02:3xZ 19/10; PREREG 3.3 "the apply rule per blend mode"): the PIXEL outcome of a modulate pass over a
+// (integrator 02:3xZ 19/10; PREREG 3.3 "the apply rule per blend mode"): the PIXEL outcome of a modulate pass over a
 // shadowed receiver. A white receiver (left half shadowed: kShadow), then a modulate pass of grey M over it, RECEIVE-tagged as the game's
 // receive window tags it: left = kShadow x M, right = M - the shadow applied ONCE (by the receiver), never again by the modulate pass. Both
 // forms: DESTCOLOR / ZERO and ZERO / SRCCOLOR.
@@ -5233,7 +5233,7 @@ bool smReplayCase(Env& e, std::string* d, bool noDraw)
 		" (want " + std::to_string(wantPasses) + "); left_off=" + std::to_string(left) + (left ? " first " + fl : "") + " right_off=" +
 		std::to_string(right) + (right ? " first " + fr : "");
 	sm->Release();
-	if (g_brokenInput && (left || right)) {   // Codex p4-code-r2 #3: under X- only the count symptom may fail - a wrong picture is setup
+	if (g_brokenInput && (left || right)) {   // under X- only the count symptom may fail - a wrong picture is setup
 		*d += " [X-: the picture failed too: not a detection]";
 		e.setupFailed = true;
 		return false;
@@ -5285,8 +5285,8 @@ bool caseSmPrewarm(Env& e, std::string* d)
 // discarded, the red shows - the picture reads colour AND depth. TODAY (key off; key on at 1x): every pixel is red or white, the edge
 // at columns 31 | 32. NEW (key on at 4x): red through column 30, white from column 34, the resolved mix only at the edge columns (31-33),
 // in every row. X- (a2cSpecBitOff): A2C in the pipeline without the ramp - raw alpha decides coverage, the white side mixes far past
-// the edge. Codex a2c-code-r1 #1: everything but that pixel rule is SETUP (draws, Present, the readback, the [GXA2C] line, the session state,
-// validation) - a broken run is never counted as the plant detected. Codex a2c-code-r2 #7: so are the draw counts (translator: 2 drawn, 0
+// the edge. everything but that pixel rule is SETUP (draws, Present, the readback, the [GXA2C] line, the session state,
+// validation) - a broken run is never counted as the plant detected. so are the draw counts (translator: 2 drawn, 0
 // refused, 1 A2C draw iff the session has A2C; writer: 0 refused) and the picture's STRUCTURE, which holds with or without the ramp
 // (red through column 30 in every row - the hard test and the ramp both drop alpha < 0x7c - and something white-ish from column 40):
 // an all-red picture from a refused draw is SETUP, never "detected". The X- plant shows ONLY as mixing off the edge.
@@ -5399,14 +5399,14 @@ bool a2cRamp(Env& e, std::string* d, bool wantA2c, const char* wantLine)
 	SETUP(e.nd->testA2COn() == wantA2c, "the session's A2C state");
 	const GxNativeValidation v = e.nd->validation();
 	SETUP(v.errors == 0 && v.hazards == 0, ("validation " + std::to_string(v.errors) + "/" + std::to_string(v.hazards) + " " + v.first).c_str());
-	if (wantA2c)   // Codex a2c-code-r4 #7: the plant's own symptom gets its own token; the runner counts X-a2c-ramp ONLY with it
+	if (wantA2c)   // the plant's own symptom gets its own token; the runner counts X-a2c-ramp ONLY with it
 		CHECK(mixedFar == 0, "[mixing off the edge: " + std::to_string(mixedFar) + " px]");
 	CHECK(badR == 0 && hardWrong == 0 && mixedFar == 0 && rowsNoMix == 0, wantA2c ? "[the A2C edge]" : "[today's hard edge]");   // the ONLY rule
 	return ok;
 }
 bool caseA2cRamp(Env& e, std::string* d) { return a2cRamp(e, d, true, "[GXA2C] state=on samples=4"); }
 
-// B · a2c-1 (A108; Codex a2c-code-r2 #6): a Reset to another MSAA. Key on (created at 4x, generic set prewarmed): the Reset to 2x prewarms
+// B · a2c-1 (A108): a Reset to another MSAA. Key on (created at 4x, generic set prewarmed): the Reset to 2x prewarms
 // the 2x configurations and their A2C twins before it returns (a "[GXA2C] reset prewarm samples=2" line, twins added, none failed); a Reset
 // that keeps 4x prewarms nothing more. X- (a2cResetNoPrewarm): no prewarm at 2x - no twin added. Key off (a2c-reset-off): the Reset queues
 // nothing new - today's Reset.
@@ -5440,7 +5440,7 @@ bool a2cReset(Env& e, std::string* d, bool keyOn)
 }
 bool caseA2cReset(Env& e, std::string* d) { return a2cReset(e, d, true); }
 
-// B · a2c-1 (Codex a2c-code-r3 #4): the keys a session already DREW survive an MSAA Reset. A draw state outside the census (pre-transformed
+// B · a2c-1: the keys a session already DREW survive an MSAA Reset. A draw state outside the census (pre-transformed
 // diffuse + specular, no texture; MEASURED outside: its 4x draws miss) is drawn at 4x with the alpha test off, then on: key on = 2 misses (the plain key and its A2C key - SETUP:
 // else the state is in the census and the arm proves nothing), key off = 1 (one shared key). Reset to 2x, the same two draws: key on = 0 new
 // misses (the Reset retargeted both keys to 2x); key off = 1 (today: the 4x key does not serve 2x). X- (a2cResetNoRetarget): key on misses
@@ -5502,13 +5502,13 @@ bool a2cResetDraw(Env& e, std::string* d, bool keyOn, D3DMULTISAMPLE_TYPE to = D
 }
 bool caseA2cResetDraw(Env& e, std::string* d) { return a2cResetDraw(e, d, true); }
 bool caseA2cResetDrawOff(Env& e, std::string* d) { return a2cResetDraw(e, d, false); }
-// Codex a2c-code-r4 #4: an INCREASING MSAA (created 2x, Reset to 4x) - the default mask normalised to 0x3 at 2x must reach 4x as 0xf
+// an INCREASING MSAA (created 2x, Reset to 4x) - the default mask normalised to 0x3 at 2x must reach 4x as 0xf
 bool caseA2cResetDrawUp(Env& e, std::string* d) { return a2cResetDraw(e, d, true, D3DMULTISAMPLE_4_SAMPLES); }
 bool caseA2cResetOff(Env& e, std::string* d) { return a2cReset(e, d, false); }
 bool caseA2cRampOff(Env& e, std::string* d) { return a2cRamp(e, d, false, nullptr); }
 bool caseA2cRamp1x(Env& e, std::string* d) { return a2cRamp(e, d, false, "[GXA2C] state=off samples=1"); }
 
-// B · a2c-2 (Codex a2c-code-r9 #6; SCOPE_a2c.md "keep a discard only for alpha that is fully transparent"): a SHARP alpha step inside one
+// B · a2c-2 (SCOPE_a2c.md "keep a discard only for alpha that is fully transparent"): a SHARP alpha step inside one
 // 2x2 derivative quad - texel x <= 32 alpha 0, x >= 33 alpha 255, white, POINT, one texel per pixel - so fwidth(alpha * 255) = 255 at
 // columns 32 | 33. At GE 0x60 the bare ramp gives the alpha-0 texel 12.5 % coverage, at GE 0x08 47 %. Drawn at z 0.5 with z writes, a red
 // quad behind at z 0.7: column 32 must stay PURE red in every row (no sample took the transparent texel's colour or depth) and column 33
@@ -5745,7 +5745,7 @@ bool caseA2cPrewarmFail(Env& e, std::string* d)
 	GXRender::g_gxPipeTestMutants.failA2cKeys = true;
 	const HRESULT hr = GxNativeCreateDevice(&parent, 0, D3DDEVTYPE_HAL, nullptr, D3DCREATE_MIXED_VERTEXPROCESSING, pp, host, &dev, &why);
 	GXRender::g_gxPipeTestMutants.failA2cKeys = false;
-	// Codex a2c-code-r8 #5: the plant must have been REACHED (an A2C key refused by it during this creation), and a creation failure counts
+	// the plant must have been REACHED (an A2C key refused by it during this creation), and a creation failure counts
 	// as the planted symptom only when it is the generic-set closure's - anything else is a setup failure (no detection, never a pass)
 	const unsigned hits = GXRender::g_gxPipeTestMutants.failA2cHits.load() - hits0;
 	const bool planted = hits > 0;
@@ -5804,7 +5804,7 @@ bool caseA2cPrewarmFailReset(Env& e, std::string* d)
 	GXRender::g_gxPipeTestMutants.failA2cKeys = false;
 	const unsigned hits = GXRender::g_gxPipeTestMutants.failA2cHits.load() - hits0;
 	*d += "plant_hits=" + std::to_string(hits) + " ";
-	// Codex a2c-code-r8 #5: the Reset itself succeeded and its prewarm reached the plant (an incomplete "reset prewarm samples=2" line and a
+	// the Reset itself succeeded and its prewarm reached the plant (an incomplete "reset prewarm samples=2" line and a
 	// planted refusal after it) - else the arm never got to its gate (a setup failure, no detection)
 	bool offLine = false, prewarmFailed = false;
 	const bool planted = hits > 0;
@@ -5872,7 +5872,7 @@ struct Case
 	// render/integration's fields (merge of 120c574b3): AFTER A23-B's, so A23-B's ~100 positional rows keep their meaning; the 9 rows
 	// that set one of these carry A23-B's defaults (false, 0, 0, false, 0, false, 0) first (rw3-W/kcases-fields.py: 0 misfits)
 	bool GXRender::Rec::GxRecDebug::*recPlant = nullptr;   // ... or in the packet writer (PREREG_T A25 P3)
-	bool symptomGated = false;   // A25: the X- arm counts only if EVERY failure is the plant's stale value (Codex a25-code-r1 #4, r3)
+	bool symptomGated = false;   // A25: the X- arm counts only if EVERY failure is the plant's stale value
 	D3DFORMAT bbFormat = D3DFMT_A8R8G8B8;   // the back buffer's format (the native device admits A8R8G8B8 and X8R8G8B8 only, S4)
 	UINT bbW = 64, bbH = 64;                 // the back buffer's size (the window is it times windowScale); bbWidth, when set, wins
 	bool motionUnits = false;  // host.motionUnits (GX_MOTION_UNITS, PREREG_T A35); LAST: the vel-* rows carry A23-B's and W-a's defaults first
@@ -5885,10 +5885,10 @@ bool serialArm(const Case& c)
 	return !isAsyncArm(c.name) && !c.needsCs && std::strncmp(c.name, "thread-", 7) != 0 && std::strcmp(c.name, "cs-exec-ledger") != 0;
 }
 
-// idle-pressure (PREREG_T A26 amendment 1: the integrator's two-direction arm = Codex perfaudit-a26-r1 P1 through the D3D8 path).
+// idle-pressure (PREREG_T A26 amendment 1: the integrator's two-direction arm = through the D3D8 path).
 // With no frame open (no draw, clear or present yet), 12 cycles of a 16 MiB MANAGED vertex buffer created, written, unlocked and
 // released. Each unlock's staging waits for a submission nobody makes unless the idle flush fires. Every cycle must really stage its
-// 16 MiB (GXRES stagingBytes, no GXRES error - Codex a26-r2 #2). Clean: the flushes fall EXACTLY where the model puts them (pressure
+// 16 MiB (GXRES stagingBytes, no GXRES error). Clean: the flushes fall EXACTLY where the model puts them (pressure
 // starts at what device creation staged, +16 MiB per cycle, a flush past 32 MiB resets it - a26-r2 #3: an early or extra flush
 // fails), the pressure after each cycle equals the model, and no staging leaves the 64 MiB ring. The X arm (stagingPressure() =
 // pendingBytes(), A26 v1's trigger) is detected ONLY by its own symptom: every cycle staged, no flush at all, >= 4 overflow buffers.
@@ -6148,7 +6148,7 @@ bool caseCsWake(Env& e, std::string* d)
 		order = ran[i] == i;
 	CHECK(done == queued && order, "the records did not all run once, in push order, before the wait returned");
 	CHECK(st.leadWaits == 1, "the wait was not one counted lead wait");
-	// the bound is on the worker's notifies: a condition variable may also return spuriously (wakes stay a diagnostic - Codex rf2-a55-r1 #3)
+	// the bound is on the worker's notifies: a condition variable may also return spuriously (wakes stay a diagnostic)
 	CHECK(st.producerNotifies <= 2, "the sleeping producer was woken per record (the wake storm)");
 	CHECK(st.seqErrors == 0, "sequence errors");
 	return ok;
@@ -6158,7 +6158,7 @@ bool caseCsWake(Env& e, std::string* d)
 // before the first of 1..17 new records, the producer asleep before the release - the case a wrong wake target can never wake;
 // (2) 20000 waits for a random queued seq with the worker free; (3) the worker held at the next record while 400 x 1 KiB records go
 // into the 64 KiB ring: the producer SLEEPS waiting for room (released once it is), and is woken by progress - its wakes counted
-// before the final drain (Codex rf2-a55-r1 #2). X-cs-wake-target (the worker wakes only once PAST the target) must hang
+// before the final drain. X-cs-wake-target (the worker wakes only once PAST the target) must hang
 // in (1).
 bool caseChildCsWakeTarget(Env& e, std::string* d)
 {
@@ -7228,7 +7228,7 @@ bool csResetDrainPlantedChild(Env& e, std::string* d)
 	std::atomic<bool> released { false }, printed { false };
 	// the release comes only AFTER the verdict is out (the plant: Reset returned with the worker held) or when Reset really waits for
 	// the worker (a plant that changed nothing: the drain blocks until this release) - never on a timer that can beat the verdict
-	// (Codex rf2-xreset-r1 #1); 30 s is the backstop for neither
+	// 30 s is the backstop for neither
 	std::thread helper([&] {
 		const auto t0 = std::chrono::steady_clock::now();
 		while (!printed.load() && !(s.testHeld() && s.testProducerWaiting()) &&
@@ -8568,7 +8568,7 @@ bool csResetDrainPlantedParent(Env& e, std::string* d)
 	const ChildRun c = runSelf("X-child-cs-reset-drain", { { "GX_NATIVE_CS", "1" } }, 60);
 	const std::vector<std::string> v = c.lines("[TEST] RESET-DRAIN ");
 	*d += "child " + c.how() + (v.empty() ? ", no verdict line" : ", " + v[0].substr(7));
-	// judged by ITS symptom only, from a COMPLETE verdict line (every field, the end marker - Codex rf2-xreset-r1 #2): Reset returned while
+	// judged by ITS symptom only, from a COMPLETE verdict line (every field, the end marker): Reset returned while
 	// the worker was still held (no drain) or touched worker state
 	long hr = 0;
 	int rf = -1;
@@ -8592,7 +8592,7 @@ bool caseCsWakeTarget(Env& e, std::string* d)
 	*d += "child " + c.how();
 	// the X- child exits non-zero when its case HOLDS (the runner inverts a planted arm), so a planted run is judged by the hang alone:
 	// broken iff the child started the arm, never reached its last line and was ended by the arm watchdog - a plant that changed
-	// nothing, or a child that failed for any other reason (spawn, setup, a crash), fails this X- arm (Codex rf2-a55-r1 #1)
+	// nothing, or a child that failed for any other reason (spawn, setup, a crash), fails this X- arm
 	const bool started = c.lines("[TEST] WAKE-TARGET started").size() == 1, reached = c.lines("[TEST] WAKE-TARGET ok").size() == 1;
 	const bool hung = started && !reached && !c.lines("WATCHDOG: arm X-child-cs-wake-target exceeded").empty();
 	if (planted)
@@ -8605,7 +8605,7 @@ bool caseCsWakeTarget(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r8-oracle P2-1: Clear with RECTANGLES - two distinct ones, the worker held while the caller zeroes its array: exactly those
+// Clear with RECTANGLES - two distinct ones, the worker held while the caller zeroes its array: exactly those
 // rectangles take the colour, the rest (and the shared corner of the first) keeps the previous clear, AND the exec half received
 // exactly the call's 32 bytes (EXEC sink: the pixels alone can pass a short copy when the reused ring memory still holds the same
 // rectangles from an earlier identical call - measured: the plant passed in suite order, failed alone). X-cs-clear-rect-short (the
@@ -8665,7 +8665,7 @@ bool caseCsClearRects(Env& e, std::string* d)
 	return ok;
 }
 
-// --------------------------------------------- Codex rw3x-a23b-code-r1-oracle P2-1: entry points no arm reached (each with its plant)
+// ---------------------------------------------: entry points no arm reached (each with its plant)
 // DrawIndexedPrimitive -> pixels; X-cs-drop-indexed (answered, never sent) leaves the quad undrawn. STRICT (serial).
 // r8-oracle P2-3 / r9-oracle P2-2: three colour groups (vertices 0-3, 4-7, 8-11), base vertex 4, and an IB of two index groups
 // (0-3 and 4-7, relative to the base) drawn from StartIndex 6: the draw takes the THIRD group. X-cs-indices-base-zero (exec passes
@@ -8740,7 +8740,7 @@ bool caseCsConstants(Env& e, std::string* d)
 }
 
 // Constant ranges past the register file (c96 / c8): the caller's memory ends exactly where today's read ends, a PROT_NONE page after
-// it - no fault. In a child. Merge of render/integration 120c574b3 (rw3-R11, Codex rf1-a23b-merge120-r1 P1): a VERTEX range past c95
+// it - no fault. In a child. Merge of render/integration 120c574b3: a VERTEX range past c95
 // is now REFUSED on the front (INVALIDCALL, vsConstantsRefused, nothing read, nothing changed), so the vertex half proves the refusal
 // reads nothing and the in-range boundary (c90-c95, ending at the guard page) is set; the PIXEL half (no refusal: c6 count 4 clipped to
 // c6-c7) keeps the clipped read. X-cs-const-overread (count x 16 copied) faults on the pixel call.
@@ -8869,7 +8869,7 @@ bool caseStrictShaderState(Env& e, std::string* d)
 	e.dev->SetPixelShader(h);
 	e.dev->SetPixelShader(0);
 	e.dev->DeletePixelShader(h);
-	DWORD vh = 0;   // a programmable vertex shader with code (Codex r2-oracle P2-2), and a draw through it
+	DWORD vh = 0;   // a programmable vertex shader with code, and a draw through it
 	const HRESULT hvs = e.dev->CreateVertexShader(csarm::kVsDecl, csarm::kVsCode, &vh, 0);
 	e.dev->SetVertexShader(vh);
 	csarm::QV q[4];
@@ -8884,7 +8884,7 @@ bool caseStrictShaderState(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3x-a23b-code-r2-oracle P2-2: a PROGRAMMABLE vertex shader's payload (declaration + function code) is taken at the call.
+// a PROGRAMMABLE vertex shader's payload (declaration + function code) is taken at the call.
 // The worker held; CreateVertexShader; the caller overwrites both arrays; release - the bytes the exec half saw (EXEC trace) equal
 // the originals; then a draw through it answers as today. X-cs-vs-by-ref (read from the caller when the worker runs it). ASYNC.
 namespace csarm {
@@ -8903,7 +8903,7 @@ struct VsSink final : GXRender::Dev::GxCsExecSink
 	void created(uint64_t, uint32_t, const GXRender::Dev::GxCsArg*, size_t) override {}
 };
 } // namespace csarm
-// Codex r3-oracle P2-2/P2-3: the payload of a SUPPORTED (catalogue, ported) shader - Trees.vso with its declaration / the first ported
+// /P2-3: the payload of a SUPPORTED (catalogue, ported) shader - Trees.vso with its declaration / the first ported
 // pixel shader - created with the worker held, the caller's copy overwritten at once; after the release the translator must have
 // resolved the bytes of the call as PORTED (a by-reference read, or the function pointer taken from the wrong offset, resolves to
 // UNKNOWN). For the VS the exec half's bytes are also checked against the call's. X-cs-vs-by-ref / X-cs-ps-by-ref. ASYNC.
@@ -9371,7 +9371,7 @@ bool sweepShaders(const DWORD** decl, const DWORD** vs, const DWORD** ps)
 	}
 	return *vs && *ps;
 }
-// the device's own accounting at every sweep read-back (Codex r11-oracle P2-3): the deterministic counters only (present
+// the device's own accounting at every sweep read-back: the deterministic counters only (present
 // skips / acquires and idle flushes follow timing). The same list is in the base binary's wrapper (base-sweep-arms.patch).
 void sweepCounters(void* ctx, gxsweep::S& s)
 {
@@ -9406,7 +9406,7 @@ bool caseStrictSweepMisc(Env& e, std::string* d)
 	return gxsweep::sweepMisc(e.dev, sweepHooks(e), d, decl, vs, ps) && ok;
 }
 
-// Codex r12-oracle P2-1: CreateVertexShader / CreatePixelShader over the worker's largest command (the arm's ring is 64 KiB: 16 KiB -
+// CreateVertexShader / CreatePixelShader over the worker's largest command (the arm's ring is 64 KiB: 16 KiB -
 // 256) take their S path. Trees.vso and a ported PS, each enlarged by a 4100-DWORD comment after the version token (valid: funcLen
 // and the parsers skip comments), answer D3D_OK with a handle as today; at CS=1 each creation is an S transition; the translator
 // holds a record for each (its catalogue verdict exists) - and --strict compares the received token bytes through trin.
@@ -9464,7 +9464,7 @@ bool caseStrictShaderOversize(Env& e, std::string* d)
 	return ok;
 }
 
-// ============================ rw3-X-3: Codex r16-oracle's Lock/Unlock + CopyRects census (PREREG A23-B amendment 5 (13))
+// ============================ rw3-X-3: Lock/Unlock + CopyRects census (PREREG A23-B amendment 5 (13))
 namespace csarm2 {
 // the 64x64 back buffer read back whole into px (and --strict's obs)
 bool readBB(Env& e, std::vector<uint32_t>* px)
@@ -9617,7 +9617,7 @@ int compareDrawn(Env& e, IDirect3DTexture8* t, UINT levels, UINT lvl, const Lvl&
 }
 } // namespace csarm2
 
-// Codex r16-oracle P2-1 + P2-8: buffer ranges. Static MANAGED VB / IB partial uploads at NONZERO offsets, small (queued) and over the
+// + P2-8: buffer ranges. Static MANAGED VB / IB partial uploads at NONZERO offsets, small (queued) and over the
 // 64 KiB ring's largest command (S), each drawn; a static READONLY lock / unlock uploads nothing (staging unchanged) while the same
 // writing cycle uploads; a dynamic Lock(offset, 0) covers the bytes after the offset; DISCARD | NOOVERWRITE appends (the earlier
 // quad survives); the plain-lock S path keeps the bytes it did not write. Plants (one Case row each): csUploadOffsetZero,
@@ -9802,7 +9802,7 @@ bool caseStrictBufferRanges(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r16-oracle P2-2: partial MANAGED texture uploads at NONZERO rectangles - a 32x32 level's (5,3)-(13,9) (192 bytes: queued), a
+// partial MANAGED texture uploads at NONZERO rectangles - a 32x32 level's (5,3)-(13,9) (192 bytes: queued), a
 // 128x128 level's (16,8)-(112,72) (24 576 bytes: S), a 64x64 DXT1 level's block rectangle (8,4)-(24,20) - read through the GPU (drawn
 // 1:1): the patch holds the new texels and every other texel the old ones. Plant csRectPitchSwap (each path takes the other's pitch).
 // strict-texture-partial-nobc runs it with BC unavailable (DXT1 decoded on upload). STRICT (serial).
@@ -9846,13 +9846,13 @@ bool caseStrictTexturePartial(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r16-oracle P2-3 + P2-4: host -> DEFAULT copies beyond square A8R8G8B8 images into level 0 - R5G6B5, a 4x2 extent, a
+// + P2-4: host -> DEFAULT copies beyond square A8R8G8B8 images into level 0 - R5G6B5, a 4x2 extent, a
 // destination mip 1, SYSTEMMEM and MANAGED texture-level sources (queued), and R5G6B5 / 128x32 / mip-1 copies over the arm's
 // largest command (S); DXT1: a destination at (2,4) is refused (the level unchanged), an off-grid source rect (2,0)-(6,4) is
 // accepted with today's truncated block. Each destination is filled first (a whole-level host copy), then compared texel for texel
 // with a MANAGED reference holding the expected level, both drawn 1:1. Plants (one Case row each): csHostCopyTwinA8 / Square /
 // Level0, csCopySkipDestBlockCheck, csCopyValidateSource. STRICT (serial, 64 KiB ring).
-// Codex r17-oracle: DXT1 MANAGED level sources too (8x8 queued, 256x128 over the largest command: S), and the whole table again with BC
+// DXT1 MANAGED level sources too (8x8 queued, 256x128 over the largest command: S), and the whole table again with BC
 // unavailable (strict-host-copy-nobc: a DXT1 destination is decoded A8R8G8B8 underneath; X-: csHostCopyTwinPhysFmt). The refused row
 // also asserts that no device counter moves (X-cs-host-copy-refused-count: csFrontRefusalCounts).
 bool hostCopyCases(Env& e, std::string* d, bool refusedOnly)
@@ -9945,7 +9945,7 @@ bool caseStrictHostCopy(Env& e, std::string* d) { return hostCopyCases(e, d, fal
 // 13/10: the only difference). Judged by HRESULT, contents and every device counter in both modes, not by the digest: ASYNC-classified.
 bool caseHostCopyRefused(Env& e, std::string* d) { return hostCopyCases(e, d, true); }
 
-// Codex r16-oracle P2-5: CopyRects' read-back S for the MANAGED routes - a dropped MANAGED source into a DEFAULT target and into a host
+// CopyRects' read-back S for the MANAGED routes - a dropped MANAGED source into a DEFAULT target and into a host
 // image, and a DEFAULT target into a MANAGED texture - each behind a held, queued predecessor: the producer blocks (S drains first),
 // no ownership violation, D3D_OK, and the copied texels. X-cs-copy-readback-s: the S only for DEFAULT -> SYSTEMMEM. ASYNC (held).
 // X' (rw3-X-3, render-integration-5 conditions 1-2; gate 2 found GetDesc draining the worker on every game call). cs-getdesc-nodrain:
@@ -9992,7 +9992,7 @@ bool caseCsGetDescNoDrain(Env& e, std::string* d)
 	return ok;
 }
 
-// X' (Codex r20-core P2-1, r21-core P2-1): drain ATTRIBUTION is observed at BOTH recording sites - two front drains, each held ~200 ms by
+// X' (r21-core P2-1): drain ATTRIBUTION is observed at BOTH recording sites - two front drains, each held ~200 ms by
 // the worker: an accessor (resources(): csSync, "accessor resources") and an S body (MultiplyTransform: SScope, "MultiplyTransform").
 // The next periodic stats line names both in cs_sync_top and gives each >= 150 ms in cs_drain_top. X-cs-drain-attribution: the csSync
 // site records 0 ns (csDrainTimeZero); X-cs-drain-attribution-s: the SScope site records 0 ns (csDrainTimeZeroS). ASYNC (worker held).
@@ -10222,7 +10222,7 @@ bool caseCsCopyReadbackS(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r16-oracle P2-6: a dropped MANAGED level restored for WRITING - a partial writing LockRect, and a host CopyRects into it - each
+// a dropped MANAGED level restored for WRITING - a partial writing LockRect, and a host CopyRects into it - each
 // behind a held, queued predecessor: the producer blocks (the restore's S drains first), the new texels land, the rest is restored
 // from the GPU (drawn 1:1), restores counted, no ownership violation. X-cs-managed-restore-write: the restore enters S only for
 // READONLY locks. ASYNC (held).
@@ -10286,7 +10286,7 @@ bool caseCsManagedRestoreWrite(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r16-oracle P2-7: GPU copies beyond square regions - a rectangular (3,2)-(13,7) sub-copy between DEFAULT render targets at
+// GPU copies beyond square regions - a rectangular (3,2)-(13,7) sub-copy between DEFAULT render targets at
 // (5,9) (the region and the untouched surroundings read back), and an equal-count 4x MSAA -> MSAA copy, then resolved and read back.
 // Plants (one Case row each): csCopyGpuSquareExtent, csCopyGpuMsaaFromSrc. STRICT (serial).
 bool caseStrictGpuCopyShapes(Env& e, std::string* d)
@@ -10376,7 +10376,7 @@ bool caseStrictGpuCopyShapes(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r15-oracle P2-1: host -> DEFAULT copies at NONZERO destination points land where the call says. (1) the queued path: an 8x8
+// host -> DEFAULT copies at NONZERO destination points land where the call says. (1) the queued path: an 8x8
 // image's rectangles (2,1)-(6,5) and (0,0)-(2,2) into a 16x16 DEFAULT render-target texture at (9,7) and (1,12) - only the FIRST
 // lands, as DXVK's d3d8 CopyRects does (measured both modes, base the same); (2) the oversize S
 // path (64 KiB ring): a 64x64 image into a 128x128 one at (32,40). Each target is cleared first; read back through the game's own
@@ -10482,7 +10482,7 @@ bool caseStrictCopyOffsets(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r14-oracle P2-1: CopyRects host -> a DEFAULT texture level over the worker's largest command (the arm's ring is 64 KiB: 16 KiB
+// CopyRects host -> a DEFAULT texture level over the worker's largest command (the arm's ring is 64 KiB: 16 KiB
 // - 256) takes its S path: a defined 64x64 A8R8G8B8 image into a matching DEFAULT texture's level 0 (16 384 bytes) answers D3D_OK as
 // today, enters S at CS=1, and the texels arrive - the texture drawn 1:1 (point filter) reads back exactly the image's pixels.
 // X-strict-copy-oversize: the oversize branch refuses (INVALIDCALL). STRICT (serial).
@@ -10560,7 +10560,7 @@ bool caseStrictCopyOversize(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r13-oracle P2-1: an oversize shader creation enters S - drains the worker - BEFORE it translates. With the worker HELD at a
+// an oversize shader creation enters S - drains the worker - BEFORE it translates. With the worker HELD at a
 // queued SetRenderState(TEXTUREFACTOR), each oversize creation (as strict-shader-oversize's) runs while a helper releases the hold
 // once the producer blocks; an order sink (EXEC + translator-input events in one sequence) must show the queued RenderState's EXEC
 // and translator events BEFORE the shader's translator event. X-cs-shader-oversize-order (S entered after the translation): the
@@ -10743,7 +10743,7 @@ bool caseCsOversizeOrder(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r12-core P1: the worker's stack. In a child with the submit thread OFF and CS=1, Codex's input: a 20000-rectangle Clear
+// the worker's stack. In a child with the submit thread OFF and CS=1, the review's input: a 20000-rectangle Clear
 // ({1,1,2,2} each: all survive clipping - one vkCmdClearAttachments of 20000 rects, whose MoltenVK encode stack-allocates per
 // rectangle) then Present, so the submission and its encode run on gx-native-cs. It must survive as it does on main (8 MiB).
 // X-cs-deep-clear: the stream keeps std::thread's 512 KiB stack - the child dies (measured: ___chkstk_darwin). ASYNC (as 22).
@@ -10774,7 +10774,7 @@ bool caseCsDeepClear(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r10-oracle P2-1: SetMaterial, SetLight(1) and SetViewport with the worker HELD - the caller overwrites its three structs
+// SetMaterial, SetLight(1) and SetViewport with the worker HELD - the caller overwrites its three structs
 // before the release (a stack object reused, as the game does). The translator must hold the values of the CALL (its state:
 // material, light 1, viewport) and draw with them: white material x green light 1 -> green inside the left-half viewport, the blue
 // clear outside it. X-cs-ff-payload-{material,light,viewport} (the command keeps the caller's pointer): black / red / green past
@@ -10846,7 +10846,7 @@ bool caseCsFfPayload(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r10-oracle P2-2: an already-UNBOUND supported shader deleted - its record goes at once (DXVK erases an unbound one), so a
+// an already-UNBOUND supported shader deleted - its record goes at once (DXVK erases an unbound one), so a
 // later bind of the stale handle draws nothing (refused, the clear stays) and the verdict is 255. For Trees.vso and a ported PS:
 // create, bind, draw (the shader's pixel), unbind, delete. X-strict-shader-unbound-delete (the exec half deletes only a BOUND
 // shader). STRICT (serial).
@@ -10926,7 +10926,7 @@ bool caseStrictShaderUnboundDelete(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r10-oracle P2-3: MultiplyTransform (an S body: the census never sees the game call it) really multiplies - WORLD, VIEW and
+// MultiplyTransform (an S body: the census never sees the game call it) really multiplies - WORLD, VIEW and
 // TEXTURE2 set to a known matrix A, multiplied by a distinct non-commuting B: all 16 GetTransform floats bit-equal to the product
 // in the translator's own order (m x current in this row-major storage, k ascending). X-strict-multiply (the CS=1 S body keeps the
 // drain, the accounting and D3D_OK, and skips the multiplication). STRICT (serial).
@@ -11007,7 +11007,7 @@ bool caseStrictMultiply(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r2-oracle P2-3: a TERMINAL dynamic-slice failure is counted and logged. Every slice of the buffer is read by the open frame
+// a TERMINAL dynamic-slice failure is counted and logged. Every slice of the buffer is read by the open frame
 // (none can be reused), then a DISCARD whose slice allocations all fail (3 armed; measured: 2 used - the front attempt escapes to S,
 // whose retry recovers storage first and then fails terminally) answers INVALIDCALL with no pointer, alloc_failures +1, one
 // "allocation failed: slice" line.
@@ -11062,7 +11062,7 @@ bool caseCsSliceTerminal(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex rw3x-a23b-code-r2-res P1: a recovery after a LATCHED refusal must free nothing - collect() would settle every retirement,
+// a recovery after a LATCHED refusal must free nothing - collect() would settle every retirement,
 // the open frame's included. Frame N's submit held on gx-vk-submit; Present N; frame N+1 opened (Clear) with a retirement filed under
 // its unsubmitted value; N's submit refused (latch + drain); a creation whose first attempt fails -> the S retry's recovery. The
 // open frame's retirement must not have run. X-cs-recover-ignores-latch (collect regardless) runs it. ASYNC (holds gx-vk-submit).
@@ -11107,7 +11107,7 @@ bool caseCsRecoverLatched(Env& e, std::string* d)
 	return ok;
 }
 
-// Codex r3-res P2: the WORKER's recovery after a latched refusal frees nothing either. As thread-cs-recover-latched, but the recovery is
+// the WORKER's recovery after a latched refusal frees nothing either. As thread-cs-recover-latched, but the recovery is
 // forced on the worker: a queued 12 KiB static unlock must stage through a DEDICATED buffer (8 KiB TEST staging ring) whose first
 // allocation fails. X-cs-recover-ignores-latch-worker (the guard bypassed in the worker's context only) runs the open frame's
 // retirement. ASYNC (holds gx-vk-submit).
@@ -11332,7 +11332,7 @@ bool parent(Env& e, std::string* d, const char* arm, bool slow)
 		std::to_string(fin.size()) + ", static destruction " + std::to_string(sen.size());
 	SETUP(c.lines("[TEST] cs-exit: ready").size() == 1, "the child left gated commands behind the hold");
 	if (slow && planted)   // judged by ITS symptom only: the watchdog fired DURING the drain (stage 1) after a command completed and the
-		// next one started (gate >= 2) - anything else fails this X- arm (Codex rf2-a60-r2 P2)
+		// next one started (gate >= 2) - anything else fails this X- arm
 		CHECK(!(gave.size() == 1 && gave[0].find("(stage 1,") != std::string::npos && gate.size() >= 2 && c.exited &&
 				  c.code == GxNativeDevice::kExitTerminalCode),
 			"a slow but progressing exit drain was abandoned");
@@ -11547,7 +11547,7 @@ bool caseMvCamera(Env& e, std::string* d)
 	CHECK(err < 0.02f, "vectors are not (+3, -2)");
 	const GxMotionFrame* f = e.nd->motionFrame();
 	CHECK(f && !(f->flags & GXMF_RESET) && f->frameIndex == 2, "frame flags / index");
-	// a spatial pass (not GXWP_TEMPORAL) publishes nothing; the next temporal pass restarts history (Codex motion-code-r1 #3/#4)
+	// a spatial pass (not GXWP_TEMPORAL) publishes nothing; the next temporal pass restarts history
 	e.dev->Present(nullptr, nullptr, nullptr, nullptr);
 	ok &= motionFrame(e, wd, v2, p, false, { kPlane }, {}, true, d);
 	CHECK(e.nd->motionFrame() == nullptr, "a spatial pass published motion");
@@ -11695,7 +11695,7 @@ bool caseMvObject(Env& e, std::string* d)
 	CHECK(err < 0.02f, "a pass without SetObjectVelocity still used O");
 	f = e.nd->motionFrame();
 	CHECK(f && !(f->flags & GXMF_HAS_OBJECT_MV), "GXMF_HAS_OBJECT_MV left set");
-	// registered then cancelled (SetObjectVelocity(nullptr)) = camera-only (Codex motion-code-r2 #3); a wrong-size target is refused
+	// registered then cancelled (SetObjectVelocity(nullptr)) = camera-only; a wrong-size target is refused
 	IDirect3DTexture8* smallTex = nullptr;
 	IDirect3DSurface8* ss = nullptr;
 	if (SUCCEEDED(e.dev->CreateTexture(32, 32, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &smallTex)) && smallTex)
@@ -11722,7 +11722,7 @@ bool caseMvObject(Env& e, std::string* d)
 		CHECK(SUCCEEDED(e.nd->worldObjectVelocity(os)), "register O");
 		CHECK(SUCCEEDED(e.nd->worldObjectVelocity(nullptr)), "cancel O");
 		CHECK(ss == nullptr || FAILED(e.nd->worldObjectVelocity(ss)), "a 32x32 target accepted for a 64x64 world");
-		IDirect3DTexture8* al = nullptr;   // a 2-channel target samples alpha 1: refused (Codex motion-code-r3 #3)
+		IDirect3DTexture8* al = nullptr;   // a 2-channel target samples alpha 1: refused
 		IDirect3DSurface8* als = nullptr;
 		if (SUCCEEDED(e.dev->CreateTexture(64, 64, 1, D3DUSAGE_RENDERTARGET, D3DFMT_A8L8, D3DPOOL_DEFAULT, &al)) && al)
 			al->GetSurfaceLevel(0, &als);
@@ -11788,7 +11788,7 @@ bool caseSeamMotion(Env& e, std::string* d)
 	return ok;
 }
 
-// mv-object-late (seam-worker-1 DESIGN §5, its Codex design r1 P2-2): the motion bridge's order - O is created before the frame but first
+// mv-object-late (seam-worker-1 DESIGN §5, its design r1 P2-2): the motion bridge's order - O is created before the frame but first
 // BOUND inside the world pass (a queued SetRenderTarget: the worker makes O's lazy attachment view), cleared there, the world target bound
 // back, a world draw, then worldObjectVelocity(O) at once and End. mv-object's numbers: O's vectors on the left half (alpha 1), the camera's
 // (+3, -2) on the right (alpha 0). With the worker ON (request 6). X- (xNeedsCs): seamNoSVelocity drops worldObjectVelocity's S - the
@@ -11865,7 +11865,7 @@ bool caseMvObjectLate(Env& e, std::string* d)
 
 
 // world-ref: the game releases the world depth and colour between Begin and End (and a Create* drains deferred destroys): the
-// device's own references keep both alive until End records from them (Codex motion-code-r1 #1). Validation must stay clean.
+// device's own references keep both alive until End records from them. Validation must stay clean.
 bool caseWorldRef(Env& e, std::string* d)
 {
 	bool ok = true;
@@ -11920,7 +11920,7 @@ bool caseWorldRef(Env& e, std::string* d)
 
 
 // jitter-abandon: a jittering world pass replaced by a second Begin (no End) must not leave its jittered projection for the
-// draws that follow (Codex motion-code-r2 #2). Frame 2 jitter is (-0.25, +1/6); the replacement pass is spatial (no jitter);
+// draws that follow. Frame 2 jitter is (-0.25, +1/6); the replacement pass is spatial (no jitter);
 // the edge quad drawn in it must be unjittered: column 32 uncovered. Planted: the abandon keeps the jittered projection.
 bool caseJitterAbandon(Env& e, std::string* d)
 {
@@ -11966,8 +11966,8 @@ bool caseJitterAbandon(Env& e, std::string* d)
 }
 
 
-// jitter-inherit: the projection is set BEFORE the first world pass and never again: the pass must still jitter it (Codex
-// motion-code-r4 #1). Edge at fb y 32.6 (quad below it): unjittered row 32 (centre 32.5) is uncovered; frame 1's Halton (0, -1/6)
+// jitter-inherit: the projection is set BEFORE the first world pass and never again: the pass must still jitter it.
+// Edge at fb y 32.6 (quad below it): unjittered row 32 (centre 32.5) is uncovered; frame 1's Halton (0, -1/6)
 // moves the raster up to 32.433, covering row 32. Planted: Begin does not seed the clean copy.
 bool caseJitterInherit(Env& e, std::string* d)
 {
@@ -12297,7 +12297,7 @@ bool caseFdepthForget(Env& e, std::string* d)
 	return ok;
 }
 
-// fdepth-source (Codex fdepth-r1 #5): the world's depth also serves another MSAA colour target C2 between the world's last draw and
+// fdepth-source: the world's depth also serves another MSAA colour target C2 between the world's last draw and
 // the tap (A1 on the back buffer, then X on (C2, the same depth) with depth writes off, then the back buffer bound again and the tap
 // with no draw). The writer resolved C2's colour into the copy at the end of C2's scope; the copy must still hold the BACK BUFFER's
 // colour (A1) - the tap resolves it again - and the depth A1's. Frame 0 arms. Planted (writer): a held colour bit is taken whatever
@@ -12340,7 +12340,7 @@ bool caseFdepthSource(Env& e, std::string* d)
 	return ok;
 }
 
-// fdepth-repaint (Codex fdepth-r2 #2): after the world scope resolved A1's colour, the back buffer is drawn again WITHOUT the world
+// fdepth-repaint: after the world scope resolved A1's colour, the back buffer is drawn again WITHOUT the world
 // depth (X, a scope the armed resolve does not follow), the world pair is bound again and the tap comes with no draw. The colour copy
 // must be X - the back buffer as it is at the tap - and the depth still A1's. Planted (writer): that scope keeps the held colour.
 bool caseFdepthRepaint(Env& e, std::string* d)
@@ -12524,7 +12524,7 @@ bool caseShadowVs(Env& e, std::string* d)
 	drawEdge(13.0f, 1.0f, true, "every slot zeroed", false);
 	CHECK(e.nd->stats().drawsRefused == 0, "a shadow draw was refused");
 	// c93-c95 are the device's last three registers; one past them is the d3d8 answer for a register past MaxVertexShaderConst, counted
-	// (Codex r11-r1 #1: a 61-slot classic capture's c96+ used to be dropped silently by the translator)
+	// (a 61-slot classic capture's c96+ used to be dropped silently by the translator)
 	const float k[4][4] = {};
 	CHECK(SUCCEEDED(e.dev->SetVertexShaderConstant(93, k, 3)), "SetVertexShaderConstant c93-c95 refused");
 	CHECK(e.dev->SetVertexShaderConstant(94, k, 3) == D3DERR_INVALIDCALL && e.nd->stats().vsConstantsRefused == 1,
@@ -12546,8 +12546,8 @@ bool caseShadowVs(Env& e, std::string* d)
 // draw A (red, cell 0) -> Clear(kind) -> draw B (green, cell 1), one frame, no read-back between. B must always be green; A is
 // black when the clear has TARGET, red when it is depth-only. Both arms set the GxRecDebug::disturbAfterClear hook (an empty scissor
 // after every in-pass clear, on every driver), so the clean arm needs the production re-send on drivers that keep bound state across
-// the clear too (Codex r38-clear-rebind-r2 #1). X- = GxRecDebug::noRebindAfterClear (no re-send), symptom-gated (Codex
-// r38-clear-rebind-r1 #2): a detection only when B's cell keeps its pre-B black on EVERY kind while setup, read-back, A and the
+// the clear too. X- = GxRecDebug::noRebindAfterClear (no re-send), symptom-gated:
+// a detection only when B's cell keeps its pre-B black on EVERY kind while setup, read-back, A and the
 // clear count all hold; any other failure, or the symptom on some kinds only, makes the X- arm INVALID.
 bool caseClearMidframeRebind(Env& e, std::string* d)
 {
@@ -12603,12 +12603,12 @@ bool caseClearMidframeRebind(Env& e, std::string* d)
 	return ok;
 }
 
-#if defined(GX_VKCTX_HAS_SDL3)   // a present arm (presentClear, validationText: Codex fif-r2)
+#if defined(GX_VKCTX_HAS_SDL3)   // a present arm (presentClear, validationText)
 // PREREG_T A30 step 2 (amendment 1 (5)): the EFFECTIVE frames in flight equal the run's --fif. The device's count, the writer's ring,
 // the descriptor-pool slots the writer cycles and the swapchain's present slots are all exactly g_fif, before and after a surface-lost
 // Reset (the swapchain rebuilt on a new surface), no slot's pools are reset before its own retirement, validation clean. The back buffer
 // is 4x MSAA so every present goes through GxNativePresent::record, which refuses a slot without its descriptor set (a black frame,
-// counted in present_errors - Codex fif-r1 #1): no present error over every slot. Planted (before creation, Codex fif-r1 #2): the
+// counted in present_errors): no present error over every slot. Planted (before creation): the
 // writer keeps 2 while the knob says 3 (the X- arm runs only at --fif 3; at 2 the plant changes nothing).
 bool caseFifEffective(Env& e, std::string* d)
 {
@@ -12620,7 +12620,7 @@ bool caseFifEffective(Env& e, std::string* d)
 			writerSlots |= 1u << e.nd->writer().frameSlot();
 			presentSlots |= 1u << e.nd->presentSlot();
 		}
-		const uint32_t all = (1u << g_fif) - 1;   // exactly slots 0..g_fif-1 (portable: no popcount builtin - Codex fif-r1 #3)
+		const uint32_t all = (1u << g_fif) - 1;   // exactly slots 0..g_fif-1 (portable: no popcount builtin)
 		*d += " " + when + ": device " + std::to_string(e.nd->framesInFlight()) + ", ring " + std::to_string(e.nd->writer().framesInFlight()) +
 			", writer slot mask " + std::to_string(writerSlots) + ", present slot mask " + std::to_string(presentSlots) + " of " +
 			std::to_string(e.nd->presentSlots()) + ", present errors " + std::to_string(e.nd->stats().presentErrors) + ";";
@@ -12697,10 +12697,10 @@ const Case kCases[] = {
 	{ "strict-vs-code", caseStrictShaderState, &GxNativeDebug::csTrVsCodeAtDecl, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, false, 0, 2, true },
 	// strict 2: dropping every render state leaves this arm's pixels as they are (D3D defaults) - only trin sees it (gate f95565396)
 	{ "strict-light-rs", caseStrictLight, &GxNativeDebug::csTrSkipRenderState, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, false, 0, 2, true },
-	// Codex r12-core P1: the worker's stack (a child: a 20000-rectangle Clear + Present, the submit thread off, CS=1)
+	// the worker's stack (a child: a 20000-rectangle Clear + Present, the submit thread off, CS=1)
 	{ "cs-deep-clear", caseCsDeepClear, &GxNativeDebug::csWorkerDefaultStack, true, 1 },
 	{ "child-cs-deep-clear", caseChildCsDeepClear, &GxNativeDebug::csWorkerDefaultStack, true, 1, true, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, true },
-	// rw3-X-3: the Codex r10-oracle arms (PREREG A23-B amendment 5 (3))
+	// rw3-X-3: the arms (PREREG A23-B amendment 5 (3))
 	{ "cs-ff-payload-material", caseCsFfPayload, &GxNativeDebug::csMaterialByRef, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, true },
 	{ "cs-ff-payload-light", caseCsFfPayload, &GxNativeDebug::csLightByRef, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, true },
 	{ "cs-ff-payload-viewport", caseCsFfPayload, &GxNativeDebug::csViewportByRef, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, true },
@@ -12711,7 +12711,7 @@ const Case kCases[] = {
 	{ "strict-copy-oversize", caseStrictCopyOversize, &GxNativeDebug::csCopyOversizeRefused, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, false, 64, 1, true },
 	{ "cs-oversize-order", caseCsOversizeOrder, &GxNativeDebug::csOversizeLateDrain, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, true, 64 },
 	{ "strict-copy-offsets", caseStrictCopyOffsets, &GxNativeDebug::csCopyDestOrigin, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, false, 64, 1, true },
-	// rw3-X-3: Codex r16-oracle's Lock/Unlock + CopyRects census (amendment 5 (13)) - one Case row per plant
+	// rw3-X-3: Lock/Unlock + CopyRects census (amendment 5 (13)) - one Case row per plant
 	{ "strict-buffer-ranges", caseStrictBufferRanges, &GxNativeDebug::csUploadOffsetZero, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, false, 64, 1, true },
 	{ "strict-buffer-ranges-plain", caseStrictBufferRanges, &GxNativeDebug::csPlainLockForwardsDiscard, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, false, 64, 1, true },
 	{ "strict-buffer-ranges-ro", caseStrictBufferRanges, nullptr, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, &GXRender::Res::GxDebug::readonlyUploads, nullptr, false, false, false, 64, 1, false },
@@ -12898,10 +12898,10 @@ const Case kCases[] = {
 	{ "seam-rcas", caseSeamRcas, &GxNativeDebug::seamNoSUpscale, true, 1, true, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, false, 0, 0, true },
 	{ "csguard-measure", caseCsGuardOn, &GxNativeDebug::csDlssGuardSkipped, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, false, 0, 0, true },   // GX_REFLEX_MEASURE_ONLY=1 alone
 	{ "fgguard-measure", caseFgGuardReflex, &GxNativeDebug::fgGuardSkipped, true, 1 },
-	{ "fgguard-streamline", caseFgGuardStreamline, &GxNativeDebug::fgGuardSkipped, true, 1 },   // E · seam-worker-2: a loaded Streamline alone   // GX_REFLEX_MEASURE_ONLY=1 alone (Codex fwd-c14f-r1 P2)
+	{ "fgguard-streamline", caseFgGuardStreamline, &GxNativeDebug::fgGuardSkipped, true, 1 },   // E · seam-worker-2: a loaded Streamline alone   // GX_REFLEX_MEASURE_ONLY=1 alone
 	{ "fifguard-framegen", caseFifGuardFrameGen, &GxNativeDebug::fifFgGuardSkipped, true, 1 },
 	{ "fifguard-off", caseFifGuardOff, nullptr, true, 1 },
-	{ "fifguard-reflex", caseFifGuardFrameGen, &GxNativeDebug::fifFgGuardSkipped, true, 1 },   // GXReflex alone (Codex fg3-b1-r1: uncovered)
+	{ "fifguard-reflex", caseFifGuardFrameGen, &GxNativeDebug::fifFgGuardSkipped, true, 1 },   // GXReflex alone (uncovered)
 	{ "csguard-off", caseCsGuardOff, nullptr, true, 1, false, D3DMULTISAMPLE_NONE, 1, false, nullptr, nullptr, false, false, true },   // needsCs
 	// S7 (D · look-shadowmaps): the look mask is set by name below (every sm-* arm but sm-key-off)
 	{ "sm-key-off", caseSmKeyOff, nullptr, true, 1 },
@@ -12911,7 +12911,7 @@ const Case kCases[] = {
 		&GXRender::Rec::GxTranslateDebug::a2cSpecBitOff },
 	{ "a2c-ramp-off", caseA2cRampOff, nullptr, true, 1, true, D3DMULTISAMPLE_4_SAMPLES },
 	{ "a2c-ramp-1x", caseA2cRamp1x, nullptr, true, 1, true },
-	// B · a2c-2 (Codex a2c-code-r9 #6): a fully transparent texel next to an opaque one keeps NO coverage; the off arm is today's control.
+	// B · a2c-2: a fully transparent texel next to an opaque one keeps NO coverage; the off arm is today's control.
 	// No X- arm: the product has no switch for it - the fail side is a one-time mutation run on the pre-fix shader headers (gates/)
 	{ "a2c-sharp-edge", caseA2cSharpEdge, nullptr, true, 1, true, D3DMULTISAMPLE_4_SAMPLES },
 	{ "a2c-sharp-edge-off", caseA2cSharpEdgeOff, nullptr, true, 1, true, D3DMULTISAMPLE_4_SAMPLES },
@@ -12934,7 +12934,7 @@ const Case kCases[] = {
 	// A39/A41 (D · look-shadowmaps-3): the perspective map (X-: the look frame never written - nothing shadowed) and the own light (X-: the
 	// receiver unscaled; X-sm-ownlight-cast: the caster captured with its plain World)
 	{ "sm-persp", caseSmPersp, &GxNativeDebug::smLookFrameStale, true, 1, true },
-	{ "sm-persp-divide", caseSmPersp, &GxNativeDebug::smNoDivide, true, 1, true },   // Codex code-a39-r1: the missing-divide mutant
+	{ "sm-persp-divide", caseSmPersp, &GxNativeDebug::smNoDivide, true, 1, true },   // the missing-divide mutant
 	{ "sm-ownlight", caseSmOwnLight, nullptr, true, 1, true, D3DMULTISAMPLE_NONE, 1, false, nullptr, &GXRender::Rec::GxTranslateDebug::smOwnNoReceiver },
 	{ "sm-ownlight-cast", caseSmOwnLight, nullptr, true, 1, true, D3DMULTISAMPLE_NONE, 1, false, nullptr, &GXRender::Rec::GxTranslateDebug::smOwnNoCaster },
 	{ "sm-castonly-drop", caseSmCastOnlyDrop, nullptr, true, 1, true, D3DMULTISAMPLE_NONE, 1, false, nullptr, &GXRender::Rec::GxTranslateDebug::smCastOnlyIgnoresCast },   // A44
@@ -13064,7 +13064,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 					(unsigned long long)cs.queued(), (unsigned long long)cs.done(), cs.testHeld() ? 1 : 0, cs.testProducerWaiting() ? 1 : 0);
 			}
 #if !defined(_WIN32)
-			char cmd[160];   // every thread's stack (Codex-free evidence for an intermittent hang)
+			char cmd[160];   // every thread's stack (-free evidence for an intermittent hang)
 			std::snprintf(cmd, sizeof(cmd), "/usr/bin/sample %d 2 -file /tmp/gx-hang-%d.txt > /dev/null 2>&1", int(getpid()), int(getpid()));
 			const int rc = std::system(cmd);
 			std::fprintf(stderr, "WATCHDOG: stacks (sample rc %d) in /tmp/gx-hang-%d.txt\n", rc, int(getpid()));
@@ -13111,7 +13111,7 @@ ArmResult runArmBody(const std::string& arm, const Options& opt)
 		r.skipped = true;   // counted as SKIP, never as a pass
 		return r;
 	}
-	if (r.expectFail && cn == "fgguard-streamline") {   // Codex seam2 c-r1 P3: the plant's symptom is the thread left ON - an env that
+	if (r.expectFail && cn == "fgguard-streamline") {   // Review seam2 c-r1 P3: the plant's symptom is the thread left ON - an env that
 		const char* st = std::getenv("GX_VK_SUBMIT_THREAD");   // forces it off would "detect" it by the missing line alone
 		if (st && std::strcmp(st, "0") == 0) {
 			r.detail = "GX_VK_SUBMIT_THREAD=0 forces the thread off: the plant (guard skipped -> thread ON) cannot show";
@@ -13184,7 +13184,7 @@ ArmResult runArmBody(const std::string& arm, const Options& opt)
 	host.testShadowMapFailKeepsBit = r.expectFail && c->plant == &GxNativeDebug::smCreateFailKeepsBit;   // creation-time plant
 	if (cn == "sm-prewarm")
 		host.prebuildGenericSet = true;
-	// S7 A92: replay-k is read once at the atlas's creation - set before the device exists; Codex p4-code-r1 #6: both variables set
+	// S7 A92: replay-k is read once at the atlas's creation - set before the device exists; both variables set
 	// explicitly for every arm and restored on EVERY return path of this function (a skipped arm included), never leaking into the next
 	struct ReplayEnv {
 		explicit ReplayEnv(const std::string& n)
@@ -13241,7 +13241,7 @@ ArmResult runArmBody(const std::string& arm, const Options& opt)
 	if (cn == "fgguard-streamline" && !GXRender::Dev::GxNativeDevice::streamlineBuilt())
 		host.streamline = reinterpret_cast<GXRender::Upscale::Streamline*>(&s_fakeStreamline);
 	host.testNoFgThreadGuard = r.expectFail && c->plant == &GxNativeDebug::fgGuardSkipped;   // creation-time plant: the guard skipped
-	host.testFifWriterStays2 = r.expectFail && c->plant == &GxNativeDebug::fifWriterStays2;   // a creation-time plant (Codex fif-r1 #2)
+	host.testFifWriterStays2 = r.expectFail && c->plant == &GxNativeDebug::fifWriterStays2;   // a creation-time plant
 	D3DPRESENT_PARAMETERS pp = presentParams(c->windowed, c->backBuffers, c->msaa);
 	pp.BackBufferFormat = c->bbFormat;
 	pp.BackBufferWidth = c->bbW;
@@ -13347,7 +13347,7 @@ ArmResult runArmBody(const std::string& arm, const Options& opt)
 	g_brokenInput = r.expectFail && brokenInputArm(c->name);   // E · look-shadowmaps-9: the case breaks its own input
 	r.failed = !c->fn(e, &r.detail);
 	g_brokenInput = false;
-	{   // B · a2c-1 (Codex a2c-code-r4 #7): an X- arm whose plant has ONE named symptom counts as detected only with that symptom's token
+	{   // B · a2c-1: an X- arm whose plant has ONE named symptom counts as detected only with that symptom's token
 		static const std::pair<const char*, const char*> kXSymptom[] = { { "a2c-ramp", "[mixing off the edge" },
 			{ "a2c-prewarm-fail", "[A2C failed init" }, { "a2c-prewarm-fail-reset", "[A2C still on after a failed prewarm]" } };
 		for (const auto& xs : kXSymptom)
@@ -13358,12 +13358,12 @@ ArmResult runArmBody(const std::string& arm, const Options& opt)
 	}
 	if (g_setupFailed)
 		r.failed = !r.expectFail;   // no gate ran: never a pass and never a detection
-	if (e.setupFailed) {   // no gate ran: never a pass, never a detection (Codex a25-code-r1 #4)
+	if (e.setupFailed) {   // no gate ran: never a pass, never a detection
 		r.failed = !r.expectFail;
 		r.detail += " [setup failed: the case never reached its gate]";
 	}
 	// A25: with GX_TR_PACK_CHECK=1 a reused pack must equal a fresh one - on EVERY device the arm opened (the process-wide tally
-	// also sees a device the case replaced or released itself; Codex a25-code-r1 #5)
+	// also sees a device the case replaced or released itself)
 	r.pack.packCheckMismatches = GXRender::Rec::g_recTest.packCheckMismatches.load(std::memory_order_relaxed) - mismatches0;
 	if (r.pack.packCheckMismatches && !r.expectFail)
 		r.failed = true;
@@ -13377,14 +13377,14 @@ ArmResult runArmBody(const std::string& arm, const Options& opt)
 	r.detail += " [pack reused=" + std::to_string(r.pack.packReused) + " packed=" + std::to_string(r.pack.packed) + " checks=" +
 		std::to_string(r.pack.packChecks) + (r.ownCounters ? "" : " (device released by the case)") + " mismatches(all devices)=" +
 		std::to_string(r.pack.packCheckMismatches) + "]";
-	// E · seam-worker-2 (Codex seam2 design r1 P2, dlss-integrator's ruling 18/10): with the worker on, EVERY clean arm is an ownership
+	// E · seam-worker-2 (seam2 design r1 P2, dlss-integrator's ruling 18/10): with the worker on, EVERY clean arm is an ownership
 	// check - a front recording outside an S body on the arm's own device fails it, whatever the case itself checked. The X- arm of this
 	// gate is X-own-present-read (accessorBareSync: a test accessor drains with a bare csSync again, the case's own checks still pass).
 	// the case's own verdict (setup included) before the ownership gate below adds its own
 	const bool caseFailed = r.failed || e.setupFailed || g_setupFailed;
 	// An ownership plant (an S dropped, or an inspection accessor's bare csSync) is caught ONLY by its symptom: the cases skip their own
 	// ownership check when planted, every functional check must still pass, and the arm's device counted a front recording outside an S
-	// (Codex seam2 code r1 P2-2, r2): the verdict is taken after validation, below.
+	// (seam2 code r1 P2-2, r2): the verdict is taken after validation, below.
 	const bool ownPlant = c->plant == &GxNativeDebug::accessorBareSync || c->plant == &GxNativeDebug::seamNoSResolve ||
 		c->plant == &GxNativeDebug::seamNoSUpscale || c->plant == &GxNativeDebug::seamNoSBegin || c->plant == &GxNativeDebug::seamNoSEnd ||
 		c->plant == &GxNativeDebug::seamNoSVelocity;
@@ -13405,13 +13405,13 @@ ArmResult runArmBody(const std::string& arm, const Options& opt)
 		if (!r.expectFail)
 			r.failed = true;
 	}
-	// E · look-shadowmaps-9 (Codex tc-r1 #3): the broken-input X- arms and X-sm-modulate fail on their own probe ONLY - with any validation
+	// E · look-shadowmaps-9: the broken-input X- arms and X-sm-modulate fail on their own probe ONLY - with any validation
 	// error or hazard the arm is INVALID, never a detection
 	if (r.expectFail && (brokenInputArm(c->name) || cn == "sm-modulate") && (v.errors || v.hazards)) {
 		r.invalid = true;
 		r.detail += " [INVALID: a validation error / hazard in an X- that must fail on its own probe only]";
 	}
-	// A25 X- arms (Codex a25-code-r3, r4): a detection only when the case failed AND every failure was the plant's stale value, with no
+	// A25 X- arms: a detection only when the case failed AND every failure was the plant's stale value, with no
 	// validation error and no check-mode mismatch (except packTableShort's own: a stale pack IS its symptom). A failure of any other
 	// kind is neither a detection nor a clean non-detection: the arm is INVALID (a FAIL that no verdict may read as "not detected").
 	if (r.expectFail && ownPlant) {   // E · seam-worker-2: see the ownership gate above
@@ -13424,7 +13424,7 @@ ArmResult runArmBody(const std::string& arm, const Options& opt)
 		}
 	}
 	if (r.expectFail && c->symptomGated && !e.setupFailed) {
-		// packTableShort's own symptom: EVERY mismatch differs from a fresh pack in the TextureFactor word alone (Codex a25-code-r5)
+		// packTableShort's own symptom: EVERY mismatch differs from a fresh pack in the TextureFactor word alone
 		const uint64_t tfOnly = GXRender::Rec::g_recTest.packCheckTFactorOnly.load(std::memory_order_relaxed) - tfOnly0;
 		const bool mismatchIsSymptom = c->trPlant == &GXRender::Rec::GxTranslateDebug::packTableShort && tfOnly == r.pack.packCheckMismatches;
 		const bool clean = !e.a25Other && !v.errors && !v.hazards && (!r.pack.packCheckMismatches || mismatchIsSymptom);
@@ -13519,7 +13519,7 @@ int main(int argc, char** argv)
 		if (a == "X-child-cs-deep-clear")   // before any device: its stream starts on the default (512 KiB) stack
 			GXRender::Dev::GxNativeCs::testDefaultStack = true;
 	}   // before any device: its init registers the flush after this (PREREG_T A21 am. 4)
-	if (arms.empty()) {   // an empty selection proves nothing (Codex rw3L-code-r6 #3)
+	if (arms.empty()) {   // an empty selection proves nothing
 		std::fprintf(stderr, "no arm selected\n");
 		return 2;
 	}
@@ -13662,7 +13662,7 @@ int main(int argc, char** argv)
 				const bool eq = stat(cr[0].err, "presents") == stat(cr[2].err, "presents") &&
 					stat(cr[0].err, "surfaces_recreated") == stat(cr[2].err, "surfaces_recreated") &&
 					stat(cr[0].err, "swapchains_recreated") == stat(cr[2].err, "swapchains_recreated") && submits(t0) == submits(t2);
-				// Codex r1-oracle P2-2: what was SHOWN must differ only by the permitted unshown frames - each Present's presented
+				// what was SHOWN must differ only by the permitted unshown frames - each Present's presented
 				// colour equal across the modes, except exactly `events` frames where CS1 still shows its previous frame
 				auto shownSeq = [](const ChildRun& c) {
 					std::vector<uint32_t> g;

@@ -31,9 +31,9 @@
 #include "debug_stack.h"
 #include <windows.h>
 #include "WWLib/stringex.h"
-#include <stdio.h>   // GeneralsX @bugfix Claude 27/07/2026 _snprintf, for the dbghelp name fallback
+#include <stdio.h>   // GeneralsX: _snprintf, for the dbghelp name fallback
 #include <imagehlp.h>
-// GeneralsX @bugfix Claude 27/07/2026 imagehlp.h defines StackWalk as a macro expanding to
+// GeneralsX: imagehlp.h defines StackWalk as a macro expanding to
 // StackWalk64 when _WIN64. debug_stack.h was included above it and declared
 // DebugStackwalk::StackWalk, so the out-of-class definition further down silently became
 // DebugStackwalk::StackWalk64 - "error C2039: 'StackWalk64': is not a member of 'DebugStackwalk'".
@@ -58,7 +58,7 @@ static union
   {
 #include "debug_stack.inl"
   };
-  UINT_PTR funcPtr[1];   // GeneralsX @bugfix Claude 27/07/2026 holds a function pointer
+  UINT_PTR funcPtr[1];   // GeneralsX: holds a function pointer
 } gDbg;
 #undef DBGHELP
 
@@ -101,7 +101,7 @@ static void InitDbghelp()
     return;
 
   // Get function addresses
-  // GeneralsX @bugfix Claude 27/07/2026 Pointer-width slots, and fall back to the ...64 exports.
+  // GeneralsX: Pointer-width slots, and fall back to the ...64 exports.
   // Casting GetProcAddress to unsigned threw away the top half of every address on a 64-bit build.
   // A 64-bit dbghelp.dll also renames five of these entry points - StackWalk64,
   // SymFunctionTableAccess64, SymGetModuleBase64, SymGetSymFromAddr64, SymGetLineFromAddr64 - and
@@ -180,7 +180,7 @@ void DebugStackwalk::Signature::GetSymbol(unsigned addr, char *buf, unsigned buf
   buf+=wsprintf(buf,"%08x",addr);
 
   // determine module
-  // GeneralsX @bugfix Claude 27/07/2026 A module base is pointer-width.
+  // GeneralsX: A module base is pointer-width.
   DWORD_PTR modBase=gDbg._SymGetModuleBase((HANDLE)GetCurrentProcessId(),addr);
   if (!modBase)
 	{
@@ -212,7 +212,7 @@ void DebugStackwalk::Signature::GetSymbol(unsigned addr, char *buf, unsigned buf
   memset(symPtr,0,sizeof(symbolBuffer));
   symPtr->SizeOfStruct=sizeof(IMAGEHLP_SYMBOL);
   symPtr->MaxNameLength=sizeof(symbolBuffer)-sizeof(IMAGEHLP_SYMBOL);
-  // GeneralsX @bugfix Claude 27/07/2026 SymGetSymFromAddr64 writes a DWORD64 displacement.
+  // GeneralsX: SymGetSymFromAddr64 writes a DWORD64 displacement.
   DWORD_PTR displacement;
   if (!gDbg._SymGetSymFromAddr((HANDLE)GetCurrentProcessId(),addr,&displacement,symPtr))
     return;
@@ -221,7 +221,7 @@ void DebugStackwalk::Signature::GetSymbol(unsigned addr, char *buf, unsigned buf
   buf+=wsprintf(buf,", %s+0x%p",symPtr->Name,(void *)displacement);
 
   // and line number
-  // GeneralsX @bugfix Claude 27/07/2026 SymGetLineFromAddr64 keeps a plain PDWORD displacement,
+  // GeneralsX: SymGetLineFromAddr64 keeps a plain PDWORD displacement,
   // unlike SymGetSymFromAddr64 just above - it is an offset within one line, not an address - so
   // the two cannot share a variable any more.
   IMAGEHLP_LINE line;
@@ -260,7 +260,7 @@ void DebugStackwalk::Signature::GetSymbol(unsigned addr,
   DFAIL_IF(bufFile&&sizeFile<16) return;
 
   // determine module
-  // GeneralsX @bugfix Claude 27/07/2026 A module base is pointer-width.
+  // GeneralsX: A module base is pointer-width.
   DWORD_PTR modBase=gDbg._SymGetModuleBase((HANDLE)GetCurrentProcessId(),addr);
   if (!modBase)
 	{
@@ -300,7 +300,7 @@ void DebugStackwalk::Signature::GetSymbol(unsigned addr,
     memset(symPtr,0,sizeof(symbolBuffer));
     symPtr->SizeOfStruct=sizeof(IMAGEHLP_SYMBOL);
     symPtr->MaxNameLength=sizeof(symbolBuffer)-sizeof(IMAGEHLP_SYMBOL);
-    // GeneralsX @bugfix Claude 27/07/2026 SymGetSymFromAddr64 writes a DWORD64 displacement.
+    // GeneralsX: SymGetSymFromAddr64 writes a DWORD64 displacement.
     // relSym stays a 32-bit out parameter: it is an offset within one function, never an address.
     DWORD_PTR displacement;
     if (gDbg._SymGetSymFromAddr((HANDLE)GetCurrentProcessId(),addr,&displacement,symPtr))
@@ -403,7 +403,7 @@ int DebugStackwalk::StackWalk(Signature &sig, struct _CONTEXT *ctx)
   {
     // walk stack back using current call chain
 	  GXCtxReg reg_eip, reg_ebp, reg_esp;
-	  // GeneralsX @bugfix Claude 27/07/2026 RtlCaptureContext instead of per-architecture assembly:
+	  // GeneralsX: RtlCaptureContext instead of per-architecture assembly:
 	  // MSVC rejects __asm outright at x64. See Dependencies/Utility/Utility/cpu_context_compat.h.
 	  GXCaptureContextRegisters(&walkContext, &reg_eip, &reg_esp, &reg_ebp);
 	  stackFrame.AddrPC.Offset = reg_eip;

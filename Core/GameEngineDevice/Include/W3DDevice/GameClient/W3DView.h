@@ -60,7 +60,7 @@ typedef struct
 	Coord3D	waypoints[MAX_WAYPOINTS+2];		// We pad first & last for interpolation.
 	Real		waySegLength[MAX_WAYPOINTS+2];	// Length of each segment;
 	Real		cameraAngle[MAX_WAYPOINTS+2];	// Camera Angle;
-	// GeneralsX @bugfix Claude 08/10/2026 The time (total, elapsed, ease) and the time multiplier are W3DView::m_camTimeline's.
+	// GeneralsX: The time (total, elapsed, ease) and the time multiplier are W3DView::m_camTimeline's.
 	Real		totalDistance;								// Total length of paths.
 	Real		curSegDistance;								// How far we are along the current seg.
 	Int			shutter;
@@ -73,7 +73,7 @@ typedef struct
 // ------------------------------------------------------------------------------------------------
 typedef struct
 {
-	// GeneralsX @bugfix Claude 08/10/2026 Its frames, hold, ease and time multiplier are W3DView::m_camTimeline's.
+	// GeneralsX: Its frames, hold, ease and time multiplier are W3DView::m_camTimeline's.
 	Bool		trackObject;					///< Are we tracking an object or just rotating?
 	struct Target {
 		ObjectID targetObjectID;			///< Target if we are tracking an object instead of just rotating
@@ -114,7 +114,7 @@ typedef struct
 // ------------------------------------------------------------------------------------------------
 class W3DView : public View, public SubsystemInterface
 {
-	// GeneralsX @bugfix Claude 08/10/2026 The moves are m_camTimeline's (Common/ScriptedCameraClock.h); the lock is the view's.
+	// GeneralsX: The moves are m_camTimeline's (Common/ScriptedCameraClock.h); the lock is the view's.
 	enum Scripted
 	{
 		Scripted_Rotate = ScriptedCameraTimeline::ROTATE, // Set when rotating the camera
@@ -172,7 +172,7 @@ public:
 	virtual void moveCameraAlongWaypointPath(Waypoint *pWay, Int frames, Int shutter, Bool orient, Real easeIn, Real easeOut) override;
 	virtual Bool isCameraMovementFinished() override;
 
-	// GeneralsX @bugfix Claude 08/10/2026 The scripted camera steps on LOGIC frames (Common/ScriptedCameraClock.h): once
+	// GeneralsX: The scripted camera steps on LOGIC frames (Common/ScriptedCameraClock.h): once
 	// per new logic frame from stepView, from the draw only in frozen time, and it is drawn between the last two logic
 	// frames' poses. See updateCameraMovements() in the .cpp for why the frame it ends on is simulation state.
 	struct ScriptedPose
@@ -197,14 +197,14 @@ public:
 	ScriptedPose m_gxCamPrev;
 	ScriptedPose m_gxCamCur;
 	Coord3D m_gxBlurJumpPos;		///< a motion blur jump's target (setViewFilterPos); m_camTimeline counts the blur
-	// GeneralsX @bugfix Claude 08/10/2026 Step B: this view's scripted camera timing - which moves run, their steps, the time
+	// GeneralsX: Step B: this view's scripted camera timing - which moves run, their steps, the time
 	// multiplier and its divider, the camera freeze, a motion blur's logic lifetime - in the class the simulation's
 	// TheScriptedCamera (GameLogic/ScriptedCamera.h) runs, so the pose ends where scripts see the move end. This instance is fed
 	// by every caller, the player's camera keys too, and decides nothing scripts read.
 	ScriptedCameraTimeline m_camTimeline;
 	Bool m_scriptedCameraLock;		///< Scripted_CameraLock (setSnapMode); the moves are m_camTimeline's
 	Coord3D m_gxCamDrawnLookAt;		///< the look-at the last draw showed (the pan motion blur's movement, calcDeltaScroll)
-	// GeneralsX @bugfix Claude 03/10/2026 The camera easing's step, once per draw (GameClient/CameraStepPolicy.h).
+	// GeneralsX: The camera easing's step, once per draw (GameClient/CameraStepPolicy.h).
 	double m_lastDrawLoopSeconds;	///< gxRenderLoopSeconds() at the last update (draw)
 	Real m_drawFpsRatio;			///< BaseFps over the time since the last draw: what the zoom and ground-follow easing step by
 	virtual Bool isCameraMovementAtWaypointAlongPath();
@@ -319,7 +319,7 @@ private:
 	Bool m_recalcCamera; ///< Recalculates the camera transform in the next render update
 
 	Real getHeightAroundPos(Real x, Real y, Real terrainSampleSize = TERRAIN_SAMPLE_SIZE) const;
-	// GeneralsX @bugfix Claude 10/09/2026 Shell map uses the stock INI camera height limits, not the
+	// GeneralsX: Shell map uses the stock INI camera height limits, not the
 	// user's Extras/SagePatch override. See the implementation comment in W3DView.cpp.
 	//
 	// Out-params rather than a returned GXHostCamera::Limits so this header keeps its current include
@@ -366,7 +366,7 @@ private:
 	AsciiString		m_cameraSlaveObjectName;
 	AsciiString		m_cameraSlaveObjectBoneName;
 
-	// GeneralsX @performance Claude 23/09/2026 The drawables update()'s draw walk visited, kept so
+	// GeneralsX: The drawables update()'s draw walk visited, kept so
 	// draw()'s post-draw walk can skip a second pass over every drawable in the world. Valid only
 	// while GameClient::getDrawableChangeCount() and the view region both still match.
 	std::vector<Drawable*>	m_drawWalkList;
@@ -374,7 +374,7 @@ private:
 	UnsignedInt			m_drawWalkChangeCount;
 	Bool						m_drawWalkValid;
 
-	// GeneralsX @performance Claude 26/09/2026 The largest terrain draw size asked for this game; the
+	// GeneralsX: The largest terrain draw size asked for this game; the
 	// window grows to what the camera needs and never shrinks back until reset() (see updateTerrain).
 	ICoord2D				m_terrainDrawSize;
 	Real						m_terrainDrawScale;		///< the TerrainDrawDistanceScale m_terrainDrawSize was grown under

@@ -1,5 +1,5 @@
 #version 450
-// GeneralsX @test E · rw2-F1 11/10/2026: gx_record_test's pixel-exact vertex shader. Positions are PIXEL coordinates (x, y)
+// GeneralsX: gx_record_test's pixel-exact vertex shader. Positions are PIXEL coordinates (x, y)
 // + depth z; the push block maps them to NDC. inOffset (location 3) is an INSTANCE-rate pixel offset, zero from the null
 // stream when the pipeline has no instance binding.
 layout(location = 0) in vec3 inPos;

@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 28/09/2026 - The render interpolation phase (graphics research r1g7-01).
+// GeneralsX: The render interpolation phase (graphics research r1g7-01).
 //
 // One alpha in [0,1] per client update: where the displayed world sits between the previous logic
 // frame (0) and the current one (1). Consumers draw lerp(previous, current, alpha) on render-local
@@ -16,7 +16,7 @@
 //     alpha = (now - grid) / T.
 //   * Single player and replays. canUpdateRegularGameLogic ticks right after a draw, so a stamp says
 //     nothing there. The phase is its accumulator's own leftover, in ticks (the caller reads it; a
-//     mirror of it started out of step with the real one, Codex interp-r4).
+//     mirror of it started out of step with the real one).
 // Both are blended to EXACTLY 1.0f while every draw gets a tick (render <= logic): a 60 Hz display on
 // a 60 Hz build shows today's picture and pays no latency. Hysteresis keeps one late network tick
 // from dropping out of that.
@@ -89,7 +89,7 @@ public:
 #endif
 			// Time frozen: the gate keeps consuming ticks that GameLogic::update drops before m_frame++, so the leftover
 			// saws within one logic frame. Once it has wrapped, the display has caught up with the frame shown: 1 until
-			// the frame advances (Codex interp-r14). The no-backwards rule below alone kept the highest point of the saw,
+			// the frame advances. The no-backwards rule below alone kept the highest point of the saw,
 			// short of 1, for the whole pause.
 			if (n != 0)
 				m_spWrapped = false;
@@ -110,7 +110,7 @@ public:
 #if GX_LOGIC_PHASE_TEST_ARM != 4	// fail arm 4: may run backwards
 		// Never backwards within a logic frame: the poses have not changed, so a smaller alpha would walk moving units
 		// back toward where they were. That happens when the single-player gate keeps accumulating through a scripted
-		// time freeze (no frame advances), and when the pin releases between two ticks (Codex interp-r5).
+		// time freeze (no frame advances), and when the pin releases between two ticks.
 		if (n == 0 && m_alpha < before)
 			m_alpha = before;
 #endif
@@ -142,7 +142,7 @@ private:
 	// The period is the lobby rate's, except while the network self-slugs: Network::timeForNewFrame stretches its frame
 	// delay by a tenth when the run-ahead cushion is low and leaves the rate alone, so on the nominal period the envelope
 	// falls behind a sustained slug and re-anchors every few ticks - the stepping the phase exists to remove, just when
-	// the network is under pressure (Codex interp-r12). The mean start-to-start interval of the stamps (a stall's gap left
+	// the network is under pressure. The mean start-to-start interval of the stamps (a stall's gap left
 	// out) says when the ticks are stretched; with hysteresis, and exactly nominal otherwise, so an unslugged game is
 	// what it was.
 	void grid(unsigned frame, double startMs, double tickMs)

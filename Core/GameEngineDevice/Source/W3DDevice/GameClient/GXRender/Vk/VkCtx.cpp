@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0 - see VkCtx.h.
+// GeneralsX: WS-B VkCtx v0 - see VkCtx.h.
 #include "VkCtx.h"
 
 #include "vk_mem_alloc.h"
@@ -148,7 +148,7 @@ std::string lower(std::string s)
 
 // A line on fd 2 that the caller never waits on for more than 1 s: the (blocking) write runs on a detached thread of its own, so a
 // write that blocks - a full stderr pipe whose reader stopped draining, even right after a poll reported room (another writer can
-// fill it in between: Codex rw3V-code-r5 P1-1) - cannot hold the caller; the std::_Exit that follows ends that thread with the
+// fill it in between) - cannot hold the caller; the std::_Exit that follows ends that thread with the
 // process. Delivery is best effort: exit code 3 is the signal that never depends on it. Each call has its own heap copy (leaked:
 // the process is ending, or it is a test marker).
 struct OwnLine
@@ -179,7 +179,7 @@ void* writeOwnLine(void* p)
 void writeFatal(const char* line, size_t len)
 {
 #if defined(_WIN32)
-	(void)_write(2, line, static_cast<unsigned>(len));   // ponytail: unbounded on a stuck Windows pipe; the native renderer runs on Apple/Linux
+	(void)_write(2, line, static_cast<unsigned>(len));   // Trade-off: unbounded on a stuck Windows pipe; the native renderer runs on Apple/Linux
 #else
 	OwnLine* l = new (std::nothrow) OwnLine;
 	if (!l)
@@ -211,7 +211,7 @@ uint64_t Timeline::completed() const
 	uint64_t value = 0;
 	if (m_semaphore != VK_NULL_HANDLE) {
 		const VkResult r = vkGetSemaphoreCounterValue(m_device, m_semaphore, &value);
-		if (r != VK_SUCCESS) {   // the output is undefined on an error: report nothing completed (Codex rw3-T-cut2a-r1 #5)
+		if (r != VK_SUCCESS) {   // the output is undefined on an error: report nothing completed
 			if (m_owner && !m_owner->m_deviceLost.load())
 				m_owner->noteResult(r, "vkGetSemaphoreCounterValue");
 			return 0;
@@ -877,7 +877,7 @@ bool VkCtx::init(const VkCtxDesc& desc, std::string* why)
 	m_waitFastPath.store(0);
 	m_executed[0] = m_executed[1] = 0;
 	m_seqNext = m_busySeq = m_holdAt = m_presentCount = 0;
-	m_drivenPresents.store(0);   // with the context's other counters (Codex fg3-h2-r2 P3)
+	m_drivenPresents.store(0);   // with the context's other counters
 
 	const bool ok = loadLibrary(desc, why) && createInstance(desc, why) && pickDevice(desc, why) && createDevice(desc, why);
 	if (!ok) {
@@ -1233,7 +1233,7 @@ void VkCtx::runOp(SubmitOp& op)
 		}
 	}
 	// waiters on this value (syncExecuted / waitExecuted) wake NOW, not after the log lines below: a stuck stderr must not hold
-	// them (Codex rw3V-code-r6 P1). threadMain notifies again when the op is done.
+	// them. threadMain notifies again when the op is done.
 	if (r != VK_SUCCESS)
 		m_doneCv.notify_all();
 	// ONE log call per refusal, where the synchronous path makes its own (VkCtx::submit's noteResult, VkCtx.cpp:881 @33d36f1cc): the
@@ -1264,7 +1264,7 @@ VkResult VkCtx::doPresent(const VkPresentInfoKHR& info, const PresentHook* hook,
 	if (hook && hook->start)
 		hook->start(hook->ctx, hook->token);
 	VkResult r = vkQueuePresentKHR(m_graphics.queue, &info);
-	const uint64_t driven = m_drivenPresents.fetch_add(1) + 1;   // EVERY driven present (Codex fg3-h2-r2 P3: not only armed ones)
+	const uint64_t driven = m_drivenPresents.fetch_add(1) + 1;   // EVERY driven present (not only armed ones)
 	if (overrideAt && driven == overrideAt)
 		r = overrideResult;   // TEST (not a defect): the driver ran; its answer is reported as this one
 	if (hook && hook->end)
@@ -1348,7 +1348,7 @@ bool VkCtx::waitExecuted(QueueKind kind, uint64_t value) const
 // vkDeviceWaitIdle under the queue lock (no other submit-thread op may be running: callers drain or stopped it first, or ARE the
 // thread - the refusal drain), RETRIED until it proves idle: VK_SUCCESS, or VK_ERROR_DEVICE_LOST (completion for the call that
 // returns it). Vulkan also allows OUT_OF_HOST/DEVICE_MEMORY; freeing what the GPU may still read is worse than waiting, so such an
-// answer is retried - for at most 2 s of WALL time from the first one (Codex rw3V-code-r3 P1-1: a driver that keeps answering it
+// answer is retried - for at most 2 s of WALL time from the first one (a driver that keeps answering it
 // must not hang Reset or teardown). Then the device is terminal and its idle cannot be proven: the process ENDS (integrator
 // ruling 13/10, PREREG_T A21 am. 2 (2)) - keeping every object instead would need a guard at each of ~60 destroy/free sites, which
 // cannot be shown complete. COST: std::_Exit skips the game's own shutdown and atexit handlers, so a replay being recorded or a
@@ -1369,7 +1369,7 @@ void VkCtx::idleDevice(VkResult inject)
 			m_blockedWaits.fetch_sub(1);
 		}
 		if (r == VK_SUCCESS)
-			return;   // no log here either: the refusal drain publishes its latch right after this (Codex rw3V-code-r6 P1)
+			return;   // no log here either: the refusal drain publishes its latch right after this
 		if (r == VK_ERROR_DEVICE_LOST) {
 			// latch the driver loss (completion for the call that returns it) WITHOUT a log line: the synchronous path's device idles
 			// were raw, unlogged vkDeviceWaitIdle calls (VkCtx.cpp:800, GxNativeDevice.cpp:119/:1806 ... @33d36f1cc - A21 am. 2 (6))
@@ -1377,13 +1377,13 @@ void VkCtx::idleDevice(VkResult inject)
 			return;
 		}
 		// a failing answer: the clock starts NOW and nothing in this loop logs - a stuck stderr must not hold it before or after the
-		// deadline (Codex rw3V-code-r5 P1-2); the FATAL line reports the answers
+		// deadline; the FATAL line reports the answers
 		const auto now = std::chrono::steady_clock::now();
 		if (answers == 1) {
 			firstFail = now;
 			if (inject != VK_SUCCESS) {   // TEST: the child arms' proof that the failing loop was entered (rw3V-code-r5 P2-4)
 				// t= is this process's steady_clock at the first failing answer: the arm measures the bound from it, not from when it
-				// happens to read the line (Codex rw3V-code-r7 P2)
+				// happens to read the line
 				char mark[160];
 				const int m = std::snprintf(mark, sizeof(mark), "[GXVK] TEST idle: first injected failing answer - the 2 s bound starts t=%lld\n",
 					static_cast<long long>(std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count()));

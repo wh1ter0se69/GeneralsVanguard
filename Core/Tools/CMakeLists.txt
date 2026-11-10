@@ -2,7 +2,7 @@
 
 # Build useful tool binaries.
 if(RTS_BUILD_CORE_TOOLS)
-    # GeneralsX @build Claude 28/07/2026 DebugWindow and ParticleEditor are MFC applications -
+    # GeneralsX: DebugWindow and ParticleEditor are MFC applications -
     # both pull in afxwin.h - so they can only ever build under MSVC. RTS_BUILD_CORE_TOOLS
     # defaults to ON and linux64-deploy does not override it, so a Linux build added them and
     # died with "fatal error: afxwin.h: No such file or directory" long before reaching the game

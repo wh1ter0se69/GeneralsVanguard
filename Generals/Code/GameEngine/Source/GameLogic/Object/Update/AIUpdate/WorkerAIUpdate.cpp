@@ -666,7 +666,7 @@ void WorkerAIUpdate::newTask( DozerTask task, Object* target )
 	m_dozerMachine->resetToDefaultState();
 #if !RETAIL_COMPATIBLE_CRC
 	// GeneralsX: any accepted dozer task clears the latch, also while already AS_DOZER (a repair/resume given right after it
-	// leaves the stash, before its first update; Codex pf-supply-r1 P2), not only when leaving supply-truck mode below.
+	// leaves the stash, before its first update), not only when leaving supply-truck mode below.
 	setForceWantingState(FALSE);
 #endif
 
@@ -989,7 +989,7 @@ void WorkerAIUpdate::onDisabledEdge(Bool nowDisabled)
 		// TheSuperHackers @bugfix Stubbjax 17/11/2025 Resume previous task when re-enabled.
 		resumePreviousTask();
 #else
-		// GeneralsX @bugfix Claude 21/09/2026 Clear the remembered task on the retail path too.
+		// GeneralsX: Clear the remembered task on the retail path too.
 		//
 		// The disable side still calls cancelTask(task, rememberTask) and stores m_previousTask,
 		// but resumePreviousTask() - the only thing that clears it again - is compiled out here.

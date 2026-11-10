@@ -66,7 +66,7 @@ File* Win32BIGFile::openFile( const Char *filename, Int access )
 		return nullptr;
 	}
 
-	// GeneralsX @bugfix Claude 29/10/2026 Not an entry that runs past the end of the archive: RAMFile would allocate (and
+	// GeneralsX: Not an entry that runs past the end of the archive: RAMFile would allocate (and
 	// zero) all of its claimed size before the read came up short, and StreamingArchiveFile opened it (batch tsh-1029 F1).
 	if (!isEntryInFile(fileInfo)) {
 		return nullptr;

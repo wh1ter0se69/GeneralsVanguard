@@ -124,7 +124,7 @@ public:
 
 extern void pickAndPlayUnitVoiceResponse( const DrawableList *list, GameMessage::Type msgType, PickAndPlayInfo *info = nullptr );
 
-// GeneralsX @feature Claude 26/07/2026 Expose the frame pacing steps to non-keyboard callers.
+// GeneralsX: Expose the frame pacing steps to non-keyboard callers.
 //
 // These two live in CommandXlat.cpp because the MSG_META_*_MAX_RENDER_FPS / *_LOGIC_TIME_SCALE key
 // handlers are their only stock caller, but the pairing between them is subtle enough that it must
@@ -139,7 +139,7 @@ extern void pickAndPlayUnitVoiceResponse( const DrawableList *list, GameMessage:
 extern bool changeMaxRenderFps( FpsValueChange change );
 extern bool changeLogicTimeScale( FpsValueChange change );
 
-// GeneralsX @feature Claude 30/09/2026 Fast forward (FramePacer::setFastForward): 1x, 2x, 3x, 4x, 5x, 10x, for a live
+// GeneralsX: Fast forward (FramePacer::setFastForward): 1x, 2x, 3x, 4x, 5x, 10x, for a live
 // match whose only human is this player - a player or an observer, every other slot AI - or a replay. The refusal is
 // the reason in words, or nullptr when allowed. Both setters refuse with an on-screen message and return false, and
 // the Debug screen greys its buttons on the same refusal.

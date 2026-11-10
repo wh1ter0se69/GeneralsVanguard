@@ -244,8 +244,8 @@ public:
 		MSG_META_TOGGLE_LOWER_DETAILS,							///< toggles graphics options to crappy mode instantly
 		MSG_META_TOGGLE_CONTROL_BAR,								///< show/hide controlbar
 		MSG_META_TOGGLE_PLAYER_OBSERVER,						///< TheSuperHackers @feature Toggle the player observer view in game
-		MSG_META_TOGGLE_HUD_OVERLAY,								///< GeneralsX @feature Claude 13/08/2026 hide/show ALL the HUD readouts at once
-		MSG_META_TOGGLE_GAME_HUD,										///< GeneralsX @feature Claude 13/08/2026 hide/show the retail chrome - command bar, minimap, radar
+		MSG_META_TOGGLE_HUD_OVERLAY,								///< GeneralsX: hide/show ALL the HUD readouts at once
+		MSG_META_TOGGLE_GAME_HUD,										///< GeneralsX: hide/show the retail chrome - command bar, minimap, radar
 
 		MSG_META_BEGIN_PATH_BUILD,									///< enter path-building mode
 		MSG_META_END_PATH_BUILD,										///< exit path-building mode
@@ -650,7 +650,7 @@ public:
 		// groupCentre is the CENTRE of the group, not the position of unit 0: the handler scatters
 		// the units around it with ThePartitionManager->findPositionAround.
 		// The units' OWNER is the target - or the Neutral player, with its vehicles unmanned, when the
-		// target is defeated or observing (GameLogic::gxSpawnGoesNeutral; GeneralsX Claude 27/09/2026 -
+		// target is defeated or observing (GameLogic::gxSpawnGoesNeutral; GeneralsX: -
 		// whatever the sender's state since 05/10/2026).
 		MSG_GX_CHEAT_SPAWN_UNIT,										///< see the argument contract above
 
@@ -667,14 +667,14 @@ public:
 		// there is no death FX, no wreckage, no death-triggered OCL and no "unit lost" EVA.
 		MSG_GX_CHEAT_DELETE_OBJECTS,								///< see the argument contract above
 
-		// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER - (ObjectID container). Waypoint mode (Alt by default) + a
+		// GeneralsX: WAYPOINT ENTER - (ObjectID container). Waypoint mode (Alt by default) + a
 		// click on a container the selection can board. Each selected unit that can board it appends it to its OWN
 		// enter queue (AIUpdateInterface::gxQueueEnter); when the unit's current enter ends by itself - the transport
 		// filled up, died, was sniped empty - it goes on to the next. Explicitly numbered for the same reason as the
 		// cheat block above, and pinned below. Zero Hour only: every use in Core is under #if RTS_ZEROHOUR.
 		MSG_GX_QUEUE_ENTER = 1960,
 
-		// GeneralsX @feature Claude 06/10/2026 IN-MATCH VOTE KICK (Common/GXVoteKick.h, GameLogic::onGxVoteKick*). START
+		// GeneralsX: IN-MATCH VOTE KICK (Common/GXVoteKick.h, GameLogic::onGxVoteKick*). START
 		// (Int targetPlayerIndex): the sender starts a vote to kick that player. CAST (Int voteId, Bool yes): the sender's
 		// ballot on that vote. Who sent it is the Player the network layer built the message for, never an argument.
 		// Explicitly numbered and pinned below for the cheat block's reason. Zero Hour only, like MSG_GX_QUEUE_ENTER.
@@ -711,7 +711,7 @@ public:
 	static const char *getCommandTypeAsString(GameMessage::Type t);
 
 	Int getPlayerIndex() const { return m_playerIndex; }		///< Return the originating player
-	/// GeneralsX @feature Claude 24/09/2026 The NETWORK SLOT the order arrived from, or -1 when it did not
+	/// GeneralsX: The NETWORK SLOT the order arrived from, or -1 when it did not
 	/// come off the network. Observer slots share one Player (the ReplayObserver), so the Player index
 	/// alone cannot tell their CRC reports apart. Never serialised: the wire already carries the slot.
 	Int getSenderSlot() const { return m_senderSlot; }

@@ -18,7 +18,7 @@
 
 // FILE: GXCrashLog.h /////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 25/09/2026 One readable crash log per crash, in OUR folder.
+// GeneralsX: One readable crash log per crash, in OUR folder.
 //
 // Before this, per platform (read on 13c750034):
 //   Windows  a minidump in <userdata>\CrashDumps\ (MiniDumper.cpp) - ours, but not readable.

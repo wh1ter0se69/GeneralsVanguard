@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the device-less model of the classic DX8Wrapper state machine
+// GeneralsX: WS-G Task 5: the device-less model of the classic DX8Wrapper state machine
 // (CONTRACT_L2 §4.3 C5/C6 r9b; rw1-G/PLAN_model.md T2). ENGINE-FREE: no WW3D2 header, so scripts/test/l2-model-test.cpp drives it
 // with hand-made call streams. Every ported function cites the wrapper code it mirrors AT 3a59e5b2a (W/ = Core/Libraries/Source/
 // WWVegas/WW3D2/); scripts/test/l2-model-drift.sh pins those ranges, so a wrapper edit forces a re-port.
@@ -81,7 +81,7 @@ enum : uint32_t { WORLD_CHANGED = 1u << 0, VIEW_CHANGED = 1u << 1, LIGHT0_CHANGE
 // A light environment as Set_Light_Environment reads it (W/dx8wrapper.cpp:4656-4769; GX_Lenv_Same's fields, :4596-4633) - logged by value.
 
 
-// C6 MODEL_CALL (CONTRACT_L2 r9b): every low-level setter INVOCATION, sent or skipped by its cache (Codex contractL2-r14 #1).
+// C6 MODEL_CALL (CONTRACT_L2 r9b): every low-level setter INVOCATION, sent or skipped by its cache.
 enum CallOp : unsigned { C_RS = 1, C_TSS, C_TEXTURE, C_MATERIAL, C_LIGHT, C_XFORM, C_STREAM, C_INDICES, C_VSHADER };
 struct CallSink {
 	virtual ~CallSink() {}
@@ -90,7 +90,7 @@ struct CallSink {
 
 struct State;
 bool note(State &s, unsigned op, unsigned a, unsigned b, uint64_t value, bool sent);
-// The value a light / transform / material invocation reports: FNV-1a over its by-value payload (Codex rw1-G-r23 #4).
+// The value a light / transform / material invocation reports: FNV-1a over its by-value payload.
 inline uint64_t payloadHash(const void *p, unsigned n)
 {
 	uint64_t h = 1469598103934665603ull;
@@ -165,7 +165,7 @@ void setRenderState(State &s, const Logical &src);					// Set_Render_State, :184
 
 // Two RenderStateStruct copies compared field by field - every field operator= copies, a light's payload only where BOTH copies enable
 // it (a disabled slot's payload is not observable, MH12). Each differing field goes to `out` (nullable; the name is only valid during the
-// call). Returns the count. C6's SORTQ compare (Codex rw1-G-r27 #1) and C5's pending logical state.
+// call). Returns the count. C6's SORTQ compare and C5's pending logical state.
 struct FieldSink {
 	virtual ~FieldSink() {}
 	virtual void field(const char *name, uint64_t classic, uint64_t l2) = 0;

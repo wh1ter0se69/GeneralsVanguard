@@ -71,7 +71,7 @@
 // PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
 static const char *mapExtension = ".map";
 
-// GeneralsX @bugfix Copilot 27/04/2026 Accept both '\' and '/' separators so user custom maps work on macOS/Linux paths.
+// GeneralsX: Accept both '\' and '/' separators so user custom maps work on macOS/Linux paths.
 static const char *findLastPathSeparator(const AsciiString& path)
 {
 	const char *backslash = path.reverseFind('\\');
@@ -218,7 +218,7 @@ static Bool ParseSizeOnly(DataChunkInput &file, DataChunkInfo *info, void *userD
 
 	if (info->version >= K_HEIGHT_MAP_VERSION_4) {
 		Int numBorders = file.readInt();
-		// GeneralsX @bugfix Claude 06/10/2026 As in WorldHeightMap's readers: the count sized a resize() before
+		// GeneralsX: As in WorldHeightMap's readers: the count sized a resize() before
 		// anything checked it, and this one runs for every .map the map list scans (a transferred one included).
 		// Each boundary is two ints that follow in this chunk, so a count the chunk cannot hold is damage.
 		if (numBorders < 0 || numBorders > (Int)file.getChunkDataSizeLeft() / (Int)(2 * sizeof(Int))) {
@@ -230,7 +230,7 @@ static Bool ParseSizeOnly(DataChunkInput &file, DataChunkInfo *info, void *userD
 			m_boundaries[i].y = file.readInt();
 		}
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 The list judges the height map header exactly as the loader does
+	// GeneralsX: The list judges the height map header exactly as the loader does
 	// (WorldHeightMap.cpp: heightMapSizeFits, boundariesFitHeightMap, the border check) without reading the samples, so a
 	// map a start would refuse as damaged is not offered at all. This returned before dataSize, and an unreachable copy of
 	// the loader's old unchecked allocation followed; a mismatched size was listed and refused only when a match started.
@@ -249,9 +249,9 @@ static Bool ParseSizeOnly(DataChunkInput &file, DataChunkInfo *info, void *userD
 	return true;
 }
 
-// GeneralsX @bugfix Claude 06/10/2026 BlendTileData, judged as the loader judges its framing (WorldHeightMap.cpp: after
+// GeneralsX: BlendTileData, judged as the loader judges its framing (WorldHeightMap.cpp: after
 // HeightMapData, once, a per-cell length equal to dataSize, and the per-cell arrays all present) without reading them, so
-// a map whose terrain the start would refuse is not listed (Codex mlv-r2 #4). loadMap requires one to have been seen.
+// a map whose terrain the start would refuse is not listed. loadMap requires one to have been seen.
 static Bool s_sawBlendTileData = FALSE;
 static Bool ParseBlendTileSizeOnly(DataChunkInput &file, DataChunkInfo *info, void *userData)
 {
@@ -290,7 +290,7 @@ static Bool loadMap( AsciiString filename )
 
 	m_waypoints = NEW WaypointMap;
 
-	// GeneralsX @bugfix Claude 06/10/2026 These are file statics shared by every map the list scans, and nothing reset
+	// GeneralsX: These are file statics shared by every map the list scans, and nothing reset
 	// them: a map with no HeightMapData was listed with the previous map's size. A map with no height map is damaged.
 	m_width = m_height = m_borderSize = m_dataSize = 0;
 	m_boundaries.clear();
@@ -407,7 +407,7 @@ void MapCache::writeCacheINI( const AsciiString &mapDir )
 	TheFileSystem->createDirectory(mapDir);
 
 	filepath.concat(m_mapCacheName);
-	// GeneralsX @bugfix Claude 23/09/2026 Written beside the cache and swapped into place, never
+	// GeneralsX: Written beside the cache and swapped into place, never
 	// truncated in place: a half-written MapCache.ini is read back as a cache with maps missing, and
 	// on Windows the user copy lives under Documents, which OneDrive keeps under sync. See
 	// GameClient/GXReplaceFile.h.
@@ -511,7 +511,7 @@ void MapCache::updateCache()
 		m_doCreateStandardMapCacheINI = FALSE;
 	}
 
-	// GeneralsX @feature Claude 16/08/2026 SAY SO WHEN MAPS ARE IN THE FOLDER THAT IS IGNORED.
+	// GeneralsX: SAY SO WHEN MAPS ARE IN THE FOLDER THAT IS IGNORED.
 	//
 	// There are two map roots and only one of them picks up new files. getUserMapDir() is scanned
 	// from disk on every launch (just below); getMapDir() - the "Maps" folder inside the game
@@ -615,7 +615,7 @@ void MapCache::prepareUnseenMaps( const AsciiString &mapDir )
 	}
 }
 
-// GeneralsX @bugfix Claude 20/08/2026 ENTRIES FROM A CONTAINER THAT NO LONGER EXISTS.
+// GeneralsX: ENTRIES FROM A CONTAINER THAT NO LONGER EXISTS.
 //
 // clearUnseenMaps cannot do this and it was wrong to claim it could: both it and prepareUnseenMaps
 // only inspect keys that start with the CURRENT map directory, so an entry written under a previous
@@ -769,10 +769,10 @@ Bool MapCache::loadMapsFromDisk( const AsciiString &mapDir, Bool isOfficial, Boo
 }
 
 // GX-SIMID-BEGIN the simulation reads this - resources/gitinfo/simsourcedigest_watcher.cmake
-// GeneralsX @bugfix Claude 19/08/2026 See MapMetaData::m_filePathOnDisk.
+// GeneralsX: See MapMetaData::m_filePathOnDisk.
 AsciiString MapCache::getPathOnDisk(const AsciiString& lowerPath) const
 {
-	// GeneralsX @bugfix Claude 20/08/2026 NORMALISE, do not trust the parameter's name.
+	// GeneralsX: NORMALISE, do not trust the parameter's name.
 	//
 	// addMap stores the whole key lowercased, and findMap lowercases its argument before looking
 	// up - but this did not, so a caller holding a path that is only PARTLY lowercased missed and
@@ -792,11 +792,11 @@ AsciiString MapCache::getPathOnDisk(const AsciiString& lowerPath) const
 }
 // GX-SIMID-END
 
-// GeneralsX @bugfix Claude 23/09/2026 A cache hit must also carry start data a scan could produce.
+// GeneralsX: A cache hit must also carry start data a scan could produce.
 // Rule and why: GameClient/MapCacheCredibility.h. A rejected entry falls through to the miss path
 // below, which re-reads the map file and returns TRUE, so updateCache rewrites MapCache.ini with the
 // real values. Nothing re-judges that fresh result inside the same scan, so there is no loop.
-// ponytail: a genuine map that trips the rule is re-scanned (and the cache rewritten) on every
+// Trade-off: a genuine map that trips the rule is re-scanned (and the cache rewritten) on every
 // updateCache; none of 1216 real entries does. Keep a scanned-this-session flag if one ever does.
 static Bool gxCachedStartsCredible(const AsciiString &fname, const MapMetaData &md)
 {
@@ -832,7 +832,7 @@ Bool MapCache::addMap(
 		// Found the map in our cache. Check to see if it has changed.
 		const MapMetaData& md = it->second;
 
-		// GeneralsX @bugfix Claude 10/08/2026 Size alone is not "unchanged". A re-transferred or
+		// GeneralsX: Size alone is not "unchanged". A re-transferred or
 		// re-edited map of identical size kept its OLD cached CRC here, and the CRC is what join
 		// admission and the has-map handshake compare - so a stale entry makes a peer look
 		// permanently map-less no matter how many times the transfer succeeds. The timestamps are
@@ -877,7 +877,7 @@ Bool MapCache::addMap(
 
 			it->second.m_doesExist = TRUE;
 
-			// GeneralsX @bugfix Claude 20/08/2026 HYDRATE THE REAL PATH ON A CACHE HIT TOO.
+			// GeneralsX: HYDRATE THE REAL PATH ON A CACHE HIT TOO.
 			//
 			// m_filePathOnDisk was written only on the cache-MISS path below, so an entry restored
 			// from MapCache.ini kept it empty and getPathOnDisk fell back to the lowercased identity
@@ -903,7 +903,7 @@ Bool MapCache::addMap(
 
 	DEBUG_LOG(("MapCache::addMap(): caching '%s' because '%s' was not found", fname.str(), lowerFname.str()));
 
-	// GeneralsX @bugfix Claude 01/10/2026 An unreadable or corrupt map was cached anyway: loadMap's failure was
+	// GeneralsX: An unreadable or corrupt map was cached anyway: loadMap's failure was
 	// ignored (and on an open failure m_waypoints stayed null for the update() below), a throw escaped the whole scan,
 	// and a zero CRC was stored as the map's identity. Skip such a map and drop any stale entry for it instead
 	// (tsh batch2 #247, idea of Generals Online 5b715ba23, reimplemented).
@@ -932,7 +932,7 @@ Bool MapCache::addMap(
 	// The map is now loaded.  Pick out what we need.
 	MapMetaData md;
 	md.m_fileName = lowerFname;
-	// GeneralsX @bugfix Claude 19/08/2026 Keep the real, case-intact path beside the lowercased
+	// GeneralsX: Keep the real, case-intact path beside the lowercased
 	// identity. See MapMetaData::m_filePathOnDisk for why this exists.
 	// GX-SIMID-BEGIN the simulation reads this - resources/gitinfo/simsourcedigest_watcher.cmake
 	md.m_filePathOnDisk = fname;
@@ -1137,7 +1137,7 @@ static Bool addMapToMapListbox(
 
 	if (mapOk)
 	{
-		// GeneralsX @bugfix Claude 25/09/2026 A full map listbox GROWS instead of ending the list.
+		// GeneralsX: A full map listbox GROWS instead of ending the list.
 		// The row capacity comes from the layout's LISTBOXDATA LENGTH inside WindowZH.big / Window.big
 		// (retail: Skirmish 300, LAN and Online 100, solo 200; UI mods ship their own, e.g. 1200),
 		// and the gadget refuses to append past it because AUTOPURGE is 0. Every map past the cap
@@ -1311,7 +1311,7 @@ Int populateMapListboxNoReset( GameWindow *listbox, Bool useSystemMaps, Bool isM
 	MapDisplayToFileNameList fileNames;
 	Int curNumPlayersInMap = 1;
 
-	// GeneralsX @performance Claude 25/09/2026 Lay the rows out once at the end instead of after every
+	// GeneralsX: Lay the rows out once at the end instead of after every
 	// add: the list is no longer capped at the layout's length, and per-add layout is O(maps^2).
 	GadgetListBoxBeginBulkAdd(listbox);
 
@@ -1457,7 +1457,7 @@ const MapMetaData *MapCache::findMap(AsciiString mapName)
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 23/09/2026 The map's sides, counted the way the start path sees them.
+// GeneralsX: The map's sides, counted the way the start path sees them.
 //
 // Reads the "SidesList" chunk the same way SidesList::ParseSidesDataChunk does (it caps the list at
 // MAX_PLAYER_COUNT and skips each side's build list), keeps only what the capacity rule needs, and
@@ -1534,7 +1534,7 @@ Int MapCache::getPlayerSlotCapacity(const AsciiString &mapName)
 		ChunkInputStream *pStrm = &fileStrm;
 		DataChunkInput file(pStrm);
 		file.registerParser("SidesList", AsciiString::TheEmptyString, parseSidesForCapacity);
-		// GeneralsX @bugfix Claude 06/10/2026 The chunk readers throw ERROR_CORRUPT_FILE_FORMAT on a damaged file
+		// GeneralsX: The chunk readers throw ERROR_CORRUPT_FILE_FORMAT on a damaged file
 		// (DataChunk.cpp readChunkBytes), and this runs from the lobby's Start buttons and HeadlessMatch, outside any
 		// handler. A damaged map's capacity is unknown (-1, as for a map that does not open); the start then refuses
 		// the map itself (GameLogic::startNewGame).
@@ -1575,9 +1575,9 @@ static Bool copyFromBigToDir( const AsciiString& infile, const AsciiString& outf
 	const Int fileSize = file->seek( 0, File::END );
 	file->seek( 0, File::START );
 
-	// GeneralsX @bugfix Claude 18/10/2026 A buffer that cannot be allocated is a skipped preview, with the source
+	// GeneralsX: A buffer that cannot be allocated is a skipped preview, with the source
 	// file closed. The engine allocator throws ERROR_OUT_OF_MEMORY instead of returning null (GameMemory.cpp), and a
-	// failed seek returns a negative size (Codex tsh1018-a-r1 P2: #3485 had taken out the catch that covered both).
+	// failed seek returns a negative size (#3485 had taken out the catch that covered both).
 	char *buffer = nullptr;
 	if( fileSize >= 0 )
 	{
@@ -1604,8 +1604,8 @@ static Bool copyFromBigToDir( const AsciiString& infile, const AsciiString& outf
 	Bool writeOk = FALSE;
 	if( readOk )
 	{
-		// GeneralsX @bugfix Claude 18/10/2026 Opening the target allocates and can throw too: free the buffer before
-		// the call site's catch turns it into a skipped preview (Codex tsh1018-a-lens-r2 P2).
+		// GeneralsX: Opening the target allocates and can throw too: free the buffer before
+		// the call site's catch turns it into a skipped preview.
 		try
 		{
 			File *filenew = TheFileSystem->openFile( outfile.str(), File::WRITE | File::CREATE | File::BINARY );
@@ -1670,7 +1670,7 @@ Image *getMapPreviewImage( AsciiString mapName )
 
 		mapPreviewDir.concat(name);
 
-		// GeneralsX @bugfix Claude 18/10/2026 Any other throw on the way (opening the target allocates too) stays a
+		// GeneralsX: Any other throw on the way (opening the target allocates too) stays a
 		// skipped preview, as it was before #3485 took the catch out.
 		Bool success = FALSE;
 		try

@@ -1,13 +1,13 @@
 #!/bin/bash
-# GeneralsX @build BenderAI 02/03/2026 Bundle macOS GeneralsXZH binary + dylibs into a zip archive
+# GeneralsX: Bundle macOS GeneralsXZH binary + dylibs into a zip archive
 # Packages a self-contained .app for local distribution testing.
 
 set -e
 
-# GeneralsX @bugfix BenderAI 09/03/2026 Resolve repository root correctly from scripts/build/macos.
+# GeneralsX: Resolve repository root correctly from scripts/build/macos.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-# GeneralsX @test Claude 23/09/2026 GX_BUILD_DIR: a gx-ab-test flag arm's own build dir (gx-ab-build.sh).
+# GeneralsX: GX_BUILD_DIR: a gx-ab-test flag arm's own build dir (gx-ab-build.sh).
 # Its zip goes INTO that dir: both arms of one worktree share PROJECT_ROOT, so one fixed zip there would
 # leave only the last arm bundled.
 if [[ -n "${GX_BUILD_DIR:-}" && "${GX_BUILD_DIR}" != /* ]]; then
@@ -18,7 +18,7 @@ SDL3_LIB_DIR="${BUILD_DIR}/_deps/sdl3-build"
 SDL3_IMAGE_LIB_DIR="${BUILD_DIR}/_deps/sdl3_image-build"
 FONTCONFIG_ETC_DIR="${BUILD_DIR}/vcpkg_installed/arm64-osx/etc/fonts"
 GAMESPY_LIB="${BUILD_DIR}/libgamespy.dylib"
-# GeneralsX @bugfix BenderAI 09/03/2026 Resolve DXVK dylib paths from both install copy and Meson output to avoid stale/incomplete bundles.
+# GeneralsX: Resolve DXVK dylib paths from both install copy and Meson output to avoid stale/incomplete bundles.
 DXVK_D3D8_LIB_INSTALL="${BUILD_DIR}/libdxvk_d3d8.0.dylib"
 DXVK_D3D9_LIB_INSTALL="${BUILD_DIR}/libdxvk_d3d9.0.dylib"
 DXVK_D3D8_LIB_MESON="${BUILD_DIR}/_deps/dxvk-build-macos/src/d3d8/libdxvk_d3d8.0.dylib"
@@ -27,7 +27,7 @@ BINARY_SRC="${BUILD_DIR}/GeneralsMD/GeneralsXZH"
 DXVK_CONF_SRC="${PROJECT_ROOT}/resources/dxvk/dxvk.conf"
 OUTPUT_ZIP="${GX_BUILD_DIR:-${PROJECT_ROOT}}/GeneralsXZH-macos-arm64.zip"
 
-# GeneralsX @bugfix Claude 18/09/2026 THE OVERLAY'S SOURCE DIRECTORIES, AS ONE LIST, UP HERE.
+# GeneralsX: THE OVERLAY'S SOURCE DIRECTORIES, AS ONE LIST, UP HERE.
 #
 # ONE list feeds both the archive search (find_overlay_archive) and the generator's --game-dir
 # candidates. They used to be two chains: the generator got
@@ -61,7 +61,7 @@ fi
 
 DXVK_D3D8_LIB="${DXVK_D3D8_LIB_INSTALL}"
 DXVK_D3D9_LIB="${DXVK_D3D9_LIB_INSTALL}"
-# GeneralsX @bugfix Claude 01/10/2026 The NEWER of the two, not the install copy whenever it exists: cmake refreshes that
+# GeneralsX: The NEWER of the two, not the install copy whenever it exists: cmake refreshes that
 # copy only when its own target is built, and a build of the game alone (gx-ab-build.sh) leaves it at whatever DXVK was
 # current then. Measured on build/gx-ab-B: copy 7c43f1be from 17:46, Meson output e69ec7e2 from 18:21 - the bundle
 # shipped the old DXVK, without the A2 key-file lock.
@@ -72,7 +72,7 @@ if [[ -f "${DXVK_D3D9_LIB_MESON}" && ( ! -f "${DXVK_D3D9_LIB}" || "${DXVK_D3D9_L
     DXVK_D3D9_LIB="${DXVK_D3D9_LIB_MESON}"
 fi
 
-# GeneralsX @bugfix Copilot 19/03/2026 Resolve @rpath/@loader_path deps while collecting external dylibs for portable bundles.
+# GeneralsX: Resolve @rpath/@loader_path deps while collecting external dylibs for portable bundles.
 extract_rpaths() {
     local target="$1"
     otool -l "${target}" 2>/dev/null | awk '
@@ -109,7 +109,7 @@ resolve_dep_path() {
     if [[ "${dep}" == @rpath/* ]]; then
         dep_name="${dep#@rpath/}"
 
-        # GeneralsX @bugfix Copilot 24/03/2026 Resolve @rpath deps already staged in the same lib directory before scanning LC_RPATH.
+        # GeneralsX: Resolve @rpath deps already staged in the same lib directory before scanning LC_RPATH.
         candidate="${loader_dir}/${dep_name}"
         [[ -f "${candidate}" ]] && { echo "${candidate}"; return 0; }
 
@@ -188,7 +188,7 @@ collect_external_dylibs() {
             fi
             resolved_dep="$(resolve_dep_path "${target}" "${dep}" "${executable_dir}" || true)"
             if [[ -z "${resolved_dep}" ]]; then
-                # GeneralsX @bugfix Copilot 20/03/2026 Warn when a non-system dep cannot be resolved instead of silently dropping it.
+                # GeneralsX: Warn when a non-system dep cannot be resolved instead of silently dropping it.
                 echo "WARNING: Unable to resolve dependency '${dep}' for target '${target}'" >&2
                 continue
             fi
@@ -200,7 +200,7 @@ collect_external_dylibs() {
 
             if [[ ! -f "${dep_dst}" ]]; then
                 echo "  + external ${dep_name} (from ${resolved_dep})"
-                # GeneralsX @bugfix Copilot 20/03/2026 Dereference symlinks so we copy the actual dylib, not a dangling symlink.
+                # GeneralsX: Dereference symlinks so we copy the actual dylib, not a dangling symlink.
                 cp -L "${resolved_dep}" "${dep_dst}"
             fi
 
@@ -214,7 +214,7 @@ collect_external_dylibs() {
 # Locate installed Vulkan SDK:
 #  1) Prefer explicit env vars (VULKAN_SDK, then VULKAN_SDK_ROOT)
 #  2) Fall back to ~/VulkanSDK/*/macOS by convention
-# GeneralsX @bugfix Copilot 20/03/2026 Honor VULKAN_SDK/VULKAN_SDK_ROOT before scanning ~/VulkanSDK.
+# GeneralsX: Honor VULKAN_SDK/VULKAN_SDK_ROOT before scanning ~/VulkanSDK.
 if [[ -n "${VULKAN_SDK:-}" ]] && [[ -f "${VULKAN_SDK}/lib/libvulkan.dylib" ]]; then
     VULKAN_SDK_ROOT="${VULKAN_SDK}"
 elif [[ -n "${VULKAN_SDK_ROOT:-}" ]] && [[ -f "${VULKAN_SDK_ROOT}/lib/libvulkan.dylib" ]]; then
@@ -228,7 +228,7 @@ else
     done
 fi
 
-# GeneralsX @feature Copilot 19/03/2026 Produce a macOS .app bundle with internal runtime env defaults.
+# GeneralsX: Produce a macOS .app bundle with internal runtime env defaults.
 APP_NAME="GeneralsXZH"
 APP_DIR_NAME="${APP_NAME}.app"
 INCLUDE_EXTERNAL_DYLIBS="${GX_BUNDLE_INCLUDE_EXTERNAL_DYLIBS:-1}"
@@ -335,7 +335,7 @@ echo "  + libdxvk_d3d9"
 cp "${DXVK_D3D9_LIB}" "${LIB_DIR}/libdxvk_d3d9.0.dylib"
 ln -sf libdxvk_d3d9.0.dylib "${LIB_DIR}/libdxvk_d3d9.dylib"
 
-# GeneralsX @bugfix Claude 14/09/2026 THE STAGED FILE, NOT THE ONE WE MEANT TO COPY.
+# GeneralsX: THE STAGED FILE, NOT THE ONE WE MEANT TO COPY.
 #
 # Checked here rather than at ${DXVK_D3D9_LIB} because the two can differ: DXVK_D3D9_LIB prefers
 # the INSTALL copy (${BUILD_DIR}/libdxvk_d3d9.0.dylib), which cmake produces through a rule that
@@ -385,7 +385,7 @@ if [[ -n "${VULKAN_SDK_ROOT}" ]]; then
 }
 EOF
 else
-    # GeneralsX @build Copilot 20/03/2026 Fail bundle when Vulkan SDK is missing unless explicitly allowed.
+    # GeneralsX: Fail bundle when Vulkan SDK is missing unless explicitly allowed.
     if [[ "${GX_ALLOW_MISSING_VULKAN_IN_BUNDLE:-0}" == "1" ]]; then
         echo "WARNING: Vulkan SDK not found at ~/VulkanSDK/*/macOS - Vulkan libs will be missing from bundle"
         echo "  GX_ALLOW_MISSING_VULKAN_IN_BUNDLE=1 set; producing bundle without Vulkan for local experiments"
@@ -406,7 +406,7 @@ else
     echo "WARNING: ${DXVK_CONF_SRC} not found - terrain shaders may fail on macOS"
 fi
 
-# GeneralsX @perf Claude 01/10/2026 A2: the shipped pipeline record a fresh install warms from (SDL3Main gxSeedDxvkCache
+# GeneralsX: A2: the shipped pipeline record a fresh install warms from (SDL3Main gxSeedDxvkCache
 # copies it into the player's DXVK folder when absent; run.sh below names the folder).
 # Fails rather than skips: a bundle without it is one whose first match compiles mid-match again, and nothing else says so.
 DXVK_SEED_SRC="${PROJECT_ROOT}/resources/dxvk/seed"
@@ -418,8 +418,8 @@ echo "  + dxvk-seed"
 mkdir -p "${RESOURCES_DIR}/dxvk-seed"
 cp "${DXVK_SEED_SRC}/GeneralsXZH.dxvk-cache" "${DXVK_SEED_SRC}/GeneralsXZH.dxvk-ffkeys" "${RESOURCES_DIR}/dxvk-seed/"
 
-# GeneralsX @bugfix Copilot 24/03/2026 Bundle Fontconfig config so FreeType/Fontconfig font matching works in app launcher runtime.
-# GeneralsX @bugfix Copilot 24/03/2026 Guard Fontconfig conf.d copy so missing directory does not break bundling under set -e.
+# GeneralsX: Bundle Fontconfig config so FreeType/Fontconfig font matching works in app launcher runtime.
+# GeneralsX: Guard Fontconfig conf.d copy so missing directory does not break bundling under set -e.
 if [[ -f "${FONTCONFIG_ETC_DIR}/fonts.conf" ]]; then
     echo "  + Fontconfig config"
     mkdir -p "${RESOURCES_DIR}/fontconfig"
@@ -434,7 +434,7 @@ else
     echo "WARNING: ${FONTCONFIG_ETC_DIR}/fonts.conf not found - in-game font lookup may fail on macOS"
 fi
 
-# GeneralsX @bugfix Claude 17/08/2026 Ship the community-patch data. THIS SCRIPT SHIPPED NONE
+# GeneralsX: Ship the community-patch data. THIS SCRIPT SHIPPED NONE
 # OF IT, and that is the whole reason a Mac player who downloads the published zip cannot join
 # anybody.
 #
@@ -460,7 +460,7 @@ fi
 #     and StdLocalFileSystem resolves a relative read against that directory before the cwd. So
 #     they beat the archives exactly as a loose file in the game folder did. m_iniCRC hashes INI
 #     line content, not the path, so dataID does not move.
-#     GeneralsX @bugfix Claude 24/09/2026 Until then the launcher copied them INTO the player's game
+#     GeneralsX: Until then the launcher copied them INTO the player's game
 #     folder, over whatever was there. A folder shared with other Zero Hour clients then broke
 #     those clients: our 6-label CSF replaced their full table, and our Multiplayer.ini moved their
 #     dataID. The overlay only serves by-name opens; a directory ENUMERATION (getFileListInDirectory)
@@ -530,7 +530,7 @@ find_overlay_archive() {
 echo "  + community-patch overlay"
 mkdir -p "${PATCH_STAGE}"
 
-# GeneralsX @feature Claude 15/09/2026 GENERATE !GXUI.big HERE, the way the Windows packager
+# GeneralsX: GENERATE !GXUI.big HERE, the way the Windows packager
 # already does. It is now on overlay-archives.txt, so a missing copy is a refusal rather than a
 # quiet omission - and only package-windows-share.ps1 ran the generator, despite a comment in
 # overlay-optional.txt claiming iOS, Linux and Windows all did. They did not; that line was wrong
@@ -761,7 +761,7 @@ if [[ -f "${MP_INI_SRC}" ]]; then
     cp "${COLOR_CSF_SRC}" "${GAMEDATA_STAGE}/Data/English/Generals.csf"
     GX_GAMEDATA_FILES=("Data/INI/Multiplayer.ini" "Data/English/Generals.csf")
 
-    # GeneralsX @feature Claude 24/09/2026 Data/INI/Weapon.ini, the Toxin Tractor balance change, cut
+    # GeneralsX: Data/INI/Weapon.ini, the Toxin Tractor balance change, cut
     # from the CoreINI archive staged above (scripts/tooling/make-weapon-ini.py; never committed, it is
     # the Community Patch's file). It moves dataID, so a release bundle without it is refused. Only the
     # GX_BUNDLE_ALLOW_NO_OVERLAY smoke bundle goes without: it is already stamped as no release.
@@ -772,7 +772,7 @@ if [[ -f "${MP_INI_SRC}" ]]; then
             GX_GAMEDATA_FILES+=("${_gx_rf}")
         done < <(python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --list)
     elif [[ "${GX_BUNDLE_ALLOW_NO_OVERLAY:-0}" == "1" ]]; then
-        # 25/09/2026 (Codex P2): STAMPED, whatever the overlay block wrote. A complete overlay with a
+        # 25/09/2026: STAMPED, whatever the overlay block wrote. A complete overlay with a
         # CoreINI the recipe refuses writes no stamp there, and verify-bundle-overlay.sh would then
         # pass a bundle whose dataID matches no peer. It is required-level: the bundle cannot join.
         echo "WARNING: Data/INI/Weapon.ini NOT staged - THIS BUNDLE CANNOT JOIN ANY GAME."
@@ -827,7 +827,7 @@ if [[ -f "${MP_INI_SRC}" ]]; then
         echo "      ${_rel}"
         # run.sh removes a copy from a game folder only when it matches this list, so a pair that
         # is not on it would be left behind in every folder an older build wrote into. Weapon.ini is
-        # not on it on purpose (no build ever wrote it into a game folder; Codex P2): its bytes are the
+        # not on it on purpose (no build ever wrote it into a game folder): its bytes are the
         # recipe's, checked again by verify-bundle-overlay.sh.
         # Nor are the other recipe files (the Alpha Aurora fix, 26/09/2026), for the same reason.
         python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --list | grep -qxF "${_rel}" && continue
@@ -845,7 +845,7 @@ fi
 echo "  + App launcher"
 cat > "${MACOS_DIR}/run.sh" << 'WRAPPER'
 #!/bin/bash
-# GeneralsX @feature Copilot 19/03/2026 - App launcher with bundled runtime + default asset paths
+# GeneralsX: App launcher with bundled runtime + default asset paths
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 CONTENTS_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
@@ -854,7 +854,7 @@ LIB_DIR="${RESOURCES_DIR}/lib"
 
 export DYLD_LIBRARY_PATH="${LIB_DIR}:${BIN_DIR}:${DYLD_LIBRARY_PATH:-}"
 
-# GeneralsX @bugfix Claude 17/08/2026 Point the engine at the overlay this bundle carries.
+# GeneralsX: Point the engine at the overlay this bundle carries.
 #
 # Unlike the deploy layout, the .app's executable (Contents/Resources/bin) is disjoint from the
 # asset root, so the engine's own <exe dir>/GeneralsXPatch default would not double-mount and
@@ -894,7 +894,7 @@ if [[ -f "${RESOURCES_DIR}/MoltenVK_icd.json" ]]; then
     export VK_DRIVER_FILES="${RESOURCES_DIR}/MoltenVK_icd.json"
 fi
 
-# GeneralsX @bugfix BenderAI 01/04/2026 Select default Zero Hour asset path by .big presence, with GeneralsMD fallback.
+# GeneralsX: Select default Zero Hour asset path by .big presence, with GeneralsMD fallback.
 # Default asset paths matching the standard macOS deploy layout (allow user override)
 export CNC_GENERALS_PATH="${CNC_GENERALS_PATH:-${HOME}/GeneralsX/Generals}"
 if [[ -z "${CNC_GENERALS_ZH_PATH:-}" ]]; then
@@ -918,17 +918,17 @@ if [[ -f "${RESOURCES_DIR}/dxvk.conf" ]]; then
     export DXVK_CONFIG_FILE="${RESOURCES_DIR}/dxvk.conf"
 fi
 
-# GeneralsX @perf Claude 01/10/2026 A2: the shipped pipeline record (SDL3Main gxSeedDxvkCache). A caller's value - even an
+# GeneralsX: A2: the shipped pipeline record (SDL3Main gxSeedDxvkCache). A caller's value - even an
 # empty one, which turns the seed off - wins.
 export GX_DXVK_SEED_DIR="${GX_DXVK_SEED_DIR-${RESOURCES_DIR}/dxvk-seed}"
 
-# GeneralsX @bugfix Copilot 24/03/2026 Set bundled Fontconfig config path to avoid "Cannot load default config file: (null)" on macOS.
+# GeneralsX: Set bundled Fontconfig config path to avoid "Cannot load default config file: (null)" on macOS.
 if [[ -f "${RESOURCES_DIR}/fontconfig/fonts.conf" ]]; then
     export FONTCONFIG_FILE="${RESOURCES_DIR}/fontconfig/fonts.conf"
     export FONTCONFIG_PATH="${RESOURCES_DIR}/fontconfig"
 fi
 
-# GeneralsX @bugfix Claude 24/09/2026 THE LOOSE PAIR IS SERVED FROM INSIDE THE .app, AND THE GAME
+# GeneralsX: THE LOOSE PAIR IS SERVED FROM INSIDE THE .app, AND THE GAME
 # FOLDER IS NEVER WRITTEN TO.
 #
 # This used to cp Data/INI/Multiplayer.ini and Data/English/Generals.csf INTO the game folder, over
@@ -966,7 +966,7 @@ if [[ -d "${CNC_GENERALS_ZH_PATH}" ]]; then
     # have no overlay and need the pair; removing it there would split that install's dataID.
     # And skipped when any directory on the way is a symlink (pwd -P differs), so a link can never
     # carry the removal into some other folder.
-    # And skipped when the overlay is on a case-sensitive volume (Fable P3): the engine asks for
+    # And skipped when the overlay is on a case-sensitive volume: the engine asks for
     # data/<lang>/generals.csf (SDL3Main g_csfFile) and the overlay matches exact case only
     # (StdLocalFileSystem), so there the loose copy is the one CSF the engine can still find.
     # DATA resolves to the overlay's Data only where case folds.
@@ -1058,7 +1058,7 @@ gx_macho_assert_portable "${APP_DIR}" "${APP_DIR_NAME}" "${BIN_DIR}" || exit 1
 # GeneralsXZH.app/Contents/MacOS/run.sh, which is what the deleted file exec'd anyway. Nothing is
 # lost and the folder now has one obvious thing in it.
 
-# GeneralsX @test Claude 23/09/2026 A gx-ab-build.sh arm carries its build's provenance INTO the app:
+# GeneralsX: A gx-ab-build.sh arm carries its build's provenance INTO the app:
 # a --flag A/B stages two apps of ONE sha on the Mini, and only this stamp (arm, sha, build dir, the
 # cache's GX_ entries, the bundled binary's md5) lets gx-ab.sh's Mini gate tell them apart. Only a dir
 # gx-ab-build.sh stamped: every other bundle is unchanged.
@@ -1092,7 +1092,7 @@ python3 -I "${PROJECT_ROOT}/scripts/legal/third_party_notices.py" check-path --p
 
 (cd "${STAGE_DIR}" && zip -r "${OUTPUT_ZIP}" "${APP_DIR_NAME}" run.sh)
 
-# GeneralsX @bugfix Claude 14/09/2026 AND ONCE MORE OUT OF THE FINISHED ZIP.
+# GeneralsX: AND ONCE MORE OUT OF THE FINISHED ZIP.
 #
 # The staged check above ran against the staging tree; this one runs against the artifact a player
 # downloads, so nothing between staging and `zip` - a permissions pass, a re-copy, a stray earlier

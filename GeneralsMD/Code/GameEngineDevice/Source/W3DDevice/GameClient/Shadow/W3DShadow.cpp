@@ -53,7 +53,7 @@
 #include "Common/Debug.h"
 #include "Common/PerfTimer.h"
 
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7: the shadow map's ZH glue (W3DShadowMap.cpp; a no-op without IGxShadowMap)
+// GeneralsX: S7: the shadow map's ZH glue (W3DShadowMap.cpp; a no-op without IGxShadowMap)
 void W3DShadowMapInstall();
 void W3DShadowMapRelease();
 void W3DShadowMapStencilBoundary();   // P2: the receivers end here (a no-op unless the map is on this frame)
@@ -94,7 +94,7 @@ void DoShadows(RenderInfoClass & rinfo, Bool stencilPass)
 	}
 
 	if (stencilPass == TRUE)
-		W3DShadowMapStencilBoundary();	// GeneralsX @feature D · look-shadowmaps-2 17/10/2026 S7 P2: the shadow map's receivers end here
+		W3DShadowMapStencilBoundary();	// GeneralsX: S7 P2: the shadow map's receivers end here
 
 	if (stencilPass == TRUE && TheW3DVolumetricShadowManager)
 	{
@@ -217,7 +217,7 @@ Shadow *W3DShadowManager::addShadow( RenderObjClass *robj, Shadow::ShadowTypeInf
 	if (shadowInfo)
 		type = shadowInfo->m_type;
 
-	// GeneralsX @bugfix BenderAI 21/03/2026 ShadowType contains bit flags; route by mask instead of exact enum value.
+	// GeneralsX: ShadowType contains bit flags; route by mask instead of exact enum value.
 	if (type & SHADOW_VOLUME)
 	{
 		if (TheW3DVolumetricShadowManager)

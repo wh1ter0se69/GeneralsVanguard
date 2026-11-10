@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 24/08/2026 See GXHostCamera.h for what this is, why the host's value
+// GeneralsX: See GXHostCamera.h for what this is, why the host's value
 // REPLACES rather than min()s the peer's, and why the scope is exactly two keys.
 
 // The engine binding at the bottom of this file is the ONLY part that needs the engine. Compiling
@@ -314,7 +314,7 @@ Limits effectiveLimits( void )
 	{
 		effective = s_active;
 	}
-	// GeneralsX @bugfix Claude 29/09/2026 An OBSERVER keeps his own local limits (Debug range, up to 10000 / down to
+	// GeneralsX: An OBSERVER keeps his own local limits (Debug range, up to 10000 / down to
 	// 10) and the host's pair does not bind him. The clamp below and the host pair exist so no PLAYER sees more map
 	// than the others; an observer already sees all of it, so "zoom past 1000 does not work while observing" (wh1ter0se)
 	// was a rule with nothing to protect. Both branches are skipped by the same predicate isOverrideInForce()
@@ -323,10 +323,10 @@ Limits effectiveLimits( void )
 	{
 		// effective stays == local
 	}
-	// GeneralsX @bugfix Claude 26/09/2026 In a multiplayer match without a host pair, this machine plays by the same
+	// GeneralsX: In a multiplayer match without a host pair, this machine plays by the same
 	// clamp its pair meets on the wire. The Debug menu reaches past the wire's range (up to 10000, down to 10:
 	// View::DebugCamera*), and a host's pair is clamped by validate() on every peer, so the host alone would have
-	// seen more map than everybody else (Codex dbgcam-r4 P1). Gate off keeps the pre-feature read, as above.
+	// seen more map than everybody else. Gate off keeps the pre-feature read, as above.
 	else if( gateEnabled() && s_wasInMatch )
 	{
 		Limits wire;

@@ -208,7 +208,7 @@ VideoStreamInterface* FFmpegVideoPlayer::createStream( File* file )
 		stream->m_player = this;
 		m_firstStream = stream;
 
-		// GeneralsX @bugfix Claude 21/09/2026 The gain is written by FFmpegVideoStream's constructor
+		// GeneralsX: The gain is written by FFmpegVideoStream's constructor
 		// and refreshed by FFmpegVideoPlayer::setVolume; what used to stand here computed a Bink
 		// volume into a [[maybe_unused]] local next to a commented-out BinkSetVolume and did nothing.
 	}
@@ -277,7 +277,7 @@ VideoStreamInterface*	FFmpegVideoPlayer::load( AsciiString movieTitle )
 void FFmpegVideoPlayer::setVolume( Real volume )
 {
 #ifdef SAGE_USE_OPENAL
-	// GeneralsX @bugfix Claude 21/09/2026 Upstream's FFmpeg override is a deliberately empty body -
+	// GeneralsX: Upstream's FFmpeg override is a deliberately empty body -
 	// it has no non-Bink movie audio to aim at. Here the soundtrack really does run through the
 	// shared OpenAL "bink" source, so push the gain onto it.
 	//

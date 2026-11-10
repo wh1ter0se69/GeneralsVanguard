@@ -627,7 +627,7 @@ StateReturnType DozerActionDoActionState::update()
 
 						UnicodeString msg;
 						msg.format( format.str(), objectName.str() );
-						// GeneralsX @bugfix Claude 06/10/2026 The object's display name can be the map's own text (map.ini
+						// GeneralsX: The object's display name can be the map's own text (map.ini
 						// DisplayName -> map.str); message() would run it through printf a second time. Show it as built.
 						TheInGameUI->messageNoFormat( msg );
 
@@ -2366,7 +2366,7 @@ void DozerAIUpdate::onDisabledEdge(Bool nowDisabled)
 		// TheSuperHackers @bugfix Stubbjax 17/11/2025 Resume previous task when re-enabled.
 		resumePreviousTask();
 #else
-		// GeneralsX @bugfix Claude 21/09/2026 Clear the remembered task on the retail path too.
+		// GeneralsX: Clear the remembered task on the retail path too.
 		//
 		// The disable side still calls cancelTask(task, rememberTask) and stores m_previousTask,
 		// but resumePreviousTask() - the only thing that clears it again - is compiled out here.

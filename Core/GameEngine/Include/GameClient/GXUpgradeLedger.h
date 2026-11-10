@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @bugfix Claude 24/08/2026 - which upgrade completions have already been announced.
+**	GeneralsX: which upgrade completions have already been announced.
 **
 **	WHY THIS IS A HEADER OF ITS OWN, AND PURE.
 **

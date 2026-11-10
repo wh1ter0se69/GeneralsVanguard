@@ -356,7 +356,7 @@ public:
 	*/
 	Relationship getRelationship(const Team *that) const;
 
-	/// GeneralsX @performance Claude 06/10/2026 true when this team overrides its relationship to some particular team
+	/// GeneralsX: true when this team overrides its relationship to some particular team
 	Bool hasOverrideTeamRelationships() const { return !m_teamRelations->m_map.empty(); }
 
 	/**

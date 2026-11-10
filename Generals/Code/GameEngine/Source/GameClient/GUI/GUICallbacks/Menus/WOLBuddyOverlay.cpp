@@ -609,9 +609,9 @@ void HandleBuddyResponses()
 					//!info.m_statusString.compareNoCase(L"Online"))
 					{
 						// insert status into box
-						// GeneralsX @security Claude 06/10/2026 The status text is the peer's own (GameSpy statusString). It used to name the
+						// GeneralsX: The status text is the peer's own (GameSpy statusString). It used to name the
 						// label directly, so a status of "Message" picked Buddy:MessageNotification - a two-argument template given one argument
-						// below (Codex format-strings-r6 P2). Only the six status lines the game ships, each a one-argument (nick) template, are
+						// below. Only the six status lines the game ships, each a one-argument (nick) template, are
 						// selectable; any other status takes the plain online / offline line.
 						AsciiString marker;
 						static const WideChar *const s_statusLines[] = { L"Online", L"Offline", L"Loading", L"Matching", L"Playing", L"Staging" };
@@ -625,7 +625,7 @@ void HandleBuddyResponses()
 						if (newStatus != GP_OFFLINE)
 							++numOnlineInNotification;
 
-						// GeneralsX @security Claude 06/10/2026 The template is a printf format for the nick: game-table text only (a label a
+						// GeneralsX: The template is a printf format for the nick: game-table text only (a label a
 						// localisation lacks fell through fetch() to the loaded map's map.str); a missing one takes the plain line too.
 						Bool exists = FALSE;
 						UnicodeString note;
@@ -1203,7 +1203,7 @@ void RequestBuddyAdd(Int profileID, AsciiString nick)
 	wcslcpy(req.arg.addbuddy.text, buddyAddstr.str(), MAX_BUDDY_CHAT_LEN);
 	TheGameSpyBuddyMessageQueue->addRequest(req);
 
-	// GeneralsX @security Claude 06/10/2026 Neither invite label is in the game's own tables, so a plain fetch() fell back to the loaded
+	// GeneralsX: Neither invite label is in the game's own tables, so a plain fetch() fell back to the loaded
 	// map's map.str (the buddy overlay opens in game), and both texts are printf formats. Game tables only (a missing label is the
 	// literal MISSING line, as before).
 	UnicodeString s;

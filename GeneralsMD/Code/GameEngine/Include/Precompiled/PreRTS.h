@@ -48,7 +48,7 @@ class STLSpecialAlloc;
     #include <atlbase.h>
     #include <windows.h>
 #else
-    // GeneralsX @build BenderAI 09/02/2026 Linux compatibility - Windows API stubs
+    // GeneralsX: Linux compatibility - Windows API stubs
     #include "windows_compat.h"
 #endif
 
@@ -149,7 +149,7 @@ class STLSpecialAlloc;
 #include "Common/Thing.h"
 #include "Common/UnicodeString.h"
 
-// GeneralsX @bugfix Claude 24/09/2026 <chrono> here, ahead of every translation unit's own includes.
+// GeneralsX: <chrono> here, ahead of every translation unit's own includes.
 // GameNetwork/NetworkDefs.h includes it (288060c0c); gamespy's gsplatformutil.h defines min/max as
 // function macros, and libstdc++'s <chrono> does not survive them ("macro min requires 2
 // arguments"), so any TU that reached a gamespy header first failed to compile on Linux. libc++

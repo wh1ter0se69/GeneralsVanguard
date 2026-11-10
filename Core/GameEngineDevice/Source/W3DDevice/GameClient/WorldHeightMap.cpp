@@ -384,11 +384,11 @@ WorldHeightMap::~WorldHeightMap()
 	REF_PTR_RELEASE(m_alphaEdgeTex);
 }
 
-// GeneralsX @bugfix Claude 06/10/2026 What a chunk parse allocates, freed by the destructor and by the reading constructor
+// GeneralsX: What a chunk parse allocates, freed by the destructor and by the reading constructor
 // when a reader throws: a damaged map is now REFUSED and play goes on (GameLogic::startNewGame), and the throw left the
 // half-built object's arrays behind - the constructor never finished, so no destructor ran and W3DTerrainLogic /
 // W3DTerrainVisual never got a pointer to free. A map the map list accepts but the full loader refuses (BlendTileData's
-// bitmap-tile count, say) leaked ~50 MB per Start (batch-0958 Codex r3).
+// bitmap-tile count, say) leaked ~50 MB per Start.
 void WorldHeightMap::freeParsedData()
 {
 	delete[](m_data);
@@ -498,7 +498,7 @@ WorldHeightMap::WorldHeightMap(ChunkInputStream *pStrm, Bool logicalDataOnly):
 		m_sourceTiles[i]=nullptr;
 		m_edgeTiles[i]=nullptr;
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 Until the last line below, a throw (a damaged map, now refused rather than fatal)
+	// GeneralsX: Until the last line below, a throw (a damaged map, now refused rather than fatal)
 	// leaves this object unconstructed: free what the parse allocated on the way out (freeParsedData).
 	struct FreeParsedOnThrow { WorldHeightMap *map; ~FreeParsedOnThrow() { if (map != nullptr) map->freeParsedData(); } } freeOnThrow = { this };
 
@@ -525,7 +525,7 @@ WorldHeightMap::WorldHeightMap(ChunkInputStream *pStrm, Bool logicalDataOnly):
 
 		throw(ERROR_CORRUPT_FILE_FORMAT);
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 The parser takes top-level chunks in whatever order and number the file lists
+	// GeneralsX: The parser takes top-level chunks in whatever order and number the file lists
 	// them, and the loop below walks m_dataSize entries of the BlendTileData arrays. With no BlendTileData chunk those
 	// arrays are null (a crash on the first cell); the per-chunk checks in the readers stop the other orders. A map
 	// with no height map at all is damaged as well - every real map has exactly one of each.
@@ -535,7 +535,7 @@ WorldHeightMap::WorldHeightMap(ChunkInputStream *pStrm, Bool logicalDataOnly):
 	// patch bad maps.
 	if (!logicalDataOnly) {
 		for(i=0; i<m_dataSize; i++) {
-			// GeneralsX @bugfix Claude 06/10/2026 A cell's tile index selects m_sourceTiles[index >> 2] (NUM_SOURCE_TILES
+			// GeneralsX: A cell's tile index selects m_sourceTiles[index >> 2] (NUM_SOURCE_TILES
 			// entries) in getUVForNdx, getSourceTile, getRawTileData and getTextureClass, and was the one per-cell index this
 			// loop did not patch: 4096 or -4 read a pointer from outside the array and drew through it. Patched to tile 0 the
 			// way the indices below already are; real maps stay well inside (0..3107 in 2,638 maps), so none changes.
@@ -770,10 +770,10 @@ Bool WorldHeightMap::ParseWorldDictDataChunk(DataChunkInput &file, DataChunkInfo
 */
 Bool WorldHeightMap::ParseLightingDataChunk(DataChunkInput &file, DataChunkInfo *info, void *userData)
 {
-		// GeneralsX @bugfix Claude 06/10/2026 The time of day indexes the per-time lighting tables
+		// GeneralsX: The time of day indexes the per-time lighting tables
 		// (m_terrainObjectsLighting[m_timeOfDay] in the tree and prop buffers, m_infantryLightScale[] in W3DScene), and
 		// went into global data unchecked: setTimeOfDay() later refused a bad one but left it stored (sweep v-map-05,
-		// Codex mlv-r3 #4). Judged before it is stored; real maps use morning..night (1..4).
+		// ). Judged before it is stored; real maps use morning..night (1..4).
 		const Int timeOfDay = file.readInt();
 		if (timeOfDay < TIME_OF_DAY_FIRST || timeOfDay >= TIME_OF_DAY_COUNT) {
 			throw ERROR_CORRUPT_FILE_FORMAT;
@@ -877,7 +877,7 @@ Bool WorldHeightMap::ParseHeightMapDataChunk(DataChunkInput &file, DataChunkInfo
 	return pThis->ParseHeightMapData(file, info, userData);
 }
 
-/** GeneralsX @bugfix Claude 06/10/2026 HeightMapData declares width, height and dataSize as three independent ints,
+/** GeneralsX: HeightMapData declares width, height and dataSize as three independent ints,
 	and the readers allocated m_data[dataSize] BEFORE judging them, with the only check (dataSize == width*height)
 	multiplying in signed Int: width = height = 65537 wraps to 131073, so a small array passed for a 65537 x 65537 grid
 	that the terrain code then indexes by width and height; and a dataSize near 2^31 allocated 2 GB before anything
@@ -885,7 +885,7 @@ Bool WorldHeightMap::ParseHeightMapDataChunk(DataChunkInput &file, DataChunkInfo
 	readArrayOfBytes reads exactly that many straight after - so an allocation is never larger than the file. Each side
 	must also be at least two samples once the map is loaded (minSide: 3 for a version-1 map, which is halved), because
 	the terrain code samples a cell's four corners clamped to width - 2 / height - 2 (BaseHeightMap getMaxCellHeight):
-	one sample read data[-1] (Codex mlv-r3 #2). Every map the editor writes satisfies all of it. */
+	one sample read data[-1]. Every map the editor writes satisfies all of it. */
 static Bool heightMapSizeFits(Int width, Int height, Int dataSize, Int bytesLeftInChunk, Int minSide)
 {
 	if (width < minSide || height < minSide || dataSize <= 0 || dataSize > bytesLeftInChunk) {
@@ -894,7 +894,7 @@ static Bool heightMapSizeFits(Int width, Int height, Int dataSize, Int bytesLeft
 	return (Int64)width * (Int64)height == (Int64)dataSize;
 }
 
-/** GeneralsX @bugfix Claude 06/10/2026 Every boundary is a playable extent (W3DTerrainLogic::getExtent and
+/** GeneralsX: Every boundary is a playable extent (W3DTerrainLogic::getExtent and
 	getMaximumPathfindExtent take boundary * MAP_XY_FACTOR), which PartitionManager::init and Pathfinder::newMap turn
 	into cell grids by multiplying x by y in Int, with no bound of any kind: 2^20 x 2^12 wrapped the partition grid to
 	zero cells, which its init loop then filled for 2^32 cells. Only a POSITIVE coordinate can grow a grid: the
@@ -924,7 +924,7 @@ static Bool boundariesFitHeightMap(const std::vector<ICoord2D> &boundaries, Int 
 */
 Bool WorldHeightMap::ParseHeightMapData(DataChunkInput &file, DataChunkInfo *info, void *userData)
 {
-	// GeneralsX @bugfix Claude 06/10/2026 A second HeightMapData chunk re-sized m_dataSize after BlendTileData had
+	// GeneralsX: A second HeightMapData chunk re-sized m_dataSize after BlendTileData had
 	// sized its arrays from the first one, and the constructor's patch loop then walked the new, larger size over the
 	// old arrays (a heap overwrite); it also leaked the first m_data. One height map per file.
 	if (m_data != nullptr) {
@@ -937,18 +937,18 @@ Bool WorldHeightMap::ParseHeightMapData(DataChunkInput &file, DataChunkInfo *inf
 	} else {
 		m_borderSize = 0;
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 The border is cut from both sides of the map (width - 2 * border just below for
+	// GeneralsX: The border is cut from both sides of the map (width - 2 * border just below for
 	// an old file's boundary, and in W3DTerrainLogic / MapUtil.cpp's extents): a negative border, or one wider than
 	// half the map, inverted those sizes or overflowed Int computing them. At least two samples must remain between the
 	// borders: the shroud sizes its surface from side - 1 - 2 * border (W3DShroud.cpp), and zero failed to allocate and
-	// was dereferenced (Codex mlv-r4 #3). Real maps keep 2 * border <= each side - 2.
+	// was dereferenced. Real maps keep 2 * border <= each side - 2.
 	if (m_borderSize < 0 || (Int64)m_width - 2 * (Int64)m_borderSize < 2 || (Int64)m_height - 2 * (Int64)m_borderSize < 2) {
 		throw ERROR_CORRUPT_FILE_FORMAT;
 	}
 
 	if (info->version >= K_HEIGHT_MAP_VERSION_4) {
 		Int numBorders = file.readInt();
-		// GeneralsX @bugfix Claude 06/10/2026 The boundary count came straight from the file into resize(): 0x10000000
+		// GeneralsX: The boundary count came straight from the file into resize(): 0x10000000
 		// allocated and zeroed 2 GB and spun 268M reads, a negative count threw std::length_error, which no caller
 		// expects. Each boundary is two ints that follow in this chunk, so a count the chunk cannot hold is damage.
 		if (numBorders < 0 || numBorders > (Int)file.getChunkDataSizeLeft() / (Int)(2 * sizeof(Int))) {
@@ -1020,7 +1020,7 @@ Bool WorldHeightMap::ParseSizeOnlyInChunk(DataChunkInput &file, DataChunkInfo *i
 */
 Bool WorldHeightMap::ParseSizeOnly(DataChunkInput &file, DataChunkInfo *info, void *userData)
 {
-	// GeneralsX @bugfix Claude 06/10/2026 One height map per file, as in ParseHeightMapData.
+	// GeneralsX: One height map per file, as in ParseHeightMapData.
 	if (m_data != nullptr) {
 		throw ERROR_CORRUPT_FILE_FORMAT;
 	}
@@ -1031,18 +1031,18 @@ Bool WorldHeightMap::ParseSizeOnly(DataChunkInput &file, DataChunkInfo *info, vo
 	} else {
 		m_borderSize = 0;
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 The border is cut from both sides of the map (width - 2 * border just below for
+	// GeneralsX: The border is cut from both sides of the map (width - 2 * border just below for
 	// an old file's boundary, and in W3DTerrainLogic / MapUtil.cpp's extents): a negative border, or one wider than
 	// half the map, inverted those sizes or overflowed Int computing them. At least two samples must remain between the
 	// borders: the shroud sizes its surface from side - 1 - 2 * border (W3DShroud.cpp), and zero failed to allocate and
-	// was dereferenced (Codex mlv-r4 #3). Real maps keep 2 * border <= each side - 2.
+	// was dereferenced. Real maps keep 2 * border <= each side - 2.
 	if (m_borderSize < 0 || (Int64)m_width - 2 * (Int64)m_borderSize < 2 || (Int64)m_height - 2 * (Int64)m_borderSize < 2) {
 		throw ERROR_CORRUPT_FILE_FORMAT;
 	}
 
 	if (info->version >= K_HEIGHT_MAP_VERSION_4) {
 		Int numBorders = file.readInt();
-		// GeneralsX @bugfix Claude 06/10/2026 The boundary count came straight from the file into resize(): 0x10000000
+		// GeneralsX: The boundary count came straight from the file into resize(): 0x10000000
 		// allocated and zeroed 2 GB and spun 268M reads, a negative count threw std::length_error, which no caller
 		// expects. Each boundary is two ints that follow in this chunk, so a count the chunk cannot hold is damage.
 		if (numBorders < 0 || numBorders > (Int)file.getChunkDataSizeLeft() / (Int)(2 * sizeof(Int))) {
@@ -1178,7 +1178,7 @@ void WorldHeightMap::readTexClass(TXTextureClass *texClass, TileData **tileData)
 Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *info, void *userData)
 {
 	int i, j;
-	// GeneralsX @bugfix Claude 06/10/2026 These arrays are sized from m_dataSize as it stands when this chunk is read,
+	// GeneralsX: These arrays are sized from m_dataSize as it stands when this chunk is read,
 	// and the len check below compares against that same value - so a BlendTileData chunk listed BEFORE HeightMapData
 	// (len 0, m_dataSize still 0) made them zero-length, HeightMapData then set the real size, and the constructor's
 	// patch loop wrote zeros across m_dataSize entries past them. A second BlendTileData chunk re-allocated and leaked
@@ -1187,7 +1187,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 		throw ERROR_CORRUPT_FILE_FORMAT;
 	}
 	// A version-1 BlendTileData halves the map at the end of this reader, whichever version its HeightMapData was: the
-	// halved map needs the same two samples between its borders as any other (Codex mlv-r4 #2 - a 2 x 2 height map
+	// halved map needs the same two samples between its borders as any other (- a 2 x 2 height map
 	// became 1 x 1 and the terrain read data[-2]).
 	if (info->version == K_BLEND_TILE_VERSION_1 && ((Int64)(m_width + 1) / 2 - 2 * (Int64)m_borderSize < 2
 			|| (Int64)(m_height + 1) / 2 - 2 * (Int64)m_borderSize < 2)) {
@@ -1197,7 +1197,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 	if (m_dataSize != len) {
 		throw ERROR_CORRUPT_FILE_FORMAT	;
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 Every per-cell array below is read in full straight after it is allocated, so
+	// GeneralsX: Every per-cell array below is read in full straight after it is allocated, so
 	// the chunk must hold them all before any is allocated - otherwise a large height map followed by a BlendTileData
 	// chunk holding only its length allocated four full arrays before the first short read refused it.
 	const Int cellArrays = 2 + (info->version >= K_BLEND_TILE_VERSION_6 ? 1 : 0) + (info->version >= K_BLEND_TILE_VERSION_5 ? 1 : 0);
@@ -1236,8 +1236,8 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 	if (info->version >= K_BLEND_TILE_VERSION_7) {
 		if (info->version==K_BLEND_TILE_VERSION_7) {
 			Int byteWidth = (m_width+1)/8; // previous incorrect length that got used to save the file.  jba. [4/3/2003]
-			// GeneralsX @bugfix Claude 06/10/2026 This buffer was never freed - on every version-7 load, and on a refused one
-			// (the read below throws when the chunk ends early) once per attempt (Codex mlv-r10 #1). Same allocation, owned.
+			// GeneralsX: This buffer was never freed - on every version-7 load, and on a refused one
+			// (the read below throws when the chunk ends early) once per attempt. Same allocation, owned.
 			std::unique_ptr<UnsignedByte[]> data(new UnsignedByte[m_height*byteWidth]);
 			file.readArrayOfBytes((char*)data.get(), m_height*byteWidth);
 			for (j=0; j<m_height; j++) {
@@ -1316,8 +1316,8 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 	m_numEdgeTiles = 0;
 	if (info->version >= K_BLEND_TILE_VERSION_4) {
 		m_numEdgeTiles	= file.readInt();
-		// GeneralsX @bugfix Claude 06/10/2026 The loop bound of the edge-tile pass in TerrainTex.cpp: INT_MAX made the
-		// terrain texture build spin two billion times (Codex mlv-r3 #5). Bounded above like m_numBitmapTiles; a negative
+		// GeneralsX: The loop bound of the edge-tile pass in TerrainTex.cpp: INT_MAX made the
+		// terrain texture build spin two billion times. Bounded above like m_numBitmapTiles; a negative
 		// count only skips that loop, and one community map ("Defcon 51 V") carries -1, so it is left as it always was.
 		if (m_numEdgeTiles > NUM_SOURCE_TILES) {
 			throw ERROR_CORRUPT_FILE_FORMAT;
@@ -1346,7 +1346,7 @@ Bool WorldHeightMap::ParseBlendTileData(DataChunkInput &file, DataChunkInfo *inf
 	for (i=1; i<m_numBlendedTiles; i++) {
 		Int flag;
 		m_blendedTiles[i].blendNdx = file.readInt();
-		// GeneralsX @bugfix Claude 06/10/2026 The same tile index, for a blend's second tile (getUVForTileIndex,
+		// GeneralsX: The same tile index, for a blend's second tile (getUVForTileIndex,
 		// getRawTileData): patched like the per-cell ones in the constructor.
 		if (m_blendedTiles[i].blendNdx < 0 || m_blendedTiles[i].blendNdx >= NUM_SOURCE_TILES*4) {
 			m_blendedTiles[i].blendNdx = 0;
@@ -2573,7 +2573,7 @@ void WorldHeightMap::getTerrainColorAt(Real x, Real y, RGBColor *pColor)
 	}
 }
 
-// GeneralsX @performance Claude 27/09/2026 The texture-class lookup getTerrainNameAt always did, split out so
+// GeneralsX: The texture-class lookup getTerrainNameAt always did, split out so
 // getTerrainTypeAt can share it. -1 where getTerrainNameAt returns the empty string.
 Int WorldHeightMap::textureClassAt(Real x, Real y) const
 {
@@ -2605,7 +2605,7 @@ AsciiString WorldHeightMap::getTerrainNameAt(Real x, Real y)
 	return i >= 0 ? m_textureClasses[i].name : AsciiString::TheEmptyString;
 }
 
-// GeneralsX @performance Claude 27/09/2026 THE AI'S PLACEMENT SPIKES. BuildAssistant's terrain test calls this through
+// GeneralsX: THE AI'S PLACEMENT SPIKES. BuildAssistant's terrain test calls this through
 // TheTerrainVisual->getTerrainTile for every footprint sample - about 300 per candidate for a large structure, and a
 // skirmish AI's placement search tries up to ~3700 candidates. Each call copied the class name and then walked
 // TheTerrainTypes' whole list comparing strings (findTerrain): measured on the Mac Mini (W8, 27/09), the terrain test

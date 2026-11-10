@@ -79,7 +79,7 @@
 #include "GameClient/GXConstructPercentKey.h"
 #include "GameClient/GXWorldLabelScale.h"
 #include "GameClient/GXImageVariant.h"
-#include "GameClient/GXPosePublish.h"	// GeneralsX @feature Claude 08/10/2026 render-split step 4
+#include "GameClient/GXPosePublish.h"	// GeneralsX: render-split step 4
 #include "GameClient/GXRenderSplit.h"
 #include "GameClient/DrawGroupInfo.h"
 #include "GameClient/GameFont.h"
@@ -121,7 +121,7 @@ static const char *const TheDrawableIconNames[] =
 };
 static_assert(ARRAY_SIZE(TheDrawableIconNames) == MAX_ICONS + 1, "Incorrect array size");
 
-// GeneralsX @bugfix GitHubCopilot 24/05/2026 Resolve Drawable caption fonts through a deterministic fallback chain when localized font names are unavailable.
+// GeneralsX: Resolve Drawable caption fonts through a deterministic fallback chain when localized font names are unavailable.
 // GeneralsX @bugfix FelipeBraz 03/06/2026 Preferred known Unicode-supporting fonts (Arial Unicode MS) over configured DrawableCaptionFont
 // to ensure Cyrillic and other non-Latin characters render correctly via DXVK on macOS.
 // GeneralsX @test FelipeBraz 03/06/2026 TEST: Hardcode Arial Unicode MS to verify 3D rendering
@@ -137,7 +137,7 @@ static Int DrawableCaptionPointSize()
 	return TheGlobalLanguageData ? TheGlobalLanguageData->adjustFontSize(basePointSize) : basePointSize;
 }
 
-// GeneralsX @tweak Claude 02/10/2026 `pointSize` 0 is the caption size; gxConstructLabelFont asks for a smaller one.
+// GeneralsX: `pointSize` 0 is the caption size; gxConstructLabelFont asks for a smaller one.
 static GameFont *ResolveDrawableCaptionFont( Int pointSize = 0 )
 {
 	GameFont *font = nullptr;
@@ -333,7 +333,7 @@ static_assert(GX_PIP_VARIANTS == 2, "Drawable.h sizes s_fullContainerHD / s_empt
 	s_emptyAmmo	= TheMappedImageCollection->findImageByName("SCPAmmoEmpty");
 	s_fullContainer	= TheMappedImageCollection->findImageByName("SCPPipFull");
 	s_emptyContainer	= TheMappedImageCollection->findImageByName("SCPPipEmpty");
-	// GeneralsX @tweak Claude 03/10/2026 The hand-drawn 7x16 / 10x24 pips (!GXUIHD.big, GXImageVariant.h). Absent art
+	// GeneralsX: The hand-drawn 7x16 / 10x24 pips (!GXUIHD.big, GXImageVariant.h). Absent art
 	// stays null and drawContained falls back to the next size down, ultimately the retail pair above.
 	for (Int v = 0; v < GX_PIP_VARIANTS; ++v)
 	{
@@ -403,12 +403,12 @@ void Drawable::saturateRGB(RGBColor& color, Real factor)
 //--- so that icons, emoticons, health bars, pips, etc, look reasonably solid and don't shimmer or tweed
 //#define CLAMP_ICON_ZOOM_FACTOR(n) (MAX(0.80f, MIN(1.00f, n)))
 
-// GeneralsX @bugfix Claude 25/09/2026 (Codex P2) THE ICON CLUSTER SHRINKS WITH THE BAR, ONLY ABOVE THE STOCK CAMERA CEILING.
+// GeneralsX: THE ICON CLUSTER SHRINKS WITH THE BAR, ONLY ABOVE THE STOCK CAMERA CEILING.
 // Normal builds draw pips, the veterancy chevron and the status icons at a FIXED pixel size (their zoom sizing
 // is inside SCALE_ICONS_WITH_ZOOM_ML, never defined), while the health bar is sized by
 // View::getRetailReferenceZoom(). Above the ceiling the stock MaxCameraHeight would give this view the bar shrinks
 // with the unit, so the icons must too or they dwarf it. 1.0 up to that ceiling - the retail look, unchanged, which
-// is NOT the same as zoom <= 1: a widescreen view's stock ceiling already takes zoom past 1.0 (Codex P1).
+// is NOT the same as zoom <= 1: a widescreen view's stock ceiling already takes zoom past 1.0.
 static Real gxOverlayIconShrinkRaw( void )
 {
 	Real iconScale = 1.0f;
@@ -417,13 +417,13 @@ static Real gxOverlayIconShrinkRaw( void )
 	return iconScale;
 }
 
-// GeneralsX @tweak Claude 04/10/2026 (owner, 04/10: pips "need to increase the proportion instead of smalling them", then
-// "look at the GO and make it the same just better") Generals Online draws these pips at a fixed 1.0 scale at every zoom
+// GeneralsX:
+// Generals Online draws these pips at a fixed 1.0 scale at every zoom
 // (references/generals-online-client Drawable.cpp drawAmmo/drawContained: scale = 1.0f), so the occupancy and ammo pips here
 // never shrink with the zoom-out either. ONE mechanism for every over-unit marker (pips, rank chevrons, status icons, emoticons,
 // battle-plan and bomb icons): gxOverlayIconShrink() is the constant-size scale they all call; only the zoom-label text keeps
 // gxOverlayIconShrinkRaw(). At the farthest zoom-out these were 1-2 px otherwise (0.10). GX_PIPS_FLOOR=0 (test only) restores the old behaviour for the "before" picture.
-// GeneralsX @bugfix Claude 05/10/2026 (owner, 05/10: "too big the rockets ... overlapping with ^^^") The ammo pips are drawn last-but-one
+// GeneralsX: The ammo pips are drawn last-but-one
 // and the rank chevron last, both hanging off the same health bar, and at the constant 1.0 scale (HD 10x20 art from 1440p) a 4-5 pip
 // row is wider than the bar, so it ran under the chevron and dwarfed a parked jet. drawAmmo leaves the rect it drew here; drawVeterancy
 // reads it (same drawable, same frame) and steps the chevron right of the row only when the two rects actually intersect.
@@ -453,7 +453,7 @@ static Real gxOverlayIconShrink( void )
 	return s < s_floor ? s_floor : s;
 }
 
-// GeneralsX @test Claude 03/10/2026 GX_PIPS_ALL=1 - every container of every player shows its occupancy pips, and an empty
+// GeneralsX: GX_PIPS_ALL=1 - every container of every player shows its occupancy pips, and an empty
 // one half its slots full, so a display-matrix picture carries pips in every frame without anyone selecting anything (the
 // harness seat is an observer, who owns nothing). The gate and the counts are faked; the art, its size, the picker and the
 // position are the real draw. GX_PIPS_ALL=retail does the same with the retail 5x12 art forced: the "before" arm where the
@@ -480,7 +480,7 @@ static Int gxPipsAll( void )
 	return s_on;
 }
 
-// GeneralsX @test Claude 04/10/2026 GX_PIPS_HEIGHT=<px> (only with GX_PIPS_ALL): the render height the pip picker sees, so a 1080p
+// GeneralsX: GX_PIPS_HEIGHT=<px> (only with GX_PIPS_ALL): the render height the pip picker sees, so a 1080p
 // panel (the Mini) can draw the 1440p / 4K art for a picture. The art, its size and the position are the real draw; only the
 // variant choice is forced, and the run's evidence line says so. Off when unset.
 static Int gxPipPickHeight( void )
@@ -494,7 +494,7 @@ static Int gxPipPickHeight( void )
 	return s_h > 0 ? s_h : TheDisplay->getHeight();
 }
 
-// GeneralsX @tweak Claude 02/10/2026 THE "UNDER CONSTRUCTION" TEXT SHRINKS GENTLY ABOVE THE STOCK CAMERA CEILING (owner,
+// GeneralsX: THE "UNDER CONSTRUCTION" TEXT SHRINKS GENTLY ABOVE THE STOCK CAMERA CEILING (owner,
 // 02/10/2026: at max zoom-out the "Building: x%" labels stayed full size and covered the map). Same size as retail up to
 // the ceiling; above it the caption font steps down with gxWorldLabelScale (GXWorldLabelScale.h). Every label shares one
 // size, so the font is looked up only when that size steps - a camera at rest asks the library nothing, and setFont()
@@ -519,7 +519,7 @@ static GameFont *gxConstructLabelFont( void )
 	return s_font;
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 (Codex P2) THE GROUP NUMERAL AND FORMATION LETTER SHRINK WITH THE CLUSTER TOO.
+// GeneralsX: THE GROUP NUMERAL AND FORMATION LETTER SHRINK WITH THE CLUSTER TOO.
 // drawUIText() draws both from shared DisplayStrings in TheDrawGroupInfo's font at its fixed point size, so above
 // retail's camera ceiling they stayed full-size beside the shrunken bar. Re-point the string at the same font scaled
 // by the icon shrink. The font library interns fonts and setFont() ignores the font a string already has, so the text
@@ -567,7 +567,7 @@ Drawable::Drawable( const ThingTemplate *thingTemplate, DrawableStatusBits statu
 	m_expirationDate = 0;  // 0 == never expires
 
 	m_lastConstructDisplayed = -1;
-	// GeneralsX @performance Claude 23/09/2026 No construct-percent string up front. Every Drawable
+	// GeneralsX: No construct-percent string up front. Every Drawable
 	// (projectiles, debris, infantry, props) used to allocate a 616-byte W3DDisplayString plus 2-3
 	// font lookups here; drawConstructPercent() already allocates it with the same caption font the
 	// first time an under-construction building is drawn, which is the only place it is used.
@@ -589,7 +589,7 @@ Drawable::Drawable( const ThingTemplate *thingTemplate, DrawableStatusBits statu
   m_fadeMode = FADING_NONE;
 	m_timeElapsedFade = 0;
 	m_timeToFade = 0;
-	// GeneralsX @bugfix Claude 06/08/2026 Sentinel, so the first updateDrawable() call steps.
+	// GeneralsX: Sentinel, so the first updateDrawable() call steps.
 	m_lastLogicFrameUpdated = InvalidShroudClearFrame;
 	m_interpFrame = InvalidShroudClearFrame;
 	memset(m_interpTurretPrev, 0, sizeof(m_interpTurretPrev));
@@ -917,8 +917,8 @@ void Drawable::setAnimationCompletionTime(UnsignedInt numFrames)
 //-------------------------------------------------------------------------------------------------
 void Drawable::setAnimationFrame( int frame )
 {
-	// GeneralsX @fix Claude 01/10/2026 A caller's unsigned frames-left that wrapped past zero arrives negative: clamp it.
-	// GeneralsX @feature Claude 05/10/2026 The caller (DeployStyleAIUpdate) now counts Generals Online's 30 Hz legacy frames
+	// GeneralsX: A caller's unsigned frames-left that wrapped past zero arrives negative: clamp it.
+	// GeneralsX: The caller (DeployStyleAIUpdate) now counts Generals Online's 30 Hz legacy frames
 	// at either logic rate - the model's own BaseFps animation frames - so they pass through unchanged, as in GO. (The 01/10
 	// halving here was for 60 Hz logic frames; with legacy frames it played the deploy to half way and snapped.)
 	if( frame < 0 )
@@ -1131,13 +1131,13 @@ void Drawable::allocateShadows()
 void Drawable::setFullyObscuredByShroud(Bool fullyObscured)
 {
 #if ENABLE_CONFIGURABLE_SHROUD
-	// GeneralsX @probe Claude 23/09/2026 -noshroud / GX_NOSHROUD: the sim's shroud grid still says
+	// GeneralsX: -noshroud / GX_NOSHROUD: the sim's shroud grid still says
 	// "fogged" (it is untouched), but nothing may be hidden by it on this client. Every writer lands
 	// here - the GameClient::update() refresh, W3DGhostObject::snapShot/removeParentObject/
 	// setLocalPlayerIndex, GarrisonContain - and the readers (W3DScene.cpp:476, Drawable::draw,
 	// W3DModelDraw's emitter/shadow/track gates, ParticleSystem::update) all run BEFORE W3DScene's
 	// probe's override. update()'s refresh still runs under the probe (it recomputes a sim cache),
-	// and lands here too. Forcing the value at the one setter covers every path (Codex r2, 23/09).
+	// and lands here too. Forcing the value at the one setter covers every path.
 	if (!gxShroudDrawn())
 		fullyObscured = false;
 #endif
@@ -1391,7 +1391,7 @@ void Drawable::updateDrawable()
 	UnsignedInt now = TheGameLogic->getFrame();
 	Object *obj = getObject();
 
-	// GeneralsX @bugfix Claude 06/08/2026 The class-C animation gate. See m_lastLogicFrameUpdated
+	// GeneralsX: The class-C animation gate. See m_lastLogicFrameUpdated
 	// in Drawable.h for why this is per-object and why it compares rather than subtracts.
 	//
 	// This gates ONLY the state that is authored in logic frames. It deliberately does NOT gate the
@@ -1564,7 +1564,7 @@ void Drawable::updateDrawable()
   // to see if they are in range. But this messes up non-looping sounds -- they keep looping!
   // End result: a hack of testing the looping bit and only restarting the sound if the looping
   // bit is on and the loop count is 0 (loop forever).
-  // GeneralsX @performance Claude 23/09/2026 Decide whether the retry below COULD start anything before
+  // GeneralsX: Decide whether the retry below COULD start anything before
   // asking isCurrentlyPlaying(), which walks every playing-sound and pending-request list in the
   // audio manager. Once the event info is cached, the retry is a proven no-op for a non-permanent
   // sound, and for a permanent one out of earshot (the same test as `audible` below), whatever
@@ -1605,7 +1605,7 @@ void Drawable::updateDrawable()
 
     if ( eventInfo == nullptr || ( eventInfo->isPermanentSound() ) )
     {
-      // GeneralsX @perf Claude 15/08/2026 Do not re-enter startAmbientSound for an emitter nobody
+      // GeneralsX: Do not re-enter startAmbientSound for an emitter nobody
       // can hear. This retry runs once per RENDERED frame, not per logic frame.
       //
       // startAmbientSound assigns a whole AudioEventRTS by value - several AsciiString deep copies,
@@ -1688,7 +1688,7 @@ void Drawable::flashAsSelected( const RGBColor *color ) ///< drawable takes care
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @test Claude 28/09/2026 GX_INTERP_STATS=1: once a second, "[GXINTERP] ms= n= mean= cv= alpha=" over every
+// GeneralsX: GX_INTERP_STATS=1: once a second, "[GXINTERP] ms= n= mean= cv= alpha=" over every
 // object drawn in two consecutive rendered frames while moving. A sample is how far its DRAWN position moved between
 // those frames, divided by how far constant-velocity motion at its logic speed (last tick's step) moves in that time.
 // Perfectly smooth motion gives 1.0 every time; a body stepping at the tick rate on a faster display scatters it
@@ -1761,7 +1761,7 @@ static void gxInterpStats(ObjectID id, const Matrix3D& drawn, const Matrix3D& pr
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 28/09/2026 Render interpolation of the drawable's own transform (graphics research
+// GeneralsX: Render interpolation of the drawable's own transform (graphics research
 // a2-07, g-05). mtx comes in as the logic transform and leaves as the one to draw: lerp(the previous logic frame,
 // the current one, Display::getLogicPhase()), position lerped and rotation slerped. Only this local copy changes.
 // Thing::m_transform stays the logic transform, because logic converts pristine bone positions through it
@@ -1795,7 +1795,7 @@ static void gxReadTurrets(const Object* obj, Real turrets[MAX_TURRETS][2])
 	}
 }
 
-// GeneralsX @feature Claude 29/09/2026 The pose every drawn-pose consumer starts from: a superweapon missile's visual flight
+// GeneralsX: The pose every drawn-pose consumer starts from: a superweapon missile's visual flight
 // (MissileVisual.h) where it has one, else the logic transform. It is the interpolation snapshot's input, so the blend, the
 // bone carries and attached emitters all follow the visual flight between ticks (graphics/HANDBACK_interpolation.md).
 const Matrix3D *Drawable::getPoseBase() const
@@ -1804,7 +1804,7 @@ const Matrix3D *Drawable::getPoseBase() const
 	return visual != nullptr ? visual : getTransformMatrix();
 }
 
-// GeneralsX @feature Claude 08/10/2026 render-split step 4: the snapshot rule (GXPosePublish::refresh, today's draw-time
+// GeneralsX: render-split step 4: the snapshot rule (GXPosePublish::refresh, today's draw-time
 // rule with "refreshed at the frame before" read as "CONSUMED at the frame before"). The sync phase runs it for every
 // drawable (gxPublishDrawnPoses); a draw-time read runs it only as a fallback (drawnPhase). GX_POSEPUB_CHECK=2, the check's
 // negative control, makes the walk never continue a blend.
@@ -1841,7 +1841,7 @@ void Drawable::refreshInterpolation() const
 	}
 }
 
-// GeneralsX @feature Claude 08/10/2026 render-split step 4, the sync phase's walk. Not a member: Drawable.h is digested
+// GeneralsX: render-split step 4, the sync phase's walk. Not a member: Drawable.h is digested
 // whole, so nothing can be declared in it. The walk calls the private refreshInterpolation through an explicit template
 // instantiation, which the language exempts from access checking ([temp.spec.general]).
 void gxRefreshInterpolation(const Drawable *draw);
@@ -1885,7 +1885,7 @@ static Bool gxPosePubStatsOn()
 // GX_POSEPUB_CHECK=1: a shadow snapshot per drawable, refreshed at every draw-time read as before step 4 (the same rule,
 // driven lazily: scripts/test/audit/bench/pose_publish.cpp shows that equals the old code), compared bit for bit with what
 // the read gets, and with getFirstDrawnPose's answer and pose during a logic update. It changes no gate: it sees the reads
-// production makes, pin and release included (Codex plan r1). Diagnostic only: it reads the simulation at draw time, as before.
+// production makes, pin and release included. Diagnostic only: it reads the simulation at draw time, as before.
 struct GXPoseShadow
 {
 	Matrix3D prev, cur;
@@ -1899,7 +1899,7 @@ static std::unordered_map<DrawableID, GXPoseShadow> &gxPoseShadows()
 	static std::unordered_map<DrawableID, GXPoseShadow> s;
 	return s;
 }
-// A world reset - a new game, a save load (it restores drawable IDs, possibly at the frame last checked: Codex r2), a replay
+// A world reset - a new game, a save load (it restores drawable IDs, possibly at the frame last checked), a replay
 // restart - destroys every drawable: the shadows go with them. The frame going back covers a reset nothing reported.
 static void gxPoseShadowsForGame(UnsignedInt frame)
 {
@@ -1944,8 +1944,8 @@ void gxPublishDrawnPoses()
 		gxPoseShadowsForGame(TheGameLogic->getFrame());
 	// The draw reads snapshots exactly when this holds (drawnPhase's gate): pinned to 1, nothing to publish.
 	const Bool active = TheDisplay->isInterpolationActive() || gxInterpStatsOn();
-	// Read only by the [GXPOSEPUB] line: with the publish off (the default) the client update writes nothing new (batch-0962
-	// Codex r32 P3).
+	// Read only by the [GXPOSEPUB] line: with the publish off (the default) the client update writes nothing new.
+	//
 	if (gxPosePubStatsOn())
 	{
 		++s_gxPosePub.updates;
@@ -1987,16 +1987,16 @@ Real Drawable::drawnPhase() const
 	// Asked outside the client's draw - in the middle of a logic update, where LaserUpdate::initLaser reads the muzzle
 	// bone of a unit that may just have moved (before m_frame++) - it is the logic pose, always. The snapshot belongs to
 	// the next draw, which takes this move as a tick: refreshing it here would count the move as "moved without a tick"
-	// and drop the previous pose (Codex interp-r2 P2), and the last draw's phase says nothing about now (interp-r11 P2).
+	// and drop the previous pose, and the last draw's phase says nothing about now (interp-r11 P2).
 	if (getObject() == nullptr || !TheDisplay->isRenderPhase())
 		return 1.0f;
 	// Nothing to blend while the phase is pinned to 1 (every draw gets a tick) or GX_INTERP=0: no snapshot either, so those
-	// paths cost what they did before interpolation (Codex interp-r18). GX_INTERP_STATS keeps them, since its "before" arm
+	// paths cost what they did before interpolation. GX_INTERP_STATS keeps them, since its "before" arm
 	// measures the logic step from them. After the pin releases, a drawable draws its logic pose until two consecutive
 	// frames have been snapshotted.
 	if (!TheDisplay->isInterpolationActive() && !gxInterpStatsOn())
 		return 1.0f;
-	// GeneralsX @feature Claude 08/10/2026 render-split step 4: published in the sync phase; the rule runs here only for a
+	// GeneralsX: render-split step 4: published in the sync phase; the rule runs here only for a
 	// drawable the walk did not cover this frame (created since, interpolation switched on since, unclassified across a
 	// script freeze) or a superweapon missile, whose pose base updateDrawable evaluates after the walk - and for every read
 	// while the publish is off (the default; gxPosePubOn).
@@ -2058,7 +2058,7 @@ Coord3D Drawable::getInterpolationOffset() const
 		offset.z = (m_interpPrev.Get_Z_Translation() - m_interpCur.Get_Z_Translation()) * k;
 	}
 	// A superweapon missile drawn along its visual flight (getPoseBase) is drawn away from getPosition(): the icon, health
-	// bar and caption follow what is drawn (Codex visuals-3 r9). Zero for everything else.
+	// bar and caption follow what is drawn. Zero for everything else.
 	if (const Matrix3D *visual = getVisualTransform())
 	{
 		const Coord3D *pos = getPosition();
@@ -2082,8 +2082,8 @@ Bool Drawable::getDrawnBase(Matrix3D& mtx) const
 	return getVisualTransform() != nullptr;
 }
 
-// GeneralsX @feature Claude 29/09/2026 A turret's angle and pitch are relative to the hull. On a blended hull the logic
-// ones aim it off by the hull's own blend and snap back at every tick (Codex interp-r9 P2), so they take the same phase:
+// GeneralsX: A turret's angle and pitch are relative to the hull. On a blended hull the logic
+// ones aim it off by the hull's own blend and snap back at every tick, so they take the same phase:
 // a turret tracking a target while the hull turns keeps pointing at it, and one turning on a still hull turns smoothly.
 // Untouched - the logic pose, exactly - when this frame draws the logic pose or the turret did not move.
 void Drawable::getDrawnTurretRotAndPitch(WhichTurretType tur, Real* angle, Real* pitch) const
@@ -2097,17 +2097,17 @@ void Drawable::getDrawnTurretRotAndPitch(WhichTurretType tur, Real* angle, Real*
 	*pitch = prev[1] + WWMath::Normalize_Angle(cur[1] - prev[1]) * alpha;
 }
 
-// GeneralsX @feature Claude 29/09/2026 Effects a logic update spawns from a bone - weapon-fire FX at the muzzle - stay
+// GeneralsX: Effects a logic update spawns from a bone - weapon-fire FX at the muzzle - stay
 // where they are put, while the body is drawn from its previous logic pose towards this one over the next tick: spawned
-// at the logic pose they sit up to a tick ahead of the drawn muzzle (Codex interp-r11 P2). The module carries them
+// at the logic pose they sit up to a tick ahead of the drawn muzzle. The module carries them
 // (W3DModelDraw::gxCarryBone) to the pose the next draw starts from, the previous logic pose, when that draw will blend by refreshInterpolation's and drawnPhase's
 // rules: a logic update (not a draw), the phase not pinned, the snapshot at the frame shown last, not the camera-lock
 // object, no teleport. Otherwise untouched: today's.
 Bool Drawable::getFirstDrawnPose(Matrix3D& pose) const
 {
 	// Whether the coming draw blends, not whether the last one did: a draw just before a late tick reaches alpha 1 exactly
-	// while interpolating, and the next one blends from the previous pose again (Codex interp-r14).
-	// GeneralsX @feature Claude 08/10/2026 render-split step 4: "the snapshot of the frame shown last" is the one a draw-time
+	// while interpolating, and the next one blends from the previous pose again.
+	// GeneralsX: render-split step 4: "the snapshot of the frame shown last" is the one a draw-time
 	// read CONSUMED at this frame (before step 4, the one a read refreshed at it); one the sync phase published but nothing
 	// read is not it.
 	const UnsignedInt frame = TheGameLogic->getFrame();
@@ -2140,16 +2140,16 @@ Bool Drawable::getFirstDrawnPose(Matrix3D& pose) const
 	return TRUE;
 }
 
-// GeneralsX @feature Claude 29/09/2026 Render interpolation: a render object still holds the pose it was last placed from
+// GeneralsX: Render interpolation: a render object still holds the pose it was last placed from
 // (its module's last draw, or the logic transform after a move), which is not this frame's while it interpolates. Carry a
-// transform read from it - a bone - to the full pose this frame draws (the module carries, W3DModelDraw::gxCarryBone): base, instance matrix and client physics (Codex
-// interp-r13), rotation included so a bone far from the pivot of a turning body stays on it (interp-r2). So a laser start,
+// transform read from it - a bone - to the full pose this frame draws (the module carries, W3DModelDraw::gxCarryBone): base, instance matrix and client physics,
+// rotation included so a bone far from the pivot of a turning body stays on it (interp-r2). So a laser start,
 // a rider on a container's bone, an emitter on an animated bone or a module attached to another module's bone meets the
 // body as it is drawn this frame, whatever order they run in. The carry is per render object, from where it actually
-// sits: one module can query another's bone before that one has drawn this frame (Codex interp-r17).
+// sits: one module can query another's bone before that one has drawn this frame.
 // Outside the draw (a logic update) the target is the logic pose. Untouched, today's, while pinned to 1 with the render
 // object placed at 1 - not this frame's alpha alone: one that reaches 1 without a tick still finds the render object at
-// the last draw's fraction (Codex interp-r14).
+// the last draw's fraction.
 Bool Drawable::getCarryPose(Matrix3D& pose, Real placedPhase) const
 {
 	if (!TheDisplay->isInterpolationActive() && placedPhase == 1.0f)
@@ -2182,7 +2182,7 @@ Bool Drawable::showsClientPhysics() const
 	return TheGlobalData->m_showClientPhysics && getObject() && !getObject()->isDisabledByType( DISABLED_HELD );
 }
 
-// GeneralsX @fix Claude 04/10/2026 The client physics - bank, pitch, suspension bounce, wobble - is tuned per RETAIL frame:
+// GeneralsX: The client physics - bank, pitch, suspension bounce, wobble - is tuned per RETAIL frame:
 // every stiffness, damping and coefficient calcPhysicsXform* applies is a per-step value for a 30 Hz step (TSH: "catered to
 // a 30 fps logic step"). At GX_LOGIC_60HZ a WW3D sync is half a retail frame, so stepping once per sync rang every spring
 // twice as fast and fed it velocities per 60 Hz frame (half) and accelerations per 60 Hz frame^2 (a quarter): a jet in a
@@ -2236,7 +2236,7 @@ static Real gxRetailPhysicsPhase(Real logicPhase)
 #endif
 }
 
-// GeneralsX @feature Claude 29/09/2026 Split out of applyPhysicsXform, and stepped at most once per sync: a bone query
+// GeneralsX: Split out of applyPhysicsXform, and stepped at most once per sync: a bone query
 // before this frame's draw composes the pose the draw will (getCarryPose), and must not step it a second time.
 // continuingOnly: step only a drawable that was stepped at the previous sync, as the draw's first branch does.
 void Drawable::advancePhysicsXform(Bool continuingOnly)
@@ -2272,7 +2272,7 @@ void Drawable::advancePhysicsXform(Bool continuingOnly)
 	}
 }
 
-// GeneralsX @feature Claude 29/09/2026 mtx comes in as the base (the logic transform, or its blend) and leaves as the pose
+// GeneralsX: mtx comes in as the base (the logic transform, or its blend) and leaves as the pose
 // the draw modules place this drawable at: the instance matrix and the client physics at physicsPhase on top. One
 // composition for draw() and for a bone query made before it (getCarryPose), so the two agree to the bit.
 void Drawable::composeDrawnPose(Matrix3D& mtx, Real physicsPhase) const
@@ -2300,7 +2300,7 @@ void Drawable::applyPhysicsXform(Matrix3D* mtx, Real t) const
 		// logic frames, so the motion stays smooth when the render rate is above the logic rate.
 		// Upstream reference: bobtista, PR #2055 (open at 713b92525)
 		// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2055
-		// GeneralsX @tweak Claude 28/09/2026 Adapted: the phase is the client-side Display::getLogicPhase (GXLogicPhase.h),
+		// GeneralsX: Adapted: the phase is the client-side Display::getLogicPhase (GXLogicPhase.h),
 		// not FramePacer::getLogicFramePhase, which lives in digested code. At exactly 1 - every draw gets a tick, a
 		// headless peer, GX_INTERP=0 - the totals are applied as they are: WWMath::Lerp is not bit-exact at t=1, and
 		// those frames must stay exactly what they were.
@@ -3525,7 +3525,7 @@ void Drawable::draw()
 			// TheSuperHackers @tweak The stealth opacity fade time step is now decoupled from the render update.
 			static_assert(MATERIAL_PASS_OPACITY_FADE_SCALAR > 0.0f && MATERIAL_PASS_OPACITY_FADE_SCALAR < 1.0f, "MATERIAL_PASS_OPACITY_FADE_SCALAR must be between 0 and 1");
 
-			// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
+			// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
 			const Real timeScale = gxRenderTimeScale();
 			const Real fadeScalar = 1.0f - (1.0f - MATERIAL_PASS_OPACITY_FADE_SCALAR) * timeScale;
 			m_secondMaterialPassOpacity *= fadeScalar;
@@ -3599,7 +3599,7 @@ static Bool computeHealthRegion( const Drawable *draw, IRegion2D& region )
 
 	// do this so health bar doesn't get too skinny or fat after scaling
 	//healthBoxHeight = max(3.0f, healthBoxHeight);
-	// GeneralsX @bugfix Claude 17/08/2026 3.0f is a raw PIXEL count written for a 600-line target.
+	// GeneralsX: 3.0f is a raw PIXEL count written for a 600-line target.
 	//
 	// SCOPE FIRST, because the enabling commit invites the wrong reading: this is NOT a macOS fix.
 	// TheDisplay->getHeight() is the render target's pixel height on every platform - there is no
@@ -3631,7 +3631,7 @@ static Bool computeHealthRegion( const Drawable *draw, IRegion2D& region )
 	// min(widthRatio, heightRatio) - the aspect guard GlobalLanguage uses - is deliberately not
 	// applied: it equals the height ratio on every aspect at least as wide as 4:3, so it would be
 	// dead arithmetic on every display a player uses.
-	// GeneralsX @info Claude 17/08/2026 DO NOT SCALE THIS. It has now been tried twice and reverted
+	// GeneralsX: DO NOT SCALE THIS. It has now been tried twice and reverted
 	// twice, so the reasoning is recorded here rather than in a commit message nobody reads.
 	//
 	// The argument for scaling is that 3.0f is a PIXEL count written for 800x600, so the bar is a
@@ -3852,7 +3852,7 @@ void Drawable::drawAmmo( const IRegion2D *healthBarRegion )
 	Real scale = gxOverlayIconShrink();
 #endif
 
-	// GeneralsX @tweak Claude 04/10/2026 The rocket-pod / bomb pips follow the container pips' size step: above 1080p the
+	// GeneralsX: The rocket-pod / bomb pips follow the container pips' size step: above 1080p the
 	// hand-drawn orange 7x14 / 10x20 pair (!GXUIHD.big), picked by the same render-height rule, drawn at its own size x
 	// the zoom-out shrink. Absent art falls back to retail's 5x10, exactly as the container pips do.
 	Bool ammoPresent[GX_PIP_VARIANTS];
@@ -3866,9 +3866,9 @@ void Drawable::drawAmmo( const IRegion2D *healthBarRegion )
 	{
 		const Int imgW = emptyAmmoImage->getImageWidth();
 		const Int barW = healthBarRegion->hi.x - healthBarRegion->lo.x;
-		// GeneralsX @fix Claude 05/10/2026 The scale below shrinks the gaps with the pips, but the row is drawn with
+		// GeneralsX: The scale below shrinks the gaps with the pips, but the row is drawn with
 		// whole-pixel pips and FIXED 1 px gaps, so it could still run past the bar: 6 pips of 10 px art on a 34 px bar
-		// came out 6 x 5 + 5 = 35 px (Codex codex-batch-1005 p1-client-misc). The pixel cap is applied after the scale.
+		// came out 6 x 5 + 5 = 35 px (p1-client-misc). The pixel cap is applied after the scale.
 		if (numTotal > 0 && gxAmmoLayoutOn())
 			fitBoxWidth = (barW - (numTotal - 1)) / numTotal;
 		const Real rowAtOne = (Real)((imgW + 1) * numTotal - 1);
@@ -3916,7 +3916,7 @@ void Drawable::drawAmmo( const IRegion2D *healthBarRegion )
 // ------------------------------------------------------------------------------------------------
 void Drawable::drawContained( const IRegion2D *healthBarRegion )
 {
-	// GeneralsX @bugfix Claude 03/10/2026 drawIconUI passes a null region when computeHealthRegion fails (the health box
+	// GeneralsX: drawIconUI passes a null region when computeHealthRegion fails (the health box
 	// off-screen, or no health box) and the pips are placed from it below: a selected container whose box sat just past
 	// the screen edge while its pip anchor did not would dereference null (read from the code, not seen). GX_PIPS_ALL
 	// makes it routine.
@@ -3971,7 +3971,7 @@ void Drawable::drawContained( const IRegion2D *healthBarRegion )
 #else
 	Real scale = gxOverlayIconShrink();
 #endif
-	// GeneralsX @tweak Claude 03/10/2026 Above 1080p the hand-drawn 7x16 / 10x24 pair, chosen by the render height and
+	// GeneralsX: Above 1080p the hand-drawn 7x16 / 10x24 pair, chosen by the render height and
 	// drawn at its OWN size (times the zoom-out shrink, as retail's), never retail's 5x12 stretched (GXImageVariant.h).
 	Bool present[GX_PIP_VARIANTS];
 	for (Int v = 0; v < GX_PIP_VARIANTS; ++v)
@@ -4181,7 +4181,7 @@ void Drawable::drawUIText()
 
 	Color color = TheDrawGroupInfo->m_usePlayerColor ? gxPlayerTextColor( owner->getPlayerColor() ) : TheDrawGroupInfo->m_colorForText;
 
-	// GeneralsX @bugfix Claude 25/09/2026 (Codex P2) Text and its fixed pixel offsets shrink with the bar and icons
+	// GeneralsX: Text and its fixed pixel offsets shrink with the bar and icons
 	// (percent offsets already follow the bar's width). 1.0 at or below retail's camera ceiling: the retail layout.
 	const Real shrink = gxOverlayIconShrink();
 
@@ -4760,12 +4760,12 @@ void Drawable::drawConstructPercent( const IRegion2D *healthBarRegion )
 	if( m_constructDisplayString == nullptr )
 	{
 		m_constructDisplayString = TheDisplayStringManager->newDisplayString();
-		// GeneralsX @performance Claude 23/09/2026 A freshly allocated string is empty, so reset the displayed-percent
+		// GeneralsX: A freshly allocated string is empty, so reset the displayed-percent
 		// key (issue #3095 fix below); otherwise a string re-created mid-build would stay blank until the percent moved.
 		m_lastConstructDisplayed = -1;
 	}
 
-	// GeneralsX @tweak Claude 02/10/2026 The caption font at this zoom's size (gxConstructLabelFont); a no-op unless the
+	// GeneralsX: The caption font at this zoom's size (gxConstructLabelFont); a no-op unless the
 	// size stepped. Before the text, so a new string measures its text once, in the font it draws with.
 	if (m_constructDisplayString)
 	{
@@ -4773,12 +4773,12 @@ void Drawable::drawConstructPercent( const IRegion2D *healthBarRegion )
 	}
 
 	// set the string if the value has changed
-	// GeneralsX @performance Claude 23/09/2026 Fork-side fix for upstream issue #3095 (no upstream PR). This
+	// GeneralsX: Fork-side fix for upstream issue #3095 (no upstream PR). This
 	// compared the raw Real, which moves every logic frame, so every building under construction in view
 	// re-fetched the CSF string (AsciiString + bsearch) and re-formatted it every logic frame. Key on the value
 	// as displayed instead.
 	// Upstream reference: xezon, issue #3095 https://github.com/TheSuperHackers/GeneralsGameCode/issues/3095
-	// GeneralsX @bugfix Claude 26/09/2026 (backlog #72, Codex) ...AS THE FETCHED FORMAT DISPLAYS IT. The key was
+	// GeneralsX: ...AS THE FETCHED FORMAT DISPLAYS IT. The key was
 	// lrintf(percent), which assumed retail's "%.0f%%": a localization or mod showing "%.1f%%" kept stale text
 	// between whole percents. It is now the number at the format's own precision (GXConstructPercentKey.h), which
 	// also carries that precision, so the next frames need no fetch to compare; a format it cannot read gets -1,
@@ -4873,7 +4873,7 @@ void Drawable::drawVeterancy( const IRegion2D *healthBarRegion )
 	if (level == LEVEL_REGULAR && gxPipsAll() != 0)
 		level = (VeterancyLevel)(1 + (obj->getID() % 3));
 	const Image* image = s_veterancyImage[level];
-	// GeneralsX @tweak Claude 04/10/2026 Above 1080p the hand-drawn chevrons (!GXUIHD.big), picked by the pips' render-height rule.
+	// GeneralsX: Above 1080p the hand-drawn chevrons (!GXUIHD.big), picked by the pips' render-height rule.
 	{
 		Bool vetPresent[GX_PIP_VARIANTS];
 		for (Int v = 0; v < GX_PIP_VARIANTS; ++v)
@@ -4914,7 +4914,7 @@ void Drawable::drawVeterancy( const IRegion2D *healthBarRegion )
 
 	screenCenter.x += healthBoxWidth * scale * 0.5f;
 
-	// GeneralsX @bugfix Claude 17/08/2026 Anchor the chevron to the bar's bottom EDGE, not to a
+	// GeneralsX: Anchor the chevron to the bar's bottom EDGE, not to a
 	// fixed pixel offset from the bar's centre.
 	//
 	// This function projects obj->getHealthBoxPosition() through worldToScreen, which is the exact
@@ -5370,7 +5370,7 @@ void Drawable::setPosition(const Coord3D *pos)
 void Drawable::reactToTransformChange(const Matrix3D* oldMtx, const Coord3D* oldPos, Real oldAngle)
 {
 
-	// GeneralsX @performance Claude 23/09/2026 A moved drawable can enter or leave a view region.
+	// GeneralsX: A moved drawable can enter or leave a view region.
 	GameClient::noteDrawableChange();
 
 	for (DrawModule** dm = getDrawModules(); *dm; ++dm)
@@ -5948,7 +5948,7 @@ ClientUpdateModule* Drawable::findClientUpdateModule( NameKeyType key )
 			{
 				return *clientModules;
 			}
-			// GeneralsX @bugfix Claude 06/10/2026 Advance: the loop never moved past the first module, so a drawable whose first
+			// GeneralsX: Advance: the loop never moved past the first module, so a drawable whose first
 			// client update module was not the one asked for hung the game here (sweep c085-02). Every match found today is
 			// the first module, so no shipped lookup changes.
 			++clientModules;
@@ -6449,7 +6449,7 @@ void Drawable::xfer( Xfer *xfer )
 		if (hasIconInfo())
 			getIconInfo()->clear();
 
-		// GeneralsX @bugfix Claude 06/10/2026 One entry per icon slot at most; the save writes only the slots in use (sweep c085-01).
+		// GeneralsX: One entry per icon slot at most; the save writes only the slots in use (sweep c085-01).
 		if( iconCount > MAX_ICONS )
 			throw SC_INVALID_DATA;
 
@@ -6462,7 +6462,7 @@ void Drawable::xfer( Xfer *xfer )
 			// icon index name
 			xfer->xferAsciiString( &iconIndexName );
 			iconIndex = drawableIconNameToIndex( iconIndexName.str() );
-			// GeneralsX @bugfix Claude 06/10/2026 An unknown name gives ICON_INVALID (-1), which indexed m_keepTillFrame[] and
+			// GeneralsX: An unknown name gives ICON_INVALID (-1), which indexed m_keepTillFrame[] and
 			// m_icon[] one before the arrays. Refuse the save, as an unknown icon template below already does (sweep c085-01).
 			if( iconIndex < 0 || iconIndex >= MAX_ICONS )
 			{
@@ -6672,7 +6672,7 @@ const Locomotor* Drawable::getLocomotor() const
 // GX-SIMID-BEGIN the simulation reads this - resources/gitinfo/simsourcedigest_watcher.cmake
 /*static*/ void Drawable::friend_lockDirtyStuffForIteration()
 {
-	// GeneralsX @performance Claude 23/09/2026 Skip the walk when no drawable can be dirty. The walk's only
+	// GeneralsX: Skip the walk when no drawable can be dirty. The walk's only
 	// effect is getDrawModules() running replaceModelConditionStateInDrawable() on a drawable whose
 	// m_isModelDirty is set (getModuleList is a plain read), and s_anyModelDirty is FALSE only when none is:
 	// every write of m_isModelDirty = true also sets it, and it is cleared here, before the walk, so a drawable
@@ -6764,7 +6764,7 @@ void TintEnvelope::setDecayFrames( UnsignedInt frames )
 //-------------------------------------------------------------------------------------------------
 void TintEnvelope::update()
 {
-	// GeneralsX @performance Claude 23/09/2026 REST is the steady state of nearly every envelope and never
+	// GeneralsX: REST is the steady state of nearly every envelope and never
 	// reads the time scale, so return before the out-of-line FramePacer query. Identical output.
 	if ( m_envState == ENVELOPE_STATE_REST ) //most likely case
 	{
@@ -6774,10 +6774,10 @@ void TintEnvelope::update()
 	}
 
 	// TheSuperHackers @tweak The tint time step is now decoupled from the render update.
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing. Under
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing. Under
 	// capture an update with no clock step leaves the envelope exactly as it is - its attack/sustain/decay transitions
-	// test the current colour, so an extra draw between two logic frames would otherwise move it on (Codex
-	// gfxp3-shotdiff-r22).
+	// test the current colour, so an extra draw between two logic frames would otherwise move it on.
+	//
 	const Real timeScale = gxRenderTimeScale();
 	if (timeScale <= 0.0f && gxShotCaptureOn())
 		return;
@@ -6861,7 +6861,7 @@ void TintEnvelope::crc( Xfer *xfer )
 	* Version Info;
 	* 1: Initial version
 	* 2: TheSuperHackers @tweak Serialize sustain counter as float instead of integer
-	* 3: GeneralsX @bugfix Claude 25/09/2026 Serialize sustain counter as double (upstream #3127 reused 2 for it)
+	* 3: GeneralsX: Serialize sustain counter as double (upstream #3127 reused 2 for it)
 	*/
 // ------------------------------------------------------------------------------------------------
 void TintEnvelope::xfer( Xfer *xfer )
@@ -6901,7 +6901,7 @@ void TintEnvelope::xfer( Xfer *xfer )
 	}
 	else if (version == 2)
 	{
-		// GeneralsX @bugfix Claude 25/09/2026 Version 2 is the 4-byte float that RETAIL_COMPATIBLE_XFER_SAVE=0
+		// GeneralsX: Version 2 is the 4-byte float that RETAIL_COMPATIBLE_XFER_SAVE=0
 		// builds wrote before #3127. Upstream reads it as the new double, which consumes the next 4 bytes
 		// (affect, state and beyond) of an older save; it keeps its own layout here and only loads.
 		Real sustainCounter = (Real)m_sustainCounter;
@@ -6913,7 +6913,7 @@ void TintEnvelope::xfer( Xfer *xfer )
 	}
 	else
 	{
-		// GeneralsX @bugfix Claude 24/09/2026 Ported by hand from upstream PR #3127 (b44fa780e). Upstream
+		// GeneralsX: Ported by hand from upstream PR #3127 (b44fa780e). Upstream
 		// adds Xfer::xferDouble for this; that is a new method in Core/GameEngine/.../Common/Xfer (a
 		// digested path), so the same 8 bytes go through xferUser instead: xferReal, xferDouble and
 		// xferUser all come down to xferImplementation( ptr, size ). Never written while

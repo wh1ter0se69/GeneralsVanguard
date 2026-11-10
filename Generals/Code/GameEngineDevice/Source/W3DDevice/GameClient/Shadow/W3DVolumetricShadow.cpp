@@ -66,7 +66,7 @@
 W3DVolumetricShadowManager	*TheW3DVolumetricShadowManager=nullptr;
 extern const FrustumClass *shadowCameraFrustum;	//defined in W3DShadow.
 
-// GeneralsX @performance Claude 23/09/2026 A prefetch is a hint with no architectural effect (same macro as
+// GeneralsX: A prefetch is a hint with no architectural effect (same macro as
 // AIPathfind.cpp). Used to fetch shadow casters a few entries ahead of the manager's per-frame walk.
 #if defined(__GNUC__) || defined(__clang__)
 	#define GX_SHADOW_PREFETCH(p) __builtin_prefetch((const void *)(p))
@@ -78,7 +78,7 @@ extern const FrustumClass *shadowCameraFrustum;	//defined in W3DShadow.
 #endif
 enum { GX_SHADOW_PREFETCH_AHEAD = 8 };
 
-// GeneralsX @performance Claude 23/09/2026 Dynamic (animated) shadow volumes are re-uploaded for every draw anyway,
+// GeneralsX: Dynamic (animated) shadow volumes are re-uploaded for every draw anyway,
 // so they are uploaded already in WORLD space and drawn under an identity world transform. A per-draw
 // SetTransform(D3DTS_WORLD) makes DXVK rebuild and re-upload its whole fixed-function vertex constant block on the
 // next draw (two matrix inverses plus the light block, D3D9DeviceEx::UpdateFixedFunctionVS): that was ~60% of a
@@ -105,7 +105,7 @@ static const D3DMATRIX &shadowIdentityWorld()
 	return s_identity;
 }
 
-// GeneralsX @performance Claude 23/09/2026 TS-06: a dynamic volume used to be locked, copied and unlocked into the
+// GeneralsX: TS-06: a dynamic volume used to be locked, copied and unlocked into the
 // dynamic VB/IB twice per frame, once per stencil pass, with identical contents. The DECR pass now redraws the
 // INCR pass's upload when it is still in the buffers: nothing since has DISCARDed either buffer (a DISCARD is the
 // only thing that makes an earlier range unavailable; NOOVERWRITE locks only ever append past it). The epoch
@@ -161,7 +161,7 @@ int nShadowVertsInBuf=0;	//model vetices in vertex buffer
 int nShadowStartBatchVertex=0;
 int nShadowIndicesInBuf=0;	//model vetices in vertex buffer
 int nShadowStartBatchIndex=0;
-// GeneralsX @performance Claude 23/09/2026 Was 4096 / 8192 (48 KB / 16 KB). A DISCARD wipes every earlier upload
+// GeneralsX: Was 4096 / 8192 (48 KB / 16 KB). A DISCARD wipes every earlier upload
 // for the DECR pass's redraw (TS-06) and costs a buffer rename, so the ring is sized for a battle's worth of turning
 // casters per frame: 65536 vertices (768 KB) and 196608 indices (384 KB). Indices stay 16-bit: each volume is
 // addressed from its own base vertex.
@@ -913,7 +913,7 @@ void W3DShadowGeometryMesh::buildPolygonNeighbors()
 
 	}
 
-	// GeneralsX @performance D · perf-shadow-generals-0969 27/10/2026 The base game's twin of Zero Hour's fix (B · perf-ipad-0969,
+	// GeneralsX: The base game's twin of Zero Hour's fix (B · perf-ipad-0969,
 	// GeneralsMD's W3DVolumetricShadow.cpp). The 2003 search below tested every polygon against every other one (O(n^2) pair tests).
 	// The base game runs it eagerly, from W3DShadowGeometry::initFromHLOD/initFromMesh, the first time a model's shadow geometry is
 	// loaded: while a map loads, or inside the frame the first object of a new model is created.
@@ -929,7 +929,7 @@ void W3DShadowGeometryMesh::buildPolygonNeighbors()
 	// whose lists add up to the mesh takes the 2003 scan below), so nothing allocates after this block. Anything else (a tiny or
 	// sparse mesh, a failed allocation - whatever it throws) takes the 2003 scan of every polygon, exactly as before.
 	// The scratch is unique_ptr arrays, not std::vector: a checked-iterator (debug) MSVC vector allocates a proxy in its noexcept
-	// default constructor, so a failed allocation there would end the process instead of reaching the catch (Codex shg69-r1-lens P2).
+	// default constructor, so a failed allocation there would end the process instead of reaching the catch.
 	std::unique_ptr<Short[]> polyIndex;
 	std::unique_ptr<size_t[]> vertexStart;
 	std::unique_ptr<Int[]> vertexPolys, candidates, merged;
@@ -1459,17 +1459,17 @@ void W3DVolumetricShadow::RenderDynamicMeshVolume(Int meshIndex, Int lightIndex,
 	if( numVerts == 0 || numPolys == 0 )
 		return;
 
-	// GeneralsX @bugfix Claude 23/09/2026 Skip a volume larger than the whole dynamic VB/IB. The room tests
+	// GeneralsX: Skip a volume larger than the whole dynamic VB/IB. The room tests
 	// below go negative for it, and the DISCARD lock then maps numVerts*stride / numIndex*2 bytes of a
 	// SHADOW_VERTEX_SIZE / SHADOW_INDEX_SIZE buffer, so the memcpy wrote past it. Same outcome TSH chose
 	// for oversized static volumes (W3DBufferManager getSlot): that mesh casts no shadow.
-	// GeneralsX @bugfix Claude 23/09/2026 >= on the vertex count: a volume of exactly 65536 vertices would use
+	// GeneralsX: >= on the vertex count: a volume of exactly 65536 vertices would use
 	// index 0xFFFF. Metal keeps primitive restart always on (MoltenVK cannot disable it), so that index can
 	// drop a triangle on macOS/iPad. One vertex less of headroom costs nothing.
 	if( numVerts >= SHADOW_VERTEX_SIZE || numIndex > SHADOW_INDEX_SIZE )
 		return;
 
-	// GeneralsX @performance Claude 23/09/2026 TS-06: in the DECR pass, draw the INCR pass's upload again if it is
+	// GeneralsX: TS-06: in the DECR pass, draw the INCR pass's upload again if it is
 	// still in the buffers. The geometry cannot change between the passes (only static volumes are drawn between).
 	W3DVolumetricShadowRenderTask &uploadTask = m_shadowVolumeRenderTask[lightIndex][meshIndex];
 	if (s_shadowReuseUploads && uploadTask.m_uploadEpoch == s_shadowUploadEpoch)
@@ -1516,7 +1516,7 @@ void W3DVolumetricShadow::RenderDynamicMeshVolume(Int meshIndex, Int lightIndex,
 			pvVertices++;
 		}
 #else
-		// GeneralsX @performance Claude 23/09/2026 Upload in world space (was a memcpy of the object-space
+		// GeneralsX: Upload in world space (was a memcpy of the object-space
 		// vertices plus a per-draw world transform). Same arithmetic Matrix3D::Transform_Vector does everywhere.
 		const Vector3 *src = geometry->GetVertex(0);
 		const Matrix3D &xf = *meshXform;
@@ -1556,7 +1556,7 @@ void W3DVolumetricShadow::RenderDynamicMeshVolume(Int meshIndex, Int lightIndex,
 
 	m_pDev->SetIndices(shadowIndexBufferD3D,nShadowStartBatchVertex);
 
-	// GeneralsX @performance Claude 23/09/2026 The vertices are already in world space (see the upload above), so
+	// GeneralsX: The vertices are already in world space (see the upload above), so
 	// the world transform is identity (set only when the device holds another one).
 	setShadowWorld(m_pDev, shadowIdentityWorld());
 
@@ -1877,7 +1877,7 @@ void W3DVolumetricShadow::Update()
 			//if it's visible or what the shadow looks like.
 			return;
 		}
-		// GeneralsX @performance Claude 23/09/2026 Reject an off-screen caster BEFORE the terrain height
+		// GeneralsX: Reject an off-screen caster BEFORE the terrain height
 		// lookup. Both branches below return on the same box test with a per-branch extent (m_robjExtent,
 		// or 1.5x it for an airborne caster), and the ground height only picks the branch. Outside the box
 		// grown by the WIDER of the two extents is outside it for either one (float addition is monotone),
@@ -2234,7 +2234,7 @@ void W3DVolumetricShadow::updateMeshVolume(Int meshIndex, Int lightIndex, const 
 			// construct the shadow volume at this light position in the
 			// passed shadow volume geometry index
 			//
-			// GeneralsX @bugfix Copilot 11/05/2026 Clamp extrusion length to prevent runaway volume spikes on shallow light rays.
+			// GeneralsX: Clamp extrusion length to prevent runaway volume spikes on shallow light rays.
 			if (vectorScaleMax > MAX_EXTRUSION_LENGTH)
 				vectorScaleMax = MAX_EXTRUSION_LENGTH;
 			if (m_shadowVolume[ lightIndex ][meshIndex]->GetFlags() & SHADOW_DYNAMIC)
@@ -2715,7 +2715,7 @@ void W3DVolumetricShadow::constructVolume( Vector3 *lightPosObject,Real shadowEx
 		for (k=i+2; k<indicesPerMesh; k+=2)
 			if (silhouetteIndices[k]==currentEdgeEnd)
 			{	//swap the two edges
-				// GeneralsX @bugfix Copilot 11/05/2026 Avoid strict-aliasing/alignment UB when swapping edge pairs on 64-bit/ARM.
+				// GeneralsX: Avoid strict-aliasing/alignment UB when swapping edge pairs on 64-bit/ARM.
 				Short edge0a = silhouetteIndices[i+2];
 				Short edge0b = silhouetteIndices[i+3];
 				silhouetteIndices[i+2] = silhouetteIndices[k];
@@ -2844,7 +2844,7 @@ void W3DVolumetricShadow::constructVolume( Vector3 *lightPosObject,Real shadowEx
 #ifdef RECORD_SHADOW_STRIP_STATS
 		//Continuing strip.
 		stripLength++;
-		// GeneralsX @bugfix Copilot 11/05/2026 Use MAX portability macro for strip statistics.
+		// GeneralsX: Use MAX portability macro for strip statistics.
 		maxStripLength=MAX(maxStripLength,stripLength);
 #endif
 	}
@@ -2948,7 +2948,7 @@ void W3DVolumetricShadow::constructVolumeVB( Vector3 *lightPosObject,Real shadow
 			for (k=i+2; k<indicesPerMesh; k+=2)
 				if (silhouetteIndices[k]==currentEdgeEnd)
 				{	//swap the two edges
-					// GeneralsX @bugfix Copilot 11/05/2026 Avoid strict-aliasing/alignment UB when swapping edge pairs on 64-bit/ARM.
+					// GeneralsX: Avoid strict-aliasing/alignment UB when swapping edge pairs on 64-bit/ARM.
 					Short edge0a = silhouetteIndices[i+2];
 					Short edge0b = silhouetteIndices[i+3];
 					silhouetteIndices[i+2] = silhouetteIndices[k];
@@ -3011,7 +3011,7 @@ void W3DVolumetricShadow::constructVolumeVB( Vector3 *lightPosObject,Real shadow
 	#ifdef RECORD_SHADOW_STRIP_STATS
 			//Continuing strip.
 			stripLength++;
-			// GeneralsX @bugfix Copilot 11/05/2026 Use MAX portability macro for strip statistics.
+			// GeneralsX: Use MAX portability macro for strip statistics.
 			maxStripLength=MAX(maxStripLength,stripLength);
 	#endif
 		}

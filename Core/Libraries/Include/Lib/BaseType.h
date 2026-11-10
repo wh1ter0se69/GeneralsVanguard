@@ -60,7 +60,7 @@ inline int sign(NUM x)
 	else return 0;
 }
 
-// GeneralsX @refactor Claude 29/10/2026 The one IABS (upstream #3504, 407248bfd). Upstream puts it in
+// GeneralsX: The one IABS (upstream #3504, 407248bfd). Upstream puts it in
 // Precompiled/BaseAlgorithm.h, which this fork does not have; sign/min/max live here, so it does too.
 inline Int IABS(Int x)
 {
@@ -171,7 +171,7 @@ __forceinline long fast_float2long_round(float f)
 		fistp [i]
 	}
 #else
-	// GeneralsX @bugfix Claude 01/10/2026 Determinism-1 (ROADMAP_2027 M1 item 3, G-G3-04). lroundf is unspecified
+	// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 3, G-G3-04). lroundf is unspecified
 	// outside long's range and for NaN, and long is 32 bits on Windows but 64 elsewhere: x86 answers LONG_MIN, arm64
 	// saturates, and the Int every caller stores it in then truncates two different longs differently. Clamp to the Int
 	// range first, the same on every target. In range (|f| < 2^31) the result is exactly lroundf's, as before.
@@ -205,7 +205,7 @@ __forceinline float fast_float_trunc(float f)
   }
   return f;
 #else
-  // GeneralsX @bugfix Claude 01/10/2026 memcpy, not *(unsigned *)&f: the same bits and the same machine code, without the
+  // GeneralsX: memcpy, not *(unsigned *)&f: the same bits and the same machine code, without the
   // strict-aliasing UB a compiler may optimise differently per target (G-G3-03).
   unsigned x;
   memcpy(&x, &f, sizeof(x));
@@ -222,7 +222,7 @@ __forceinline float fast_float_trunc(float f)
 // same here, fast floor function
 __forceinline float fast_float_floor(float f)
 {
-  // GeneralsX @bugfix Claude 01/10/2026 memcpy for the bit reads (see fast_float_trunc); the arithmetic - including
+  // GeneralsX: memcpy for the bit reads (see fast_float_trunc); the arithmetic - including
   // retail's floor(-n) = -n-1 on exact negative integers, which the simulation depends on - is unchanged.
   static const unsigned almost1=(126<<23)|0x7fffff;
   unsigned bits;
@@ -239,7 +239,7 @@ __forceinline float fast_float_floor(float f)
 // same here, fast ceil function
 __forceinline float fast_float_ceil(float f)
 {
-  // GeneralsX @bugfix Claude 01/10/2026 memcpy for the bit reads; retail's ceil(n) = n+1 on exact positive integers is
+  // GeneralsX: memcpy for the bit reads; retail's ceil(n) = n+1 on exact positive integers is
   // unchanged (see fast_float_floor).
   static const unsigned almost1=(126<<23)|0x7fffff;
   unsigned bits;
@@ -253,7 +253,7 @@ __forceinline float fast_float_ceil(float f)
   return fast_float_trunc(f);
 }
 
-// GeneralsX @bugfix Claude 01/10/2026 Determinism-1 (ROADMAP_2027 M1 item 3, G-G3-04). A C float->integer cast is
+// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 3, G-G3-04). A C float->integer cast is
 // undefined outside the target type's range and for NaN, and the four targets disagree there: arm64 (fcvtzs/fcvtzu)
 // saturates and maps NaN to 0, x86-64 (cvttss2si) answers INT_MIN, and a negative float cast to unsigned wraps on x86
 // but is 0 on arm64 - a Mac/iPad vs Windows/Linux split with no visible cause. These pin one answer everywhere:
@@ -271,7 +271,7 @@ __forceinline UnsignedInt gx_real_to_unsigned_int(Real x)
   if (x >= 4294967296.0f) return 4294967295u;
   return (UnsignedInt)x;
 }
-// GeneralsX @bugfix Claude 01/10/2026 Determinism-1 item 3 (G-G3-05): pow(v, 2) through no library at all. A float's
+// GeneralsX: Determinism-1 item 3 (G-G3-05): pow(v, 2) through no library at all. A float's
 // square is exact in double (48 significant bits), so this equals any correct pow() bit for bit.
 __forceinline double gx_square(double v) { return v * v; }
 __forceinline Int gx_double_to_int(double x)
@@ -288,7 +288,7 @@ __forceinline UnsignedInt gx_double_to_unsigned_int(double x)
   return (UnsignedInt)x;
 }
 
-// GeneralsX @bugfix Claude 03/10/2026 Codex det1-float P2. The REAL_TO_* macros took every argument through Real, so an
+// GeneralsX: review det1-float P2. The REAL_TO_* macros took every argument through Real, so an
 // integer of 2^24 or more lost its low bits (EMPUpdate's UnsignedInt deadline 16777217 became 16777216) and a double
 // rounded to float before it truncated (0.99999999 became 1). Each argument now converts from its OWN type: a Real takes
 // the functions above unchanged, so every float input gives exactly what it gave before; a double saturates in double;
@@ -312,7 +312,7 @@ template <typename T> __forceinline UnsignedInt gx_real_to_unsigned_int(T x)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 01/10/2026 Through the saturating helpers above (Determinism-1 item 3). The narrow types
+// GeneralsX: Through the saturating helpers above (Determinism-1 item 3). The narrow types
 // convert via Int, so an out-of-range value narrows the same way (two's complement) on every target; in range, each is
 // the plain cast's result.
 #define REAL_TO_INT(x)						(gx_real_to_int(x))

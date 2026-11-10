@@ -55,8 +55,8 @@ public:
 	// FALSE when the platform could not say, which keeps that address in retail order.
 	Bool isTunnel() { return m_tunnel; }
 	void setTunnel( Bool tunnel ) { m_tunnel = tunnel; }
-	// GeneralsX @bugfix Claude 28/09/2026 A tunnel "Use my VPN for LAN" must never prefer: a carrier link
-	// (iOS pdp_ip, Codex seam0948-r2), or a Windows VPN address on no interface that is up (Codex w49vpn-r4).
+	// GeneralsX: A tunnel "Use my VPN for LAN" must never prefer: a carrier link
+	// (iOS pdp_ip), or a Windows VPN address on no interface that is up.
 	// With the switch off it ranks exactly as a tunnel.
 	Bool isCellular() { return m_cellular; }
 	void setCellular( Bool cellular ) { m_cellular = cellular; }
@@ -88,7 +88,7 @@ public:
 	EnumeratedIP * getAddresses();		///< Return a linked list of local IP addresses
 	AsciiString getMachineName();			///< Return the Network Neighborhood machine name
 
-	// GeneralsX @feature Claude 28/09/2026 "Use my VPN for LAN" (Options.ini UseVPNForLAN, default
+	// GeneralsX: "Use my VPN for LAN" (Options.ini UseVPNForLAN, default
 	// off, set once at startup from GlobalData). Off: a tunnel ranks after the real LAN and a saved
 	// tunnel IPAddress counts as unset. On: a tunnel ranks first, and while one exists a saved
 	// non-tunnel IPAddress counts as unset. A cellular link is never the preferred side, nor a saved pick.

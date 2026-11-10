@@ -326,7 +326,7 @@ Bool MissileAIUpdate::projectileHandleCollision( Object *other )
  		Object *projectileLauncher = TheGameLogic->findObjectByID( projectileGetLauncherID() );
 
  		// if it's not the specific thing we were targeting, see if we should incidentally collide...
- 		// GeneralsX @bugfix Claude 01/10/2026 The detonation template is set only at launch, so a projectile that
+ 		// GeneralsX: The detonation template is set only at launch, so a projectile that
  		// collides before it was launched (an OCL-made one, or broken payload data) crashed here. Without a template
  		// skip the incidental-collision filter; detonate() already copes with null (tsh batch2 #397/#320, idea of
  		// Generals Online 5f43513ee and 39f499d3e, reimplemented).

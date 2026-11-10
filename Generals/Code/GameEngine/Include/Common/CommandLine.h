@@ -40,7 +40,7 @@ public:
 	// The index excludes the executable name.
 	static bool wasCommandLineArgumentParsed(int argIndex);
 
-	// GeneralsX @feature Claude 27/09/2026 Whether -fps N or -noFPSLimit was given - the launcher's
+	// GeneralsX: Whether -fps N or -noFPSLimit was given - the launcher's
 	// max-FPS setting, which wins over the display's refresh rate (Common/FpsLimitPolicy.h). A flag,
 	// not a sentinel in m_framesPerSecondLimit: the retail INI has already written 30 there.
 	static bool hasFpsLimitArgument();

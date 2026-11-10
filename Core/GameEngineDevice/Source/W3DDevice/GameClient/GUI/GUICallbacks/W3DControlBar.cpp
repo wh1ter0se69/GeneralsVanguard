@@ -197,7 +197,7 @@ void W3DPowerDraw( GameWindow *window, WinInstanceData *instData )
 	{
 
 		// how many whole repeating pieces will fit in that width
-		// GeneralsX @bugfix Claude 01/10/2026 A zero-size centre image (bad UI INI coords) divided by zero; no pieces then. Idea from Generals Online e4241b4d9, reimplemented.
+		// GeneralsX: A zero-size centre image (bad UI INI coords) divided by zero; no pieces then. Idea from Generals Online e4241b4d9, reimplemented.
 		pieces = (centerBar->getImageWidth() > 0) ? centerWidth / centerBar->getImageWidth() : 0;
 		ICoord2D start, end;
 		// draw the pieces
@@ -373,7 +373,7 @@ void W3DPowerDrawA( GameWindow *window, WinInstanceData *instData )
 	{
 
 		// how many whole repeating pieces will fit in that width
-		// GeneralsX @bugfix Claude 01/10/2026 A zero-size centre image (bad UI INI coords) divided by zero; no pieces then. Idea from Generals Online e4241b4d9, reimplemented.
+		// GeneralsX: A zero-size centre image (bad UI INI coords) divided by zero; no pieces then. Idea from Generals Online e4241b4d9, reimplemented.
 		pieces = (centerBar->getImageWidth() > 0) ? centerWidth / centerBar->getImageWidth() : 0;
 
 		// draw the pieces
@@ -550,7 +550,7 @@ void W3DCommandBarGenExpDraw( GameWindow *window, WinInstanceData *instData )
 	{
 
 		// how many whole repeating pieces will fit in that width
-		// GeneralsX @bugfix Claude 01/10/2026 A zero-size centre image (bad UI INI coords) divided by zero; no pieces then. Idea from Generals Online e4241b4d9, reimplemented.
+		// GeneralsX: A zero-size centre image (bad UI INI coords) divided by zero; no pieces then. Idea from Generals Online e4241b4d9, reimplemented.
 		pieces = (centerBar->getImageHeight() > 0) ? centerWidth / centerBar->getImageHeight() : 0;
 
 		// draw the pieces
@@ -964,7 +964,7 @@ void W3DCommandBarHelpPopupDraw( GameWindow *window, WinInstanceData *instData )
 	{
 
 		// how many whole repeating pieces will fit in that width
-		// GeneralsX @bugfix Claude 01/10/2026 A zero-size centre image (bad UI INI coords) divided by zero; no pieces then. Idea from Generals Online e4241b4d9, reimplemented.
+		// GeneralsX: A zero-size centre image (bad UI INI coords) divided by zero; no pieces then. Idea from Generals Online e4241b4d9, reimplemented.
 		pieces = (centerBar->getImageHeight() > 0) ? centerWidth / centerBar->getImageHeight() : 0;
 
 		// draw the pieces

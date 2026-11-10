@@ -1,4 +1,4 @@
-// GeneralsX @test C · rw1-C 10/10/2026 WS-C GXRES v0 gates. Offscreen; every critical claim has an arm where it FAILS.
+// GeneralsX: WS-C GXRES v0 gates. Offscreen; every critical claim has an arm where it FAILS.
 //
 //   gx_res_test [--arm NAME[,NAME...]|all] [--no-validation] [--device SEL] [--loader PATH]
 //
@@ -14,9 +14,9 @@
 //   texture-roundtrip      every sampled-capable format, full mip chain, uploaded and read back byte-exact
 //   texture-partial        a rect lock changes only the rect
 //   texture-drop-restore   upload-then-drop, then a one-texel write (radar style): the rest of the level survives
-//   texture-rect-bounds    a rect whose x+width wraps 32 bits is refused; an edge-touching one is accepted (Codex r5)
-//   buffer-reinit          a re-initialised static buffer starts with timeline tag 0 (Codex r5)
-//   texture-restore-other-pending a dropped, never-uploaded texture locks while another image has an upload queued (Codex r5)
+//   texture-rect-bounds    a rect whose x+width wraps 32 bits is refused; an edge-touching one is accepted
+//   buffer-reinit          a re-initialised static buffer starts with timeline tag 0
+//   texture-restore-other-pending a dropped, never-uploaded texture locks while another image has an upload queued
 //   texture-systemmem      SYSTEMMEM surface written through a pointer kept after UnlockRect (W3DShroud), CopyRects twice
 //   rt-clear-readback      256x256 A8R8G8B8 target cleared through dynamic rendering, read back
 //   rt-msaa-resolve        x8 requested -> the device's count, cleared, resolved into a texture, read back
@@ -461,7 +461,7 @@ bool armTextureRoundtrip(GxResources& res, std::string* d)
 			continue;
 		GxTexture t;
 		std::string why;
-		++tested; // a format the table calls sampled-capable that fails to create is a failure, not a skip (Codex r1 P2)
+		++tested; // a format the table calls sampled-capable that fails to create is a failure, not a skip
 		if (!t.init(res, {64, 32, 0, f.d3d, 0, d3d::POOL_MANAGED}, &why)) {
 			wrong += std::string(f.name) + "(init: " + why + ") ";
 			continue;
@@ -537,9 +537,9 @@ bool armTextureDropRestore(GxResources& res, std::string* d, uint32_t* outsideWr
 	t.unlockRect(0);
 	std::memcpy(expect.data() + 7 * 256 + 5 * 4, &texel, 4);
 	std::vector<uint8_t> back;
-	if (!t.readLevel(0, &back) || back.size() != expect.size()) { // a failed read-back must not read as "0 wrong" (Codex r2 P2)
+	if (!t.readLevel(0, &back) || back.size() != expect.size()) { // a failed read-back must not read as "0 wrong"
 		*d += "final read-back FAILED - no measurement; ";
-		*outsideWrong = 0; // a failed measurement is never evidence for the fail arm either (Codex r3 P2)
+		*outsideWrong = 0; // a failed measurement is never evidence for the fail arm either
 		return false;
 	}
 	uint32_t bad = 0;
@@ -553,7 +553,7 @@ bool armTextureDropRestore(GxResources& res, std::string* d, uint32_t* outsideWr
 	return dropped && bad == 0 && restores == 1;
 }
 
-// Codex rw1-C-r5 P2: {1,0}+UINT32_MAX wrapped a 32-bit bounds sum to 0. *accepted reports whether a lock took the rect.
+// {1,0}+UINT32_MAX wrapped a 32-bit bounds sum to 0. *accepted reports whether a lock took the rect.
 bool armTextureRectBounds(GxResources& res, std::string* d, bool* accepted)
 {
 	GxTexture t;
@@ -579,7 +579,7 @@ bool armTextureRectBounds(GxResources& res, std::string* d, bool* accepted)
 	return ok;
 }
 
-// Codex rw1-C-r5 P2: a re-initialised static buffer kept the last life's timeline tag.
+// a re-initialised static buffer kept the last life's timeline tag.
 bool armBufferReinit(GxResources& res, std::string* d, uint64_t* tagAfterInit)
 {
 	GxBuffer vb;
@@ -604,7 +604,7 @@ bool armBufferReinit(GxResources& res, std::string* d, uint64_t* tagAfterInit)
 	return used > 0 && *tagAfterInit == 0;
 }
 
-// Codex rw1-C-r5 P2: a never-uploaded, dropped texture must lock (zeros) whatever OTHER resources have queued.
+// a never-uploaded, dropped texture must lock (zeros) whatever OTHER resources have queued.
 bool armTextureRestoreOtherPending(GxResources& res, std::string* d, bool* lockOk)
 {
 	GxTexture t, other;
@@ -778,7 +778,7 @@ bool armBufferNested(GxResources& res, std::string* d)
 	if (!vb.init(res, {4096, d3d::USAGE_WRITEONLY, d3d::POOL_MANAGED, false, 0}, &why) ||
 		!dyn.init(res, {4096, d3d::USAGE_DYNAMIC | d3d::USAGE_WRITEONLY, d3d::POOL_DEFAULT, false, 0}, &why))
 		return false;
-	// The GPU buffer starts undefined (only the host shadow is zeroed): upload all of it first (Codex r2 P2).
+	// The GPU buffer starts undefined (only the host shadow is zeroed): upload all of it first.
 	if (void* all = vb.lock(0, 0, 0))
 		std::memset(all, 0, 4096);
 	vb.unlock();
@@ -837,7 +837,7 @@ bool armBufferDestroyPending(GxResources& res, std::string* d)
 	return true;
 }
 
-// PREREG_T A26 (perf-audit C11) + amendment 1 (Codex perfaudit-a26-r1 P2 #1/#4): a resource destroyed while its uploads are still
+// PREREG_T A26 (perf-audit C11) + amendment 1: a resource destroyed while its uploads are still
 // queued takes exactly its own copies' bytes with it. Before the fix GxResources::dropPendingFor erased the copies but not their
 // bytes, so pendingBytes() stayed above the real queue for the rest of the session. A managed buffer with two partial unlocks and a
 // managed 3-level texture; exact pendingCount()/pendingBytes() after the queueing, after each deletion and after an empty record.
@@ -878,7 +878,7 @@ bool armPendingBytesDrop(GxResources& res, std::string* d, int* stale)
 	VkCommandBuffer cmd = pool.begin();
 	res.recordPending(cmd);   // nothing left to record: the total stays 0
 	submit(res.ctx(), cmd);
-	res.ctx().waitIdle();   // drains the submit thread first (R19; Codex rw3V-code-r12 P1)
+	res.ctx().waitIdle();   // drains the submit thread first
 	res.ctx().collect();
 	const VkDeviceSize bR = res.pendingBytes();
 	setup = setup && nQ == 5 && bQ == bufBytes + texBytes && nB == 3;
@@ -891,7 +891,7 @@ bool armPendingBytesDrop(GxResources& res, std::string* d, int* stale)
 	return bB == texBytes && nT == 0 && bT == 0 && bR == 0;
 }
 
-// A26 amendment 1 (Codex P2 #3): the empty-record reset on its own. Stale bytes are seeded with the pre-A26 drop arithmetic ON
+// A26 amendment 1: the empty-record reset on its own. Stale bytes are seeded with the pre-A26 drop arithmetic ON
 // (dropKeepsBytes), the plant goes OFF, and one empty main record must bring the total back to 0. *kept (the X arm's ONLY
 // detection): the seed succeeded AND the total after the empty record still equals the seed; -1 = the seed failed.
 bool armPendingBytesReset(GxResources& res, std::string* d, int* kept)
@@ -916,7 +916,7 @@ bool armPendingBytesReset(GxResources& res, std::string* d, int* kept)
 	VkCommandBuffer cmd = pool.begin();
 	res.recordPending(cmd);
 	submit(res.ctx(), cmd);
-	res.ctx().waitIdle();   // drains the submit thread first (R19; Codex rw3V-code-r12 P1)
+	res.ctx().waitIdle();   // drains the submit thread first
 	res.ctx().collect();
 	const VkDeviceSize after = res.pendingBytes();
 	*d += std::string("seed ") + (seeded ? "ok" : "FAILED " + why) + " (" + std::to_string(n) + " copies / " + std::to_string(seed) +
@@ -927,10 +927,10 @@ bool armPendingBytesReset(GxResources& res, std::string* d, int* kept)
 	return after == 0;
 }
 
-// A26 amendment 1 (Codex P1): stagingPressure() counts the staging only the next submission can free, dropped copies' included.
+// A26 amendment 1: stagingPressure() counts the staging only the next submission can free, dropped copies' included.
 // Three drop-without-submit cycles of 4 KiB raise it by exactly 4 KiB each while pendingBytes() stays 0; a kept 8 KiB upload adds
 // its bytes to both; one submission brings both to 0; one more upload after it reads ONLY its own 4 KiB (the count restarts when
-// the tag moves - Codex a26-r2 #3). Every upload's staging is proven before its buffer goes (queued count/bytes and the stagingBytes
+// the tag moves). Every upload's staging is proven before its buffer goes (queued count/bytes and the stagingBytes
 // increment - a26-r2 #1). *blind (the X arm's ONLY detection): setup ok AND the pressure read 0 after the three drops (A26 v1's
 // trigger cannot see dropped staging); -1 = setup failed.
 bool armStagingPressure(GxResources& res, std::string* d, int* blind)
@@ -967,7 +967,7 @@ bool armStagingPressure(GxResources& res, std::string* d, int* blind)
 		VkCommandBuffer cmd = pool.begin();
 		res.recordPending(cmd);
 		submit(res.ctx(), cmd);
-		res.ctx().waitIdle();   // drains the submit thread first (R19; Codex rw3V-code-r12 P1)
+		res.ctx().waitIdle();   // drains the submit thread first
 		res.ctx().collect();
 	};
 	submitQueued();
@@ -1697,7 +1697,7 @@ bool armBcDecode(GxResources& native, std::string* d, BcPlant plant, BcResult* r
 			", GxDecode==ideal model " + (vsIdeal == 0 ? "exact" : "OFF BY " + std::to_string(vsIdeal));
 		ok = ok && upload == 0;
 		if (native.formats().supports(fmt, 0)) {
-			// Skipped ONLY without BC support: a native path that fails is a failure (Codex rw2-C-r2 P2).
+			// Skipped ONLY without BC support: a native path that fails is a failure.
 			if (!fill(native, tn, nativeBytes) || tn.decoded() || !tr.read(native, tn, &pn)) {
 				*d += line + ", native BC texture FAILED (" + why + "); ";
 				ok = false;
@@ -1717,7 +1717,7 @@ bool armBcDecode(GxResources& native, std::string* d, BcPlant plant, BcResult* r
 					}
 				worstNv = std::max(worstNv, dn);
 				if (plant == BcPlant::NativeInverted && k == inverted) {
-					res->plantedCaught += di > kBcTol && dn > kBcTol; // the plant is judged on its own block only (Codex r30-r3 P2)
+					res->plantedCaught += di > kBcTol && dn > kBcTol; // the plant is judged on its own block only
 					continue;
 				}
 				if (di <= kBcTol)
@@ -1930,7 +1930,7 @@ struct ArmResult
 // (it waits on its value) and submitPending(false) (it waits for its op to run). The op is queued behind a hold, refused at the
 // thread's choke point, then released from another thread. X-thread-pending-refused plants an answer that does not wait.
 // *setup = false: no gate ran (thread off, setup failed, or the target op was never REFUSED at the thread - e.g. its command buffer
-// allocation failed first) - never a detection (Codex rw3V-code-r1 P2-5, r2 P2-6). Returns the call's answer is false.
+// allocation failed first) - never a detection. Returns the call's answer is false.
 bool armThreadRefused(GxResources& res, bool viaImmediate, std::string* d, bool* setup)
 {
 	Vk::VkCtx& ctx = res.ctx();
@@ -2124,7 +2124,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 			: arm == "format-bc-either-wrong" ? BcPlant::NativeInverted : BcPlant::None, &bc);
 		if (res.expectDetected) {
 			// Each plant's OWN symptom only counts on a run whose other gates held: a broken upload, decoder or model match, or a
-			// validation error/hazard, is a failure of the arm, never a detection and never a skip (Codex r30-r1/r2/r3 P2).
+			// validation error/hazard, is a failure of the arm, never a detection and never a skip.
 			gx.shutdown();
 			const Vk::ValidationCounters vc = ctx.validation();
 			const bool valid = vc.errors == 0 && vc.syncHazards == 0;
@@ -2147,7 +2147,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		ok = armForceCaps(gx, &res.detail);
 	else if (arm == "rt-sampled" || arm == "rt-sampled-unchecked") {
 		// a forced single-sample cap (--force samples=1) clamps the x4 request to x1, which never meets the sampled-MSAA check:
-		// the case (and its mutant) test nothing there (Codex rw3L-code-r9 #1)
+		// the case (and its mutant) test nothing there
 		if (GxRenderTarget::clampSamples(ctx.limits(), 4, gx.formats().caps().maxSamples) == VK_SAMPLE_COUNT_1_BIT) {
 			res.detail = "SKIPPED: x4 clamps to x1 on these capabilities - no sampled MSAA to check";
 			res.skipped = true;
@@ -2161,7 +2161,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		ok = armBufferNested(gx, &res.detail);
 	else if (arm == "pending-bytes-drop" || arm == "pending-bytes-drop-kept" || arm == "pending-bytes-reset" ||
 	         arm == "pending-bytes-reset-kept" || arm == "staging-pressure" || arm == "staging-pressure-pending") {
-		// A26 + amendment 1: each X arm is detected ONLY by its own symptom with its setup proven (Codex perfaudit-a26-r1 P2 #1) -
+		// A26 + amendment 1: each X arm is detected ONLY by its own symptom with its setup proven -
 		// a setup failure, a validation error or any other check is never a detection
 		gx.debug().dropKeepsBytes = arm == "pending-bytes-drop-kept";   // the pre-A26 drop arithmetic
 		gx.debug().emptyRecordKeepsTotal = arm == "pending-bytes-reset-kept";

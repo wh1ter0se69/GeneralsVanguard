@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 09/09/2026 ONE normalisation rule for a relay-held nickname.
+// GeneralsX: ONE normalisation rule for a relay-held nickname.
 //
 // THE DEFECT THIS EXISTS TO END. gxLobbySetNickname (WOLLobbyMenu.cpp) hands one display name to
 // two senders that disagree about what a name is. Transport::sendRelayNickname filters to

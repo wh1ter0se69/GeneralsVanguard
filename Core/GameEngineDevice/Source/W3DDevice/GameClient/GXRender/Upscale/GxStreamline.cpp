@@ -1,4 +1,4 @@
-// GeneralsX @feature B · dlss-streamline-1 13/10/2026 see GxStreamline.h. Built only with GX_STREAMLINE=ON on Windows x64.
+// GeneralsX: see GxStreamline.h. Built only with GX_STREAMLINE=ON on Windows x64.
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -108,11 +108,11 @@ template <typename T> bool symbol(HMODULE m, const char* name, T*& out)
 	return out != nullptr;
 }
 
-// loaderRoot(): slShutdown before the device and the instance go, on every path (Codex dlss-sl-r2 P1). VkCtx::init destroys
+// loaderRoot(): slShutdown before the device and the instance go, on every path. VkCtx::init destroys
 // both itself when a step after vkCreateDevice fails (timeline semaphore, VMA) - code this module does not own - and VkCtx
 // resolves every function through the root it is given (volk: vkDestroyInstance from vkGetInstanceProcAddr, vkDestroyDevice
 // again from vkGetDeviceProcAddr). So the root hands out the interposer's functions with those destroys wrapped.
-// ponytail: one Streamline device at a time (globals); per-device state if two ever coexist.
+// Trade-off: one Streamline device at a time (globals); per-device state if two ever coexist.
 Streamline* g_owner = nullptr;	// the loaded Streamline; null once it shut down
 PFN_vkGetInstanceProcAddr g_gipa = nullptr;	// the interposer's; kept after shutdown (the module stays mapped)
 PFN_vkGetDeviceProcAddr g_gdpa = nullptr;
@@ -182,7 +182,7 @@ bool Streamline::load(const wchar_t* dir, const StreamlineFeatures& want, std::s
 	// Absolute path: the signature checks refuse relative ones, and LoadLibraryEx must not search.
 	wchar_t full[MAX_PATH] = {};
 	const DWORD fullLen = GetFullPathNameW(dir, MAX_PATH, full, nullptr);
-	if (fullLen == 0 || fullLen >= MAX_PATH) {	// >= MAX_PATH: the required size, `full` was not written (Codex dlss-sl-r1)
+	if (fullLen == 0 || fullLen >= MAX_PATH) {	// >= MAX_PATH: the required size, `full` was not written
 		*why = "bad Streamline folder";
 		return false;
 	}
@@ -196,9 +196,9 @@ bool Streamline::load(const wchar_t* dir, const StreamlineFeatures& want, std::s
 		return false;
 	}
 	// slInit loads the plugins, and NGX later nvngx_dlss.dll, with plain LoadLibraryW: their dependencies would search the current
-	// directory and PATH. From here on the process searches the exe's folder, System32 and this folder only (Codex dlss-sl-r2 P2).
+	// directory and PATH. From here on the process searches the exe's folder, System32 and this folder only.
 	// Process-wide and for good (Windows has no undo) - only a session that loads Streamline (DLSS asked, NVIDIA adapter) gets it.
-	// So ONE Streamline folder per process: a later, different folder would load against the first one's entry (Codex dlss-sl-r3 P2).
+	// So ONE Streamline folder per process: a later, different folder would load against the first one's entry.
 	static std::wstring s_searchDir;
 	if (s_searchDir.empty()) {
 		if (!SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_APPLICATION_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32 | LOAD_LIBRARY_SEARCH_USER_DIRS) ||
@@ -211,7 +211,7 @@ bool Streamline::load(const wchar_t* dir, const StreamlineFeatures& want, std::s
 		*why = "Streamline folder " + narrow(full) + " differs from this process's first one (" + narrow(s_searchDir) + "): restart to switch";
 		return false;
 	}
-	// Its dependencies resolve from its own folder and System32 only - never the current directory or PATH (Codex dlss-sl-r1).
+	// Its dependencies resolve from its own folder and System32 only - never the current directory or PATH.
 	HMODULE mod = LoadLibraryExW(interposer.c_str(), nullptr, LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_SYSTEM32);
 	if (mod == nullptr) {
 		*why = "LoadLibrary(" + narrow(interposer) + ") failed: " + std::to_string(GetLastError());
@@ -277,7 +277,7 @@ bool Streamline::load(const wchar_t* dir, const StreamlineFeatures& want, std::s
 	return true;	// the feature entry points come after the device exists: resolveFeatures()
 }
 
-// Codex fg-p0-r1 P1: slGetFeatureFunction answers eErrorNotInitialized until the plugins initialised against a device, so this runs
+// slGetFeatureFunction answers eErrorNotInitialized until the plugins initialised against a device, so this runs
 // after VkCtx::init (GxNativeDevice::dlssInit). A missing plugin DLL (sl.reflex / sl.dlss_g / nvngx_dlssg: optional, the user's own
 // copy) leaves its pointers null and the feature off - logged, never fatal.
 void Streamline::resolveFeatures()
@@ -486,7 +486,7 @@ bool Streamline::dlssEvaluate(VkCommandBuffer cmd, DlssMode mode, const DlssFram
 	const sl::Extent outputExtent{ 0, 0, f.outputW, f.outputH };
 	// eValidUntilEvaluate (DLSS's own required lifecycle, dlssEntry.cpp requiredTags): the evaluate follows in this command
 	// buffer, so Streamline uses the images as given. eOnlyValidNow made it CLONE them - an extra copy each, and the depth clone
-	// lost the DEPTH subresource range (Codex dlss-sl-r1 P1).
+	// lost the DEPTH subresource range.
 	const sl::ResourceLifecycle life = sl::ResourceLifecycle::eValidUntilEvaluate;
 	// dlss-fg-1: with frame generation the depth and motion vectors are read again at the PRESENT (DLSS_G guide §5.2: tag them
 	// eValidUntilPresent first). They are motion's own images, rewritten only by the next frame's world pass - which DLSS-G's blocking
@@ -709,7 +709,7 @@ void Streamline::shutdown()
 	delete m_api;
 	m_api = nullptr;
 	m_gipa = nullptr;
-	// ponytail: the module stays mapped for the process lifetime. VkCtx (shut down after us) still calls the interposer's
+	// Trade-off: the module stays mapped for the process lifetime. VkCtx (shut down after us) still calls the interposer's
 	// proxies (vkDeviceWaitIdle, vkDestroySwapchainKHR) through volk; unmapping first would crash. One DLL per process.
 	m_module = nullptr;
 	m_lastMode = DlssMode::Off;

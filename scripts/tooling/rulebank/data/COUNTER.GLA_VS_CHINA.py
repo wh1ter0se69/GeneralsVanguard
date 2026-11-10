@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule COUNTER.GLA_VS_CHINA (C·rb-data-15): the Toxin general meets the China
+# GeneralsX: rule bank DATA rule COUNTER.GLA_VS_CHINA (C·rb-data-15): the Toxin general meets the China
 # Infantry and Tank GENERALS without Scorpion waves (row 322: "Vs China Infantry: core army is Battle Buses, more Quads and Angry Mobs ...; cut
 # Scud Launchers ~80%"; row 324: "Vs China Tank Emperors: Gamma Battle Buses or Jarmen Kell; Buses beat Emperors"; Dominator: "It should
 # have been Battle Buses, more quads and more angry mobs"). Stock Hard Toxin sends Scorpion waves at everyone.
@@ -11,18 +11,18 @@
 #   each Hard wave 2-5 team of nothing but Scorpions (the 17 COUNTER.GLA_VS_USA switches for USA: the two keys share them) waits on its
 #              off gate and gets a variant vs Infantry (Mob and Jarmen = Barracks + Palace, INIZH):
 #     vs Infantry "GX GVC <team>": all Quads; mob_wave 1 adds an Angry Mob slot (0-1), behind an own Palace and an own Barracks
-#              (AIPlayer::isPossibleToBuildTeam checks every type whatever its minimum - Codex rbd15-r1 P1);
+#              (AIPlayer::isPossibleToBuildTeam checks every type whatever its minimum);
 #     vs Tank the Scorpions stay stock. jarmen 1 adds ONE team "GX GVCK <stock
 #              Kell team>" (one instance) of one Jarmen Kell from stock wave 3's start on (own Palace + Barracks, no own Kell alive): the Kell is one per player
 #              (MaxSimultaneousOfType 1), so a Kell slot in every Tank team would hold each team its whole teamInitialIdleFrames while
-#              one lives (Codex rbd15-r2 P1). Stock's own wave 4-5 Kell teams stay;
+#              one lives. Stock's own wave 4-5 Kell teams stay;
 #     the STOCK team itself (rb-data-17, the lead's stock-copy ruling; until rb-data-16 a "GX GVCS" copy of its slots on the own clock,
 #              which fielded 40 vs stock's 54 Scorpions vs Nuke by 600 s): its off gate keeps it on (rb.matchup_keep: [stock gate,
 #              gxrb_mu_china ON, ...]) against any China enemy but the Infantry general, and while a building
 #              the Infantry half waits on is down (one keep block per building), so exactly one of the variant or the stock team is producible
 #              at any moment the key is ON;
 #   each Scud-only team (waves 4-5) keeps scud_cut % of its Scuds (rounded half up) vs Infantry ("GX GVC <team>"; NO Scud team at all
-#              when that rounds to 0 - scud_cut 0, or 20 % of 2: the cut is the point of row 322, Codex rbd17-r1 P2 read as intended) and
+#              when that rounds to 0 - scud_cut 0, or 20 % of 2: the cut is the point of row 322, read as intended) and
 #              stays the stock team against any other China enemy (a keep block).
 #   Each variant waits through its wave's OWN-CLOCK twin (scbx.wave_window) and hunts once the next wave would launch (wave 5 at once);
 #   the kept stock team runs stock's own gate and hooks.
@@ -151,7 +151,7 @@ def apply(scb, scope, p):
     assert sorted(seen) == _ALL, sorted(set(_ALL) - set(seen))
     if p['jarmen']:
         g = rb.wave_gate(scb, O, '_GLA_3RD_WAVE_H', KELL_GATE, lambda: [])
-        # Codex rbd16-r1 P1: only while no own Kell lives, and ONE instance. rb-data-18: both are belt and braces - a live or queued Kell makes
+        # only while no own Kell lives, and ONE instance. rb-data-18: both are belt and braces - a live or queued Kell makes
         # Player::canBuild false (canBuildMoreOfType), so AIPlayer::findFactory finds no factory and the team is no candidate at all
         g.kids = [mss.Node('OrCondition', 1, kids=[rb.clock_at_least(scb, rb.wave_window(scb, O, '_GLA_3RD_WAVE_H')[0]), key(), f(TANK, True),
                                                    has(PALACE), has(BARRACKS), lost(KELL)])] + [k for k in g.kids if k.name != 'OrCondition']
@@ -166,7 +166,7 @@ def apply(scb, scope, p):
 
 
 READ_S = 600
-# Codex rbd15-r1 P2: the CONTRAST reads FEWER own Scorpions (vs the Tank or Nuke general or a Random China enemy the stock team itself runs: no contrast, by design)
+# the CONTRAST reads FEWER own Scorpions (vs the Tank or Nuke general or a Random China enemy the stock team itself runs: no contrast, by design)
 CONTRAST = {'what': 'own Scorpions built by 600 s (fewer: the variants replace them with Quads and Mobs; stock Hard Toxin builds them in '
                     'every wave)', 'direction': -1, 'min_delta': 3}
 

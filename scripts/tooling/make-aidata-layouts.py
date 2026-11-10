@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# GeneralsX @feature Claude 04/11/2026 Data/INI/AIData.ini: the skirmish AI's base layouts, drawn so production doors face the base front. A RECIPE:
+# GeneralsX: Data/INI/AIData.ini: the skirmish AI's base layouts, drawn so production doors face the base front. A RECIPE:
 # which entries, in which order, with which flags are read from the Community Patch's own Data\INI\Default\AIData.ini in the player's or packager's
 # archive; only the coordinates and angles below are ours.
 #
@@ -414,7 +414,7 @@ def lint(side, entries, stock):
                 c, d = KINDS[kind(s["tmpl"])][:2]
                 if s["x"] + c > e["x"] + a and s["x"] - c < e["x"] + a + LANE_AHEAD and s["y"] + d > line_y - LANE_HALF and s["y"] - d < line_y + LANE_HALF:
                     bad.append("LANE of %s (%d,%d) blocked by %s (%d,%d)" % (e["tmpl"], e["x"], e["y"], s["tmpl"], s["x"], s["y"]))
-                # R may pick either turn, and a turned door's padded box is what the next building meets (Codex bl-engine-r4): both build orders, a turned neighbour door too
+                # R may pick either turn, and a turned door's padded box is what the next building meets: both build orders, a turned neighbour door too
                 for turn in (45, -45):
                     t = dict(e, ang=e["ang"] + turn)
                     others = [s] + ([dict(s, ang=s["ang"] + 45), dict(s, ang=s["ang"] - 45)] if is_door(s["tmpl"]) else [])
@@ -476,11 +476,11 @@ def selftest(search):
         assert any(word in g for g in got), (word, got)
 
     mutant("GAP", lambda m: m[4].update(x=-40, y=60))                    # a footprint on the command centre
-    mutant("ENGINE", lambda m: m[4].update(x=0, y=-130))                 # clear of the 16 wu gap, refused by the engine's padded boxes: Codex bl-engine-r2's (0, +/-130)
+    mutant("ENGINE", lambda m: m[4].update(x=0, y=-130))                 # clear of the 16 wu gap, refused by the engine's padded boxes: (0, +/-130)
     mutant("ENGINE", lambda m: m[4].update(x=160, y=-30))                # the same with a door's exit rectangle in front of the command centre's row
     mutant("LANE", lambda m: m[4].update(x=330, y=-30))                  # a power plant in front of a door
     assert not any("ENGINE" in g for g in lint("T", [dict(e, x=-25, y=-215) if i == 4 else dict(e) for i, e in enumerate(clean)], stock)), "the TURN mutant must be clear at its list angle"
-    mutant("TURN", lambda m: m[4].update(x=-25, y=-215))                 # beside a door: clear at 0, met at +/-45 (Codex bl-engine-r4's shape)
+    mutant("TURN", lambda m: m[4].update(x=-25, y=-215))                 # beside a door: clear at 0, met at +/-45 (shape)
     mutant("ORDER", lambda m: m.__setitem__(4, entry("AmericaStrategyCenter", -40, -250)))
     mutant("ORDER", lambda m: m.reverse())
     mutant("no command centre", lambda m: m.__setitem__(0, entry("AmericaBarracks", 0, 0)))

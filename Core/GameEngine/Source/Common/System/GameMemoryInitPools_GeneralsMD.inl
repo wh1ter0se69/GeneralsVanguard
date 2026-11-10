@@ -540,7 +540,7 @@ static PoolSizeRec PoolSizes[] =
 	{ "NetDisconnectScreenOffCommandMsg", 32, 32 },
 	{ "NetFrameResendRequestCommandMsg", 32, 32 },
 	{ "NetKeepAliveCommandMsg", 32, 32 },
-	// GeneralsX @bugfix Claude 13/08/2026 Every Net*CommandMsg needs a row HERE, not just the
+	// GeneralsX: Every Net*CommandMsg needs a row HERE, not just the
 	// MEMORY_POOL_GLUE in NetCommandMsg.h. The glue passes -1/-1 on purpose and relies on
 	// userMemoryAdjustPoolSize finding the name in this table; a name that is absent keeps -1 and
 	// createMemoryPool throws ERROR_OUT_OF_MEMORY, which nothing on the update path catches.

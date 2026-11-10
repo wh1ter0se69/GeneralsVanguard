@@ -42,7 +42,7 @@
 #pragma warning (push, 3)	// (gth) system headers complain at warning level 4...
 #endif
 
-// GeneralsX @refactor BenderAI 10/02/2026 - guard Windows-only headers for Linux compatibility
+// GeneralsX: guard Windows-only headers for Linux compatibility
 #ifdef _WIN32
 #ifndef _WINDOWS_
 #include "windows.h"
@@ -56,7 +56,7 @@
 #include "vfw.h"
 #endif
 #else
-// GeneralsX @refactor BenderAI 10/02/2026 - fallback for Linux (stub types)
+// GeneralsX: fallback for Linux (stub types)
 #include "windows_compat.h"
 #endif // _WIN32
 
@@ -84,7 +84,7 @@ public:
 	void ConvertGrab(void *BitmapPointer);
 	void Grab(void *BitmapPointer);
 
-	// GeneralsX @refactor BenderAI 10/02/2026 - conditional GetBuffer for Linux stub
+	// GeneralsX: conditional GetBuffer for Linux stub
 #ifdef _WIN32
 	long * GetBuffer()			{ return Bitmap; }
 #else
@@ -102,7 +102,7 @@ protected:
 	void GrabAVI(void *BitmapPointer);
 	void GrabRawFrame(void *BitmapPointer);
 
-	// GeneralsX @refactor BenderAI 10/02/2026 - guard Windows AVI members for Linux compatibility
+	// GeneralsX: guard Windows AVI members for Linux compatibility
 #ifdef _WIN32
 	// avi settings
 	PAVIFILE				AVIFile;

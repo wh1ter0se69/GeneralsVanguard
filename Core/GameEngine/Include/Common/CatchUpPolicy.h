@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 02/10/2026 TICK CATCH-UP: a network match whose frames are slow to DRAW keeps its tick rate.
+// GeneralsX: TICK CATCH-UP: a network match whose frames are slow to DRAW keeps its tick rate.
 //
 // The engine runs at most one logic tick per main-loop iteration, and every iteration drew. So a zoomed-out 6v6 that
 // takes 20-37 ms to draw also ran its simulation at 27-50 ticks a second - the game itself slowed down, for everyone in
@@ -76,13 +76,13 @@ namespace CatchUpPolicy
 
 	// The frames the pacer owes THIS machine: none when the frame after the next one has no commands yet. Debt that comes
 	// from waiting on a slow remote peer's commands is not this machine's to repay - skipping a draw there ticks nothing
-	// sooner and only costs a frame (CLAUDE-ONLY review r1 P2-1).
+	// sooner and only costs a frame.
 	inline int framesOwed(int framesDue, bool followingFrameReady)
 	{
 		return followingFrameReady ? framesDue : 0;
 	}
 
-	// GeneralsX @feature Claude 07/10/2026 The regular gate (GameEngine::canUpdateRegularGameLogic: single player, skirmish,
+	// GeneralsX: The regular gate (GameEngine::canUpdateRegularGameLogic: single player, skirmish,
 	// replays). catchUp FALSE is the retail gate exactly: a pass credits at most one period, and the tick-every-iteration
 	// branch (the logic time scale is off because the render cap <= the tick rate, FpsLimitPolicy::needsLogicTimeScale; a
 	// script's fast-forward; the replay fast mode) leaves the carry alone.

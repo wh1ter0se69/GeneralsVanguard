@@ -27,7 +27,7 @@
 
 #ifndef _WIN32
 
-// GeneralsX @bugfix BenderAI 13/02/2026 Fix include path (fighter19 pattern)
+// GeneralsX: Fix include path (fighter19 pattern)
 #include "SDL3Device/GameClient/SDL3Mouse.h"
 #include <cstdio>
 #include <cstring>
@@ -37,12 +37,12 @@
 // GeneralsX @bugfix felipebraz 20/02/2026 Include Display to get internal resolution for coordinate scaling
 #include "GameClient/Display.h"
 #include "GameClient/ThumbTilt.h"
-// GeneralsX @bugfix BenderAI 22/02/2026 Add SDL3_image for cursor loading
+// GeneralsX: Add SDL3_image for cursor loading
 // SDL3_image now finds system libpng via pkg-config (CMAKE_PREFIX_PATH reordered in cmake/sdl3.cmake)
 #include <SDL3_image/SDL_image.h>
-// GeneralsX @bugfix BenderAI 22/02/2026 Add array header for AnimatedCursor
+// GeneralsX: Add array header for AnimatedCursor
 #include <array>
-// GeneralsX @bugfix BenderAI 22/02/2026 Add file system includes for cursor loading
+// GeneralsX: Add file system includes for cursor loading
 #include "Common/Debug.h"
 #include "Common/file.h"
 #include "Common/FileSystem.h"
@@ -77,11 +77,11 @@ struct AnimatedCursor {
 };
 
 // Global cursor resources array - fighter19 pattern
-// GeneralsX @bugfix BenderAI 22/02/2026 Global cursor resource cache
+// GeneralsX: Global cursor resource cache
 AnimatedCursor* cursorResources[Mouse::NUM_MOUSE_CURSORS][MAX_2D_CURSOR_DIRECTIONS];
 
 // RIFF/ANI parsing helpers (fighter19 pattern)
-// GeneralsX @bugfix BenderAI 22/02/2026 RIFF format parsing for cursor loading
+// GeneralsX: RIFF format parsing for cursor loading
 typedef std::array<char, 4> FourCC;
 constexpr FourCC riff_id = {'R', 'I', 'F', 'F'};
 constexpr FourCC acon_id = {'A', 'C', 'O', 'N'};
@@ -135,10 +135,10 @@ SDL3Mouse::SDL3Mouse(SDL_Window* window)
 	  m_LostFocus(false),           // GeneralsX @bugfix felipebraz 18/02/2026 Initialize focus state
 	  m_nextFreeIndex(0),   // Fighter19 pattern: write position for new events
 	  m_nextGetIndex(0),    // Fighter19 pattern: read position for events
-	  m_directionFrame(0),   // GeneralsX @bugfix BenderAI 22/02/2026 Initialize cursor direction frame
+	  m_directionFrame(0),   // GeneralsX: Initialize cursor direction frame
 	  m_wheelRemainder(0.0f)
 {
-	// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+	// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 	// fprintf(stderr, "DEBUG: SDL3Mouse::SDL3Mouse() created\n");
 
 	// Initialize event buffer with SDL_EVENT_FIRST sentinel (means "empty" slot)
@@ -159,13 +159,13 @@ SDL3Mouse::SDL3Mouse(SDL_Window* window)
 SDL3Mouse::~SDL3Mouse(void)
 {
 	releaseCapture();
-	// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+	// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 	// fprintf(stderr, "DEBUG: SDL3Mouse::~SDL3Mouse() destroyed\n");
 }
 
 /**
  * Load cursor from ANI file (fighter19 pattern with RIFF parsing)
- * GeneralsX @bugfix BenderAI 22/02/2026 Port fighter19 cursor loading
+ * GeneralsX: Port fighter19 cursor loading
  */
 AnimatedCursor* SDL3Mouse::loadCursorFromFile(const char* filepath)
 {
@@ -307,7 +307,7 @@ AnimatedCursor* SDL3Mouse::loadCursorFromFile(const char* filepath)
 				{
 					DEBUG_LOG(("SDL3Mouse::loadCursorFromFile: SDL_CreateAnimatedCursor failed [%s]", SDL_GetError()));
 					#ifdef __linux__
-					// GeneralsX @bugfix BenderAI 11/05/2026 Fallback to static cursor when ANI animation fails.
+					// GeneralsX: Fallback to static cursor when ANI animation fails.
 					if (first_surface)
 					{
 						cursor->m_cursor = SDL_CreateColorCursor(first_surface, hot_spot_x, hot_spot_y);
@@ -356,7 +356,7 @@ AnimatedCursor* SDL3Mouse::loadCursorFromFile(const char* filepath)
  */
 void SDL3Mouse::init(void)
 {
-	// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+	// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 	// fprintf(stderr, "INFO: SDL3Mouse::init()\n");
 
 	// Call parent init (loads cursor info from INI, etc.)
@@ -371,7 +371,7 @@ void SDL3Mouse::init(void)
 	m_inputMovesAbsolute = TRUE;
 
 	// Show cursor by default
-	// GeneralsX @bugfix BenderAI 10/03/2026 - Use setVisibility() to keep m_visible in sync
+	// GeneralsX: Use setVisibility() to keep m_visible in sync
 	setVisibility(TRUE);
 
 	// Clear event buffer - Fighter19 pattern
@@ -380,7 +380,7 @@ void SDL3Mouse::init(void)
 	m_nextFreeIndex = 0;
 	m_nextGetIndex = 0;
 
-	// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+	// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 	// fprintf(stderr, "INFO: SDL3Mouse::init() complete\n");
 }
 
@@ -389,13 +389,13 @@ void SDL3Mouse::init(void)
  */
 void SDL3Mouse::reset(void)
 {
-	// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+	// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 	// fprintf(stderr, "DEBUG: SDL3Mouse::reset()\n");
 
 	Mouse::reset();
 
 	releaseCapture();
-	// GeneralsX @bugfix BenderAI 10/03/2026 - Use setVisibility() to keep m_visible in sync
+	// GeneralsX: Use setVisibility() to keep m_visible in sync
 	setVisibility(TRUE);
 
 	// Clear event buffer - Fighter19 pattern
@@ -416,7 +416,7 @@ void SDL3Mouse::update(void)
 
 /**
  * Initialize cursor resources (load cursor images from ANI files)
- * GeneralsX @bugfix BenderAI 22/02/2026 Port fighter19 cursor loading
+ * GeneralsX: Port fighter19 cursor loading
  */
 void SDL3Mouse::initCursorResources(void)
 {
@@ -440,7 +440,7 @@ void SDL3Mouse::initCursorResources(void)
 }
 
 /**
- * GeneralsX @bugfix Claude 07/08/2026 Tooltips and cursor text never rendered on ANY SDL3 peer -
+ * GeneralsX: Tooltips and cursor text never rendered on ANY SDL3 peer -
  * macOS, Linux and iPadOS. Not "sometimes"; never. See the long note on the Zero Hour twin of this
  * file; the cause and the fix are identical.
  *
@@ -463,14 +463,14 @@ void SDL3Mouse::draw(void)
 
 /**
  * Set mouse cursor type
- * GeneralsX @bugfix BenderAI 22/02/2026 Implement cursor animation and selection
+ * GeneralsX: Implement cursor animation and selection
  */
 void SDL3Mouse::setCursor(MouseCursor cursor)
 {
 	// extend
 	Mouse::setCursor( cursor );
 
-	if (m_LostFocus)  // GeneralsX @bugfix BenderAI 22/02/2026 Fix case: m_LostFocus not m_lostFocus
+	if (m_LostFocus)  // GeneralsX: Fix case: m_LostFocus not m_lostFocus
 		return;	//stop messing with mouse cursor if we don't have focus.
 
 	bool bUseDefaultCursor = false;
@@ -511,7 +511,7 @@ void SDL3Mouse::setCursor(MouseCursor cursor)
 
 /**
  * Set cursor visibility
- * GeneralsX @bugfix BenderAI 10/03/2026 - Call parent to keep m_visible in sync.
+ * GeneralsX: Call parent to keep m_visible in sync.
  * Without the parent call, m_visible stays FALSE forever (initialized to FALSE in Mouse constructor).
  * setCursor() checks !m_visible → always uses default NORMAL cursor, breaking attack-move and force-fire
  * cursor feedback, and preventing cursor from showing after ESC menu is dismissed.
@@ -574,7 +574,7 @@ void SDL3Mouse::capture(void)
 
 	m_IsCaptured = true;
 
-	// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+	// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 	// fprintf(stderr, "DEBUG: SDL3Mouse::capture() - mouse captured\n");
 }
 
@@ -594,7 +594,7 @@ void SDL3Mouse::releaseCapture(void)
 
 	m_IsCaptured = false;
 
-	// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+	// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 	// fprintf(stderr, "DEBUG: SDL3Mouse::releaseCapture() - mouse released\n");
 }
 
@@ -717,8 +717,8 @@ void SDL3Mouse::translateButtonEvent(const SDL_MouseButtonEvent& event, MouseIO 
 
 	MouseButtonState state = event.down ? MBS_Down : MBS_Up;
 
-	// GeneralsX @bugfix BenderAI 17/02/2026 Debug mouse button events
-	// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+	// GeneralsX: Debug mouse button events
+	// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 	// fprintf(stderr, "[MOUSE] Button event: button=%d state=%s pos=(%d,%d)\n",
 	//	event.button, event.down ? "DOWN" : "UP", (Int)event.x, (Int)event.y);
 
@@ -729,13 +729,13 @@ void SDL3Mouse::translateButtonEvent(const SDL_MouseButtonEvent& event, MouseIO 
 	// Map SDL3 button to MouseIO button
 	switch (event.button) {
 		case SDL_BUTTON_LEFT:
-			// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+			// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 			// fprintf(stderr, "[MOUSE] Left button: %s\n", event.down ? "DOWN" : "UP");
 			// GeneralsX @bugfix felipebraz 18/02/2026 Use native SDL3 clicks field for double-click
 			// SDL3 button events contain clicks count: 1=single, 2=double
 			if (event.clicks >= 2) {
 				result->leftState = MBS_DoubleClick;
-				// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+				// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 				// fprintf(stderr, "[MOUSE] Left double-click detected (clicks=%d)\n", event.clicks);
 			} else {
 				result->leftState = state;
@@ -744,12 +744,12 @@ void SDL3Mouse::translateButtonEvent(const SDL_MouseButtonEvent& event, MouseIO 
 			break;
 
 		case SDL_BUTTON_RIGHT:
-			// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+			// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 			// fprintf(stderr, "[MOUSE] Right button: %s\n", event.down ? "DOWN" : "UP");
 			// GeneralsX @bugfix felipebraz 18/02/2026 Use native SDL3 clicks for right button too
 			if (event.down && event.clicks >= 2) {
 				result->rightState = MBS_DoubleClick;
-				// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+				// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 				// fprintf(stderr, "[MOUSE] Right double-click detected (clicks=%d)\n", event.clicks);
 			} else {
 				result->rightState = state;
@@ -796,7 +796,7 @@ void SDL3Mouse::translateWheelEvent(const SDL_MouseWheelEvent& event, MouseIO *r
 
 	// SDL3 wheel: positive = up/away, negative = down/toward user
 	// Multiply by MOUSE_WHEEL_DELTA (120) to match Windows behavior
-	// GeneralsX @bugfix Claude 26/09/2026 Carry the part the Int drops into the next event. A trackpad or Magic Mouse
+	// GeneralsX: Carry the part the Int drops into the next event. A trackpad or Magic Mouse
 	// sends fractional deltas (0.1 is common, momentum tails go lower), and truncating each one lost up to a whole
 	// 1/120: 0.1 arrived as 11, not 12 (measured), and anything under 1/120 as nothing. Summed, nothing is lost.
 	const Real wheel = event.y * MOUSE_WHEEL_DELTA + m_wheelRemainder;
@@ -891,7 +891,7 @@ void SDL3Mouse::addSDLEvent(SDL_Event *event)
 	// Check if buffer is full
 	UnsignedInt nextFreeIndex = (m_nextFreeIndex + 1) % MAX_SDL3_MOUSE_EVENTS;
 	if (nextFreeIndex == m_nextGetIndex) {
-		// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+		// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 		// fprintf(stderr, "WARNING: SDL3Mouse::addSDLEvent() buffer full (dropped event)\n");
 		return;
 	}
@@ -899,7 +899,7 @@ void SDL3Mouse::addSDLEvent(SDL_Event *event)
 	// Copy entire event to buffer
 	m_eventBuffer[m_nextFreeIndex] = *event;
 
-	// GeneralsX @bugfix BenderAI 18/02/2026 Temporarily disable debug logging (Phase 1.8)
+	// GeneralsX: Temporarily disable debug logging (Phase 1.8)
 	// fprintf(stderr, "DEBUG: SDL3Mouse::addSDLEvent() type=%u index=%u\n", event->type, m_nextFreeIndex);
 
 	// Advance write position (circular buffer)

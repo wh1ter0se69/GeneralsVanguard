@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 13/08/2026 The content check a received map preview has to pass.
+// GeneralsX: The content check a received map preview has to pass.
 //
 // WHY THIS IS A SEPARATE, ENGINE-FREE HEADER
 //

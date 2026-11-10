@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 24/10/2026 RA3 WATER, a client-only look option on top of clearer and live water (GXWaterClear.h,
+// GeneralsX: RA3 WATER, a client-only look option on top of clearer and live water (GXWaterClear.h,
 // GXWaterLive.h). wh1ter0se 24/10, with a Red Alert 3 screenshot beside our shell map: "WE should look into RA3 Water though".
 // DEFAULT ON for every player since wh1ter0se's yes, 04/11/2026: GXWaterRA3 = no turns it off; GX_WATER_RA3=0/1 overrides the key
 // and GX_WATER_RA3_TUNE=<name:value,...> tunes it per run (A/B arms, picture pieces).
@@ -307,7 +307,7 @@ inline void gxWaterRA3FillOpacityLUT(unsigned out[256], float cap, float shape)
 // rest. A spread over 1 between channels cannot be held; the largest channel then clamps.
 // Past the band's end (t from cap to 1) the multiplier goes back to 1, linearly: t = 1 is depth D * M, where
 // updateShorelineTile stops taking tiles, and the tiles beyond get no tint pass - a held end value would leave a tile-shaped
-// step in the sea floor there (Codex wra3-r1 P2). The floor weighs only 1 - cap under that stretch. An opaque cap (1) has no
+// step in the sea floor there. The floor weighs only 1 - cap under that stretch. An opaque cap (1) has no
 // such stretch: the band end is the cutoff, and the floor beyond is not seen.
 inline void gxWaterRA3FillTintLUT(unsigned out[256], float cap, const GxWaterRA3Tune &t)
 {
@@ -608,7 +608,7 @@ static const unsigned kGxWaterRA3SheenShader[] = {
 // - per row pair (a_i, b_i, b_i+1) and (a_i, b_i+1, a_i+1), the quad's diagonal a_i - b_i+1 - each cut along the lines where u2 = 0.16
 // and 0.84, so the bank fade (linear in u2 inside each piece) rides the vertex alpha exactly and every sheen triangle lies on a retail
 // triangle: the sheen covers what the river covers, no more, on a bent or non-planar quad too (an independent retriangulation did
-// not: Codex wra3-3-r1/r1L P2). The fade is multiplied by the shroud at the vertex (retail takes a river's shroud per vertex too,
+// not: /r1L P2). The fade is multiplied by the shroud at the vertex (retail takes a river's shroud per vertex too,
 // getRiverVertexDiffuse). The tilings are taken in the river's own frame - s = the distance along the centreline, t = the offset
 // across, both in world units - with the flow along +s: downstream is the way retail's texture scrolls (toward a higher row index),
 // and the ripples bend with the river.

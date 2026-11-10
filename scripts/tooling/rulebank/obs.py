@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank, DATA half: reading a gym observation stream for a module's activation(obs, me, params)
+# GeneralsX: rule bank, DATA half: reading a gym observation stream for a module's activation(obs, me, params)
 # (C·rb-data). obs = the records of one game's obs.ndjson (scripts/ai/gym/SCHEMA.md v1: start, tmpl, obs). A module sees this file
 # as `ob`. Activation reads only the focal player's OWN rows - it is a measurement, never an input to the AI.
 import json

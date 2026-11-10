@@ -72,7 +72,7 @@ void RiderChangeContainModuleData::parseRiderInfo( INI* ini, void *instance, voi
 	const char* name = ini->getNextToken();
 
 	//Template name
-	// GeneralsX @bugfix Claude 06/10/2026 set, not format: INI tokens (a map's map.ini included) were used as printf formats.
+	// GeneralsX: set, not format: INI tokens (a map's map.ini included) were used as printf formats.
 	rider->m_templateName.set( name );
 
 	//Model condition state

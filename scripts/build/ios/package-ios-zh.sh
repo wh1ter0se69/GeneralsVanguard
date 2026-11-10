@@ -51,7 +51,7 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/ios-vulkan"
 IOS_DIR="${PROJECT_ROOT}/ios"
 DERIVED="${IOS_DIR}/build"
-# GeneralsX @build Claude 11/08/2026 Overridable, because this is the single largest thing the
+# GeneralsX: Overridable, because this is the single largest thing the
 # repo produces: the packaged .app carries ~2.9 GB of BUNDLED GAME DATA, it is rebuilt from
 # scratch on every run (see the rm -rf below), and it filled the boot volume completely on
 # 2026-08-11 - to the point where no command could run at all, because even a shell could not
@@ -105,7 +105,7 @@ if [[ ! -f "${GAME_BIN}" ]]; then
     exit 1
 fi
 
-# GeneralsX @bugfix Claude 06/08/2026 Refuse to ship an engine with no Vulkan entry point.
+# GeneralsX: Refuse to ship an engine with no Vulkan entry point.
 #
 # This script only COPIES; it never builds. A build that dropped libMoltenVK.a still links, still
 # exits 0, and still produces a plausible binary — it just black-screens on the device with
@@ -116,7 +116,7 @@ fi
 #
 # One nm call, checked here rather than in CMake, because the packaged binary is the artifact that
 # actually reaches the iPad.
-# GeneralsX @bugfix Claude 09/08/2026 THIS GUARD USED TO FIRE BECAUSE THE SYMBOL WAS PRESENT.
+# GeneralsX: THIS GUARD USED TO FIRE BECAUSE THE SYMBOL WAS PRESENT.
 #
 # It was `nm ... | grep -q ...` under the `set -euo pipefail` at the top of this file. `grep -q`
 # exits the moment it matches and closes the pipe; `nm` is then killed by SIGPIPE part-way through
@@ -130,7 +130,7 @@ fi
 #
 # Capture first, match second. No pipe, nothing to signal.
 #
-# GeneralsX @bugfix Claude 18/09/2026 ...and the 09/08 fix still piped. It captured nm's output and
+# GeneralsX: ...and the 09/08 fix still piped. It captured nm's output and
 # then matched with `printf '%s\n' "${GAME_SYMS}" | grep -q`, which only MOVED the writer from nm to
 # printf: grep -q still exits at the match, printf is SIGPIPEd writing the rest (141), and pipefail
 # still fails the pipeline. The real symbol sits 145 lines from the end of 35,423, so it raced -
@@ -216,7 +216,7 @@ echo "==> Generating Xcode project (xcodegen)"
 (cd "${IOS_DIR}" && xcodegen generate --quiet)
 
 echo "==> Building provisioning shell app"
-# GeneralsX @bugfix Claude 02/08/2026
+# GeneralsX:
 # This was 'xcodebuild ... | tail -3', and a pipeline's exit status is its LAST command's. tail
 # exits 0 whatever xcodebuild did, so a failed - or SIGTERMed - build reported success and the
 # script sailed on. Measured: an interrupted build printed '** BUILD INTERRUPTED **' and
@@ -320,7 +320,7 @@ fi
 GAME_DATA_SRC="${GX_GAME_DATA:-${HOME}/GeneralsX/GeneralsZH}"
 FONTS_SRC="${GX_FONTS:-${HOME}/GeneralsX/ios-staging/fonts}"
 CONFIG_SRC="${GX_CONFIG:-${IOS_DIR}/config}"
-# GeneralsX @feature Claude 12/08/2026 The community-patch overlay, and why iOS is not the
+# GeneralsX: The community-patch overlay, and why iOS is not the
 # awkward platform it looks like.
 #
 # There is no environment to set on a sideloaded app, so iOS must use the engine's own default:
@@ -351,7 +351,7 @@ while IFS= read -r _a; do
     GX_OPTIONAL_COUNT=$((GX_OPTIONAL_COUNT + 1))
 done <<< "${GX_OPTIONAL_NAMES}"
 
-# GeneralsX @bugfix Claude 26/09/2026 GAMEDATA IS AN ALLOW-LIST, NOT A MIRROR OF THE MAC'S GAME FOLDER.
+# GeneralsX: GAMEDATA IS AN ALLOW-LIST, NOT A MIRROR OF THE MAC'S GAME FOLDER.
 #
 # This was `rsync -a` of the whole folder minus a hand-kept exclude list, so anything else the folder
 # held shipped to the iPad inside the signed app. The 672e2a199 package carried a hotkey mod on
@@ -368,7 +368,7 @@ done <<< "${GX_OPTIONAL_NAMES}"
 # GameData further down, as before. The colour pair comes from the repository, as bundle-macos-zh.sh
 # takes it, not from whatever copy a deploy left in the Mac's folder.
 # scripts/test/ios-gamedata-listing-test.sh is the check that fails if a stray reaches GameData.
-# ponytail: the English Steam layout only; a localised install (SpeechGermanZH.big, ...) stops here
+# Trade-off: the English Steam layout only; a localised install (SpeechGermanZH.big, ...) stops here
 # with a named missing file - add its names when one is packaged.
 if [[ "${DEV_MODE}" != "1" ]]; then
     echo "==> Bundling game assets into the app"
@@ -390,7 +390,7 @@ if [[ "${DEV_MODE}" != "1" ]]; then
     )
     GX_IOS_COLOUR_PAIR=(Data/INI/Multiplayer.ini Data/English/Generals.csf)
     # A named path is staged only if no part of it below GAME_DATA_SRC is a symlink: cp would follow
-    # one and sign whatever it points at into the app (Codex ios-stray-r1).
+    # one and sign whatever it points at into the app.
     gx_ios_refuse_link() {
         local _p="" _c
         while IFS= read -r _c; do
@@ -419,8 +419,8 @@ if [[ "${DEV_MODE}" != "1" ]]; then
         gx_ios_refuse_link "${_d}"
         # /usr/bin/find by path: this machine's PATH has a different `find` ahead of it (see
         # bundle-macos-zh.sh). Only this folder's own regular files of its retail kinds: no descent, no
-        # symlink, no hidden file, so Data/Scripts/.git/config or notes.txt cannot ride along (Codex
-        # ios-stray-r1, r2). -iname because retail itself ships EA_LOGO.BIK beside *.bik.
+        # symlink, no hidden file, so Data/Scripts/.git/config or notes.txt cannot ride along.
+        # -iname because retail itself ships EA_LOGO.BIK beside *.bik.
         _list="$(cd "${GAME_DATA_SRC}" && /usr/bin/find "${_d}" -mindepth 1 -maxdepth 1 -type f ! -name '.*' \
             \( "${_names[@]:1}" \) -print)" || _list=""
         if [[ -z "${_list}" ]]; then
@@ -454,7 +454,7 @@ if [[ "${DEV_MODE}" != "1" ]]; then
     done
     cp "${CONFIG_SRC}/dxvk.conf" "${APP}/GameData/dxvk.conf"
     cp "${CONFIG_SRC}/Options.ini" "${APP}/GameData/DefaultOptions.ini"
-    # GeneralsX @perf Claude 01/10/2026 A2: the shipped pipeline record (SDL3Main gxSeedDxvkCache copies it into
+    # GeneralsX: A2: the shipped pipeline record (SDL3Main gxSeedDxvkCache copies it into
     # Library/Caches when absent).
     # Fails rather than skips, as bundle-macos-zh.sh does.
     if [[ ! -s "${PROJECT_ROOT}/resources/dxvk/seed/GeneralsXZH.dxvk-cache" || ! -s "${PROJECT_ROOT}/resources/dxvk/seed/GeneralsXZH.dxvk-ffkeys" ]]; then
@@ -498,7 +498,7 @@ if gx_overlay_verify "${PATCH_SRC}"; then
     if ! gx_overlay_stage_optional "${PATCH_SRC}" "${APP}/GeneralsXPatch" > /dev/null; then
         exit 1
     fi
-    # GeneralsX @feature Claude 07/11/2026 The shipped maps (scripts/build/overlay-maps.txt), as on macOS and Linux: loose
+    # GeneralsX: The shipped maps (scripts/build/overlay-maps.txt), as on macOS and Linux: loose
     # files in GeneralsXPatch/ShippedMaps/<Name>/, inert to the overlay scan ("*.big"). There is no launcher here to copy
     # them into <userdata>/Maps, so the engine does it at start (SDL3GameEngine.cpp, GameClient/GXShippedMaps.h). Fatal
     # like the archives: a bundle that cannot carry the maps the list names is worse than one that says so.
@@ -508,13 +508,13 @@ if gx_overlay_verify "${PATCH_SRC}"; then
     # measured NOT to abort the packager on a zero count despite `set -euo pipefail` - a failing
     # substitution inside an argument is not the command's own status - so this is about not
     # reading the list twice, not about dodging errexit.)
-    # GeneralsX @feature Claude 24/09/2026 Data/INI/Weapon.ini (the Toxin Tractor balance change),
+    # GeneralsX: Data/INI/Weapon.ini (the Toxin Tractor balance change),
     # generated from the CoreINI archive just staged (scripts/tooling/make-weapon-ini.py). It moves
     # dataID, so it is cut here from the staged archive, never taken from the Mac's game folder
     # (GameData's allow-list above does not copy it): a folder that predates it would ship an iPad
     # no other peer accepts.
     #
-    # 25/09/2026 (Codex P2): a --dev bundle too. It reads Data/ from the app's Documents
+    # 25/09/2026: a --dev bundle too. It reads Data/ from the app's Documents
     # (SDL3Main.cpp), which the bundle cannot carry and which a pre-Weapon.ini full install seeded
     # without it, so the file is cut here and copied into Documents at --install below.
     WEAPON_INI_OUT="${APP}/GameData/Data/INI/Weapon.ini"

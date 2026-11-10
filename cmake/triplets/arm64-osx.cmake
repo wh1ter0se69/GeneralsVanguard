@@ -1,4 +1,4 @@
-# GeneralsX @build BenderAI 25/02/2026 vcpkg overlay triplet for Apple Silicon
+# GeneralsX: vcpkg overlay triplet for Apple Silicon
 # Overrides the built-in arm64-osx triplet to pin VCPKG_OSX_DEPLOYMENT_TARGET,
 # ensuring that vcpkg-installed packages (fontconfig, freetype, libpng, bz2, etc.)
 # are compiled with the same macOS minimum version as the game itself (15.0).
@@ -17,7 +17,7 @@ set(VCPKG_CMAKE_SYSTEM_NAME Darwin)
 set(VCPKG_OSX_ARCHITECTURES arm64)
 set(VCPKG_OSX_DEPLOYMENT_TARGET "15.0")
 #
-# GeneralsX @build Claude 18/09/2026 THE SDK IS PINNED BY NAME. Without VCPKG_OSX_SYSROOT the port
+# GeneralsX: THE SDK IS PINNED BY NAME. Without VCPKG_OSX_SYSROOT the port
 # build takes whatever SDK the compiler finds by default, and on a host whose OS is newer than its
 # Xcode that is the Command Line Tools' SDK for the NEWER OS - which the older Xcode linker cannot
 # read ("tapi error: malformed file ... unknown architecture"). Measured 18/09/2026: a MacBook on

@@ -58,7 +58,7 @@ FireOCLAfterWeaponCooldownUpdateModuleData::FireOCLAfterWeaponCooldownUpdateModu
 	m_weaponSlot						= PRIMARY_WEAPON;
 	m_minShotsRequired			= 1;
 	m_oclLifetimePerSecond	= 1000;
-	m_oclMaxFrames					= GX_FRAMES30(1000);	// GeneralsX @fix Claude 23/09/2026 raw-frame default when the INI omits OCLLifetimeMaxCap
+	m_oclMaxFrames					= GX_FRAMES30(1000);	// GeneralsX: raw-frame default when the INI omits OCLLifetimeMaxCap
 	m_ocl										= nullptr;
 }
 

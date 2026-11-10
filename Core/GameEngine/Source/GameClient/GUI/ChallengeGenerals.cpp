@@ -128,11 +128,11 @@ void INI::parseChallengeModeDefinition( INI* ini )
 	}
 }
 
-// GeneralsX @bugfix Claude 10/10/2026 GameLogic reads the roster in every game mode (StartsEnabled and PlayerTemplate: the
+// GeneralsX: GameLogic reads the roster in every game mode (StartsEnabled and PlayerTemplate: the
 // random-faction pool, the starting armies), and a map.ini's ChallengeGenerals block wrote it in place for the rest of the
 // process. A map a start can refuse may not define the block any more (INI.cpp theTypeTable); a shell map or a campaign mission
 // still may, so the roster before the map's first block is kept and put back at the end of that game (GameEngine::
-// resetSubsystems; Codex mapini-rollback-adv-r3 P2).
+// resetSubsystems).
 void ChallengeGenerals::keepPristineForOverrideLoad()
 {
 	if( m_positionKept )

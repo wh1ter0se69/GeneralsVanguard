@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
 			}
 		}
 	}
-	// ---- R-G1: the remastered ground's three programs, the COMPILED arrays TerrainTex.cpp creates (GXGroundPrograms.h; Codex wnp-r2:
+	// ---- R-G1: the remastered ground's three programs, the COMPILED arrays TerrainTex.cpp creates (GXGroundPrograms.h;
 	// a text read of the source could be fooled by an #if 0 copy or a commented-out token), so a token change without a regenerated
 	// catalogue fails here instead of every ground draw being refused on native
 	{

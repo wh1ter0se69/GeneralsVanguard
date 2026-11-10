@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-L-2 11/10/2026 GxNativeConfig.h. The line parser is DXVK's parseUserConfigLine
+// GeneralsX: GxNativeConfig.h. The line parser is DXVK's parseUserConfigLine
 // (util/config/config.cpp:1270-1338 at 954c5c692) ported rule for rule, so a value means here what it means to DXVK.
 #include "GxNativeConfig.h"
 #include <algorithm>
@@ -130,7 +130,7 @@ GxNativeConfig GxNativeParseConfig(const std::string& file, bool haveFile, const
 			if (parseInt(kv.second, &v))   // getOption<int32_t>: an unparsable value leaves the default
 				c.presentInterval = v;
 			// An interval >= 2 is also a FRAME LIMIT in DXVK (refresh / n, D3D9SwapChainEx::UpdateTargetFrameRate); the device presents
-			// FIFO without that pacing, so it refuses rather than present at the full refresh (Codex nw1-present-r1 P2).
+			// FIFO without that pacing, so it refuses rather than present at the full refresh.
 			if (c.presentInterval >= 2 && !(debug && debug->ignoreUnknownKeys)) {
 				c.refused = "dxvk config: d3d9.presentInterval = " + std::to_string(c.presentInterval) + " not reproduced (frame pacing)";
 				return c;
@@ -149,13 +149,13 @@ GxNativeConfig GxNativeParseConfig(const std::string& file, bool haveFile, const
 	return c;
 }
 
-// GeneralsX @bugfix D · asm-0968 24/10/2026 The environment and the file as DXVK reads them (src/util/util_env.cpp:24-39 getEnvVar,
+// GeneralsX: The environment and the file as DXVK reads them (src/util/util_env.cpp:24-39 getEnvVar,
 // src/util/config/config.cpp:1544-1555 getUserConfig, at 954c5c692): on Windows the PROCESS environment through
 // GetEnvironmentVariableW into MAX_PATH UTF-16 units, a value of MAX_PATH or more reading as unset, converted to UTF-8, and the file
 // opened by its wide path - NOT the CRT's copy of the environment. W3DDisplay::init writes the player's texture filter into
 // DXVK_CONFIG with SetEnvironmentVariableA (W3DDisplay.cpp, "DXVK reads GetEnvironmentVariableW, not the CRT copy"), which std::getenv
 // never sees: once the shipped Windows dxvk.conf qualified (render/ws-win-present), a native Windows session ran the FILE's anisotropy
-// instead of the one the player chose, while classic DXVK applied it (Codex asm0968-combo-A-render-r1 #1; the wide API and path:
+// instead of the one the player chose, while classic DXVK applied it (the wide API and path:
 // combo-r2 #1). Elsewhere getenv and a narrow path, exactly what DXVK uses there.
 #if defined(_WIN32)
 static std::wstring gxDxvkEnvW(const wchar_t* name)

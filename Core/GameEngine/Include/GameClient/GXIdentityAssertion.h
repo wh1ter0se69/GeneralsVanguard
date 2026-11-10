@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/08/2026 The signed identity assertion, and the client's half of it,
+// GeneralsX: The signed identity assertion, and the client's half of it,
 // which is VERIFICATION AND NOTHING ELSE.
 //
 // WHAT THIS IS FOR. GXPlayerIdentity.h:37 states plainly that today's player id "IS A BEARER TOKEN.
@@ -100,7 +100,7 @@ enum GXAssertStatus
 	GX_ASSERT_NOKEY			///< no trust anchor is compiled in, so nothing can be trusted
 };
 
-// GeneralsX @feature Claude 11/08/2026 The role the signer claims this account holds.
+// GeneralsX: The role the signer claims this account holds.
 //
 // WHAT A ROLE IS, AND MUCH MORE IMPORTANTLY WHAT IT IS NOT. This is a claim the SIGNER made. It is
 // not a permission, and no code in this client may treat it as one. Every rule that actually binds -
@@ -144,12 +144,12 @@ enum
 	// bounded by code that has already shipped.
 	GX_ASSERTION_MAX_LIFETIME_S = 30 * 24 * 3600,
 
-	// GeneralsX @feature Claude 23/09/2026 A BOT login's cap: 48 h, the relay's BOT_MAX_LIFETIME_S. A
+	// GeneralsX: A BOT login's cap: 48 h, the relay's BOT_MAX_LIFETIME_S. A
 	// bot's key sits on an unattended machine, so its assertion is minted for 24 h and re-minted on a
 	// timer; the cap bounds a stolen one. See verifyBot below.
 	GX_BOT_MAX_LIFETIME_S = 48 * 3600,
 
-	// GeneralsX @feature Claude 23/09/2026 How often a running bot looks at its file for a renewal. See
+	// GeneralsX: How often a running bot looks at its file for a renewal. See
 	// botRecheckDue below.
 	GX_BOT_RECHECK_S = 60
 };
@@ -175,7 +175,7 @@ struct GXAssertionClaims
 	long long iat;
 	long long exp;
 
-	// GeneralsX @feature Claude 11/08/2026 GX_ROLE_PLAYER whenever field 5 is absent, empty, longer
+	// GeneralsX: GX_ROLE_PLAYER whenever field 5 is absent, empty, longer
 	// than one character, or a letter this build does not know.
 	//
 	// FAIL TO THE LEAST PRIVILEGE, NEVER REFUSE OVER A ROLE. Refusing an unknown letter would mean
@@ -221,7 +221,7 @@ public:
 	// Only the first line is read, trailing whitespace is stripped, and anything larger than
 	// GX_ASSERTION_MAX is refused without being parsed.
 	//
-	// GeneralsX @bugfix Claude 23/09/2026 `text`, when not NULL, receives the line that was VERIFIED
+	// GeneralsX: `text`, when not NULL, receives the line that was VERIFIED
 	// (GX_ASSERTION_MAX + 1 bytes) and, like *out, is written only on GX_ASSERT_OK. A caller that sends
 	// the assertion on sends THESE bytes: reading the file again for them can return a file swapped in
 	// between, which nothing checked (review P3-1).
@@ -230,7 +230,7 @@ public:
 	static GXAssertStatus loadFile(const char *path, long long nowS, GXAssertionClaims *out,
 	                               char *text = NULL);
 
-	// GeneralsX @feature Claude 23/09/2026 BOT LOGINS (docs/superpowers/plans/2026-09-23-bot-identity.md).
+	// GeneralsX: BOT LOGINS (docs/superpowers/plans/2026-09-23-bot-identity.md).
 	//
 	//     1~<sub>~<name>~<iat>~<exp>~b~<pub43>~<sig86>
 	//
@@ -252,7 +252,7 @@ public:
 	// how the iPad, one app container, is given one. Anything else with a separator in it is refused, as
 	// is a result that would not fit `cap` bytes with its NUL. `out` is written only on true.
 	static bool resolveBotPath(const char *env, const char *userDataDir, char *out, size_t cap);
-	// GeneralsX @bugfix Claude 23/09/2026 THE BOT RELOAD'S DECISION, pure so gxidtest drives it (review P2:
+	// GeneralsX: THE BOT RELOAD'S DECISION, pure so gxidtest drives it (review P2:
 	// it keeps a headless host's 24 h login alive across the re-mint, and a dead one passed every test).
 	// botRecheckDue: the first call, then at most once per GX_BOT_RECHECK_S - a clock that stepped back
 	// re-arms - and records `now` in *checkedAt when due. NULL is never due.

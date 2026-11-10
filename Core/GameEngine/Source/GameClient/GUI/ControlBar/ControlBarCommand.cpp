@@ -800,7 +800,7 @@ void ControlBar::updateContextCommand()
 
 	}
 
-	// GeneralsX @performance Claude 23/09/2026 DOZER_CONSTRUCT and UNIT_BUILD availability walks the player's objects
+	// GeneralsX: DOZER_CONSTRUCT and UNIT_BUILD availability walks the player's objects
 	// (Player::canBuild prerequisites, BuildAssistant::canMakeUnit) for every button, every render frame. Both read
 	// only simulation state and, unlike FIRE_WEAPON / SPECIAL_POWER, draw no clock (which the button's draw consumes
 	// every frame), so their result is reused until the logic state can have changed. Everything the loop does
@@ -1040,7 +1040,7 @@ CommandAvailability ControlBar::getCommandAvailability( const CommandButton *com
 	if(	command->getCommandType() == GUI_COMMAND_SPECIAL_POWER_FROM_SHORTCUT
 			|| command->getCommandType() == GUI_COMMAND_SPECIAL_POWER_CONSTRUCT_FROM_SHORTCUT )
 	{
-		// GeneralsX @bugfix Claude 01/10/2026 Null template (button names an unknown SpecialPower): no source object. Idea from Generals Online 4fe60fdec, reimplemented.
+		// GeneralsX: Null template (button names an unknown SpecialPower): no source object. Idea from Generals Online 4fe60fdec, reimplemented.
 		if (ThePlayerList && ThePlayerList->getLocalPlayer() && command->getSpecialPowerTemplate())
 			obj = ThePlayerList->getLocalPlayer()->findMostReadyShortcutSpecialPowerOfType( command->getSpecialPowerTemplate()->getSpecialPowerType() );
 		else
@@ -1496,7 +1496,7 @@ CommandAvailability ControlBar::getCommandAvailability( const CommandButton *com
 			if( w == nullptr)
 				return COMMAND_RESTRICTED;
 
-			// GeneralsX @performance Claude 23/09/2026 The scan below depends only on the selection and the slot, not on
+			// GeneralsX: The scan below depends only on the selection and the slot, not on
 			// obj; inside an updateContextMultiSelect pass reuse its result instead of rescanning for every selected object.
 			const WeaponSlotType slot = command->getWeaponSlot();
 			if( m_switchWeaponScanActive && m_switchWeaponScan[ slot ] >= 0 )

@@ -17,6 +17,6 @@ tests/replay/**/*.rep      binary
 # tests/replay/generalszh.7z.sha256 (committed - a hash is not sensitive) and opened with
 # ASSETS_KEY. See tests/replay/README.md.
 
-# GeneralsX @build Claude 03/10/2026 The Windows DXVK patches are applied with git am and their applied HEAD sha is pinned
+# GeneralsX: The Windows DXVK patches are applied with git am and their applied HEAD sha is pinned
 # (scripts/build/windows/dxvk/dxvk-win64.pins): byte-exact on every checkout, whatever core.autocrlf says.
 scripts/build/windows/dxvk/patches/*.patch -text

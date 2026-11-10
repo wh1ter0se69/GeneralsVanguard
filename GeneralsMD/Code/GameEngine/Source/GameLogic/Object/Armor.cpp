@@ -96,7 +96,7 @@ Real ArmorTemplate::adjustDamage(DamageType t, Real damage) const
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 24/09/2026 An unknown DamageType name now fails the INI parse (INI_INVALID_DATA) instead of indexing with -1.
+	// GeneralsX: An unknown DamageType name now fails the INI parse (INI_INVALID_DATA) instead of indexing with -1.
 	// Upstream reference: xezon, PR #3344
 	// https://github.com/TheSuperHackers/GeneralsGameCode/pull/3344
 	DamageType dt = (DamageType)INI::scanIndexList(damageName, DamageTypeFlags::getBitNames());
@@ -156,7 +156,7 @@ const ArmorTemplate* ArmorStore::findArmorTemplate(const char* name) const
 	const char *c = ini->getNextToken();
 	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
 
-	// GeneralsX @bugfix Claude 25/09/2026 TheSuperHackers/GeneralsGameCode#2060, adapted
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#2060, adapted
 	// Record what a map.ini is about to overwrite, so reset() can put it back. find() first:
 	// operator[] below default-constructs an entry for a new name, which is how a NEW armor is told
 	// apart from an OVERRIDDEN one. At most one backup per name per match - a map that overrides the
@@ -176,7 +176,7 @@ const ArmorTemplate* ArmorStore::findArmorTemplate(const char* name) const
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 25/09/2026 TheSuperHackers/GeneralsGameCode#2060, adapted
+// GeneralsX: TheSuperHackers/GeneralsGameCode#2060, adapted
 // Undo exactly what a map.ini did. Assigning into the existing node keeps every
 // ArmorTemplateSet's pointer to it valid.
 //

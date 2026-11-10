@@ -172,7 +172,7 @@ void W3DTruckDraw::createWheelEmitters()
 			{
 				if (const ParticleSystemTemplate *sysTemplate = TheParticleSystemManager->findTemplate(*effectNames[i]))
 				{
-					// GeneralsX @bugfix Claude 04/08/2026 Guard the createParticleSystem result.
+					// GeneralsX: Guard the createParticleSystem result.
 					//
 					// A headless peer installs ParticleSystemManagerDummy (SDL3GameEngine.cpp:1390),
 					// whose createParticleSystem returns nullptr unconditionally - while the draw

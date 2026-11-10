@@ -71,7 +71,7 @@
 #include "GameLogic/Module/PhysicsUpdate.h"
 #include "GameLogic/Module/StealthUpdate.h"
 
-// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r8/r9 (Codex t2-engine-r7 P1 #16; r8 #17: declared before its first use): the owner's AI player refuses this aircraft to a watched unit
+// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r8/r9 (r8 #17: declared before its first use): the owner's AI player refuses this aircraft to a watched unit
 static Bool gxAirAttackRefused(const Object *owner, const Object *victim)
 {
 	const Player *pl = owner ? owner->getControllingPlayer() : nullptr;
@@ -142,7 +142,7 @@ void AICommandParmsStorage::doXfer(Xfer *xfer)
 	// GeneralsX @bugfix was &m_cmd — m_cmd was written twice and m_cmdSource never
 	// serialized at all, so the command source was lost across save/load.
 	xfer->xferUser(&m_cmdSource, sizeof(m_cmdSource));
-	// GeneralsX @bugfix Claude 01/10/2026 Retail saves (and saves from before the fix above) hold an
+	// GeneralsX: Retail saves (and saves from before the fix above) hold an
 	// AICommandType in this slot, and WeaponSet shifts by the command source (1 << cmdSource), so an
 	// out-of-range value is undefined behaviour. Fall back to CMD_FROM_AI. Idea of TheSuperHackers PR #3156.
 	if (xfer->getXferMode() == XFER_LOAD && ((Int)m_cmdSource < 0 || (Int)m_cmdSource >= COMMAND_SOURCE_TYPE_COUNT))
@@ -1047,9 +1047,9 @@ void AIStateMachine::clear()
 	m_goalSquad = nullptr;
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @bugfix Claude 09/10/2026 Only when the clear happened: StateMachine::clear() refuses on a locked machine
+	// GeneralsX: Only when the clear happened: StateMachine::clear() refuses on a locked machine
 	// (a non-interruptible state such as AIMoveAndEvacuateState), and dropping the temporary state anyway tore down the
-	// path that state was still waiting on, so it failed and unloaded on the spot (Codex tsh-port-1008-sec-r1 P2).
+	// path that state was still waiting on, so it failed and unloaded on the spot.
 	if (!isLocked())
 	{
 		if (m_temporaryState)
@@ -1162,11 +1162,11 @@ Bool outOfWeaponRangeObject( State *thisState, void* userData )
 		}
 		// srj sez: at tiny ranges, isAttackViewBlockedByObstacle() can return false positives,
 		// so just skip it for contact weapons
-		// GeneralsX @perf Claude 06/10/2026 NO LINE-OF-SIGHT WALK FOR A THROWN-AWAY ANSWER (graphify sweep c008-01). The result below
+		// GeneralsX: NO LINE-OF-SIGHT WALK FOR A THROWN-AWAY ANSWER (graphify sweep c008-01). The result below
 		// is 'out of range' iff there is no leech lock and the view is blocked or the target is out of range, so the walk (terrain +
 		// pathfind cells, a const read, every tick for every attacker) only matters with no leech lock and the target in range.
 		// Every read the original made before the walk still runs, in the same order (isSignificantlyAboveTerrain fills the
-		// victim's altitude cache - Codex pf-losrange-r1); only the walk is skipped. Same result in every case.
+		// victim's altitude cache); only the walk is skipped. Same result in every case.
 		if (victim && !weapon->isContactWeapon() && onGround && !victim->isSignificantlyAboveTerrain()
 			&& !weapon->hasLeechRange() && weapon->isWithinAttackRange(obj, victim))
 		{
@@ -1278,7 +1278,7 @@ Bool outOfWeaponRangePosition( State *thisState, void* userData )
  */
 static Bool cannotPossiblyAttackObject( State *thisState, void* userData )
 {
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	AbleToAttackType attackType = static_cast<AbleToAttackType>(static_cast<UnsignedInt>(reinterpret_cast<uintptr_t>(userData)));
 	Object *obj = thisState->getMachineOwner();
 	Object *victim = thisState->getMachineGoalObject();
@@ -1479,7 +1479,7 @@ StateReturnType AIIdleState::update()
 			{
 				// If we're supposed to attack based on mood, etc, then we will do so.
 				Object* enemy = ai->getNextMoodTarget( true, true );
-				// GeneralsX 27/10/2026 ai-pro-rules-2 T2 (Codex t2-engine-r3 #14): a watched AA team member takes no aircraft by itself
+				// GeneralsX 27/10/2026 ai-pro-rules-2 T2: a watched AA team member takes no aircraft by itself
 				if (enemy && getMachineOwner()->getControllingPlayer() && getMachineOwner()->getControllingPlayer()->getAIPlayer()
 						&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchTeamMemberSkips(getMachineOwner(), enemy))
 					enemy = nullptr;
@@ -1571,7 +1571,7 @@ StateReturnType AIDeadState::update()
 		{
 			// we want 'em to stop, but looks wonky if they stop dead in their tracks in onEnter.
 			// this slows 'em down quickly
-			// GeneralsX @fix Claude 05/08/2026 A per-frame DECAY factor, applied once per logic frame,
+			// GeneralsX: A per-frame DECAY factor, applied once per logic frame,
 			// so it needs an EXPONENT rather than the usual divisor: at twice the tick rate it is
 			// applied twice as often and would decay twice as fast. 0.8^30 == 0.012 per second at
 			// 30 Hz; 0.894427191^60 is the same 0.012, so the per-SECOND behaviour is preserved.
@@ -2141,7 +2141,7 @@ StateReturnType AIMoveToState::update()
 	}
 
 	UnsignedInt adjustment = ai->getMoodMatrixActionAdjustment(MM_Action_Move);
-	// GeneralsX @bugfix Claude 02/10/2026 Convert a move into an attack-move only when this move IS the machine's
+	// GeneralsX: Convert a move into an attack-move only when this move IS the machine's
 	// current state. AI_MOVE_TO also runs as the TEMPORARY state an internal CMD_FROM_AI move gets while the unit is
 	// busy (privateMoveToPosition: "move for 20 seconds"), and there the conversion clears and re-enters the main
 	// state - ATTACK_MOVE_TO, with a fresh path request - every frame, while the temporary move keeps running and the
@@ -2182,7 +2182,7 @@ StateReturnType AIMoveToState::update()
 			Real mySpeed = obj->getPhysics()->getVelocityMagnitude();
 			Real goalSpeed = goalObj->getPhysics()->getVelocityMagnitude();
 #if GX_LOGIC_60HZ
-			// GeneralsX @fix Claude 23/09/2026 a per-frame speed floor (150 units/sec retail): halved, or slow
+			// GeneralsX: a per-frame speed floor (150 units/sec retail): halved, or slow
 			// missiles hit a 300 units/sec floor and under-lead moving targets. The speed ratio itself is rate-free.
 			if (mySpeed<2.5f) mySpeed = 2.5f; // avoid divide by 0.
 #else
@@ -3266,7 +3266,7 @@ StateReturnType AIPickUpCrateState::onEnter()
 	}
 	setAdjustsDestination(true);
 	m_goalPosition = *goalObj->getPosition();
-	m_delayCounter = GX_FRAMES30(3);	// GeneralsX @fix Claude 23/09/2026 100 ms before moving to a crate, in 30 Hz frames
+	m_delayCounter = GX_FRAMES30(3);	// GeneralsX: 100 ms before moving to a crate, in 30 Hz frames
 	return STATE_CONTINUE;
 
 }
@@ -3411,7 +3411,7 @@ void AIFollowPathState::onExit( StateExitType status )
 	//determine which waypoints to plot in the waypoint renderer.
 	ai->friend_setCurrentGoalPathIndex( -1 );
 
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. A waypoint path that ends by itself starts the enter chain
+	// GeneralsX: WAYPOINT ENTER. A waypoint path that ends by itself starts the enter chain
 	// queued behind it; one that is replaced drops it. Only for the main machine's AI_FOLLOW_PATH.
 	ai->friend_gxEnterQueueCarrierExit( getMachine(), getID(), status );
 }
@@ -4674,7 +4674,7 @@ StateReturnType AIWanderState::onEnter()
 		m_groupOffset.y = GameLogicRandomValue(-delta, delta)*PATHFIND_CELL_SIZE_F;
 	}
 	m_timer = 0;
-	// GeneralsX @fix Claude 05/08/2026 the id-derived jitter is a time spread, not an index, so the
+	// GeneralsX: the id-derived jitter is a time spread, not an index, so the
 	// whole expression is scaled - wrapping only the base would halve the stagger in wall-clock terms.
 	m_waitFrames = GX_FRAMES30(10 + (getMachineOwner()->getID() & 0x7));
 	// set initial movement goal
@@ -4801,7 +4801,7 @@ StateReturnType AIWanderInPlaceState::onEnter()
 	m_goalPosition.x += offset.x;
 	m_goalPosition.y += offset.y;
 	m_timer = 0;
-	// GeneralsX @fix Claude 05/08/2026 the id-derived jitter is a time spread, not an index, so the
+	// GeneralsX: the id-derived jitter is a time spread, not an index, so the
 	// whole expression is scaled - wrapping only the base would halve the stagger in wall-clock terms.
 	m_waitFrames = GX_FRAMES30(10 + (getMachineOwner()->getID() & 0x7));
 	StateReturnType ret = AIInternalMoveToState::onEnter();
@@ -4914,7 +4914,7 @@ StateReturnType AIPanicState::onEnter()
 	StateReturnType ret = AIInternalMoveToState::onEnter();
 
 	m_timer = 0;
-	// GeneralsX @fix Claude 05/08/2026 the id-derived jitter is a time spread, not an index, so the
+	// GeneralsX: the id-derived jitter is a time spread, not an index, so the
 	// whole expression is scaled - wrapping only the base would halve the stagger in wall-clock terms.
 	m_waitFrames = GX_FRAMES30(10 + (getMachineOwner()->getID() & 0x7));
 	// Update the extra path distance.   AIInternalMoveToState::onEnter resets it.
@@ -5394,7 +5394,7 @@ StateReturnType AIAttackFireWeaponState::update()
 				// note that we look around originalVictimPos, *not* the current victim's pos.
 				victim = ThePartitionManager->getClosestObject( originalVictimPos, continueRange, FROM_CENTER_2D, filters );// could be null. this is ok.
 				if (victim && gxAirAttackRefused(obj, victim))
-					victim = nullptr;	// T2 r8: the continue-range retarget gives a watched unit no unassigned aircraft (Codex t2-engine-r7 #16)
+					victim = nullptr;	// T2 r8: the continue-range retarget gives a watched unit no unassigned aircraft
 				if (victim)
 				{
 					getMachine()->setGoalObject(victim);
@@ -5772,7 +5772,7 @@ StateReturnType AIAttackState::update()
 			}
 		}
 
-		// GeneralsX @bugfix Claude 06/10/2026 No attack machine after a load: see the end of this function.
+		// GeneralsX: No attack machine after a load: see the end of this function.
 		if (m_attackMachine != nullptr && victim != m_attackMachine->getGoalObject())
 		{
 			// Our parent machine has changed the goal.  We need to reset to the new goal.  jba.
@@ -5808,7 +5808,7 @@ StateReturnType AIAttackState::update()
 	 * Note the use of CONVERT_SLEEP_TO_CONTINUE; even if the sub-machine
 	 * sleeps, we still need to be called every frame.
 	 */
-	// GeneralsX @bugfix Claude 06/10/2026 onEnter() returns before building m_attackMachine when the unit may not
+	// GeneralsX: onEnter() returns before building m_attackMachine when the unit may not
 	// attack (ATTITUDE_SLEEP, exit conditions met, under construction, out of ammo). A normal entry moves the parent on
 	// with that answer, but the guard states (AIGuard, AIGuardRetaliate, AITNGuard) rebuild this sub-state in
 	// loadPostProcess() and drop the answer, so after a load we could get here with no machine and dereference null.
@@ -6052,7 +6052,7 @@ void AIAttackSquadState::onExit( StateExitType status )
 }
 
 //----------------------------------------------------------------------------------------------------------
-// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r10 (Codex t2-engine-r9 #19): a watched unit refused the stock choice (an aircraft it was not
+// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r10: a watched unit refused the stock choice (an aircraft it was not
 // assigned) takes the closest live member of the squad it may attack, else none - the squad order then ends instead of re-picking the
 // refused aircraft every frame. Every other unit and player: the stock choice, untouched.
 Object *AIAttackSquadState::chooseVictim()
@@ -6075,7 +6075,7 @@ Object *AIAttackSquadState::chooseVictim()
 		Object *o = objects[i];
 		if (o == nullptr || o->isEffectivelyDead() || gxAirAttackRefused(owner, o))
 			continue;
-		// one it can actually attack (an undetected stealthed unit is live but not attackable - Codex t2-engine-r10 #20)
+		// one it can actually attack (an undetected stealthed unit is live but not attackable)
 		const CanAttackResult can = owner->getAbleToAttackSpecificObject(ATTACK_NEW_TARGET, o, owner->getAI() ? owner->getAI()->getLastCommandSource() : CMD_FROM_AI);
 		if (can != ATTACKRESULT_POSSIBLE && can != ATTACKRESULT_POSSIBLE_AFTER_MOVING)
 			continue;
@@ -6451,7 +6451,7 @@ void AIEnterState::onExit( StateExitType status )
 		}
 	}
 
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. Ended by itself (EXIT_NORMAL) -> the unit's update() boards the
+	// GeneralsX: WAYPOINT ENTER. Ended by itself (EXIT_NORMAL) -> the unit's update() boards the
 	// next queued container; replaced (EXIT_RESET) -> the queue is dropped. Only for the main machine's AI_ENTER.
 	if (ai)
 		ai->friend_gxEnterQueueCarrierExit( getMachine(), getID(), status );
@@ -6475,7 +6475,7 @@ StateReturnType AIEnterState::update()
 	Object* goal = getMachineGoalObject();
 	if (goal)
 	{
-		// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. The queue's own enter stops as soon as its goal can no
+		// GeneralsX: WAYPOINT ENTER. The queue's own enter stops as soon as its goal can no
 		// longer be boarded - above all when it was sniped unmanned, which retail's canEnterObject below would turn into
 		// crewing it. STATE_FAILURE exits EXIT_NORMAL, so the queue goes on to the next container. A goal that turned
 		// ENEMY is not rejected here: retail's attack branch below keeps it, and gxOnEnterGoalHostile drops the queue
@@ -6667,11 +6667,11 @@ StateReturnType AIExitState::update()
 		if (goal->isEffectivelyDead())
 			return STATE_FAILURE;
 
-		// GeneralsX @bugfix Claude 09/10/2026 Ask again now. privateExit (TheSuperHackers #3089/#3136) checked membership
+		// GeneralsX: Ask again now. privateExit (TheSuperHackers #3089/#3136) checked membership
 		// when the order arrived, but the exit can wait here for frames (a busy door, a Chinook landing) while the
 		// container changes under it: capturing a tunnel endpoint re-homes its passengers to another endpoint of the old
 		// owner's network, and exiting through the captured one cleared the passenger's containment without removing it
-		// from the old network's list - a dangling entry once the unit later died (Codex tsh-port-1008-sec-r1 P1).
+		// from the old network's list - a dangling entry once the unit later died.
 		if (!goal->getContain()->isContained(obj))
 			return STATE_FAILURE;
 #endif
@@ -7399,7 +7399,7 @@ StateReturnType AIHuntState::update()
 		else
 		{
 			// do NOT do line of sight check - we want to find everything
-			// GeneralsX @performance Claude 23/09/2026 Skip the info-less retry when no object passed the filters:
+			// GeneralsX: Skip the info-less retry when no object passed the filters:
 			// it uses the same range, qualifiers and filters, so it would return null again after a full-map scan.
 			Bool noCandidates = FALSE;
 			victim = TheAI->findClosestEnemy( owner, 9999.9f, AI::CAN_ATTACK, info, nullptr, &noCandidates );

@@ -454,7 +454,7 @@ Object::Object( const ThingTemplate *tt, const ObjectStatusMaskType &objectStatu
 
 	*curB = nullptr;
 
-	// GeneralsX @performance Claude 05/11/2026 onCollide runs for every contact, and most modules return null from getCollide().
+	// GeneralsX: onCollide runs for every contact, and most modules return null from getCollide().
 	// getCollide() is a constant per module and m_behaviors is not rewritten after this point, so the list stays what a scan would find.
 	Int collideCount = 0;
 	for (BehaviorModule** b = m_behaviors; *b; ++b)
@@ -568,7 +568,7 @@ void Object::initObject()
 			controller->applyBattlePlanBonusesForObject( this );
 		}
 
-		// GeneralsX @bugfix Claude 05/10/2026 ...and every spy vision on against the controller (Satellite Hack), which
+		// GeneralsX: ...and every spy vision on against the controller (Satellite Hack), which
 		// only marked the objects that existed when it switched on. As Zero Hour Reforged (Olcay Seygan, Object.cpp, GPL-3.0-or-later).
 		controller->applyVisionSpies( this, TRUE );
 	}
@@ -722,7 +722,7 @@ void Object::onContainedBy( Object *containedBy )
 	m_containedBy = containedBy;
 	m_containedByFrame = TheGameLogic->getFrame();
 
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. Got in: the chain is done, so an evacuated unit never walks on
+	// GeneralsX: WAYPOINT ENTER. Got in: the chain is done, so an evacuated unit never walks on
 	// to the next queued container.
 	if( AIUpdateInterface *ai = getAI() )
 		ai->gxClearEnterQueue();
@@ -977,10 +977,10 @@ void Object::setOrRestoreTeam( Team* team, Bool restoring )
 
 	// Switch //////////////////////////
 	m_team = team;
-	// GeneralsX @performance Claude 06/10/2026 its cells count it under its controlling player (PartitionManager::m_cellOwnerMask)
+	// GeneralsX: its cells count it under its controlling player (PartitionManager::m_cellOwnerMask)
 	if (m_partitionData)
 		m_partitionData->friend_updateOwnerTag();
-	// GeneralsX @performance Claude 06/10/2026 both players' member histograms (Player::countObjectsByThingTemplate)
+	// GeneralsX: both players' member histograms (Player::countObjectsByThingTemplate)
 	if (oldTeam)
 		oldTeam->getControllingPlayer()->noteMembersChanged();
 	if (m_team)
@@ -1070,9 +1070,9 @@ Bool Object::checkAndDetonateBoobyTrap(const Object *victim)
 #if RETAIL_COMPATIBLE_CRC
 		if( other->getProducerID() == getID() )// Sticky bombs call the thing they are on their producer for just such an occasion
 #else
-		// GeneralsX @bugfix Claude 09/10/2026 Not a trap that already went off or is being removed: one dying slowly (a mod's
+		// GeneralsX: Not a trap that already went off or is being removed: one dying slowly (a mod's
 		// SlowDeathBehavior) stayed in range and, nearer than a new trap on the same victim, was picked again - detonating twice
-		// and clearing the new trap's status (Codex tsh-port-1008-sec-r4 P2).
+		// and clearing the new trap's status.
 		if( other->getProducerID() == getID() && !other->isEffectivelyDead() && !other->isDestroyed() )// Sticky bombs call the thing they are on their producer for just such an occasion
 #endif
 		{
@@ -1110,7 +1110,7 @@ void Object::setStatus( ObjectStatusMaskType objectStatus, Bool set )
 
 	if (m_status != oldStatus)
 	{
-		// GeneralsX @performance Claude 06/10/2026 Player::countObjectsByThingTemplate counts this status per template
+		// GeneralsX: Player::countObjectsByThingTemplate counts this status per template
 		if (m_team && m_status.test( OBJECT_STATUS_UNDER_CONSTRUCTION ) != oldStatus.test( OBJECT_STATUS_UNDER_CONSTRUCTION ))
 			m_team->getControllingPlayer()->noteMembersChanged();
 
@@ -1580,7 +1580,7 @@ CanAttackResult Object::getAbleToAttackSpecificObject( AbleToAttackType t, const
 	//if (!isAbleToAttack())
 	//	return FALSE;
 
-	// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r9 (Codex t2-engine-r8 #18): with its owner's tunnel air watch acting, a watched unit (a watch
+	// GeneralsX 28/10/2026 ai-pro-rules-2 T2 r9: with its owner's tunnel air watch acting, a watched unit (a watch
 	// row, a tunnel guard, an AA team member) cannot attack an aircraft it was not assigned - so no scan picks one (and starves on the
 	// refusal). ATTACK_TUNNEL_NETWORK_GUARD is the watch's own capability question (and the guard machine's, already assignment-gated);
 	// a player's own order is never touched. Every other player, unit and target: the weapons decide, as stock.
@@ -1884,7 +1884,7 @@ inline Bool isPosDifferent(const Coord3D* a, const Coord3D* b)
 	// the PartitionManager stuff when the pos/orientation really changes (for efficiency purposes)
 	// so we must put in some cleverness...
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 compared per transform change, i.e. per FRAME of movement: a per-frame distance,
+	// GeneralsX: compared per transform change, i.e. per FRAME of movement: a per-frame distance,
 	// halved, so units moving 0.3-0.6 units/sec still re-dirty their partition cells as in retail.
 	const Real THRESH = 0.005f;
 #else
@@ -1912,7 +1912,7 @@ inline Bool isAngleDifferent(Real a, Real b)
 	// so we must put in some cleverness...
 
 #if GX_LOGIC_60HZ
-	const Real THRESH = 0.005f;	// GeneralsX @fix Claude 23/09/2026 per-frame turn, halved: a unit turning under 34 deg/sec never re-dirtied its footprint
+	const Real THRESH = 0.005f;	// GeneralsX: per-frame turn, halved: a unit turning under 34 deg/sec never re-dirtied its footprint
 #else
 	const Real THRESH = 0.01f;	// in radians, this is approx 1/2 degree.
 #endif
@@ -1969,7 +1969,7 @@ void Object::reactToTransformChange(const Matrix3D* oldMtx, const Coord3D* oldPo
 	}
 	else if (m_partitionData && (oldPos->x != getPosition()->x || oldPos->y != getPosition()->y))
 	{
-		// GeneralsX @performance Claude 30/09/2026 too small a move to refill the cells, but such moves add up: tell the
+		// GeneralsX: too small a move to refill the cells, but such moves add up: tell the
 		// partition how far this object now is from its cells (PartitionManager::m_maxDrift). Reads only.
 		m_partitionData->friend_noteSubThresholdMove(getPosition());
 	}
@@ -2262,7 +2262,7 @@ void Object::setDisabledUntil( DisabledType type, UnsignedInt frame, Bool neverM
 
 	//Handle audio events!
  	AudioEventRTS sound;
-	// GeneralsX @feature Claude 27/09/2026 !neverManned here and at the dead-man's trigger below: a vehicle that never
+	// GeneralsX: !neverManned here and at the dead-man's trigger below: a vehicle that never
 	// had a pilot (a cheat spawn's) takes the unmanned state without what a sniped pilot's death does.
 	if( type == DISABLED_UNMANNED && !isKindOf( KINDOF_DRONE ) && !neverManned )
 	{
@@ -2304,7 +2304,7 @@ void Object::setDisabledUntil( DisabledType type, UnsignedInt frame, Bool neverM
 
 		m_disabledTillFrame[ type ] = frame;
 		m_disabledMask.set( type, frame > TheGameLogic->getFrame() );
-		// GeneralsX @performance Claude 23/09/2026 keep GameLogic's disabled-expiry watermark <= this till-frame.
+		// GeneralsX: keep GameLogic's disabled-expiry watermark <= this till-frame.
 		TheGameLogic->noteDisabledUntil( frame );
 
 		if( m_drawable )
@@ -2521,7 +2521,7 @@ Bool Object::clearDisabled( DisabledType type )
 //-------------------------------------------------------------------------------------------------
 //Checks any timers and clears disabled statii that have expired.
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @performance Claude 23/09/2026 Returns the earliest till-frame among the bits still set after the check
+// GeneralsX: Returns the earliest till-frame among the bits still set after the check
 // (0xffffffff if none), for GameLogic's disabled-expiry watermark. The clearing logic is unchanged.
 UnsignedInt Object::checkDisabledStatus()
 {
@@ -4194,7 +4194,7 @@ void Object::crc( Xfer *xfer )
 		}
 	}
 
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. The unit's enter queue, ONLY while in use: nothing is written
+	// GeneralsX: WAYPOINT ENTER. The unit's enter queue, ONLY while in use: nothing is written
 	// otherwise, so a match that never executes MSG_GX_QUEUE_ENTER hashes exactly what it did before.
 	if( AIUpdateInterface *ai = getAI() )
 		ai->gxEnterQueueCrc( xfer );
@@ -4358,7 +4358,7 @@ void Object::xfer( Xfer *xfer )
 
 	// disabled till frame
 	xfer->xferUser( m_disabledTillFrame, sizeof( UnsignedInt ) * DISABLED_COUNT );
-	// GeneralsX @performance Claude 23/09/2026 loaded till-frames bypass setDisabledUntil; force one expiry walk.
+	// GeneralsX: loaded till-frames bypass setDisabledUntil; force one expiry walk.
 	if( xfer->getXferMode() == XFER_LOAD )
 		TheGameLogic->noteDisabledUntil( 0 );
 
@@ -5491,10 +5491,10 @@ void Object::setVisionSpied(Bool setting, Int byWhom)
 
 		m_visionSpiedMask = workingMask;
 
-		// GeneralsX @bugfix Claude 06/10/2026 A unit spied as it is made (Player::applyVisionSpies from initObject) still
+		// GeneralsX: A unit spied as it is made (Player::applyVisionSpies from initObject) still
 		// sits at the origin, before newObject's caller places it; refreshing here would reveal the map corner to the spy
 		// for good. The move that places it runs the maintenance with this mask (same guard as setShroudClearingRange).
-		// As Zero Hour Reforged (Olcay Seygan, Object.cpp, GPL-3.0-or-later); Codex rbugs-r2.
+		// As Zero Hour Reforged (Olcay Seygan, Object.cpp, GPL-3.0-or-later).
 		const Coord3D* pos = getPosition();
 		if (pos->x || pos->y || pos->z)
 			handlePartitionCellMaintenance();
@@ -6361,7 +6361,7 @@ Bool Object::canProduceUpgrade( const UpgradeTemplate *upgrade )
 
 	// We need to have the button to make the upgrade.  CommandSets are a weird Logic/Client hybrid.
 	const CommandSet *set = TheControlBar->findCommandSet(getCommandSetString());
-	// GeneralsX @bugfix Claude 06/10/2026 No command set (an empty or unknown CommandSet name) means no upgrade button, so
+	// GeneralsX: No command set (an empty or unknown CommandSet name) means no upgrade button, so
 	// no upgrade. It was dereferenced: AIGroup asks every member of a selection that queues a player upgrade, and
 	// ProductionUpdate::canQueueUpgrade asks too, so one such object in the group - or a modified client's order naming
 	// one - crashed every peer (sweep c013-01).

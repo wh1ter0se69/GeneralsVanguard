@@ -88,7 +88,7 @@ void BinkVideoPlayer::notifyVideoPlayerOfNewProvider(Bool nowHasValid)
 	fprintf(stderr, "DEBUG: BinkVideoPlayer::notifyVideoPlayerOfNewProvider(%d) - Linux stub\n", nowHasValid);
 }
 
-// GeneralsX @bugfix Claude 21/09/2026 VideoPlayerInterface::setVolume is pure virtual as of
+// GeneralsX: VideoPlayerInterface::setVolume is pure virtual as of
 // TheSuperHackers #3083. This translation unit defines the class's key function, so the vtable is
 // emitted here on macOS/Linux/iOS and an undefined setVolume is a link break, not a compile one.
 // Nothing to do: this stub opens no streams.

@@ -1,4 +1,4 @@
-# GeneralsX @test E · rw2-F1 11/10/2026: writes OUT = #define GX_RECORD_BUILD_SHA "<HEAD sha>[+dirty|+archive]" for SRC's checkout,
+# GeneralsX: writes OUT = #define GX_RECORD_BUILD_SHA "<HEAD sha>[+dirty|+archive]" for SRC's checkout,
 # rewriting the file only when the text changes (so an unchanged tree does not relink).
 execute_process(COMMAND git rev-parse HEAD WORKING_DIRECTORY "${SRC}" OUTPUT_VARIABLE sha OUTPUT_STRIP_TRAILING_WHITESPACE
     RESULT_VARIABLE rc ERROR_QUIET)

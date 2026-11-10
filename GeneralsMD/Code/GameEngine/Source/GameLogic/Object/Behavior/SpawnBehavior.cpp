@@ -221,18 +221,18 @@ UpdateSleepTime SpawnBehavior::update()
 				}
 				else if ( runtimeProduced )
 				{
-					// GeneralsX @bugfix Claude 06/10/2026 Members past the initial burst wait behind the last barracks member.
+					// GeneralsX: Members past the initial burst wait behind the last barracks member.
 					// createSpawn hands out the barracks exits by m_initialBurstCountdown, not by list position, so an entry due
-					// earlier would take a door slot and leave the staggered members to bud (Codex rbugs-r3).
+					// earlier would take a door slot and leave the staggered members to bud.
 					birthFrame = lastBurstFrame;
 				}
-				// GeneralsX @bugfix Claude 05/10/2026 Queue the staggered birth frame computed above. EA pushed the bool
+				// GeneralsX: Queue the staggered birth frame computed above. EA pushed the bool
 				// runtimeProduced (1), a frame long past, so an Angry Mob bought at a barracks walked out all at once. As Zero
 				// Hour Reforged (Olcay Seygan, GPL-3.0-or-later); SPAWN_DELAY_MIN_FRAMES is already 60 Hz-scaled here.
 				// Only a frame that is still to come is queued: the consumer below spawns when now > the entry, so an
 				// entry of `now` would wait a whole sparse-update period. Zero offsets (the first member, and every member of a
 				// scripted or map-placed spawner) keep EA's already-due value and spawn on the first check, as
-				// before (Codex rbugs-r1).
+				// before.
 				m_replacementTimes.push_back( ( birthFrame > (UnsignedInt)now ) ? (Int)birthFrame : (Int)runtimeProduced );// Set all spawns to be created in rapid succession
 			}
 			else
@@ -1127,7 +1127,7 @@ void SpawnBehavior::crc( Xfer *xfer )
 	* 1: Initial version
 	* 2: Added m_initialBurstTimesInited to the save. jba.
 	* 3: TheSuperHackers @bugfix Stubbjax 16/02/2026 Added m_initialBurstCountdown.
-	* 4: GeneralsX @bugfix Claude 06/10/2026 Added the spawn-template cursor (m_templateNameIterator, as an index).
+	* 4: GeneralsX: Added the spawn-template cursor (m_templateNameIterator, as an index).
 */
 // ------------------------------------------------------------------------------------------------
 void SpawnBehavior::xfer( Xfer *xfer )
@@ -1207,10 +1207,10 @@ void SpawnBehavior::xfer( Xfer *xfer )
 	// self tasking spawn count
 	xfer->xferUnsignedInt( &m_selfTaskingSpawnCount );
 
-	// GeneralsX @bugfix Claude 06/10/2026 The spawn-template cursor. createSpawn takes the next template from it and the
+	// GeneralsX: The spawn-template cursor. createSpawn takes the next template from it and the
 	// constructor resets it to the first, so a load used to restart the composition (Pistol, Rock, ...). That never mattered
 	// while a spawner made all its members in one frame; with the staggered initial burst (B1) a save can fall between two
-	// births, and the reload would make the wrong member next (Codex batch-0958 r4-round2). Saved as an index; an index past
+	// births, and the reload would make the wrong member next (batch-0958 r4-round2). Saved as an index; an index past
 	// the template list (data changed since the save) starts over at the first, as EA's constructor does.
 	if( version >= 4 )
 	{

@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @feature Claude 06/10/2026 - IN-MATCH VOTE KICK, the client's half (GameClient/GXVoteKick.h says what each entry
+**	GeneralsX: IN-MATCH VOTE KICK, the client's half (GameClient/GXVoteKick.h says what each entry
 **	point is for). Included ONCE, at the end of InGameUI.cpp, after GXSpectatorHud.inl (whose top inset it reads).
 **
 **	READS ONLY: the simulation's vote (TheGameLogic->getGxVoteKick(), GameLogic::gxVoteKickLiving) and the Players. SENDS only
@@ -293,7 +293,7 @@ static void drawBanner( const GXVoteKickState &v, UnsignedInt frame, Int me, GXV
 
 #if defined(GX_TEST_INSTRUMENTS)
 // ---------------------------------------------------------------------------------------------------------------------
-// GeneralsX @test Claude 06/10/2026 GX_TEST_VOTEKICK - drive the vote from a headless peer through the same calls the board
+// GeneralsX: GX_TEST_VOTEKICK - drive the vote from a headless peer through the same calls the board
 // and the keys make. NEVER in a shipping build.
 //   GX_TEST_VOTEKICK="<frame>:<action>[:<arg>...],..."   at the first client frame whose logic frame is >= <frame>
 //   start:<slot>          gxVoteKickStart on the player in <slot> (the client's own checks apply, as for the button)
@@ -408,7 +408,7 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 	const ICoord2D at = msg->getArgument( 0 )->pixel;
 	// A right click on the banner is no order to the units under it. Only the release of a press the banner took is taken: a
 	// camera drag started on the terrain and released over the banner must get its release, or the view keeps scrolling
-	// (LookAtTranslator stops SCROLL_RMB on it - Codex vote-kick-r4 P2).
+	// (LookAtTranslator stops SCROLL_RMB on it).
 	if( t == GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_UP )
 	{
 		const Bool owned = s_rightOwned;
@@ -430,7 +430,7 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 		if( pressed < 0 )
 			return KEEP_MESSAGE;
 		const Rect &r = ( pressed == 0 ) ? s_yes : ( pressed == 1 ) ? s_no : s_hide;
-		// Bound to the vote the press was made on (Codex vote-kick-r3 P2): one vote can end and another start while the
+		// Bound to the vote the press was made on: one vote can end and another start while the
 		// button is held, and the release must not answer the new one.
 		if( pressed <= 2 && s_live && r.in( at.x, at.y ) && TheGameLogic->getGxVoteKick().id == s_pressedId
 			&& TheGameLogic->getGxVoteKick().target >= 0 )
@@ -543,7 +543,7 @@ Bool gxVoteKickBannerRect( Int *x, Int *y, Int *w, Int *h )
 	return TRUE;
 }
 
-/// The banner's cached DisplayStrings back to the manager (Codex vote-kick-r5 P2): its destructor asserts that no string is
+/// The banner's cached DisplayStrings back to the manager: its destructor asserts that no string is
 /// still allocated, so a cache that outlives a match would abort an assertions-enabled build at shutdown. Called from
 /// InGameUI::reset (every match end) and ~InGameUI; the next draw makes them again.
 static void gxVoteKickFreeStrings()

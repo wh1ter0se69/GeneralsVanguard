@@ -32,7 +32,7 @@
 #include <cstdint>
 #include <time.h>   // gmtime/strftime for simIdBuiltWhen
 #include "WWLib/strtok_r.h"
-// GeneralsX @feature Claude 27/07/2026 SimID join-time compatibility diagnostics.
+// GeneralsX: SimID join-time compatibility diagnostics.
 #include "Common/Diagnostic/SimulationId.h"
 #include "Common/GameEngine.h"
 #include "Common/GameState.h"
@@ -70,7 +70,7 @@ const Color chatLogColor =  GameMakeColor(255,255,0,255);	// [LOG] lines - owner
 const Color acceptTrueColor =  GameMakeColor(0,255,0,255);
 const Color acceptFalseColor =  GameMakeColor(255,0,0,255);
 
-// GeneralsX @feature Claude 10/08/2026 One narration line: yellow [LOG] chat for the humans,
+// GeneralsX: One narration line: yellow [LOG] chat for the humans,
 // [GXLOG] stderr for the harnesses. Chat entries append even while the shell is hidden by the
 // transfer screen, so lines logged mid-transfer are visible the moment the room comes back.
 static void gxLobbyLog( LANAPI *lan, const UnicodeString &msg )
@@ -105,7 +105,7 @@ UnicodeString LANAPIInterface::getErrorStringFromReturnType( ReturnType ret )
 			return TheGameText->fetch("LAN:ErrorBusy");
 		case RET_SERIAL_DUPE:
 			return TheGameText->fetch("WOL:ChatErrorSerialDup");
-		// GeneralsX @feature Claude 08/08/2026 Lobby passwords. FETCH_OR_SUBSTITUTE rather than
+		// GeneralsX: Lobby passwords. FETCH_OR_SUBSTITUTE rather than
 		// fetch, so the feature needs no modified CSF - editing one would move dataID and every
 		// peer would then refuse every join with DATA_DIFFERS, which is a spectacular price to
 		// pay for two strings.
@@ -115,7 +115,7 @@ UnicodeString LANAPIInterface::getErrorStringFromReturnType( ReturnType ret )
 		case RET_BAD_PASSWORD:
 			return TheGameText->FETCH_OR_SUBSTITUTE("LAN:ErrorBadPassword",
 				L"Wrong password. Type /password <password> in the chat box to correct it, then Join again.");
-		// GeneralsX @feature Claude 09/08/2026 Build-kind mismatch. FETCH_OR_SUBSTITUTE for the same
+		// GeneralsX: Build-kind mismatch. FETCH_OR_SUBSTITUTE for the same
 		// reason as the two above: a modified CSF moves dataID, and every peer would then refuse
 		// every join with DATA_DIFFERS - a spectacular price for one string.
 		//
@@ -138,7 +138,7 @@ UnicodeString LANAPIInterface::getErrorStringFromReturnType( ReturnType ret )
 
 // TheSuperHackers @feature arcticdolphin 08/08/2026 Adds /me emotes to LAN player chat, consistent with WOL
 //
-// GeneralsX @bugfix Claude 21/09/2026 The emote body must NOT be re-parsed as a lobby command.
+// GeneralsX: The emote body must NOT be re-parsed as a lobby command.
 //
 // Upstream calls RequestChat with the peeled text, and in THIS fork RequestChat is also the
 // interception point for lobby commands - it hands its argument to applyLobbyCommand before
@@ -215,7 +215,7 @@ void LANAPI::OnAccept( UnsignedInt playerIP, Bool status )
 
 void LANAPI::OnHasMap( UnsignedInt playerIP, Bool status )
 {
-	// GeneralsX @bugfix Claude 10/08/2026 (cross-model review) The whole body was gated on
+	// GeneralsX: (cross-model review) The whole body was gated on
 	// AmIHost(), so a non-host peer never learned OTHER peers' availability. That kept every
 	// joiner's map icon frozen on other players' rows, and after a transfer-only first start it
 	// split lobbies of three or more humans: a peer whose slot list still said another recipient
@@ -223,7 +223,7 @@ void LANAPI::OnHasMap( UnsignedInt playerIP, Bool status )
 	// transfer nobody was running, while the host - whose list was current - started the match.
 	// Every peer keeps its slot list current now; only the "player has no map" chat announcement
 	// stays host-side, exactly as before.
-	// GeneralsX @fix Claude 10/08/2026 (cross-model review) Availability now arrives repeatedly -
+	// GeneralsX: (cross-model review) Availability now arrives repeatedly -
 	// a reassert burst after every announce plus a 10 s keepalive piggyback (LANAPI::update) - so
 	// the chat announcement below must fire on the TRANSITION, not on every datagram, or the host
 	// chat fills with one "player has no map" line per reassert.
@@ -256,7 +256,7 @@ void LANAPI::OnHasMap( UnsignedInt playerIP, Bool status )
 			}
 			else
 			{
-				// GeneralsX @bugfix Claude 10/08/2026 The map's NAME, never its path. This fallback
+				// GeneralsX: The map's NAME, never its path. This fallback
 				// used to print the full local path into every peer's chat (owner report).
 				mapDisplayName.format(L"%hs", TheGameState->getMapLeafName(m_currentGame->getMap()).str());
 				willTransfer = WouldMapTransfer(m_currentGame->getMap());
@@ -289,11 +289,11 @@ void LANAPI::OnGameStart()
 	//DEBUG_LOG(("Map is '%s', preview is '%s'", m_currentGame->getMap().str(), GetPreviewFromMap(m_currentGame->getMap()).str()));
 	//DEBUG_LOG(("Map is '%s', INI is '%s'", m_currentGame->getMap().str(), GetINIFromMap(m_currentGame->getMap()).str()));
 
-	// GeneralsX @security Claude 25/09/2026 A HOST MAY NOT MAKE ANYBODY AN ADMIN, NOR UNMAKE ONE, NOR SWAP A KEY. The
+	// GeneralsX: A HOST MAY NOT MAKE ANYBODY AN ADMIN, NOR UNMAKE ONE, NOR SWAP A KEY. The
 	// slots and keys adopted from MSG_GAME_START (handleGameStart) say who may cheat in a match with more than one
 	// human and what their orders must be signed under, and every simulation must run on that one answer, so a single
 	// peer cannot correct it - it can only refuse to play on it. It refuses unless the stamp is EXACTLY what a fresh
-	// answer from its own relay says (Codex r1), asked now and tied to the question by a nonce (Codex r2):
+	// answer from its own relay says, asked now and tied to the question by a nonce:
 	//   * a slot or key the relay does not back - a host granting admin, or keeping a revoked one - is refused, and so
 	//     is ANY stamp this peer cannot confirm with a fresh answer: a privilege fails closed;
 	//   * an admin the relay names but the host left out - a host stripping an admin - is refused too. With no fresh
@@ -301,7 +301,7 @@ void LANAPI::OnGameStart()
 	//     cost an ordinary match its start.
 	// Refusing takes this peer out before any network exists, exactly as a peer without the map does below.
 	//
-	// GeneralsX @bugfix Claude 25/09/2026 ...EXCEPT a start the host stamped "unconfirmed" (Codex batch-r2): the host's
+	// GeneralsX: ...EXCEPT a start the host stamped "unconfirmed": the host's
 	// own relay query failed, so it grants no admin and every peer runs on exactly that - no admin, no keys. Nothing to
 	// confirm, so nothing is asked; refusing it would end an honest match over the host's timeout.
 	if (m_currentGame && !m_currentGame->amIHost() && m_gxStartAdminUnconfirmed)
@@ -385,7 +385,7 @@ void LANAPI::OnGameStart()
 
 		TheNetwork->parseUserList(m_currentGame);
 
-		// GeneralsX @feature Claude 10/08/2026 Owner's flow: the FIRST start only delivers the
+		// GeneralsX: Owner's flow: the FIRST start only delivers the
 		// map, everyone returns to the room with the icons refreshed, and the SECOND start plays.
 		// Tying the transfer to the start action is what keeps this simple: TheNetwork exists,
 		// the blocking transfer screen is already this path's UX, and every start re-evaluates
@@ -416,7 +416,7 @@ void LANAPI::OnGameStart()
 		Bool filesOk = DoAnyMapTransfers(m_currentGame, needTransfer);
 
 		// see if we really have the map.  if not, back out.
-		// GeneralsX @debug Claude 10/08/2026 GX_MAPDBG: A1 measurement probe on the ACTUAL bounce
+		// GeneralsX @debug /08/2026 GX_MAPDBG: A1 measurement probe on the ACTUAL bounce
 		// gate - filesOk and findMap() are the only two things that can send a peer back to the
 		// lobby here. findMap is a pure lowercase+find, so the extra call under the gate is safe.
 		static const Bool s_mapDbg = (getenv("GX_MAPDBG") != NULL);
@@ -456,7 +456,7 @@ void LANAPI::OnGameStart()
 
 		if (needTransfer)
 		{
-			// GeneralsX @bugfix Claude 10/08/2026 DRAIN BEFORE TEARDOWN. Measured live on the
+			// GeneralsX: DRAIN BEFORE TEARDOWN. Measured live on the
 			// Windows-host + macOS-joiner topology: the joiner finished its legs in 777 ms,
 			// deleted TheNetwork and restored its lobby while the HOST was still collecting the
 			// joiner's reliable progress reports - reports only the joiner's retransmit
@@ -493,7 +493,7 @@ void LANAPI::OnGameStart()
 			TheNetwork = nullptr;
 			m_isInLANMenu = TRUE;
 
-			// GeneralsX @security Claude 25/09/2026 Back in the lobby, so no admin mask: the next start stamps a fresh
+			// GeneralsX: Back in the lobby, so no admin mask: the next start stamps a fresh
 			// one, and a lobby never announces one (LANAPI.h beside g_announcePrefixAllowance).
 			m_currentGame->clearGxAdmin();
 
@@ -537,7 +537,7 @@ void LANAPI::OnGameStart()
 			return;
 		}
 
-		// GeneralsX @bugfix Claude 10/08/2026 Clear the game data only once the start is known to
+		// GeneralsX: Clear the game data only once the start is known to
 		// be a real launch. This used to run BEFORE the transfer - and the animated shell-map
 		// background IS a game (GAME_SHELL), so a delivery-run start unloaded it and the restored
 		// room sat on a dead backdrop (owner report). During the transfer the shell game is merely
@@ -548,7 +548,7 @@ void LANAPI::OnGameStart()
 
 		m_currentGame->startGame(0);
 
-		// GeneralsX @security Claude 25/09/2026 THE MATCH REALLY BEGINS: if our slot is an admin slot stamped with the key
+		// GeneralsX: THE MATCH REALLY BEGINS: if our slot is an admin slot stamped with the key
 		// we offer, that key becomes this match's signing key and a fresh one is offered for the next match
 		// (GameClient/GXAdminKey.h). Here and not at the top: a start that only delivers the map must not spend the key.
 		{
@@ -573,7 +573,7 @@ void LANAPI::OnGameStart()
 		GameMessage *msg = TheMessageStream->appendMessage( GameMessage::MSG_NEW_GAME );
 		msg->appendIntegerArgument(GAME_LAN);
 
-		// GeneralsX @bugfix Claude 02/08/2026 Do NOT force the render limiter off for the match.
+		// GeneralsX: Do NOT force the render limiter off for the match.
 		//
 		// This used to set m_useFpsLimit = false. Nothing turns it back on until clearGameData(),
 		// so FramePacer::isActualFramesPerSecondLimitEnabled() was false for the WHOLE match and
@@ -657,7 +657,7 @@ void LANAPI::OnGameOptions( UnsignedInt playerIP, Int playerSlot, AsciiString op
 			if (!slot)
 				return;
 
-			// GeneralsX @security Claude 06/10/2026 The value is the rest after "=", and str()+1 skips it. With no
+			// GeneralsX: The value is the rest after "=", and str()+1 skips it. With no
 			// "=" the rest is empty and str() is a one-byte static, so +1 read past it (sweep v-net-06). Every honest
 			// option carries "=value"; one without is ignored.
 			if (key == "User")
@@ -689,7 +689,7 @@ void LANAPI::OnGameOptions( UnsignedInt playerIP, Int playerSlot, AsciiString op
 				AsciiString key;
 				options.nextToken(&key, "=");
 				if (options.isEmpty())
-					return;	// GeneralsX @security Claude 06/10/2026 no "=value" - see the User/Host note above
+					return;	// GeneralsX: no "=value" - see the User/Host note above
 				Int val = atoi(options.str()+1);
 				DEBUG_LOG(("GameOpt request: key=%s, val=%s from player %d", key.str(), options.str(), playerSlot));
 
@@ -725,7 +725,7 @@ void LANAPI::OnGameOptions( UnsignedInt playerIP, Int playerSlot, AsciiString op
 				}
 				else if (key == "PlayerTemplate")
 				{
-					// GeneralsX @feature Claude 25/09/2026 Limit Armies, host side: a joiner asking for a
+					// GeneralsX: Limit Armies, host side: a joiner asking for a
 					// general's sub-faction while it is on gets Random instead - the retail rule from the
 					// GameSpy staging room (WOLGameSetupMenu.cpp), which the LAN/relay path never had.
 					Bool coerced = false;
@@ -875,7 +875,7 @@ void LANAPI::OnPlayerJoin( Int slot, UnicodeString playerName )
 	lanUpdateSlotList();
 }
 
-// GeneralsX @bugfix Claude 01/08/2026 Render a SimID buildTime for a human.
+// GeneralsX: Render a SimID buildTime for a human.
 //
 // The wire slot carries GitCommitTimeStamp now, and "1785540224" tells a player nothing at all -
 // it is a worse answer than the commit count it replaced, unless it is rendered as a date.
@@ -900,7 +900,7 @@ static UnicodeString simIdBuiltWhen( UnsignedInt unixTime )
 	return out;
 }
 
-// GeneralsX @bugfix Claude 17/08/2026 One identity field, marked agreeing or differing.
+// GeneralsX: One identity field, marked agreeing or differing.
 //
 // The dialog used to print the verdict as prose and leave the reader to diff two 8-digit hex
 // strings by eye. In the case that actually happens most - engine, data and ordinal all match
@@ -977,7 +977,7 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 		UnicodeString title, body;
 		title = TheGameText->FETCH_OR_SUBSTITUTE("LAN:JoinFailed", L"Could not join the game");
 
-		// GeneralsX @feature Claude 30/07/2026 Name the peer, do not just say "the other machine".
+		// GeneralsX: Name the peer, do not just say "the other machine".
 		//
 		// Every string below said "the other machine", which is fine with two boxes on a desk and
 		// useless in a four-platform lobby - the reader is told a build is wrong and not which one
@@ -993,7 +993,7 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 				whoPrefix.format( L"Host \"%s\": ", hostSlot->getName().str() );
 		}
 
-		// GeneralsX @feature Claude 27/07/2026 SimID join-failure diagnostics.
+		// GeneralsX: SimID join-failure diagnostics.
 		// getErrorStringFromReturnType is deliberately NOT changed. Its RET_CRC_MISMATCH
 		// branch fetches LAN:ErrorCRCMismatch, whose retail text is a mid-game desync notice
 		// that tells the reader their opponent may have cheated and points them at the Ignore
@@ -1028,7 +1028,7 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 				// taken upstream by SimIdCompare and is already final by the time OnGameJoin is
 				// called with RET_CRC_MISMATCH. Every value read here is read to be *printed*.
 				//
-				// GeneralsX @bugfix Claude 01/08/2026 The build time used to be GitRevision, a
+				// GeneralsX: The build time used to be GitRevision, a
 				// commit count, printed as "build %d". Both halves were wrong: the value could
 				// name the WRONG machine (see SimulationId.h for the three measured ways a commit
 				// count fails to order two builds), and a bare number was never useful to a
@@ -1038,7 +1038,7 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 				// through the old specifiers. No CSF in this tree defines any LAN:SimId* label
 				// today, so new names cost nothing and close that off permanently.
 				//
-				// GeneralsX @bugfix Claude 17/08/2026 0 is the "built without git" sentinel, not a
+				// GeneralsX: 0 is the "built without git" sentinel, not a
 				// time. Feeding it to simIdBuiltWhen renders "1970-01-01 00:00:00 UTC", which reads
 				// as a real - and absurd - build date rather than as missing information, and the
 				// row directly above already says the age is unknown.
@@ -1049,7 +1049,7 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 					? simIdBuiltWhen( m_remoteSim.buildTime )
 					: TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdBuiltNoGit", L"unknown (built without git)");
 
-				// GeneralsX @bugfix Claude 17/08/2026 Report every identity field, not just the
+				// GeneralsX: Report every identity field, not just the
 				// first one that tripped.
 				//
 				// The old text quoted the verdict's own field and nothing else, so the reader was
@@ -1073,8 +1073,8 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 				const Bool sourceComparable = (me.sourceID != 0u && m_remoteSim.sourceID != 0u);
 				const Bool sourceDiffers    = sourceComparable && (me.sourceID != m_remoteSim.sourceID);
 
-				// GeneralsX @feature Claude 01/10/2026 An unknown provenance is not an established mismatch (Codex
-				// m1det2-src0-r4 P2): say what it is.
+				// GeneralsX: An unknown provenance is not an established mismatch:
+				// say what it is.
 				body = (m_remoteSimVerdict == SIMID_SOURCE_UNKNOWN)
 					? TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdNoGitHead",
 						L"Unknown build provenance, not a network problem: one side was built without git. Field by field, yours vs theirs:\n\n")
@@ -1182,7 +1182,7 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 
 				// What differs, and what to do about THAT.
 				//
-				// GeneralsX @bugfix Claude 17/08/2026 Two things were wrong here, and both sent
+				// GeneralsX: Two things were wrong here, and both sent
 				// the player to work on the wrong thing.
 				//
 				// The FIELD: this used to switch on m_remoteSimVerdict, which is only the FIRST
@@ -1218,9 +1218,9 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 					ageAdvice = TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdFixBoth",
 						L"Rebuild both machines from the same commit.");
 
-				// GeneralsX @feature Claude 01/10/2026 M1 Determinism-1: an unknown source is refused on its own
+				// GeneralsX: M1 Determinism-1: an unknown source is refused on its own
 				// (SimIdCompare, SIMID_SOURCE_UNKNOWN), so say so whenever it holds - even when another field was the first
-				// mismatch, or aligning that field would only meet this refusal next (Codex m1det2-src0-r1 P2).
+				// mismatch, or aligning that field would only meet this refusal next.
 				if (!sourceComparable)
 					body.concat(TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdWhySourceUnknown",
 						L"One of the two machines runs a build made without its source history (no git), so "
@@ -1260,7 +1260,7 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 							L"the same files under Data. "));
 					if (ordinalDiffers)
 					{
-						// GeneralsX @bugfix Claude 17/08/2026 Do not blame the archives unless the
+						// GeneralsX: Do not blame the archives unless the
 						// ARCHIVE FINGERPRINT says so. ordinalID counts registered names; assetID
 						// is the mounted-archive fingerprint (SimulationId.cpp:640). A different
 						// archive set is only ONE way to move the name count - so when sourceID
@@ -1285,8 +1285,8 @@ void LANAPI::OnGameJoin( ReturnType ret, LANGameInfo *theGame )
 					}
 
 					// Belt and braces for the unreachable case described at the summary above:
-					// never leave the dialog with a diagnosis and no instruction. GeneralsX @feature Claude 01/10/2026 Not
-					// for an unknown source alone (Codex m1det2-src0-r2 P2): that refusal now reaches here with nothing
+					// never leave the dialog with a diagnosis and no instruction. GeneralsX: Not
+					// for an unknown source alone: that refusal now reaches here with nothing
 					// else differing, its instruction is already above ("use an official build"), and build age would
 					// point at the wrong machine when the no-git build is the newer one.
 					if (tier1Differs == 0 && sourceComparable)
@@ -1412,14 +1412,14 @@ void LANAPI::OnGameCreate( ReturnType ret )
 			case RET_BUSY:
 				GadgetListBoxAddEntryText(listboxChatWindow, TheGameText->fetch("LAN:ErrorBusy"), chatSystemColor, -1, -1);
 				break;
-			// GeneralsX @feature Claude 27/07/2026 RequestGameCreate's SimID pre-flight guard
+			// GeneralsX: RequestGameCreate's SimID pre-flight guard
 			// reports RET_CRC_MISMATCH. Without this case it falls through to default: and
 			// prints LAN:ErrorUnknown, which tells the user nothing actionable. Hosting is
 			// always initiated from the LAN lobby, so listboxChatWindow is live here - the
 			// enclosing if(m_inLobby) has already established that.
 			case RET_CRC_MISMATCH:
-				// GeneralsX @feature Claude 01/10/2026 A box, not only a lobby line, for the no-git refusal (Codex
-				// m1det2-src0-r3 P2): Direct Connect and the Online host popup have no listboxChatWindow, and a line into a
+				// GeneralsX: A box, not only a lobby line, for the no-git refusal:
+				// Direct Connect and the Online host popup have no listboxChatWindow, and a line into a
 				// null listbox is dropped - the Host click would look like it did nothing.
 				if (m_remoteSimVerdict == SIMID_SOURCE_UNKNOWN)
 					MessageBoxOk(TheGameText->FETCH_OR_SUBSTITUTE("LAN:SimIdNoGitHostTitle", L"Cannot host"),
@@ -1451,7 +1451,7 @@ void LANAPI::OnPlayerList( LANPlayer *playerList )
 		GadgetListBoxGetSelected(listboxPlayers, &selectedIndex);
 
 		if (selectedIndex != -1 )
-			// GeneralsX @bugfix BenderAI 13/02/2026 Use uintptr_t for 64-bit safe pointer cast
+			// GeneralsX: Use uintptr_t for 64-bit safe pointer cast
 			selectedIP = (uintptr_t) GadgetListBoxGetItemData(listboxPlayers, selectedIndex, 0);
 
 		GadgetListBoxReset(listboxPlayers);
@@ -1595,7 +1595,7 @@ void LANAPI::OnChat( UnicodeString player, UnsignedInt ip, UnicodeString message
 	GadgetListBoxSetItemData(chatWindow, (void *)-1, index);
 }
 
-// GeneralsX @feature Claude 27/07/2026 The deferred tier2 SimID warnings that OnChat above
+// GeneralsX: The deferred tier2 SimID warnings that OnChat above
 // cannot print at discovery time (listboxChatWindowLanGame does not exist until Shell::update()
 // instantiates the layout) are emitted by LANAPI::flushPendingSimWarnings, which lives in
 // LANAPIhandlers.cpp next to PostSimWarningsToChat. Keeping it there is deliberate: the host

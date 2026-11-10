@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0: GPU timestamps whose PROVENANCE is proved before any number
+// GeneralsX: WS-B VkCtx v0: GPU timestamps whose PROVENANCE is proved before any number
 // is handed out (PLAN §2: MoltenVK "timestamps may fall back to host time"; §0 TL;DR 5: Mini/iPad gains are sized only
 // after a timer whose provenance is validated).
 //

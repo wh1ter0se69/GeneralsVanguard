@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank DATA rule OPEN.SECOND_SUPPLY_T (C·rb-data): a second supply source by N seconds, every
+# GeneralsX: rule bank DATA rule OPEN.SECOND_SUPPLY_T (C·rb-data): a second supply source by N seconds, every
 # general. Stock Hard gets its second centre only from "<Side> Base Expansion Check" (money <= 7000 and _ESCALATION >= 25, ~250 s, or
 # when an ENEMY holds 2+ supply buildings - read through fog); that script reaches the $4,000 expansion gift, so it stays frozen. This
 # adds one Hard-only one-shot script per general instead: once the first centre stands and _GX_CLOCK >= ceil(t/10), build another

@@ -75,7 +75,7 @@
 #include <mach-o/dyld.h>
 #endif
 
-// GeneralsX @bugfix Claude 28/10/2026 Reject malformed BIG archives. Ports upstream PR #3588 (c7b7814e9) by hand:
+// GeneralsX: Reject malformed BIG archives. Ports upstream PR #3588 (c7b7814e9) by hand:
 // upstream's loader is Core/GameEngine/Source/Common/System/BIGFileSystem.cpp, which the fork does not build - the same
 // directory reader lives here and in its twin (StdBIGFileSystem.cpp / Win32BIGFileSystem.cpp), so the two stay mirrored.
 // The header and every directory entry are read whole and the read is checked; the counts are unsigned (a count with the
@@ -123,7 +123,7 @@ static const char* kPrimaryAssetEnvZH = "CNC_GENERALS_ZH_PATH";
 static const char* kPrimaryAssetIniKey = "AssetPath";
 static const char* kAssetPathSection = "Paths";
 
-// GeneralsX @feature Claude 08/08/2026 Community-patch overlay directory.
+// GeneralsX: Community-patch overlay directory.
 static const char* kPatchOverlayEnv = "GENERALSX_PATCH_PATH";
 static const char* kPatchOverlayDefaultSubdir = "GeneralsXPatch";
 
@@ -145,7 +145,7 @@ static Bool equalsIgnoreCase(const char* lhs, const char* rhs)
 #endif
 }
 
-// GeneralsX @bugfix Claude 09/09/2026 Does this folder hold THIS build's game data?
+// GeneralsX: Does this folder hold THIS build's game data?
 //
 // The scan itself lives in StdDevice/Common/StdAssetMarker.h so it can be RUN. This decision is
 // what stops the game starting, and as a file-static in a translation unit that pulls in most of
@@ -367,7 +367,7 @@ static Bool sanitizeConfiguredPath(const char* rawValue, AsciiString& sanitizedP
 	return sanitizedPath.isNotEmpty();
 }
 
-// GeneralsX @feature Claude 08/08/2026 Community-patch overlay directory - path helpers.
+// GeneralsX: Community-patch overlay directory - path helpers.
 
 static Int comparePathNoCase(const char* lhs, const char* rhs)
 {
@@ -496,7 +496,7 @@ static Bool tryLoadBigFiles(TBigFileSystem* fileSystem, const AsciiString& direc
 		return FALSE;
 	}
 
-	// GeneralsX @bugfix Claude 27/07/2026 Guarantee the trailing separator.
+	// GeneralsX: Guarantee the trailing separator.
 	//
 	// StdLocalFileSystem::getFileListInDirectory concatenates directory + searchName with no
 	// separator inserted, exactly like its Win32 twin. A configured asset root without a
@@ -549,7 +549,7 @@ static Bool loadPrimaryGameAssets(TBigFileSystem* fileSystem, AsciiString* loade
 	AsciiString exeDirectory;
 	getExecutableDirectory(exeDirectory);
 
-	// GeneralsX @feature GitHubCopilot 16/03/2026 Resolve primary asset directory by ENV > INI > default > current.
+	// GeneralsX: Resolve primary asset directory by ENV > INI > default > current.
 #if RTS_ZEROHOUR
 	const char* primaryEnvName = kPrimaryAssetEnvZH;
 	const char* primaryEnvValue = getenv(kPrimaryAssetEnvZH);
@@ -627,7 +627,7 @@ static Bool loadPrimaryGameAssets(TBigFileSystem* fileSystem, AsciiString* loade
 		AsciiString resourcesPath = exeDirectory;
 		resourcesPath.concat("/../Resources");
 		if (tryLoadBigFiles(fileSystem, resourcesPath, "default-resources")) {
-			// GeneralsX @bugfix Claude 09/09/2026 RECORD IT. This was the only success path that
+			// GeneralsX: RECORD IT. This was the only success path that
 			// returned TRUE without telling the caller where it loaded from, which was harmless
 			// while nobody read the answer and fatal the moment the refusal below started checking
 			// it: an unset directory reads as empty, empty failed the marker check, and the .app
@@ -653,7 +653,7 @@ static Bool loadPrimaryGameAssets(TBigFileSystem* fileSystem, AsciiString* loade
 	if (fileSystem->loadBigFilesFromDirectory("", "*.big", FALSE, FALSE)) {
 		fprintf(stderr, "[ASSET_ROOT] Selected source=current-working-directory\n");
 		if (loadedDirectory != nullptr) {
-			// GeneralsX @bugfix Claude 09/09/2026 "." rather than the empty string. The empty
+			// GeneralsX: "." rather than the empty string. The empty
 			// string was correct as a SENTINEL meaning "cwd" while the value was only ever passed
 			// back to loadBigFilesFromDirectory, which treats "" as cwd. It is not a path anything
 			// can opendir, so the refusal below - which does - read a successful cwd load as no
@@ -702,7 +702,7 @@ static Bool looksLikeBaseGenerals(const AsciiString& dir, const char* sep)
 	return TRUE;
 }
 
-// GeneralsX @bugfix Claude 09/09/2026 "Some .big loaded" is not "this game's data is here".
+// GeneralsX: "Some .big loaded" is not "this game's data is here".
 //
 // The fail-fast below used to gate on `loadedPrimaryAssets`, which `tryLoadBigFiles` sets when
 // loadBigFilesFromDirectory reports ANY archive mounted. Point the Zero Hour build at a base
@@ -805,14 +805,14 @@ static Bool findBaseGeneralsSibling(const AsciiString& zhDirNoSep, const char* s
 	return found;
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 Steam keeps base Generals in <game folder>/ZH_Generals. The
+// GeneralsX: Steam keeps base Generals in <game folder>/ZH_Generals. The
 // game-folder scan used to reach it by recursing, so it mounted right after the top-level archives
 // and BEFORE the overlay and every base-Generals resolver. Now that the scan is top-level only it is
 // mounted here, by name, at that same position, so a Steam install resolves every contested path
 // as it did (the resolvers below then find it already mounted). Matched case-insensitively because
 // the old walk was: a case-sensitive volume holding "zh_generals" must not lose its world art.
 //
-// GeneralsX @bugfix Claude 25/09/2026 The lookup is shared with loadBaseGeneralsAssetsForZH's
+// GeneralsX: The lookup is shared with loadBaseGeneralsAssetsForZH's
 // "default-zh-generals" candidate, and must be. Spelled "/ZH_Generals" there, a case-sensitive volume
 // holding "zh_generals" had its world art mounted HERE while that candidate failed, so the chain went
 // on to the sibling candidates - and a base install found beside the game folder was mounted as a
@@ -857,7 +857,7 @@ static void mountSteamBaseGenerals(TBigFileSystem* fileSystem, const AsciiString
 template <typename TBigFileSystem>
 static void loadBaseGeneralsAssetsForZH(TBigFileSystem* fileSystem, const AsciiString& zhAssetDirectory)
 {
-	// GeneralsX @feature GitHubCopilot 16/03/2026 Resolve base Generals asset directory for ZH by ENV > INI > default.
+	// GeneralsX: Resolve base Generals asset directory for ZH by ENV > INI > default.
 	const char* baseEnvValue = getenv(kBaseGeneralsAssetEnv);
 	if (baseEnvValue != nullptr && baseEnvValue[0] != '\0') {
 		if (tryLoadBigFiles(fileSystem, AsciiString(baseEnvValue), "env-generals")) {
@@ -896,7 +896,7 @@ static void loadBaseGeneralsAssetsForZH(TBigFileSystem* fileSystem, const AsciiS
 	}
 
 	if (zhAssetDirectory.isNotEmpty()) {
-		// GeneralsX @bugfix Claude 27/07/2026 Join on a separator-free base.
+		// GeneralsX: Join on a separator-free base.
 		//
 		// zhAssetDirectory is whatever the asset-root resolver selected, and a configured
 		// root very commonly ends with a separator ("...Zero Hour\\"). Concatenating
@@ -959,7 +959,7 @@ static void loadBaseGeneralsAssetsForZH(TBigFileSystem* fileSystem, const AsciiS
 			}
 		}
 
-		// GeneralsX @bugfix Claude 25/09/2026 A NOTE, NOT THE WARNING. Whether this install can play
+		// GeneralsX: A NOTE, NOT THE WARNING. Whether this install can play
 		// the same game as everybody else is decided later and directly - can every bridge model load?
 		// (TerrainVisual::isEveryBridgeModelAvailable) - because the base archives can also arrive
 		// another way: in the Zero Hour folder itself, through a -mod, or split across two sources.
@@ -987,7 +987,7 @@ void StdBIGFileSystem::init() {
 		return;
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 Resolve the overlay BEFORE anything is mounted.
+	// GeneralsX: Resolve the overlay BEFORE anything is mounted.
 	// loadBigFilesFromDirectory has to know about it: a recursive scan (a -mod folder, and the
 	// game folder until 25/09/2026) would otherwise mount an overlay living inside it twice -
 	// once at path-sort precedence by that scan and once at filename precedence below.
@@ -997,13 +997,13 @@ void StdBIGFileSystem::init() {
 
 	AsciiString primaryAssetsDirectory;
 	const Bool loadedPrimaryAssets = loadPrimaryGameAssets(this, &primaryAssetsDirectory);
-	// GeneralsX @bugfix Claude 27/07/2026 Only ever read by the DEBUG_ASSERTCRASH below,
+	// GeneralsX: Only ever read by the DEBUG_ASSERTCRASH below,
 	// which compiles to nothing in release - so the variable is unused there and MSVC's
 	// warnings-as-errors rejects it (C4189). Keep the call, silence the release warning.
 	(void)loadedPrimaryAssets;
 	DEBUG_ASSERTCRASH(loadedPrimaryAssets, ("No BIG files were loaded for the primary game assets."));
 
-	// GeneralsX @bugfix Claude 26/08/2026 SAY IT HERE, WHERE IT IS KNOWN, INSTEAD OF DYING LATER.
+	// GeneralsX: SAY IT HERE, WHERE IT IS KNOWN, INSTEAD OF DYING LATER.
 	//
 	// DEBUG_ASSERTCRASH compiles to nothing in release and the result is discarded on the line
 	// above, so a shipped build that found no game data said nothing and carried on. Measured on a
@@ -1024,7 +1024,7 @@ void StdBIGFileSystem::init() {
 	// EX_CONFIG (78) rather than 1: it is specifically "the configuration is wrong", which is what
 	// this is, and it gives the wrapper a code to recognise. run.sh turns it into a dialog, because
 	// a player who double-clicked an .app never sees stderr.
-	// GeneralsX @bugfix Claude 09/09/2026 Also refuse when the WRONG game's data is mounted.
+	// GeneralsX: Also refuse when the WRONG game's data is mounted.
 	//
 	// `loadedPrimaryAssets` is TRUE when any archive mounted at all. Point the Zero Hour build at a
 	// base Generals folder and INI.big mounts, this guard passes, and initialisation runs on data
@@ -1034,7 +1034,7 @@ void StdBIGFileSystem::init() {
 	// Deliberately NOT folded into loadPrimaryGameAssets: that function's job is "did anything
 	// mount", it is called from several places, and narrowing it would change behaviour for callers
 	// that legitimately accept a partial mount. The variant requirement belongs at the refusal.
-	// GeneralsX @bugfix Claude 09/09/2026 THREE outcomes, and unreadable FAILS CLOSED.
+	// GeneralsX: THREE outcomes, and unreadable FAILS CLOSED.
 	//
 	// An earlier version of this returned TRUE when opendir failed, reasoning that a permissions
 	// problem should not be reported as missing game files. That was the wrong half of a real
@@ -1154,7 +1154,7 @@ void StdBIGFileSystem::init() {
 	loadBaseGeneralsAssetsForZH(this, primaryAssetsDirectory);
 #endif
 
-	// GeneralsX @bugfix Claude 23/09/2026 One neutral fact for a "wrong menu" report: the ARCHIVE the
+	// GeneralsX: One neutral fact for a "wrong menu" report: the ARCHIVE the
 	// default shell-map path resolves to at this point. Not reflected: loose-file overrides (the
 	// local file system is asked first), a ShellMapName/-shellMap override, and -mod (loaded later).
 	// Precedence is deliberately left alone: dataID, a join-refusal field, depends on which archive
@@ -1164,7 +1164,7 @@ void StdBIGFileSystem::init() {
 		shellMapArchive != nullptr ? shellMapArchive->getName().str() : "(none)");
 }
 
-// GeneralsX @feature Claude 08/08/2026 Load an extra .big from a GeneralsX-owned directory.
+// GeneralsX: Load an extra .big from a GeneralsX-owned directory.
 //
 // WHY: two peers may only join each other when their dataID matches, and dataID covers the
 // archive contents. Handing a friend our community patch therefore meant writing a .big into
@@ -1241,7 +1241,7 @@ void StdBIGFileSystem::loadPatchOverlay(const AsciiString& primaryAssetsDirector
 	fflush(stderr);
 }
 
-// GeneralsX @feature Claude 08/08/2026 Filename-ordered insertion into the shared tree.
+// GeneralsX: Filename-ordered insertion into the shared tree.
 //
 // The directory walk is a verbatim copy of ArchiveFileSystem::loadIntoDirectoryTree, and it
 // has to be: that file is inside the simulation source digest, so extending it would move
@@ -1266,7 +1266,7 @@ void StdBIGFileSystem::loadIntoDirectoryTreeAtPriority(ArchiveFile *archiveFile,
 		tokenizer.toLower();
 		tokenizer.nextToken(&token, "\\/");
 
-		// GeneralsX @bugfix Claude 01/10/2026 TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
+		// GeneralsX: TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
 		// the dot-guessing condition misfiled dotless file names as directories (tsh batch2 #53).
 		while (!tokenizer.isEmpty())
 		{
@@ -1336,8 +1336,8 @@ ArchiveFile * StdBIGFileSystem::openArchiveFile(const Char *filename) {
 	char buffer[_MAX_PATH];
 	if (fp->read(&header, sizeof(header)) != sizeof(header) || memcmp(header.identifier, BIGFileIdentifier, sizeof(BIGFileIdentifier)) != 0) {
 		DEBUG_CRASH(("Error reading BIG file header in file %s", filename));
-		// GeneralsX @bugfix Claude 28/10/2026 Said in release builds too, where DEBUG_CRASH is empty: a refused archive must
-		// not read as a missing one (Codex tsh1028-3588-sec-r1 P3).
+		// GeneralsX: Said in release builds too, where DEBUG_CRASH is empty: a refused archive must
+		// not read as a missing one.
 		fprintf(stderr, "[BIGFS] refused %s: not a BIG archive, or its 16-byte header is cut short\n", filename);
 		fp->close();
 		fp = nullptr;
@@ -1360,7 +1360,7 @@ ArchiveFile * StdBIGFileSystem::openArchiveFile(const Char *filename) {
 
 	// read in each directory listing. The header read above leaves the file at 0x10, where the directory starts.
 	ArchivedFileInfo fileInfo;
-	// GeneralsX @bugfix Claude 14/09/2026 Allocate the StdBIGFile only after the header is
+	// GeneralsX: Allocate the StdBIGFile only after the header is
 	// validated. It used to be created before the fp == nullptr and "BIGF" identifier checks,
 	// both of which return early - leaking the StdBIGFile every time a .big is missing or not
 	// actually a BIG archive. The Win32 twin already got this treatment (Mauller 23/04/2025);
@@ -1381,7 +1381,7 @@ ArchiveFile * StdBIGFileSystem::openArchiveFile(const Char *filename) {
 		fileInfo.m_offset = betoh(entry.fileOffset);
 		fileInfo.m_size = betoh(entry.fileSize);
 
-		// read in the path name of the file. GeneralsX @bugfix Claude 23/09/2026 had already bounded this loop
+		// read in the path name of the file. GeneralsX: had already bounded this loop
 		// (a name longer than the buffer, or a truncated archive, ran it past the stack buffer); #3588's helper replaces it.
 		const Int pathIndex = readNullTerminatedString(fp, buffer, sizeof(buffer));
 		if (pathIndex < 0) {
@@ -1389,11 +1389,11 @@ ArchiveFile * StdBIGFileSystem::openArchiveFile(const Char *filename) {
 			break;
 		}
 
-		// GeneralsX @bugfix Claude 28/10/2026 Fork hardening, not part of upstream #3588: an entry whose offset or size
+		// GeneralsX: Fork hardening, not part of upstream #3588: an entry whose offset or size
 		// does not fit the Int that RAMFile and StreamingArchiveFile take them as (either >= 2^31, or offset + size past
 		// INT_MAX) is left out of the directory. Kept, a size of 0xFFFFFFFF reached RAMFile::openFromArchive as -1 (new[]
 		// of a negative length) and StreamingArchiveFile as -1, whose read clamp then handed fread SIZE_MAX, and a sum
-		// past INT_MAX overflowed their Int arithmetic (Codex tsh1028-3588-sec-r1 P1). No archive the game can read has
+		// past INT_MAX overflowed their Int arithmetic. No archive the game can read has
 		// such an entry (retail reads the archive size as Int: 2 GB at most), so a well-formed directory is unchanged,
 		// and the archive's other entries still mount. The name is not echoed: it is the archive's bytes, not text.
 		if (fileInfo.m_offset > (UnsignedInt)INT_MAX || fileInfo.m_size > (UnsignedInt)INT_MAX - fileInfo.m_offset) {
@@ -1472,9 +1472,9 @@ void StdBIGFileSystem::closeAllArchiveFiles() {
 void StdBIGFileSystem::closeAllFiles() {
 }
 
-// GeneralsX @bugfix Claude 23/09/2026 The single-file -mod half of the guard below: loadMods opens
+// GeneralsX: The single-file -mod half of the guard below: loadMods opens
 // that archive itself and never reaches loadBigFilesFromDirectory. Same rule, same helper.
-// GeneralsX @bugfix Claude 06/10/2026 See ArchiveFileSystem::isModArchive.
+// GeneralsX: See ArchiveFileSystem::isModArchive.
 Bool StdBIGFileSystem::isModArchive(const Char *archiveName) const {
 	return TheGlobalData != nullptr && GXArchiveMount::isModArchive(archiveName, TheGlobalData->m_modBIG.str(), TheGlobalData->m_modDir.str());
 }
@@ -1500,7 +1500,7 @@ Bool StdBIGFileSystem::loadBigFilesFromDirectory(AsciiString dir, AsciiString fi
 	return loadBigFilesFromDirectory(dir, fileMask, overwrite, TRUE);
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 THE GAME FOLDER IS SCANNED AT THE TOP LEVEL ONLY.
+// GeneralsX: THE GAME FOLDER IS SCANNED AT THE TOP LEVEL ONLY.
 //
 // Owner's decision (#10, 24/09/2026): GeneralsX loads only its own files. Retail walked every
 // subfolder of the game folder, so another launcher's or mod's nested archives mounted too - a
@@ -1517,7 +1517,7 @@ Bool StdBIGFileSystem::loadBigFilesFromDirectory(AsciiString dir, AsciiString fi
 	FilenameList filenameList;
 	TheLocalFileSystem->getFileListInDirectory(dir, "", fileMask, filenameList, searchSubdirectories);
 
-	// GeneralsX @feature Claude 08/08/2026 Leave the overlay's archives to loadPatchOverlay.
+	// GeneralsX: Leave the overlay's archives to loadPatchOverlay.
 	//
 	// This scan is recursive, so an overlay directory placed INSIDE the game folder is walked
 	// by it too. Mounting an archive here and again in loadPatchOverlay would put it in the
@@ -1532,7 +1532,7 @@ Bool StdBIGFileSystem::loadBigFilesFromDirectory(AsciiString dir, AsciiString fi
 			|| comparePathNoCase(scanResolved.str(), m_patchOverlayDirectory.str()) != 0;
 	}
 
-	// GeneralsX @bugfix Claude 23/09/2026 NEVER MOUNT THE SAME ARCHIVE TWICE - see
+	// GeneralsX: NEVER MOUNT THE SAME ARCHIVE TWICE - see
 	// StdDevice/Common/GXArchiveMount.h for the full account.
 	//
 	// m_archiveFileMap is keyed by the path STRING, and this function is the choke point every
@@ -1550,7 +1550,7 @@ Bool StdBIGFileSystem::loadBigFilesFromDirectory(AsciiString dir, AsciiString fi
 	// loadPatchOverlay has always had this guard (:1113) - as an exact string match, which is the
 	// half that works only when the two spellings happen to be identical.
 	//
-	// ponytail: O(n*m) realpath calls, n archives against m already mounted. n is the archive
+	// Trade-off: O(n*m) realpath calls, n archives against m already mounted. n is the archive
 	// count - 65 on the worst install seen - and this runs once at startup. Keep a resolved-path
 	// set on the file system if an install ever carries hundreds of archives.
 	std::vector<std::string> mountedKeys;

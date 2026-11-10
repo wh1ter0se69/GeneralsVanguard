@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 25/09/2026 The match timer never shares pixels with the readout row.
+// GeneralsX: The match timer never shares pixels with the readout row.
 //
 // The row (latency, resends, fps, tps, system clock) starts at the GXHud.ini anchor and grows
 // rightward; the timer is right-aligned, inset from the RIGHT edge by the same anchor X. At the 50%

@@ -82,8 +82,8 @@ D3DXLoadSurfaceFromSurface(
 		return D3DERR_INVALIDCALL;
 	}
 
-	// GeneralsX @bugfix C · mip-box-filter 18/10/2026 A failed lock leaves pBits unset, and both paths below write through it:
-	// refuse instead, releasing only the lock that was taken (Codex mipbox-r1).
+	// GeneralsX: A failed lock leaves pBits unset, and both paths below write through it:
+	// refuse instead, releasing only the lock that was taken.
 	D3DLOCKED_RECT srcRect;
 	if (FAILED(pSrcSurface->LockRect(&srcRect, NULL, 0)))
 	{
@@ -107,7 +107,7 @@ D3DXLoadSurfaceFromSurface(
 		return D3D_OK;
 	}
 
-	// GeneralsX @bugfix C · mip-box-filter 18/10/2026 The same 2:1 box on every platform (d3dx8_boxfilter.h). Windows and
+	// GeneralsX: The same 2:1 box on every platform (d3dx8_boxfilter.h). Windows and
 	// Linux used gli::generate_mipmaps(FILTER_LINEAR), which point-sampled half of every level; Apple already ran this box.
 	// It honours both pitches (GLI read the source as if tight and only compared the destination's byte count, so it also
 	// accepted a same-size but differently shaped destination). Anything else is refused, and every refusal now unlocks both
@@ -191,8 +191,8 @@ D3DXFilterTexture(
 				return hr;
 			}
 
-			// GeneralsX @bugfix C · mip-box-filter 18/10/2026 Stop at the first level that could not be built and return why (Codex
-			// mipbox-r2): the loop used to build every later level from it and report D3D_OK. Each surface reference is now
+			// GeneralsX: Stop at the first level that could not be built and return why:
+			// the loop used to build every later level from it and report D3D_OK. Each surface reference is now
 			// released once - the old loop released the last level twice and never the top one.
 			while (tex->GetSurfaceLevel(Level, &mipsurf) == D3D_OK)
 			{

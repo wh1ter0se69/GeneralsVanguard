@@ -1400,7 +1400,7 @@ void BridgeBehavior::xfer( Xfer *xfer )
 
 		// sanity
 		DEBUG_ASSERTCRASH( bridge, ("BridgeBehavior::xfer - Unable to find bridge" ));
-		// GeneralsX @bugfix Claude 06/10/2026 The assert compiles out of release, and the next line dereferenced the null:
+		// GeneralsX: The assert compiles out of release, and the next line dereferenced the null:
 		// a save with a bridge object where the map has no bridge (crafted, or made on another revision of the map)
 		// crashed at load. Refuse it (sweep c091-01).
 		if( bridge == nullptr )
@@ -1424,7 +1424,7 @@ void BridgeBehavior::xfer( Xfer *xfer )
 		// sanity
 		DEBUG_ASSERTCRASH( bridge, ("BridgeBehavior::xfer - Unable to find bridge" ));
 		if( bridge == nullptr )
-			throw XFER_INVALID_PARAMETERS;	// GeneralsX @bugfix Claude 06/10/2026 as above (sweep c091-01)
+			throw XFER_INVALID_PARAMETERS;	// GeneralsX: as above (sweep c091-01)
 
 		// set new object ID in bridge info to us
 		for( Int i = 0; i < BRIDGE_MAX_TOWERS; ++i )

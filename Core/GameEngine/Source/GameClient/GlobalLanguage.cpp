@@ -150,7 +150,7 @@ GlobalLanguage::~GlobalLanguage()
 
 void GlobalLanguage::init()
 {
-	// GeneralsX @bugfix GitHubCopilot 27/05/2026 Implement Language.ini fallback chain so stock values fill missing override keys.
+	// GeneralsX: Implement Language.ini fallback chain so stock values fill missing override keys.
 	char log_buffer[512];
 	{
 		AsciiString registryLanguage = GetRegistryLanguage();

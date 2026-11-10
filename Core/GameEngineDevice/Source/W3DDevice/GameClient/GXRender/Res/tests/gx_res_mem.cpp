@@ -1,4 +1,4 @@
-// GeneralsX @test E · rw2-C 11/10/2026 WS-C week 2: the phys_footprint A/B of PLAN_native-renderer §1b "+" - native
+// GeneralsX: WS-C week 2: the phys_footprint A/B of PLAN_native-renderer §1b "+" - native
 // upload-then-drop vs classic DXVK MANAGED on the SAME texture set, one arm per process (macOS only: task_vm_info).
 //
 //   gx_res_mem --arm classic|classic-empty|native-drop|native-keep|native-empty --dir <dir of .dds/.tga> [--settle S]
@@ -263,7 +263,7 @@ bool nativeLoad(const std::vector<TexFile>& set, bool drop, std::vector<std::uni
 	return gx.submitPending(true) || (*why = "final submitPending failed", false);
 }
 
-// `footprint <pid>` (the category split) into out. False when it was asked for and did not run cleanly (Codex rw2-C-r1 P2: a
+// `footprint <pid>` (the category split) into out. False when it was asked for and did not run cleanly (a
 // spawn failure used to print "exit 0").
 bool runFootprintTool(const char* out)
 {

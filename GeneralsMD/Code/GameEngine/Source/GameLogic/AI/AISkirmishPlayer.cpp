@@ -67,7 +67,7 @@ extern void gxLayoutFallbackFixture();	// GeneralsX 06/11/2026 base-layout: AIPl
 #if defined(GX_TEST_INSTRUMENTS)	// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: [GXTAA] events, test-instruments builds only
 #include <cstdarg>
 #include "GameLogic/GameLogic.h"	// TheGameLogic, read by the helper below
-// GeneralsX @performance Claude 03/11/2026 t2-cheap: ONE write per [GXTAA] line - the same bytes the old fprintf + fprintf + fputc wrote
+// GeneralsX: t2-cheap: ONE write per [GXTAA] line - the same bytes the old fprintf + fprintf + fputc wrote
 // (three writes on the unbuffered stderr), so the line, its order and every reader see nothing new; a line too long for the buffer
 // takes the old three calls.
 static void gxTaaLogLine(const char *fmt, ...)
@@ -110,13 +110,13 @@ static void gxTaaLogLine(const char *fmt, ...)
 #include "GameLogic/GXHookTimer.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ: [GXHOOK] CPU timer (test-instruments builds)
 #include "GameLogic/GXRules/GXRuleBank.h"	// GeneralsX 30/10/2026 rb-core: the AI rule bank
 GX_HOOK_STATS_EXTERN(gxFaceFrontHook);	// AIPlayer.cpp: the face-front arm's one per-tick sum
-// arm T's per-tick time: the air watch here AND the guard-side checks in AITNGuard.cpp, ONE sum (Codex ke-tunnel-r11 P2)
+// arm T's per-tick time: the air watch here AND the guard-side checks in AITNGuard.cpp, ONE sum
 GX_HOOK_STATS_DEFINE(gxTunnelAAHook, "tunnel_air_watch");
 #include "GameLogic/ScriptEngine.h"
 #include "GameLogic/Module/ProductionUpdate.h"
 #include "GameClient/TerrainVisual.h"
 
-// GeneralsX @bugfix E·wh1ter0se-bugs-1015 16/10/2026 The AI tests a structure spot as standing ON THE GROUND. Its spot searches move a
+// GeneralsX: The AI tests a structure spot as standing ON THE GROUND. Its spot searches move a
 // candidate in x and y only, keeping the height of the spot they started from (the build-list spot, the warehouse, the base
 // centre), and isLocationLegalToBuild sees an object only when the two boxes overlap in height too
 // (PartitionManager::geomCollidesWithGeom). So from a spot on a ridge, every candidate on the low ground below was tested as a box
@@ -275,9 +275,9 @@ void AISkirmishPlayer::processBaseBuilding()
 				continue; // already built.
 			}
 			// Make sure it is safe to build here.
-			// GeneralsX @feature Claude 01/10/2026 A supply centre whose dock-face spot is not safe moves to today's spot at once and
+			// GeneralsX: A supply centre whose dock-face spot is not safe moves to today's spot at once and
 			// is tested there, instead of waiting for the face to clear (useFallbackSpot is one-shot; see AIPlayer::buildBySupplies).
-			// GeneralsX @bugfix Claude 27/10/2026 ...but only when today's spot IS safe. Moving to a spot that is just as unsafe gave up
+			// GeneralsX: ...but only when today's spot IS safe. Moving to a spot that is just as unsafe gave up
 			// the face for nothing: the entry then waited there and the centre was built off the dock with 3 trucks (wh1ter0se's 27/10
 			// 0.9.68 game: all 6 unsafe refusals had an unsafe today's spot, gx-handoff ai/china-fallback). Now the entry waits on
 			// the face and moves the first time today's spot is safe and the face is not.
@@ -287,9 +287,9 @@ void AISkirmishPlayer::processBaseBuilding()
 					continue;
 				}
 				// GeneralsX 06/11/2026 base-layout (ADDENDUM_8 (c)): a keyed entry's layout fallback, the stock spot, is taken the same way, but only by
-				// the entry this pass builds: it stays a candidate here, unmoved, and moves below once it is the pick (Codex bl-fb-r2 P2). One this
+				// the entry this pass builds: it stays a candidate here, unmoved, and moves below once it is the pick. One this
 				// pass could not pick at all (not a priority request, not automatic, not a forced power plant: a tech building the scripts have not
-				// asked for yet) waits on its layout spot as before (Codex bl-fb-r1 P2). Either way a passing enemy cannot spend its one move.
+				// asked for yet) waits on its layout spot as before. Either way a passing enemy cannot spend its one move.
 				if (info->hasLayoutFallback()) {
 					const Bool gxCanPick = info->isPriorityBuild() || info->isAutomaticBuild()
 						|| (isUnderPowered && curPlan->isKindOf(KINDOF_FS_POWER) && !curPlan->isKindOf(KINDOF_CASH_GENERATOR));
@@ -351,7 +351,7 @@ void AISkirmishPlayer::processBaseBuilding()
 			}
 		}
 		if (bldgPlan && bldgInfo) {
-			// GeneralsX 06/11/2026 base-layout (ADDENDUM_8 (c), Codex bl-fb-r2 P2): the keyed entry this pass builds, kept a candidate above with its
+			// GeneralsX 06/11/2026 base-layout (ADDENDUM_8 (c)): the keyed entry this pass builds, kept a candidate above with its
 			// layout spot unsafe and its stock spot safe (the same test, this same frame), moves to the stock spot now.
 			if (bldgInfo->hasLayoutFallback() && !isLocationSafe(bldgInfo->getLocation(), bldgPlan)) {
 				GX_ROT_LOG("p=%d ev=fallback why=unsafe tmpl=%s x=%.2f y=%.2f", (Int)m_player->getPlayerIndex(), bldgInfo->getTemplateName().str(),
@@ -456,7 +456,7 @@ Bool AISkirmishPlayer::startTraining( WorkOrder *order, Bool busyOK, AsciiString
 }
 
 
-// GeneralsX @feature Claude 08/10/2026 Ported from Zero Hour Reforged (GPL-3.0, Olcay Seygan, commit 87e007e:
+// GeneralsX: Ported from Zero Hour Reforged (GPL-3.0, Olcay Seygan, commit 87e007e:
 // GeneralsMD/Code/GameEngine/Source/GameLogic/AI/AI.cpp aiHoardAdjustedDelay / aiHoardAllowedTeamInstances, AIPlayer.cpp
 // scriptAttacks / aiTeamAttacks), unchanged except NULL -> nullptr, file-local linkage and integer
 // arithmetic in aiHoardAdjustedDelay. The threshold is ours
@@ -497,7 +497,7 @@ static Int aiHoardAllowedTeamInstances( Int maxInstances, Int money, Int hoardAt
 
 /** A script, or one it hands the team on to, that sends the team at the enemy: an attack order, a wait on the flag the
 	* skirmish scripts raise to launch a wave, or a count towards the next one. */
-/** GeneralsX (Codex spend-r6): the action orders the team that runs the script, not some other team. Every retail
+/** GeneralsX: the action orders the team that runs the script, not some other team. Every retail
 	* skirmish attack action names "<This Team>" (254 of 254); a mod's guard hook that sends ANOTHER team does not make
 	* the guard an attacker. */
 static Bool ordersThisTeam( ScriptAction *action )
@@ -512,13 +512,13 @@ static Bool scriptAttacks( const Script *script, Int depth, Bool falseToo )
 {
 	if( script == nullptr || depth > 4 )
 		return FALSE;
-	// GeneralsX (Codex spend-r10): conditions only where they are evaluated - a hook or generic script (depth 0); a
+	// GeneralsX: conditions only where they are evaluated - a hook or generic script (depth 0); a
 	// sequential script runs its action list and ignores its conditions. No retail sequential script attacks only by one.
 	for( OrCondition *orCond = depth == 0 ? script->getOrCondition() : nullptr; orCond; orCond = orCond->getNextOrCondition() )
 		for( Condition *cond = orCond->getFirstAndCondition(); cond; cond = cond->getNext() )
 			if( cond->getConditionType() == Condition::FLAG && cond->getParameter( 0 )->getString().startsWith( "_LAUNCH_ATTACK" ) )
 				return TRUE;
-	// GeneralsX (Codex spend-r7, r8): only branches the engine can run - an OnCreate/OnIdle hook runs through
+	// GeneralsX: only branches the engine can run - an OnCreate/OnIdle hook runs through
 	// executeScript, which takes the false actions when the conditions fail; generic and sequential scripts run the true
 	// actions only. Retail has no attack action in a false branch.
 	for( Int branch = 0; branch < (falseToo ? 2 : 1); ++branch )
@@ -555,7 +555,7 @@ static Bool scriptAttacks( const Script *script, Int depth, Bool falseToo )
 
 /** A team the skirmish scripts send at the enemy at some point, as against one they keep at home on guard: the tunnel
 	* guards, the fire base crew, the palace garrison. */
-// GeneralsX (Codex spend-r13): the script group ScriptEngine::runScript would find for this name (ScriptEngine::findGroup,
+// GeneralsX: the script group ScriptEngine::runScript would find for this name (ScriptEngine::findGroup,
 // which is protected): it looks for a group first.
 static ScriptGroup *findHookGroup( const AsciiString &name )
 {
@@ -572,7 +572,7 @@ static ScriptGroup *findHookGroup( const AsciiString &name )
 /** An OnCreate/OnIdle hook as ScriptEngine::runScript resolves it - a subroutine group (each of its scripts) before a
 	* subroutine script - and executeScript filters it: a script not flagged for the AI's difficulty is skipped, and only a
 	* Hard AI hoards. Only fixed flags are read, never isActive(), which scripts change during the match and a save does not
-	* keep in this cache (Codex spend-r9, r11, r12, r13). All 429 retail Hard hooks are Hard subroutine scripts. */
+	* keep in this cache. All 429 retail Hard hooks are Hard subroutine scripts. */
 static Bool lifecycleHookAttacks( const AsciiString &name )
 {
 	if( name.isEmpty() )
@@ -581,7 +581,7 @@ static Bool lifecycleHookAttacks( const AsciiString &name )
 	{
 		if( !group->isSubroutine() )
 			return FALSE;
-		for( Script *script = group->getScript(); script; script = script->getNext() )	// executeScripts skips subroutines (Codex spend-r14)
+		for( Script *script = group->getScript(); script; script = script->getNext() )	// executeScripts skips subroutines
 			if( !script->isSubroutine() && script->isHard() && scriptAttacks( script, 0, TRUE ) )
 				return TRUE;
 		return FALSE;
@@ -591,7 +591,7 @@ static Bool lifecycleHookAttacks( const AsciiString &name )
 }
 
 static Bool hookAttacks( const AsciiString &name )
-{	// GeneralsX (Codex spend-r1): an empty hook names no script, and findScriptByName scans every side's list to say so
+{	// GeneralsX: an empty hook names no script, and findScriptByName scans every side's list to say so
 	return !name.isEmpty() && scriptAttacks( TheScriptEngine->findScriptByName( name ), 0, FALSE );
 }
 
@@ -622,7 +622,7 @@ Bool AISkirmishPlayer::isAGoodIdeaToBuildTeam( TeamPrototype *proto )
 	const TeamTemplateInfo *info = proto->getTemplateInfo();
 	Int allowedInstances = info->m_maxInstances;
 	// A singleton keeps its one copy: createInactiveTeam hands back the live team and an automatic build skips the
-	// singleton guard, so a raised limit would only pour units into it (Codex spend-r1). The classification is cached
+	// singleton guard, so a raised limit would only pour units into it. The classification is cached
 	// per team for this match - the scripts never change during it.
 	if (proto->countTeamInstances() >= allowedInstances && !proto->getIsSingleton() && isHoarding()
 			&& !info->m_isBaseDefense && !info->m_isPerimeterDefense) {
@@ -761,7 +761,7 @@ void AISkirmishPlayer::acquireEnemy()
 	Player *bestEnemy = nullptr;
 	Real bestDistanceSqr = HUGE_DIST*HUGE_DIST;
 
-	// GeneralsX @feature Claude 29/09/2026 Smarter target picking for Normal and Hard skirmish AIs (wh1ter0se: "yes, build
+	// GeneralsX: Smarter target picking for Normal and Hard skirmish AIs (wh1ter0se: "yes, build
 	// a test"). Retail kept the current enemy until it had no units or no build facility, and its two tie-breakers below
 	// (+500^2 when another AI already targets him, -25^2 when he targets me) are negligible against squared base
 	// distances of ~3.6-6.8 M on a 12-spawn map - so every AI fought its nearest neighbour to the end and never answered
@@ -772,7 +772,7 @@ void AISkirmishPlayer::acquireEnemy()
 	// a new pick is held a minute): re-scoring on every 5 s check made about half of all switches flip back within
 	// 10-25 s (measured, 12-AI A/B b4), and the choice steers attack waves, defence placement and expansion. A crippled
 	// one is still dropped on the next 5 s check. The minute is per AI, not a global window, because getAiEnemy() runs
-	// on demand and a caller could keep missing a window (Codex r4/r5). No new saved state (m_frameEnemyReviewed is an
+	// on demand and a caller could keep missing a window. No new saved state (m_frameEnemyReviewed is an
 	// unsaved timer, like m_frameToCheckEnemy) and deterministic (players by index; per-player counts from one
 	// partition scan, which are order-independent; logic frames only, no wall clock, no per-peer state). Easy keeps the
 	// retail rule so it does not get harder.
@@ -790,8 +790,8 @@ void AISkirmishPlayer::acquireEnemy()
 	for (Int p = 0; p < MAX_PLAYER_COUNT; ++p) invaders[p] = 0;
 	if (smart && m_baseCenterSet) {
 		const Real range = (m_baseRadius > 300.0f ? m_baseRadius : 300.0f) + 300.0f;
-		// Undetected stealth units are skipped, as in AIPlayer::isLocationSafe (Codex r5). Fog is deliberately NOT
-		// applied (Codex r6 asked for it): retail computer players ignore fog - AIUpdate sets AI::UNFOGGED only for
+		// Undetected stealth units are skipped, as in AIPlayer::isLocationSafe. Fog is deliberately NOT
+		// applied (asked for it): retail computer players ignore fog - AIUpdate sets AI::UNFOGGED only for
 		// human-owned units, and every enemy base is located through fog by its structure bounds - so stealth is the one
 		// visibility rule the retail AI respects, and this keeps to it.
 		PartitionFilterRejectByObjectStatus filterStealth( MAKE_OBJECT_STATUS_MASK( OBJECT_STATUS_STEALTHED ),
@@ -802,7 +802,7 @@ void AISkirmishPlayer::acquireEnemy()
 		for (Object *obj = iter->first(); obj; obj = iter->next()) {
 			if (obj->isEffectivelyDead() || obj->isKindOf(KINDOF_STRUCTURE) || obj->isKindOf(KINDOF_PROJECTILE) || obj->isKindOf(KINDOF_DRONE)) continue;
 			if (!obj->isKindOf(KINDOF_INFANTRY) && !obj->isKindOf(KINDOF_VEHICLE) && !obj->isKindOf(KINDOF_AIRCRAFT)) continue;
-			// Workers, dozers and harvesters are not an attack (Codex r1): only units that can fight count.
+			// Workers, dozers and harvesters are not an attack: only units that can fight count.
 			if (obj->isKindOf(KINDOF_HARVESTER) || obj->isKindOf(KINDOF_DOZER) || !obj->isAbleToAttack()) continue;
 			const Player *owner = obj->getControllingPlayer();
 			if (owner == nullptr || owner == m_player) continue;
@@ -836,7 +836,7 @@ void AISkirmishPlayer::acquireEnemy()
 			}
 			if (smart && !inBadShape) {
 				// A crippled enemy keeps its fixed "last resort" score: multiplying it could push it past the initial
-				// best and leave an AI locked on an eliminated player (Codex r1).
+				// best and leave an AI locked on an eliminated player.
 				// Do not gang up - but only as a reason not to JOIN: leaving my own enemy because an ally joined me
 				// was the other half of the flip-flopping.
 				if (curPlayer != m_currentEnemy) {
@@ -846,7 +846,7 @@ void AISkirmishPlayer::acquireEnemy()
 						Player *somePlayer = ThePlayerList->getNthPlayer(k);
 						if (somePlayer == m_player) continue; // my own choice is not "someone else already on him"
 						// An eliminated AI keeps its AI and its last enemy (killPlayer leaves both), so it would
-						// count forever (Codex r3).
+						// count forever.
 						if (!somePlayer->isPlayerActive()) continue;
 						if (somePlayer->isSkirmishAIPlayer() && (somePlayer->getCurrentEnemy()==curPlayer)) {
 							others++;
@@ -916,7 +916,7 @@ Player *AISkirmishPlayer::getAiEnemy()
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6): the base FRONT - what front base defences
+// GeneralsX: ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6): the base FRONT - what front base defences
 // aim at (buildAIBaseDefenseStructure, !flank): the waypoint of this player's own Center path closest to its base centre, else the
 // centre of its enemy's structures. FALSE before the base centre is known.
 // ------------------------------------------------------------------------------------------------
@@ -926,8 +926,8 @@ Bool AISkirmishPlayer::gxFrontPoint(Coord3D *out)
 		return FALSE;
 	// GeneralsX 04/11/2026 base-layout: GXFrontDoors reads the one fixed point the layout turn and the door rule share
 	if (gxFrontDoors()) {
-		// the start, as the layout turn resolves it (Codex bl-engine-r2): from the list's centre the two could fall either side of GX_FRONT_MIN_DIST and
-		// disagree about the front. The start waypoint, not the list's command centre: gxRelocateQueued can move a destroyed one's entry (Codex bl-engine-r3).
+		// the start, as the layout turn resolves it: from the list's centre the two could fall either side of GX_FRONT_MIN_DIST and
+		// disagree about the front. The start waypoint, not the list's command centre: gxRelocateQueued can move a destroyed one's entry.
 		Coord3D anchor = m_baseCenter;
 		gxStartPoint(&anchor);
 		gxBaseFrontFrom(anchor, out);
@@ -941,7 +941,7 @@ Bool AISkirmishPlayer::gxFrontPoint(Coord3D *out)
 	Region2D bounds;
 	getPlayerStructureBounds(&bounds, getMyEnemyPlayerIndex());
 	// no enemy structure leaves the bounds zeroed (getPlayerStructureBounds); ONE structure gives zero width and height at its centre,
-	// which is a valid front (Codex ke-rotate-r1 P2)
+	// which is a valid front
 	if (bounds.lo.x == 0 && bounds.lo.y == 0 && bounds.hi.x == 0 && bounds.hi.y == 0)
 		return FALSE;
 	out->x = bounds.lo.x + bounds.width()/2;
@@ -950,7 +950,7 @@ Bool AISkirmishPlayer::gxFrontPoint(Coord3D *out)
 	return TRUE;
 }
 
-// GeneralsX @feature Claude 28/10/2026 gxFrontPoint's first answer: the waypoint of this player's own Center path closest to its base
+// GeneralsX: gxFrontPoint's first answer: the waypoint of this player's own Center path closest to its base
 // centre (moved out of gxFrontPoint unchanged).
 Waypoint *AISkirmishPlayer::gxFrontWaypoint()
 {
@@ -960,7 +960,7 @@ Waypoint *AISkirmishPlayer::gxFrontWaypoint()
 	return TheTerrainLogic->getClosestWaypointOnPath( &goalPos, pathLabel );
 }
 
-// GeneralsX @feature Claude 28/10/2026 TRUE when gxFrontPoint's answer cannot change for the rest of the game: the base centre is set once
+// GeneralsX: TRUE when gxFrontPoint's answer cannot change for the rest of the game: the base centre is set once
 // (computeCenterAndRadiusOfBase, newMap), so an unset one never gives a front, and a set one with a Center path always gives that path's
 // same waypoint. Only the other answer - the centre of the enemy's structures - moves (AIPlayer.cpp gxBuildAngles). Reads only.
 Bool AISkirmishPlayer::gxFrontPointFixed()
@@ -968,7 +968,7 @@ Bool AISkirmishPlayer::gxFrontPointFixed()
 	return !m_baseCenterSet || gxFrontDoors() || gxFrontWaypoint() != nullptr;
 }
 
-// GeneralsX @feature Claude 04/11/2026 base-layout (gx-handoff ai/base-layout/PLAN_base-layout.md, wh1ter0se 03/11 "look at the rotation facing back of the
+// GeneralsX: base-layout (gx-handoff ai/base-layout/PLAN_base-layout.md, wh1ter0se 03/11 "look at the rotation facing back of the
 // base"): this side's list in the AI data. Looked up by side each time: nothing is saved, and the same data gives the same answer after a load
 // (dataID guarantees the data). A side with no list has no keys.
 const AISideBuildList *AISkirmishPlayer::gxSideList() const
@@ -981,7 +981,7 @@ const AISideBuildList *AISkirmishPlayer::gxSideList() const
 	return nullptr;
 }
 
-// GeneralsX @feature Claude 06/11/2026 base-layout (gx-handoff ai/base-layout/ADDENDUM_9.md, lead C70): a keyed layout moves the base centre, and with
+// GeneralsX: base-layout (gx-handoff ai/base-layout/ADDENDUM_9.md, lead C70): a keyed layout moves the base centre, and with
 // it which supply depot findSupplyCenter ranks nearest: measured, the keyed AI expanded to the far depot first and found the near one enemy-held
 // when it turned to it (Arctic: keyed China $10k had 71 supply centres by 10:00 against stock's 116). A keyed list ranks depots, and offsets a
 // supply centre, from the STOCK centre instead: computeCenterAndRadiusOfBase's own sum, in the same order, over the stock spots the entries fall
@@ -1023,13 +1023,13 @@ Bool AISkirmishPlayer::gxFrontDoors()
 	return build != nullptr && build->m_gxFrontDoors;
 }
 
-// GeneralsX @feature Claude 04/11/2026 base-layout: the base front seen from a point, for a keyed list: the closest waypoint of this player's
+// GeneralsX: base-layout: the base front seen from a point, for a keyed list: the closest waypoint of this player's
 // Center path when it is at least GX_FRONT_MIN_DIST away (map-centers.py: 20 of 311 starts sit under 150 wu, down to 22, where the direction
 // means nothing), else the centre of the map's largest pathfind extent (14 of 311 starts have no Center path). It never depends on the enemy's
 // structures, so it cannot move once the base centre is set. Returns TRUE when the answer is the waypoint.
 static const Real GX_FRONT_MIN_DIST = 150.0f;
 
-// GeneralsX @feature Claude 04/11/2026 base-layout: this player's start, which nothing moves: the waypoint its command centre was placed on (GameLogic.cpp
+// GeneralsX: base-layout: this player's start, which nothing moves: the waypoint its command centre was placed on (GameLogic.cpp
 // placeNetworkBuildingsForPlayer). FALSE, out untouched, when the map has none.
 Bool AISkirmishPlayer::gxStartPoint(Coord3D *out)
 {
@@ -1140,7 +1140,7 @@ void AISkirmishPlayer::buildAIBaseDefenseStructure(const AsciiString &thingName,
 		offset.y = goalPos.y-m_baseCenter.y;
 		offset.normalize();
 		Real defenseDistance = m_baseRadius;
-		// GeneralsX @feature Claude 05/11/2026 base-layout (ADDENDUM_3): a redrawn list is bigger than stock, and the ring followed it out onto ground a base was never meant
+		// GeneralsX: base-layout (ADDENDUM_3): a redrawn list is bigger than stock, and the ring followed it out onto ground a base was never meant
 		// to reach: a try refused on terrain still spends the arc below, so the requests after it were dropped. GXRingRadius keeps the ring as near stock as the list's
 		// own buildings allow on the whole circle, since flank and backdoor requests land all around it. A list without the key keeps the base radius.
 		const AISideBuildList *gxRingList = gxSideList();
@@ -1202,7 +1202,7 @@ void AISkirmishPlayer::buildAIBaseDefenseStructure(const AsciiString &thingName,
 			offset.y*c + offset.x*s
 			));
 #endif
-		// GeneralsX @feature Claude 05/11/2026 base-layout (ADDENDUM_4): the arc below is spent once per bearing, so a request whose tries stand on ground past the base's edge
+		// GeneralsX: base-layout (ADDENDUM_4): the arc below is spent once per bearing, so a request whose tries stand on ground past the base's edge
 		// uses up the arc and the next request is dropped untried. A keyed list looks further in on the same bearing before it moves on, never further out. Any other list
 		// makes the one pass it always made.
 		Coord3D buildPos = m_baseCenter;
@@ -1223,7 +1223,7 @@ void AISkirmishPlayer::buildAIBaseDefenseStructure(const AsciiString &thingName,
 
 			/* See if we can build there. */
 			placeAngle = tTemplate->getPlacementViewAngle();
-			// GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ R (DESIGN.md 6): with AI_PLAYER_FACE_FRONT on, a base defence faces away from the
+			// GeneralsX: ai-wh1ter0se-econ R (DESIGN.md 6): with AI_PLAYER_FACE_FRONT on, a base defence faces away from the
 			// base centre - toward the approach it covers - when that angle is legal here; else the template's view angle, as before.
 			if (m_gxFaceFront) {
 				GX_HOOK_TIMER_ON(gxFaceFrontHook);
@@ -1426,7 +1426,7 @@ void AISkirmishPlayer::doBaseBuilding()
 			if (m_structureTimer > 3*LOGICFRAMES_PER_SECOND) {
 				m_structureTimer = 3*LOGICFRAMES_PER_SECOND;
 			}
-			// GeneralsX @feature Claude 08/10/2026 Hoarding: the 3 s beat shrinks with the bank (aiHoardAdjustedDelay, Reforged).
+			// GeneralsX: Hoarding: the 3 s beat shrinks with the bank (aiHoardAdjustedDelay, Reforged).
 			const Int structureCap = aiHoardAdjustedDelay(3*LOGICFRAMES_PER_SECOND, m_player->getMoney()->countMoney(), hoardThreshold());
 			if (m_structureTimer > structureCap) {
 				m_structureTimer = structureCap;
@@ -1483,7 +1483,7 @@ void AISkirmishPlayer::doTeamBuilding()
 			if (m_teamTimer > 3*LOGICFRAMES_PER_SECOND) {
 				m_teamTimer = 3*LOGICFRAMES_PER_SECOND;
 			}
-			// GeneralsX @feature Claude 08/10/2026 Hoarding: the 3 s beat shrinks with the bank (aiHoardAdjustedDelay, Reforged).
+			// GeneralsX: Hoarding: the 3 s beat shrinks with the bank (aiHoardAdjustedDelay, Reforged).
 			const Int teamCap = aiHoardAdjustedDelay(3*LOGICFRAMES_PER_SECOND, m_player->getMoney()->countMoney(), hoardThreshold());
 			if (m_teamTimer > teamCap) {
 				m_teamTimer = teamCap;
@@ -1516,9 +1516,9 @@ void AISkirmishPlayer::update()
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7; wh1ter0se 22/10: "keeping gla troops like 4-6 in the
+// GeneralsX: ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7; wh1ter0se 22/10: "keeping gla troops like 4-6 in the
 // tunnel mostly ... anti air units like quads to pop when it detects incoming airplanes ... and then hide back instantly").
-// GeneralsX @feature Claude 27/10/2026 ai-pro-rules-2 T2 (gx-handoff ai/pro-rules/PREREG_T2.md; wh1ter0se 27/10 via lead C54: "pop and then
+// GeneralsX: ai-pro-rules-2 T2 (gx-handoff ai/pro-rules/PREREG_T2.md; wh1ter0se 27/10 via lead C54: "pop and then
 // instantly go back in after like instantly shooting stuff down, and they need to target them manually"). Every 6 frames:
 //  * RAID PLANES: every enemy aircraft this player can see (free of fog, not stealthed-undetected, not UNATTACKABLE) within the watch
 //    radius of an own tunnel - beyond GX_AIR_HOLD only while closing on that tunnel (T's rule) - nearest to its nearest tunnel first.
@@ -1590,13 +1590,13 @@ void AISkirmishPlayer::gxAirLifetime(TeamPrototype *proto, UnsignedInt now)
 			m_gxAirSeenFrame ? (Int)(now - m_gxAirSeenFrame) : -1,
 			m_gxAirSeenFrame ? (Int)((now - m_gxAirSeenFrame + LOGICFRAMES_PER_SECOND - 1) / LOGICFRAMES_PER_SECOND) : -1);
 	// release on a true -> false edge, AND on the first evaluation when it is false (a save from before C was saved, or a loaded team -
-	// Codex t2-engine-r1 #5); a pass with nothing allocated logs members=0 queued=0
+	// ); a pass with nothing allocated logs members=0 queued=0
 	if (c || (known && !was) || proto == nullptr)
 		return;
 	// C true -> false: the team goes to the AI's stock duties - a queued build or reinforcement of it is cancelled the way an expired
 	// build is (TeamInQueue::disband: its units to the default team), every member of every instance joins the default team (never
 	// sold); the emptied team is removed by the stock cleanup (TeamPrototype::updateState). It is built again only on the airfield term.
-	// the allocation snapshot of the release (Codex t2-readers-r1 #7): alive members and queued builds of the team, BEFORE it is released
+	// the allocation snapshot of the release: alive members and queued builds of the team, BEFORE it is released
 	Int moved = 0, queued = 0;
 	for (DLINK_ITERATOR<Team> ti = proto->iterate_TeamInstanceList(); !ti.done(); ti.advance())
 		for (DLINK_ITERATOR<Object> mi = ti.cur()->iterate_TeamMemberList(); !mi.done(); mi.advance())
@@ -1605,7 +1605,7 @@ void AISkirmishPlayer::gxAirLifetime(TeamPrototype *proto, UnsignedInt now)
 	for (DLINK_ITERATOR<TeamInQueue> qi = iterate_TeamBuildQueue(); !qi.done(); qi.advance())
 		if (qi.cur()->m_team && qi.cur()->m_team->getPrototype() == proto)
 			++queued;
-	// every fall (and a first false evaluation) prints the snapshot, released or not (Codex t2-readers-r2 #4)
+	// every fall (and a first false evaluation) prints the snapshot, released or not
 	GX_TAA_LOG("p=%d ev=c_fall members=%d queued=%d", (Int)m_player->getPlayerIndex(), moved, queued);
 	if (moved == 0 && queued == 0)
 		return;	// nothing allocated: nothing to release
@@ -1631,7 +1631,7 @@ void AISkirmishPlayer::gxAirLifetime(TeamPrototype *proto, UnsignedInt now)
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-// GeneralsX @test Claude 27/10/2026 ai-pro-rules-2 T2 (PREREG_T2.md activation block L): GX_TAA_TEST_NOAIR=<on_s>:<off_s> - TEST-INSTRUMENTS
+// GeneralsX: ai-pro-rules-2 T2 (PREREG_T2.md activation block L): GX_TAA_TEST_NOAIR=<on_s>:<off_s> - TEST-INSTRUMENTS
 // builds only, a SCENARIO for the lifetime gate, never set in a main-grid game. From game second 0 the game alternates OFF windows
 // (nothing happens) and ON windows (every airfield and every aircraft of every player hostile to this air-watching AI is destroyed at
 // each of its passes), OFF first: the enemy builds its airfield, the AA team is built, the ON window removes the air threat, and C turns
@@ -1717,7 +1717,7 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 		return;
 	}
 	// every 5 s: the AA team's members that are out and idle - a reinforcement just built, or a guard whose fight ended oddly - are sent
-	// back into the tunnels (the team auto-reinforces: Codex ke-tunnel-r1 P2; its on-create order reaches only the first six)
+	// back into the tunnels (the team auto-reinforces: its on-create order reaches only the first six)
 	if (proto && (now + (UnsignedInt)me) % (5 * LOGICFRAMES_PER_SECOND) == 0)
 	{
 		for (DLINK_ITERATOR<Team> ti = proto->iterate_TeamInstanceList(); !ti.done(); ti.advance())
@@ -1737,7 +1737,7 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 	const std::list<ObjectID> *all = tunnels->getContainerList();
 
 	// --- the raid planes, nearest (to its nearest own tunnel) first, then by id
-	// every eligible plane, deduplicated, THEN sorted - nothing is dropped before the sort (Codex t2-engine-r1 #4)
+	// every eligible plane, deduplicated, THEN sorted - nothing is dropped before the sort
 	std::vector<Object *> raid;
 	std::vector<Real> raidD;
 	for (std::list<ObjectID>::const_iterator it = all->begin(); it != all->end(); ++it)
@@ -1745,10 +1745,10 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 		Object *t = TheGameLogic->findObjectByID(*it);
 		if (t == nullptr)
 			continue;
-		// GeneralsX @performance Claude 03/11/2026 t2-cheap: first in the list, so the scan skips every cell holding no enemy object (getCellOwnerMask;
+		// GeneralsX: t2-cheap: first in the list, so the scan skips every cell holding no enemy object (getCellOwnerMask;
 		// the same objects pass in the same order - AIGuard.cpp's scan does the same since 06/10/2026)
 		PartitionFilterRelationship fEnemy(t, PartitionFilterRelationship::ALLOW_ENEMIES | PartitionFilterRelationship::SKIP_CELLS_BY_OWNER);
-		// UNATTACKABLE "aircraft" (the China artillery barrage's shells) never count (Codex ke-tunnel-r6 P2)
+		// UNATTACKABLE "aircraft" (the China artillery barrage's shells) never count
 		PartitionFilterAcceptByKindOf fAir(MAKE_KINDOF_MASK(KINDOF_AIRCRAFT), MAKE_KINDOF_MASK(KINDOF_UNATTACKABLE));
 		PartitionFilterAlive fAlive;
 		PartitionFilterSameMapStatus fMap(t);
@@ -1762,7 +1762,7 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 			const Real dp = ThePartitionManager->getDistanceSquared(t, p, FROM_CENTER_2D);
 			if (dp > GX_AIR_HOLD * GX_AIR_HOLD)
 			{
-				// beyond the hold radius only a plane closing on this tunnel (Codex ke-tunnel-r1 P2: a plane circling at 500)
+				// beyond the hold radius only a plane closing on this tunnel (a plane circling at 500)
 				const PhysicsBehavior *pp = p->getPhysics();
 				const Coord3D *v = pp ? pp->getVelocity() : nullptr;
 				if (v == nullptr || (v->x * (t->getPosition()->x - p->getPosition()->x) + v->y * (t->getPosition()->y - p->getPosition()->y)) <= 0.0f)
@@ -1852,13 +1852,13 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 		return;
 
 #if defined(GX_TEST_INSTRUMENTS)
-	// --- [GXTAA] ev=auto_air (Codex t2-readers-r1 #1): an own tunnel guard outside (or a unit of a row) whose AI victim is an aircraft the
+	// --- [GXTAA] ev=auto_air: an own tunnel guard outside (or a unit of a row) whose AI victim is an aircraft the
 	// watch did not assign to it - every pass. D.aim allows none. (A turret's own fire while its unit walks is not an AI victim: out of
 	// scope, PREREG_T2.md section 1.)
 	if (gxTaaDiagOn())	// t2-cheap: T2's diagnostics (AIPlayer.h)
 	for (Object *o = TheGameLogic->getFirstObject(); o; o = o->getNextObject())
 	{
-		// GeneralsX @performance Claude 03/11/2026 t2-cheap: the same pure tests, the object's own fields first and its owner (team -> player)
+		// GeneralsX: t2-cheap: the same pure tests, the object's own fields first and its owner (team -> player)
 		// last - most objects have no victim, so most never chase their team
 		if (o->getAI() == nullptr || o->getContainedBy() != nullptr || o->isEffectivelyDead())
 			continue;
@@ -1875,7 +1875,7 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 	}
 #endif
 
-	// --- every EXISTING row is reconciled BEFORE this pass assigns (T2 r15, Codex t2-engine-r14 #25 #26 / t2-readers-r11): dead or captured
+	// --- every EXISTING row is reconciled BEFORE this pass assigns (T2 r15, #26 / t2-readers-r11): dead or captured
 	// units, rows back inside, planes destroyed or out of reach (target_lost + the return order), returns, re-asserts, exits - so an expiring
 	// row never counts as coverage and a replacement never makes a 4th open row
 	gxAirRows(0, now, me);
@@ -1883,9 +1883,9 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 
 	// --- new assignments (T2 r12/r13, lead C55 28/10: "a guard must never stand idle while a plane bombs the tunnel because nobody was
 	// assigned to it"), from the FREE tunnel guards of this pass: inside the network with no row, or OUTSIDE with no row and not attacking
-	// (no victim, not OBJECT_STATUS_IS_ATTACKING - an attack being entered has no victim yet: Codex r12 #23). Preference: outside (no pop),
+	// (no victim, not OBJECT_STATUS_IS_ATTACKING - an attack being entered has no victim yet). Preference: outside (no pop),
 	// then vehicles, then id. LEVEL 1 is a MAXIMUM matching of the planes with no row to the free guards (augmenting paths, planes nearest
-	// first - Codex r12 #22: greedy can leave a coverable plane bare); levels 2 and 3 then go round-robin. Nothing else is ever assigned.
+	// first: greedy can leave a coverable plane bare); levels 2 and 3 then go round-robin. Nothing else is ever assigned.
 	std::vector<Object *> cand;	// the free guards at the pass start, in preference order
 	{
 		std::vector<Object *> all;
@@ -1928,7 +1928,7 @@ void AISkirmishPlayer::gxTunnelAirWatch()
 		for (Int c = 0; c < nC; ++c)
 			ableKC[(size_t)k * nC + c] = gxCanShootPlane(cand[c], raid[k]);
 	// a row counts as coverage only if the rows loop below will keep it: its unit can still shoot the plane - the same gxCanShootPlane the
-	// loop ends it by (Codex t2-engine-r13 #24: three guards out of reach must not hide a fourth free one)
+	// loop ends it by (three guards out of reach must not hide a fourth free one)
 	std::vector<Int> rowsOn(nRaid, 0);
 	for (Int k = 0; k < nRaid; ++k)
 		for (Int r = 0; r < m_gxAirGuardCount; ++r)
@@ -2064,14 +2064,14 @@ void AISkirmishPlayer::gxAirRows(Int from, UnsignedInt now, Int me)
 		}
 		else if (u->getControllingPlayer() != m_player)
 		{
-			GX_TAA_LOG("p=%d ev=row_end unit=%u why=captured state=%d", me, (unsigned)row.unit, row.state);	// Codex t2-engine-r2 #11
+			GX_TAA_LOG("p=%d ev=row_end unit=%u why=captured state=%d", me, (unsigned)row.unit, row.state);
 			drop = TRUE;
 		}
 		else if (row.state == GX_AIR_RETURNING)
 		{
 			drop = u->getContainedBy() != nullptr;	// back in (its [GXTAA] ev=in is TunnelContain's line)
 			// still out and no longer in the tunnel-guard machine (an entry failed and something else took it): ordered back again, once a
-			// second (Codex t2-engine-r2 #10)
+			// second
 			if (!drop && u->getAI()->getAIStateType() != AI_GUARD_TUNNEL_NETWORK && (now + (UnsignedInt)me) % LOGICFRAMES_PER_SECOND < 6)
 			{
 				u->getAI()->aiGuardTunnelNetwork(GUARDMODE_NORMAL, CMD_FROM_AI);
@@ -2092,8 +2092,8 @@ void AISkirmishPlayer::gxAirRows(Int from, UnsignedInt now, Int me)
 				why = "dead";
 			else if (!gxCanShootPlane(u, p))
 				why = "range";
-			// the row's own predicate, this pass, before it is acted on (Codex t2-readers-r2 #2 #7): eng=0 must end the row in this pass
-			// held = its MAIN state is the attack on ITS plane (Codex t2-readers-r15 #1: an engageable outside row with held=0 must be ordered
+			// the row's own predicate, this pass, before it is acted on: eng=0 must end the row in this pass
+			// held = its MAIN state is the attack on ITS plane (an engageable outside row with held=0 must be ordered
 			// at it again in this pass - the reader checks that continuity)
 			GX_TAA_LOG("p=%d ev=row_tick unit=%u plane=%u eng=%d out=%d held=%d", me, (unsigned)row.unit, (unsigned)row.plane, (Int)(why == nullptr),
 				(Int)(u->getContainedBy() == nullptr),
@@ -2238,7 +2238,7 @@ void AISkirmishPlayer::adjustBuildList(BuildListInfo *list)
 	angle += 3*PI/4;
 	const Real gxRetailAngle = angle;	// GeneralsX 06/11/2026 base-layout (ADDENDUM_8): where the stock list's spots go, for a keyed list's fallbacks
 
-	// GeneralsX @feature Claude 04/11/2026 base-layout: GXTurnLayout places the list rigidly, the template's +X at the base front: the turn is the
+	// GeneralsX: base-layout: GXTurnLayout places the list rigidly, the template's +X at the base front: the turn is the
 	// octant of the front direction seen from the start, and it reaches the angles too (the retail line below keeps each entry's angle, so a
 	// spot moves and its door does not). Every other list keeps the retail 3*PI/4.
 	const AISideBuildList *gxList = gxSideList();
@@ -2273,7 +2273,7 @@ void AISkirmishPlayer::adjustBuildList(BuildListInfo *list)
 			curPos.y = newY + startPos.y;
 			cur->setLocation(curPos);
 			cur->setAngle(gxTurn ? normalizeAngle(cur->getAngle() + angle) : cur->getAngle());
-			// GeneralsX @feature Claude 06/11/2026 base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md, wh1ter0se's option 2): a keyed entry's fallback is the
+			// GeneralsX: base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md, wh1ter0se's option 2): a keyed entry's fallback is the
 			// stock list's spot for it, placed as retail places that list: the retail turn about the command centre, its angle as written.
 			if (gxTurn && cur->hasLayoutFallback()) {
 				Coord3D fb = *cur->getFallbackLocation();
@@ -2448,7 +2448,7 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 
 	// version
 	// GeneralsX 22/10/2026: 2 = AI_PLAYER_FACE_FRONT (ai-wh1ter0se-econ R); a retail-compatible save stays version 1, which retail's reader
-	// accepts (Codex ke-tunnel-r1 P2, the rule of the neighbouring serializers)
+	// accepts (the rule of the neighbouring serializers)
 	// GeneralsX 30/10/2026: GX_SKIRMISH_XFER_RULEBANK = the rule bank's block (rb-core). The versions are named so that a renumber when
 	// several AI branches merge is one line here (lead C57); the loader accepts every earlier version. Once the bank exists a new rule
 	// never bumps this version again: it versions its OWN state inside the bank block (GXRuleCore.h bankXfer).
@@ -2497,7 +2497,7 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 	if( version >= GX_SKIRMISH_XFER_FACE_FRONT )
 		xfer->xferBool( &m_gxFaceFront );
 	else if( xfer->getXferMode() == XFER_LOAD )
-		m_gxFaceFront = FALSE;	// an older save starts with it off; on LOAD only - a retail-compatible save WRITES v1 too (Codex ke-rotate-r2 P2)
+		m_gxFaceFront = FALSE;	// an older save starts with it off; on LOAD only - a retail-compatible save WRITES v1 too
 
 	// GeneralsX 30/10/2026 rb-core: the rule bank (configuration, unit claims, money reserves, each rule's own state block). An older save
 	// has none: nothing configured. A retail-compatible build writes version 1 and refuses every enable, so it never holds rule state.
@@ -2515,7 +2515,7 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 	else if( xfer->getXferMode() == XFER_LOAD )
 	{
 		// an older save: the watch starts off. Only on LOAD - a retail-compatible save WRITES version 1 too, and must leave the live AI's
-		// watch on (Codex ke-tunnel-r2 P2)
+		// watch on
 		m_gxAirWatchRadius = 0;
 		m_gxAirWatchTeam.clear();
 	}
@@ -2569,7 +2569,7 @@ void AISkirmishPlayer::xfer( Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 void AISkirmishPlayer::loadPostProcess()
 {
-	// GeneralsX @bugfix Claude 01/10/2026 Chain to the base: it drops build-queue entries whose team no longer
+	// GeneralsX: Chain to the base: it drops build-queue entries whose team no longer
 	// exists (tsh batch2 #417).
 	AIPlayer::loadPostProcess();
 }

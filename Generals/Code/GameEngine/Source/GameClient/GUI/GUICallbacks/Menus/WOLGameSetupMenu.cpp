@@ -140,7 +140,7 @@ static Bool launchGameNext = FALSE;
 // window ids ------------------------------------------------------------------------------
 static NameKeyType parentWOLGameSetupID = NAMEKEY_INVALID;
 
-// GeneralsX @feature Claude 12/08/2026 The shipped .wnd layouts carry exactly this many slot
+// GeneralsX: The shipped .wnd layouts carry exactly this many slot
 // rows. MAX_SLOTS is now larger; lookups for rows past this legitimately return null until the
 // dynamic-row lobby rebuild lands, so the per-row asserts below tolerate them.
 enum { LEGACY_WND_SLOT_ROWS = 8 };
@@ -771,7 +771,7 @@ static void StartPressed()
 	{
 		if ((myGame->getSlot(i)->isAccepted() == FALSE) && (myGame->getSlot(i)->isHuman() == TRUE))
 			isReady = FALSE;
-		// GeneralsX @bugfix Claude 02/10/2026 EVERY human, accepted or not (Codex m1det3-2b-r6 P2), as the LAN setup screen
+		// GeneralsX: EVERY human, accepted or not, as the LAN setup screen
 		// does: accepting never checks the map, and since M1 2b a slot whose map.ini/solo.ini differ from ours lacks it.
 		if (myGame->getSlot(i)->isHuman() && !myGame->getSlot(i)->hasMap() && !willTransfer)
 		{
@@ -799,7 +799,7 @@ static void StartPressed()
 		return;
 	}
 
-	// GeneralsX @feature Claude 23/09/2026 The map must also have room for every slot next to the
+	// GeneralsX: The map must also have room for every slot next to the
 	// civilian sides it keeps (Common/PlayerCapacity.h). Refused here, never trimmed: owner decision.
 	const Int slotCapacity = TheMapCache->getPlayerSlotCapacity( myGame->getMap() );
 	if (slotCapacity >= 0 && myGame->countSlotsTakingPlayers() > slotCapacity)
@@ -813,7 +813,7 @@ static void StartPressed()
 		return;
 	}
 
-	// GeneralsX @feature Claude 27/09/2026 THE START RULE is GameInfo::getStartVerdict - see
+	// GeneralsX: THE START RULE is GameInfo::getStartVerdict - see
 	// LanGameOptionsMenu.cpp StartPressed. Retail refused an all-AI lobby here with GUI:NeedHumanPlayers.
 	const GameInfo::StartVerdict startVerdict = myGame->getStartVerdict();
 
@@ -1046,14 +1046,14 @@ void InitWOLGameGadgets()
 		comboBoxPlayerID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		comboBoxPlayer[i] = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, comboBoxPlayerID[i] );
 		GadgetComboBoxReset(comboBoxPlayer[i]);
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxPlayer[i])
 			comboBoxPlayer[i]->winSetTooltipFunc(playerTooltip);
 
 		tmpString.format("GameSpyGameOptionsMenu.wnd:StaticTextPlayer%d", i);
 		staticTextPlayerID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		staticTextPlayer[i] = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, staticTextPlayerID[i] );
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (staticTextPlayer[i])
 		{
 			staticTextPlayer[i]->winSetTooltipFunc(playerTooltip);
@@ -1094,7 +1094,7 @@ void InitWOLGameGadgets()
 		buttonAcceptID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		buttonAccept[i] = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, buttonAcceptID[i] );
 		DEBUG_ASSERTCRASH(buttonAccept[i] || i >= LEGACY_WND_SLOT_ROWS, ("Could not find the buttonAccept[%d]",i ));
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (buttonAccept[i])
 			buttonAccept[i]->winSetTooltipFunc(gameAcceptTooltip);
 
@@ -1102,7 +1102,7 @@ void InitWOLGameGadgets()
 		genericPingWindowID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		genericPingWindow[i] = TheWindowManager->winGetWindowFromId( parentWOLGameSetup, genericPingWindowID[i] );
 		DEBUG_ASSERTCRASH(genericPingWindow[i] || i >= LEGACY_WND_SLOT_ROWS, ("Could not find the genericPingWindow[%d]",i ));
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (genericPingWindow[i])
 			genericPingWindow[i]->winSetTooltipFunc(pingTooltip);
 
@@ -1292,7 +1292,7 @@ void WOLGameSetupMenuInit( WindowLayout *layout, void *userData )
 		for (Int i = 0; i < MAX_SLOTS; ++i)
 		{
 			//I'm a client, disable the controls I can't touch.
-			// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+			// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 			if (comboBoxPlayer[i])
 				comboBoxPlayer[i]->winEnable(FALSE);
 
@@ -2310,7 +2310,7 @@ WindowMsgHandledType WOLGameSetupMenuInput( GameWindow *window, UnsignedInt msg,
 }
 
 
-// GeneralsX @refactor Claude 11/08/2026 handleGameSetupSlashCommands is DELETED, not preserved.
+// GeneralsX: handleGameSetupSlashCommands is DELETED, not preserved.
 //
 // The GameSpy staging screen's /host /me (/slots /discon in debug) interceptor. This screen is
 // reachable in the Generals build only through the servserv.generals.ea.com chain, and those

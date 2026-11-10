@@ -223,7 +223,7 @@ UpdateSleepTime MobMemberSlavedUpdate::update()
 			}
 			else
 			{
-				// GeneralsX @bugfix Claude 12/08/2026 Angry Mob members were culled while healthy: the
+				// GeneralsX: Angry Mob members were culled while healthy: the
 				// panic-vs-wander choice must be judged against the SAME reference AND the SAME metric for both
 				// of us.  The old test compared each unit's getLocomotorDistanceToGoal() -- the distance to each
 				// unit's OWN path endpoint; once a straggler was re-pathed toward the nexus itself (just below,
@@ -261,7 +261,7 @@ UpdateSleepTime MobMemberSlavedUpdate::update()
 
 		if (catchUpRadiusSquared > sqr( data->m_mustCatchUpRadius * 3))// I am critically far, now!
 		{
-			// GeneralsX @bugfix Claude 12/08/2026 Critically far from the nexus: hurry back unconditionally.
+			// GeneralsX: Critically far from the nexus: hurry back unconditionally.
 			// This is the ONLY place the cull timer accrues, so pinning PANIC here makes the cull independent
 			// of the panic/wander heuristic above -- the only members that can still be culled are ones that
 			// PANIC and STILL cannot close the gap (genuinely blocked), which is what the failsafe is for.

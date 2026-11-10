@@ -92,7 +92,7 @@ private:
 	Int												m_state;
 	Int												m_frames;
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate. doDrawModule() runs per RENDERED frame, so
+	// GeneralsX: Class-C gate. doDrawModule() runs per RENDERED frame, so
 	// m_frames counted renders while MIN_FINAL_FRAMES is a logic-frame threshold, and the state
 	// machine advanced per render too - debris reached FINAL and fired its landing FX in ~6 ms
 	// instead of ~100 ms, so the impact effect played at spawn rather than at impact.

@@ -198,7 +198,7 @@ UpdateSleepTime DeliverPayloadAIUpdate::update()
 			{
 				//SHOOT!!
 				const Coord3D *velocity = getObject()->getPhysics()->getVelocity();
-				if( velocity->z < 5.0f )	// GeneralsX @feature Claude 05/10/2026 per-frame speed, unscaled at 60 Hz as in Generals Online (was halved 23/09)
+				if( velocity->z < 5.0f )	// GeneralsX: per-frame speed, unscaled at 60 Hz as in Generals Online (was halved 23/09)
 				{
 					//Calc strafe ratio
 					Real startDiveDistance = getData()->m_diveStartDistance;

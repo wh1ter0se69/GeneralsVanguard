@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 22/10/2026 Building rotation (gx-handoff ai/wh1ter0se-econ/DESIGN.md section 6): the octant of a direction by
+// GeneralsX: Building rotation (gx-handoff ai/wh1ter0se-econ/DESIGN.md section 6): the octant of a direction by
 // comparisons only (tan 22.5 deg = 0.41421356), so x64 and arm64 pick the same angle - no atan2 in a simulation decision.
 #pragma once
 

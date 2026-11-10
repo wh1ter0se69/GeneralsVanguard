@@ -166,7 +166,7 @@ void DynamicShroudClearingRangeUpdate::animateGridDecals()
 
 	for (int d = 0; d < GRID_FX_DECAL_COUNT; ++d)
 	{
-		// GeneralsX @bugfix Claude 02/10/2026 Determinism-1 item 3: Sin/Cos (GameMath), not float libm - the class of call
+		// GeneralsX: Determinism-1 item 3: Sin/Cos (GameMath), not float libm - the class of call
 		// that split Mac vs Windows at 45 degrees (wwmath.h). This file is digested, so it gets the same treatment.
 		pos.x = ctr->x + (Sin(angle) * radius);
 		pos.y = ctr->y + (Cos(angle) * radius);

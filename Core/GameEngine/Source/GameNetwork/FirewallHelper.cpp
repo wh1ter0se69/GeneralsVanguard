@@ -679,7 +679,7 @@ Bool FirewallHelperClass::detectionBeginUpdate() {
 				break;
 			}
 		}
-		// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+		// GeneralsX: 64-bit safe pointer cast
 		// NOTE: Original code casts array pointer to UnsignedInt (result likely ignored)
 		if (!found) {
 			Int m = m_numManglers++;

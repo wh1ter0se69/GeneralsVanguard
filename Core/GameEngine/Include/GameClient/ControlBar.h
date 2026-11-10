@@ -658,7 +658,7 @@ public:
 
 	ControlBar();
 
-	// GeneralsX @feature Claude 02/10/2026 Public so the ai-gym bot input (GXGym.cpp) asks the bar's own question - may this
+	// GeneralsX: Public so the ai-gym bot input (GXGym.cpp) asks the bar's own question - may this
 	// button be pressed now - before it acts. Unchanged otherwise; win may be null (no clock overlay is drawn then).
 	CommandAvailability getCommandAvailability( const CommandButton *command, Object *obj, GameWindow *win, GameWindow *applyToWin = nullptr, Bool forceDisabledEvaluation = FALSE ) const;
 	virtual ~ControlBar() override;
@@ -769,7 +769,7 @@ public:
 	void switchControlBarStage( ControlBarStages stage );
 	void toggleControlBarStage();
 
-	// GeneralsX @feature Claude 13/08/2026 Remember/replay the stage across a TOGGLE_GAME_HUD hide.
+	// GeneralsX: Remember/replay the stage across a TOGGLE_GAME_HUD hide.
 	// Deliberately NOT a second visibility flag: whether the bar is hidden is read back from the
 	// window itself, so this cannot drift out of step with the retail F9 path or with a script.
 	void rememberControlBarStage() { m_stageBeforeGameHudHidden = m_currentControlBarStage; }
@@ -854,7 +854,7 @@ protected:
 	static void populateButtonProc( Object *obj, void *userData );
 	void populatePurchaseScience(Player* player);
 
-	// GeneralsX @feature Claude 27/09/2026 General's Points keys (wh1ter0se's option A, 27/09): a purchase button shows the
+	// GeneralsX: General's Points keys (wh1ter0se's option A, 27/09): a purchase button shows the
 	// key of the power or unit it buys, and binds it in HotKeyManager's priority layer while the panel is open.
 	const CommandButton *resolvePurchaseScienceSource( const CommandButton *purchase );	///< the button whose key it shows
 	Bool isPurchaseSciencePanelWindow( const GameWindow *win ) const;	///< one of the panel's purchase buttons
@@ -909,7 +909,7 @@ protected:
 	ICoord2D m_defaultControlBarPosition;				///< Stored the original position of the control bar on the screen
 	ControlBarStages m_currentControlBarStage;
 
-	// GeneralsX @feature Claude 13/08/2026 The stage the player had chosen before TOGGLE_GAME_HUD hid
+	// GeneralsX: The stage the player had chosen before TOGGLE_GAME_HUD hid
 	// the bar, so that showing it again is a restore rather than a reset. ShowControlBar() forces
 	// CONTROL_BAR_STAGE_DEFAULT unconditionally (ControlBarCallback.cpp), which is correct for the
 	// callers that run at game start but would silently throw away a player who had chosen the LOW
@@ -918,13 +918,13 @@ protected:
 
 	Bool m_UIDirty;																///< the context UI must be re-evaluated
 
-	// GeneralsX @performance Claude 23/09/2026 One updateContextMultiSelect pass asks GUI_COMMAND_SWITCH_WEAPON of every
+	// GeneralsX: One updateContextMultiSelect pass asks GUI_COMMAND_SWITCH_WEAPON of every
 	// selected object, and each ask scanned the whole selection for a result that depends only on the selection and
 	// the button's weapon slot: O(selected^2) per frame. The pass now scans once per slot; outside a pass nothing is cached.
 	Bool m_switchWeaponScanActive;								///< TRUE only inside updateContextMultiSelect
 	mutable Int m_switchWeaponScan[ WEAPONSLOT_COUNT ];		///< -1 = not scanned this pass, else the CommandAvailability
 
-	// GeneralsX @performance Claude 23/09/2026 Every input of the beacon count and of a DOZER_CONSTRUCT / UNIT_BUILD
+	// GeneralsX: Every input of the beacon count and of a DOZER_CONSTRUCT / UNIT_BUILD
 	// button's availability is simulation state, and simulation state only changes when GameLogic::update runs: the
 	// logic frame then advances, except while time is frozen, when the script engine still runs without advancing it.
 	// Those results are reused until the logic frame moves (never while frozen); see isLogicStateUnchanged.
@@ -942,7 +942,7 @@ protected:
 	const Player *m_beaconCountPlayer;
 	Int m_beaconCount;
 
-	// GeneralsX @feature Claude 27/09/2026 resolvePurchaseScienceSource's answers, for the side they were worked out for.
+	// GeneralsX: resolvePurchaseScienceSource's answers, for the side they were worked out for.
 	// They live for ONE populatePurchaseScience, which empties them first (a script can swap a command-bar slot
 	// mid-match), and ControlBar::reset() empties them too: a map's INI can override the buttons these point at.
 	std::map<const CommandButton *, const CommandButton *> m_purchaseScienceSources;	///< purchase button -> source
@@ -1045,7 +1045,7 @@ public:
 	void hideBuildTooltipLayout();
 	void deleteBuildTooltipLayout();
 	Bool getShowBuildTooltipLayout(){return m_showBuildToolTipLayout;	}
-	// GeneralsX @bugfix Claude 26/09/2026 tooltipWin is the window the tooltip is for: the command button's own window
+	// GeneralsX: tooltipWin is the window the tooltip is for: the command button's own window
 	// when commandButton is set (its title then marks the key bound to that window), or the generic window otherwise.
 	void populateBuildTooltipLayout( const CommandButton *commandButton, GameWindow *tooltipWin = nullptr );
 	void repopulateBuildTooltipLayout();

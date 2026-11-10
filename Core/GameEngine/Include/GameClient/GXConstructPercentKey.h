@@ -1,4 +1,4 @@
-// GeneralsX @bugfix Claude 26/09/2026 (backlog #72, Codex) The key Drawable::drawConstructPercent rebuilds its
+// GeneralsX: The key Drawable::drawConstructPercent rebuilds its
 // "under construction" text on, derived from the CSF format that text is drawn with.
 //
 // The TSH-perf port keyed the text on lrintf(percent) - right for retail's "%.0f%%", stale for a localization or
@@ -48,7 +48,7 @@ inline int gxFixedDecimals( const wchar_t *fmt )
 /// precisions never compare equal. -1 - "no key, rebuild" - for decimals outside 0..6, a negative, -0 or non-finite
 /// value, one too large to hold, and an EXACT tie.
 ///
-/// Arithmetic, never a format (Codex r2: this runs every frame for every building under construction in view, and the
+/// Arithmetic, never a format (this runs every frame for every building under construction in view, and the
 /// rebuild it guards is the only place that formats). Exact for a float x = M * 2^e: x * 10^d (d <= 6) is either
 /// exactly k + 0.5 - a double holds that, and the product rounds to it - or off every such tie by a nonzero multiple
 /// of min(2^e, 1/2), so by more than x * 2^-24, while the double product is off by at most x * 10^d * 2^-53 - over 500 times

@@ -279,7 +279,7 @@ public:
 
 	virtual Int winSetModal( GameWindow *window );  ///< put at top of modal stack
 	virtual Int winUnsetModal( GameWindow *window );  ///< take window off the modal stack from anywhere in the stack
-	/// GeneralsX @feature Claude 25/09/2026 The window on top of the modal stack, nullptr = none (the
+	/// GeneralsX: The window on top of the modal stack, nullptr = none (the
 	/// drop-down letter keys ignore a list behind it, GadgetComboBox.cpp).
 	GameWindow *winGetModal() const { return m_modalHead ? m_modalHead->window : nullptr; }
 

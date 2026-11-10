@@ -71,7 +71,7 @@ static UnsignedInt getInterfaceBroadcast( const struct ifaddrs *ifa, UnsignedInt
 	return broadcastAddr;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 An interface with no LAN segment behind it: point-to-point
+// GeneralsX: An interface with no LAN segment behind it: point-to-point
 // (utun, tun, wg, tailscale0, a cellular pdp_ip) or a /32 mask. Nothing else can answer a LAN
 // broadcast there, so it must never be elected the LAN address while a real segment exists.
 static Bool isTunnelInterface( const struct ifaddrs *ifa )
@@ -88,10 +88,10 @@ static Bool isTunnelInterface( const struct ifaddrs *ifa )
 	return FALSE;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 iOS names its cellular data links pdp_ip0..N. They are point-to-
+// GeneralsX: iOS names its cellular data links pdp_ip0..N. They are point-to-
 // point, so isTunnelInterface counts them - right for keeping them off the LAN - but they are no VPN, and
-// "Use my VPN for LAN" must not prefer one: a carrier 10.x sorts below a tailnet 100.x (Codex seam0948-r2).
-// ponytail: iOS only; a Linux ppp0/wwan modem or Windows mobile broadband reads as a plain tunnel or LAN.
+// "Use my VPN for LAN" must not prefer one: a carrier 10.x sorts below a tailnet 100.x.
+// Trade-off: iOS only; a Linux ppp0/wwan modem or Windows mobile broadband reads as a plain tunnel or LAN.
 static Bool isCellularInterface( const struct ifaddrs *ifa )
 {
 	return ifa->ifa_name != nullptr && strncmp(ifa->ifa_name, "pdp_ip", 6) == 0;
@@ -99,7 +99,7 @@ static Bool isCellularInterface( const struct ifaddrs *ifa )
 #endif
 
 #ifdef _WIN32
-// GeneralsX @bugfix Claude 28/09/2026 The same fact on Windows, where the address list itself comes
+// GeneralsX: The same fact on Windows, where the address list itself comes
 // from the hostname lookup and carries no interface at all. SIO_GET_INTERFACE_LIST returns one
 // INTERFACE_INFO per IPv4 address with its flags and mask. Neither the struct nor the code is
 // declared by the Winsock 1.1 header this engine builds against (<ws2ipdef.h> drags winsock2.h in
@@ -172,10 +172,10 @@ static Int getWindowsTunnelAddresses( UnsignedInt *tunnels, Bool *up, Int maxTun
 	return count;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 How a hostname-lookup address is labelled on Windows: a tunnel when the
+// GeneralsX: How a hostname-lookup address is labelled on Windows: a tunnel when the
 // interface list has it on a point-to-point or /32 interface, as before; and "unpreferred" too when every such
-// interface is down - a disconnected VPN the lookup still returns must not be what the switch prefers (Codex
-// w49vpn-r4). "Unpreferred" ranks exactly as a tunnel with the switch off, so that list is unchanged.
+// interface is down - a disconnected VPN the lookup still returns must not be what the switch prefers.
+// "Unpreferred" ranks exactly as a tunnel with the switch off, so that list is unchanged.
 static void gxWindowsTunnelLabel( UnsignedInt ip, const UnsignedInt *tunnels, const Bool *up, Int tunnelCount,
 	Bool *tunnel, Bool *unpreferred )
 {
@@ -194,11 +194,11 @@ static void gxWindowsTunnelLabel( UnsignedInt ip, const UnsignedInt *tunnels, co
 	*unpreferred = *tunnel && !anyUp;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 (Codex q7-macupd-r1) The Windows list comes from gethostbyname(hostname),
+// GeneralsX: The Windows list comes from gethostbyname(hostname),
 // which can leave a VPN adapter's address out; SIO_GET_INTERFACE_LIST still finds it, but was only used to
 // label the hostname entries, so "Use my VPN for LAN" could not pick it. With the switch ON, every tunnel
 // address the hostname lookup did not return joins the list: loopback (127/8) and a down interface (a
-// disconnected VPN keeping its /32, Codex w49vpn-r3) excluded, each address once.
+// disconnected VPN keeping its /32) excluded, each address once.
 // With it OFF nothing is added, so the list - the Options menu's included - and the address it elects stay
 // exactly the hostname list's. Only tunnels, because they are what the switch prefers: adding a plain
 // adapter would let it change the LAN pick with the switch on and no VPN up. Pure, so
@@ -284,7 +284,7 @@ EnumeratedIP * IPEnumeration::getAddresses()
 	}
 
 #ifndef _WIN32
-	// GeneralsX @bugfix BenderAI 31/03/2026 Enumerate active IPv4 interfaces on non-Windows (POSIX) platforms instead of hostname resolution.
+	// GeneralsX: Enumerate active IPv4 interfaces on non-Windows (POSIX) platforms instead of hostname resolution.
 	struct ifaddrs *ifaddr = nullptr;
 	if (getifaddrs(&ifaddr) == 0)
 	{
@@ -306,7 +306,7 @@ EnumeratedIP * IPEnumeration::getAddresses()
 			}
 
 			const sockaddr_in *addr = reinterpret_cast<const sockaddr_in *>(ifa->ifa_addr);
-			// GeneralsX @bugfix BenderAI 31/03/2026 Use ntohl to convert from network byte order before extracting octets;
+			// GeneralsX: Use ntohl to convert from network byte order before extracting octets;
 			// reading s_addr byte-by-byte on little-endian platforms reverses the IPv4 octets.
 			const UnsignedInt hostAddr = ntohl(addr->sin_addr.s_addr);
 			addNewIP(
@@ -340,7 +340,7 @@ EnumeratedIP * IPEnumeration::getAddresses()
 #endif
 	// Every exit of the hostname path goes through here: on Windows, with the switch on, the VPN addresses
 	// the hostname lookup did not return join the list - also when that lookup failed outright, a VPN-only
-	// machine's case (Codex w49vpn-r1). Elsewhere, and with the switch off, it adds nothing.
+	// machine's case. Elsewhere, and with the switch off, it adds nothing.
 	auto finish = [&]() -> EnumeratedIP *
 	{
 #ifdef _WIN32
@@ -407,7 +407,7 @@ EnumeratedIP * IPEnumeration::getAddresses()
 	return finish();
 }
 
-// GeneralsX @bugfix Claude 27/07/2026 A link-local (APIPA, 169.254.0.0/16) address must never win
+// GeneralsX: A link-local (APIPA, 169.254.0.0/16) address must never win
 // the default interface election. The list is kept in ascending numeric order and LanLobbyMenuInit
 // takes the HEAD of it whenever Options.ini's IPAddress does not match a live interface, but
 // 169.254.x.x (0xA9FE....) sorts BELOW every private range a real LAN uses - 172.16 (0xAC10....),
@@ -418,7 +418,7 @@ EnumeratedIP * IPEnumeration::getAddresses()
 // Rank by class first, then numerically within the class, so routable addresses always precede
 // link-local ones while a link-local host with nothing else still enumerates normally.
 //
-// GeneralsX @bugfix Claude 28/09/2026 A tunnel must not win it either. Measured 27/09/2026 in a
+// GeneralsX: A tunnel must not win it either. Measured 27/09/2026 in a
 // Windows + Mac mini LAN lobby: both engines advertised their Tailscale address as their LAN address,
 // because 100.x (0x64......) sorts below 192.168 (0xC0A8....) exactly as 169.254 did. The lobby
 // joined and both peers then dropped at game start. So a middle class for an address on an interface
@@ -427,11 +427,11 @@ EnumeratedIP * IPEnumeration::getAddresses()
 // some networks, and a VPN can hold any RFC 1918 block. Class 0 keeps retail's plain ascending
 // order, so a box without a tunnel elects exactly what it did before, and Options.ini IPAddress
 // still wins over all of this, which keeps LAN-over-VPN possible on purpose.
-// ponytail: a VPN adapter that holds a real subnet mask and no point-to-point flag (NordLynx /16,
+// Trade-off: a VPN adapter that holds a real subnet mask and no point-to-point flag (NordLynx /16,
 // an OpenVPN TAP) still sorts by number; the upgrade is the adapter type from GetAdaptersAddresses
 // (iphlpapi) on Windows.
 //
-// GeneralsX @feature Claude 28/09/2026 "Use my VPN for LAN" (UseVPNForLAN) swaps the first two
+// GeneralsX: "Use my VPN for LAN" (UseVPNForLAN) swaps the first two
 // classes, for players who really do play over Tailscale. What it buys is DIRECT CONNECT by IP over
 // the tunnel (NetworkDirectConnect takes this election, and on Windows the socket is bound to it, so
 // a LAN-bound socket could not talk to a 100.x peer at all). It does NOT make the LAN game LIST work
@@ -439,7 +439,7 @@ EnumeratedIP * IPEnumeration::getAddresses()
 // (getInterfaceBroadcast -> 0 -> LANAPI falls back to 255.255.255.255, which a tailnet does not
 // carry). The launcher's hint says "join by IP" for that reason. An L2 VPN (ZeroTier) has a real
 // mask and broadcast, is not a tunnel here, and already behaves like a LAN either way.
-// ponytail: directed (unicast) discovery to tailnet peers is the upgrade if the list must work too.
+// Trade-off: directed (unicast) discovery to tailnet peers is the upgrade if the list must work too.
 static Bool s_useVPNForLAN = FALSE;
 
 // This client's own synthetic loopback address in multi-instance mode (getAddresses adds it first), else 0.
@@ -468,7 +468,7 @@ Bool IPEnumeration::getUseVPNForLAN()
 // address counts as unset while a tunnel exists (the head is one, since tunnels rank first), so the
 // switch always takes effect; with no tunnel up, the saved address is honoured as before. On, in
 // multi-instance mode: no saved address at all - every instance keeps its own 127.x, the head, or two
-// instances would bind one saved address (Codex q7-macupd-r5).
+// instances would bind one saved address.
 Bool IPEnumeration::isSavedAddressUsable( Bool tunnel, Bool cellular, Bool headIsTunnel )
 {
 	if (cellular)
@@ -493,7 +493,7 @@ static UnsignedInt ipSortClass( UnsignedInt ip, Bool tunnel, Bool cellular, Bool
 		return (tunnel || cellular) ? 1 : 0;	// off: tunnels (cellular with them) after the LAN
 	}
 	// On: a multi-instance client's OWN 127.x first - what keeps two instances on one machine from binding
-	// the same address (Codex w49vpn-r1). Only that one: any other loopback, a 127.0.0.1 the hostname lookup
+	// the same address. Only that one: any other loopback, a 127.0.0.1 the hostname lookup
 	// returned included, ranks as a plain address (w49vpn-r4, q7-macupd-r9) - then the VPN, the LAN, an
 	// unpreferred tunnel.
 	if (ip != 0 && ip == gxOwnInstanceIP())
@@ -516,7 +516,7 @@ static Bool ipSortsBefore( UnsignedInt lhs, Bool lhsTunnel, Bool lhsCellular, Un
 	return lhs < rhs;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 (Codex seam0948-r6) The order with "Use my VPN for LAN" OFF, whatever
+// GeneralsX: The order with "Use my VPN for LAN" OFF, whatever
 // the switch says: GameSpy's default address (OptionPreferences::getOnlineIPSelection) takes the first entry
 // in it, so the LAN-only switch never decides where chat binds. Reads no global, so any thread may call it.
 Bool IPEnumeration::sortsBeforeWithoutVPN( UnsignedInt lhs, Bool lhsTunnel, Bool lhsCellular, UnsignedInt rhs, Bool rhsTunnel, Bool rhsCellular )
@@ -575,7 +575,7 @@ void IPEnumeration::addNewIP( UnsignedByte a, UnsignedByte b, UnsignedByte c, Un
 		}
 	}
 
-	// GeneralsX @feature Claude 27/07/2026 Release-visible. DEBUG_LOG above is ((void)0) in every
+	// GeneralsX: Release-visible. DEBUG_LOG above is ((void)0) in every
 	// shipping preset, so without this the chosen interface is unobservable and a dead lobby looks
 	// identical to a firewall drop.
 	fprintf(stderr, "[LAN] enumerated %s broadcast=%d.%d.%d.%d class=%s\n",

@@ -15,7 +15,7 @@
 **	You should have received a copy of the GNU General Public License
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-// GeneralsX @feature Claude 28/09/2026 The superweapon missiles are DRAWN along a real ballistic flight while the
+// GeneralsX: The superweapon missiles are DRAWN along a real ballistic flight while the
 // simulation flies its own path untouched (the math and the why are in MissileVisualMath.h). Render state only: this
 // reads logic state and never writes it, never calls a logic RNG, and never touches Object/Thing/Drawable m_transform
 // (logic converts bone positions through the drawable's transform). The result is consumed by Drawable::draw, by

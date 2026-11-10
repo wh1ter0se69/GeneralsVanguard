@@ -217,9 +217,9 @@ void ToggleInGameChat( Bool immediate )
 				if (!msg.isEmpty() && !handleInGameSlashCommands(msg))
 				{
 					const Player *localPlayer = ThePlayerList->getLocalPlayer();
-					// GeneralsX @feature Claude 06/11/2026 scale32: the audience mask is RelayMaskType (64 bit), slots go to 33.
+					// GeneralsX: scale32: the audience mask is RelayMaskType (64 bit), slots go to 33.
 					RelayMaskType playerMask = 0;
-					// GeneralsX @bugfix Claude 25/09/2026 WHO "I" AM IS A SLOT, not a Player (Codex r2). Every observer slot
+					// GeneralsX: WHO "I" AM IS A SLOT, not a Player. Every observer slot
 					// maps onto the one ReplayObserver, so on an observer's peer another observer's slot yields the very
 					// Player that is local here - and "player == localPlayer" put that other observer into a Players or
 					// Allies line the sender meant for itself. A slot that shares the local Player without being the
@@ -252,7 +252,7 @@ void ToggleInGameChat( Bool immediate )
 						}
 					}
 					TheLanguageFilter->filterLine(msg);
-					// GeneralsX @bugfix Claude 02/10/2026 Core's CommandXlat now opens chat in a skirmish too (for Zero Hour,
+					// GeneralsX: Core's CommandXlat now opens chat in a skirmish too (for Zero Hour,
 					// GeneralsMD InGameChat.cpp). This file still refuses a solo game above - except with -netMinPlayers 0
 					// (RTS_DEBUG), where a skirmish reaches here with no TheNetwork.
 					if (TheNetwork != nullptr)

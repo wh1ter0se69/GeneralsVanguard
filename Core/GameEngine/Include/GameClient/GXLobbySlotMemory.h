@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 05/11/2026 What a LAN host's lobby remembers between rooms, as a pure model: no engine types, so
+// GeneralsX: What a LAN host's lobby remembers between rooms, as a pure model: no engine types, so
 // scripts/test/lobby-slot-memory-test.cpp can drive it. LanGameOptionsMenu.cpp owns the engine half and says why this exists.
 //
 // fit() is the part that matters. What it is handed comes from a text file, written for a map that may not be the one

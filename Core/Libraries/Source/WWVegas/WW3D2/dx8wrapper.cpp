@@ -54,8 +54,8 @@
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
 #endif
-// GeneralsX @build BenderAI 10/02/2026 - Need LoadLibrary/GetProcAddress/FreeLibrary for dynamic loading
-// GeneralsX @bugfix Claude 27/07/2026 module_compat.h maps these onto dlopen for POSIX. On
+// GeneralsX: Need LoadLibrary/GetProcAddress/FreeLibrary for dynamic loading
+// GeneralsX: module_compat.h maps these onto dlopen for POSIX. On
 // Windows they are the real Win32 API from <windows.h>, and the shim header is no longer on
 // the include path there (it lived beside the windows.h that was shadowing the SDK).
 #ifndef _WIN32
@@ -65,7 +65,7 @@
 #ifndef _WIN32
 #include <dlfcn.h>
 #endif
-// GeneralsX @build BenderAI 10/02/2026 - Embedded browser Windows-only (requires COM LPDISPATCH)
+// GeneralsX: Embedded browser Windows-only (requires COM LPDISPATCH)
 #ifdef _WIN32
 #include "dx8webbrowser.h"
 #endif
@@ -145,7 +145,7 @@ IDirect3DSurface8* DX8Wrapper::s_offscreenSurf = nullptr;
 IDirect3DSurface8* DX8Wrapper::s_depthSurf = nullptr;
 IDirect3DSurface8* DX8Wrapper::s_savedBackbuffer = nullptr;
 IDirect3DSurface8* DX8Wrapper::s_savedDepth = nullptr;
-// GeneralsX @bugfix Claude 05/10/2026 The multisampled colour target the pillarboxed scene renders into while MSAA
+// GeneralsX: The multisampled colour target the pillarboxed scene renders into while MSAA
 // is on; Pillarbox_End resolves it into s_offscreenSurf. Null when MSAA is off or the GPU refused it.
 static IDirect3DSurface8* s_msaaSurf = nullptr;
 
@@ -177,7 +177,7 @@ void DX8Wrapper::Pillarbox_Cleanup()
 	s_pillarboxActive = false;
 }
 
-// GeneralsX @tweak Claude 14/09/2026 CONTRACT, because the bool returned here is a trap.
+// GeneralsX: CONTRACT, because the bool returned here is a trap.
 //
 // The return means "is the pillarbox now enabled", NOT "did this succeed". It is false on four
 // different paths and only three of them are failures:
@@ -201,7 +201,7 @@ void DX8Wrapper::Pillarbox_Cleanup()
 // site. If a caller ever needs to ACT on failure, this must first become a tri-state - do not
 // "fix" it by testing the bool.
 //
-// GeneralsX @tweak Claude 14/09/2026 DECISION on forcing the renderer back to the window size when
+// GeneralsX: DECISION on forcing the renderer back to the window size when
 // a REQUESTED pillarbox fails (s_pillarboxEnabled false while backbuffer != game): NOT done, and
 // deliberately so.
 //
@@ -228,7 +228,7 @@ bool DX8Wrapper::Pillarbox_Setup(int gameW, int gameH)
 	Pillarbox_Cleanup();
 
 	// Determine backbuffer dimensions from the active present parameters first.
-	// GeneralsX @bugfix GitHub Copilot 27/04/2026 Using native display size here can diverge from
+	// GeneralsX: Using native display size here can diverge from
 	// the actual DXVK backbuffer during SDL fullscreen transitions and cause zoom/crop artifacts.
 	int bbW = (int)_PresentParameters.BackBufferWidth;
 	int bbH = (int)_PresentParameters.BackBufferHeight;
@@ -244,7 +244,7 @@ bool DX8Wrapper::Pillarbox_Setup(int gameW, int gameH)
 		}
 	}
 	else {
-		// GeneralsX @bugfix Claude 17/08/2026 The density was only ever fetched on the FALLBACK path.
+		// GeneralsX: The density was only ever fetched on the FALLBACK path.
 		//
 		// On the live path _PresentParameters.BackBufferWidth is already valid, so the branch above
 		// is skipped and `density` kept its 1.0f initialiser - which meant s_pixelDensity was 1.0
@@ -273,7 +273,7 @@ bool DX8Wrapper::Pillarbox_Setup(int gameW, int gameH)
 	}
 
 	// No pillarbox needed if backbuffer matches game resolution
-	// GeneralsX @tweak Claude 13/08/2026 SAY SO OUT LOUD. This early return used to be the only
+	// GeneralsX: SAY SO OUT LOUD. This early return used to be the only
 	// silent exit in the function, and that made the healthy case and the worst case produce
 	// byte-identical logs.
 	//
@@ -293,7 +293,7 @@ bool DX8Wrapper::Pillarbox_Setup(int gameW, int gameH)
 	// answered from a log at all. One line per launch buys a falsifiable answer: present means
 	// 1:1 at native, absent means the swapchain never left the placeholder.
 	if (bbW == gameW && bbH == gameH) {
-		// GeneralsX @diag Claude 17/08/2026 density is in this line because its absence hid a bug.
+		// GeneralsX @diag /08/2026 density is in this line because its absence hid a bug.
 		// s_pixelDensity was silently 1.0 on every live frame, and Pillarbox_Get_Rect divides by it
 		// to hand back points - so the rect was pixels wearing a points label and nothing in any log
 		// could show it. On a 1x machine the two are equal and the line looks identical either way,
@@ -310,7 +310,7 @@ bool DX8Wrapper::Pillarbox_Setup(int gameW, int gameH)
 		return false;
 	}
 
-	// GeneralsX @diag Claude 14/09/2026 The allocation failures below used to `return false` without
+	// GeneralsX @diag /09/2026 The allocation failures below used to `return false` without
 	// writing anything anywhere, and that silence is the reason this block was rewritten.
 	//
 	// s_pillarboxEnabled stays false on this path, so Pillarbox_Begin early-returns and the scene is
@@ -340,7 +340,7 @@ bool DX8Wrapper::Pillarbox_Setup(int gameW, int gameH)
 		return false;
 	}
 
-	// GeneralsX @bugfix Claude 14/09/2026 GetSurfaceLevel's HRESULT was dropped on the floor, and both
+	// GeneralsX: GetSurfaceLevel's HRESULT was dropped on the floor, and both
 	// consequences land inside the very failure this pass exists to expose.
 	//
 	// A null s_offscreenSurf reaching the enabled state would make Pillarbox_Begin early-return on its
@@ -366,7 +366,7 @@ bool DX8Wrapper::Pillarbox_Setup(int gameW, int gameH)
 		return false;
 	}
 
-	// GeneralsX @bugfix Claude 05/10/2026 MSAA SURVIVES THE PILLARBOX. Every frame on this path is drawn into the
+	// GeneralsX: MSAA SURVIVES THE PILLARBOX. Every frame on this path is drawn into the
 	// offscreen target, and a texture render target cannot be multisampled - so whenever the backbuffer was not
 	// the game resolution (a scaled desktop, a Retina panel below its native mode) the chosen MSAA was paid for
 	// on the backbuffer and never seen. With MSAA on, the scene now renders into a multisampled surface with a
@@ -420,7 +420,7 @@ bool DX8Wrapper::Pillarbox_Setup(int gameW, int gameH)
 		s_dstX = 0; s_dstY = (bbH - s_dstH) / 2;
 	}
 	s_pillarboxEnabled = true;
-	// GeneralsX @diag Claude 17/08/2026 density printed here for the reason given at the 1:1 exit
+	// GeneralsX @diag /08/2026 density printed here for the reason given at the 1:1 exit
 	// above, and it matters more on this path: this is the branch where the rect actually gets used,
 	// so a wrong density lands on the player's cursor rather than merely on a log line.
 	fprintf(stderr, "INFO: Pillarbox: game=%dx%d, backbuffer=%dx%d, present=%ux%u, windowed=%d, density=%.3f, fit=%dx%d@%d,%d, msaa=%d\n",
@@ -444,11 +444,11 @@ void DX8Wrapper::Pillarbox_Begin()
 {
 	DX8Ring::Drain();	// d3d8 ring spike: the device must be idle before a direct D3DDevice call
 	if (!s_pillarboxEnabled || !s_offscreenSurf || !s_depthSurf) return;
-	// GeneralsX @bugfix GitHub Copilot 10/05/2026 Route pillarbox target switches through the DX8Wrapper cache so render-target size queries stay correct during the frame.
+	// GeneralsX: Route pillarbox target switches through the DX8Wrapper cache so render-target size queries stay correct during the frame.
 	Set_Render_Target(s_msaaSurf ? s_msaaSurf : s_offscreenSurf, s_depthSurf);
-	// GeneralsX @bugfix GitHub Copilot 10/05/2026 Pillarbox uses an offscreen target for presentation only and must not advertise the whole frame as an effect RTT pass.
+	// GeneralsX: Pillarbox uses an offscreen target for presentation only and must not advertise the whole frame as an effect RTT pass.
 	IsRenderToTexture = false;
-	// GeneralsX @bugfix GitHub Copilot 27/04/2026 Ensure scene render uses game-resolution viewport on the offscreen RT.
+	// GeneralsX: Ensure scene render uses game-resolution viewport on the offscreen RT.
 	// Without this, a stale fullscreen-sized viewport can survive the target switch and crop/zoom into the top-left area.
 	D3DVIEWPORT8 sceneViewport = {
 		0,
@@ -479,7 +479,7 @@ void DX8Wrapper::Pillarbox_End()
 	if (!s_pillarboxActive || !s_offscreenTex) return;
 	s_pillarboxActive = false;
 
-	// GeneralsX @bugfix Claude 05/10/2026 Resolve the multisampled scene into the texture the blit below samples.
+	// GeneralsX: Resolve the multisampled scene into the texture the blit below samples.
 	if (s_msaaSurf) {
 		const HRESULT hr = D3DDevice->CopyRects(s_msaaSurf, nullptr, 0, s_offscreenSurf, nullptr);
 		static bool s_resolveFailLogged = false;
@@ -543,7 +543,7 @@ bool DX8Wrapper::Pillarbox_Get_Rect(int& x, int& y, int& w, int& h)
 	return true;
 }
 
-// GeneralsX @feature Claude 25/09/2026 Does a NON-windowed device present as a window at the desktop
+// GeneralsX: Does a NON-windowed device present as a window at the desktop
 // mode rather than mode-setting? Always on SDL3 platforms (see _PresentParameters.Windowed below);
 // on Windows only for borderless fullscreen (DX8Wrapper::Set_Borderless). The !_WIN32 answer is a
 // constant so no SDL3 platform can change behaviour through this.
@@ -568,13 +568,13 @@ static inline bool Win32_Presents_Borderless()
 }
 
 #ifdef _WIN32
-// GeneralsX @bugfix Claude 25/09/2026 The borderless popup covers the monitor it is on. `setup` is device
+// GeneralsX: The borderless popup covers the monitor it is on. `setup` is device
 // setup (Resize_And_Position_Window): always placed, and dropped from the TOPMOST band WinMain gives every
 // non-windowed window. Otherwise it is the per-frame check (Pillarbox_Process_Resize), which moves the
 // window only when that monitor's rectangle no longer matches it - a resolution or layout change
 // (WM_DISPLAYCHANGE), or Win+Shift+Arrow onto another monitor - and never steals focus or z-order doing
 // so. Before it, the popup kept the rectangle captured at setup and the backbuffer followed that stale
-// client size, leaving desktop exposed or the picture off-screen (Codex review). A minimised window is
+// client size, leaving desktop exposed or the picture off-screen. A minimised window is
 // left alone; the first frame after it is restored fits it.
 static void Borderless_Cover_Monitor(HWND hwnd, bool setup)
 {
@@ -597,13 +597,13 @@ static void Borderless_Cover_Monitor(HWND hwnd, bool setup)
 }
 #endif
 
-// GeneralsX @bugfix GitHub Copilot 27/04/2026 Keep SDL-managed fullscreen swapchains aligned to the current window size until the native fullscreen transition finishes.
+// GeneralsX: Keep SDL-managed fullscreen swapchains aligned to the current window size until the native fullscreen transition finishes.
 static void Resolve_Present_BackBuffer_Size(int gameW, int gameH, bool isWindowed, UINT& outW, UINT& outH)
 {
 	outW = (UINT)gameW;
 	outH = (UINT)gameH;
 
-	// GeneralsX @feature Claude 25/09/2026 Was `#ifndef _WIN32`; Windows borderless takes it too.
+	// GeneralsX: Was `#ifndef _WIN32`; Windows borderless takes it too.
 	if (!isWindowed && Fullscreen_Presents_As_Window()) {
 		int windowW = gameW;
 		int windowH = gameH;
@@ -628,7 +628,7 @@ static void Resolve_Present_BackBuffer_Size(int gameW, int gameH, bool isWindowe
 
 DX8FrameStatistics DX8Wrapper::FrameStatistics;
 void (*DX8Wrapper::Present_Probe)(bool after) = nullptr;
-void (*DX8Wrapper::GxPrePresentHook)() = nullptr;	// GeneralsX @feature Claude 11/10/2026 WS-G S1 seat (dx8wrapper.h)
+void (*DX8Wrapper::GxPrePresentHook)() = nullptr;	// GeneralsX: WS-G S1 seat (dx8wrapper.h)
 void (*GxDrawHook)(unsigned, unsigned, unsigned, unsigned, unsigned, bool) = nullptr;	// WS-G (dx8wrapper.h)
 void (*GxPostDrawHook)() = nullptr;	// WS-G seat: after the same two draws are recorded (dx8wrapper.h)
 bool DX8Wrapper::GxCaptureOn = false;
@@ -677,7 +677,7 @@ void (*DX8Wrapper::Pre_Reset_Hook)() = nullptr;
 void (*DX8Wrapper::Pre_Release_Hook)() = nullptr;
 void (*DX8Wrapper::Default_Pool_Release_Hook)() = nullptr;
 unsigned long long DX8Wrapper::PresentCount = 0;
-// GeneralsX @test Claude 08/10/2026 [GXCENSUS] (dx8wrapper.h enum DX8CensusCounter; the order must match it).
+// GeneralsX: [GXCENSUS] (dx8wrapper.h enum DX8CensusCounter; the order must match it).
 #if defined(GX_TEST_INSTRUMENTS) || defined(GX_RENDER_CENSUS)
 bool DX8Wrapper::CensusOn = false;
 #endif
@@ -748,7 +748,7 @@ bool								DX8Wrapper::WindowedVSync								= false;
 D3DFORMAT					DX8Wrapper::DisplayFormat	= D3DFMT_UNKNOWN;
 D3DMULTISAMPLE_TYPE DX8Wrapper::MultiSampleAntiAliasing	= DEFAULT_MSAA;
 
-// GeneralsX @diag Claude 15/10/2026 What Set_Render_Device's format search did, for the [GXCAPS] line printed after
+// GeneralsX @diag /10/2026 What Set_Render_Device's format search did, for the [GXCAPS] line printed after
 // Compute_Caps. -1 = the windowed branch ran (no mode search), 0 = the exclusive branch's exact-mode search failed,
 // 1 = it found a mode, 2 = it failed and the iOS fallback took the current display mode's format. A failed search leaves DisplayFormat UNKNOWN, and Compute_Caps(UNKNOWN) then reports every
 // texture, render-target and depth format unsupported - which is what the iPad did (ios-caps-fix-1).
@@ -799,7 +799,7 @@ bool								DX8Wrapper::IsDeviceLost;
 int								DX8Wrapper::ZBias;
 float								DX8Wrapper::ZNear;
 float								DX8Wrapper::ZFar;
-// GeneralsX @refactor BenderAI 10/02/2026 - Use Matrix4x4 not D3DMATRIX (fighter19 pattern)
+// GeneralsX: Use Matrix4x4 not D3DMATRIX (fighter19 pattern)
 Matrix4x4						DX8Wrapper::ProjectionMatrix;
 Matrix4x4						DX8Wrapper::DX8Transforms[D3DTS_WORLD+1];
 
@@ -844,7 +844,7 @@ void DX8Wrapper::Pillarbox_Process_Resize()
 	float density = 1.0f;
 	if (!GetWindowSize(physW, physH, density)) {
 		if (!IsWindowed) {
-			// GeneralsX @bugfix GitHub Copilot 27/04/2026 SDL fullscreen transitions can change window pixel size
+			// GeneralsX: SDL fullscreen transitions can change window pixel size
 			// after device creation. Fall back to native display size so we can re-sync the backbuffer.
 			if (!GetNativeDisplaySize(physW, physH, density)) {
 				return;
@@ -870,7 +870,7 @@ void DX8Wrapper::Pillarbox_Process_Resize()
 		return;
 	}
 
-	// GeneralsX @tweak Claude 14/09/2026 DECISION: return deliberately discarded, and no recovery is
+	// GeneralsX: DECISION: return deliberately discarded, and no recovery is
 	// attempted here. Written down because this is the site that most looks like it wants one - there
 	// is already a fallback for the Reset_Device failure directly above - and that fallback must NOT
 	// be reused for a Pillarbox_Setup failure.
@@ -900,7 +900,7 @@ void DX8Wrapper::Pillarbox_Process_Resize()
 	Pillarbox_Setup(ResolutionWidth, ResolutionHeight);
 }
 
-// GeneralsX @bugfix Claude 30/09/2026 See dx8wrapper.h. A change on a live device resets it. No change, no
+// GeneralsX: See dx8wrapper.h. A change on a live device resets it. No change, no
 // reset: W3DDisplay::draw calls this on its first frame and whenever the cap or the refresh moves. Unlike
 // Pillarbox_Process_Resize, a failed reset does NOT put the old value back: a swap effect is never why a
 // reset fails (DXVK's d3d8 front end refuses only plain COPY with more than one back buffer, d3d8_device.cpp),
@@ -983,7 +983,7 @@ void MoveRectIntoOtherRect(const RECT& inner, const RECT& outer, int* x, int* y)
 
 
 // ----------------------------------------------------------------------------
-// GeneralsX @performance Claude 08/10/2026 d3d8 call ring spike (see DX8Ring in dx8wrapper.h).
+// GeneralsX: d3d8 call ring spike (see DX8Ring in dx8wrapper.h).
 // A single-producer single-consumer byte ring: monotonic 64-bit positions, power-of-two capacity, every command
 // contiguous (a PAD command fills the end of the buffer when one would wrap). The main thread writes ahead of
 // s_pub and publishes in batches; the render thread executes up to s_pub and reports progress in s_done. Only the
@@ -1433,7 +1433,7 @@ void DX8Ring::Rec_Call(DX8Wrapper::DeviceCallFn fn, void *ctx)
 	uint32_t *a = Ring_Args(RING_CALL, 16); memcpy(a, &fn, sizeof(fn)); memcpy(a + 2, &ctx, sizeof(ctx));
 }
 
-// GeneralsX @feature Claude 10/10/2026 WS-X hybrid spike: run fn on whichever thread owns the d3d8 device right now, in
+// GeneralsX: WS-X hybrid spike: run fn on whichever thread owns the d3d8 device right now, in
 // stream order - recorded into the ring inside the object-flush bracket, called directly otherwise (after a drain when
 // commands are still pending). fn gets the device; ctx must stay valid until fn has run.
 void DX8Wrapper::Device_Call(DeviceCallFn fn, void *ctx)
@@ -1539,7 +1539,7 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 	Invalidate_Cached_Render_States();
 
 	if (!lite) {
-		// GeneralsX @build BenderAI 10/02/2026 - Platform-specific DLL/SO/DYLIB loading (Phase 5: macOS)
+		// GeneralsX: Platform-specific DLL/SO/DYLIB loading (Phase 5: macOS)
 #ifdef _WIN32
 		D3D8Lib = LoadLibrary("D3D8.DLL");
 #elif defined(__APPLE__)
@@ -1625,7 +1625,7 @@ bool DX8Wrapper::Init(void * hwnd, bool lite)
 
 			D3DInterface = Direct3DCreate8Ptr(D3D_SDK_VERSION);		// TODO: handle failure cases...
 		}
-		// GeneralsX @feature E · rw3-K 11/10/2026 native-device session switch (Interface_Wrap_Hook in dx8wrapper.h)
+		// GeneralsX: native-device session switch (Interface_Wrap_Hook in dx8wrapper.h)
 		if (D3DInterface != nullptr && Interface_Wrap_Hook != nullptr) {
 			IDirect3D8 *wrapped = Interface_Wrap_Hook(D3DInterface);
 			if (wrapped != nullptr)
@@ -1673,7 +1673,7 @@ void DX8Wrapper::Shutdown()
 		}
 	}
 
-	// GeneralsX @bugfix Claude 24/09/2026 Keep D3D8.DLL mapped until the process exits. GameEngine
+	// GeneralsX: Keep D3D8.DLL mapped until the process exits. GameEngine
 	// destroys TheParticleSystemManager after TheGameClient (reverse init order), so its PointGroupClass
 	// texture calls IDirect3DTexture8::Release after this Shutdown; with the DXVK D3D8.DLL beside the exe
 	// FreeLibrary really unmapped it and every windowed Windows exit died with 0xC0000005 in
@@ -1690,7 +1690,7 @@ void DX8Wrapper::Shutdown()
 
 void DX8Wrapper::Do_Onetime_Device_Dependent_Inits()
 {
-	// GeneralsX @performance Claude 23/09/2026 A freshly created device has default (disabled) lights, and
+	// GeneralsX: A freshly created device has default (disabled) lights, and
 	// Create_Device does not go through Invalidate_Cached_Render_States, so drop the light shadow here too.
 	for (int light=0;light<4;++light) CurrentDX8LightValid[light]=false;
 	++LightStateSerial;				// GX_WRAPSKIP 8
@@ -1704,7 +1704,7 @@ void DX8Wrapper::Do_Onetime_Device_Dependent_Inits()
 	*/
 	Compute_Caps(D3DFormat_To_WW3DFormat(DisplayFormat));
 
-	// GeneralsX @diag Claude 15/10/2026 One line per device creation: the formats Set_Render_Device chose and the caps they
+	// GeneralsX @diag /10/2026 One line per device creation: the formats Set_Render_Device chose and the caps they
 	// produced, plus the adapter's mode list ends (the exclusive branch needs an EXACT asked=WxH match in that list). On the
 	// iPad every texture format read 0 because that search failed and left DisplayFormat UNKNOWN (ios-caps-fix-1); this line
 	// shows on any platform whether that happens. Reads only - nothing here feeds back into the device.
@@ -1786,11 +1786,11 @@ void DX8Wrapper::Set_Default_Global_Render_States()
 
 void DX8Wrapper::Invalidate_Cached_Render_States()
 {
-	GxLogBody gxBody(gxlog::INVALIDATE, true);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the model ports the whole body
+	GxLogBody gxBody(gxlog::INVALIDATE, true);	// GeneralsX: WS-G Task 5: the model ports the whole body
 	DX8Ring::Drain();	// d3d8 ring spike: the device must be idle before a direct D3DDevice call
 	render_state_changed=0;
 
-	// GeneralsX @performance Claude 23/09/2026 Forget the light shadow so the next Set_DX8_Light re-sends.
+	// GeneralsX: Forget the light shadow so the next Set_DX8_Light re-sends.
 	// Covers Init, Reset_Device and the pillarbox end-of-frame resync.
 	for (int light=0;light<4;++light) CurrentDX8LightValid[light]=false;
 	++LightStateSerial;	// GX_WRAPSKIP 8
@@ -1981,7 +1981,7 @@ bool DX8Wrapper::Create_Device()
 
 	dbgHelpGuard.deactivate();
 
-	// GeneralsX @test Claude 10/10/2026 GXCAP: the recording proxy replaces the device before anything else sees it.
+	// GeneralsX: GXCAP: the recording proxy replaces the device before anything else sees it.
 	if (Device_Wrap_Hook != nullptr)
 		D3DDevice = Device_Wrap_Hook(D3DDevice, CurRenderDevice, WW3D_DEVTYPE, Vertex_Processing_Behavior, &_PresentParameters);
 
@@ -2015,7 +2015,7 @@ bool DX8Wrapper::Reset_Device(bool reload_assets)
 		DX8TextureManagerClass::Release_Textures();
 		SHD_SHUTDOWN_SHADERS;
 
-		// GeneralsX @bugfix Claude 09/08/2026 Release the D3DPOOL_DEFAULT references this wrapper
+		// GeneralsX: Release the D3DPOOL_DEFAULT references this wrapper
 		// still holds. Without this Reset() fails, and because nothing else ever drops them it
 		// fails FOREVER - which is the permanent black screen after a monitor is unplugged or the
 		// display configuration changes.
@@ -2072,7 +2072,7 @@ bool DX8Wrapper::Reset_Device(bool reload_assets)
 		Invalidate_Cached_Render_States();
 		Set_Default_Global_Render_States();
 		SHD_INIT_SHADERS;
-		// GeneralsX @bugfix Claude 09/08/2026 Re-create the pillarbox surfaces released above. Same
+		// GeneralsX: Re-create the pillarbox surfaces released above. Same
 		// order and the same unconditional call Set_Device_Resolution already uses: cleanup, reset,
 		// then setup only once the reset has actually worked. Unconditional is right because
 		// Pillarbox_Setup decides for itself - it returns early when the backbuffer already matches
@@ -2085,7 +2085,7 @@ bool DX8Wrapper::Reset_Device(bool reload_assets)
 		// Pillarbox_Setup begins with Pillarbox_Cleanup - and a resolution change is already the
 		// expensive path.
 		//
-		// GeneralsX @tweak Claude 14/09/2026 DECISION: return deliberately discarded. Reset_Device's own
+		// GeneralsX: DECISION: return deliberately discarded. Reset_Device's own
 		// bool answers "was the device reset", and by the time we reach this line the reset genuinely did
 		// succeed - the pillarbox is a consequence of the reset, not a part of it. Propagating is also
 		// unimplementable as the return currently stands: false is what the healthy 1:1 exit returns, so
@@ -2323,7 +2323,7 @@ void DX8Wrapper::Get_Format_Name(unsigned int format, StringClass *tex_format)
 void DX8Wrapper::Resize_And_Position_Window()
 {
 #ifdef _WIN32
-	// GeneralsX @feature Claude 25/09/2026 BORDERLESS: the window IS the monitor, whatever the game
+	// GeneralsX: BORDERLESS: the window IS the monitor, whatever the game
 	// resolution - the backbuffer follows the client size and the game is pillarboxed into it. The
 	// monitor is the one the window is on, which WinMain created centred on the PRIMARY display
 	// (initializeAppWindows, SM_CXSCREEN). NOT topmost, unlike exclusive: a borderless window must
@@ -2361,7 +2361,7 @@ void DX8Wrapper::Resize_And_Position_Window()
 
 			DEBUG_LOG(("Window resized to w:%d h:%d", width, height));
 			#else
-			// GeneralsX @bugfix GitHub Copilot 27/04/2026 On SDL platforms, fullscreen size is controlled by SDL display mode.
+			// GeneralsX: On SDL platforms, fullscreen size is controlled by SDL display mode.
 			// Forcing window size here can lock fullscreen transitions to the game resolution (for example 1024x768).
 			DEBUG_LOG(("Skipping explicit fullscreen resize on SDL platform"));
 			#endif
@@ -2390,7 +2390,7 @@ void DX8Wrapper::Resize_And_Position_Window()
 
 			DEBUG_LOG(("Window positioned to x:%d y:%d, resized to w:%d h:%d", left, top, width, height));
 #else
-			// GeneralsX @build BenderAI 10/02/2026 - SDL3 window management on Linux (no Monitor API needed)
+			// GeneralsX: SDL3 window management on Linux (no Monitor API needed)
 			::SetWindowPos (_Hwnd, nullptr, 0, 0, width, height, SWP_NOZORDER);
 
 			DEBUG_LOG(("Window resized (Linux/SDL) to w:%d h:%d", width, height));
@@ -2463,11 +2463,11 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 	// SDL3 native fullscreen is applied separately after device creation (see W3DDisplay::init).
 	_PresentParameters.Windowed = TRUE;
 	#else
-	// GeneralsX @feature Claude 25/09/2026 Borderless presents windowed, like the SDL3 platforms above.
+	// GeneralsX: Borderless presents windowed, like the SDL3 platforms above.
 	_PresentParameters.Windowed = IsWindowed || Win32_Presents_Borderless();
 	#endif
 
-	// GeneralsX @bugfix Claude 30/09/2026 Vsync for a windowed present - see Set_Windowed_VSync. DXVK's d3d8
+	// GeneralsX: Vsync for a windowed present - see Set_Windowed_VSync. DXVK's d3d8
 	// front end accepts COPY_VSYNC with the two back buffers a non-windowed SDL3 device asks for (only plain
 	// COPY is refused, d3d8_interface.cpp), and a windowed swapchain must keep the DEFAULT interval above.
 	// Native D3D8 allows multisampling only with DISCARD; DXVK checks no such pairing (d3d9_interface.cpp
@@ -2488,7 +2488,7 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 	** - if in windowed mode, the backbuffer must use the current display format.
 	** - the depth buffer must use
 	*/
-	// GeneralsX @feature Claude 25/09/2026 Windows borderless is a windowed present, so it takes the
+	// GeneralsX: Windows borderless is a windowed present, so it takes the
 	// windowed branch's desktop format. The SDL3 platforms keep the exclusive branch they always had.
 	if (IsWindowed || Win32_Presents_Borderless()) {
 
@@ -2554,7 +2554,7 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 			&_PresentParameters.BackBufferFormat,&_PresentParameters.AutoDepthStencilFormat) ? 1 : 0;
 
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-		// GeneralsX @bugfix Claude 15/10/2026 The iPad is always "fullscreen" here, and the exact-mode search above can never
+		// GeneralsX: The iPad is always "fullscreen" here, and the exact-mode search above can never
 		// match on it: the game asks for its PIXEL size, while DXVK's SDL3 WSI lists modes in SDL's POINTS (mode.w/h; the
 		// iPad's density is 2). The search failed, its result was ignored, and DisplayFormat, the back buffer and the depth
 		// format all stayed UNKNOWN - so Compute_Caps reported EVERY texture, render-target and depth format unsupported
@@ -2599,7 +2599,7 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 	/*
 	** Check the devices support for the requested MSAA mode then setup the multi sample type
 	*/
-	// GeneralsX @bugfix Claude 05/10/2026 Step DOWN to the highest level the GPU supports (8 -> 4 -> 2) instead
+	// GeneralsX: Step DOWN to the highest level the GPU supports (8 -> 4 -> 2) instead
 	// of dropping straight to none. Apple GPUs have no 8x through MoltenVK, so "MSAA 8x" there used to mean
 	// no anti-aliasing at all while the launcher promised the card "may lower the level it gets".
 	while (MultiSampleAntiAliasing > D3DMULTISAMPLE_NONE) {
@@ -2657,7 +2657,7 @@ bool DX8Wrapper::Set_Render_Device(int dev, int width, int height, int bits, int
 	if (ret)
 	{
 		Render2DClass::Set_Screen_Resolution( RectClass( 0, 0, ResolutionWidth, ResolutionHeight ) );
-		// GeneralsX @tweak Claude 14/09/2026 DECISION: return deliberately discarded. `ret` is the
+		// GeneralsX: DECISION: return deliberately discarded. `ret` is the
 		// Create_Device/Reset_Device result and stays that way; the device really was created.
 		//
 		// This is where the disagreement the ERROR line describes actually gets assembled: the line
@@ -2814,7 +2814,7 @@ bool DX8Wrapper::Set_Device_Resolution(int width,int height,int bits,int windowe
 #pragma message("TODO: support changing windowed status and changing the bit depth")
 		WWDEBUG_SAY(("DX8Wrapper::Set_Device_Resolution is resetting the device."));
 		bool ok = Reset_Device();
-		// GeneralsX @tweak Claude 14/09/2026 DECISION: return deliberately discarded. `ok` is
+		// GeneralsX: DECISION: return deliberately discarded. `ok` is
 		// Reset_Device's result and is what this function returns - it is NOT a check on
 		// Pillarbox_Setup, which is easy to misread because the two share a line. Set_Device_Resolution's
 		// contract is whether the resolution change took, and it did. The same shared-false objection as
@@ -3223,7 +3223,7 @@ void DX8Wrapper::Begin_Scene()
 
 	DX8CALL(BeginScene());
 
-	// GeneralsX @build BenderAI 10/02/2026 - Embedded browser Windows-only
+	// GeneralsX: Embedded browser Windows-only
 #ifdef _WIN32
 	DX8WebBrowser::Update();
 #endif
@@ -3236,12 +3236,12 @@ void DX8Wrapper::End_Scene(bool flip_frames)
 	// Pillarbox: restore backbuffer + blit offscreen, all within the current scene
 	if (s_pillarboxActive && s_offscreenTex) {
 		Pillarbox_End();
-		// GeneralsX @bugfix GitHub Copilot 10/05/2026 Re-sync cached DX8 state after the pillarbox blit mutates global render state at the end of the frame.
+		// GeneralsX: Re-sync cached DX8 state after the pillarbox blit mutates global render state at the end of the frame.
 		Invalidate_Cached_Render_States();
 	}
 	DX8CALL(EndScene());
 
-	// GeneralsX @build BenderAI 10/02/2026 - Embedded browser Windows-only
+	// GeneralsX: Embedded browser Windows-only
 #ifdef _WIN32
 	DX8WebBrowser::Render(0);
 #endif
@@ -3251,14 +3251,14 @@ void DX8Wrapper::End_Scene(bool flip_frames)
 		HRESULT hr;
 		{
 			WWPROFILE("DX8Device::Present()");
-			if (GxPrePresentHook) GxPrePresentHook();	// GeneralsX @feature Claude 11/10/2026 WS-G S1 seat: the digest bracket's frame end
+			if (GxPrePresentHook) GxPrePresentHook();	// GeneralsX: WS-G S1 seat: the digest bracket's frame end
 			if (Present_Probe) Present_Probe(false);
 			hr=_Get_D3D_Device8()->Present(nullptr, nullptr, nullptr, nullptr);
 			++PresentCount;
 			if (Present_Probe) Present_Probe(true);
 		}
 		DX8Ring::Frame_Stats();
-		GxFlushProf::Frame();	// D·dxvk-palette GX_FLUSHPROF: once per displayed frame (Codex dxvkpal-engine-r3 P2: not per scene pass)
+		GxFlushProf::Frame();	// D·dxvk-palette GX_FLUSHPROF: once per displayed frame (not per scene pass)
 
 		DX8_RECORD_DX8_CALLS();
 
@@ -3414,7 +3414,7 @@ void DX8Wrapper::Set_Viewport(CONST D3DVIEWPORT8* pViewport)
 
 void DX8Wrapper::Set_Vertex_Buffer(const VertexBufferClass* vb, unsigned stream)
 {
-	if (GxLogOn && GxLogParent == 0) Gx_Log_Vertex_Buffer(gxlog::SET_VB, stream, 0, vb ? vb->Type() : BUFFER_TYPE_INVALID, vb);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log_Vertex_Buffer(gxlog::SET_VB, stream, 0, vb ? vb->Type() : BUFFER_TYPE_INVALID, vb);	// GeneralsX: WS-G Task 5
 	render_state.vba_offset=0;
 	render_state.vba_count=0;
 	if (render_state.vertex_buffers[stream]) {
@@ -3441,7 +3441,7 @@ void DX8Wrapper::Set_Vertex_Buffer(const VertexBufferClass* vb, unsigned stream)
 
 void DX8Wrapper::Set_Index_Buffer(const IndexBufferClass* ib,unsigned short index_base_offset)
 {
-	if (GxLogOn && GxLogParent == 0) Gx_Log_Index_Buffer(gxlog::SET_IB, index_base_offset, 0, ib ? ib->Type() : BUFFER_TYPE_INVALID, ib);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log_Index_Buffer(gxlog::SET_IB, index_base_offset, 0, ib ? ib->Type() : BUFFER_TYPE_INVALID, ib);	// GeneralsX: WS-G Task 5
 	render_state.iba_offset=0;
 	if (render_state.index_buffer) {
 		render_state.index_buffer->Release_Engine_Ref();
@@ -3466,7 +3466,7 @@ void DX8Wrapper::Set_Index_Buffer(const IndexBufferClass* ib,unsigned short inde
 
 void DX8Wrapper::Set_Vertex_Buffer(const DynamicVBAccessClass& vba_)
 {
-	if (GxLogOn) {	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the plain setter below is this entry's port (raised parent)
+	if (GxLogOn) {	// GeneralsX: WS-G Task 5: the plain setter below is this entry's port (raised parent)
 		if (GxLogParent == 0) Gx_Log_Vertex_Buffer(gxlog::SET_VB_DYNAMIC, vba_.VertexBufferOffset, vba_.Get_Vertex_Count(), vba_.Get_Type(), vba_.VertexBuffer);
 		++GxLogParent;
 	}
@@ -3484,7 +3484,7 @@ void DX8Wrapper::Set_Vertex_Buffer(const DynamicVBAccessClass& vba_)
 	render_state.vertex_buffers[0]->Add_Engine_Ref();
 	render_state_changed|=VERTEX_BUFFER_CHANGED;
 	render_state_changed|=INDEX_BUFFER_CHANGED;		// vba_offset changes so index buffer needs to be reset as well.
-	if (GxLogOn) --GxLogParent;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn) --GxLogParent;	// GeneralsX: WS-G Task 5
 }
 
 // ----------------------------------------------------------------------------
@@ -3495,7 +3495,7 @@ void DX8Wrapper::Set_Vertex_Buffer(const DynamicVBAccessClass& vba_)
 
 void DX8Wrapper::Set_Index_Buffer(const DynamicIBAccessClass& iba_,unsigned short index_base_offset)
 {
-	if (GxLogOn && GxLogParent == 0) Gx_Log_Index_Buffer(gxlog::SET_IB_DYNAMIC, iba_.IndexBufferOffset, index_base_offset, iba_.Get_Type(), iba_.IndexBuffer);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log_Index_Buffer(gxlog::SET_IB_DYNAMIC, iba_.IndexBufferOffset, index_base_offset, iba_.Get_Type(), iba_.IndexBuffer);	// GeneralsX: WS-G Task 5
 	if (render_state.index_buffer) render_state.index_buffer->Release_Engine_Ref();
 
 	DynamicIBAccessClass& iba=const_cast<DynamicIBAccessClass&>(iba_);
@@ -3550,7 +3550,7 @@ void DX8Wrapper::Draw_Sorting_IB_VB(
 		DX8CALL(SetVertexShader(fvf));
 	}
 	DX8_RECORD_VERTEX_BUFFER_CHANGE();
-	if (CensusOn) {	// [GXCENSUS] this path binds directly, past Apply_Render_State_Changes (Codex rcpu r4)
+	if (CensusOn) {	// [GXCENSUS] this path binds directly, past Apply_Render_State_Changes (rcpu r4)
 		const void *vb = static_cast<DX8VertexBufferClass*>(dyn_vb_access.VertexBuffer)->Get_DX8_Vertex_Buffer();
 		++Census[DX8C_VB_DEV];
 		if (vb == s_cenLastVB) ++Census[DX8C_VB_SAME];
@@ -3599,7 +3599,7 @@ void DX8Wrapper::Draw_Sorting_IB_VB(
 		s_cenLastIB = ib;
 		s_cenLastBase = base;
 	}
-	if (GxLogOn) Gx_Log_Draw_Sort(static_cast<DX8VertexBufferClass*>(dyn_vb_access.VertexBuffer)->Get_DX8_Vertex_Buffer(),	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn) Gx_Log_Draw_Sort(static_cast<DX8VertexBufferClass*>(dyn_vb_access.VertexBuffer)->Get_DX8_Vertex_Buffer(),	// GeneralsX: WS-G Task 5
 		static_cast<DX8IndexBufferClass*>(dyn_ib_access.IndexBuffer)->Get_DX8_Index_Buffer(), dyn_vb_access.FVF_Info().Get_FVF_Size(), fvf,
 		dyn_vb_access.VertexBufferOffset, dyn_ib_access.IndexBufferOffset);
 
@@ -3629,7 +3629,7 @@ void DX8Wrapper::Draw(
 	unsigned short min_vertex_index,
 	unsigned short vertex_count)
 {
-	if (GxLogOn) Gx_Log_Draw(primitive_type, start_index, polygon_count, min_vertex_index, vertex_count);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: DRAW at GxLogParent 0
+	if (GxLogOn) Gx_Log_Draw(primitive_type, start_index, polygon_count, min_vertex_index, vertex_count);	// GeneralsX: WS-G Task 5: DRAW at GxLogParent 0
 	if (DrawPolygonLowBoundLimit && DrawPolygonLowBoundLimit>=polygon_count) return;
 
 	DX8_THREAD_ASSERT();
@@ -3642,7 +3642,7 @@ void DX8Wrapper::Draw(
 
 #ifdef MESH_RENDER_SNAPSHOT_ENABLED
 	if (WW3D::Is_Snapshot_Activated()) {
-		DWORD passes=0;		// GeneralsX @build BenderAI 10/02/2026 - Use DWORD (32-bit) instead of unsigned long (platform-dependent)
+		DWORD passes=0;		// GeneralsX: Use DWORD (32-bit) instead of unsigned long (platform-dependent)
 		SNAPSHOT_SAY(("ValidateDevice:"));
 		HRESULT res=D3DDevice->ValidateDevice(&passes);
 		switch (res) {
@@ -3830,11 +3830,11 @@ void DX8Wrapper::Apply_Render_State_Changes()
 	SNAPSHOT_SAY(("DX8Wrapper::Apply_Render_State_Changes()"));
 
 	if (!render_state_changed) return;
-	if (GxLogOn) Gx_Log_Apply(true);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: APPLY_BEGIN; the body's sends are NESTED
+	if (GxLogOn) Gx_Log_Apply(true);	// GeneralsX: WS-G Task 5: APPLY_BEGIN; the body's sends are NESTED
 	if (render_state_changed&SHADER_CHANGED) {
 		SNAPSHOT_SAY(("DX8 - apply shader"));
 		DX8_CENSUS(DX8C_SHADER_APPLY);
-		if (GxLogOn) GxLogBracket = gxlog::BR_SHADER;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) GxLogBracket = gxlog::BR_SHADER;	// GeneralsX: WS-G Task 5
 		render_state.shader.Apply();
 	}
 
@@ -3845,7 +3845,7 @@ void DX8Wrapper::Apply_Render_State_Changes()
 		if (render_state_changed&mask)
 		{
 			SNAPSHOT_SAY(("DX8 - apply texture %d (%s)",i,render_state.Textures[i] ? render_state.Textures[i]->Get_Full_Path().str() : "null"));
-			if (GxLogOn) { GxLogBracket = gxlog::BR_TEXTURE; GxLogStage = (uint8_t)i; }	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+			if (GxLogOn) { GxLogBracket = gxlog::BR_TEXTURE; GxLogStage = (uint8_t)i; }	// GeneralsX: WS-G Task 5
 
 			if (render_state.Textures[i])
 			{
@@ -3861,7 +3861,7 @@ void DX8Wrapper::Apply_Render_State_Changes()
 	if (render_state_changed&MATERIAL_CHANGED)
 	{
 		SNAPSHOT_SAY(("DX8 - apply material"));
-		if (GxLogOn) GxLogBracket = gxlog::BR_MATERIAL;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) GxLogBracket = gxlog::BR_MATERIAL;	// GeneralsX: WS-G Task 5
 		VertexMaterialClass* material=const_cast<VertexMaterialClass*>(render_state.material);
 		if (material)
 		{
@@ -3872,7 +3872,7 @@ void DX8Wrapper::Apply_Render_State_Changes()
 
 	if (render_state_changed&LIGHTS_CHANGED)
 	{
-		if (GxLogOn) GxLogBracket = gxlog::BR_LIGHTS;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+		if (GxLogOn) GxLogBracket = gxlog::BR_LIGHTS;	// GeneralsX: WS-G Task 5
 		unsigned mask=LIGHT0_CHANGED;
 		for (unsigned index=0;index<4;++index,mask<<=1) {
 			if (render_state_changed&mask) {
@@ -3905,18 +3905,18 @@ void DX8Wrapper::Apply_Render_State_Changes()
 		}
 	}
 
-	if (GxLogOn) GxLogBracket = gxlog::BR_XFORM;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the world / view sends
+	if (GxLogOn) GxLogBracket = gxlog::BR_XFORM;	// GeneralsX: WS-G Task 5: the world / view sends
 	if (render_state_changed&WORLD_CHANGED) {
 		SNAPSHOT_SAY(("DX8 - apply world matrix"));
-		// GeneralsX @refactor BenderAI 10/02/2026 - pass Matrix4x4 directly (no D3DMATRIX conversion)
+		// GeneralsX: pass Matrix4x4 directly (no D3DMATRIX conversion)
 		_Set_DX8_Transform(D3DTS_WORLD, render_state.world);
 	}
 	if (render_state_changed&VIEW_CHANGED) {
 		SNAPSHOT_SAY(("DX8 - apply view matrix"));
-		// GeneralsX @refactor BenderAI 10/02/2026 - pass Matrix4x4 directly (no D3DMATRIX conversion)
+		// GeneralsX: pass Matrix4x4 directly (no D3DMATRIX conversion)
 		_Set_DX8_Transform(D3DTS_VIEW, render_state.view);
 	}
-	if (GxLogOn) GxLogBracket = gxlog::BR_BINDINGS;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the VB / IB blocks
+	if (GxLogOn) GxLogBracket = gxlog::BR_BINDINGS;	// GeneralsX: WS-G Task 5: the VB / IB blocks
 	if (render_state_changed&VERTEX_BUFFER_CHANGED) {
 		SNAPSHOT_SAY(("DX8 - apply vb change"));
 		for (i=0;i<MAX_VERTEX_STREAMS;++i) {
@@ -3930,7 +3930,7 @@ void DX8Wrapper::Apply_Render_State_Changes()
 						if (vb == s_cenLastVB) ++Census[DX8C_VB_SAME];
 						s_cenLastVB = vb;
 					}
-					if (GxLogOn) Gx_Log_Ptr(gxlog::STREAM, i, render_state.vertex_buffers[i]->FVF_Info().Get_FVF_Size(),	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+					if (GxLogOn) Gx_Log_Ptr(gxlog::STREAM, i, render_state.vertex_buffers[i]->FVF_Info().Get_FVF_Size(),	// GeneralsX: WS-G Task 5
 						static_cast<DX8VertexBufferClass*>(render_state.vertex_buffers[i])->Get_DX8_Vertex_Buffer(), gxlog::SENT);
 					if (DX8Ring::Recording) {
 						DX8Ring::Rec_Stream_Source(i,
@@ -3947,7 +3947,7 @@ void DX8Wrapper::Apply_Render_State_Changes()
 						// If the VB format is FVF, set the FVF as a vertex shader
 						unsigned fvf=render_state.vertex_buffers[i]->FVF_Info().Get_FVF();
 						if (fvf!=0) {
-							if (GxLogOn) Gx_Log(gxlog::VSHADER, fvf, 0, nullptr, 0, gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+							if (GxLogOn) Gx_Log(gxlog::VSHADER, fvf, 0, nullptr, 0, gxlog::SENT);	// GeneralsX: WS-G Task 5
 							Set_Vertex_Shader(fvf);
 						}
 					}
@@ -3964,7 +3964,7 @@ void DX8Wrapper::Apply_Render_State_Changes()
 					if (s_cenLastVB == &s_cenLastVB) ++Census[DX8C_VB_SAME];
 					s_cenLastVB = &s_cenLastVB;
 				}
-				if (GxLogOn) Gx_Log_Ptr(gxlog::STREAM, i, 0, nullptr, gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+				if (GxLogOn) Gx_Log_Ptr(gxlog::STREAM, i, 0, nullptr, gxlog::SENT);	// GeneralsX: WS-G Task 5
 				if (DX8Ring::Recording) { DX8Ring::Rec_Stream_Source(i,nullptr,0); }
 				else { DX8CALL(SetStreamSource(i,nullptr,0)); }
 				DX8_RECORD_VERTEX_BUFFER_CHANGE();
@@ -3985,7 +3985,7 @@ void DX8Wrapper::Apply_Render_State_Changes()
 					s_cenLastIB = ib;
 					s_cenLastBase = base;
 				}
-				if (GxLogOn) Gx_Log_Ptr(gxlog::INDICES, 0, render_state.index_base_offset+render_state.vba_offset,	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+				if (GxLogOn) Gx_Log_Ptr(gxlog::INDICES, 0, render_state.index_base_offset+render_state.vba_offset,	// GeneralsX: WS-G Task 5
 					static_cast<DX8IndexBufferClass*>(render_state.index_buffer)->Get_DX8_Index_Buffer(), gxlog::SENT);
 				if (DX8Ring::Recording) {
 					DX8Ring::Rec_Indices(static_cast<DX8IndexBufferClass*>(render_state.index_buffer)->Get_DX8_Index_Buffer(),
@@ -4011,7 +4011,7 @@ void DX8Wrapper::Apply_Render_State_Changes()
 				s_cenLastIB = &s_cenLastIB;
 				s_cenLastBase = ~0u;
 			}
-			if (GxLogOn) Gx_Log_Ptr(gxlog::INDICES, 0, 0, nullptr, gxlog::SENT);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+			if (GxLogOn) Gx_Log_Ptr(gxlog::INDICES, 0, 0, nullptr, gxlog::SENT);	// GeneralsX: WS-G Task 5
 			if (DX8Ring::Recording) { DX8Ring::Rec_Indices(nullptr,0); }
 			else { DX8CALL(SetIndices(nullptr,0)); }	// braces: DX8CALL is several statements
 			DX8_RECORD_INDEX_BUFFER_CHANGE();
@@ -4019,7 +4019,7 @@ void DX8Wrapper::Apply_Render_State_Changes()
 	}
 
 	render_state_changed&=((unsigned)WORLD_IDENTITY|(unsigned)VIEW_IDENTITY);
-	if (GxLogOn) Gx_Log_Apply(false);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: brackets reset, APPLY_END
+	if (GxLogOn) Gx_Log_Apply(false);	// GeneralsX: WS-G Task 5: brackets reset, APPLY_END
 
 	SNAPSHOT_SAY(("DX8Wrapper::Apply_Render_State_Changes() - finished"));
 }
@@ -4034,7 +4034,7 @@ IDirect3DTexture8 * DX8Wrapper::_Create_DX8_Texture
 	bool rendertarget
 )
 {
-	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	DX8_Assert();
 	IDirect3DTexture8 *texture = nullptr;
@@ -4171,7 +4171,7 @@ IDirect3DTexture8 * DX8Wrapper::_Create_DX8_Texture
 	MipCountType mip_level_count
 )
 {
-	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	DX8_Assert();
 	IDirect3DTexture8 *texture = nullptr;
@@ -4217,7 +4217,7 @@ IDirect3DTexture8 * DX8Wrapper::_Create_DX8_Texture
 	MipCountType mip_level_count
 )
 {
-	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	DX8_Assert();
 	IDirect3DTexture8 *texture = nullptr;
@@ -4259,7 +4259,7 @@ IDirect3DTexture8 * DX8Wrapper::_Create_DX8_ZTexture
 	D3DPOOL pool
 )
 {
-	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	DX8_Assert();
 	IDirect3DTexture8* texture = nullptr;
@@ -4342,7 +4342,7 @@ IDirect3DCubeTexture8* DX8Wrapper::_Create_DX8_Cube_Texture
 	bool rendertarget
 )
 {
-	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	WWASSERT(width==height);
 	DX8_THREAD_ASSERT();
 	DX8_Assert();
@@ -4481,7 +4481,7 @@ IDirect3DVolumeTexture8* DX8Wrapper::_Create_DX8_Volume_Texture
 	D3DPOOL pool
 )
 {
-	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	DX8_Assert();
 	IDirect3DVolumeTexture8* texture=nullptr;
@@ -4551,7 +4551,7 @@ IDirect3DVolumeTexture8* DX8Wrapper::_Create_DX8_Volume_Texture
 
 IDirect3DSurface8 * DX8Wrapper::_Create_DX8_Surface(unsigned int width, unsigned int height, WW3DFormat format)
 {
-	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	DX8_Assert();
 
@@ -4567,7 +4567,7 @@ IDirect3DSurface8 * DX8Wrapper::_Create_DX8_Surface(unsigned int width, unsigned
 
 IDirect3DSurface8 * DX8Wrapper::_Create_DX8_Surface(const char *filename_)
 {
-	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	DX8_Assert();
 
@@ -4651,7 +4651,7 @@ void DX8Wrapper::Compute_Caps(WW3DFormat display_format)
 
 void DX8Wrapper::Set_Light(unsigned index, const D3DLIGHT8* light)
 {
-	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_LIGHT, index, light != nullptr, light, light ? sizeof(D3DLIGHT8) : 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_LIGHT, index, light != nullptr, light, light ? sizeof(D3DLIGHT8) : 0, 0);	// GeneralsX: WS-G Task 5
 	if (light) {
 		render_state.Lights[index]=*light;
 		render_state.LightEnable[index]=true;
@@ -4762,7 +4762,7 @@ void DX8Wrapper::Census_Light_Environment(LightEnvironmentClass* light_env)
 		++Census[DX8C_LENV_SAME];
 }
 
-// GeneralsX @performance Claude 08/10/2026 (C · rcpu-cuts-2, roadmap 2f) GX_WRAPSKIP 8. Every mesh hands
+// GeneralsX: GX_WRAPSKIP 8. Every mesh hands
 // Set_Light_Environment its own copy of its object's lights, and the census measured ~99% of the ~12.4k calls a held
 // frame rebuilding the same lights (Mini, G0B replay): per light a ZeroMemory, a fill, a 104-byte compare with the
 // device's copy and a copy into render_state. The lights the call produces are a function of exactly the fields kept
@@ -4834,7 +4834,7 @@ static void GX_Lenv_Remember(const LightEnvironmentClass& e)
 void DX8Wrapper::Set_Light_Environment(LightEnvironmentClass* light_env)
 {
 	// Shader light environment support															*
-	if (GxLogOn) Gx_Log_Light_Environment(light_env);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: SET_LIGHT_ENV at parent 0, raises it
+	if (GxLogOn) Gx_Log_Light_Environment(light_env);	// GeneralsX: WS-G Task 5: SET_LIGHT_ENV at parent 0, raises it
 	Light_Environment=light_env;
 
 	if (light_env)
@@ -4856,7 +4856,7 @@ void DX8Wrapper::Set_Light_Environment(LightEnvironmentClass* light_env)
 			DX8_CENSUS(DX8C_SKIP_LENV);
 			if (CensusOn)
 				Census_Light_Environment(light_env);
-			if (GxLogOn) --GxLogParent;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+			if (GxLogOn) --GxLogParent;	// GeneralsX: WS-G Task 5
 			return;
 		}
 
@@ -4908,7 +4908,7 @@ void DX8Wrapper::Set_Light_Environment(LightEnvironmentClass* light_env)
 			// GX_WRAPSKIP 1: the device already holds exactly this light, enabled, and nothing is pending for the slot:
 			// re-flagging it only makes Apply_Render_State_Changes re-compare it (Set_DX8_Light's cache) per draw. The
 			// deferred copy is still updated: the sorting renderer sets device lights directly, so render_state can hold
-			// an older light than the device, and Insert_Triangles snapshots render_state (Codex rcpu-wrapskip r1 P2).
+			// an older light than the device, and Insert_Triangles snapshots render_state (rcpu-wrapskip r1 P2).
 			if ((Wrap_Skip() & 1u) && l < 4 && CurrentDX8LightValid[l] && CurrentDX8LightEnables[l]
 				&& render_state.LightEnable[l] && !(render_state_changed & (LIGHT0_CHANGED<<l))
 				&& memcmp(&CurrentDX8Lights[l], &light, sizeof(D3DLIGHT8)) == 0) {
@@ -4936,7 +4936,7 @@ void DX8Wrapper::Set_Light_Environment(LightEnvironmentClass* light_env)
 	}
 	if (CensusOn)	// one test when off: the census reads what this call left in render_state
 		Census_Light_Environment(light_env);
-	if (GxLogOn) --GxLogParent;	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn) --GxLogParent;	// GeneralsX: WS-G Task 5
 /*	else {
 		for (int l=0;l<4;++l) {
 			Set_Light(l,nullptr);
@@ -4945,7 +4945,7 @@ void DX8Wrapper::Set_Light_Environment(LightEnvironmentClass* light_env)
 */
 }
 
-// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the `=2` call log (dx8wrapper.h GxLogOn; gxcalllog.h; render-seam/rw1-G/
+// GeneralsX: WS-G Task 5: the `=2` call log (dx8wrapper.h GxLogOn; gxcalllog.h; render-seam/rw1-G/
 // T1_HOOKS_BRIEF.md). Nothing here runs unless the check turned GxLogOn on. Matrices and lights go into the log as bytes.
 static_assert(sizeof(D3DLIGHT8) == sizeof(gxlog::Light) && sizeof(D3DMATERIAL8) == sizeof(gxlog::Material)
 	&& sizeof(Matrix4x4) == sizeof(gxlog::Mat4) && sizeof(Vector3) == 3 * sizeof(float), "the call log's byte copies");
@@ -4965,7 +4965,7 @@ void DX8Wrapper::Gx_Log(unsigned op, unsigned a, unsigned b, const void *payload
 	gxlog::Record r;
 	memset(&r, 0, sizeof(r));
 	r.op = (uint16_t)op;
-	r.bracket = GxLogBracket;	// provenance inside an input bracket too: the replay skips it there (Codex rw1-G-r25 #2)
+	r.bracket = GxLogBracket;	// provenance inside an input bracket too: the replay skips it there
 	r.stage = GxLogStage;
 	r.flags = (uint8_t)(flags | ((low && GxLogParent > 0) ? gxlog::NESTED : 0));
 	r.a = a;
@@ -5497,7 +5497,7 @@ DX8Wrapper::Set_Render_Target(IDirect3DSurface8 *render_target, bool use_default
 	}
 	else if (render_target != CurrentRenderTarget)
 	{
-		// GeneralsX @bugfix Claude 28/09/2026 A custom-to-custom switch is legal: DefaultRenderTarget is only
+		// GeneralsX: A custom-to-custom switch is legal: DefaultRenderTarget is only
 		// captured while it is null, so it keeps the true backbuffer across nested switches. The assert that
 		// stood here forbade exactly the nesting pillarbox -> script filter needs.
 
@@ -5568,7 +5568,7 @@ DX8Wrapper::Set_Render_Target(IDirect3DSurface8 *render_target, bool use_default
 }
 
 
-// GeneralsX @bugfix Claude 28/09/2026 How Set_Render_Target_Pair reads the result of the switch below.
+// GeneralsX: How Set_Render_Target_Pair reads the result of the switch below.
 static bool s_quietRenderTargetFailure = false;
 static HRESULT s_lastRenderTargetResult = D3D_OK;
 
@@ -5629,7 +5629,7 @@ void DX8Wrapper::Set_Render_Target
 	}
 	else if (render_target != CurrentRenderTarget)
 	{
-		// GeneralsX @bugfix Claude 28/09/2026 Custom-to-custom is legal here too; see the overload above.
+		// GeneralsX: Custom-to-custom is legal here too; see the overload above.
 
 		//
 		//	We'll need the depth buffer later...
@@ -5672,14 +5672,14 @@ void DX8Wrapper::Set_Render_Target
 		if (CurrentRenderTarget != nullptr)
 		{
 			CurrentRenderTarget->AddRef ();
-			// GeneralsX @bugfix Claude 28/09/2026 A null depth is a legal binding (the device then has none).
+			// GeneralsX: A null depth is a legal binding (the device then has none).
 			if (CurrentDepthBuffer != nullptr)
 				CurrentDepthBuffer->AddRef();
 
 			//
 			//	Switch render targets
 			//
-			// GeneralsX @bugfix Claude 28/09/2026 Set_Render_Target_Pair asks for this switch quietly and reads
+			// GeneralsX: Set_Render_Target_Pair asks for this switch quietly and reads
 			// the result: a pair the device refuses (TheSuperHackers' driver-forced MSAA depth) is an expected
 			// failure there, which DX8CALL would turn into a debug assert.
 			const HRESULT hr = D3DDevice->SetRenderTarget (CurrentRenderTarget, CurrentDepthBuffer);
@@ -5693,7 +5693,7 @@ void DX8Wrapper::Set_Render_Target
 	IsRenderToTexture=true;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 See the declaration. The depth comes from the device because
+// GeneralsX: See the declaration. The depth comes from the device because
 // CurrentDepthBuffer is null after a (surf,bool) bind and after Set_Render_Target_With_Z(tex, nullptr).
 void DX8Wrapper::Get_Render_Target_Pair(IDirect3DSurface8 *&rt, IDirect3DSurface8 *&ds)
 {
@@ -5838,7 +5838,7 @@ void D3DMatrixIdentity(D3DMATRIX* dxm)
 
 void DX8Wrapper::Set_World_Identity()
 {
-	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_WORLD_IDENTITY, 0, 0, nullptr, 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_WORLD_IDENTITY, 0, 0, nullptr, 0, 0);	// GeneralsX: WS-G Task 5
 	if (render_state_changed&(unsigned)WORLD_IDENTITY)
 		return;
 	// GeneralsX @build fbraz 10/02/2026 Use Matrix4x4 native method
@@ -5848,7 +5848,7 @@ void DX8Wrapper::Set_World_Identity()
 
 void DX8Wrapper::Set_View_Identity()
 {
-	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_VIEW_IDENTITY, 0, 0, nullptr, 0, 0);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (GxLogOn && GxLogParent == 0) Gx_Log(gxlog::SET_VIEW_IDENTITY, 0, 0, nullptr, 0, 0);	// GeneralsX: WS-G Task 5
 	if (render_state_changed&(unsigned)VIEW_IDENTITY)
 		return;
 	// GeneralsX @build fbraz 10/02/2026 Use Matrix4x4 native method
@@ -6599,7 +6599,7 @@ WW3DFormat	DX8Wrapper::getBackBufferFormat()
 	return D3DFormat_To_WW3DFormat( _PresentParameters.BackBufferFormat );
 }
 
-// GeneralsX @refactor Claude 10/10/2026 TheSuperHackers' Renderer seam (Renderer.h) is defined by the DX8 backend, built
+// GeneralsX: TheSuperHackers' Renderer seam (Renderer.h) is defined by the DX8 backend, built
 // here rather than listed in CMakeLists.txt: that recipe is digested whole (simsourcedigest_watcher.cmake), and a new
 // source line there would move the SimID of a change that touches no simulation code.
 #include "Backend/DX8Backend.cpp"

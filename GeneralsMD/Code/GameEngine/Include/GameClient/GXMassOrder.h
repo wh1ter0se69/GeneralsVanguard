@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @test Claude 02/10/2026 GX_MASSORDER: a scripted, timed mass order for harness matches. See GXMassOrder.cpp.
+// GeneralsX: GX_MASSORDER: a scripted, timed mass order for harness matches. See GXMassOrder.cpp.
 
 #pragma once
 

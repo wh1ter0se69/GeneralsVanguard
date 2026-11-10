@@ -59,7 +59,7 @@ W3DTracerDraw::W3DTracerDraw( Thing *thing, const ModuleData* moduleData ) : Dra
 	m_color.green = 0.8f;
 	m_color.blue = 0.7f;
 	m_speedInDistPerFrame = 1.0f;
-	// GeneralsX @bugfix Claude 06/08/2026 Sentinel, so the first doDrawModule() call steps.
+	// GeneralsX: Sentinel, so the first doDrawModule() call steps.
 	m_lastLogicFrameUpdated = 0xffffffff;
 	m_theTracer = nullptr;
 
@@ -135,13 +135,13 @@ void W3DTracerDraw::doDrawModule(const Matrix3D* transformMtx)
 
 	}
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate - see m_lastLogicFrameUpdated in the header.
+	// GeneralsX: Class-C gate - see m_lastLogicFrameUpdated in the header.
 	const UnsignedInt gxNow = TheGameLogic->getFrame();
 	const Bool gxAdvanced = (gxNow != m_lastLogicFrameUpdated);
 	m_lastLogicFrameUpdated = gxNow;
 
 	UnsignedInt expDate = getDrawable()->getExpirationDate();
-	// GeneralsX @bugfix Claude 06/08/2026 expDate and getFrame() are UnsignedInt, so on the expiry
+	// GeneralsX: expDate and getFrame() are UnsignedInt, so on the expiry
 	// frame this subtraction is exactly 0 and the division below produced -inf opacity. Reachable
 	// while paused, because GameClient's drawable walk is skipped under freezeTime but TheDisplay
 	// keeps drawing.

@@ -135,7 +135,7 @@ UpdateSleepTime GrantStealthBehavior::update()
 
 
 #if GX_LOGIC_60HZ
-  // GeneralsX @fix Claude 05/10/2026 go-parity-undo3 N10: distance PER FRAME, halved (exact); GO never rescaled it and grows 2x as fast
+  // GeneralsX: go-parity-undo3 N10: distance PER FRAME, halved (exact); GO never rescaled it and grows 2x as fast
   m_currentScanRadius += d->m_radiusGrowRate * 0.5f;
 #else
   m_currentScanRadius += d->m_radiusGrowRate;

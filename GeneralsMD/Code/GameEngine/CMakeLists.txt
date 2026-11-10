@@ -1184,7 +1184,7 @@ target_sources(z_gameengine PRIVATE ${GAMEENGINE_SRC})
 
 target_include_directories(z_gameengine PUBLIC
     Include
-    ${GX_COMPATLIB_INCLUDE_DIR}  # GeneralsX @bugfix Claude 27/07/2026 d3dx8math.h for the PCH.
+    ${GX_COMPATLIB_INCLUDE_DIR}  # GeneralsX: d3dx8math.h for the PCH.
                                  # Was ../CompatLib/Include, which re-exposed the shim windows.h
                                  # to this target and reintroduced the SDK shadowing on Windows.
 )
@@ -1214,7 +1214,7 @@ target_link_libraries(z_gameengine PUBLIC
     d3d8lib  # Ensure DirectX8 headers available (Windows SDK or DXVK)
 )
 
-# GeneralsX @feature Claude 28/09/2026 [GXGFX] therm=/lpm= (GameClient/GXGfxProbe.h) ask NSProcessInfo through the
+# GeneralsX: [GXGFX] therm=/lpm= (GameClient/GXGfxProbe.h) ask NSProcessInfo through the
 # Objective-C runtime from plain C++. iOS already links Foundation (GameEngineDevice); the macOS binary named neither
 # libobjc nor Foundation (otool -L: CoreFoundation only), so both are stated here instead of relying on SDL3 to have
 # pulled Foundation in at runtime. Not a digested file (simid-digest.sh lists only Common/GameLogic/GameNetwork here).

@@ -875,7 +875,7 @@ void GOAPlayersCallback(PEER peer, PEERBool playing, char * outbuf,
 			i, slot->getStartPos());
 		buf.concat(tmp);
 	}
-	// GeneralsX @security Claude 06/10/2026 buf carries every slot's lobby name (peer-controlled); as the format it let a name like
+	// GeneralsX: buf carries every slot's lobby name (peer-controlled); as the format it let a name like
 	// "%s%n" read and write through missing arguments. Copy it as data.
 	snprintf(outbuf, maxlen, "%s", buf.str());
 	DEBUG_LOG(("GOAPlayersCallback: [%s]", outbuf));

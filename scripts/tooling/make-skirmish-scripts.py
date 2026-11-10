@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# GeneralsX @feature Claude 29/09/2026 Data/Scripts/SkirmishScripts.scb: the retail skirmish-AI script file plus
+# GeneralsX: Data/Scripts/SkirmishScripts.scb: the retail skirmish-AI script file plus
 # GeneralsX's AI edits. A RECIPE, NOT A COPY (same rule as make-weapon-ini.py and build-overlay-generated.py: the
 # retail bytes are EA's and this repository is public, so they are read from the player's/packager's own copy and
 # the edit ships as code).
@@ -61,11 +61,11 @@ OUTPUT_SHA256 = "cc302b0941cc009d950d82e60e863c2833d50ca50feede99fd0e4f6f062b7be
 # (plan 4.4 step 2: then OUTPUT_SHA256 and dataID move, BASE_SHA256 does not). Without that file the two are equal.
 SHIPPED_RULESET = os.path.join(HERE, "rulebank", "shipped_ruleset.json")
 OUTPUTS = [RETAIL_MEMBER]
-RETAIL_BACKUP = ".retail"   # <target>.retail: the pristine source, kept when a deploy overwrites the retail file in place (Codex r3 P1)
+RETAIL_BACKUP = ".retail"   # <target>.retail: the pristine source, kept when a deploy overwrites the retail file in place
 LADDER = [15000, 30000, 50000, 80000]     # PLAYER_HAS_CREDITS rungs
 ESC = [10, 20, 30, 45]                    # _ESCALATION rungs (Hard: +1 per 10 s): ~1.7/3.3/5/7.5 min
 SUPPLY_MIN = 1000                         # AI_PLAYER_BUILD_SUPPLY_CENTER's cash argument (only read for cash generators)
-# KNOWN LIMIT (Codex r11 P1, accepted): the action builds beside the AI's current warehouse (AIPlayer::buildBySupplies,
+# KNOWN LIMIT (accepted): the action builds beside the AI's current warehouse (AIPlayer::buildBySupplies,
 # m_curWarehouseID) or, with none yet, beside an UNSERVED dock with >= SUPPLY_MIN boxes (findSupplyCenter). On a map where
 # the AI has no such dock a rung does nothing (inert, never harmful). Measured working on CraterRing and Cauldron (production x2).
 DOZER_CREDITS = [50000, 80000]            # extra 'Replace Dozer' clones of the retail '... High Money Build Condition 2'
@@ -203,7 +203,7 @@ def easy_plus(scb):
 
 
 PROD = re.compile(r'(WarFactory|Barracks|Airfield|ArmsDealer)$')
-# GeneralsX @feature Claude 21/10/2026 China Tank + China Nuke without the spend patch (box week J2, 19/10: the recipe-step
+# GeneralsX: China Tank + China Nuke without the spend patch (box week J2, 19/10: the recipe-step
 # ablation, ai/bw/j2 in gx-handoff). Each step was taken out for one general at a time (that general's list + owned teams from
 # the recipe without the step, everything else stock) and played 1v1 against stock: only two removals helped, both of the
 # spend patch, both China (Tank +3.7 points, Holm 0.016; Nuke +8.4, Holm 1e-9). NO_SPEND names those ScriptList owners: spend_patch
@@ -285,7 +285,7 @@ def spend_patch(scb, no_spend=None):
         if not script_name(sn).endswith('Dozer - High Money Build Condition 2') or li in skip_li:
             continue
         if script_flags(sn)[0][4] != 1:
-            continue  # the clone is Hard-only, so the donor must be a Hard script (Codex r9 P2)
+            continue  # the clone is Hard-only, so the donor must be a Hard script
         at = nodes.index(sn)
         for k, thr in enumerate(DOZER_CREDITS):
             nm_new = '%s DX%d' % (script_name(sn), k + 1)
@@ -341,7 +341,7 @@ def spend_patch(scb, no_spend=None):
     return added, tech, waves
 
 
-# GeneralsX @bugfix Claude 30/09/2026 Four retail launch bugs park Hard attack teams at home for the whole match (C·ai-pressure-3,
+# GeneralsX: Four retail launch bugs park Hard attack teams at home for the whole match (C·ai-pressure-3,
 # wh1ter0se: "attacks while preparing attacks"). Every Hard wave team leaves base through a team script that fires on the attack
 # pulse while the team is inside its own base; these teams could not:
 #  1. plain China "China Attack Sequence Back" tests TEAM_OUTSIDE_AREA_ENTIRELY(MyOuterPerimeter); every other copy (the three
@@ -405,7 +405,7 @@ def launch_fixes(scb):
     return edits
 
 
-# GeneralsX @bugfix Claude 30/09/2026 A Hard AI never expands to the supplies near its base on 12-seat maps (C·ai-economy-4,
+# GeneralsX: A Hard AI never expands to the supplies near its base on 12-seat maps (C·ai-economy-4,
 # wh1ter0se: "expand to their nearby supplies"). "<Side> Base Expand Start - H" asks SUPPLY_SOURCE_SAFE(25000) and builds with
 # AI_PLAYER_BUILD_SUPPLY_CENTER(.., 25000). AIPlayer::findSupplyCenter takes the CLOSEST unserved source holding >= that cash
 # and halves the amount only when NO source qualifies; the caller then tests just that one source (isLocationSafe). Crater
@@ -546,7 +546,7 @@ def sw_fire_ready(scb):
     return len(removed)
 
 
-# GeneralsX @feature Claude 21/10/2026 China Nuke's W-NUK-12 genome (box week J4, 20-21/10, ai/bw/j4 in gx-handoff). A registered
+# GeneralsX: China Nuke's W-NUK-12 genome (box week J4, 20-21/10, ai/bw/j4 in gx-handoff). A registered
 # grid of single-gene moves and three forge champions' genomes, built on China Nuke's NO_SPEND scripts by the forge's pack builder
 # (forge_pack.py BUILDER 'forge-pack-5', feat/ai-forge), screened, then re-played on 12 held-out maps: variant 12 (the Air Force
 # champion's three moves) won +9.6 points 1v1 vs stock (435 better / 182 worse of 2,640 pairs, sign p 4e-25, better on 10 of 12
@@ -657,7 +657,7 @@ def nuke_genome(scb, no_spend=None):
     return edits
 
 
-# GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ opt-in steps (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6/7): an engine behaviour that is OFF
+# GeneralsX: ai-wh1ter0se-econ opt-in steps (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6/7): an engine behaviour that is OFF
 # until a player's scripts call its action - so a stock .scb plays as before, and a FOCAL box arm turns it on for ONE general (generals=).
 # Each adds, per chosen general list, one group "<group>" holding one Hard-only one-shot script whose condition is CONDITION_TRUE and
 # whose single action is the new engine action (its int read from Scripts.h at run time); nothing else in the file changes.
@@ -751,7 +751,7 @@ def opt_in_selftest(base, out, group, script_name_, action, generals=None):
         assert script_flags(g.kids[0])[0] == [1, 1, 0, 0, 1, 0]
     print("  %s: +1 Hard one-shot script in %d lists, nothing else (on: %s)" % (group, len(want), sha256(out)))
 
-# GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6; wh1ter0se 22/10: "building rotation should always be
+# GeneralsX: ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6; wh1ter0se 22/10: "building rotation should always be
 # rotated to where it matters"): every Hard general calls AI_PLAYER_FACE_FRONT once - its barracks / war factory / arms dealer doors face
 # its base front, its base defences face out. Engine-gated by the action (a stock .scb never calls it).
 FACE_FRONT = True                         # False = the 0.9.67 package (FACE_FRONT_OFF_SHA256)
@@ -759,7 +759,7 @@ FACE_FRONT_OFF_SHA256 = "14414fcd6ea7c84496fc7d74a43228c41c0f228988a135e613e3529
 FACE_FRONT_ARGS = ('GX Face Front', 'GX Face Front', 'AI_PLAYER_FACE_FRONT', ['SIDE'], ['<This Player>'])
 
 
-# GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ: a small editor for the arms' recipe steps (U, T): calls built from stock donors (their
+# GeneralsX: ai-wh1ter0se-econ: a small editor for the arms' recipe steps (U, T): calls built from stock donors (their
 # ints checked against Scripts.h) or from NEW engine names, scripts with explicitly set header flags, one appended group per list, and
 # team dicts copied from a donor team of the same owner with the arm's keys set. Same shape as gla_dozer_steal's helpers.
 def gx_engine_enum(name):
@@ -931,7 +931,7 @@ def gx_arm_selftest(base, out, owners, label):
     print("  %s: +1 group in %d lists, +%d team bytes, +%d chunk names, nothing else (on: %s)" % (
         label, len(want), len(tb) - len(ta), len(b.toc) - len(a.toc), sha256(out)))
 
-# GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7; wh1ter0se 22/10: "keeping gla troops like 4-6 in the
+# GeneralsX: ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7; wh1ter0se 22/10: "keeping gla troops like 4-6 in the
 # tunnel mostly should be anti air units like quads to pop when it detects incoming airplanes/migs/raptors and then hide back instantly").
 # Per GLA general (Hard only):
 #  * "GX Tunnel AA Watch <side>" (one-shot): AI_PLAYER_TUNNEL_AIR_WATCH(700) - the engine names incoming aircraft as the tunnels' nemesis;
@@ -940,7 +940,7 @@ def gx_arm_selftest(base, out, owners, label):
 #    team-common-target off; on creation it guards in the tunnel network (TEAM_GUARD_IN_TUNNEL_NETWORK). 6 of the network's 10 places;
 #  * the general's two STOCK tunnel-guard teams (Hard 3W and 5W, on-create "GLA Behavior: Guard Tunnel", 10 units each) become 1 Quad
 #    Cannon + 1 Tunnel Defender each, so 6 + 2 + 2 = 10 always fits the whole network (TunnelTracker::isValidContainerFor refuses a unit
-#    when it is full - Codex ke-tunnel-r3 P2: an airfield built after the stock team left the AA team outside). wh1ter0se's "4-6 in the
+#    when it is full: an airfield built after the stock team left the AA team outside). wh1ter0se's "4-6 in the
 #    tunnel, mostly AA": 4 without an enemy airfield, up to 10 with one; every one of them can fire at aircraft.
 TUNNEL_AA = True                           # False = the 0.9.68 package (TUNNEL_AA_OFF_SHA256 = R on all twelve generals)
 TUNNEL_AA_OFF_SHA256 = "14d03e02a70e4f6c02eaa30b2b3735929b4a673e21cc52ec28efa9f35c96620d"
@@ -1070,7 +1070,7 @@ def tunnel_aa(scb, generals=None, watch=None):
         e.add_team(owner, 'GLA Tunnel AA %s' % side, [(pre + 'GLAVehicleQuadCannon', 4), (pre + 'GLAInfantryTunnelDefender', 2)],
                    {'teamProductionPriority': (1, 500), 'teamMaxInstances': (1, 1), 'teamProductionCondition': (3, cond),
                     'teamIsAIRecruitable': (0, 0), 'teamOnCreateScript': (3, guard), 'teamAttackCommonTarget': (0, 0),
-                    'teamAutoReinforce': (0, 1)})   # refilled below six (AIPlayer::selectTeamToReinforce; Codex ke-tunnel-r1 P2)
+                    'teamAutoReinforce': (0, 1)})   # refilled below six (AIPlayer::selectTeamToReinforce)
         changed += 1
     return changed
 
@@ -1224,7 +1224,7 @@ def usa_sd_selftest(base, out):
 # The "False = ... (pin X)" pins in the step switches above are historical: each was the output when that step was the newest, so
 # it needs every LATER step and the China package off too (NO_SPEND = (), NUKE_GENOME = False; the selftest rebuilds 67eb7669 and
 # cf4a7600 that way, the older pins are not re-checked). With
-# the package on, a step switched off changes China Nuke's list and nuke_genome refuses those bytes (Codex ai-pkg-0967-r4/r5/r6 P3).
+# the package on, a step switched off changes China Nuke's list and nuke_genome refuses those bytes.
 FIXUP_STEPS = ([launch_fixes] if LAUNCH_FIXES else []) + ([expand_nearby] if EXPAND_NEARBY else []) + \
     ([capture_home] if CAPTURE_HOME else []) + ([expand_no_defence] if EXPAND_NO_DEFENCE else []) + \
     ([sw_fire_ready] if SW_FIRE_READY else [])
@@ -1349,7 +1349,7 @@ def write(path, data, keep_source=False):
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     if keep_source:
         keep_pristine(path)
-        if os.path.isfile(path):   # a modded file is not ours to destroy (Codex r12 P1): keep it beside the target
+        if os.path.isfile(path):   # a modded file is not ours to destroy: keep it beside the target
             old = open(path, 'rb').read(); h = sha256(old)
             if h not in (SOURCE_SHA256, BASE_SHA256, OUTPUT_SHA256):
                 um = '%s.user-%s' % (path, h[:8])
@@ -1435,10 +1435,10 @@ def package_selftest(data, out):
     try:
         generate(data, no_spend=TNK_NUK[:1], genome=True)
     except AssertionError as e:
-        assert 'WITHOUT the spend patch only' in str(e), e     # the switch guard itself, not the bytes one behind it (Codex r5 P3)
+        assert 'WITHOUT the spend patch only' in str(e), e     # the switch guard itself, not the bytes one behind it
     else:
         raise AssertionError("the genome ran on a China Nuke that has the spend patch")
-    try:    # the same with the switch claiming NO_SPEND: the bytes refuse (A-SP-TNK's China Nuke has the spend patch; Codex r2 P2)
+    try:    # the same with the switch claiming NO_SPEND: the bytes refuse (A-SP-TNK's China Nuke has the spend patch)
         nuke_genome(SCB(arms['A-SP-TNK']), no_spend=TNK_NUK)
     except AssertionError as e:
         assert 'not the bytes W-NUK-12 was built on' in str(e), e
@@ -1490,7 +1490,7 @@ def selftest():
             TUNNEL_AA = True
             taa_out, _ = generate(data)
             assert taa_out == generate(data)[0], "tunnel AA step not deterministic"
-            taa_one = generate(data, taa_focal=['SkirmishGLADemolitionGeneral'], taa_watch=True)[0]	# explicit (Codex t2-engine-r1 #8)
+            taa_one = generate(data, taa_focal=['SkirmishGLADemolitionGeneral'], taa_watch=True)[0]	# explicit
             taa_t0 = generate(data, taa_focal=['SkirmishGLADemolitionGeneral'], taa_watch=False)[0]
             FACE_FRONT, TUNNEL_AA = ff_on, taa_on
             shipped, _ = generate(data)
@@ -1516,7 +1516,7 @@ def selftest():
         # the step proofs below pin the recipe from before the China package (752d52a6 and older): they run with its switches off.
         # The shipped bytes are covered by composition: package_selftest proved PKG == this output outside China Tank's and China
         # Nuke's lists + teams, and those == M-SP's (+ the 16 genome rows); M-SP runs the same FIXUP_STEPS. A step-off arm cannot
-        # carry the genome (every step below touches China Nuke's list, and nuke_genome refuses any other bytes), Codex r2 P3.
+        # carry the genome (every step below touches China Nuke's list, and nuke_genome refuses any other bytes).
         PRE = dict(no_spend=(), genome=False)
         full, out = out, generate(data, **PRE)[0]
         assert sha256(out) == PACKAGE_ARMS['S'][2], "package off: %s" % sha256(out)
@@ -1556,7 +1556,7 @@ def selftest():
             on, _ = generate(data, **PRE)
         finally:
             FIXUP_STEPS = keep
-        # Walk both trees node by node (Codex r2 P2: names, versions, prefixes = group/script headers, order, every
+        # Walk both trees node by node (names, versions, prefixes = group/script headers, order, every
         # leaf): the only bytes allowed to differ are the 36 SUPPLY_SOURCE_SAFE / AI_PLAYER_BUILD_SUPPLY_CENTER leaves.
         xa, xb, changed = SCB(off), SCB(on), []
         def cmp(na, nb, script):

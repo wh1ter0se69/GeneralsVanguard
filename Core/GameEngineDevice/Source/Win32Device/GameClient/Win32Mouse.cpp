@@ -236,7 +236,7 @@ void Win32Mouse::translateEvent( UnsignedInt eventIndex, MouseIO *result )
 
 	}
 
-	// GeneralsX @feature Claude 25/09/2026 CLIENT PIXELS -> GAME PIXELS when the picture is pillarboxed.
+	// GeneralsX: CLIENT PIXELS -> GAME PIXELS when the picture is pillarboxed.
 	// Borderless fullscreen (DX8Wrapper::Set_Borderless) draws the game resolution scaled into a
 	// monitor-sized window, so a click at client (x,y) is not game (x,y) unless the two sizes agree.
 	// getViewportRect answers only while the pillarbox is ENABLED, which on Windows means borderless

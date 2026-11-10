@@ -139,9 +139,9 @@ ThingTemplate *ThingFactory::newTemplate( const AsciiString& name )
 	{
 
 		// copy over static data
-		// GeneralsX @bugfix Claude 09/10/2026 From the default's final override: the master's copy carried its link to a
+		// GeneralsX: From the default's final override: the master's copy carried its link to a
 		// map.ini's override of DefaultThingTemplate, so the new template resolved to that override and ThingFactory::reset
-		// deleted it twice (Codex reskin-loop-adv-r1). The same template outside a map.ini, where nothing has overrides.
+		// deleted it twice. The same template outside a map.ini, where nothing has overrides.
 		*newTemplate = *(const ThingTemplate*)defaultT->getFinalOverride();
 		newTemplate->setCopiedFromDefault();
 
@@ -415,7 +415,7 @@ AsciiString TheThingTemplateBeingParsedName;
 		const ThingTemplate* reskinTmpl = TheThingFactory->findTemplate(reskinFrom);
 		if (reskinTmpl)
 		{
-			// GeneralsX @bugfix Claude 09/10/2026 From the source as this map.ini has left it so far - its final override,
+			// GeneralsX: From the source as this map.ini has left it so far - its final override,
 			// what newOverride copies too; the master would drop the map's own earlier changes to it. The same template
 			// outside a map.ini, where nothing has overrides.
 			thingTemplate->copyFrom((const ThingTemplate*)reskinTmpl->getFinalOverride());

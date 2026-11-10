@@ -335,9 +335,9 @@ protected:
 };
 
 //-----------------------------------------------------------------------------
-// GeneralsX @feature Claude 19/09/2026 A flag in DESTROYPLAYER's slot word: hand the victim's assets to
+// GeneralsX: A flag in DESTROYPLAYER's slot word: hand the victim's assets to
 // a living ally instead of destroying them, as its own quit would have. Set only for a hard quit (see
-// DisconnectManager::processDisconnectPlayer). ponytail: rides the oversized index word rather than a
+// DisconnectManager::processDisconnectPlayer). Trade-off: rides the oversized index word rather than a
 // new wire field; give it its own field the next time this packet's layout changes anyway.
 enum { DESTROYPLAYER_TRANSFER_ASSETS = 0x100 };
 
@@ -369,7 +369,7 @@ public:
 };
 
 //-----------------------------------------------------------------------------
-// GeneralsX @feature Claude 13/08/2026 The packet router's latency row.
+// GeneralsX: The packet router's latency row.
 //
 // One slot-indexed array of round trips in MILLISECONDS. Only the router fills it in; every peer
 // receives it and reads it for display only. See NetPacketLatencyReportCommandData for why the
@@ -390,7 +390,7 @@ public:
 	UnsignedShort getLatencyMs(Int slot) const;
 	void setLatencyMs(Int slot, UnsignedShort ms);
 
-	/// GeneralsX @feature Claude 06/10/2026 The router's average render fps for @p slot (what the run-ahead clamp reads),
+	/// GeneralsX: The router's average render fps for @p slot (what the run-ahead clamp reads),
 	/// 0..254, or -1 for "no figure". Display only, like the latency row it rides with.
 	Int getAverageFps(Int slot) const;
 	void setAverageFps(Int slot, Int fps);
@@ -484,7 +484,7 @@ public:
 	UnicodeString getText() const;
 	void setText(UnicodeString text);
 
-	RelayMaskType getPlayerMask() const;	// GeneralsX @feature Claude 06/11/2026 scale32: 64 bit
+	RelayMaskType getPlayerMask() const;	// GeneralsX: scale32: 64 bit
 	void setPlayerMask( RelayMaskType playerMask );
 
 	virtual Select getSmallNetPacketSelect() const override;
@@ -561,7 +561,7 @@ public:
 	UnsignedShort getWrappedCommandID() const;
 	void setWrappedCommandID(UnsignedShort wrappedCommandID);
 
-	// GeneralsX @security Claude 06/10/2026 The wrapping hop's per-connection serialization number and its lowWater
+	// GeneralsX: The wrapping hop's per-connection serialization number and its lowWater
 	// (DESIGN_wrapper-memory-cap v16 section 2; NetPacketWrapperCommandData::FixedData).
 	UnsignedInt getWrapSeq() const { return m_wrapSeq; }
 	void setWrapSeq(UnsignedInt wrapSeq) { m_wrapSeq = wrapSeq; }
@@ -585,7 +585,7 @@ private:
 
 //-----------------------------------------------------------------------------
 /**
- * GeneralsX @security Claude 06/10/2026 The ack of ONE wrapper chunk: (original player, wrapSeq, chunk number), matched only
+ * GeneralsX: The ack of ONE wrapper chunk: (original player, wrapSeq, chunk number), matched only
  * against wrapper chunks queued on the connection it arrived from (DESIGN_wrapper-memory-cap v16 section 2).
  */
 class NetWrapperAckCommandMsg : public NetCommandMsgT<NetPacketWrapperAckCommand, SmallNetPacketWrapperAckCommand>

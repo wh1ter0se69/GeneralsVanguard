@@ -1,6 +1,6 @@
 ; GeneralsX-Setup.exe - a ~1 MB downloader, not a 68 MB offline installer.
 ;
-; GeneralsX @feature Claude 09/08/2026
+; GeneralsX:
 ;
 ; WHY THIS REPLACED A SELF-CONTAINED INSTALLER. The previous shape embedded the launcher, which is a
 ; self-contained WinForms app and therefore 66 MB on its own - so the installer was 68 MB, and every
@@ -450,7 +450,7 @@ end;
 // ------------------------------------------------------------------------------------------------
 // Evergreen payload resolution.
 //
-// GeneralsX @feature Claude 10/08/2026 The compiled-in PayloadUrl/PayloadSha256 pin goes stale
+// GeneralsX: The compiled-in PayloadUrl/PayloadSha256 pin goes stale
 // the moment a newer engine is published: an old installer still WORKS (it installs the older
 // build, which self-updates on first launch), but it downloads 67 MB it immediately replaces and
 // shows a version that is no longer true (owner report). So at install time the setup asks the
@@ -657,7 +657,7 @@ begin
 
   GameDir := RemoveBackslashUnlessRoot(GameDirPage.Values[0]);
 
-  // GeneralsX @bugfix Claude 19/08/2026 CLEAR THE RECORD BEFORE EXTRACTING, so that "the file is
+  // GeneralsX: CLEAR THE RECORD BEFORE EXTRACTING, so that "the file is
   // here afterwards" means "this payload supplied it" and cannot mean "the previous install left
   // it". The two are indistinguishable after the fact and they need opposite treatment: a record
   // this bundle brought is authoritative, a survivor from an older install describes files that
@@ -703,7 +703,7 @@ begin
   // with a hash we could not produce would be a lie in the other direction. Falling back to the
   // delete keeps the failure mode exactly as it ships today: one redundant download, never a
   // stranded install.
-  // GeneralsX @bugfix Claude 19/08/2026 A RECORD THE PAYLOAD BROUGHT WINS, AND IT IS THE ONLY ONE
+  // GeneralsX: A RECORD THE PAYLOAD BROUGHT WINS, AND IT IS THE ONLY ONE
   // THAT CAN BE RIGHT SINCE THE SPLIT.
   //
   // The row this procedure writes names the BUNDLE. Since the payload was split into four tiers the
@@ -749,7 +749,7 @@ begin
   if DirExists(AddBackslash(GameDir) + 'Data\Scripts') then
   begin
     ForceDirectories(ExpandConstant('{app}\Data\Scripts'));
-    // GeneralsX @bugfix Claude 30/09/2026 (Codex r8 P1, r9/r10/r11 P2): the payload already carries GeneralsX's own
+    // GeneralsX: the payload already carries GeneralsX's own
     // SkirmishScripts.scb (scripts/tooling/make-skirmish-scripts.py). xcopy /Y would overwrite it with the retail
     // copy and every Windows peer would then be refused by DATA_DIFFERS. Keep a copy in {tmp} (an API call, so no
     // command-line quoting), run the copy, put the kept file back, and FAIL the install if either step fails.

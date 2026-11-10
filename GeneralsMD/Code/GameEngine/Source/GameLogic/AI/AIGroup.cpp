@@ -300,7 +300,7 @@ Bool AIGroup::removeAnyObjectsNotOwnedByPlayer( const Player *ownerPlayer )
 	for (it = m_memberList.begin(); it != m_memberList.end(); /* empty */) {
 		Object *obj = (*it);
 		if (!obj) {
-			// GeneralsX @bugfix Claude 01/10/2026 Step past it: this loop steps by hand, so a bare continue spun forever.
+			// GeneralsX: Step past it: this loop steps by hand, so a bare continue spun forever.
 			++it;
 			continue;
 		}
@@ -373,7 +373,7 @@ Bool AIGroup::getCenter( Coord3D *center )
 		}
 	}
 
-	// GeneralsX @bugfix Claude 01/10/2026 With no counted member (all HELD, e.g. a team wholly inside a transport)
+	// GeneralsX: With no counted member (all HELD, e.g. a team wholly inside a transport)
 	// this was 0/0 = NaN, and several callers use the centre without checking the return value; NaN -> int is
 	// undefined and differs by architecture. Leave the zero centre instead (tsh batch2 #383, idea of Generals
 	// Online d0af88444, reimplemented).
@@ -432,7 +432,7 @@ Bool AIGroup::getMinMaxAndCenter( Coord2D *min, Coord2D *max, Coord3D *center )
 		}
 	}
 
-	// GeneralsX @bugfix Claude 01/10/2026 With no counted member (all HELD, e.g. a team wholly inside a transport)
+	// GeneralsX: With no counted member (all HELD, e.g. a team wholly inside a transport)
 	// this was 0/0 = NaN, and several callers use the centre without checking the return value; NaN -> int is
 	// undefined and differs by architecture. Leave the zero centre instead (tsh batch2 #383, idea of Generals
 	// Online d0af88444, reimplemented).
@@ -569,7 +569,7 @@ void AIGroup::computeIndividualDestination( Coord3D *dest, const Coord3D *groupD
 
 static const Int PATH_DIAMETER_IN_CELLS = 6;
 
-// GeneralsX @bugfix Claude 05/10/2026 A BIG GROUP'S COLUMN RAN OFF BEHIND THE CLICK.
+// GeneralsX: A BIG GROUP'S COLUMN RAN OFF BEHIND THE CLICK.
 // friend_moveInfantryToPos and friend_moveVehicleToPos park the k-th unit of a column k ranks BEHIND the goal
 // (dest -= factor * offset * endVector), and a column holds a fifth of the infantry (a third of the vehicles). Retail
 // groups are a few dozen units, so the tail stops a few hundred units back; wh1ter0se's admin-spawned armies (05/10, "I kinda
@@ -2006,7 +2006,7 @@ void AIGroup::groupTightenToPosition( const Coord3D *pos, Bool addWaypoint, Comm
         getHelicopterOffset( heliOffs, heliIdx++ );
 #if !RETAIL_COMPATIBLE_CRC
         // GeneralsX: the source becomes CMD_FROM_AI here, so mark a player's order: where the Chinook TAKES it, its leave-the-supply-
-        // centre latch is cleared (Codex pf-supply-r1, batch-0958 r1, pf-supply-r5; AIUpdateInterface::gxTakePlayerGroupOrder)
+        // centre latch is cleared (batch-0958 r1, pf-supply-r5; AIUpdateInterface::gxTakePlayerGroupOrder)
         ai->gxSetPlayerGroupOrder(cmdSource == CMD_FROM_PLAYER);
         ai->aiTightenToPosition( &heliOffs, CMD_FROM_AI );//NEW
         ai->gxSetPlayerGroupOrder(FALSE);
@@ -2495,7 +2495,7 @@ void AIGroup::groupEnter( Object *obj, CommandSourceType cmdSource )
 }
 
 /**
- * GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. Every member that can board the container queues it (or starts
+ * GeneralsX: WAYPOINT ENTER. Every member that can board the container queues it (or starts
  * it now); see AIUpdateInterface::gxQueueEnter. Members in m_memberList order, exactly as groupEnter.
  */
 Int AIGroup::groupGxQueueEnter( Object *container, CommandSourceType cmdSource )
@@ -2754,7 +2754,7 @@ void AIGroup::groupCreateFormation( CommandSourceType cmdSource )				///< Create
 void AIGroup::groupDoSpecialPower( UnsignedInt specialPowerID, UnsignedInt commandOptions )
 {
 	//This is the no target, no position version.
-	// GeneralsX @bugfix Claude 24/09/2026 Walk a copy of the members, as groupDoSpecialPowerAtLocation does
+	// GeneralsX: Walk a copy of the members, as groupDoSpecialPowerAtLocation does
 	// (issue #3185): a special power that empties this group mid-loop freed the list being walked.
 	std::vector<Object *> groupObjectsCopy( m_memberList.begin(), m_memberList.end() );
 	for( size_t j = 0; j < groupObjectsCopy.size(); ++j )
@@ -2796,7 +2796,7 @@ void AIGroup::groupDoSpecialPowerAtLocation( UnsignedInt specialPowerID, const C
 
 
 	//This one requires a position
-	// GeneralsX @bugfix Claude 23/09/2026 Walk a copy of the members. A special power can empty and destroy this
+	// GeneralsX: Walk a copy of the members. A special power can empty and destroy this
 	// group mid-loop (Rebel Ambush over water: the rebels drown, SlowDeathBehavior deselects them, and
 	// GameLogic::deselectObject regroups the selection, pulling every member out of this group, which
 	// AIGroup::remove then destroys). With 2+ members the iterator pointed into the freed list. Same
@@ -2844,7 +2844,7 @@ void AIGroup::groupDoSpecialPowerAtLocation( UnsignedInt specialPowerID, const C
 void AIGroup::groupDoSpecialPowerAtObject( UnsignedInt specialPowerID, Object *target, UnsignedInt commandOptions )
 {
 	//This one requires a target
-	// GeneralsX @bugfix Claude 24/09/2026 Walk a copy of the members, as groupDoSpecialPowerAtLocation does
+	// GeneralsX: Walk a copy of the members, as groupDoSpecialPowerAtLocation does
 	// (issue #3185): a special power that empties this group mid-loop freed the list being walked.
 	std::vector<Object *> groupObjectsCopy( m_memberList.begin(), m_memberList.end() );
 	for( size_t j = 0; j < groupObjectsCopy.size(); ++j )
@@ -3036,7 +3036,7 @@ void AIGroup::groupCombatDrop( Object *target, const Coord3D &pos, CommandSource
 // Used by scripts to issue a command button order - Note that it's possible that some
 // commands are not AI commands!
 //-------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 01/10/2026 Member IDs in list order, for loops whose body can change the list.
+// GeneralsX: Member IDs in list order, for loops whose body can change the list.
 static VecObjectID gxMemberIDs( const std::list<Object *> &members )
 {
 	VecObjectID ids;
@@ -3048,7 +3048,7 @@ static VecObjectID gxMemberIDs( const std::list<Object *> &members )
 
 void AIGroup::groupDoCommandButton( const CommandButton *commandButton, CommandSourceType cmdSource )
 {
-	// GeneralsX @bugfix Claude 01/10/2026 The command can change m_memberList (a unit entering a container
+	// GeneralsX: The command can change m_memberList (a unit entering a container
 	// leaves its group) or free this group, so walking the list across the call is undefined. Snapshot the
 	// member IDs, then resolve each one; same order and results whenever the list is not changed.
 	// tsh batch2 #392, idea of Generals Online c9f4d5e92 (reimplemented).
@@ -3068,7 +3068,7 @@ void AIGroup::groupDoCommandButton( const CommandButton *commandButton, CommandS
 //-------------------------------------------------------------------------------------
 void AIGroup::groupDoCommandButtonAtPosition( const CommandButton *commandButton, const Coord3D *pos, CommandSourceType cmdSource )
 {
-	// GeneralsX @bugfix Claude 01/10/2026 The command can change m_memberList (a unit entering a container
+	// GeneralsX: The command can change m_memberList (a unit entering a container
 	// leaves its group) or free this group, so walking the list across the call is undefined. Snapshot the
 	// member IDs, then resolve each one; same order and results whenever the list is not changed.
 	// tsh batch2 #392, idea of Generals Online c9f4d5e92 (reimplemented).
@@ -3087,7 +3087,7 @@ void AIGroup::groupDoCommandButtonAtPosition( const CommandButton *commandButton
 //-------------------------------------------------------------------------------------
 void AIGroup::groupDoCommandButtonUsingWaypoints( const CommandButton *commandButton, const Waypoint *way, CommandSourceType cmdSource )
 {
-	// GeneralsX @bugfix Claude 01/10/2026 The command can change m_memberList (a unit entering a container
+	// GeneralsX: The command can change m_memberList (a unit entering a container
 	// leaves its group) or free this group, so walking the list across the call is undefined. Snapshot the
 	// member IDs, then resolve each one; same order and results whenever the list is not changed.
 	// tsh batch2 #392, idea of Generals Online c9f4d5e92 (reimplemented).
@@ -3106,7 +3106,7 @@ void AIGroup::groupDoCommandButtonUsingWaypoints( const CommandButton *commandBu
 //-------------------------------------------------------------------------------------
 void AIGroup::groupDoCommandButtonAtObject( const CommandButton *commandButton, Object *obj, CommandSourceType cmdSource )
 {
-	// GeneralsX @bugfix Claude 01/10/2026 The command can change m_memberList (a unit entering a container
+	// GeneralsX: The command can change m_memberList (a unit entering a container
 	// leaves its group) or free this group, so walking the list across the call is undefined. Snapshot the
 	// member IDs, then resolve each one; same order and results whenever the list is not changed.
 	// tsh batch2 #392, idea of Generals Online c9f4d5e92 (reimplemented).

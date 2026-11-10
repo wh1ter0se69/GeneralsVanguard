@@ -31,7 +31,7 @@
 #ifdef _WIN32
 #include <winsock.h>
 #include <io.h>
-// GeneralsX @bugfix Claude 27/07/2026
+// GeneralsX:
 // udp.cpp passes socklen_t to getsockname()/getsockopt(). The POSIX arm below picks that type up
 // from <sys/socket.h>; Winsock 1.1 has no equivalent - socklen_t only appears in <ws2tcpip.h>,
 // which cannot be pulled in here because it drags winsock2.h in on top of winsock.h and the two

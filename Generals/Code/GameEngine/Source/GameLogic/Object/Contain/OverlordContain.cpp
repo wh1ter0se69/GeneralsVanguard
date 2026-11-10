@@ -85,7 +85,7 @@ void OverlordContain::syncPortablePosition()
 	Object* portable = (m_containListSize > 0) ? m_containList.front() : nullptr;
 	if (portable && portable->isKindOf(KINDOF_PORTABLE_STRUCTURE))
 	{
-		// GeneralsX @bugfix copilot 19/04/2026 Keep Overlord portable structures spatially synced with the host tank.
+		// GeneralsX: Keep Overlord portable structures spatially synced with the host tank.
 		portable->setPosition(getObject()->getPosition());
 		portable->setOrientation(getObject()->getOrientation());
 	}
@@ -100,12 +100,12 @@ UpdateSleepTime OverlordContain::update()
 void OverlordContain::containReactToTransformChange()
 {
 	OpenContain::containReactToTransformChange();
-	// GeneralsX @bugfix copilot 19/04/2026 Immediately correct portable position after transform;
+	// GeneralsX: Immediately correct portable position after transform;
 	// bone queries return wrong world coords on POSIX, so override with the host tank's position.
 	syncPortablePosition();
 }
 
-// GeneralsX @bugfix copilot 21/04/2026 Issue #95: redeployOccupants calls putObjAtNextFirePoint on
+// GeneralsX: Issue #95: redeployOccupants calls putObjAtNextFirePoint on
 // PORTABLE_STRUCTURE riders which triggers Object::reactToTransformChange and destroys them.
 // The portable position is managed exclusively by syncPortablePosition().
 // Non-portable occupants (if any) are still redeployed via the parent.
@@ -129,7 +129,7 @@ void OverlordContain::redeployOccupants()
 	// Portables are repositioned by syncPortablePosition() called from containReactToTransformChange().
 }
 
-// GeneralsX @bugfix copilot 19/04/2026 Prevent portable structures from ever exiting the Overlord.
+// GeneralsX: Prevent portable structures from ever exiting the Overlord.
 // On Windows/VC6, DISABLED_HELD caused getCurLocomotor() to return null, blocking exit naturally.
 // On POSIX the locomotor is still present even when HELD, so portables could exit when commanded
 // (e.g., force-attack). Portables are permanent upgrades and must never leave the Overlord.
@@ -140,7 +140,7 @@ Bool OverlordContain::isSpecificRiderFreeToExit(Object* obj)
 	return TransportContain::isSpecificRiderFreeToExit(obj);
 }
 
-// GeneralsX @bugfix copilot 19/04/2026 Block instant-exit path for portable structures.
+// GeneralsX: Block instant-exit path for portable structures.
 // AIExitInstantlyState::onEnter() calls exitObjectViaDoor(obj, DOOR_1) directly, bypassing
 // reserveDoorForExit and isSpecificRiderFreeToExit entirely. The Gatling Cannon enters
 // AI_EXIT_INSTANTLY when force-attacking empty terrain: attack state machine transitions
@@ -447,7 +447,7 @@ const ContainedItemsList* OverlordContain::getContainedItemsList() const
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 09/10/2026 Gap in TheSuperHackers #3089/#3136 (privateExit now asks the named container
+// GeneralsX: Gap in TheSuperHackers #3089/#3136 (privateExit now asks the named container
 // whether the unit is inside it). A full Overlord redirects its contain to its portable structure (the Battle Bunker):
 // addToContain hands a passenger to the bunker's module, so the passenger's getContainedBy() is the bunker rider. The
 // control bar lists those passengers under the Overlord (getContainedItemsList, above) and the exit button names the

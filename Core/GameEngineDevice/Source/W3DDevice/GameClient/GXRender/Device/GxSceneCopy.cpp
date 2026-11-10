@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-fdepth-plus 17/10/2026 F-depth+ (see GxSceneCopy.h).
+// GeneralsX: F-depth+ (see GxSceneCopy.h).
 #include "GxSceneCopy.h"
 
 #include "GxFormat.h"
@@ -288,7 +288,7 @@ bool GxSceneCopy::recordFallback(VkCommandBuffer cmd, Rc::GxImageTracker& tr, ui
 	R::GxImage* wd, VkImageView wdView, uint8_t* depthPath, uint8_t* colourPath)
 {
 	if (t.fallbackNothing) {   // the plant: published, never written - with the paths the real work would report, so its X- arms
-		// detect it by the pixels the probe reads, never by a path label (Codex fdepth-r2 #4)
+		// detect it by the pixels the probe reads, never by a path label
 		*depthPath = !(kinds & GX_SCENE_DEPTH) ? GXSP_NONE : wd->samples != VK_SAMPLE_COUNT_1_BIT ? GXSP_PASS : GXSP_COPY;
 		*colourPath = !(kinds & GX_SCENE_COLOUR) ? GXSP_NONE : wc->samples != VK_SAMPLE_COUNT_1_BIT ? GXSP_PASS : GXSP_COPY;
 		return true;
@@ -310,7 +310,7 @@ bool GxSceneCopy::recordFallback(VkCommandBuffer cmd, Rc::GxImageTracker& tr, ui
 		tr.need(*ct, Rc::Use::transferDst(true));
 	}
 	tr.flush(cmd);
-	// everything recorded here reads or writes these in THIS submission: none may be retired before it completes (Codex fdepth-r1 #2)
+	// everything recorded here reads or writes these in THIS submission: none may be retired before it completes
 	const uint64_t use = m_res->nextUseValue();
 	for (R::GxImage* i : { wd, dt, wc, ct })
 		if (i)

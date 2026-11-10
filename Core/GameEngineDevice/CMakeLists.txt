@@ -1,4 +1,4 @@
-# GeneralsX @build BenderAI 13/02/2026 Disable Miles/Bink for Linux (Windows-only)
+# GeneralsX: Disable Miles/Bink for Linux (Windows-only)
 set(GAMEENGINEDEVICE_SRC
 #    Include/MilesAudioDevice/MilesAudioManager.h
 #    Include/VideoDevice/Bink/BinkVideoPlayer.h (see GeneralsMD/Code/GameEngineDevice/Include/W3DDevice/GameClient/W3DGameClient.h createVideoPlayer)
@@ -169,7 +169,7 @@ set(GAMEENGINEDEVICE_SRC
 #    Source/W3DDevice/GameClient/W3DRoadBuffer.cpp
 #    Source/W3DDevice/GameClient/W3DScene.cpp
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2Check.cpp
-    # GeneralsX @feature Claude 10/10/2026 WS-G Task 5 T3: the device-less wrapper model C6 replays each modelled flush through
+    # GeneralsX: WS-G Task 5 T3: the device-less wrapper model C6 replays each modelled flush through
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2Model.cpp
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2ModelApply.cpp
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2ModelShader.cpp
@@ -178,14 +178,14 @@ set(GAMEENGINEDEVICE_SRC
     Source/W3DDevice/GameClient/GXRender/Scene/GxL2Dry.cpp
     Source/W3DDevice/GameClient/GXRender/Scene/GxScene.cpp
     Source/W3DDevice/GameClient/W3DShaderManager.cpp
-    # GeneralsX @feature Claude 10/10/2026 WS-X hybrid spike (render-seam/DESIGN_hybrid.md). Not digested: this file is
+    # GeneralsX: WS-X hybrid spike (render-seam/DESIGN_hybrid.md). Not digested: this file is
     # outside simsourcedigest_watcher.cmake's lists, so listing a render source here leaves the SimID alone.
     Include/W3DDevice/GameClient/GxInterop.h
     Source/W3DDevice/GameClient/GXRender/Interop/GxInterop.cpp
-    # GeneralsX @feature E · rw3-K 11/10/2026 GX_RENDERER=native switch (GxNativeInstall.h); not digested
+    # GeneralsX: GX_RENDERER=native switch (GxNativeInstall.h); not digested
     Include/W3DDevice/GameClient/GxNativeInstall.h
     Source/W3DDevice/GameClient/GXRender/Device/GxNativeInstallOff.cpp
-    # GeneralsX @feature Claude 11/10/2026 WS-X2: DrawRun (DESIGN_hybrid §13) - not digested, like GxInterop.
+    # GeneralsX: WS-X2: DrawRun (DESIGN_hybrid §13) - not digested, like GxInterop.
     Include/W3DDevice/GameClient/GxDrawRun.h
     Source/W3DDevice/GameClient/GXRender/Interop/GxDrawRun.cpp
     Include/W3DDevice/GameClient/GxDepthShot.h
@@ -222,7 +222,7 @@ set(GAMEENGINEDEVICE_SRC
 #    Source/Win32Device/GameClient/Win32Mouse.cpp
 )
 
-# GeneralsX @build BenderAI 13/02/2026 Platform-specific file implementations
+# GeneralsX: Platform-specific file implementations
 if(WIN32)
     # Windows-specific files (use Windows API for filesystem)
     list(APPEND GAMEENGINEDEVICE_SRC
@@ -230,11 +230,11 @@ if(WIN32)
         Include/Win32Device/Common/Win32LocalFileSystem.h
         Source/Win32Device/Common/Win32LocalFile.cpp
         Source/Win32Device/Common/Win32LocalFileSystem.cpp
-        # GeneralsX @feature Claude 23/09/2026 The MoveFileExA arm of GameClient/GXReplaceFile.h.
+        # GeneralsX: The MoveFileExA arm of GameClient/GXReplaceFile.h.
         Source/Win32Device/Common/Win32ReplaceFile.cpp
 #        Source/Win32Device/Common/Win32OSDisplay.cpp
 
-        # GeneralsX @bugfix Claude 27/07/2026 Build the shared Win32 input files from Core, where
+        # GeneralsX: Build the shared Win32 input files from Core, where
         # they actually live.
         #
         # Win32DIKeyboard.cpp and Win32Mouse.cpp exist ONLY under Core/GameEngineDevice, but both
@@ -249,7 +249,7 @@ if(WIN32)
         Source/Win32Device/GameClient/Win32DIKeyboard.cpp
         Source/Win32Device/GameClient/Win32Mouse.cpp
 
-        # GeneralsX @bugfix Claude 27/07/2026 Build the Miles and Bink devices back on Windows.
+        # GeneralsX: Build the Miles and Bink devices back on Windows.
         #
         # Both were commented out at the top of this file for the Linux port ("Disable Miles/Bink
         # for Linux (Windows-only)"), but their consumers were never made conditional with them:
@@ -266,7 +266,7 @@ if(WIN32)
         Source/VideoDevice/Bink/BinkVideoPlayer.cpp
     )
 
-    # GeneralsX @bugfix Claude 06/08/2026 ONE AUDIO BACKEND PER BINARY.
+    # GeneralsX: ONE AUDIO BACKEND PER BINARY.
     #
     # Bink stays unconditional above - W3DGameClient::createVideoPlayer() constructs it on Windows
     # regardless of the audio backend, so removing it is the 17-unresolved-externals mistake the
@@ -316,7 +316,7 @@ if(NOT IS_VS6_BUILD)
 endif()
 
 add_library(corei_gameenginedevice_private INTERFACE)
-# GeneralsX @feature Claude 10/10/2026 WS-X: GxInterop needs Vulkan TYPES only (VK_NO_PROTOTYPES; every entry point comes from
+# GeneralsX: WS-X: GxInterop needs Vulkan TYPES only (VK_NO_PROTOTYPES; every entry point comes from
 # DXVK's own vkGetInstanceProcAddr). DXVK's Vulkan-Headers are appended LAST to the include path, so a Vulkan SDK already on it
 # (macOS) still wins for every other translation unit, and Linux/Windows trees without one get DXVK's. vulkan_core.h includes
 # vk_video/... relative to that root, so the root itself must be on the path (a macro include of the file alone fails on Linux).
@@ -341,7 +341,7 @@ target_link_libraries(corei_gameenginedevice_private INTERFACE
     stb
 )
 
-# GeneralsX @build BenderAI 13/02/2026 Platform-specific multimedia stubs
+# GeneralsX: Platform-specific multimedia stubs
 target_link_libraries(corei_gameenginedevice_public INTERFACE
     corei_gameengine_public
 )
@@ -354,7 +354,7 @@ if(WIN32)
     )
 endif()
 
-# GeneralsX @build BenderAI 13/02/2026 OpenAL audio library for Linux
+# GeneralsX: OpenAL audio library for Linux
 # GeneralsX @bugfix fbraz 10/03/2026 Use FetchContent target when available, fallback to find_package
 # GeneralsX @refactor fbraz3 31/03/2026 OpenALAudioDevice moved from GeneralsMD to Core (shared by Generals and Zero Hour)
 if(SAGE_USE_OPENAL)
@@ -382,7 +382,7 @@ if(SAGE_USE_OPENAL)
         ${CMAKE_CURRENT_SOURCE_DIR}/Source/OpenALAudioDevice
     )
 
-    # GeneralsX @feature Claude 06/08/2026 ONE AUDIO DECODER, THE SAME ONE, ON ALL FOUR PLATFORMS.
+    # GeneralsX: ONE AUDIO DECODER, THE SAME ONE, ON ALL FOUR PLATFORMS.
     #
     # dr_wav + dr_mp3 everywhere. Not "FFmpeg where it exists, dr where it does not" - that was the
     # first cut of this and it was wrong, for a reason worth stating because it is easy to re-derive
@@ -447,13 +447,13 @@ if(RTS_BUILD_OPTION_FFMPEG)
     endif()
 endif()
 
-# GeneralsX @feature E · rw1-B 10/10/2026 native renderer device layer (PLAN_native-renderer WS-B): gx_vkctx + its
+# GeneralsX: native renderer device layer (PLAN_native-renderer WS-B): gx_vkctx + its
 # self-test. Render-only, outside the digested paths; OFF until the session switch (WS-J) wires a backend to it. It also
 # builds standalone in minutes: cmake -S Core/GameEngineDevice/Source/W3DDevice/GameClient/GXRender/Vk -B <dir>.
-# GeneralsX @feature E · rw3-K 11/10/2026 L1 in the game (render-seam/DESIGN_l1-device.md §12): GX_RENDER_NATIVE=ON links
+# GeneralsX: L1 in the game (render-seam/DESIGN_l1-device.md §12): GX_RENDER_NATIVE=ON links
 # GXRender/{Vk,Res,Pipeline,Record,Device} into the game and compiles the GX_RENDERER=native session switch. OFF (default)
 # = today's binary. Not digested (outside simsourcedigest_watcher.cmake).
-# GeneralsX @feature D · render-line-0967 21/10/2026 (lead C44; wh1ter0se 21/10: native ships OPT-IN in 0.9.67): the DEFAULT is ON for macOS
+# GeneralsX: the DEFAULT is ON for macOS
 # and Windows x64 MSVC - so the shipping presets macos-vulkan and win64 compile the native renderer in - and OFF for iOS and Linux
 # (ios-vulkan, linux64-deploy). Here and not in CMakePresets.json, which the SimID digest takes whole: no digested file reads
 # GX_RENDER_NATIVE, and simid-closure on a native build is the checked proof of that boundary. Compiled in is not switched on: the
@@ -481,8 +481,8 @@ if(_gx_render_native_ships AND DEFINED CACHE{GX_RENDER_NATIVE} AND NOT GX_RENDER
     endif()
 endif()
 option(GX_RENDER_NATIVE "Build the native d3d8 device (GXRender/Device) into the game (default ON on macOS + Windows x64 MSVC)" ON)
-# GeneralsX @feature D · native-windows-1 13/10/2026 Windows x64 MSVC qualifies too (DESIGN §2 row S2): there gx_device takes the
-# game's own DirectX 8 headers (d3d8lib = min-dx8-sdk + the Windows SDK), never DXVK's <windows.h> shim (Codex rw3K-code-r2), and
+# GeneralsX: Windows x64 MSVC qualifies too (DESIGN §2 row S2): there gx_device takes the
+# game's own DirectX 8 headers (d3d8lib = min-dx8-sdk + the Windows SDK), never DXVK's <windows.h> shim, and
 # the host is the game's Win32 window (GxNativeHostWin32.cpp). Linux, iOS and 32-bit Windows keep the OFF stub.
 if(GX_RENDER_NATIVE AND NOT (APPLE OR (WIN32 AND MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)))
     message(WARNING "GX_RENDER_NATIVE is macOS and Windows x64 (MSVC) only: forcing it OFF")
@@ -521,7 +521,7 @@ if(GX_RENDER_NATIVE)
             target_include_directories(${_gxt} PRIVATE "${CMAKE_SOURCE_DIR}/Core/Libraries/Source/WWVegas/WWLib")
         endif()
     endforeach()
-    # GeneralsX @performance D · native-windows-1 13/10/2026 MSVC's RelWithDebInfo (the shipped Windows config) is /O2 /Ob1: only
+    # GeneralsX: MSVC's RelWithDebInfo (the shipped Windows config) is /O2 /Ob1: only
     # functions marked inline are inlined, while clang -O2 on the Mac inlines freely. The GXRender libraries alone get /Ob2 (the last /Ob
     # wins); game sources compile exactly as before. Measured (PREREG_T A38 am.1, wh1ter0se's PC, ABAB n=2+2): native per-draw main-thread
     # CPU -5.9..-8.1% in every cross-pair; an n=3+3 confirmation is owed before any "faster" claim.
@@ -536,7 +536,7 @@ if(GX_RENDER_NATIVE)
     target_compile_definitions(gx_device PRIVATE GX_RENDER_NATIVE=1)
     target_link_libraries(corei_gameenginedevice_public INTERFACE gx_device)
     target_compile_definitions(corei_gameenginedevice_public INTERFACE GX_RENDER_NATIVE=1)
-    # GeneralsX @feature B · dlss-streamline-1 13/10/2026 GX_STREAMLINE (default OFF; PREREG A36; DLSS_INTEGRATION.md rule 5a: test
+    # GeneralsX: GX_STREAMLINE (default OFF; PREREG A36; DLSS_INTEGRATION.md rule 5a: test
     # builds only until the lead + wh1ter0se document a licence basis): NVIDIA Streamline (DLSS SR) behind the seam, Windows x64. Headers
     # from GX_STREAMLINE_SDK at build time; NVIDIA's DLLs are never in the tree or the zip. The define is gx_device's alone: no game
     # source compiles differently.

@@ -2,39 +2,39 @@
 
 #include <stdint.h>
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - Font/text constants
+// GeneralsX @build fbraz 11/02/2026 - Font/text constants
 enum eFontWeights
 {
   FW_NORMAL = 400,
   FW_BOLD = 700
 };
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - Character set constants
+// GeneralsX @build fbraz 11/02/2026 - Character set constants
 #define DEFAULT_CHARSET         1
 #define ANSI_CHARSET            0
 #define SYMBOL_CHARSET          2
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - Font output precision
+// GeneralsX @build fbraz 11/02/2026 - Font output precision
 #define OUT_DEFAULT_PRECIS      0
 #define OUT_STRING_PRECIS       1
 #define OUT_CHARACTER_PRECIS    2
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - Font clipping precision
+// GeneralsX @build fbraz 11/02/2026 - Font clipping precision
 #define CLIP_DEFAULT_PRECIS     0
 #define CLIP_CHARACTER_PRECIS   1
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - Font quality
+// GeneralsX @build fbraz 11/02/2026 - Font quality
 #define DEFAULT_QUALITY         0
 #define DRAFT_QUALITY           1
 #define PROOF_QUALITY           2
 #define ANTIALIASED_QUALITY     4
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - Font pitch and family
+// GeneralsX @build fbraz 11/02/2026 - Font pitch and family
 #define DEFAULT_PITCH           0
 #define FIXED_PITCH             1
 #define VARIABLE_PITCH          2
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - ExtTextOut flags
+// GeneralsX @build fbraz 11/02/2026 - ExtTextOut flags
 #define ETO_OPAQUE              0x0002
 #define ETO_CLIPPED             0x0004
 
@@ -52,7 +52,7 @@ struct RECT;
 // Just forward-declare for type safety, actual definition (including LPSIZE, PSIZE) comes from DXVK
 struct SIZE;
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - TEXTMETRIC structure (font metrics)
+// GeneralsX @build fbraz 11/02/2026 - TEXTMETRIC structure (font metrics)
 typedef struct tagTEXTMETRIC {
     long tmHeight;
     long tmAscent;
@@ -76,13 +76,13 @@ typedef struct tagTEXTMETRIC {
     uint8_t tmCharSet;
 } TEXTMETRIC;
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - GDI pointer types
+// GeneralsX @build fbraz 11/02/2026 - GDI pointer types
 // LPSIZE: SIZE pointer (SIZE itself provided by DXVK windows_base.h)
 // LPTEXTMETRIC: TEXTMETRIC pointer  
 typedef SIZE *LPSIZE;
 typedef TEXTMETRIC *LPTEXTMETRIC;
 
-// GeneralsX @build BenderAI 10/02/2026 - BMP screenshot structures (need before CreateDIBSection)
+// GeneralsX: BMP screenshot structures (need before CreateDIBSection)
 #ifndef _WIN32
 #pragma pack(push, 1)
 
@@ -131,7 +131,7 @@ typedef struct tagBITMAPFILEHEADER {
 
 #endif // !_WIN32
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - GDI function stubs for text rendering (render2dsentence.cpp)
+// GeneralsX @build fbraz 11/02/2026 - GDI function stubs for text rendering (render2dsentence.cpp)
 // Phase 3 out-of-scope: Return failure/nullptr to disable text rendering on Linux
 
 // Math helper
@@ -206,7 +206,7 @@ static inline COLORREF SetTextColor(HDC hdc, COLORREF color) {
 }
 
 // Font resource management
-// GeneralsX @build BenderAI 12/02/2026 - Dynamic font loading stubs
+// GeneralsX: Dynamic font loading stubs
 // Used by GlobalLanguage for localized font support (e.g., Chinese, Arabic fonts)
 // On Windows: Loads TrueType fonts from Data\<language>\Fonts\
 // On Linux: No-op stubs (system fonts used instead, SDL_ttf handles rendering)

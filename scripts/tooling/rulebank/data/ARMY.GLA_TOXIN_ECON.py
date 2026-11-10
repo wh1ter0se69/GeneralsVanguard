@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank DATA rule ARMY.GLA_TOXIN_ECON (C·rb-data): Toxin puts money into army - Angry Mobs out
+# GeneralsX: rule bank DATA rule ARMY.GLA_TOXIN_ECON (C·rb-data): Toxin puts money into army - Angry Mobs out
 # early and on guard, more Barracks once rich (row 323). Stock Hard Toxin makes Angry Mobs only in its 5th-wave team (10 min+, a wave
 # gate that reads _ESCALATION) and that team attacks as soon as it exists. This: the Mob team "GLA H 5TH Wave Mob C. 3" is produced
 # from _GX_CLOCK 15 (150 s, a design constant), keeps only its stock OnCreate "GLA Guard Base" (no attack hook: guard mode), and at

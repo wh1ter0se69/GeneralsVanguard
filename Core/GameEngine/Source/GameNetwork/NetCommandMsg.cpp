@@ -154,7 +154,7 @@ GameMessage *NetGameCommandMsg::constructGameMessage() const
 	GameMessage *retval = newInstance(GameMessage)(m_type);
 
 	retval->friend_setPlayerIndex(ThePlayerList->getPlayerFromSlotIndex(getPlayerID())->getPlayerIndex());
-	// GeneralsX @feature Claude 24/09/2026 Keep the slot too: several observer slots share one Player.
+	// GeneralsX: Keep the slot too: several observer slots share one Player.
 	retval->friend_setSenderSlot(getPlayerID());
 
 	for (size_t i = 0; i < m_argList.size(); ++i) {
@@ -479,7 +479,7 @@ NetCommandMsg::Select NetRunAheadMetricsCommandMsg::getSmallNetPacketSelect() co
 // NetRunAheadCommandMsg
 //-------------------------
 NetRunAheadCommandMsg::NetRunAheadCommandMsg() {
-	// GeneralsX @fix Claude 05/08/2026 Was a raw 20 frames (0.67 s at 30 Hz) and a raw 30. Same
+	// GeneralsX: Was a raw 20 frames (0.67 s at 30 Hz) and a raw 30. Same
 	// reasoning as Network.cpp's initial values: a run-ahead expressed as a frame count halves in
 	// wall-clock terms at 60 Hz. (2 * rate) / 3 preserves 0.67 s at either tick rate, and evaluates
 	// to exactly 20 at the default 30 Hz, so this is a no-op there.

@@ -1,10 +1,10 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule COUNTER.CHINA_VS_USA (C·rb-data-12): China does not feed Battlemasters to USA
+# GeneralsX: rule bank DATA rule COUNTER.CHINA_VS_USA (C·rb-data-12): China does not feed Battlemasters to USA
 # (RULE_BRIEFS 7, Dominator: "do not build Battlemasters, Humvees shred them"; rows 126, 168, 170, 200). Stock Hard vanilla and Tank China
 # send Battlemaster waves at everyone. This, per general:
 #   MATCHUP 'USA' (rb-data-13): the SHARED latch (rb.matchup, group "GX Matchup") sets gxrb_mu_usa once AI_PLAYER_GX_SENSE says my enemy
 #              is USA - from the lobby at once, a Random enemy only after 3 different units of one army were fairly seen (rb-sense-1); it
-#              decides ONCE, on the first faction known for my enemy whichever it is, since in FFA the enemy can change (Codex rbd12-r1
-#              P2). Other generals' COUNTER rules (vs GLA, vs China) read the same latch with their own key and may share these teams;
+#              decides ONCE, on the first faction known for my enemy whichever it is, since in FFA the enemy can change.
+#              Other generals' COUNTER rules (vs GLA, vs China) read the same latch with their own key and may share these teams;
 #   each Hard wave team holding Battlemasters and nothing heavier (no Overlord / Emperor) gets a variant "GX CVU <team>": bm_vs_usa
 #              Battlemasters, the rest Tank Hunters (tank_hunter_share %, rounded half up) and Gattlings; a Rush team's Battlemasters
 #              become Gattlings (min = max kept, its infantry stays). The stock team waits on its own off gate "GX MU Off <team>" (a copy
@@ -32,7 +32,7 @@ def _swap(o, slots, p):
     """the variant's three slots, or None when the team stays stock"""
     pre = PRE[o]
     BM, G, TH = pre + 'ChinaTankBattleMaster', pre + 'ChinaTankGattling', pre + 'ChinaInfantryTankHunter'
-    slots = [s if s[2] > 0 else [NONE, 0, 0] for s in slots]       # a slot with max 0 is empty (Codex rbd12-r1 P2)
+    slots = [s if s[2] > 0 else [NONE, 0, 0] for s in slots]       # a slot with max 0 is empty
     types = [t for t, _mn, mx in slots if t not in (NONE, None)]
     if BM not in types or any(t.endswith(h) for t in types for h in HEAVY):
         return None
@@ -54,7 +54,7 @@ def _swap(o, slots, p):
     if gi:
         rest[gi[0]][1] += max(mn - keep, 0)
         rest[gi[0]][2] += mx - keep
-    elif mx > keep:                             # no empty Gattling slot when every Battlemaster stays (Codex rbd12-r1 P2)
+    elif mx > keep:                             # no empty Gattling slot when every Battlemaster stays
         lead = [[G, max(mn - keep, 0), mx - keep]]
     out = ([[BM, min(mn, keep), keep]] if keep else []) + lead + rest
     return (out + [[NONE, 0, 0]] * 3)[:3]      # a Rush keeping Battlemasters with no Gattling slot drops its last infantry slot
@@ -148,5 +148,5 @@ def activation(obs, me, params=None):
     bm = measure(obs, me, params)
     th = ob.built_by(obs, me, ob.ends_with('ChinaInfantryTankHunter'), READ_S * hz)
     gt = ob.built_by(obs, me, ob.ends_with('ChinaTankGattling'), READ_S * hz)
-    fired = triggered and bm is not None and bm <= 1 and (th or 0) + (gt or 0) >= 1      # Codex rbd12-r1 P3: a Tank Hunter OR a Gattling
+    fired = triggered and bm is not None and bm <= 1 and (th or 0) + (gt or 0) >= 1      # a Tank Hunter OR a Gattling
     return {'triggered': bool(triggered), 'fired': bool(fired), 'detail': 'warfactory_f=%s bm_420s=%s th_420s=%s gat_420s=%s' % (wf, bm, th, gt)}

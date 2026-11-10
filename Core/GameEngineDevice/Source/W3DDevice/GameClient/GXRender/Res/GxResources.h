@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: the hub every texture, buffer and render target is created against.
+// GeneralsX: WS-C GXRES v0: the hub every texture, buffer and render target is created against.
 //
 // Owns the per-device format table, the staging ring (VkUploadRing: host-visible, retired on the graphics timeline), the list
 // of GPU copies queued by Unlock/CopyRects-style calls, and a command pool for one-off submits (read-backs, restores).
@@ -39,7 +39,7 @@ struct GxDebug
 	bool skipUploadBarrier = false;    // recordPending omits the copy -> reader barrier (sync validation must report)
 	bool reuseSlicesEarly = false;     // dynamic DISCARD reuses a slice still in flight (the delayed consumer must see it)
 	bool skipRestoreOnLock = false;    // a dropped MANAGED texture is not read back before a lock (partial writes corrupt)
-	// rw3-X-3 (A23-B, Codex r16-oracle): lockFront / unlockFront's normalisation, one plant each
+	// rw3-X-3 (A23-B): lockFront / unlockFront's normalisation, one plant each
 	bool readonlyUploads = false;      // a static READONLY unlock uploads (READONLY suppression lost)
 	bool lockSizeWhole = false;        // lockFront expands size 0 to the whole buffer, not the bytes after the offset
 	bool keepDiscardWithNoOverwrite = false; // lockFront keeps DISCARD when NOOVERWRITE is also set (an append renames)
@@ -59,7 +59,7 @@ struct GxDebug
 	bool bindNoTouch = false;          // GxBuffer::bind does not stamp (rw3-T-4: a copy FROM the buffer reads a later front copy's bytes)
 	bool bindNoStamp = false;          // GxBuffer::bind of a DYNAMIC slice skips its lastUse stamp (S7 A63: a later DISCARD may reuse the slice a
 	                                   // cast-only capture still replays - X-sm-solid-retain)
-	bool bindNoStampIndex = false;     // ... for dynamic INDEX buffers only (S7 A64, Codex a61-code-r1 #2: an IB-only loss - X-sm-solid-retain-ib)
+	bool bindNoStampIndex = false;     // ... for dynamic INDEX buffers only (S7 A64, an IB-only loss - X-sm-solid-retain-ib)
 	bool preBarrierCopyOnly = false;   // the pre-copy barrier waits for earlier COPIES only (rw3-T-4: a hoisted copy races frame N-1's reads)
 	bool dropKeepsBytes = false;       // dropPendingFor keeps the dropped copies' bytes in pendingBytes() (A26: the pre-fix arithmetic)
 	bool emptyRecordKeepsTotal = false; // an empty main recordPending leaves pendingBytes() as it was (A26: the pre-fix reset)
@@ -110,7 +110,7 @@ public:
 	bool create(GxResources& res, const FormatInfo* f, uint32_t w, uint32_t h, uint32_t levels, VkSampleCountFlagBits samples,
 		VkImageUsageFlags usage, std::string* why);
 	void destroy(GxResources& res);   // retired at lastUse
-	// An image that was never recorded, queued or published (a creation that failed half way, A23-B §3.1 / Codex rw3x r2 P1-1):
+	// An image that was never recorded, queued or published (a creation that failed half way, A23-B §3.1 / rw3x r2 P1-1):
 	// freed at once, touching neither the pending lists nor VkCtx::retire - so a front-end creation never reaches worker state.
 	void destroyUnpublished(GxResources& res);
 	// Whole-image layout transition: everything before (any stage, any write) -> (stage, access) in the new layout.

@@ -124,7 +124,7 @@ void StreakLineClass::Set_Locs( unsigned int num_points, Vector3 *locs )
 		return;
 	}
 
-	// GeneralsX @performance Claude 23/09/2026 Keep capacity: Delete_All() shrank to 0 (free) and the Adds
+	// GeneralsX: Keep capacity: Delete_All() shrank to 0 (free) and the Adds
 	// below re-allocated, every call, i.e. every rendered frame per streak / laser / projectile stream.
 	PointLocations.Delete_All(false);
 	for (unsigned int i=0; i<num_points; i++) {
@@ -141,7 +141,7 @@ void StreakLineClass::Set_Widths( unsigned int num_points, float *widths )
 		return;
 	}
 
-	// GeneralsX @performance Claude 23/09/2026 Keep capacity (see Set_Locs).
+	// GeneralsX: Keep capacity (see Set_Locs).
 	PointWidths.Delete_All(false);
 	for (unsigned int i=0; i<num_points; i++) {
 		PointWidths.Add(widths[i],num_points);
@@ -156,7 +156,7 @@ void StreakLineClass::Set_Colors( unsigned int num_points, Vector4 *colors )
 		return;
 	}
 
-	// GeneralsX @performance Claude 23/09/2026 Keep capacity (see Set_Locs).
+	// GeneralsX: Keep capacity (see Set_Locs).
 	PointColors.Delete_All(false);
 	for (unsigned int i=0; i<num_points; i++) {
 		PointColors.Add(colors[i],num_points);

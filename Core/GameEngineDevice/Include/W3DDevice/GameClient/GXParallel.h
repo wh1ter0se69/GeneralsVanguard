@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @performance Claude 07/10/2026 A render-side fork-join pool (modernize/render-split PLAN_pose-prepass,
+// GeneralsX: A render-side fork-join pool (modernize/render-split PLAN_pose-prepass,
 // smooth/MT_DESIGN's "fixed-partition fork-join on std::thread"). gxParallelFor(count, chunk, fn, ctx) runs
 // fn(ctx, begin, end) over [0, count) in chunks of `chunk`, on persistent workers plus the calling thread, and returns
 // once every chunk has run; everything the jobs wrote is then visible to the caller (each finished chunk is counted
@@ -96,7 +96,7 @@ struct Pool
 		}
 	}
 
-	// Never throws (Codex 0.9.60 r10 P2): a worker that cannot start (std::system_error at a thread or memory limit) ends
+	// Never throws: a worker that cannot start (std::system_error at a thread or memory limit) ends
 	// the start-up, and the pool runs with the workers that did start - 0 means every dispatch runs on the caller. A throw
 	// out of here would have freed the Pool under the workers already started, and reached the fatal handler.
 	Pool()
@@ -123,7 +123,7 @@ struct Pool
 	}
 };
 
-// ponytail: the pool is never destroyed - its workers park on a condition variable until the process exits, so no
+// Trade-off: the pool is never destroyed - its workers park on a condition variable until the process exits, so no
 // join can hang in a static destructor at exit (Windows ends other threads before those run). nullptr when even the
 // Pool could not be allocated: every dispatch then runs on the caller.
 inline Pool *pool()

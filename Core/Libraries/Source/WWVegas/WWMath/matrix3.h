@@ -59,7 +59,7 @@
 #pragma once
 
 #include "WWLib/always.h"
-// GeneralsX @bugfix Claude 28/07/2026 Deterministic trig - see the note in matrix3d.h. Same class of
+// GeneralsX: Deterministic trig - see the note in matrix3d.h. Same class of
 // bug: the rotation helpers here called libm cosf/sinf directly and this header never saw gamemath.h.
 #include "gamemath.h"
 #include "vector3.h"

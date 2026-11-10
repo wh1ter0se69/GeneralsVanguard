@@ -162,7 +162,7 @@ Int UpgradeTemplate::calcTimeToBuild( Player *player ) const
 #endif
 
 	///@todo modify this by power state of player
-	// GeneralsX @bugfix Claude 10/10/2026 Saturated, as ThingTemplate::calcTimeToBuild's: a map.ini Upgrade BuildTime is a
+	// GeneralsX: Saturated, as ThingTemplate::calcTimeToBuild's: a map.ini Upgrade BuildTime is a
 	// raw float, and ProductionUpdate completes a time <= 0 at once.
 	return REAL_TO_INT(m_buildTime * LOGICFRAMES_PER_SECOND);
 
@@ -253,7 +253,7 @@ UpgradeCenter::~UpgradeCenter()
 
 	}
 
-	// GeneralsX @bugfix Claude 25/09/2026 TheSuperHackers/GeneralsGameCode#1749, adapted - the
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#1749, adapted - the
 	// override bookkeeping owns its pristine copies and the templates reset() retired.
 	for( size_t i = 0; i < m_overrideBackups.size(); ++i )
 		deleteInstance( m_overrideBackups[ i ].second );
@@ -292,7 +292,7 @@ void UpgradeCenter::init()
 void UpgradeCenter::reset()
 {
 	m_wireIds.clear();	// GeneralsX: may name a map's inventions, retired below; rebuilt at the next map load
-	// GeneralsX @bugfix Claude 25/09/2026 TheSuperHackers/GeneralsGameCode#1749, adapted
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#1749, adapted
 	// Undo exactly what a map.ini did. Copy the pristine values back INTO the live template, keeping
 	// its list links, so every raw pointer to it stays valid and sees the original data again.
 	for( size_t i = 0; i < m_overrideBackups.size(); ++i )
@@ -314,7 +314,7 @@ void UpgradeCenter::reset()
 	// does not shrink with every custom map a long-lived process plays.
 	// The generation moves so every UpgradeTemplateRef re-resolves instead of keeping a retired one.
 	// Unlinked, not freed, so any other raw holder still points at a live object.
-	// ponytail: retired templates are freed only in the destructor - a few per custom map, per process.
+	// Trade-off: retired templates are freed only in the destructor - a few per custom map, per process.
 	if( !m_overrideAdded.empty() )
 		++m_templateGeneration;
 	for( size_t i = 0; i < m_overrideAdded.size(); ++i )
@@ -384,7 +384,7 @@ const UpgradeTemplate *UpgradeCenter::findUpgradeByWireId( UnsignedInt wireId ) 
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @fix Claude 05/10/2026 Called at map load, after the map.ini (GameLogic::startNewGame): every template linked
+// GeneralsX: Called at map load, after the map.ini (GameLogic::startNewGame): every template linked
 // then, so every peer that loaded the same data builds the same table (GXWireId.h).
 //-------------------------------------------------------------------------------------------------
 Bool UpgradeCenter::rebuildWireIds()
@@ -569,7 +569,7 @@ void UpgradeCenter::parseUpgradeDefinition( INI *ini )
 		// allocate a new item
 		upgrade = TheUpgradeCenter->newUpgrade( name );
 
-		// GeneralsX @bugfix Claude 25/09/2026 TheSuperHackers/GeneralsGameCode#1749, adapted
+		// GeneralsX: TheSuperHackers/GeneralsGameCode#1749, adapted
 		// A template that only exists because of this map must not survive it.
 		if( isOverride )
 			TheUpgradeCenter->m_overrideAdded.push_back( upgrade );
@@ -577,7 +577,7 @@ void UpgradeCenter::parseUpgradeDefinition( INI *ini )
 	}
 	else if( isOverride )
 	{
-		// GeneralsX @bugfix Claude 25/09/2026 TheSuperHackers/GeneralsGameCode#1749, adapted
+		// GeneralsX: TheSuperHackers/GeneralsGameCode#1749, adapted
 		// Keep a pristine copy before a map.ini parses into this template, so reset() can put it back.
 		// At most once per template per match - a map that overrides the same name twice must not
 		// have its first override recorded as the pristine state - and never for one this map

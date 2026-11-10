@@ -53,7 +53,7 @@ NetCommandWrapperListNode::NetCommandWrapperListNode(NetWrapperCommandMsg *msg, 
 
 	m_totalDataLength = msg->getTotalDataLength();
 	m_data = NEW UnsignedByte[m_totalDataLength];	// pool[]ify
-	// GeneralsX @bugfix Claude 23/09/2026 Zeroed, so a byte no chunk covered can never be read as
+	// GeneralsX: Zeroed, so a byte no chunk covered can never be read as
 	// uninitialised heap - isComplete() now also demands full coverage, but overlapping chunks from a
 	// hostile sender could still leave a gap, and that gap must at least read deterministically.
 	memset(m_data, 0, m_totalDataLength);
@@ -71,7 +71,7 @@ NetCommandWrapperListNode::~NetCommandWrapperListNode() {
 	m_data = nullptr;
 }
 
-// GeneralsX @bugfix Claude 23/09/2026 A node that can never complete must be dropped, or a peer can
+// GeneralsX: A node that can never complete must be dropped, or a peer can
 // park one attacker-sized buffer per fresh wrapped ID until the connection resets (getReadyCommands
 // used to remove only complete nodes). Malformed = a chunk broke the sender's layout (copyChunkData),
 // or every slot arrived but the bytes still fall short. An honest node is never malformed.
@@ -80,7 +80,7 @@ Bool NetCommandWrapperListNode::isMalformed() const {
 }
 
 Bool NetCommandWrapperListNode::isComplete() {
-	// GeneralsX @bugfix Claude 23/09/2026 Every chunk present is not enough: a sender could announce
+	// GeneralsX: Every chunk present is not enough: a sender could announce
 	// numChunks=1, totalDataLength=2 and send one 1-byte chunk, and the half-filled buffer was then
 	// parsed as a command. Honest chunks tile the buffer exactly (ConstructBigCommandList), so their
 	// lengths sum to totalDataLength.
@@ -146,7 +146,7 @@ void NetCommandWrapperListNode::copyChunkData(NetWrapperCommandMsg *msg) {
 
 	DEBUG_LOG(("NetCommandWrapperListNode::copyChunkData() - copying chunk %u", chunkNumber));
 
-	// GeneralsX @bugfix Claude 23/09/2026 Accept a chunk only where ConstructBigCommandList would have put
+	// GeneralsX: Accept a chunk only where ConstructBigCommandList would have put
 	// it: every non-final chunk has the same length (the stride) at offset chunkNumber * stride, and
 	// the final chunk ends exactly at totalDataLength, starting at (numChunks - 1) * stride. Together
 	// these tile [0, totalDataLength) with no gap and no overlap, so a completed node is fully covered
@@ -185,7 +185,7 @@ void NetCommandWrapperListNode::copyChunkData(NetWrapperCommandMsg *msg) {
 	++m_numChunksPresent;
 	m_bytesPresent += chunkDataLength;
 
-	// GeneralsX @tweak Claude 11/08/2026 GX_MAPDBG: [GXXFER] chunk-arrival cadence. Every 64th
+	// GeneralsX: GX_MAPDBG: [GXXFER] chunk-arrival cadence. Every 64th
 	// chunk plus the final one - a 400 KB map is ~900 chunks and a per-chunk line would be most
 	// of the log. A frozen "n/900" here with the sender still retrying is the chunk-death
 	// signature; the timestamps sequence it against the far side.
@@ -269,19 +269,19 @@ Int NetCommandWrapperList::getPercentComplete(Int source, UnsignedInt wrapSeq)
 	return (it->second.node != nullptr) ? it->second.node->getPercentComplete() : 100;
 }
 
-// GeneralsX @security Claude 06/10/2026 THE RECEIVER, BOUNDED BY THE SENDER'S WINDOW (fixes/DESIGN_wrapper-memory-cap.md v16
+// GeneralsX: THE RECEIVER, BOUNDED BY THE SENDER'S WINDOW (fixes/DESIGN_wrapper-memory-cap.md v16
 // section 4, sweep v-net-01). A serialization is keyed by (the slot its chunks ARRIVED from, that slot's wrapSeq) - nothing a chunk
 // claims about who wrapped it can spend another slot's budget. Every chunk stamps lowWater: the sender has had everything of its
 // own below it acked, chunk by chunk (WRAPPERACK names the exact chunk), so all of it here is finished or a forger's and is freed.
 // An honest sender never has more than GX_WRAP_WINDOW serializations or GX_WRAP_BYTES reserved from its lowWater up
 // (Connection::canWrapNow), so anything beyond that is refused unacked and costs nothing. No eviction exists.
 //
-// Order per chunk (Fable r5 P3-2, r10 P3-1): raise lowWater and free below it BEFORE the bound, and test "below lowWater" BEFORE
+// Order per chunk: raise lowWater and free below it BEFORE the bound, and test "below lowWater" BEFORE
 // the unsigned distance - otherwise a stale duplicate wraps the subtraction and is refused instead of acked.
 GXWrapVerdict NetCommandWrapperList::processWrapper(NetCommandRef *ref, Int source, Bool sourceOverSoftCap) {
 	NetWrapperCommandMsg *msg = (NetWrapperCommandMsg *)(ref->getCommand());
 
-	// Nothing honest arrives without a connected source (Fable r5 P3-1; base reassembled it under MAX_SLOTS - stated deviation).
+	// Nothing honest arrives without a connected source (base reassembled it under MAX_SLOTS - stated deviation).
 	if ((source < 0) || (source >= MAX_SLOTS))
 		return GXWRAP_DROP;
 
@@ -357,8 +357,8 @@ GXWrapVerdict NetCommandWrapperList::processWrapper(NetCommandRef *ref, Int sour
 		// A record: a chunk of a serialization already complete here is a retry whose ack was lost. A whole copy again means the
 		// sender re-sent all of it: replay the command through base's duplicate path (doRelay), against the CURRENT frame data,
 		// so a frame-data reset downstream recovers as in base. Only synchronized records keep the command (design v16 section 4).
-		// GeneralsX @security Claude 06/10/2026 Only a chunk of THIS record counts toward a copy, and the replay names the record's own
-		// sender, never the retry's (Codex wrapcap-impl-r1 P1): otherwise a source could complete a record of a command naming
+		// GeneralsX: Only a chunk of THIS record counts toward a copy, and the replay names the record's own
+		// sender, never the retry's: otherwise a source could complete a record of a command naming
 		// another slot (local delivery only), then send a copy claiming itself, and have the record forwarded as its own.
 		const UnsignedInt chunk = msg->getChunkNumber();
 		const Bool sameRecord = (msg->getPlayerID() == e.sender) && (msg->getWrappedCommandID() == e.wrappedID)
@@ -415,7 +415,7 @@ void NetCommandWrapperList::complete(Int source, UnsignedInt wrapSeq, GXEntry &e
 	NetCommandRef *msg = NetPacket::ConstructNetCommandMsgFromRawData(node->getRawData(), node->getRawDataLength());
 	// GeneralsX @bugfix ConstructNetCommandMsgFromRawData returns null for a packet it cannot parse - an unrecognised command type,
 	// or a 'Z' repeat with nothing to repeat. Both are remotely supplied.
-	// GeneralsX @security Claude 06/10/2026 This is the one place a reassembled command's sender can be checked, as it has no
+	// GeneralsX: This is the one place a reassembled command's sender can be checked, as it has no
 	// datagram of its own. Every honest wrapper carries its command's own sender and ID (NetPacket::ConstructBigCommandList),
 	// whoever sends or forwards it, so a command naming anyone else was wrapped by a forger - e.g. a FILE "from" the host inside
 	// chunks that honestly came from their own sender and were forwarded. And a direct-send command (CommandRequiresDirectSend: the
@@ -450,7 +450,7 @@ void NetCommandWrapperList::complete(Int source, UnsignedInt wrapSeq, GXEntry &e
 		return;
 	}
 	// The record: the command only if synchronized - a non-synchronized one (FILE, FILEANNOUNCE) is never replayed, and keeping it
-	// would pin up to 5 MiB per source until its next wrap (Fable r5 P3-4).
+	// would pin up to 5 MiB per source until its next wrap.
 	e.relay = msg->getRelay();
 	if (IsCommandSynchronized(msg->getCommand()->getNetCommandType())) {
 		e.body = msg->getCommand();
@@ -468,7 +468,7 @@ void NetCommandWrapperList::complete(Int source, UnsignedInt wrapSeq, GXEntry &e
 	m_ready.push_back(item);
 }
 
-// A plain sequence, in completion order, with no dedupe (design v16 section 5, Codex r5 P1).
+// A plain sequence, in completion order, with no dedupe (design v16 section 5).
 void NetCommandWrapperList::getReadyCommands(std::vector<GXReadyItem> &out)
 {
 	out.insert(out.end(), m_ready.begin(), m_ready.end());

@@ -1,5 +1,5 @@
 #!/bin/bash
-# GeneralsX @build Claude 23/09/2026 Make a staged Mach-O bundle resolve its dylibs from itself.
+# GeneralsX: Make a staged Mach-O bundle resolve its dylibs from itself.
 #
 # WHY THIS EXISTS. Every macOS and iOS artifact this repo has ever published carried LC_RPATH
 # entries pointing into the BUILD MACHINE'S HOME DIRECTORY:
@@ -96,7 +96,7 @@ gx_macho_id() {
     printf '%s\n' "${out}" | awk '!/:$/ && NF && !n++'
 }
 
-# GeneralsX @bugfix Claude 10/10/2026 One Vulkan loader build under both of its names.
+# GeneralsX: One Vulkan loader build under both of its names.
 #
 # The game binary links @rpath/libvulkan.1.dylib, so SDL3 takes that loader (its RTLD_DEFAULT probe
 # finds it already loaded). DXVK dlopens libvulkan.dylib, and DXVK's SDL3 WSI hands its VkInstance to
@@ -156,7 +156,7 @@ gx_macho_rpaths() {
 # passes lib/libfoo.dylib -> /opt/homebrew/... and bin/../../../../elsewhere, both of which begin
 # with the bundle's own path. The lexical tail matters for an rpath that exists on a player's Mac
 # but not on the checker's: it must still be judged, not skipped.
-# ponytail: a dangling symlink is judged by its own path, not its target; realpath cannot follow it.
+# Trade-off: a dangling symlink is judged by its own path, not its target; realpath cannot follow it.
 _gx_macho_canon() (
     set -f
     p="$1" rest=""
@@ -358,7 +358,7 @@ gx_macho_relink() {
 # otool -hv prints "magic cputype cpusubtype caps filetype ..." per slice, so $5 is the filetype;
 # an archive's members are printed as if they were the file, hence the "Archive :" refusal. No
 # output (no such slice, unreadable file, otool missing) is a refusal too.
-# ponytail: exact slice match. An arm64e or x86_64h loader that dyld lets fall back to a plain
+# Trade-off: exact slice match. An arm64e or x86_64h loader that dyld lets fall back to a plain
 # arm64/x86_64 dylib is refused here; teach this the fallback if the bundle ever ships one.
 _gx_macho_loadable() {
     [[ -f "$1" && -r "$1" ]] && otool -arch "$2" -hv "$1" 2>/dev/null \

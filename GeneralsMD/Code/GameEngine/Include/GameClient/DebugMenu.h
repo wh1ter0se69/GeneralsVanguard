@@ -28,7 +28,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
-** GeneralsX @feature Claude 26/07/2026 Debug overlay reachable from the shell AND from in-game.
+** GeneralsX: Debug overlay reachable from the shell AND from in-game.
 **
 ** This is deliberately NOT a Shell screen. Shell::doPush hardcodes winCreateLayout(filename) and
 ** would run MainMenuShutdown on whatever is underneath, which is wrong for something that also has
@@ -36,7 +36,7 @@
 ** the pattern Shell::getOptionsLayout already uses, so the same instance serves both entry points
 ** and Back is a plain destroy with no pop/shutdownComplete handshake to stall on.
 **
-** GeneralsX @feature Claude 27/07/2026 The cheats work in a LAN game.
+** GeneralsX: The cheats work in a LAN game.
 **
 ** They are appended to TheMessageStream as MSG_GX_CHEAT_* orders, which sit in the 1000..1999
 ** network band and are therefore shipped to every peer, deleted locally, and re-delivered - to the
@@ -47,14 +47,14 @@
 ** the effect lands a few frames after the tap, on the sender's screen as well, and both peers must
 ** be running the same binary because the enum values ARE the protocol.
 **
-** GeneralsX @security Claude 18/09/2026 Only while at most one human is in the match. With a second
+** GeneralsX: Only while at most one human is in the match. With a second
 ** human every peer's simulation refuses the orders (GameLogic::gxCheatsAllowed) - a cheat any peer
 ** can send is a way to remove any other player.
 **
-** GeneralsX @security Claude 25/09/2026 ...or from a player the RELAY proved an admin for the match
+** GeneralsX: ...or from a player the RELAY proved an admin for the match
 ** (GameLogic::gxCheatAllowedFor), hosting or not, and every player then sees who used which cheat on whom.
 **
-** GeneralsX @feature Claude 27/07/2026 Spawn and delete get their own tab.
+** GeneralsX: Spawn and delete get their own tab.
 **
 ** Spawning used to mean typing an exact INI Object name into a text box, which is not something
 ** anyone can do on a touch device and gave nothing back but "no such template" when it went wrong.

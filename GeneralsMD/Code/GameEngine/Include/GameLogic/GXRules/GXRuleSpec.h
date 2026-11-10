@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 30/10/2026 AI RULE BANK: the registry as tables (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.1). Pure:
+// GeneralsX: AI RULE BANK: the registry as tables (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.1). Pure:
 // no engine type, no state, no I/O - scripts/test/gx-rulebank-test.cpp builds it with plain c++17 and feeds it fake registries.
 // GXRuleTable.inl is the source of truth; this header turns its rows into constexpr arrays and refuses to compile a registry that
 // breaks a rule of the bank (ids unique, keys unique per rule, defaults inside their box, VISION rules Brutal only, claims well formed).

@@ -181,7 +181,7 @@ extern HINSTANCE ApplicationHInstance;  ///< our application instance
 extern CComModule _Module;
 #endif
 
-// GeneralsX @bugfix Claude 27/07/2026 Define TheSystemIsUnicode for Generals as well.
+// GeneralsX: Define TheSystemIsUnicode for Generals as well.
 //
 // Core/GameEngine/Source/Common/System/Debug.cpp is compiled into both games and reads this in the
 // #ifdef _WIN32 arm of ReleaseCrashLocalized(), but only GeneralsMD ever defined it, so g_generals
@@ -336,13 +336,13 @@ Bool GameEngine::isTimeFrozen()
 	if (TheNetwork != nullptr)
 		return false;
 
-	// GeneralsX @bugfix Claude 08/10/2026 ...nor by the camera or a script in the replay of one, which plays back with no
+	// GeneralsX: ...nor by the camera or a script in the replay of one, which plays back with no
 	// TheNetwork: a freeze the match ignored would put every script after it on another frame, and the replay's CRCs out
-	// (Codex camera-sim-B r1 P1). The debug pause still holds.
+	// (camera-sim-B r1 P1). The debug pause still holds.
 	const Bool networkReplay = TheRecorder != nullptr && TheRecorder->isPlaybackMode()
 		&& (TheRecorder->getGameMode() == GAME_LAN || TheRecorder->getGameMode() == GAME_INTERNET);
 
-	// GeneralsX @bugfix Claude 08/10/2026 The camera freeze is the simulation's (GameLogic/ScriptedCamera.h), the same on every
+	// GeneralsX: The camera freeze is the simulation's (GameLogic/ScriptedCamera.h), the same on every
 	// peer: TheTacticalView answered for a headless peer with ViewDummy's "never frozen".
 	if (!networkReplay && TheScriptedCamera.isTimeFrozen() && !TheScriptedCamera.isCameraMovementFinished())
 		return true;
@@ -374,7 +374,7 @@ Bool GameEngine::isGameHalted()
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @bugfix Claude 25/09/2026 The SagePatch.ini blocks OLDER engines wrote, which hold
+/** GeneralsX: The SagePatch.ini blocks OLDER engines wrote, which hold
   * nobody's choice. GameEngine::init used to write the file only when it was ABSENT, so every install
   * that ever started an older engine kept its MaxCameraHeight 350 for good while both launchers write
   * 310 - and the Windows loader's EnsureDefaults is absent-only too, as is every launcher-less peer
@@ -472,7 +472,7 @@ static Bool sagePatchIsPreviousEngineBlock( const char *path )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @bugfix Claude 10/09/2026 SagePatch.ini migration helpers.
+/** GeneralsX: SagePatch.ini migration helpers.
   *
   * These exist because a raw strstr() over the file text is not a parser, and this file is edited by
   * three programs plus the user. strstr(buffer, "End") matches the word inside a comment such as
@@ -597,7 +597,7 @@ static Bool sagePatchHasAssignment( const char *buffer, const char *key )
  */
 void GameEngine::init()
 {
-	// GeneralsX @feature BenderAI 18/02/2026 Add diagnostic logging for engine initialization
+	// GeneralsX: Add diagnostic logging for engine initialization
 	fprintf(stderr, "INFO: GameEngine::init() - Starting initialization\n");
 
 	try {
@@ -639,7 +639,7 @@ void GameEngine::init()
 		XferCRC xferCRC;
 		xferCRC.open("lightCRC");
 
-		// GeneralsX @feature Claude 27/07/2026
+		// GeneralsX:
 		// Ordinal checkpoints for the join-time compatibility identity. Declared here so
 		// they are in scope at both the capture points below and at the snapshot near
 		// xferCRC.close(). Zero-initialised: if a future edit ever moves the ScienceStore
@@ -650,7 +650,7 @@ void GameEngine::init()
 		initSubsystem(TheLocalFileSystem, "TheLocalFileSystem", createLocalFileSystem(), nullptr);
 		initSubsystem(TheArchiveFileSystem, "TheArchiveFileSystem", createArchiveFileSystem(), nullptr); // this MUST come after TheLocalFileSystem creation
 
-		// GeneralsX @feature BenderAI 18/02/2026 Add asset loading diagnostics
+		// GeneralsX: Add asset loading diagnostics
 		fprintf(stderr, "INFO: GameEngine::init() - ArchiveFileSystem initialized\n");
 
 		DEBUG_ASSERTCRASH(TheWritableGlobalData,("TheWritableGlobalData expected to be created"));
@@ -665,7 +665,7 @@ void GameEngine::init()
 		AsciiString sagePatchPath = TheWritableGlobalData->getPath_UserData();
 		sagePatchPath.concat("SagePatch.ini");
 
-		// GeneralsX @bugfix Claude 25/09/2026 ...or an untouched block an older engine wrote (its 350
+		// GeneralsX: ...or an untouched block an older engine wrote (its 350
 		// maximum), which holds nobody's choice - see sagePatchPreviousEngineBlocks. Before the
 		// migrations below, which then find every key already present.
 		if (!TheLocalFileSystem->doesFileExist(sagePatchPath.str())
@@ -673,7 +673,7 @@ void GameEngine::init()
 		{
 			// Written to a sibling and put in place by gxCommitAndReplace (flush, commit, then an atomic
 			// replace - MoveFileEx on Windows, never remove-then-rename), so replacing an older engine's
-			// file can never leave it truncated or absent (Codex r4, r5). Any failure removes the sibling.
+			// file can never leave it truncated or absent. Any failure removes the sibling.
 			AsciiString writePath = sagePatchPath;
 			writePath.concat(".new");
 			FILE *f = fopen(writePath.str(), "w");
@@ -688,7 +688,7 @@ void GameEngine::init()
 					"; -----------------------------------------------------------------------------\n"
 					"\n"
 					"GameData\n"
-					// GeneralsX @bugfix Claude 25/09/2026 The launchers' maximum, not a second opinion. This was 350
+					// GeneralsX: The launchers' maximum, not a second opinion. This was 350
 					// while both launchers write 310 (gxio MAX_CAMERA_HEIGHT_FIXED, OptionsForm.cs FixedMaxHeight),
 					// and whoever writes SagePatch.ini first wins - so a peer that never runs a launcher (the headless
 					// Linux host) kept 350, and GXHostCamera made the host's pair govern every joiner. The minimum
@@ -707,7 +707,7 @@ void GameEngine::init()
 					// glibc, undefined elsewhere) and consumed a vararg that was never passed.
 					"  ; ~5%% more terrain drawn at max zoom to fix terrain pop-in.\n"
 					"  TerrainDrawDistanceScale = 1.05\n"
-					// GeneralsX @feature Claude 10/09/2026 The shell map behind the main menu is a live
+					// GeneralsX: The shell map behind the main menu is a live
 					// game; halve its world SFX so the menu is not deafening. Menu music, EVA and UI
 					// clicks are unaffected. Set to 100%% to restore retail loudness. The %% is required
 					// here and NOT in the migration block below, because this is an fprintf FORMAT
@@ -721,7 +721,7 @@ void GameEngine::init()
 			}
 		}
 
-		// GeneralsX @feature Claude 10/09/2026 Migrate existing SagePatch.ini files as new QoL defaults
+		// GeneralsX: Migrate existing SagePatch.ini files as new QoL defaults
 		// are added. Each entry probes for a key and, when absent, splices its block in before the
 		// closing "End". The file is re-read per entry so an earlier splice is visible to the next.
 		//
@@ -841,7 +841,7 @@ void GameEngine::init()
 
 		if (TheLocalFileSystem->doesFileExist(sagePatchPath.str()))
 		{
-			// GeneralsX @bugfix Claude 27/07/2026 Restrict this load to the client-tuning
+			// GeneralsX: Restrict this load to the client-tuning
 			// fields. SagePatch.ini opens a "GameData" block, and without this it could set any
 			// field in that block - including Gravity, which GameLogic integrates every frame on
 			// every peer. See GlobalData.h for the full note.
@@ -896,7 +896,7 @@ void GameEngine::init()
 			TheNameKeyGenerator->verifyNameKeyID(1);
 #endif
 
-		// GeneralsX @feature Claude 27/07/2026
+		// GeneralsX:
 		// Brackets exactly the ordinal range that goes on the wire. ScienceType IS a
 		// NameKey ordinal (Science.cpp), ControlBarCommandProcessing puts it on the wire
 		// as a raw integer in MSG_PURCHASE_SCIENCE, and GameLogicDispatch casts the
@@ -908,7 +908,7 @@ void GameEngine::init()
 
 		initSubsystem(TheScienceStore,"TheScienceStore", MSGNEW("GameEngineSubsystem") ScienceStore(), &xferCRC, "Data\\INI\\Default\\Science", "Data\\INI\\Science");
 
-		// GeneralsX @feature Claude 27/07/2026 Closing bracket of the science ordinal range.
+		// GeneralsX: Closing bracket of the science ordinal range.
 		// Must stay immediately after the ScienceStore init: every key minted later (notably
 		// by TheFunctionLexicon and TheModuleFactory, which intern hundreds of GameClient and
 		// GameEngineDevice names the source digest deliberately excludes) has to stay OUT of
@@ -923,7 +923,7 @@ void GameEngine::init()
 		initSubsystem(TheGlobalLanguageData,"TheGlobalLanguageData",MSGNEW("GameEngineSubsystem") GlobalLanguage, nullptr); // must be before the game text
 		TheGlobalLanguageData->parseCustomDefinition();
 		initSubsystem(TheAudio,"TheAudio", createAudioManager(TheGlobalData->m_headless), nullptr);
-		// GeneralsX @bugfix Claude 12/08/2026 A missing music track must not silently kill the game.
+		// GeneralsX: A missing music track must not silently kill the game.
 		//
 		// Retail disc-check: isMusicAlreadyLoaded() checks one music track's FILE exists in the
 		// VFS. When it does not (unresolvable asset roots, stripped installs), the engine set
@@ -1000,7 +1000,7 @@ void GameEngine::init()
 		TheWritableGlobalData->m_iniCRC = xferCRC.getCRC();
 		DEBUG_LOG(("INI CRC is 0x%8.8X", TheGlobalData->m_iniCRC));
 
-		// GeneralsX @feature Claude 27/07/2026
+		// GeneralsX:
 		// Snapshot the join-time compatibility identity. The m_iniCRC assignment directly
 		// above is the only point at which m_iniCRC is final, and it is before any network
 		// subsystem exists (TheLAN is constructed later, from LanLobbyMenu), so the identity
@@ -1026,7 +1026,7 @@ void GameEngine::init()
 
 		TheSubsystemList->postProcessLoadAll();
 
-		// GeneralsX @feature Claude 27/09/2026 THE max-FPS cap, resolved once - Common/FpsLimitPolicy.h.
+		// GeneralsX: THE max-FPS cap, resolved once - Common/FpsLimitPolicy.h.
 		// The launcher's value (-fps N, or -noFPSLimit for 0) wins; else the refresh rate of the display
 		// the game window is on, read HERE because TheGameClient above has created the display and applied
 		// the window mode, so the window sits on the monitor it will play on; else the tick rate. 0 means
@@ -1199,7 +1199,7 @@ void GameEngine::resetSubsystems()
 
 	TheSubsystemList->resetAll();
 
-	// GeneralsX @bugfix Claude 10/10/2026 A map.ini's particle templates go back here, after every store that can name one has
+	// GeneralsX: A map.ini's particle templates go back here, after every store that can name one has
 	// reset - not in ParticleSystemManager::reset, which debug tools also call inside a match.
 	if (TheParticleSystemManager != nullptr)
 		TheParticleSystemManager->undoOverrideLoads();
@@ -1228,7 +1228,7 @@ Bool GameEngine::canUpdateGameLogic(UnsignedInt logicTimeQueryFlags)
 }
 
 /// -----------------------------------------------------------------------------------------------
-// GeneralsX @info Claude 17/08/2026 DO NOT PUT A TIME ACCUMULATOR IN HERE. It has been tried on the
+// GeneralsX: DO NOT PUT A TIME ACCUMULATOR IN HERE. It has been tried on the
 // GeneralsMD twin, it was committed, and it was reverted the same night (684117700 reverting
 // 3ed15cee3). Two independent reasons, both from reading the code this code calls:
 //
@@ -1277,7 +1277,7 @@ Bool GameEngine::canUpdateRegularGameLogic(UnsignedInt logicTimeQueryFlags)
 	const Bool useFastMode = TheGlobalData->m_TiVOFastMode && TheGameLogic->isInReplayGame();
 #endif
 
-	// GeneralsX @bugfix Claude 27/09/2026 ...and a script's fast-forward, which lifted the cap for exactly this (FramePacer::isScriptFastForward).
+	// GeneralsX: ...and a script's fast-forward, which lifted the cap for exactly this (FramePacer::isScriptFastForward).
 	if (useFastMode || TheFramePacer->isScriptFastForward() || logicTimeScaleFps >= maxRenderFps)
 	{
 		// Logic time scale is uncapped or larger equal Render FPS. Update straight away.
@@ -1334,7 +1334,7 @@ void GameEngine::update()
 }
 
 /// -----------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 27/09/2026 A network and logic pass with no client and no draw, run by
+// GeneralsX: A network and logic pass with no client and no draw, run by
 // FramePacer::update between two draws in a network game - Zero Hour's GameEngine.cpp has the reasoning
 // and the measurement. FALSE once there is no network game to poll.
 Bool GameEngine::updateBetweenDraws()
@@ -1345,7 +1345,7 @@ Bool GameEngine::updateBetweenDraws()
 	// At most one logic tick per client update, as before this pass existed. GameClient::update refreshes the
 	// shroud cache logic reads back (PartitionData::m_everSeenByPlayer - GameClient.cpp, ActionManager.cpp) once
 	// per logic frame on every peer, whatever its cap; a second tick before the next client update would skip
-	// a frame the other peers evaluated (Codex W7-r4). Once this draw has its tick, only service the socket:
+	// a frame the other peers evaluated. Once this draw has its tick, only service the socket:
 	// liteupdate() receives and sends and never relays a frame, so no frame is left for a logic that must not run.
 	if (TheGameLogic->getFrame() != TheGameEngine->m_frameAtClientUpdate)
 	{
@@ -1364,7 +1364,7 @@ Bool GameEngine::updateBetweenDraws()
 		// GameClient::update; tick-first sent it from this pass only, a one-sided CRC at frame 61. Straight
 		// onto the command list: the tick must not reach the input translators (LookAtXlat scrolls per tick).
 		TheMessageStream->propagateMessages();
-		if (TheNetwork == nullptr)	// as update() checks after the same call (Codex W7-r8)
+		if (TheNetwork == nullptr)	// as update() checks after the same call
 			return FALSE;
 		GameMessage *tick = newInstance(GameMessage)(GameMessage::MSG_FRAME_TICK);
 		tick->appendTimestampArgument(TheGameClient->getFrame());
@@ -1386,12 +1386,12 @@ void GameEngine::updateLogic()
 		if (!TheFramePacer->isTimeFrozen())
 		{
 			TheGameClient->step();
-			// GeneralsX @bugfix Claude 08/10/2026 A motion blur's TRUE ending in this update's scripted camera step
+			// GeneralsX: A motion blur's TRUE ending in this update's scripted camera step
 			// (ScriptedCamera::logicFrame) can make a camera freeze in flight hold: from the next draw on, and only after the
-			// view took this frame's step too (re-read inside that step, it made this very update skip it: Codex camera-sim-B r1 P2).
+			// view took this frame's step too (re-read inside that step, it made this very update skip it: camera-sim-B r1 P2).
 			TheFramePacer->setTimeFrozen(isTimeFrozen());
 		}
-		// GeneralsX @bugfix Claude 08/10/2026 In a script freeze the scripts still run on this update and read
+		// GeneralsX: In a script freeze the scripts still run on this update and read
 		// CAMERA_MOVEMENT_FINISHED, so the scripted camera steps on it too (W3DView::stepFrozenLogicUpdate), not per draw.
 		else if (TheTacticalView != nullptr)
 		{
@@ -1454,7 +1454,7 @@ void GameEngine::execute()
 					// compute a frame
 					update();
 
-					// GeneralsX @bugfix Claude 27/09/2026 Inside the guard: in a network game this runs network and
+					// GeneralsX: Inside the guard: in a network game this runs network and
 					// logic passes between draws (GameEngine::updateBetweenDraws), which can throw like update() can.
 					TheFramePacer->update(&GameEngine::updateBetweenDraws);
 				}
@@ -1481,7 +1481,7 @@ void GameEngine::execute()
 				}
 			}
 
-			// GeneralsX @build BenderAI 18/02/2026 - Call display step and draw every frame
+			// GeneralsX: Call display step and draw every frame
 			// This was missing, causing only magenta screen (no UI rendering)
 			if (TheDisplay != nullptr)
 			{

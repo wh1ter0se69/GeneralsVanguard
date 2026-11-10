@@ -113,7 +113,7 @@ static inline bool iosShouldPauseRendering()
 	return s_appBackgrounded.load() || s_appInactive.load();
 }
 
-// GeneralsX @feature Claude 07/08/2026 Ask iOS for background execution time.
+// GeneralsX: Ask iOS for background execution time.
 //
 // Defined in SDL3Device/Common/IOSBackgroundTask.mm - Objective-C++, because UIApplication has no
 // C API. No-ops on every other platform, so no #if is needed at the call sites.
@@ -390,7 +390,7 @@ void handleTouchEvent(SDL3Mouse *mouse, SDL_Window *window, const SDL_Event &eve
 	// GeneralsX @bugfix wh1ter0se 12/08/2026 PIXELS, not points. This is why the iPad menus could
 	// not be tapped at all.
 	//
-	// GeneralsX @bugfix Claude 16/08/2026 POINTS after all - because the scaling this compensated
+	// GeneralsX: POINTS after all - because the scaling this compensated
 	// for is now actually running. READ BOTH HALVES BEFORE CHANGING THIS AGAIN.
 	//
 	// SDL_tfinger.x/y are normalised 0..1 across the window, and have to be scaled into whatever
@@ -526,7 +526,7 @@ void handleTouchEvent(SDL3Mouse *mouse, SDL_Window *window, const SDL_Event &eve
 				// Commit to a drag: anchor the LMB at the original touch point so
 				// drag-boxes start where the finger first landed.
 				//
-				// GeneralsX @revert Claude 26/07/2026 A previous attempt special-cased
+				// GeneralsX @revert /07/2026 A previous attempt special-cased
 				// building placement here: it held no button and synthesised a click on
 				// release, on the theory that touch wants drag-to-position rather than
 				// the mouse's press-to-place-then-drag-to-face. The operator tested it and it was
@@ -868,7 +868,7 @@ void updateTouchLongPress(SDL3Mouse *mouse, SDL_Window *window)
 
 namespace {
 
-// GeneralsX @feature Claude 25/09/2026 The last SDL key-down, for forwardTextInputEvent to tell a keystroke's
+// GeneralsX: The last SDL key-down, for forwardTextInputEvent to tell a keystroke's
 // text from an IME's. A text event is a keystroke only when it is the one character that key-down itself
 // names (its layout keycode, case aside), and only the first text straight after it (pollSDL3Events clears it
 // on any event but a key-up in between): an IME's commit follows the key that committed it (Space, Return, a
@@ -951,7 +951,7 @@ SDL3GameEngine::SDL3GameEngine()
  */
 SDL3GameEngine::~SDL3GameEngine()
 {
-	// GeneralsX @feature Claude 14/08/2026 Close the lobby-presence socket with the engine.
+	// GeneralsX: Close the lobby-presence socket with the engine.
 	if (TheGXLobbyPresence != NULL)
 	{
 		delete TheGXLobbyPresence;
@@ -972,7 +972,7 @@ SDL3GameEngine::~SDL3GameEngine()
 
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 /*
- * GeneralsX @feature Claude 07/11/2026 THE SHIPPED MAPS ON AN iPAD (owner 07/11: "also ship the maps we are making by
+ * GeneralsX: THE SHIPPED MAPS ON AN iPAD (owner 07/11: "also ship the maps we are making by
  * default"). The bundle carries them in <GeneralsXPatch>/ShippedMaps/<Name>/ (package-ios-zh.sh), and on the desktop the
  * launcher's PLAY copies that folder into <userdata>/Maps. An iPad has no launcher, so this does the same copy, by the same
  * rule (GXShippedMaps.h), once per start, after GameEngine::init() has made TheMapCache and fixed the user-data folder and
@@ -1020,7 +1020,7 @@ void SDL3GameEngine::init(void)
 {
 	fprintf(stderr, "INFO: SDL3GameEngine::init() starting\n");
 
-	// GeneralsX @feature Claude 14/08/2026 The shared-lobby presence socket. Created HERE, in the
+	// GeneralsX: The shared-lobby presence socket. Created HERE, in the
 	// device engine, and not in GameEngine::init(): Common/ is inside the sourceID digest and this
 	// feature is deliberately digest-neutral so it can ship without an atomic four-platform rebuild.
 	// It opens no socket until an Online screen calls enterLobby(), so constructing it always costs
@@ -1029,7 +1029,7 @@ void SDL3GameEngine::init(void)
 	{
 		TheGXLobbyPresence = NEW GXLobbyPresence;
 
-		// GeneralsX @test Claude 14/08/2026 GX_LOBBY_TEST=1 takes presence immediately, without the
+		// GeneralsX: GX_LOBBY_TEST=1 takes presence immediately, without the
 		// Online screen. The screen requires a login, so there is otherwise no way to exercise this
 		// path headlessly - and "it compiles" is not evidence that a socket registers. Off unless
 		// the variable is set, and it only ever ADDS a lobby membership; nothing else reads it.
@@ -1040,7 +1040,7 @@ void SDL3GameEngine::init(void)
 		}
 
 		/*
-		 * GeneralsX @bugfix Claude 21/09/2026 A DIRECT MATCH LAUNCH NEVER LEARNED WHERE THE RELAY
+		 * GeneralsX: A DIRECT MATCH LAUNCH NEVER LEARNED WHERE THE RELAY
 		 * WAS, so it filed no telemetry at all - and one silent member turns the panel's
 		 * attribution off for its whole room, because it will not name a player unless everybody in
 		 * the room is reporting. The standing lobby host is a `-lanhost`, so that was production.
@@ -1065,7 +1065,7 @@ void SDL3GameEngine::init(void)
 
 
 	if (TheGlobalData && TheGlobalData->m_headless) {
-		// GeneralsX @bugfix Copilot 17/05/2026 Allow headless replay path to initialize engine subsystems without an SDL window.
+		// GeneralsX: Allow headless replay path to initialize engine subsystems without an SDL window.
 		fprintf(stderr, "INFO: SDL3GameEngine::init() headless mode - skipping SDL window binding\n");
 		m_SDLWindow = nullptr;
 		m_IsInitialized = true;
@@ -1126,7 +1126,7 @@ void SDL3GameEngine::update(void)
 {
 	pollSDL3Events();
 
-	// GeneralsX @bugfix Claude 30/07/2026 Pump LANAPI from the ENGINE, not from a menu screen.
+	// GeneralsX: Pump LANAPI from the ENGINE, not from a menu screen.
 	//
 	// Until now nothing on this platform pumped it except lobby screen update callbacks -
 	// LanLobbyMenuUpdate, WOLLobbyMenuUpdate and NetworkDirectConnectUpdate - each behind its own
@@ -1152,7 +1152,7 @@ void SDL3GameEngine::update(void)
 	// out of the lobby; an iPad whose owner pulled the notification shade down must likewise keep
 	// its relay registration alive, or it is reaped for a glance.
 	//
-	// GeneralsX @bugfix Claude 08/08/2026 Pump LANAPI DURING a match too. Not pumping it is why a
+	// GeneralsX: Pump LANAPI DURING a match too. Not pumping it is why a
 	// game vanishes from the browser the instant it starts.
 	//
 	// The exclusion above was deliberate and its reasoning was sound - "this can only ADD pumping in
@@ -1187,7 +1187,7 @@ void SDL3GameEngine::update(void)
 		TheLAN->update();
 	}
 
-	// GeneralsX @feature Claude 14/08/2026 Shared-lobby presence, pumped HERE and nowhere else.
+	// GeneralsX: Shared-lobby presence, pumped HERE and nowhere else.
 	//
 	// Same reason TheLAN->update() had to move here in eebae98ea: a pump hung off a UI callback only
 	// runs while that particular screen is on the stack, so it stops the moment a menu changes and
@@ -1203,7 +1203,7 @@ void SDL3GameEngine::update(void)
 		TheGXLobbyPresence->update();
 	}
 
-	// GeneralsX @bugfix Claude 20/09/2026 Declare the SIGNED identity from HERE too, for the same
+	// GeneralsX: Declare the SIGNED identity from HERE too, for the same
 	// reason the two pumps above are here: every writer of Transport::m_relayIdentity was GUI menu
 	// code, so a peer with no menus - the standing Linux host, every harness peer - sent no GXIDN
 	// however valid its GXLogin.txt was, and RELAY_REQUIRE_IDENTITY=1 drops it 15 s after it joins.
@@ -1211,7 +1211,7 @@ void SDL3GameEngine::update(void)
 	// IDENTICAL to Win32GameEngine.cpp - see the d19090d14 note above.
 	gxDeclareIdentityIfChanged();
 
-	// GeneralsX @bugfix B · tel-bg-1 08/11/2026 The replay telemetry's AWAY flag (U): in a match the loop keeps simulating while
+	// GeneralsX: The replay telemetry's AWAY flag (U): in a match the loop keeps simulating while
 	// nobody is looking - an iOS app inactive or in the background (the render-suspended branch below), a desktop window that lost
 	// focus - and those rows read fps 0 at 60 TPS with no flag (wh1ter0se's R2 iPad replay: 158 s). Set BEFORE GameEngine::update()
 	// samples, so this iteration's row carries it; the solo iOS stop below is flagged suspended as well, which wins in the reader.
@@ -1224,7 +1224,7 @@ void SDL3GameEngine::update(void)
 	gxReplayTelAway(telAway);
 
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-	// GeneralsX @bugfix Claude 07/08/2026 Suspend the GPU, not the simulation.
+	// GeneralsX: Suspend the GPU, not the simulation.
 	//
 	// The comment above used to say "Pause sim + render", and pausing the sim is what broke every
 	// OTHER player. Lockstep cannot advance frame N until every peer's input for N has arrived, so
@@ -1243,7 +1243,7 @@ void SDL3GameEngine::update(void)
 
 	if (iosShouldPauseRendering()) {
 		if (!inNetMatch) {
-			// GeneralsX @feature B · replay-tel-1 05/11/2026 The loop stops: the replay's telemetry shows a "suspended" gap,
+			// GeneralsX: The loop stops: the replay's telemetry shows a "suspended" gap,
 			// never one long frame (GXReplayDiag.h). Idempotent; cleared below once the loop runs again.
 			gxReplayTelSuspend(true);
 			SDL_Delay(50);
@@ -1296,7 +1296,7 @@ void SDL3GameEngine::setIsActive(Bool isActive)
 }
 
 /**
- * GeneralsX @feature Claude 27/09/2026 The refresh rate of the display the game window is on, rounded to
+ * GeneralsX: The refresh rate of the display the game window is on, rounded to
  * whole Hz (59.94 -> 60, 119.88 -> 120), or 0 when SDL cannot say: headless (no window), or a mode that
  * reports no rate. The max-FPS cap's default when the launcher sets none (Common/FpsLimitPolicy.h). The
  * same SDL_GetDisplayForWindow + SDL_GetCurrentDisplayMode pair W3DDisplay already sizes the window with.
@@ -1333,14 +1333,14 @@ void SDL3GameEngine::pollSDL3Events(void)
 
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
-		// GeneralsX @feature Claude 25/09/2026 A key-down vouches only for the text that comes straight
+		// GeneralsX: A key-down vouches only for the text that comes straight
 		// after it (s_keyDownChar, ComboVouchSurvives): key-ups may come between, nothing else.
 		if (!ComboVouchSurvives(event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP ||
 		                        event.type == SDL_EVENT_TEXT_INPUT)) {
 			s_keyDownChar = 0;
 		}
 		switch (event.type) {
-			// GeneralsX @bugfix Claude 07/08/2026 Quit through the game's own quit path, so peers
+			// GeneralsX: Quit through the game's own quit path, so peers
 			// get a RESIGN instead of a peer that simply stops sending.
 			//
 			// Setting m_quitting here kills the process on the spot. In a networked match that is
@@ -1368,7 +1368,7 @@ void SDL3GameEngine::pollSDL3Events(void)
 				}
 				break;
 
-			// GeneralsX @bugfix Claude 07/08/2026 Two things Windows does on a focus change and
+			// GeneralsX: Two things Windows does on a focus change and
 			// this engine did not. Both are one-liners; both are user-visible.
 			//
 			// muteAudio: WinMain's WM_ACTIVATE mutes with MuteAudioReason_WindowFocus. Without it,
@@ -1397,7 +1397,7 @@ void SDL3GameEngine::pollSDL3Events(void)
 
 			case SDL_EVENT_WINDOW_FOCUS_LOST:
 				m_IsActive = false;
-				gxReplayTelAway(true);	// GeneralsX @bugfix B · tel-bg-1 08/11/2026 latch: a focus regained in this same poll still marks the open row (Codex tel-bg-1-r1)
+				gxReplayTelAway(true);	// GeneralsX: latch: a focus regained in this same poll still marks the open row
 				if (m_IsTextInputActive) {
 					SDL_StopTextInput(m_SDLWindow);
 					m_IsTextInputActive = false;
@@ -1419,7 +1419,7 @@ void SDL3GameEngine::pollSDL3Events(void)
 			// and mouse state pause cleanly (the render gate lives in update()).
 			case SDL_EVENT_DID_ENTER_BACKGROUND:
 				m_IsActive = false;
-				gxReplayTelAway(true);	// GeneralsX @bugfix B · tel-bg-1 08/11/2026 latch, as SDL_EVENT_WINDOW_FOCUS_LOST above
+				gxReplayTelAway(true);	// GeneralsX: latch, as SDL_EVENT_WINDOW_FOCUS_LOST above
 				if (TheMouse) {
 					TheMouse->loseFocus();
 				}
@@ -1469,7 +1469,7 @@ void SDL3GameEngine::pollSDL3Events(void)
 					}
 				}
 
-				// GeneralsX @bugfix Claude 07/08/2026 Make RETURN commit a text entry.
+				// GeneralsX: Make RETURN commit a text entry.
 				//
 				// Return is inert in EVERY GadgetTextEntry on macOS, Linux and iPadOS - the lobby
 				// chat box is only where it is most obvious. The key arrives correctly and is
@@ -1578,7 +1578,7 @@ void SDL3GameEngine::updateTextInputState(void)
 	const Bool wantsTextInput =
 		focusedWindow != nullptr && BitIsSet(focusedWindow->winGetStyle(), GWS_ENTRY_FIELD);
 
-	// GeneralsX @bugfix Claude 07/08/2026 Ask SDL what it is doing; do not trust a shadow flag.
+	// GeneralsX: Ask SDL what it is doing; do not trust a shadow flag.
 	//
 	// This is why the iOS keyboard did not come back after sending one message, and why the fix
 	// was to tap the game list and then the chat bar again.
@@ -1601,7 +1601,7 @@ void SDL3GameEngine::updateTextInputState(void)
 	if (wantsTextInput) {
 		if (!sdlHasTextInput) {
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-			// GeneralsX @bugfix Claude 07/08/2026 A dismissed keyboard means "I am done typing".
+			// GeneralsX: A dismissed keyboard means "I am done typing".
 			//
 			// Reading SDL's real state fixed the keyboard never coming back, and then produced the
 			// mirror-image bug: tapping Hide slid it down and this function put it straight back
@@ -1641,7 +1641,7 @@ void SDL3GameEngine::updateTextInputState(void)
 // GeneralsX @bugfix felipebraz 01/04/2026 Forward SDL UTF-8 text input through existing GWM_IME_CHAR path.
 void SDL3GameEngine::forwardTextInputEvent(const char* utf8Text)
 {
-	// GeneralsX @feature Claude 25/09/2026 Taken before any return: one key-down vouches for one text event.
+	// GeneralsX: Taken before any return: one key-down vouches for one text event.
 	const WideChar keyDownChar = s_keyDownChar;
 	s_keyDownChar = 0;
 
@@ -1680,7 +1680,7 @@ void SDL3GameEngine::forwardTextInputEvent(const char* utf8Text)
 		chars.push_back(static_cast<WideChar>(codepoint));
 	}
 
-	// GeneralsX @feature Claude 25/09/2026 Say how the text came (GWM_IME_CHAR_* in GameWindow.h), as Win32's
+	// GeneralsX: Say how the text came (GWM_IME_CHAR_* in GameWindow.h), as Win32's
 	// WM_CHAR lParam does: the one character the key just pressed names is a keystroke, flagged as an
 	// auto-repeat when that key-down was SDL's repeat (see s_keyDownChar); anything else - IME or dead-key
 	// composition output - is not. The drop-down letter keys pick only with a typed, non-repeated letter
@@ -1825,7 +1825,7 @@ FunctionLexicon *SDL3GameEngine::createFunctionLexicon(void)
 }
 // GX-SIMID-END
 
-// GeneralsX @bugfix Copilot 15/04/2026 Match upstream GameEngine pure-virtual signature after sync.
+// GeneralsX: Match upstream GameEngine pure-virtual signature after sync.
 Radar *SDL3GameEngine::createRadar(Bool dummy)
 {
 	// GeneralsX @bugfix fbraz 04/05/2026 Respect headless mode and create dummy radar.
@@ -1839,7 +1839,7 @@ Radar *SDL3GameEngine::createRadar(Bool dummy)
 	return NEW W3DRadar;
 }
 
-// GeneralsX @bugfix Copilot 24/03/2026 Match upstream GameEngine pure-virtual signature after sync.
+// GeneralsX: Match upstream GameEngine pure-virtual signature after sync.
 ParticleSystemManager* SDL3GameEngine::createParticleSystemManager(Bool dummy)
 {
 	// GeneralsX @bugfix fbraz 04/05/2026 Respect headless mode and create dummy particle manager.
@@ -1862,7 +1862,7 @@ WebBrowser *SDL3GameEngine::createWebBrowser(void)
 /**
  * Factory method: AudioManager
  * Select audio backend based on compile flags
- * GeneralsX @bugfix Copilot 15/04/2026 Match upstream GameEngine pure-virtual signature after sync.
+ * GeneralsX: Match upstream GameEngine pure-virtual signature after sync.
  */
 AudioManager *SDL3GameEngine::createAudioManager(Bool dummy)
 {

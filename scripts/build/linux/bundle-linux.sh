@@ -1,10 +1,10 @@
 #!/bin/bash
-# GeneralsX @build BenderAI 03/03/2026 Bundle Linux GeneralsX binary + .so libs into a tarball archive
+# GeneralsX: Bundle Linux GeneralsX binary + .so libs into a tarball archive
 # Packages the same files as deploy-linux.sh into GeneralsX-linux-x86_64.tar.gz
 
 set -e
 
-# GeneralsX @bugfix BenderAI 14/03/2026 Keep base-game Linux bundle script aligned with nested scripts/build/linux layout.
+# GeneralsX: Keep base-game Linux bundle script aligned with nested scripts/build/linux layout.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/linux64-deploy"
@@ -97,7 +97,7 @@ echo "  + GeneralsX"
 cp "${BINARY_SRC}" "${BUNDLE_DIR}/GeneralsX"
 chmod +x "${BUNDLE_DIR}/GeneralsX"
 
-# GeneralsX @build Claude 25/09/2026 The openal-soft this engine was built against, with a runpath
+# GeneralsX: The openal-soft this engine was built against, with a runpath
 # of $ORIGIN so it is the one that loads - see the same block in bundle-linux-zh.sh.
 # shellcheck source=scripts/build/linux/lib-openal.sh
 source "${SCRIPT_DIR}/lib-openal.sh"
@@ -125,7 +125,7 @@ if [[ -f "${SAGE_PATCH_LIB}" ]]; then
     cp "${SAGE_PATCH_LIB}" "${BUNDLE_DIR}/"
 fi
 
-# GeneralsX @build GitHubCopilot 17/05/2026 Copy FFmpeg runtime libs transitively so the bundle is independent of host SONAME layout.
+# GeneralsX: Copy FFmpeg runtime libs transitively so the bundle is independent of host SONAME layout.
 echo "  + FFmpeg runtime libraries"
 shopt -s nullglob
 ffmpeg_roots=(
@@ -163,7 +163,7 @@ fi
 echo "  + run.sh"
 cat > "${BUNDLE_DIR}/run.sh" << 'WRAPPER'
 #!/bin/bash
-# GeneralsX @build BenderAI 03/03/2026 - Linux wrapper for bundled runtime
+# GeneralsX: Linux wrapper for bundled runtime
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 # Set LD_LIBRARY_PATH to find DXVK, SDL3, and other libs in same directory
@@ -191,7 +191,7 @@ if [[ -z "${CNC_GENERALS_INSTALLPATH:-}" && -d "${SCRIPT_DIR}/../Generals" ]]; t
     export CNC_GENERALS_INSTALLPATH="${SCRIPT_DIR}/../Generals/"
 fi
 
-# GeneralsX @bugfix BenderAI 06/03/2026 - Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
+# GeneralsX: Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
 # libvulkan_lvp.so (LLVMpipe) crashes during static initialization with LLVM 20.x.
 # Filter hardware-only ICDs via VK_DRIVER_FILES to prevent loading the crashing library.
 # User can override by setting VK_DRIVER_FILES or VK_ICD_FILENAMES before running.

@@ -3,7 +3,7 @@
 // gx_present_ms.frag - ADAPTED from DXVK src/dxvk/shaders/dxvk_present_frag_ms.frag (954c5c692; zlib/libpng, notice in
 // gx_present_common.glsl and shaders/SOURCE.txt). ALTERED (GX:): the include's name; composite_image() removed.
 // The MSAA present: every sample to linear light, averaged, back to the output encoding (not vkCmdResolveImage's average of
-// the encoded values - Codex rw3L-design-r2 #1).
+// the encoded values).
 
 #extension GL_GOOGLE_include_directive : enable
 

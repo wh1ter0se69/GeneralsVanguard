@@ -1,5 +1,5 @@
 # Build a self-contained zip a friend can run, from an already-staged run folder.
-# GeneralsX @feature Claude 07/08/2026
+# GeneralsX:
 #
 # WHY THIS EXISTS SEPARATELY FROM setup-run-win64.ps1: that script stages OUR box - it reads from
 # C:\dev\GeneralsX\build\win64 and a hardcoded Steam path, and it stages a .pdb and logs. A friend
@@ -34,7 +34,7 @@
 # the bundle's name has to agree with the BUILD.txt inside it or every launch re-downloads the whole
 # payload. See "THE BUNDLE'S NAME" near the end.
 
-# GeneralsX @feature Claude 12/08/2026 THE COMMUNITY PATCH NOW RIDES IN THE ZIP, and it is the
+# GeneralsX: THE COMMUNITY PATCH NOW RIDES IN THE ZIP, and it is the
 # reason a friend can join at all.
 #
 # dataID covers the mounted archives and every peer must agree or the join is refused with
@@ -52,7 +52,7 @@
 # extract and the launcher's place_tree recurses into it, so update and first install agree.
 param(
     [string]$Run       = "C:\dev\GeneralsX-run",
-    # GeneralsX @bugfix Claude 13/08/2026 EMPTY BY DEFAULT, AND THE NAME IS DERIVED. See "THE
+    # GeneralsX: EMPTY BY DEFAULT, AND THE NAME IS DERIVED. See "THE
     # BUNDLE'S NAME" below - a bundle name that disagrees with the BUILD.txt inside it makes every
     # launch re-download the whole payload, forever. Pass this only to put the zip somewhere else;
     # a name that contradicts the binary is refused rather than shipped.
@@ -61,7 +61,7 @@ param(
     # dev peer and the friend payload are wired identically and a broken overlay is visible here
     # before it ships.
     [string]$Patch     = "",
-    # GeneralsX @feature Claude 12/08/2026 Where the SPLIT artifacts land. See "THE SPLIT" below.
+    # GeneralsX: Where the SPLIT artifacts land. See "THE SPLIT" below.
     #
     # THIS DIRECTORY IS MEANT TO PERSIST BETWEEN RUNS and that is a correctness property, not
     # housekeeping. An artifact whose content is unchanged keeps its name, and reusing the zip
@@ -107,7 +107,7 @@ $payload += @(
 
 if ($Patch -eq "") { $Patch = Join-Path $Run "GeneralsXPatch" }
 
-# GeneralsX @feature Claude 17/08/2026 Build the overlay archives GeneralsX AUTHORS, before the
+# GeneralsX: Build the overlay archives GeneralsX AUTHORS, before the
 # staging loops below go looking for them in $Patch.
 #
 # WHY A BUILD STEP APPEARS IN A PACKAGER. Every archive on either list used to be third-party
@@ -156,7 +156,7 @@ if (-not $pyExe) {
 # --game-dir is the RUN folder WHEN THE RUN FOLDER HAS THE RETAIL ARCHIVES: that is the install this
 # payload is being cut from, so the archive it reads is the one this build's players will have.
 #
-# GeneralsX @bugfix Claude 17/08/2026 But a run folder is not required to be a full install, and on
+# GeneralsX: But a run folder is not required to be a full install, and on
 # the machine that actually cuts releases it is not one - the engine there prints
 # "[ASSET_ROOT] WARNING: no base Generals assets found next to C:\dev\GeneralsX-run" on every launch,
 # because the retail data lives in a separate directory and is reached through CNC_GENERALS_ZH_PATH.
@@ -167,7 +167,7 @@ if (-not $pyExe) {
 # is genuinely absent there. Failing with the generator's own message is still the outcome when
 # neither location has it, which is correct: a payload without !GXUI.big is incomplete.
 #
-# GeneralsX @bugfix Claude 18/09/2026 AND THEN EVERY OTHER PLACE IT COULD BE, all handed to the
+# GeneralsX: AND THEN EVERY OTHER PLACE IT COULD BE, all handed to the
 # generator, which takes the first that holds WindowZH.big and names every one it tried on a miss.
 # This probed $Run and GX_GAME_DATA only, so release 85f9a6650 still stopped on "WindowZH.big not
 # found" on the release box until GX_GAME_DATA was set by hand. Added: CNC_GENERALS_ZH_PATH, the
@@ -205,7 +205,7 @@ if ($missing.Count -gt 0) {
     throw "run folder is incomplete, refusing to ship a broken zip. Missing: $($missing -join ', ')"
 }
 
-# GeneralsX @bugfix Claude 24/09/2026 Presence is not identity: refuse a C# loader under the Tauri
+# GeneralsX: Presence is not identity: refuse a C# loader under the Tauri
 # launcher's name. See launcher-kind.ps1.
 . (Join-Path $PSScriptRoot "launcher-kind.ps1")
 try { Assert-TauriLauncher (Join-Path $stage "GeneralsXLauncher.exe") }
@@ -216,7 +216,7 @@ $gxHead = (& git -C $gxRepo rev-parse HEAD).Trim()
 try { Assert-GxUpdater (Join-Path $stage "GeneralsXUpdate.exe") $gxRepo $gxHead }
 catch { Remove-Item -Recurse -Force $stage; throw }
 Write-Host "  launcher        : GeneralsXLauncher.exe (Tauri) + GeneralsXUpdate.exe"
-# GeneralsX @feature Claude 03/10/2026 Presence is not identity for the DXVK pair either: both DLLs must be ONE pinned
+# GeneralsX: Presence is not identity for the DXVK pair either: both DLLs must be ONE pinned
 # pair (dxvk\dxvk-win64.pins) - ours (gx) or the official 2.6 release - never a stray, a meas/oracle build, or a d3d8
 # from one build beside a d3d9 from another. setup-run-win64.ps1 -DxvkPair picks which.
 . (Join-Path $PSScriptRoot "dxvk\dxvk-pair.ps1")
@@ -224,7 +224,7 @@ try { $dxvkPair = Get-DxvkPairName $stage }
 catch { Remove-Item -Recurse -Force $stage; throw }
 Write-Host "  DXVK pair       : $dxvkPair (d3d9.dll $((Get-FileHash -Algorithm SHA256 (Join-Path $stage 'd3d9.dll')).Hash.Substring(0, 16)))"
 
-# GeneralsX @bugfix Claude 12/08/2026 THE SIXTEEN-COLOUR PAIR, WHICH ONLY macOS AND iOS SHIPPED.
+# GeneralsX: THE SIXTEEN-COLOUR PAIR, WHICH ONLY macOS AND iOS SHIPPED.
 #
 # deploy-macos-zh.sh:188-199 and the iOS bundler both copy Data\INI\Multiplayer.ini and
 # Data\English\Generals.csf out of the checkout. This packager never did. Multiplayer.ini goes
@@ -324,7 +324,7 @@ if ($missingPatch.Count -gt 0) {
     throw ("community-patch overlay incomplete in ${Patch}: " + ($missingPatch -join ', ') +
            ". A friend on this payload would be refused by every peer with DATA_DIFFERS.")
 }
-# GeneralsX @feature Claude 24/09/2026 Data\INI\Weapon.ini, the Toxin Tractor balance change, cut from
+# GeneralsX: Data\INI\Weapon.ini, the Toxin Tractor balance change, cut from
 # the CoreINI archive just staged by scripts\tooling\make-weapon-ini.py (never committed: it is the
 # Community Patch's file). It is in iniCRC, so it moves dataID and rides the REQUIRED tier with the
 # colour pair. FATAL: every other platform ships it, so a payload without it joins nobody.
@@ -384,7 +384,7 @@ foreach ($o in $optional) {
     if (-not $item -or $item.PSIsContainer -or $item.Length -le 0) { $missingOpt += $o.Name; continue }
     $dstName = if ($o.Default -eq 'off') { $o.Name + '.off' } else { $o.Name }
     Copy-Item -LiteralPath $src -Destination (Join-Path $patchStage $dstName) -Force
-    # GeneralsX @feature Claude 17/08/2026 THE DEFAULT IS CARRIED THROUGH AS A THIRD FIELD, so the
+    # GeneralsX: THE DEFAULT IS CARRIED THROUGH AS A THIRD FIELD, so the
     # launcher can tell a player what shipped as standard and whether they have changed it. It had
     # no way to know before: the payload said which archives exist and what to call them, and the
     # only other thing on disk is the CURRENT state, which is not the default and stops being it the
@@ -412,7 +412,7 @@ if ($missingOpt.Count -gt 0) {
 # at runtime. A .txt in GeneralsXPatch is inert to the engine: the overlay scan matches "*.big".
 $manifest | Set-Content -Encoding UTF8 (Join-Path $patchStage "optional.txt")
 
-# GeneralsX @feature Claude 30/09/2026 THE SHIPPED MAPS (scripts/build/overlay-maps.txt): loose files in
+# GeneralsX: THE SHIPPED MAPS (scripts/build/overlay-maps.txt): loose files in
 # GeneralsXPatch\ShippedMaps\<Name>\, carried by the OPTIONAL tier (never required - maps are outside
 # dataID). The engine's overlay scan matches "*.big" only, so they are inert here; the launcher copies them
 # into <userdata>\Maps (gxio shippedmaps.rs). Refuses a .map that does not hash to the listed value.
@@ -437,7 +437,7 @@ foreach ($line in (Get-Content -LiteralPath $mapsList)) {
 }
 if ($shippedMaps.Count -eq 0) { Remove-Item -Recurse -Force $stage; throw "overlay-maps.txt lists no map" }
 
-# GeneralsX @feature Claude 17/08/2026 The MANDATORY set, beside the optional one and for the
+# GeneralsX: The MANDATORY set, beside the optional one and for the
 # mirror-image reason. optional.txt tells the launcher what it may switch off; required.txt tells
 # it what must be present for a join to be legal at all, so the network test can name the archive
 # that is missing instead of reporting a generic "something is wrong with your data".
@@ -462,7 +462,7 @@ foreach ($o in $optional) { Write-Host ("                    [{0}] {1}" -f $o.De
 $b = [IO.File]::ReadAllBytes((Join-Path $Run "generalszh.exe"))
 $s = [Text.Encoding]::ASCII.GetString($b)
 $sha = "unknown"
-# GeneralsX @bugfix Claude 13/08/2026 THIS USED TO BE `$s -match '([0-9a-f]{40})'` AND IT PICKED THE
+# GeneralsX: THIS USED TO BE `$s -match '([0-9a-f]{40})'` AND IT PICKED THE
 # WRONG STRING ON 13/08/2026, out of a binary that contained the correct one.
 #
 # Two independent faults, and either alone is enough to name a release after a data pattern:
@@ -496,7 +496,7 @@ foreach ($m in [regex]::Matches($s, '(?-i)(?<![0-9a-f])[0-9a-f]{40}(?![0-9a-f])'
         break
     }
 }
-# GeneralsX @bugfix Claude 13/08/2026 REFUSED RATHER THAN SHIPPED AS "unknown", and this is not
+# GeneralsX: REFUSED RATHER THAN SHIPPED AS "unknown", and this is not
 # pedantry about a nice-to-have field. Every published name below is derived from $sha, so a build
 # that cannot state its commit produces "GeneralsX-win64-unknown.zip" - a key that TWO DIFFERENT
 # BUILDS would share. The second upload then sits behind the first one's edge entry - permanently,
@@ -593,7 +593,7 @@ because this build is not code-signed, not because anything is wrong with it.
 # ==================================================================================================
 # THE SPLIT
 #
-# GeneralsX @feature Claude 12/08/2026. Design: docs/WORKDIR/DESIGN_2026-08-12_payload-granularity.md
+# GeneralsX: Design: docs/WORKDIR/DESIGN_2026-08-12_payload-granularity.md
 #
 # WHY. The manifest named ONE artifact, so every update was all-or-nothing: the owner downloaded
 # 112 MB to receive a 3.4 MB engine change. Measured on the published afa9a64b2 payload - 117.4 MB
@@ -675,7 +675,7 @@ $tierRuntime = @(
 # byte-identical on every platform, and it moves dataID - so a peer that misses it cannot join one
 # that has it. Same tier as the overlay archives, for exactly the same reason. Guarded by Test-Path
 # because the staging block above ships the pair only when the checkout carries it.
-# GeneralsX @feature E · look-packs-0965 17/10/2026 THE MODEL PACK RIDES AN ARTIFACT OF ITS OWN. Every shipped Windows updater
+# GeneralsX: THE MODEL PACK RIDES AN ARTIFACT OF ITS OWN. Every shipped Windows updater
 # abandons ANY single download over MAX_DOWNLOAD_BYTES (512 MiB, gxlaunch.c:184 and :1168) - the cap is per download, a local
 # total - and the one required zip holding !!GXModelsHD.big (~399 MB deflated) beside the HD textures (~183 MB) would cross it, so
 # every existing install would abandon the whole update before applying anything. A new updater in the same release cannot help
@@ -880,7 +880,7 @@ if ($overCap.Count) {
 # ==================================================================================================
 # THE INSTALL RECORD RIDES INSIDE THE BUNDLE
 #
-# GeneralsX @bugfix Claude 19/08/2026. This is the fix for "setup downloads 113 MB, then the
+# GeneralsX: This is the fix for "setup downloads 113 MB, then the
 # launcher immediately downloads the same 118 MB again", measured on a clean install this session:
 #
 #   gxlaunch.log  state: installed ordinal 0, 1 known artifact(s)
@@ -945,7 +945,7 @@ foreach ($l in $recordLines | Where-Object { $_ -like 'item *' }) { Write-Host (
 # ==================================================================================================
 # THE BUNDLE'S NAME
 #
-# GeneralsX @bugfix Claude 13/08/2026. This is the fix for "every launch re-downloads 117 MB,
+# GeneralsX: This is the fix for "every launch re-downloads 117 MB,
 # forever", observed on the owner's install and reproducible from the published release.
 #
 # WHAT WENT WRONG. The bundle was named at PUBLISH time, from `git rev-parse HEAD` on the box doing

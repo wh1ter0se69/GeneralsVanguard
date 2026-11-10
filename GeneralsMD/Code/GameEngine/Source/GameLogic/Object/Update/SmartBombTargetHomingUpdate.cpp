@@ -98,7 +98,7 @@ UpdateSleepTime SmartBombTargetHomingUpdate::update()
 
   Real statusCoeff = MAX( 0.0f, MIN( 1.0f, d->m_courseCorrectionScalar));
 #if GX_LOGIC_60HZ
-  // GeneralsX @fix Claude 23/09/2026 the remaining miss distance is multiplied by statusCoeff EVERY frame, so at twice the rate
+  // GeneralsX: the remaining miss distance is multiplied by statusCoeff EVERY frame, so at twice the rate
   // it needs the square root (two frames == one retail frame). sqrtf is IEEE correctly rounded, so this
   // is bit-identical on every platform (no powf).
   statusCoeff = sqrtf( statusCoeff );

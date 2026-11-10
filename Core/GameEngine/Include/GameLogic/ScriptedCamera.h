@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 08/10/2026 THE SIMULATION'S HALF OF THE SCRIPTED CAMERA (catch-up re-land, step B).
+// GeneralsX: THE SIMULATION'S HALF OF THE SCRIPTED CAMERA (catch-up re-land, step B).
 //
 // CAMERA_MOVEMENT_FINISHED is a script condition and GameEngine::isTimeFrozen reads the same answer, so whether a scripted
 // camera move has ended is simulation state. Both used to ask TheTacticalView: W3DView on a rendered peer, and ViewDummy -

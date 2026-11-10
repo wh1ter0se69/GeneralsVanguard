@@ -1,11 +1,11 @@
 #!/bin/bash
 # GeneralsX @build felipebraz 16/02/2026 Deploy Linux build to runtime directory
-# GeneralsX @bugfix BenderAI 19/02/2026 Add non-empty check to guard against stale CMake placeholder files
+# GeneralsX: Add non-empty check to guard against stale CMake placeholder files
 
 set -e
 
 # Directories
-# GeneralsX @bugfix BenderAI 14/03/2026 Resolve repo root and base-game runtime paths after script reorganization.
+# GeneralsX: Resolve repo root and base-game runtime paths after script reorganization.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/linux64-deploy"
@@ -82,7 +82,7 @@ cp -v "${SDL3_IMAGE_LIB_DIR}"/libSDL3_image.so* "${RUNTIME_DIR}/"
 echo "  Copying GameSpy library..."
 cp -v "${GAMESPY_LIB}" "${RUNTIME_DIR}/"
 
-# GeneralsX @build Claude 25/09/2026 The openal-soft this engine was built against, a warning and
+# GeneralsX: The openal-soft this engine was built against, a warning and
 # not a refusal on a failed check - see the same block in deploy-linux-zh.sh and lib-openal.sh.
 echo "  Copying OpenAL library..."
 # shellcheck source=scripts/build/linux/lib-openal.sh
@@ -117,7 +117,7 @@ copy_ldd_deps() {
     done < <(ldd "${root}" | awk '{for (i = 1; i <= NF; ++i) { if ($i ~ /^\//) { print $i; break } }}' | sort -u)
 }
 
-# GeneralsX @build GitHubCopilot 17/05/2026 Deploy FFmpeg runtime libs transitively so runtime does not depend on host SONAME layout.
+# GeneralsX: Deploy FFmpeg runtime libs transitively so runtime does not depend on host SONAME layout.
 echo "  Copying FFmpeg runtime libraries..."
 shopt -s nullglob
 ffmpeg_roots=(
@@ -174,7 +174,7 @@ if [[ -z "${CNC_GENERALS_INSTALLPATH:-}" && -d "${SCRIPT_DIR}/../Generals" ]]; t
     export CNC_GENERALS_INSTALLPATH="${SCRIPT_DIR}/../Generals/"
 fi
 
-# GeneralsX @bugfix BenderAI 06/03/2026 - Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
+# GeneralsX: Exclude LLVMpipe Vulkan ICD (LLVM 20.x crash workaround)
 # libvulkan_lvp.so (LLVMpipe) crashes during static initialization with LLVM 20.x.
 # Filter hardware-only ICDs via VK_DRIVER_FILES to prevent loading the crashing library.
 # User can override by setting VK_DRIVER_FILES or VK_ICD_FILENAMES before running.
@@ -232,7 +232,7 @@ echo "   Executable: ${RUNTIME_DIR}/GeneralsX"
 echo "   SDL3 libs:  ${RUNTIME_DIR}/libSDL3*.so* + ${RUNTIME_DIR}/libSDL3_image*.so*"
 echo "   GameSpy:    ${RUNTIME_DIR}/libgamespy.so"
 echo "   FFmpeg:     ${RUNTIME_DIR}/libavcodec*.so* + libavformat*.so* + libavutil*.so*"
-# GeneralsX @tweak BenderAI 28/04/2026 Mirror macOS deploy summary labels/order for cross-platform script UX consistency.
+# GeneralsX: Mirror macOS deploy summary labels/order for cross-platform script UX consistency.
 echo "   DXVK d3d9:  ${RUNTIME_DIR}/libdxvk_d3d9.so*"
 echo "   DXVK d3d8:  ${RUNTIME_DIR}/libdxvk_d3d8.so*"
 echo "   Vulkan:     system loader (not deployed by this script)"
@@ -241,7 +241,7 @@ echo "   VK ICD:     system JSONs (/usr/share/vulkan/icd.d or /etc/vulkan/icd.d)
 echo "   DXVK conf:  not deployed (DXVK defaults/environment)"
 echo "   Wrapper:    ${RUNTIME_DIR}/run.sh"
 echo ""
-# GeneralsX @tweak BenderAI 28/04/2026 Keep Linux deploy run instructions aligned across Generals and Zero Hour scripts.
+# GeneralsX: Keep Linux deploy run instructions aligned across Generals and Zero Hour scripts.
 echo "Run with:"
 echo "  ${PROJECT_ROOT}/scripts/build/linux/run-linux.sh -win"
 echo "  or: cd ~/GeneralsX/Generals && ./run.sh -win"

@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 06/10/2026 - the replay strip's pure model (GXReplayStrip.inl draws and acts on it).
+// GeneralsX: the replay strip's pure model (GXReplayStrip.inl draws and acts on it).
 //
 // Client-only: nothing here is read by the simulation, and GameClient/ is outside the SimID digest. The decisions that
 // can go wrong silently live here so they can be unit-tested with no engine (scripts/test/replay-strip-model-test.cpp).
@@ -136,7 +136,7 @@ struct RaceSpeed
 
 /// The next fast-forward step from `now` (CommandXlat's changeFastForward). During a seek race `now` must be the speed the
 /// race LANDS at, not the pacer's value: the race holds the pacer at 1x, so stepping from it ignored a decrease (1 is no
-/// change, nothing to record) and answered every increase with 2x (Codex r11, 07/10).
+/// change, nothing to record) and answered every increase with 2x.
 inline int ffStep( int now, bool increase )
 {
 	static const int s_steps[] = { 1, 2, 3, 4, 5, 10 };
@@ -159,7 +159,7 @@ inline int ffStep( int now, bool increase )
 /// A restart in flight (a seek behind the playhead): the frame to race to once the new playback is up (0 = none, a plain
 /// restart), and whether the new playback is still awaited. finish( started ) is what gxRestartReplay answered: a restart
 /// that FAILED (the replay file is gone) leaves the engine at no game for good, so nothing will ever call it up and the
-/// race's sound mute and speed must be given back NOW (returns true = drop the race) - Codex r11, 07/10.
+/// race's sound mute and speed must be given back NOW (returns true = drop the race), 07/10.
 struct SeekFlight
 {
 	bool restarting = false;
@@ -177,12 +177,12 @@ struct SeekFlight
 
 /// The strip's lost-release recovery (draw): a drag whose button the mouse says is up. A release that is merely QUEUED -
 /// playback has no network, so mouse messages are translated after the strip draws - looks the same for one pass, and
-/// cancelling then swallowed an ordinary release: the strip stopped short of where it was let go (Codex r11 P3). Only a
+/// cancelling then swallowed an ordinary release: the strip stopped short of where it was let go. Only a
 /// button seen up on two draws in a row, with the drag still held, is lost: a queued release is translated before the next one.
 struct LostRelease
 {
 	int up = 0;
-	void reset() { up = 0; }	// a gesture ended or a new press began: what was seen up belonged to the last one (Codex r11b P3)
+	void reset() { up = 0; }	// a gesture ended or a new press began: what was seen up belonged to the last one
 	bool observe( bool dragging, bool buttonDown )
 	{
 		if (!dragging || buttonDown)

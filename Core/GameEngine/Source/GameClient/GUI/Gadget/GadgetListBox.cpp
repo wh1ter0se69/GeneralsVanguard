@@ -92,7 +92,7 @@ typedef struct _TextAndColor
 // PRIVATE DATA ///////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-// GeneralsX @performance Claude 25/09/2026 GadgetListBoxBeginBulkAdd: the one listbox whose row layout
+// GeneralsX: GadgetListBoxBeginBulkAdd: the one listbox whose row layout
 // (heights, totalHeight, display position) is deferred to GadgetListBoxEndBulkAdd, and whether any add
 // actually deferred it.
 static GameWindow *s_bulkAddListbox = nullptr;
@@ -620,9 +620,9 @@ WindowMsgHandledType GadgetListBoxInput( GameWindow *window, UnsignedInt msg,
 
 							list->selectPos++;
 
-							// GeneralsX @bugfix Claude 06/10/2026 Bounded, as GLM_ADD_ENTRY's auto-scroll below: a selected row
+							// GeneralsX: Bounded, as GLM_ADD_ENTRY's auto-scroll below: a selected row
 							// taller than the box never satisfies both tests, so the old while(1) stepped the view up and down
-							// (or sat clamped at the last row) forever - the B11 hang through the arrow keys (Codex r1 variant).
+							// (or sat clamped at the last row) forever - the B11 hang through the arrow keys (variant).
 							// A move that ever brings the row into view does so within endPos + 1 steps; past that, show the
 							// row's top, the most of it there is room for.
 							for( Int step = 0; ; ++step )
@@ -682,8 +682,8 @@ WindowMsgHandledType GadgetListBoxInput( GameWindow *window, UnsignedInt msg,
 
 							list->selectPos--;
 
-							// GeneralsX @bugfix Claude 06/10/2026 Bounded, as KEY_DOWN above: a selected middle row taller than
-							// the box made the old while(1) scroll its top and its bottom into view in turn, forever (Codex r1
+							// GeneralsX: Bounded, as KEY_DOWN above: a selected middle row taller than
+							// the box made the old while(1) scroll its top and its bottom into view in turn, forever (
 							// variant). Past endPos + 1 steps, show the row's top.
 							for( Int step = 0; ; ++step )
 							{
@@ -1517,7 +1517,7 @@ WindowMsgHandledType GadgetListBoxSystem( GameWindow *window, UnsignedInt msg,
 			// Special case, we're just appending and we've reached the end.
 			if( addInfo->row == -1 && list->insertPos == list->listLength )
 			{
-				// GeneralsX @bugfix Claude 06/10/2026 `row` stays -1 here: it used to be set to insertPos (== listLength),
+				// GeneralsX: `row` stays -1 here: it used to be set to insertPos (== listLength),
 				// which the GLM_SCROLL_BUFFER below then makes stale - the entry is appended at the NEW insertPos - 1, and
 				// the auto-scroll loop read listData[listLength], one row past the array, on every new line of a full
 				// chat/log list (heap garbage there could spin adjustDisplay forever: a UI hang) (sweep c121-01).
@@ -1559,13 +1559,13 @@ WindowMsgHandledType GadgetListBoxSystem( GameWindow *window, UnsignedInt msg,
 				if( list->autoScroll )
 				{
 
-					// GeneralsX @bugfix Claude 06/10/2026 Bounded. adjustDisplay clamps its top entry to the last row, so a row
+					// GeneralsX: Bounded. adjustDisplay clamps its top entry to the last row, so a row
 					// that cannot fit (taller than the box, or a box with no height) kept the old loop calling it forever: the
 					// client froze (KNOWN B11; it froze both survivors on a disconnect screen in Zero Hour Reforged, whose
 					// GadgetListBox.cpp - Olcay Seygan, GPL-3.0-or-later - stops when a step does not move the view). A step
 					// that leaves displayPos where it was will never move it, so stop there. And adjustDisplay can only put one
 					// of endPos rows at the top, so a scroll that ever fits does so within endPos + 1 steps; past that the cached
-					// heights make the view cycle. A scroll that moved back and then on to fit still does (Codex r1).
+					// heights make the view cycle. A scroll that moved back and then on to fit still does.
 					for( Int step = 0; step <= list->endPos; ++step )
 					{
 						// If off bottom of screen, scroll and try again.
@@ -2304,7 +2304,7 @@ Int GadgetListBoxAddEntryText( GameWindow *listbox,
 		return -1;
 	Bool wasFull = (listData->listLength <= listData->endPos);
 	Int newEntryOffset = (wasFull)?0:1;
-	// GeneralsX @performance Claude 25/09/2026 Only scrollIfAtEnd reads the old bottom row, and finding it
+	// GeneralsX: Only scrollIfAtEnd reads the old bottom row, and finding it
 	// is a backward scan over the whole list while it is scrolled to the top: every append to a plain list
 	// paid O(rows), so filling one was O(rows^2).
 	Int oldBottomIndex = listData->scrollIfAtEnd ? GadgetListBoxGetBottomVisibleEntry(listbox) : 0;
@@ -2800,7 +2800,7 @@ void *GadgetListBoxGetItemData( GameWindow *listbox, Int row, Int column)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @performance Claude 25/09/2026 BULK ADD: fill a big list in O(rows) instead of O(rows^2).
+// GeneralsX: BULK ADD: fill a big list in O(rows) instead of O(rows^2).
 //
 // Every image add (addImageEntry) and every non-overwriting text add re-walks ALL rows in
 // computeTotalHeight, so appending N rows costs ~N^2/2 row visits - seconds for a map list of a few

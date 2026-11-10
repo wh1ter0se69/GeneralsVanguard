@@ -244,8 +244,8 @@ public:
 		MSG_META_TOGGLE_LOWER_DETAILS,							///< toggles graphics options to crappy mode instantly
 		MSG_META_TOGGLE_CONTROL_BAR,								///< show/hide controlbar
 		MSG_META_TOGGLE_PLAYER_OBSERVER,						///< TheSuperHackers @feature Toggle the player observer view in game
-		MSG_META_TOGGLE_HUD_OVERLAY,								///< GeneralsX @feature Claude 13/08/2026 hide/show ALL the HUD readouts at once
-		MSG_META_TOGGLE_GAME_HUD,										///< GeneralsX @feature Claude 13/08/2026 hide/show the retail chrome - command bar, minimap, radar
+		MSG_META_TOGGLE_HUD_OVERLAY,								///< GeneralsX: hide/show ALL the HUD readouts at once
+		MSG_META_TOGGLE_GAME_HUD,										///< GeneralsX: hide/show the retail chrome - command bar, minimap, radar
 
 		MSG_META_BEGIN_PATH_BUILD,									///< enter path-building mode
 		MSG_META_END_PATH_BUILD,										///< exit path-building mode
@@ -609,7 +609,7 @@ public:
 
 		MSG_BEGIN_DEBUG_NETWORK_MESSAGES = 1900,		///< network messages that exist only in debug/internal builds. all grouped separately.
 
-// GeneralsX @bugfix Claude 10/08/2026 Align the gate with GeneralsMD's. Core's
+// GeneralsX: Align the gate with GeneralsMD's. Core's
 // GameLogicDispatch.cpp dispatches these under RTS_DEBUG || _ALLOW_DEBUG_CHEATS_IN_RELEASE,
 // so declaring them under RTS_DEBUG alone breaks a Generals cheats-in-release build.
 #if defined(RTS_DEBUG) || defined(_ALLOW_DEBUG_CHEATS_IN_RELEASE)
@@ -656,7 +656,7 @@ public:
 		// groupCentre is the CENTRE of the group, not the position of unit 0: the handler scatters
 		// the units around it with ThePartitionManager->findPositionAround.
 		// The units' OWNER is the target - or the Neutral player, with its vehicles unmanned, when the
-		// target is defeated or observing (GameLogic::gxSpawnGoesNeutral; GeneralsX Claude 27/09/2026 -
+		// target is defeated or observing (GameLogic::gxSpawnGoesNeutral; GeneralsX: -
 		// whatever the sender's state since 05/10/2026).
 		MSG_GX_CHEAT_SPAWN_UNIT,										///< see the argument contract above
 
@@ -703,7 +703,7 @@ public:
 	static const char *getCommandTypeAsString(GameMessage::Type t);
 
 	Int getPlayerIndex() const { return m_playerIndex; }		///< Return the originating player
-	/// GeneralsX @feature Claude 24/09/2026 The NETWORK SLOT the order arrived from, or -1 when it did not
+	/// GeneralsX: The NETWORK SLOT the order arrived from, or -1 when it did not
 	/// come off the network. Observer slots share one Player (the ReplayObserver), so the Player index
 	/// alone cannot tell their CRC reports apart. Never serialised: the wire already carries the slot.
 	Int getSenderSlot() const { return m_senderSlot; }

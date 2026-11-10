@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 17/10/2026 LIVE WATER, a client-only look option on top of clearer water (GXWaterClear.h). wh1ter0se 17/10:
+// GeneralsX: LIVE WATER, a client-only look option on top of clearer water (GXWaterClear.h). wh1ter0se 17/10:
 // "Clearer water looks nice just needs obvious animation and white glare to make it look like water and like wave water in
 // white". It is ON by default from 0.9.66 (gxWaterLiveOptionOn): Options.ini GXWaterLive = no turns it off, GXWaterLiveStrength
 // (0..1, default 1) scales it;
@@ -125,7 +125,7 @@ inline float gxWaterLiveClamp(float v, float lo, float hi)
 	return v < lo ? lo : (v > hi ? hi : v);
 }
 
-// The Options.ini key. GeneralsX @feature Claude 21/10/2026 ON BY DEFAULT from 0.9.66 (lead C44 for wh1ter0se, who chose this water
+// The Options.ini key. GeneralsX: ON BY DEFAULT from 0.9.66 (lead C44 for wh1ter0se, who chose this water
 // from the look-water-3 pictures, clearer and live water on together): an Options.ini without GXWaterLive draws live water, and
 // GXWaterLive = no turns it off.
 static const bool kGxWaterLiveDefaultOn = true;
@@ -263,10 +263,10 @@ inline double gxWaterLiveClockStep(double clock, float logicFrames, float logicF
 
 // The pacer's step is an animation time step, not the ticks the game actually ran: under manual fast-forward a cheap iteration
 // counts a fraction of a tick while the game still runs a whole one, and in a network stall it keeps counting while the game
-// waits (Codex lw3-r3). So after each step the clock is pulled toward the game's own time (logic frame / logic rate): left
+// waits. So after each step the clock is pulled toward the game's own time (logic frame / logic rate): left
 // alone within half a tick (normal pacing - smooth), eased in by a tenth of the gap beyond that, held within three ticks - and
 // never moved backwards (water that waits is still water; water that runs back is what wh1ter0se saw). A zero step (paused,
-// frozen) holds the clock: only a jump past the three-tick window (a loaded save) moves it then (Codex lw3-r4).
+// frozen) holds the clock: only a jump past the three-tick window (a loaded save) moves it then.
 inline double gxWaterLiveClockFollow(double prev, double stepped, double gameSeconds, double tickSeconds)
 {
 	double c = stepped;
@@ -405,7 +405,7 @@ inline float gxWaterLiveSurgeAt(const GxWaterLiveUV &uv, float along)
 // drawTrapezoidWater samples the swell only at its vertices. At 6 or more vertices per wavelength the swell is drawn whole;
 // under 4 it would alias into a shimmer that moves with nothing, so it fades out between. The glue takes ONE gain for the whole
 // map - the worst patch's (gxWaterLiveTrapezoidSpacing over every standing-water patch at load) - because a gain per patch
-// gives two neighbouring patches different coordinates on their shared edge: a seam that moves (Codex lw3-r1). A map with
+// gives two neighbouring patches different coordinates on their shared edge: a seam that moves. A map with
 // one enormous sea polygon then just drifts.
 inline float gxWaterLiveSurgeGain(float cellUnits)
 {
@@ -415,7 +415,7 @@ inline float gxWaterLiveSurgeGain(float cellUnits)
 }
 
 // Two neighbouring patches subdivided differently sample the swell at different points along their shared edge and each
-// interpolates linearly between its own samples, so their coordinates there can differ (a T-junction; Codex lw3-r2). Between
+// interpolates linearly between its own samples, so their coordinates there can differ (a T-junction). Between
 // samples `spacing` apart the line misses a sine of amplitude `surge` by at most surge x (1 - cos(pi x spacing / wavelength)),
 // and the seam is at most the two sides' misses added. This gain keeps that seam under kGxSwellSeamMax world units - under a
 // pixel at the game's camera (retail's own slosh, 80-unit wavelength on ~40-unit vertices, leaves seams of up to its whole
@@ -435,7 +435,7 @@ inline float gxWaterLiveSeamGain(float spacing, float surge)
 // The largest vertex spacing drawTrapezoidWater gives one 4-sided water patch, corners (x, y) in the order renderWater passes
 // them (p0 origin, p1 along u, p2 the far corner, p3 along v). Its subdivision counts come from the SUM of opposite edges
 // ((Int)(sum / 80), clamped to 1..50: 8 * MAP_XY_FACTOR), but a tapered or triangular patch (renderWater makes one from an odd
-// corner) spaces its vertices along the LONGER edge - so the bound is the longer edge over the count, per axis (Codex lw3-r1).
+// corner) spaces its vertices along the LONGER edge - so the bound is the longer edge over the count, per axis.
 inline float gxWaterLiveTrapezoidSpacing(const float pts[4][2])
 {
 	const float u1 = hypotf(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]);
@@ -582,7 +582,7 @@ inline void gxWaterLiveUphill(float dhx, float spanX, float dhy, float spanY, fl
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
-// THE BANK. GeneralsX @bugfix Claude 22/10/2026 wh1ter0se 22/10, live water on a grass map with a pond and a river: "looks annoying
+// THE BANK. GeneralsX: wh1ter0se 22/10, live water on a grass map with a pond and a river: "looks annoying
 // like that though looks weird" - a thin cream outline drawn along every shore, stair-stepped in close-up. The foam's band is a
 // band of DEPTH (about -0.4 to 0.7 height units at full surge, gxWaterLiveFoamAlpha), so on the ground it is that depth over
 // the bank's slope wide. On TournamentB's beaches (median slope 0.35 at the water line) that is a few world units of swash; on
@@ -596,7 +596,7 @@ inline void gxWaterLiveUphill(float dhx, float spanX, float dhy, float spanY, fl
 // The slope at a vertex is the steepest terrain triangle around it: of the (up to four) cells that share the vertex, each
 // cell's steepest triangle under EITHER diagonal (gxWaterLiveCellSlope). Not the central difference gxWaterLiveUphill reads
 // for the carry's direction: over two cells it halves a one-cell cliff (a bank that jumps 7.5 between neighbours reads 0.375,
-// not 0.75) and cancels to flat at a pit, so a stepped bank kept its line (Codex wsl-r2 P2 x2). The steepest face is what
+// not 0.75) and cancels to flat at a pit, so a stepped bank kept its line. The steepest face is what
 // sets the narrowest band the vertex's alpha reaches; either diagonal, so the measure needs no flip state and a map tool can
 // reproduce it from the heights alone.
 inline float gxWaterLiveCellSlope(float h00, float h10, float h11, float h01, float cell)
@@ -624,7 +624,7 @@ inline float gxWaterLiveFoamBank(float slope, float gentle, float steep)
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
-// THE SURF. GeneralsX @bugfix Claude 22/10/2026 (wh1ter0se 22/10, as THE BANK). The bank alone leaves the line on a moderate grass
+// THE SURF. GeneralsX: The bank alone leaves the line on a moderate grass
 // bank (Mini 22/10, Mountain Guns: the stretch at slope under 0.5 kept a continuous cream line at every limit swept): the band
 // is narrow by design - a swash line, about 0.5 to 0.85 height units of depth - and on dark grass a narrow pale band IS a drawn
 // outline, while on TournamentB's pale sand it reads as the swash wh1ter0se approved. Swash comes from waves breaking: the foam is
@@ -633,7 +633,7 @@ inline float gxWaterLiveFoamBank(float slope, float gentle, float steep)
 // crest breaks on the beach: its record's start point (WaterTracksObj::init: the start is the wave's furthest reach), across
 // the wave's travel by the type's final width, centred (render: the front's origin minus half the width along m_perpDir). The
 // record's end point is only a DIRECTION - init normalises end - start - so a long one is the same wave as a unit one and must
-// give the same footprint (Codex wsl-r4: the raw start-end pair as a shoreline segment gated foam far from the breaker). A pond or a river with no surf
+// give the same footprint (the raw start-end pair as a shoreline segment gated foam far from the breaker). A pond or a river with no surf
 // (every stock map without a .wak, and the ponds and rivers of most with one) shows retail's soft water edge again. TournamentB
 // (921 crests, ~20 units apart round the coast): 87% of its foam cells lie within 30 units of a crest, 91% within 60 (measured
 // 22/10 from the map and its .wak). A degenerate pair is a hard step at `nearR`; NaN reads as far.
@@ -677,9 +677,9 @@ inline float gxWaterLiveFoamSurf(float dist, float nearR, float farR)
 // ---------------------------------------------------------------------------------------------------------------------------
 // THE WATER-LINE SPLIT. A foam triangle's corners: position, depth d (water level minus ground; linear over the triangle)
 // coast phase and uphill direction. The part with d >= 0 is drawn flat on the water, the part with d <= 0 on the ground; the cut runs where
-// d = 0 (Codex lw2-r1: raising each corner to the water separately made the foam float between them). Writes the wet part's
+// d = 0 (raising each corner to the water separately made the foam float between them). Writes the wet part's
 // triangles, then the dry part's, as vertex triples into out (at most 3 triangles, 9 vertices); *wetTris = how many of them
-// are wet. A triangle lying exactly on the water line (every d = 0) is ONE wet triangle, never one of each (Codex lw2-r2:
+// are wet. A triangle lying exactly on the water line (every d = 0) is ONE wet triangle, never one of each (
 // drawn twice it blended twice as opaque). Returns the triangle count.
 struct GxFoamPt
 {
@@ -740,7 +740,7 @@ inline int gxWaterLiveSplitTriangle(const GxFoamPt in[3], GxFoamPt out[9], int *
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
-// EA'S CRESTS, GROWN IN. GeneralsX @bugfix Claude 22/10/2026 wh1ter0se 22/10, watching TournamentB with live water: "i dont like how
+// EA'S CRESTS, GROWN IN. GeneralsX: wh1ter0se 22/10, watching TournamentB with live water: "i dont like how
 // the waves spawn out of nowhere make it more natural spawning". Retail (W3DWaterTracks.cpp) gives every crest of a map ONE
 // clock (SYNC_WAVES: each bindTrack resets them all) and rides a crest in as a sliver: a Pond crest (TournamentB's 921 are all
 // Pond) is 28 x 0.01 wide and 0.18 of that deep - 0.05 world units - while it approaches, and its alpha is already 1 the moment
@@ -955,5 +955,5 @@ void gxWaterLiveTerrainChanged(int x0, int y0, int x1, int y1);
 
 // BaseHeightMapRenderObjClass::staticLightingChanged: the whole terrain is rebuilt - a loaded save's heights restored
 // (W3DTerrainVisual::xfer writes them without dirty rectangles), a new time of day, a new map: every foam cell is scanned
-// again at the next draw (Codex lw2-r4).
+// again at the next draw.
 void gxWaterLiveTerrainReloaded();

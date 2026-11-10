@@ -106,7 +106,7 @@ void W3DPoliceCarDraw::doDrawModule(const Matrix3D* transformMtx)
 	const Real floatAmt = 8.0f;
 
 	// TheSuperHackers @tweak bobtista 24/06/2026 The police car light animation time step is now decoupled from the render update.
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
 	const Real animAmt = 0.25f * gxRenderTimeScale();
 
 	// get pointers to our render objects that we'll need

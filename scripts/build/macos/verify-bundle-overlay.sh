@@ -1,5 +1,5 @@
 #!/bin/bash
-# GeneralsX @build Claude 17/08/2026 Refuse to publish a macOS .app that cannot join a game.
+# GeneralsX: Refuse to publish a macOS .app that cannot join a game.
 #
 # WHY THIS EXISTS AS A SEPARATE SCRIPT RATHER THAN A FLAG. bundle-macos-zh.sh already refuses to
 # build an incomplete bundle by default, and GX_BUNDLE_ALLOW_NO_OVERLAY=1 is the documented escape
@@ -140,7 +140,7 @@ else
     #    overlay-optional.txt - checked in BOTH directions, once per name.
     #
     #    The one-directional version of this check (every entry has a file) was wrong in exactly
-    #    the way this whole change is about, and Codex caught it: it passes an optional.txt that
+    #    the way this whole change is about, and review caught it: it passes an optional.txt that
     #    lists ONE archive while four are staged. The player then gets a toggle UI that can reach a
     #    quarter of the content in their own download, and nothing anywhere reports a problem. That
     #    truncation is not hypothetical - it is the precise shape the swallowed producer status
@@ -268,10 +268,10 @@ else
         fi
     done < "${MANIFEST}"
     [[ ${_n_manifest} -gt 0 ]] || fail "gamedata.manifest is empty - it names nothing to install."
-    # GeneralsX @feature Claude 25/09/2026 The Toxin Tractor balance file moves dataID, so a bundle
+    # GeneralsX: The Toxin Tractor balance file moves dataID, so a bundle
     # without it matches no peer, stamp or no stamp.
     # 26/09/2026: the same for every file the recipe writes - Weapon.ini and the Alpha Aurora fix files beside it
-    # (make-weapon-ini.py --list). Listed, and their BYTES (Codex P2): recomputed from this bundle's own CoreINI by
+    # (make-weapon-ini.py --list). Listed, and their BYTES: recomputed from this bundle's own CoreINI by
     # the same recipe the bundler ran, so a hand-edited or stale copy cannot pass on its name alone.
     _recipe="$(python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --list 2>/dev/null)"
     [[ -n "${_recipe}" ]] || fail "cannot list the recipe's files (python3 missing?)."
@@ -329,7 +329,7 @@ else
     else
         fail "launcher never sets GENERALSX_DATA_OVERLAY - the loose pair is never read, dataID is wrong."
     fi
-    # GeneralsX @bugfix Claude 24/09/2026 The launcher must never write into the game folder.
+    # GeneralsX: The launcher must never write into the game folder.
     if grep -qE '(^|[^#])[[:space:]]cp[[:space:]].*gx_' "${LAUNCHER}"; then
         fail "launcher copies files into the game folder - it must never write there."
     else

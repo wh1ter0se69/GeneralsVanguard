@@ -117,7 +117,7 @@ void SwayClientUpdate::clientUpdate()
 	}
 
 	// TheSuperHackers @tweak The tree sway time step is now decoupled from the render update.
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
 	const Real timeScale = gxRenderTimeScale();
 
 	m_curValue += m_curDelta * timeScale;

@@ -1,4 +1,4 @@
-// GeneralsX @feature B · dlss-fg-1 14/10/2026 census_selftest: proves VK_LAYER_GX_queue_census sees what it claims, in both
+// GeneralsX: census_selftest: proves VK_LAYER_GX_queue_census sees what it claims, in both
 // directions (PREREG A39a). One device, one queue, empty submits; no window, no swapchain.
 //   control  the main thread submits alone           -> the queue shows ONE thread, overlaps 0
 //   overlap  a 2nd thread submits while the main one is held INSIDE the layer (gxCensusTestHoldNext; the held call has not

@@ -287,7 +287,7 @@ T * ObjectPoolClass<T,BLOCK_SIZE>::Allocate_Object_Memory()
 		*(void **)BlockListHead = tmp_block_head;
 
 		// Link the objects in the block into the free object list
-		// GeneralsX @bugfix Claude 24/09/2026 Skip the header by a POINTER, not a uint32. The header
+		// GeneralsX: Skip the header by a POINTER, not a uint32. The header
 		// is the void* written just above, but BlockListHead + 1 steps 4 bytes, so on 64-bit the first
 		// object overlapped the header's high half and every block link was corrupted. Only the
 		// destructor walks that chain, so it surfaced as an access violation at process exit (CRT

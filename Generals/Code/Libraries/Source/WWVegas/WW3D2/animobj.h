@@ -120,7 +120,7 @@ public:
 	///when marked dirty.  DON'T USE THIS UNLESS YOU HAVE A GOOD REASON! -MW
 	void							Friend_Set_Hierarchy_Valid(bool onoff) const  	{ IsTreeValid = onoff; PoseBuilt = false; }
 
-	// GeneralsX @performance Claude 07/10/2026 R-CPU pose cache (animobj.cpp Keep_Current_Pose): true when this
+	// GeneralsX: R-CPU pose cache (animobj.cpp Keep_Current_Pose): true when this
 	// clock-driven SINGLE_ANIM pose is already the one Update_Sub_Object_Transforms would build now. Does not
 	// advance the animation clock.
 	bool							Is_Clock_Pose_Current();
@@ -136,7 +136,7 @@ public:
 	static void						Pose_Snapshot(const HTreeClass * htree);
 	static unsigned				Pose_Snapshot_Differences(const HTreeClass * htree);
 
-	// GeneralsX @performance Claude 07/10/2026 R-CPU pose pre-pass (RTS3DScene::Customized_Render): would Render rebuild
+	// GeneralsX: R-CPU pose pre-pass (RTS3DScene::Customized_Render): would Render rebuild
 	// this pose now (main thread, after every doDrawModule of the draw), may that rebuild run on a worker thread, and the
 	// rebuild itself. A worker builds exactly what Render would: the same function at the same WW3D clock reading.
 	bool							Pose_Needs_Build();
@@ -175,7 +175,7 @@ protected:
 	bool								Is_Hierarchy_Valid() const				{ return IsTreeValid; }
 	void								Set_Hierarchy_Valid(bool onoff) const  	{ IsTreeValid = onoff; if (!onoff) PoseBuilt = false; }
 
-	// GeneralsX @performance Claude 07/10/2026 R-CPU pose cache (animobj.cpp).
+	// GeneralsX: R-CPU pose cache (animobj.cpp).
 	bool								Is_Clock_Pose(void) const { return CurMotionMode == SINGLE_ANIM && ModeAnim.AnimMode != ANIM_MODE_MANUAL; }
 	bool								Keep_Current_Pose();
 
@@ -190,7 +190,7 @@ protected:
 	// Is the hierarchy tree currently valid
 	mutable bool  					IsTreeValid;
 
-	// GeneralsX @performance Claude 07/10/2026 Set only by Update_Sub_Object_Transforms; cleared by everything that
+	// GeneralsX: Set only by Update_Sub_Object_Transforms; cleared by everything that
 	// clears IsTreeValid and by Friend_Set_Hierarchy_Valid, Capture_Bone, Release_Bone and Set_HTree, which change or
 	// vouch for the pivots without building them. True means the pivots hold the pose that function built.
 	mutable bool					PoseBuilt;

@@ -89,7 +89,7 @@ enum RecorderModeType CPP_11(: Int) {
 
 enum CPP_11(: Int)
 {
-	// GeneralsX @feature Claude 12/08/2026 The .rep header carries disconnect flags at fixed byte
+	// GeneralsX: The .rep header carries disconnect flags at fixed byte
 	// offsets - a FILE FORMAT quantity, deliberately NOT MAX_SLOTS (AI slots never disconnect).
 	//
 	// It was pinned at 8 while humans were confined to slots 0-7. Twelve human machines breaks
@@ -101,19 +101,19 @@ enum CPP_11(: Int)
 	// stay readable; new replays are not readable by old builds, which is what the hard cutover
 	// already implies.
 	REPLAY_DISCON_SLOTS_LEGACY = 8,
-	// GeneralsX @feature Claude 25/09/2026 "GENR12" files carry exactly 12 flags, forever: MAX_HUMAN_SLOTS
+	// GeneralsX: "GENR12" files carry exactly 12 flags, forever: MAX_HUMAN_SLOTS
 	// went 12 -> 14 (12 players + 2 observers), so new recordings are "GENR14" with 14, and the reader
 	// keys each count off its own magic. The static_assert in Recorder.cpp makes the next change to
 	// MAX_HUMAN_SLOTS a build error until it brings a magic of its own.
 	REPLAY_DISCON_SLOTS_12 = 12,
-	// GeneralsX @feature Claude 06/11/2026 GENR14/GENS14/GENS15 files carry exactly 14 flags, forever: MAX_HUMAN_SLOTS went
+	// GeneralsX: GENR14/GENS14/GENS15 files carry exactly 14 flags, forever: MAX_HUMAN_SLOTS went
 	// 14 -> 34 (32 players + 2 observers), so new recordings are "GENS34" with 34. The 14-flag files already have the
 	// shared-ReplayObserver layout, so only 8/12-flag files are legacy-observer (Recorder.cpp).
 	REPLAY_DISCON_SLOTS_14 = 14,
 	REPLAY_DISCON_SLOTS = MAX_HUMAN_SLOTS
 };
 
-// GeneralsX @bugfix Claude 01/10/2026 Declared here, and held by value in RecorderClass, as TheSuperHackers #2713
+// GeneralsX: Declared here, and held by value in RecorderClass, as TheSuperHackers #2713
 // (842c7a532) had it before this fork's import reverted it: the pointer was never initialised, so sawCRCMismatch()
 // read garbage when playbackFile failed before creating it, and every playback leaked the previous one (tsh batch2
 // #399). The queue itself is documented in Recorder.cpp.
@@ -160,12 +160,12 @@ public:
 	Bool playbackFile(AsciiString filename);					///< Starts playback of the specified file.
 	void loadQueuedReplay();													///< Play the replay file requested on startup.
 	Bool replayMatchesGameVersion(AsciiString filename); ///< Returns true if the playback is a valid playback file for this version.
-	// GeneralsX @feature Claude 01/10/2026 Keyed on the recording build's SimID, not the exe (see Recorder.cpp).
+	// GeneralsX: Keyed on the recording build's SimID, not the exe (see Recorder.cpp).
 	static Bool replayMatchesGameVersion(const ReplayHeader& header); ///< Returns true if the playback is a valid playback file for this version.
 	static Bool replayMapDataMatches(const ReplayHeader& header, const AsciiString& mapName); ///< M1 2b: the map's map.ini/solo.ini hash as recorded (TRUE for a pre-identity file)
-	// GeneralsX @feature Claude 01/10/2026 The recording build as a player can name it: "<version string>, build <commit>".
+	// GeneralsX: The recording build as a player can name it: "<version string>, build <commit>".
 	static UnicodeString describeRecordingBuild(const ReplayHeader& header);
-	// GeneralsX @diag Claude 28/07/2026 GX_REPLAY_XPLAT=1 is a diagnostic that keeps playing past a CRC mismatch.
+	// GeneralsX @diag /07/2026 GX_REPLAY_XPLAT=1 is a diagnostic that keeps playing past a CRC mismatch.
 	// It also opens a replay of another sim source or commit (engine, data and name-key ordinal still enforced), or
 	// a pre-identity file whose iniCRC matches, so a corpus can be re-checked across a digest move.
 	static Bool isCrossPlatformReplayEnabled();
@@ -204,7 +204,7 @@ public:
 		Int disconSlots;				// how many the file actually carried (8 legacy, else REPLAY_DISCON_SLOTS)
 		AsciiString gameOptions;
 		Int localPlayerIndex;
-		// GeneralsX @feature Claude 01/10/2026 The recording build's identity, which only GENS14 files carry (hasIdentity is
+		// GeneralsX: The recording build's identity, which only GENS14 files carry (hasIdentity is
 		// FALSE for GENREP/GENR12/GENR14, which replayMatchesGameVersion therefore refuses): its SimIdWire (raw, 36 bytes),
 		// its commit (GitSHA1, 40 hex digits) and whether that build had uncommitted changes.
 		Bool hasIdentity;
@@ -212,7 +212,7 @@ public:
 		UnsignedInt simId[9];
 		char buildSha[41];
 		Bool buildDirty;
-		// GeneralsX @feature Claude 01/10/2026 The map-scoped sim data hash (GetMapDataHash: the map.ini/solo.ini rules,
+		// GeneralsX: The map-scoped sim data hash (GetMapDataHash: the map.ini/solo.ini rules,
 		// Determinism-1 step 2b); playbackFile refuses a replay whose map's sidecars hash differently now. 0 = the map has
 		// none (and every 4b-era file, which its SimID refuses anyway).
 		UnsignedInt mapDataHash;
@@ -280,7 +280,7 @@ protected:
 	Bool m_wasDesync;
 
 	Bool m_doingAnalysis;
-	Bool m_sawInvalidNextFrame;	///< GeneralsX @bugfix Claude 18/10/2026 set when readNextFrame() refuses a frame value; reset when playback starts
+	Bool m_sawInvalidNextFrame;	///< GeneralsX: set when readNextFrame() refuses a frame value; reset when playback starts
 	Bool m_archiveReplays;														///< if true, each replay is archived to the replay archive folder after recording
 
 	Int m_originalGameMode; // valid in replays

@@ -1,5 +1,5 @@
 #!/bin/bash
-# GeneralsX @build Claude 17/08/2026 Give a build host that has no community-patch archives a way
+# GeneralsX: Give a build host that has no community-patch archives a way
 # to obtain them, so "the release refuses to publish an unjoinable bundle" is a gate with a route
 # through it rather than a dead end.
 #

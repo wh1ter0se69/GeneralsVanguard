@@ -46,7 +46,7 @@ class VideoBuffer;
 class VideoStreamInterface;
 class WindowVideoManager;
 
-// GeneralsX @feature Claude 13/08/2026 A hook, because this file is Core and the row builder is not.
+// GeneralsX: A hook, because this file is Core and the row builder is not.
 //
 // The load screens' .wnd files author their player rows 0..7 (verified by extracting
 // MultiplayerLoadScreen.wnd and GameSpyLoadScreen.wnd from WindowZH.big), while MAX_SLOTS is 12 -
@@ -63,7 +63,7 @@ class WindowVideoManager;
 // Deliberately not a virtual on LoadScreen: the row building has to happen inside init(), which is
 // Core code, before Core binds the pointers - a subclass override would run too late to help.
 //
-// GeneralsX @bugfix Claude 25/09/2026 `placedByCaller` is for the map start markers, which are placed
+// GeneralsX: `placedByCaller` is for the map start markers, which are placed
 // on the map's own waypoints by positionStartSpots rather than laid out in a column: TRUE creates the
 // missing ones and positions nothing (CODEGUI_ROWS_FREE), FALSE fits a column into its band.
 typedef Int (*LoadScreenRowBuilder)( GameWindow *parent, const char *idFormat, Int rowCount, Bool placedByCaller );
@@ -76,7 +76,7 @@ void LoadScreenSetRowBuilder( LoadScreenRowBuilder builder );
 /// rowCount. Safe and side-effect-free in all three cases.
 Int LoadScreenEnsureRows( GameWindow *parent, const char *idFormat, Int rowCount, Bool placedByCaller = FALSE );
 
-// GeneralsX @feature Claude 08/11/2026 SPLIT THE PLAYER LIST WHEN IT DOES NOT FIT (owner 08/11, msg b496: with 32 players
+// GeneralsX: SPLIT THE PLAYER LIST WHEN IT DOES NOT FIT (owner 08/11, msg b496: with 32 players
 // the multiplayer load screen's rows ran past the frame and off the screen). Called once the screen knows how many rows
 // it filled: up to the authored row count nothing moves; past it the columns become two side-by-side groups, each with
 // its own header row, the rows sharing the authored band. Same hook arrangement as the row builder above: registered by
@@ -103,7 +103,7 @@ public:
 	void waitForPipelineWarmup(); ///< GeneralsX A2: see LoadScreen.cpp
 	virtual void processProgress(Int playerId, Int percentage) = 0;
 	virtual void setProgressRange( Int min, Int max ) = 0;
-	/// GeneralsX @bugfix Claude 23/09/2026 Start positions are picked after the map loads, so after
+	/// GeneralsX: Start positions are picked after the map loads, so after
 	/// init() drew the map preview; screens that show them redraw here. See populateRandomStartPosition.
 	virtual void refreshStartSpots( GameInfo * /*game*/ ) { }
 protected:

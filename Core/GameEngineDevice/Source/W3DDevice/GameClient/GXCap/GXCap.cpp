@@ -1,4 +1,4 @@
-// GeneralsX @test Claude 10/10/2026 GXCAP game glue (GXCap.h; recorder core GXCapRecorder.cpp; DESIGN_gxcap.md).
+// GeneralsX: GXCAP game glue (GXCap.h; recorder core GXCapRecorder.cpp; DESIGN_gxcap.md).
 // GXCAP=<frame>[,...] (1-16 ascending), GXCAP_SPAN=<updates> (1-16, default 3), GXCAP_DIR=<dir> (default ./gxcap).
 // A window opens at the first in-match draw whose logic frame reaches the next GXCAP frame. It closes at the first draw
 // entry after GXCAP_SPAN updates AND, when GX_SHOT is set, after a screenshot was recorded inside it (DXVK rotates two
@@ -102,7 +102,7 @@ void Install(const char *buildSha)
 	std::string def = "gxcap";
 #if defined(__APPLE__) && TARGET_OS_IPHONE
 	// iPadOS runs from inside the read-only app bundle (SDL3Main changes to <bundle>/GameData): default to the app's
-	// Documents directory (Codex rw1-I-branch-r3 #3); GXCAP_DIR still overrides
+	// Documents directory; GXCAP_DIR still overrides
 	if (const char *home = getenv("HOME"))
 		def = std::string(home) + "/Documents/gxcap";
 #endif

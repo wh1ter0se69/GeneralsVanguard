@@ -47,8 +47,8 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
-// GeneralsX @build BenderAI 12/02/2026 Use compat header for Linux mbstring compatibility
-// GeneralsX @bugfix Claude 27/07/2026 Reach for the CRT header directly on Windows.
+// GeneralsX: Use compat header for Linux mbstring compatibility
+// GeneralsX: Reach for the CRT header directly on Windows.
 //
 // mbstring_compat.h lives in GeneralsMD/Code/CompatLib/Include - the POSIX shim directory that no
 // longer goes on the Windows include path, because putting it there shadowed the whole Windows SDK
@@ -83,7 +83,7 @@
 
 IMEManagerInterface *TheIMEManager = nullptr;
 
-// GeneralsX @build BenderAI 12/02/2026 Windows-specific IME (Input Method Editor) for CJK text input
+// GeneralsX: Windows-specific IME (Input Method Editor) for CJK text input
 // Linux handles IME via system-level services (ibus, fcitx) through SDL text input APIs
 #ifdef _WIN32
 
@@ -581,7 +581,7 @@ void IMEManager::init()
 	m_disabled = 0;
 	m_candidateWindow = TheWindowManager->winCreateFromScript( "IMECandidateWindow.wnd");
 
-	// GeneralsX @bugfix Claude 13/08/2026 THE DEREFERENCE WAS ABOVE ITS OWN NULL CHECK.
+	// GeneralsX: THE DEREFERENCE WAS ABOVE ITS OWN NULL CHECK.
 	//
 	// winSetStatus was called on the result and only THEN did `if (m_candidateWindow)` ask whether
 	// there was a result - so whenever winCreateFromScript returns null this is a guaranteed null
@@ -713,7 +713,7 @@ Bool IMEManager::serviceIMEMessage(	void *windowsHandle, UnsignedInt message,	In
 
 				if ( m_window && (wchar > 32 || wchar == VK_RETURN ))
 				{
-					// GeneralsX @feature Claude 25/09/2026 0, not lParam: this is the IME's output, not a
+					// GeneralsX: 0, not lParam: this is the IME's output, not a
 					// keystroke, and GWM_IME_CHAR's mData2 now says which (GWM_IME_CHAR_* in GameWindow.h).
 					// WM_CHAR below keeps forwarding its lParam - that IS a keystroke's.
 					TheWindowManager->winSendInputMsg( m_window, GWM_IME_CHAR, (wParam & 0xffff), 0 );
@@ -724,10 +724,10 @@ Bool IMEManager::serviceIMEMessage(	void *windowsHandle, UnsignedInt message,	In
 			}
 
 			// --------------------------------------------------------------------
-			// GeneralsX @feature Claude 25/09/2026 A dead key (an accent) went down: the WM_CHAR after it is the
+			// GeneralsX: A dead key (an accent) went down: the WM_CHAR after it is the
 			// composed character (e-acute), not what the key that sent it types, so it is forwarded as
 			// composition output - mData2 0, see GWM_IME_CHAR_* in GameWindow.h - and never picks a slot entry
-			// (codex keys-b1-r4). SDL's path reaches the same verdict by comparing the text with its key.
+			// SDL's path reaches the same verdict by comparing the text with its key.
 			// Only observed here: returning FALSE leaves the message to DefWindowProc as before.
 			case WM_DEADCHAR:
 			case WM_SYSDEADCHAR:
@@ -747,7 +747,7 @@ Bool IMEManager::serviceIMEMessage(	void *windowsHandle, UnsignedInt message,	In
 				DEBUG_LOG(("IMM: WM_CHAR - '%hc'0x%04x", wchar, wchar ));
 				#endif
 
-				// GeneralsX @bugfix Claude 18/09/2026 Forward the OS's character repeats; drop only a
+				// GeneralsX: Forward the OS's character repeats; drop only a
 				// repeated Enter.
 				//
 				// 07/08/2026 dropped EVERY WM_CHAR with lParam bit 30 (previous key state) set, on the

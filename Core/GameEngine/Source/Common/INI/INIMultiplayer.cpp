@@ -67,7 +67,7 @@ void INI::parseMultiplayerColorDefinition( INI* ini )
 	c = ini->getNextToken();
 	name.set( c );
 
-	// GeneralsX @bugfix Claude 10/10/2026 A map.ini's colors end with the map (MultiplayerSettings::reset).
+	// GeneralsX: A map.ini's colors end with the map (MultiplayerSettings::reset).
 	if( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
 		TheMultiplayerSettings->keepPristineForOverrideLoad();
 
@@ -110,7 +110,7 @@ void INI::parseMultiplayerStartingMoneyChoiceDefinition( INI* ini )
 
   ini->initFromINI( &settings, startingMoneyFieldParseTable );
 
-  // GeneralsX @bugfix Claude 10/10/2026 A map.ini's choices end with the map (MultiplayerSettings::reset).
+  // GeneralsX: A map.ini's choices end with the map (MultiplayerSettings::reset).
   if( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
     TheMultiplayerSettings->keepPristineForOverrideLoad();
   TheMultiplayerSettings->addStartingMoneyChoice( settings.money, settings.isDefault );

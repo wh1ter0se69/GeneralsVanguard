@@ -187,7 +187,7 @@ protected:
 	UnsignedInt m_meshDataSize;	///< size of m_meshData
 	Bool m_meshInMotion;				///< TRUE once we've messed with velocities and are in motion
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate for the vertex-animated water integrator.
+	// GeneralsX: Class-C gate for the vertex-animated water integrator.
 	// update() is reached from GameClient::update() -> W3DTerrainVisual::update(), i.e. once per
 	// MAIN LOOP ITERATION, while WATER_DAMPENING (0.93) and the gravity step are per-LOGIC-FRAME.
 	// 0.93 applied 480 times a second instead of 60 damps the grid to ~0 almost instantly, so

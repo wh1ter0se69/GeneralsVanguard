@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G (render-seam/rw1-G/PLAN_statecheck.md Task 3, CONTRACT_L2.md §4.3): the state one classic
+// GeneralsX: WS-G (render-seam/rw1-G/PLAN_statecheck.md Task 3, CONTRACT_L2.md §4.3): the state one classic
 // draw uses, as the device truth holds it (dx8wrapper.h GxTruth*), and C2's comparison of two such states under the contract's
 // relevance mask - the classic draw's against L2's prediction for it. C8 checks the mask generator against a hand-written table.
 
@@ -30,7 +30,7 @@ class LightEnvironmentClass;
 struct GxDrawState
 {
 	unsigned rs[256]; bool rsKnown[256];			// the device truth (CONTRACT_L2 r5 E2), not the wrapper's cache
-	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5 T3: all 8 stages (MAX_TEXTURE_STAGES) for C6; C2 still compares stages 0-3 (two
+	// GeneralsX: WS-G Task 5 T3: all 8 stages (MAX_TEXTURE_STAGES) for C6; C2 still compares stages 0-3 (two
 	// per material (MAX_TEX_STAGES) + ShaderClass::Apply's raw stage 2)
 	unsigned tss[8][32]; bool tssKnown[8][32];
 	const void *tex[8];
@@ -62,5 +62,5 @@ extern const int kGxFfTssN;
 int GxL2Check_MaskOracle(int mutant);
 
 // L2's own copy of Set_Light_Environment's per-light construction (dx8wrapper.cpp, verbatim): kept separate from the classic code
-// on purpose, so C2's lights field compares two implementations (Codex rw1-G-plan-r1 #9).
+// on purpose, so C2's lights field compares two implementations.
 void GxL2Check_Light(const LightEnvironmentClass &env, int l, D3DLIGHT8 &light);

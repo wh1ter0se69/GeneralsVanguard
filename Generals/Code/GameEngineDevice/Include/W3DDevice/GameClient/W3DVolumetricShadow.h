@@ -45,7 +45,7 @@ struct W3DVolumetricShadowRenderTask : public W3DBufferManager::W3DRenderTask
 	W3DVolumetricShadow	*m_parentShadow;		///<main casting object to which this volume belongs.
 	UnsignedByte		m_meshIndex;		///<mesh index of volume within parent to render.
 	UnsignedByte		m_lightIndex;		///<light index of volume within parent to render.
-	// GeneralsX @performance Claude 23/09/2026 Where a dynamic volume's first-pass upload landed in the dynamic
+	// GeneralsX: Where a dynamic volume's first-pass upload landed in the dynamic
 	// VB/IB, so the second (DECR) pass can draw it again without re-uploading. Valid only while m_uploadEpoch
 	// equals the manager's upload epoch (0 = not uploaded).
 	UnsignedInt		m_uploadEpoch;
@@ -86,7 +86,7 @@ protected:
 		// to render the stencil buffer polygon to the screen
 		void renderStencilShadows();
 
-		// GeneralsX @performance Claude 23/09/2026 A contiguous array replaces the m_next chain. Each caster is a
+		// GeneralsX: A contiguous array replaces the m_next chain. Each caster is a
 		// ~23 KB object, so walking the chain cost one dependent cache miss per caster on every rendered frame - most
 		// of it on casters the enable check then skips (fogged, stealthed). An array lets the walk prefetch ahead.
 		// Stored oldest first; every walk runs it BACKWARDS, which is exactly the old newest-first chain order.

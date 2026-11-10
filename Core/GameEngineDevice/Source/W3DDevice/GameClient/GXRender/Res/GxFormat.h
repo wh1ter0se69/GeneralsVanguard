@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: D3D8 format -> Vulkan format, per device.
+// GeneralsX: WS-C GXRES v0: D3D8 format -> Vulkan format, per device.
 //
 // The mapping is DXVK's (references/fbraz3-dxvk src/d3d9/d3d9_format.cpp ConvertFormatUnfixed + the depth fix-ups in the
 // format table constructor), restricted to the formats D3D8 has, so the native path samples the same texels and depth-tests
@@ -36,7 +36,7 @@ struct FormatCaps
 	uint32_t maxSampledSamples = 0; // 0 = the device's sampledImageColorSampleCounts; else a SAMPLED MSAA colour target above
 	                                // this count is refused (RenderTargetDesc::sampled, E · rw3-L-2)
 	bool rgba16f = false;     // register GX_RGBA16F (the motion bridge's O, PREREG_T A35): only when GX_MOTION_UNITS=1, so key off
-	                          // probes and knows no new format (codex units-code-r2 #2)
+	                          // probes and knows no new format
 };
 
 class FormatTable

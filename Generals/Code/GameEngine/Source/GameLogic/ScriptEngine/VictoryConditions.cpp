@@ -213,7 +213,7 @@ void VictoryConditions::update()
 
 			if (TheGameInfo)
 			{
-				// GeneralsX @refactor Claude 21/09/2026 Map the defeated player straight to its slot
+				// GeneralsX: Map the defeated player straight to its slot
 				// instead of scanning MAX_SLOTS for a synthetic name match. Hand-ported.
 				// Upstream reference: bobtista, PR #3033
 				// https://github.com/TheSuperHackers/GeneralsGameCode/pull/3033

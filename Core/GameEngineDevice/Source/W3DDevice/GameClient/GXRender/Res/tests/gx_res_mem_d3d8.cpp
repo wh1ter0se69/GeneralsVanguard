@@ -1,4 +1,4 @@
-// GeneralsX @test E · rw2-C 11/10/2026 WS-C week 2: the CLASSIC arm of gx_res_mem - DXVK's d3d8 exactly as the game boots it
+// GeneralsX: WS-C week 2: the CLASSIC arm of gx_res_mem - DXVK's d3d8 exactly as the game boots it
 // on macOS (SDL3Main.cpp: SDL video, DXVK_WSI_DRIVER=SDL3, SDL_Vulkan_LoadLibrary, an SDL window; dx8wrapper.cpp: dlopen
 // libdxvk_d3d8.dylib by bare name through DYLD_LIBRARY_PATH, Direct3DCreate8). SDL3 and DXVK are dlopened, so this
 // tool links neither; the window is a visible 64x64 one (Mini only - no windows on the MacBook). Compiled in its own TU

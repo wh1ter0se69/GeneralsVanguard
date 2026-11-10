@@ -1,5 +1,5 @@
 /*
-** GeneralsX @feature Claude 23/09/2026 - how much bigger a message box must get to show its body, as
+** GeneralsX: how much bigger a message box must get to show its body, as
 ** a pure function.
 **
 ** gogoMessageBox used to grow the box DOWN only, clamped to the screen. That is enough for a few
@@ -85,7 +85,7 @@ inline MessageBoxFitResult MessageBoxFit( const MessageBoxFitInput &in, MessageB
 
 		// The wrap test is `cursor + word >= wrapWidth` (Build_Sentence_Not_Centered), so a line
 		// exactly as wide as the wrap still breaks: one pixel more than the widest line.
-		// ponytail: one ratio for the whole body, so rows followed by a long paragraph (the LAN
+		// Trade-off: one ratio for the whole body, so rows followed by a long paragraph (the LAN
 		// SimId-mismatch dialog) read as short lines and still widen to the paragraph, up to the
 		// screen. Judging each line needs a per-line measure; add it if that dialog matters.
 		const Int wrappedH = h;

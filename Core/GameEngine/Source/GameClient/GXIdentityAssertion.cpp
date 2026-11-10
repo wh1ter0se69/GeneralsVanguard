@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/08/2026 Identity assertion verification. See the header for the
+// GeneralsX: Identity assertion verification. See the header for the
 // format and for why the client only ever verifies.
 //
 // THE ORDER OF THE CHECKS BELOW IS THE SECURITY PROPERTY, not a style choice, and it is ported from
@@ -126,7 +126,7 @@ int b64urlValue(char c)
  *
  * No padding is accepted either. There is exactly one way to write a valid signature.
  *
- * GeneralsX @feature Claude 23/09/2026 Generalised from the signature-only decoder for the bot
+ * GeneralsX: Generalised from the signature-only decoder for the bot
  * login's public key (43 characters, 32 bytes, two leftover bits) - one decoder, one canonical rule.
  */
 bool b64urlDecode(const char *text, size_t chars, unsigned char *out, size_t bytes)
@@ -192,7 +192,7 @@ bool keyIsAllZero(const unsigned char pk[32])
  * line, LENGTH for a first line over GX_ASSERTION_MAX, otherwise OK with buf NUL-terminated. The CALLER
  * owns buf and wipes it; the stdio buffer is this function's and is wiped here.
  *
- * GeneralsX @feature Claude 23/09/2026 Extracted from loadFileWithKey, unchanged, so the bot loader
+ * GeneralsX: Extracted from loadFileWithKey, unchanged, so the bot loader
  * reads a file exactly the way the player loader does rather than through a second reader.
  */
 GXAssertStatus readAssertionLine(const char *path, char buf[GX_ASSERTION_MAX + 2])
@@ -200,7 +200,7 @@ GXAssertStatus readAssertionLine(const char *path, char buf[GX_ASSERTION_MAX + 2
 	if (path == NULL)
 		return GX_ASSERT_ABSENT;
 
-	// GeneralsX @bugfix Claude 18/09/2026 The stream's buffer is OURS, and wiped. Left to itself stdio
+	// GeneralsX: The stream's buffer is OURS, and wiped. Left to itself stdio
 	// reads the file into a buffer it allocates and frees at fclose with the bytes still in it - a heap
 	// copy of the whole sign-in that no sign-out can reach. Declared before the stream so it outlives it.
 	char iobuf[512];
@@ -257,7 +257,7 @@ GXAssertStatus readAssertionLine(const char *path, char buf[GX_ASSERTION_MAX + 2
 	return GX_ASSERT_OK;
 }
 
-// GeneralsX @bugfix Claude 23/09/2026 Hand back the line that was VERIFIED, on OK only, for a caller that
+// GeneralsX: Hand back the line that was VERIFIED, on OK only, for a caller that
 // will send it. Reading the file again for the bytes could return a file swapped in between that
 // nothing checked (review P3-1). readAssertionLine has already bounded buf to GX_ASSERTION_MAX.
 GXAssertStatus keepVerified(GXAssertStatus st, const char *buf, char *text)
@@ -334,7 +334,7 @@ GXAssertStatus GXIdentityAssertion::verifyWithKey(const unsigned char pk[32], co
 	const char * const sigText = field[nf - 1];
 	if (flen[nf - 1] != SIG_TEXT_LEN)
 		return GX_ASSERT_SIGSHAPE;
-	// GeneralsX @bugfix Claude 18/09/2026 Wiped on every one of the returns below. The decoded signature
+	// GeneralsX: Wiped on every one of the returns below. The decoded signature
 	// is the part of the token nobody can recompute: with the claims beside it, which the caller keeps,
 	// it IS the token.
 	unsigned char sig[64];
@@ -377,7 +377,7 @@ GXAssertStatus GXIdentityAssertion::verifyWithKey(const unsigned char pk[32], co
 	}
 
 	// ---- 8b. the role, which is optional and is never fatal -----------------------------------
-	// GeneralsX @feature Claude 11/08/2026 Field 5, appended before the signature - the extension
+	// GeneralsX: Field 5, appended before the signature - the extension
 	// point step 4 above already accepts and scripts/test/identity-assert-fixtures.py already pins.
 	// It is below the signature, so it is signed data: an attacker cannot splice a role into a
 	// captured assertion without moving the payload and invalidating it. There is a fixture for
@@ -469,7 +469,7 @@ GXAssertStatus GXIdentityAssertion::verify(const char *text, long long nowS,
 GXAssertStatus GXIdentityAssertion::loadFileWithKey(const unsigned char pk[32], const char *path,
                                                     long long nowS, GXAssertionClaims *out, char *text)
 {
-	// GeneralsX @bugfix Claude 18/09/2026 WIPED ON EVERY RETURN - the empty file, the over-long one,
+	// GeneralsX: WIPED ON EVERY RETURN - the empty file, the over-long one,
 	// and after verification. It holds the whole assertion, a bearer token.
 	char buf[GX_ASSERTION_MAX + 2];
 	GXScopedWipe wipeBuf(buf, sizeof(buf));
@@ -487,7 +487,7 @@ GXAssertStatus GXIdentityAssertion::loadFile(const char *path, long long nowS,
 
 GXAssertStatus GXIdentityAssertion::verifyBot(const char *text, long long nowS, GXAssertionClaims *out)
 {
-	// GeneralsX @feature Claude 23/09/2026 A BOT assertion - see the header. Self-verified ONLY so a corrupt
+	// GeneralsX: A BOT assertion - see the header. Self-verified ONLY so a corrupt
 	// file is never sent: the relay's registry decides whether this key may speak for this account.
 	if (text == NULL || text[0] == '\0')
 		return GX_ASSERT_ABSENT;
@@ -540,12 +540,12 @@ GXAssertStatus GXIdentityAssertion::loadBotFile(const char *path, long long nowS
 
 bool GXIdentityAssertion::resolveBotPath(const char *env, const char *userDataDir, char *out, size_t cap)
 {
-	// GeneralsX @feature Claude 23/09/2026 See the header. Both separators on every platform: Windows
+	// GeneralsX: See the header. Both separators on every platform: Windows
 	// takes either, and a rule that only knew one would let the other through.
 	if (env == NULL || env[0] == '\0' || out == NULL || cap == 0)
 		return false;
 	const bool sep0 = env[0] == '/' || env[0] == '\\';
-	// GeneralsX @bugfix Claude 23/09/2026 And \??\UNC\srv\share (review P3-3): Windows hands a \??\ path to
+	// GeneralsX: And \??\UNC\srv\share (review P3-3): Windows hands a \??\ path to
 	// the NT layer as-is, which reaches the same server. '?' is never in a real file name.
 	if (sep0 && (env[1] == '/' || env[1] == '\\' || env[1] == '?'))
 		return false;													// \\srv, //srv, \/srv, \??\UNC: a server

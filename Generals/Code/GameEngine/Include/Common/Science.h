@@ -108,7 +108,7 @@ public:
 
 	ScienceType getScienceFromInternalName(const AsciiString& name) const;
 	AsciiString getInternalNameForScience(ScienceType science) const;
-	/// GeneralsX @fix Claude 05/10/2026 what MSG_PURCHASE_SCIENCE carries: the internal name's id, never the NameKey (GXWireId.h)
+	/// GeneralsX: what MSG_PURCHASE_SCIENCE carries: the internal name's id, never the NameKey (GXWireId.h)
 	UnsignedInt getWireIdForScience(ScienceType science) const;
 	/// The science a network message names, from the table rebuildWireIds() made at map load: SCIENCE_INVALID for an id no
 	/// science has, or one two sciences share.

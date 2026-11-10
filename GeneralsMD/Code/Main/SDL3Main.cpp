@@ -32,8 +32,8 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 #ifdef GX_RENDER_NATIVE
-#include "VkWsi.h"	// GeneralsX @feature E · rw3-K 11/10/2026 sdl3PreferVulkanLoader
-#include "W3DDevice/GameClient/GxNativeInstall.h"	// GeneralsX @feature E · rw3-L-3 12/10/2026 FlushFinalStats
+#include "VkWsi.h"	// GeneralsX: sdl3PreferVulkanLoader
+#include "W3DDevice/GameClient/GxNativeInstall.h"	// GeneralsX: FlushFinalStats
 #endif
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -50,7 +50,7 @@
 #endif
 #include <cstdlib>
 #include <cctype>
-#include <filesystem>        // GeneralsX @bugfix Claude 24/09/2026 the DXVK folder, on every POSIX target
+#include <filesystem>        // GeneralsX: the DXVK folder, on every POSIX target
 #include <initializer_list>
 #include <string>
 #include <system_error>
@@ -70,13 +70,13 @@
 #include "Common/GameEngine.h"
 #include "Common/GameMemory.h"
 #include "Common/Debug.h"
-#include "Common/version.h"  // GeneralsX @bugfix BenderAI 14/02/2026 Version class + TheVersion extern
-#include "GXStderrLog.h"     // GeneralsX @feature Claude 17/08/2026 desync evidence on disk
-#include "GXCrashLog.h"      // GeneralsX @feature Claude 25/09/2026 one crash log per crash, in our folder
+#include "Common/version.h"  // GeneralsX: Version class + TheVersion extern
+#include "GXStderrLog.h"     // GeneralsX: desync evidence on disk
+#include "GXCrashLog.h"      // GeneralsX: one crash log per crash, in our folder
 #include "GameClient/SaveLoadFeedback.h"  // TheGXCrashLogWriter
 #include "gitinfo.h"
-#include "GameClient/GXUserDataDir.h"  // GeneralsX @feature Claude 23/09/2026 GX_USERDATA_DIR (iOS Options.ini seed)
-#include "GameLogic/GXHookTimer.h"  // GeneralsX @test Claude 23/10/2026 ai-wh1ter0se-econ: GX_HOOK_FLUSH_ALL before _exit (test-instruments builds)
+#include "GameClient/GXUserDataDir.h"  // GeneralsX: GX_USERDATA_DIR (iOS Options.ini seed)
+#include "GameLogic/GXHookTimer.h"  // GeneralsX: ai-wh1ter0se-econ: GX_HOOK_FLUSH_ALL before _exit (test-instruments builds)
 #include "SDL3GameEngine.h"
 
 // DXVK WSI
@@ -85,7 +85,7 @@
 
 // CRITICAL SECTIONS (Linux needs these too)
 
-// GeneralsX @bugfix Claude 04/08/2026 Build these handlers on Linux as well as iOS.
+// GeneralsX: Build these handlers on Linux as well as iOS.
 //
 // The Linux peer installed no fatal-signal handler at all, so its crashes left only the
 // kernel's one-line dmesg record. Reconstructing a symbol from that line means taking the
@@ -99,7 +99,7 @@
 //
 // One backtrace at the moment of the crash removes that entire class of arithmetic.
 //
-// GeneralsX @bugfix Claude 25/09/2026 And on macOS, and actually INSTALLED on Linux. The only call
+// GeneralsX: And on macOS, and actually INSTALLED on Linux. The only call
 // to installCrashHandlers() was inside the iOS block of main(), so Linux compiled these and never
 // used them, and macOS did not compile them at all. Both now install them after the command line
 // is parsed, where the user-data folder is known and GXCrashLog can write into it.
@@ -153,11 +153,11 @@ static void crashSignalHandler(int sig)
 		case SIGTRAP: name = "SIGTRAP (trap)";                       break;
 		default: break;
 	}
-	// GeneralsX @perf Claude 02/10/2026 Lines still queued for the stderr pump go out before ours.
+	// GeneralsX: Lines still queued for the stderr pump go out before ours.
 	GXStderrLog_Settle();
 	void *frames[64];
 	const int n = backtrace(frames, 64);
-	// GeneralsX @feature Claude 25/09/2026 The crash's own file first: the stderr mirror below is
+	// GeneralsX: The crash's own file first: the stderr mirror below is
 	// rotated by the next launch, this one is kept until the launcher has asked about it.
 	GXCrashLog_Write(name, frames, n);
 
@@ -176,7 +176,7 @@ static void crashSignalHandler(int sig)
 
 static void crashTerminateHandler()
 {
-	GXStderrLog_Settle();  // GeneralsX @perf Claude 02/10/2026 queued lines first, as above
+	GXStderrLog_Settle();  // GeneralsX: queued lines first, as above
 	void *frames[64];
 	const int n = backtrace(frames, 64);
 	GXCrashLog_Write("std::terminate (unhandled C++ exception)", frames, n);
@@ -184,7 +184,7 @@ static void crashTerminateHandler()
 	if (s_crashLogFd >= 0) backtrace_symbols_fd(frames, n, s_crashLogFd);
 	backtrace_symbols_fd(frames, n, STDERR_FILENO);
 	crashWrite("FATAL: end of backtrace\n");
-	// GeneralsX @bugfix Claude 25/09/2026 abort(), not _exit(1), now that macOS and Linux install
+	// GeneralsX: abort(), not _exit(1), now that macOS and Linux install
 	// this too: an unhandled exception has always ended there in SIGABRT, which harnesses and the
 	// OS crash report both key on. SIG_DFL first so the SIGABRT handler does not log it twice.
 	signal(SIGABRT, SIG_DFL);
@@ -264,7 +264,7 @@ SDL_Window* TheSDL3Window = nullptr;
 // TheSuperHackers @build felipebraz 13/02/2026
 // GameText.cpp uses these paths to load CSF and STR files (game localization)
 // Format %s is replaced with language code in GameTextManager::init()
-// GeneralsX @bugfix BenderAI 13/02/2026 - Fix case-sensitivity on Linux (generals.csf vs Generals.csf)
+// GeneralsX: Fix case-sensitivity on Linux (generals.csf vs Generals.csf)
 const Char *g_csfFile = "data/%s/generals.csf";  ///< CSF file path (lowercase for Linux compatibility)
 const Char *g_strFile = "data/Generals.str";     ///< STR file path
 
@@ -285,7 +285,7 @@ extern Int GameMain();
  * Only applied when neither VK_DRIVER_FILES nor VK_ICD_FILENAMES is already set,
  * so the user can always override by setting those variables externally.
  *
- * GeneralsX @bugfix BenderAI 06/03/2026
+ * GeneralsX:
  */
 static void FilterSoftwareVulkanICDs()
 {
@@ -366,7 +366,7 @@ static void FilterSoftwareVulkanICDs()
  */
 static void FilterPipeWireOpenAL()
 {
-	// GeneralsX @bugfix Copilot 24/03/2026 PipeWire/OpenAL workaround is Linux-only; keep macOS CoreAudio backend selection untouched.
+	// GeneralsX: PipeWire/OpenAL workaround is Linux-only; keep macOS CoreAudio backend selection untouched.
 	#if defined(__linux__)
 	// Crash: alcOpenDevice() hits 'movaps %xmm1,0x26260(%rbx)' — SSE movaps requires
 	// 16-byte alignment; a misaligned ALCdevice struct faults regardless of backend.
@@ -404,7 +404,7 @@ GameEngine *CreateGameEngine(void)
 	return engine;
 }
 
-// GeneralsX @perf Claude 01/10/2026 A2: a fresh install starts from the shipped pipeline record (resources/dxvk/seed: the
+// GeneralsX: A2: a fresh install starts from the shipped pipeline record (resources/dxvk/seed: the
 // DXVK state cache plus the fixed-function shader keys the patched Apple DXVK warms from, see
 // LoadScreen::waitForPipelineWarmup), so even its first match compiles its pipelines during the load screen. Each file
 // is copied only when absent: a player's own record grows from there and is never replaced. Before the d3d8 dylib
@@ -448,7 +448,7 @@ int main(int argc, char* argv[])
 	__argv = argv;
 
 #if !defined(_WIN32) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-	// GeneralsX @bugfix Claude 24/09/2026 DXVK WRITES INTO THE WORKING DIRECTORY UNLESS TOLD OTHERWISE, AND ON macOS AND
+	// GeneralsX: DXVK WRITES INTO THE WORKING DIRECTORY UNLESS TOLD OTHERWISE, AND ON macOS AND
 	// LINUX THE WORKING DIRECTORY IS THE ZERO HOUR FOLDER - often one GeneralsX does not own.
 	//
 	// fbraz3-dxvk opens <exe>_d3d9.log (src/util/log/log.cpp getFileName) and <exe>.dxvk-cache
@@ -459,7 +459,7 @@ int main(int argc, char* argv[])
 	// touched here; where the log goes is what matters.) Never over a value the caller set, and dxvk.conf is untouched.
 	//
 	// The folder is GeneralsX's own user-data root, resolved the way GlobalData::BuildUserDataPathFromRegistry resolves
-	// it. ponytail: a second derivation of that root; foreign-folder-engine-test.sh check 5 pins the two together, and a
+	// it. Trade-off: a second derivation of that root; foreign-folder-engine-test.sh check 5 pins the two together, and a
 	// shared helper is the upgrade if a third copy appears. Windows is not here: its cwd is the install folder we own.
 	{
 		std::string dxvkDir;
@@ -497,7 +497,7 @@ int main(int argc, char* argv[])
 		const char *cachePath = getenv("DXVK_STATE_CACHE_PATH");
 		fprintf(stderr, "[GXDXVK] log=%s cache=%s\n", logPath ? logPath : "(unset)", cachePath ? cachePath : "(unset)");
 		// The .app's run.sh names Resources/dxvk-seed; deploy-macos-zh.sh puts it in the game folder, the cwd here,
-		// next to the dxvk.conf it deploys there (Codex a2-r5).
+		// next to the dxvk.conf it deploys there.
 		const char *seedDir = getenv("GX_DXVK_SEED_DIR");
 		gxSeedDxvkCache(seedDir != nullptr ? seedDir : "dxvk-seed");
 	}
@@ -517,7 +517,7 @@ int main(int argc, char* argv[])
 		// covers modules that read it before the config.
 		setenv("DXVK_LOG_LEVEL", "none", 0);
 
-		// GeneralsX @bugfix Claude 28/09/2026 ONE MoltenVK, not two. The executable force-loads the
+		// GeneralsX: ONE MoltenVK, not two. The executable force-loads the
 		// build host's static libMoltenVK.a (cmake/config-build.cmake, for SDL3), while DXVK dlopens the
 		// pinned framework in Frameworks/ (Patches/dxvk-ios.patch) and creates the VkInstance with it.
 		// SDL then created the surface through the STATIC copy's vkGetInstanceProcAddr on the
@@ -535,7 +535,7 @@ int main(int argc, char* argv[])
 				SDL_SetHint(SDL_HINT_VULKAN_LIBRARY, mvk.c_str());
 		}
 
-		// GeneralsX @feature Claude 07/08/2026 Turn the network trace on by default, on iOS only.
+		// GeneralsX: Turn the network trace on by default, on iOS only.
 		//
 		// [GXSTALL], [GXNET] and the LAN traces are all gated on getenv("GX_NET") - and an
 		// icon-launched, sideloaded iOS app has no way to be given an environment variable, so the
@@ -560,14 +560,14 @@ int main(int argc, char* argv[])
 			// the command line is parsed — the engine's user-data path on iOS is inside
 			// Library/Application Support, which the Files app cannot see.
 			//
-			// GeneralsX @refactor Claude 17/08/2026 The sink itself (rotation, filter,
+			// GeneralsX: The sink itself (rotation, filter,
 			// 8 MB cap, error lines past the cap) moved verbatim into GXStderrLog.cpp so
 			// Windows and macOS get the same policy rather than a re-derived one. One
 			// behaviour did change and it was a latent bug: the past-cap allow-list was
 			// err:/ERROR/FATAL, which would have dropped the [CRC] MISMATCH lines that
 			// are the entire point of keeping a log.
 			//
-			// GeneralsX @bugfix Claude 23/09/2026 Under GX_USERDATA_DIR, in its folder
+			// GeneralsX: Under GX_USERDATA_DIR, in its folder
 			// (GameClient/GXUserDataDir.h): the rotation below deleted the owner's last log.
 			if (GXStderrLog_Install(gxIosStderrLogDir(diagHome).c_str())) {
 				// Hand the raw fd to the fatal-signal handlers: inside a signal handler
@@ -662,7 +662,7 @@ int main(int argc, char* argv[])
 				// textures — which the porting playbook calls the number one cause of
 				// "looks worse than my PC".
 				//
-				// GeneralsX @feature Claude 23/09/2026 Into GX_USERDATA_DIR's folder when it applies
+				// GeneralsX: Into GX_USERDATA_DIR's folder when it applies
 				// (GameClient/GXUserDataDir.h), the one GlobalData will use: a test profile gets the same
 				// first-run settings, and the owner's folder is not touched.
 				std::string userDataDir;
@@ -776,7 +776,7 @@ int main(int argc, char* argv[])
 		// Initialize memory manager early (required by NEW operator)
 		initMemoryManager();
 
-		// GeneralsX @bugfix BenderAI 14/02/2026 Initialize Version singleton
+		// GeneralsX: Initialize Version singleton
 		// GameEngine::init() calls updateWindowTitle() which uses TheVersion
 		// Must be created before GameMain() to avoid nullptr dereference
 		TheVersion = NEW Version;
@@ -787,7 +787,7 @@ int main(int argc, char* argv[])
 		// For now, let CommandLine::parseCommandLineForStartup() handle this
 		CommandLine::parseCommandLineForStartup();
 
-		// GeneralsX @feature Claude 17/08/2026 Give the desync report somewhere to land.
+		// GeneralsX: Give the desync report somewhere to land.
 		//
 		// A Mac launched from Finder has stderr wired to /dev/null, so GameLogic.cpp:3000's
 		// release-build "[CRC] MISMATCH frame=... player=... crc=..." — the only output that
@@ -806,7 +806,7 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "[gx] stderr mirror installed: %sgenerals-stderr.log\n",
 				TheGlobalData->getPath_UserData().str());
 #if !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-			// GeneralsX @bugfix Claude 24/09/2026 The [GXDXVK] line at the top of main() runs before this mirror
+			// GeneralsX: The [GXDXVK] line at the top of main() runs before this mirror
 			// exists, so it never reached generals-stderr.log (seen on the Mini's rendered run). Said again here.
 			const char *dxvkLog = getenv("DXVK_LOG_PATH");
 			const char *dxvkCache = getenv("DXVK_STATE_CACHE_PATH");
@@ -815,7 +815,7 @@ int main(int argc, char* argv[])
 		}
 
 #if !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-		// GeneralsX @feature Claude 25/09/2026 macOS and Linux: <userdata>/CrashLogs/, then the
+		// GeneralsX: macOS and Linux: <userdata>/CrashLogs/, then the
 		// handlers. iOS did both before GlobalData existed (above). A crash before this line still
 		// reaches only the OS's own report, exactly as before.
 		if (TheGlobalData != nullptr)
@@ -823,11 +823,11 @@ int main(int argc, char* argv[])
 		s_crashLogFd = GXStderrLog_GetFd();  // -1 on Linux, which mirrors nothing
 		installCrashHandlers();
 #endif
-		// GeneralsX @feature Claude 25/09/2026 The save gate writes a crash log for a load it stopped
+		// GeneralsX: The save gate writes a crash log for a load it stopped
 		// because it would have crashed (SaveLoadFeedback.cpp); Core code reaches the writer through this.
 		TheGXCrashLogWriter = GXCrashLog_Write;
 
-		// GeneralsX @bugfix Copilot 17/05/2026 Skip SDL3 window bootstrap for CLI/headless replay execution.
+		// GeneralsX: Skip SDL3 window bootstrap for CLI/headless replay execution.
 		const bool isHeadlessMode = (TheGlobalData != nullptr && TheGlobalData->m_headless);
 		if (isHeadlessMode) {
 			fprintf(stderr, "INFO: Headless mode detected, skipping SDL3 video/Vulkan window initialization\n");
@@ -844,7 +844,7 @@ int main(int argc, char* argv[])
 		// double-deliver finger 1 and fight the two-finger pan logic.
 		SDL_SetHint(SDL_HINT_TOUCH_MOUSE_EVENTS, "0");
 #endif
-		// GeneralsX @bugfix Claude 15/09/2026 DO NOT MINIMISE THIS WINDOW WHEN IT LOSES FOCUS.
+		// GeneralsX: DO NOT MINIMISE THIS WINDOW WHEN IT LOSES FOCUS.
 		//
 		// SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS defaults to "auto", which means "minimise if the
 		// window is fullscreen_exclusive and mode switching is not emulated". This engine asks for
@@ -882,14 +882,14 @@ int main(int argc, char* argv[])
 		// Set DXVK WSI driver before loading Vulkan
 		setenv("DXVK_WSI_DRIVER", "SDL3", 1);
 
-		// GeneralsX @bugfix BenderAI 06/03/2026 - Exclude LLVMpipe Vulkan ICD before loading Vulkan.
+		// GeneralsX: Exclude LLVMpipe Vulkan ICD before loading Vulkan.
 		// libvulkan_lvp.so crashes during static initialization with LLVM 20.x when the Vulkan
 		// loader enumerates all ICDs. Restrict to hardware ICDs first.
 		FilterSoftwareVulkanICDs();
 		FilterPipeWireOpenAL();
 
 #ifdef GX_RENDER_NATIVE
-		// GeneralsX @feature E · rw3-K 11/10/2026 native-device session (DESIGN_l1-device §8.1): name the Vulkan loader before SDL
+		// GeneralsX: native-device session (DESIGN_l1-device §8.1): name the Vulkan loader before SDL
 		// loads Vulkan, so SDL and the native device share ONE Vulkan implementation; S8 then qualifies the outcome. Only when
 		// the process asked for the native session - a classic launch keeps today's SDL choice byte for byte.
 		// D · render-line-0967 21/10/2026: the first reader of the renderer switch (Options.ini GXRenderer, GX_RENDERER over it);
@@ -905,7 +905,7 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "WARNING: Continuing without Vulkan (may use software rendering)\n");
 		}
 #if defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
-		// GeneralsX @bugfix Claude 29/09/2026 Which MoltenVK SDL got (see the SDL_HINT_VULKAN_LIBRARY note
+		// GeneralsX: Which MoltenVK SDL got (see the SDL_HINT_VULKAN_LIBRARY note
 		// above): the image its vkGetInstanceProcAddr lives in - Frameworks/MoltenVK.framework/MoltenVK when
 		// SDL shares DXVK's copy, the executable when it fell back to the static one.
 		{
@@ -925,7 +925,7 @@ int main(int argc, char* argv[])
 		// 956x440 point size). Without this the swapchain renders at point size and
 		// the display upscales 3x, visibly blurring textures and terrain.
 		//
-		// GeneralsX @bugfix Claude 17/08/2026 This was iOS-only and macOS needs it identically.
+		// GeneralsX: This was iOS-only and macOS needs it identically.
 		// A Retina Mac has exactly the same 2x point/pixel split as the iPad, so without the flag
 		// the swapchain is built at POINT size and the compositor upscales the whole window. The
 		// result was reported from an M5 MacBook with screenshots: "everything is very fuzzy and
@@ -1060,9 +1060,9 @@ int main(int argc, char* argv[])
 	}
 
 #ifdef GX_RENDER_NATIVE
-	// GeneralsX @feature E · rw3-L-3 12/10/2026 the native session's final stats line (DESIGN_l1-device §2.3) if its device outlived
+	// GeneralsX: the native session's final stats line (DESIGN_l1-device §2.3) if its device outlived
 	// the engine's teardown: _exit() below runs no atexit handler, and the line allocates - so here, before the memory manager goes.
-	// GeneralsX @bugfix D · rw3-T-5 13/10/2026 and before SDL destroys the window: the flush first joins the native renderer's submit
+	// GeneralsX: and before SDL destroys the window: the flush first joins the native renderer's submit
 	// thread (lever 3, PREREG_T A21 am. 4), which may still be presenting to that window's swapchain.
 	GxNative::FlushFinalStats();
 #endif
@@ -1075,13 +1075,13 @@ int main(int argc, char* argv[])
 	}
 	SDL_Quit();
 
-	// GeneralsX @bugfix BenderAI 14/02/2026 Cleanup Version singleton
+	// GeneralsX: Cleanup Version singleton
 	if (TheVersion) {
 		delete TheVersion;
 		TheVersion = nullptr;
 	}
 
-	// GeneralsX @bugfix BenderAI 19/02/2026 Shutdown memory manager BEFORE nulling critical
+	// GeneralsX: Shutdown memory manager BEFORE nulling critical
 	// sections. Without this, global pool destructors (ObjectPoolClass) crash during atexit()
 	// because they call ::operator delete after the memory manager is already gone (SIGSEGV).
 	// Matches WinMain.cpp cleanup order: TheVersion -> shutdownMemoryManager -> null critSecs.
@@ -1094,13 +1094,13 @@ int main(int argc, char* argv[])
 	TheMemoryPoolCriticalSection = nullptr;
 	TheDebugLogCriticalSection = nullptr;
 
-	// GeneralsX @test Claude 23/10/2026 ai-wh1ter0se-econ (Codex ke-timer-*-r1): the _exit below runs no static destructors - print every
+	// GeneralsX: ai-wh1ter0se-econ (ke-timer-*-r1): the _exit below runs no static destructors - print every
 	// [GXHOOK] timer's open frame and window and the "[GXHOOK] exit" line now, before the queue is settled (test-instruments only)
 	GX_HOOK_FLUSH_ALL();
 	fprintf(stderr, "\nExiting with code %d\n", exitcode);
-	GXStderrLog_Settle();  // GeneralsX @perf Claude 02/10/2026 _exit runs no atexit: write out the queue first
+	GXStderrLog_Settle();  // GeneralsX: _exit runs no atexit: write out the queue first
 
-	// GeneralsX @bugfix BenderAI 25/02/2026 — use _exit() to skip C++ global destructors.
+	// GeneralsX: — use _exit() to skip C++ global destructors.
 	// On macOS, __cxa_finalize_ranges runs ObjectPoolClass<X,256> global dtors after main() returns.
 	// Those dtors crash with a corrupted BlockListHead (SIGSEGV at 0x4ade32ec4ade0018) because
 	// pool block memory was already reused/overwritten during game shutdown.

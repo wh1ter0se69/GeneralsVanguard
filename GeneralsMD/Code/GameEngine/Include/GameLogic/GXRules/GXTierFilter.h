@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 30/10/2026 AI RULE BANK tier filter (gx-handoff ai/rulebank/PLAN_rulebank.md 2.8; mark grammar agreed with
+// GeneralsX: AI RULE BANK tier filter (gx-handoff ai/rulebank/PLAN_rulebank.md 2.8; mark grammar agreed with
 // C · rb-data 30/10, lead C58). Hard, Sentient and Brutal run ONE script list, so a tuned script or team cannot simply be edited: the
 // recipe leaves every stock entry byte-identical and adds each replacement or new entry under a MARKED name, and this filter gives each
 // player its own list at game start, where Player::initFromDict copies its side's scripts and teams (Player.cpp).
@@ -152,7 +152,7 @@ inline std::vector<PlanRow> tierPlan(const std::vector<std::string> &names, unsi
 }
 
 
-/// The plan for a player's QUALIFIED copy (Codex core-r1-lensA P1): duplicateAndQualify appends the player's start index to every script
+/// The plan for a player's QUALIFIED copy: duplicateAndQualify appends the player's start index to every script
 /// and group name, which would turn a malformed empty-name mark "GXT.SENTIENT." into "GXT.SENTIENT.3" (base "3"). So every name that ends
 /// with the qualifier is judged WITHOUT it, and the qualifier is appended to the plan's output name again; a name that does not end with
 /// it (never, for a copy) is judged and emitted as it is.

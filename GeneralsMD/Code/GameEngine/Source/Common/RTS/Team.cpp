@@ -735,7 +735,7 @@ TeamTemplateInfo::TeamTemplateInfo(Dict *d) :
 
 	m_scriptOnIdle = d->getAsciiString(TheKey_teamOnIdleScript, &exists);
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 a map team property in 30 Hz frames (how long an AI team keeps recruiting before it
+	// GeneralsX: a map team property in 30 Hz frames (how long an AI team keeps recruiting before it
 	// launches). Values < 1 mean "unlimited" and GX_FRAMES30 keeps them < 1.
 	m_initialIdleFrames = GX_FRAMES30(d->getInt(TheKey_teamInitialIdleFrames, &exists));
 #else
@@ -892,7 +892,7 @@ Team *TeamPrototype::findTeamByID( TeamID teamID )
 }
 
 // ------------------------------------------------------------------------
-// GeneralsX @performance Claude 06/10/2026 the members of this prototype's teams changed controlling player without
+// GeneralsX: the members of this prototype's teams changed controlling player without
 // changing team: their cells count them under the new one (PartitionManager::m_cellOwnerMask).
 static void updatePartitionOwnerTags(const TeamPrototype *proto)
 {
@@ -2373,7 +2373,7 @@ Object *Team::tryToRecruit(const ThingTemplate *tTemplate, const Coord3D *teamHo
 	Object *recruit = nullptr;
 	for( obj = TheGameLogic->getFirstObject(); obj; obj = obj->getNextObject() )
 	{
-		// GeneralsX @performance Claude 23/09/2026 Cheap owner test first: both tests are pure and both must pass, so
+		// GeneralsX: Cheap owner test first: both tests are pure and both must pass, so
 		// swapping them keeps the surviving objects and their order; other players' objects skip the template/variation compares.
 		if (obj->getControllingPlayer() != myPlayer)
 			continue;

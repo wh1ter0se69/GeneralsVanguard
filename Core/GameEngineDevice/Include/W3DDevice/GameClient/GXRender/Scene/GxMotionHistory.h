@@ -1,9 +1,9 @@
-// GeneralsX @feature D · render-motion-units-1 13/10/2026 What each mesh drew with in the previous world pass, for per-object motion
+// GeneralsX: What each mesh drew with in the previous world pass, for per-object motion
 // vectors (modernize/render-dlss/DESIGN_motion-units.md §2.2 rigid, §2.3 skinned). Header-only and free of engine types so the rules are
 // unit-tested with plain c++ (Scene/tests/gx_motion_history_test.cpp). Keys are mesh addresses, frames are world-pass numbers.
 // Render-only: nothing here is read by the simulation, and it lives outside every digested path.
 //
-// ponytail: keyed by address with no destructor hook (mesh.cpp is digested), plus a TAG (the mesh's model): an address reused by a
+// Trade-off: keyed by address with no destructor hook (mesh.cpp is digested), plus a TAG (the mesh's model): an address reused by a
 // mesh of another model starts a new history; reused across >= 2 passes, the frame number catches it. What remains is a mesh of the
 // SAME model reusing the address between two adjacent passes = one frame of wrong velocity on it, absorbed by every upscaler's history
 // rejection. Reuse INSIDE a pass cannot happen: meshes are created and destroyed by the game's update, never during a world pass's

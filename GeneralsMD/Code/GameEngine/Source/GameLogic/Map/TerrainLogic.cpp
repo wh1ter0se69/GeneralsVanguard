@@ -214,7 +214,7 @@ Object *Bridge::createTower( Coord3D *worldPos,
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 20/09/2026 m_next AND m_layer MUST BE INITIALISED HERE, NOT AT THE END.
+// GeneralsX: m_next AND m_layer MUST BE INITIALISED HERE, NOT AT THE END.
 //
 // Both used to be left to the tail of the body - m_next by the trailing assignment that the two
 // early returns below skip, m_layer by nothing at all. A MemoryPoolObject block is recycled, not
@@ -243,7 +243,7 @@ m_layer(LAYER_INVALID)
 	m_bridgeInfo.curDamageState = BODY_PRISTINE;
 
 
-	// GeneralsX @bugfix Claude 20/09/2026 A MISSING GenericBridge IS A DESYNC, NOT A WARNING.
+	// GeneralsX: A MISSING GenericBridge IS A DESYNC, NOT A WARNING.
 	//
 	// This used to log and return, which left a Bridge on TerrainLogic's list carrying no Object
 	// at all. That is the same failure the missing bridge MODEL used to cause, and that the
@@ -267,12 +267,12 @@ m_layer(LAYER_INVALID)
 	}
 	Object *bridge = TheThingFactory->newObject(genericBridgeTemplate, nullptr);
 
-	// GeneralsX @note Claude 25/09/2026 RETAIL'S TRANSFORM, KEPT ON PURPOSE.
+	// GeneralsX @note /09/2026 RETAIL'S TRANSFORM, KEPT ON PURPOSE.
 	//
 	// The centre and angle come from the model-derived corners exactly as retail computes them, and
 	// Object::crc hashes the transform, so a recorded retail replay of a bridge map still matches.
 	// This branch briefly moved them to the map's bare from/to points (about 0.76 world units on
-	// twilight flame's KandaharBridge), which broke that for every complete install; Codex review
+	// twilight flame's KandaharBridge), which broke that for every complete install; review
 	// (r5) caught it. With the model loaded this is retail; without it the corners come from
 	// W3DBridge::init's fallback numbers, and that happens only where nobody can disagree - network
 	// play is refused (TerrainVisual::isEveryBridgeModelAvailable) or stopped at the bridge
@@ -300,7 +300,7 @@ m_layer(LAYER_INVALID)
 
 	// get the template of the bridge
 	//
-	// GeneralsX @note Claude 20/09/2026 THIS ONE STAYS TOLERANT, AND THAT IS DELIBERATE.
+	// GeneralsX @note /09/2026 THIS ONE STAYS TOLERANT, AND THAT IS DELIBERATE.
 	//
 	// Unlike GenericBridge above, a missing TerrainRoads entry costs no simulation object: the
 	// bridge Object already exists by this point, positioned and oriented from map data, and
@@ -366,7 +366,7 @@ m_layer(LAYER_INVALID)
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 20/09/2026 m_layer was never initialised on this path either. This
+// GeneralsX: m_layer was never initialised on this path either. This
 // constructor has no early return so its trailing m_next assignment always ran, but m_layer was
 // read straight out of a recycled pool block until the pathfinder happened to call setLayer.
 Bridge::Bridge(Object *bridgeObj) :
@@ -1263,7 +1263,7 @@ void TerrainLogic::enableWaterGrid( Bool enable )
 /** device independent terrain logic load.  If query is true, we are just loading it to get
 look at some data rather than running a game, so don't pass this load to the client. */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @probe Claude 19/08/2026 GX_SKIRMISH gate, same shape as the other map probes.
+// GeneralsX: GX_SKIRMISH gate, same shape as the other map probes.
 static Bool gxTLDiag(void)
 {
 	static Int s_on = -1;
@@ -1277,7 +1277,7 @@ static Bool gxTLDiag(void)
 
 Bool TerrainLogic::loadMap( AsciiString filename, Bool query )
 {
-	// GeneralsX @probe Claude 19/08/2026 On iOS a USER map never reaches W3DTerrainVisual::load,
+	// GeneralsX: On iOS a USER map never reaches W3DTerrainVisual::load,
 	// while an official map does - so the question is whether this function runs at all, and if so
 	// how far it gets. Print entry, the map-file open, and the hand-off to the visual.
 	if (gxTLDiag())
@@ -1291,7 +1291,7 @@ Bool TerrainLogic::loadMap( AsciiString filename, Bool query )
 		return FALSE;
 
 	// copy filename
-	// GeneralsX @bugfix Claude 19/08/2026 Same case fix as W3DTerrainVisual::load - the waypoint read
+	// GeneralsX: Same case fix as W3DTerrainVisual::load - the waypoint read
 	// below opens this path too, so it needs the real on-disk name on a case-sensitive volume.
 	if (TheMapCache != nullptr)
 		m_filenameString = TheMapCache->getPathOnDisk(filename);
@@ -1328,7 +1328,7 @@ Bool TerrainLogic::loadMap( AsciiString filename, Bool query )
 		}
 		theInputStream.close();
 	} catch (ErrorCode) {
-		// GeneralsX @bugfix Claude 06/10/2026 A damaged WaypointsList is a damaged map, not a legacy one: isValidFileType()
+		// GeneralsX: A damaged WaypointsList is a damaged map, not a legacy one: isValidFileType()
 		// above already keeps legacy files out of parse(), and the chunk readers now throw ERROR_CORRUPT_FILE_FORMAT where
 		// they used to read on past the data (DataChunk.cpp readChunkBytes). Eating it below started the match with half a
 		// waypoint graph; it goes to the start's damaged-map refusal (GameLogic::startNewGame) instead.
@@ -2532,11 +2532,11 @@ void TerrainLogic::changeWaterHeightOverTime( const WaterHandle *water,
 	// get the current height of the water
 	Real currentHeight = getWaterHeight( water );
 
-	// GeneralsX @bugfix Claude 06/10/2026 A change of no time to the same height was 0/0 = NaN per frame: update() never
+	// GeneralsX: A change of no time to the same height was 0/0 = NaN per frame: update() never
 	// finished it, the height became NaN and setWaterHeight's Int conversion gave INT_MIN on x64 and 0 on arm64 - Windows
 	// and Mac peers disagreed on the water level. That 0/0 now steps by 0, which update() finishes on the next frame (as it
 	// did for any positive time); every other step is the same division as before - a zero time to another height stays
-	// +-inf, a negative time keeps its step and its sign (Codex r1, r2) (sweep c057-07).
+	// +-inf, a negative time keeps its step and its sign (sweep c057-07).
 	const Real transitionFrames = static_cast<float>(LOGICFRAMES_PER_SECOND) * transitionTimeInSeconds;
 	const Real heightChange = finalHeight - currentHeight;
 
@@ -2768,7 +2768,7 @@ void TerrainLogic::flattenTerrain(Object *obj)
 			iMin.y = REAL_TO_INT_FLOOR(minY/MAP_XY_FACTOR);
 			iMax.x = REAL_TO_INT_FLOOR(maxX/MAP_XY_FACTOR);
 			iMax.y = REAL_TO_INT_FLOOR(maxY/MAP_XY_FACTOR);
-			// GeneralsX @performance Claude 01/10/2026 The row loops below started at 0, testing every row under the
+			// GeneralsX: The row loops below started at 0, testing every row under the
 			// shape; rows below iMin.y are a whole cell outside it and never matched, so start there. Same result, fewer
 			// rows (tsh batch2 #68, TheSuperHackers PR #3258, its row-0 clamp kept).
 			if (iMin.y < 0) iMin.y = 0;
@@ -2863,7 +2863,7 @@ void TerrainLogic::flattenTerrain(Object *obj)
 			iMin.y = REAL_TO_INT_FLOOR((pos->y-radius)/MAP_XY_FACTOR);
 			iMax.x = REAL_TO_INT_FLOOR((pos->x+radius)/MAP_XY_FACTOR);
 			iMax.y = REAL_TO_INT_FLOOR((pos->y+radius)/MAP_XY_FACTOR);
-			// GeneralsX @performance Claude 01/10/2026 The row loops below started at 0, testing every row under the
+			// GeneralsX: The row loops below started at 0, testing every row under the
 			// shape; rows below iMin.y are a whole cell outside it and never matched, so start there. Same result, fewer
 			// rows (tsh batch2 #68, TheSuperHackers PR #3258, its row-0 clamp kept).
 			if (iMin.y < 0) iMin.y = 0;
@@ -2960,7 +2960,7 @@ void TerrainLogic::createCraterInTerrain(Object *obj)
   iMin.y = REAL_TO_INT_FLOOR( ( pos->y - radius ) / MAP_XY_FACTOR );
   iMax.x = REAL_TO_INT_FLOOR( ( pos->x + radius ) / MAP_XY_FACTOR );
 	iMax.y = REAL_TO_INT_FLOOR( ( pos->y + radius ) / MAP_XY_FACTOR );
-	// GeneralsX @performance Claude 01/10/2026 The row loops below started at 0, testing every row under the
+	// GeneralsX: The row loops below started at 0, testing every row under the
 	// shape; rows below iMin.y are a whole cell outside it and never matched, so start there. Same result, fewer
 	// rows (tsh batch2 #68, TheSuperHackers PR #3258, its row-0 clamp kept).
 	if (iMin.y < 0) iMin.y = 0;
@@ -3027,19 +3027,19 @@ void TerrainLogic::xfer( Xfer *xfer )
 	if( version >= 2 )
 	{
 
-		// GeneralsX @bugfix Claude 06/10/2026 A load that fails from here on - a refusal, or a short read (even one that half-
-		// writes the count) - leaves no water entry for the failure path's game code to update: none at all (Codex r2, r3,
+		// GeneralsX: A load that fails from here on - a refusal, or a short read (even one that half-
+		// writes the count) - leaves no water entry for the failure path's game code to update: none at all (
 		// sweep c057-02).
 		try
 		{
 
 		// number of water entries in our update array
 		xfer->xferInt( &m_numWaterToUpdate );
-		// GeneralsX @bugfix Claude 06/10/2026 The loop below writes m_waterToUpdate[MAX_DYNAMIC_WATER] up to this count,
+		// GeneralsX: The loop below writes m_waterToUpdate[MAX_DYNAMIC_WATER] up to this count,
 		// and a negative one became ~4 billion iterations through the UnsignedInt index. Refuse a save outside the table
 		// (setWaterHeight never lets it pass MAX_DYNAMIC_WATER) (sweep c057-02).
 		if( xfer->getXferMode() == XFER_LOAD && ( m_numWaterToUpdate < 0 || m_numWaterToUpdate > MAX_DYNAMIC_WATER ) )
-			throw SC_INVALID_DATA;	// the catch below leaves no entry (Codex r1)
+			throw SC_INVALID_DATA;	// the catch below leaves no entry
 
 		// water update entry data
 		for( UnsignedInt i = 0; i < m_numWaterToUpdate; ++i )

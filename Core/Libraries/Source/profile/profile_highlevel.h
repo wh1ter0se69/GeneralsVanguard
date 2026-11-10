@@ -32,7 +32,7 @@
 #include <Utility/intrin_compat.h>
 #include <cstdint>
 
-// GeneralsX @bugfix Claude 27/07/2026 Never typedef __int64/_int64 on MSVC.
+// GeneralsX: Never typedef __int64/_int64 on MSVC.
 // They are BUILT-IN KEYWORDS there, not macros, so the #ifndef guard below is always
 // true and the typedef is a hard error: C2628 "'int64_t' followed by '__int64' is
 // illegal". These shims exist only for compilers that lack the Microsoft extension.

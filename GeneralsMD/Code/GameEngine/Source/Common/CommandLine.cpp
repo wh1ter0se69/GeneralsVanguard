@@ -35,7 +35,7 @@
 #include "Common/version.h"
 #include "Common/WorkingDirectory.h"
 #include "GameClient/ClientInstance.h"
-#include "GameClient/GXUserDataDir.h"	// GeneralsX @bugfix Claude 23/09/2026 -mod in the pre-23/09 folder
+#include "GameClient/GXUserDataDir.h"	// GeneralsX: -mod in the pre-23/09 folder
 #include "GameClient/TerrainVisual.h" // for TERRAIN_LOD_MIN definition
 #include "GameClient/GameText.h"
 #include "GameNetwork/NetworkDefs.h"
@@ -106,7 +106,7 @@ static void ConvertShortMapPathToLongMapPath(AsciiString &mapName)
 	if (!token.endsWithNoCase(".map"))
 	{
 		DEBUG_CRASH(("Invalid map name %s", mapName.str()));
-		return; // GeneralsX @bugfix Claude 01/10/2026 TheSuperHackers #3374 (tsh batch2 #53)
+		return; // GeneralsX: TheSuperHackers #3374 (tsh batch2 #53)
 	}
 	// remove the .map from the end.
 	token.truncateBy(4);
@@ -422,7 +422,7 @@ Int parseMapName(char *args[], int num)
 	return 1;
 }
 
-// GeneralsX @feature Claude 30/09/2026 -maxspeed: a -headless match with no human (the harness's -lanobserver AI matches)
+// GeneralsX: -maxspeed: a -headless match with no human (the harness's -lanobserver AI matches)
 // runs as fast as the CPU allows instead of at the network frame rate - the same tick sequence, CRC-identical to 1x
 // (Network::timeForNewFrame). Only noted here; applyMaxSpeed decides once the whole line is read, because what it may
 // do depends on -headless, -lanhost/-lanjoin and -lanwait, in any order.
@@ -439,7 +439,7 @@ Int parseMaxSpeed(char *args[], int num)
 // (parseReplay): its own mutex, so N run side by side and none holds the one the player's own game needs to start, and
 // its own 127.x address, so N bind the same two ports. setUpHeadlessLanRole refuses that mode because the peer then
 // advertises itself on loopback, out of reach of any other machine - which is exactly why it is limited to a match
-// that waits for no other machine: a host expecting a joiner, or a joiner, keeps the real NIC (Codex ffwd-r1). macOS
+// that waits for no other machine: a host expecting a joiner, or a joiner, keeps the real NIC. macOS
 // cannot bind 127.0.0.2, so parallel Mac runs keep scripts/ai/gx-portshift.dylib.
 static void applyMaxSpeed()
 {
@@ -475,7 +475,7 @@ Int parseHeadless(char *args[], int num)
 	extern bool DX8Wrapper_IsWindowed;
 	DX8Wrapper_IsWindowed = false;
 
-	// GeneralsX @bugfix Claude 25/09/2026 Same reason, for ReleaseCrash()'s dialog (Debug.h).
+	// GeneralsX: Same reason, for ReleaseCrash()'s dialog (Debug.h).
 	TheReleaseCrashHeadless = true;
 
 	return 1;
@@ -539,7 +539,7 @@ Int parseSetCwd(char *args[], int num)
 	return 1;
 }
 
-// GeneralsX @feature Claude 28/07/2026 Headless LAN host/join. See Common/HeadlessMatch.h.
+// GeneralsX: Headless LAN host/join. See Common/HeadlessMatch.h.
 //
 // These share parseReplay's preamble - no intro, no shell map - but deliberately NOT its
 // setMultiInstance(TRUE).
@@ -622,7 +622,7 @@ Int parseLanName(char *args[], int num)
 
 /// -lanlobby <name>: set the lobby's display title for a headless/scripted host.
 ///
-/// GeneralsX @feature Claude 16/08/2026 Mirrors -lanname, and exists for the same reason: the
+/// GeneralsX: Mirrors -lanname, and exists for the same reason: the
 /// lobby name is normally typed into PopupHostGame, which no harness can reach, so without this
 /// the field could only ever be exercised by a human with a mouse. GameInfo::setLobbyName still
 /// sanitises and caps whatever arrives here, so a harness cannot put a delimiter on the wire.
@@ -666,7 +666,7 @@ Int parseLanAI(char *args[], int num)
 		const char *colon = strchr(spec + 2, ':');
 		if (colon != nullptr && colon[1] != '\0')
 			parsed.faction = AsciiString(colon + 1);
-		// GeneralsX @bugfix Claude 11/08/2026 A trailing colon with nothing after it - "Hx2:", the
+		// GeneralsX: A trailing colon with nothing after it - "Hx2:", the
 		// shape a typo or a shell-mangled argument produces - left faction EMPTY, and
 		// HeadlessMatch.cpp gates all faction validation on isNotEmpty(). So the slot silently fell
 		// back to a random faction while the run looked identical to success. That is precisely the
@@ -730,7 +730,7 @@ Int parseLanSeed(char *args[], int num)
 	exit(1);
 }
 
-// GeneralsX @feature Claude 29/07/2026 Escape hatch for the over-capacity lobby refusal added in
+// GeneralsX: Escape hatch for the over-capacity lobby refusal added in
 // HeadlessMatch. The default is to refuse, because a lobby with more players than the map has start
 // positions silently starves the surplus - they get startPos=-1, no Command Center, and their AI
 // owns nothing, while the run still reports the full AI count and passes. Every "8-player" result
@@ -742,7 +742,7 @@ Int parseLanOverfill(char *args[], int num)
 	return 1;
 }
 
-// GeneralsX @feature Claude 24/09/2026 Observer seats for the headless driver (see GlobalData.h).
+// GeneralsX: Observer seats for the headless driver (see GlobalData.h).
 Int parseLanObserver(char *args[], int num)
 {
 	TheWritableGlobalData->m_lanObserver = TRUE;
@@ -822,7 +822,7 @@ Int parseYRes(char *args[], int num)
 //
 // Lifted out of the debug block rather than duplicated so there is one definition.
 //=============================================================================
-// GeneralsX @feature Claude 27/09/2026 THE max-FPS setting: the launcher composes -fps N from its one
+// GeneralsX: THE max-FPS setting: the launcher composes -fps N from its one
 // field, and 0 means unlimited (Common/FpsLimitPolicy.h). A non-negative whole number or nothing: atoi()
 // turned "fast" or "-60" into 0, which is now a real value - unlimited - so a typo must not select it.
 static bool s_fpsLimitArgument = false;
@@ -1409,7 +1409,7 @@ Int parseIgnoreStackTrace(char *args[], int num)
 }
 #endif
 
-// GeneralsX @feature Claude 27/09/2026 The same setting as -fps 0: unlimited. It used to switch the
+// GeneralsX: The same setting as -fps 0: unlimited. It used to switch the
 // limiter off, a second setting beside the number. The launcher spells its "0 = Unlimited" this way,
 // because an engine from before this change caps -fps 0 at the tick rate but uncaps -noFPSLimit.
 Int parseNoFPSLimit(char *args[], int num)
@@ -1457,7 +1457,7 @@ Int parseMod(char *args[], Int num)
 		else
 		{
 			modPath.format("%s%s", TheGlobalData->getPath_UserData().str(), args[1]);
-			// GeneralsX @bugfix Claude 23/09/2026 A mod still in the pre-23/09 Windows folder, which the
+			// GeneralsX: A mod still in the pre-23/09 Windows folder, which the
 			// migration does not copy. Read only; empty off Windows. See GameClient/GXUserDataDir.h.
 			const std::string &legacy = gxLegacyUserDataDirForMods();
 			if (!legacy.empty() && !TheLocalFileSystem->doesFileExist(modPath.str()))
@@ -1556,7 +1556,7 @@ static CommandLineParam paramsForStartup[] =
 	// You can also include wildcards. The file must be in the replay folder or in a subfolder.
 	{ "-replay", parseReplay },
 
-	// GeneralsX @feature Claude 28/07/2026 Headless LAN host/join. Combine with -headless to
+	// GeneralsX: Headless LAN host/join. Combine with -headless to
 	// host or join a match with no UI, on this LAN or across the internet by IP/hostname.
 	// Host:   -headless -lanhost soak -lanmap "maps/Tournament Desert/Tournament Desert.map" -lanai Hx1 -lanwait 1 -lanframes 20000
 	// Joiner: -headless -lanjoin <host-ip> -lanframes 20000
@@ -1832,7 +1832,7 @@ static void parseCommandLine(const CommandLineParam* params, int numParams, Bool
 		token = nextParam(nullptr, "\" ");
 	}
 #else
-	// GeneralsX @bugfix BenderAI 19/02/2026 - Include argv[0] (program name) to match the Windows
+	// GeneralsX: Include argv[0] (program name) to match the Windows
 	// GetCommandLineA() behavior where the exe path appears at argv[0]. The parsing loop starts at
 	// arg=1, so without argv[0] as a placeholder all real flags end up at argv[0] and are skipped.
 	extern char **__argv;
@@ -1882,7 +1882,7 @@ static void parseCommandLine(const CommandLineParam* params, int numParams, Bool
 
 		// Look at arg #i
 		Bool found = false;
-		// GeneralsX @bugfix Copilot 17/05/2026 Accept GNU-style "--flag" aliases for existing "-flag" command line options.
+		// GeneralsX: Accept GNU-style "--flag" aliases for existing "-flag" command line options.
 		const char *normalizedArg = argv[arg];
 		if (normalizedArg != nullptr && normalizedArg[0] == '-' && normalizedArg[1] == '-')
 		{
@@ -1943,7 +1943,7 @@ void CommandLine::parseCommandLineForStartup()
 		TheWritableGlobalData->m_commandLineData.m_parsedArguments);
 	applyMaxSpeed();	// GeneralsX @feature before ClientInstance::initialize (WinMain), which fixes the instance mode
 
-	// GeneralsX @build Claude 21/09/2026 Windows only, deliberately diverging from upstream.
+	// GeneralsX: Windows only, deliberately diverging from upstream.
 	//
 	// Upstream falls back to the executable's own directory when no -setCwd/-useCwd was given,
 	// which is right on Windows, where the exe sits in the data root. It is wrong everywhere else

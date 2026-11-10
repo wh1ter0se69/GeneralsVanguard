@@ -92,14 +92,14 @@ protected:
 	Int m_numExtraBlendTiles;		///<number of blend tiles in m_extraBlendTilePositions.
 	Int	m_numVisibleExtraBlendTiles; ///<number rendered last frame.
 	Int m_extraBlendTilePositionsSize; //<total size of array including unused memory.
-	// GeneralsX @performance Claude 08/10/2026 getStaticDiffuse of each extra blend tile's four corners, kept from the first
+	// GeneralsX: getStaticDiffuse of each extra blend tile's four corners, kept from the first
 	// frame renderExtraBlendTiles draws the tile until an input changes. pos is the packed tile position it was lit for,
 	// -1 when empty. Indexed like m_extraBlendTilePositions.
 	struct ExtraBlendLight { Int pos; UnsignedInt diffuse[4]; };
 	std::vector<ExtraBlendLight> m_extraBlendLight;
 	DX8VertexBufferClass **m_vertexBufferTiles; ///<collection of smaller vertex buffers that make up 1 heightmap
 	VERTEX_FORMAT *m_vertexBufferBackup; ///< In memory copy of the vertex buffer data for quick update of dynamic lighting.
-	// GeneralsX @performance Claude 24/09/2026 World bounds of each VB tile, read from its backup vertices when
+	// GeneralsX: World bounds of each VB tile, read from its backup vertices when
 	// updateBlock rewrote it, so a tile outside the camera is not drawn (isVBTileCulled).
 	struct VBTileBounds { AABoxClass box; Bool dirty; };
 	VBTileBounds *m_vbTileBounds;

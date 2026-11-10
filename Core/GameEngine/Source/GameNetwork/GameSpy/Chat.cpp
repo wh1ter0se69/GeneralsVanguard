@@ -385,7 +385,7 @@ Int GameSpyInfo::addText( UnicodeString message, Color c, GameWindow *win )
 		static AudioEventRTS messageFromChatSound("GUIMessageReceived");
 		TheAudio->addAudioEvent(&messageFromChatSound);
 
-		// GeneralsX @security Claude 06/10/2026 message is composed chat text (a peer's name and words); message() would use it as a
+		// GeneralsX: message is composed chat text (a peer's name and words); message() would use it as a
 		// printf format, so "%s%n" in a chat line read and wrote through missing arguments.
 		TheInGameUI->messageNoFormat(message);
 	}

@@ -210,7 +210,7 @@ void WeaponSet::crc( Xfer *xfer )
 	* 2: TheSuperHackers @tweak Upgrade damage type flags from integer to BitFlags for Generals.
 	*    Zero Hour already had this at version 1.
 	* 3: TheSuperHackers @bugfix bobtista 14/08/2026 Now serialize m_hasPitchLimit instead of m_hasDamageWeapon twice
-	*    (GeneralsX @bugfix Claude 01/10/2026 hand-ported from TheSuperHackers #3145, 722dbea8b)
+	*    (GeneralsX: hand-ported from TheSuperHackers #3145, 722dbea8b)
 	*/
 // ------------------------------------------------------------------------------------------------
 void WeaponSet::xfer( Xfer *xfer )
@@ -285,9 +285,9 @@ void WeaponSet::xfer( Xfer *xfer )
 			xfer->xferSnapshot(m_weapons[i]);
 		}
 	}
-	// GeneralsX @security Claude 06/10/2026 A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
-	// range (Codex net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
-	// kept: a load that throws still runs the post-processing pass, which can read it (Codex weapon-slot-r2).
+	// GeneralsX: A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
+	// range (net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
+	// kept: a load that throws still runs the post-processing pass, which can read it.
 	WeaponSlotType xferCurWeapon = m_curWeapon;
 	xfer->xferUser(&xferCurWeapon, sizeof(xferCurWeapon));
 	if ((Int)xferCurWeapon < 0 || (Int)xferCurWeapon >= WEAPONSLOT_COUNT)
@@ -1085,7 +1085,7 @@ UnsignedInt WeaponSet::getMostPercentReadyToFireAnyWeapon() const
 // until told otherwise.
 Bool WeaponSet::setWeaponLock( WeaponSlotType weaponSlot, WeaponLockType lockType )
 {
-	// GeneralsX @security Claude 06/10/2026 The slot can come straight off the wire: MSG_DO_WEAPON(_AT_OBJECT/_AT_LOCATION)
+	// GeneralsX: The slot can come straight off the wire: MSG_DO_WEAPON(_AT_OBJECT/_AT_LOCATION)
 	// and MSG_SWITCH_WEAPONS cast an order's integer to WeaponSlotType (GameLogicDispatch.cpp onDoWeapon & co.), and
 	// m_weapons has WEAPONSLOT_COUNT entries - a forged slot was read past it, and kept as m_curWeapon when what it read
 	// was non-null, on every peer (sweep c099-01, S1). Refused here, where every caller's slot arrives, and the same way

@@ -89,7 +89,7 @@ SpectreGunshipUpdateModuleData::SpectreGunshipUpdateModuleData()
 /*************/  m_gunshipOrbitRadius           = 250.0f;
   m_strafingIncrement = 20.0f;
   m_orbitInsertionSlope = 0.7f;
-  m_howitzerFiringRate = 10;	// GeneralsX @feature Claude 05/10/2026 frames at either rate, as Generals Online (was 10 retail frames); every stock Spectre sets it
+  m_howitzerFiringRate = 10;	// GeneralsX: frames at either rate, as Generals Online (was 10 retail frames); every stock Spectre sets it
   m_howitzerFollowLag = 0;
   m_randomOffsetForHowitzer = 20.0f;
 }
@@ -628,7 +628,7 @@ UpdateSleepTime SpectreGunshipUpdate::update()
             Coord3D delta = m_positionToShootAt;
             delta.sub( m_gattlingTargetPosition );
             Real dist = delta.length();
-            // GeneralsX @feature Claude 05/10/2026 GENERALS ONLINE PARITY: StrafingIncrement is distance per frame and GO keeps it
+            // GeneralsX: GENERALS ONLINE PARITY: StrafingIncrement is distance per frame and GO keeps it
             // whole at 60 Hz, so the gattling's aim point sweeps twice retail's speed and the howitzer's follow counter (it may fire
             // once the aim point has caught up for HowitzerFollowLag frames) ticks on GO's frames. Was halved for retail speed (23/09).
             if ( dist < data->m_strafingIncrement )

@@ -323,7 +323,7 @@ void SelectionTranslator::recordPendingTeamAssign( Int group, const GameMessage 
 	                               : TheGameLogic->getFrame() + 1;
 	pending.group = group;
 
-	// GeneralsX @bugfix Claude 05/10/2026 Every id, not getArgumentCount()'s UnsignedByte: a team of 1000 reported 232
+	// GeneralsX: Every id, not getArgumentCount()'s UnsignedByte: a team of 1000 reported 232
 	// (GameClientDispatch.cpp sends it in parts, so the squad really becomes all 1000).
 	for (Int i = 0; createMsg->getArgumentDataType(i) == ARGUMENTDATATYPE_OBJECTID; ++i)
 		pending.objects.push_back(createMsg->getArgument(i)->objectID);
@@ -779,7 +779,7 @@ GameMessageDisposition SelectionTranslator::onMouseLeftDoubleClick(MAYBE_UNUSED 
 		selectMore->appendBooleanArgument(FALSE);
 		for (DrawableListIt it = listOfSelectedDrawables.begin(); it != listOfSelectedDrawables.end(); ++it) {
 			Drawable *draw = *it;
-			// GeneralsX @bugfix Claude 14/09/2026 Re-appending the prior selection after a
+			// GeneralsX: Re-appending the prior selection after a
 			// double-click must use the mass-selectable test, not the plain selectable test:
 			// isSelectable() lets objects that may never be part of a multi-unit group back
 			// into the group. Upstream TheSuperHackers PR #3169, sha 4f9fafe62.
@@ -1124,7 +1124,7 @@ GameMessageDisposition SelectionTranslator::onMouseLeftClick(MAYBE_UNUSED const 
 					msg.format("Item %s %08x selected for debugging",draw->getTemplate()->getName().str(),TheObjectIDToDebug);
 					UnicodeString msgu;
 					msgu.translate(msg);
-					TheInGameUI->messageNoFormat(msgu);	// GeneralsX @security Claude 06/10/2026 msgu holds a template name (map.ini can define one)
+					TheInGameUI->messageNoFormat(msgu);	// GeneralsX: msgu holds a template name (map.ini can define one)
 
 					return DESTROY_MESSAGE;
 				}
@@ -1274,7 +1274,7 @@ GameMessageDisposition SelectionTranslator::onMetaCreateTeam(MAYBE_UNUSED const 
 			drawable = drawable->getNextDrawable();
 		}
 
-		// GeneralsX @bugfix Claude 31/07/2026 The squad does not change until the logic
+		// GeneralsX: The squad does not change until the logic
 		// dispatches that message. Remember what it is going to become so a select/add/view
 		// before then does not read the old contents. TheSuperHackers/GeneralsGameCode#102
 		recordPendingTeamAssign(group, newmsg);

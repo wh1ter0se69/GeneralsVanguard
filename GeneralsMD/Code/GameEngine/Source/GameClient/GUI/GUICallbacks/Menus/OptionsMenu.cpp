@@ -198,9 +198,9 @@ static GameWindow *   checkNoDynamicLod   = nullptr;
 
 static NameKeyType    checkUnlockFpsID = NAMEKEY_INVALID;
 static GameWindow *   checkUnlockFps   = nullptr;
-// GeneralsX @bugfix Claude 27/09/2026 The checkbox shows the cap, which is where "unlimited" lives now: 0 (-fps 0,
+// GeneralsX: The checkbox shows the cap, which is where "unlimited" lives now: 0 (-fps 0,
 // -noFPSLimit, a legacy FPSLimit = no) is stored as the pacer's Uncapped value while m_useFpsLimit stays on
-// (Common/FpsLimitPolicy.h). It is display-only - the write below has been commented out since retail (Codex W7-r9).
+// (Common/FpsLimitPolicy.h). It is display-only - the write below has been commented out since retail.
 static Bool gxFpsUnlocked()
 {
 	return !TheGlobalData->m_useFpsLimit
@@ -246,7 +246,7 @@ static void setDefaults()
 	// language filter
 	GadgetCheckBoxSetChecked( checkLanguageFilter, TRUE );
 
-	// GeneralsX @feature Claude 28/09/2026 Remastered: the box only, as for every control here; Accept applies it.
+	// GeneralsX: Remastered: the box only, as for every control here; Accept applies it.
 	if (checkRemastered)
 		GadgetCheckBoxSetChecked( checkRemastered, GXGraphics::platformDefault() );
 
@@ -418,7 +418,7 @@ static void saveOptions()
 	}
 
 	//-------------------------------------------------------------------------------------------------
-	// GeneralsX @feature Claude 28/09/2026 Remastered graphics (GXGraphicsSettings.h). Outside the Custom block below
+	// GeneralsX: Remastered graphics (GXGraphicsSettings.h). Outside the Custom block below
 	// and never through GlobalData or pref: GXGraphics owns its own file, and writes it only when the value changes.
 	if (checkRemastered)
 		GXGraphics::setRemastered( GadgetCheckBoxIsChecked( checkRemastered ) );
@@ -510,7 +510,7 @@ static void saveOptions()
 		GadgetComboBoxGetSelectedPos(comboBoxLANIP, &index);
 		if (index>=0 && TheGlobalData)
 		{
-			// GeneralsX @bugfix BenderAI 12/02/2026 - Cast via uintptr_t for 64-bit
+			// GeneralsX: Cast via uintptr_t for 64-bit
 			ip = static_cast<UnsignedInt>(reinterpret_cast<uintptr_t>(GadgetComboBoxGetItemData(comboBoxLANIP, index)));
 			TheWritableGlobalData->m_defaultIP = ip;
 			pref->setLANIPAddress(ip);
@@ -523,7 +523,7 @@ static void saveOptions()
 		GadgetComboBoxGetSelectedPos(comboBoxOnlineIP, &index);
 		if (index>=0)
 		{
-			// GeneralsX @bugfix BenderAI 12/02/2026 - Cast via uintptr_t for 64-bit
+			// GeneralsX: Cast via uintptr_t for 64-bit
 			ip = static_cast<UnsignedInt>(reinterpret_cast<uintptr_t>(GadgetComboBoxGetItemData(comboBoxOnlineIP, index)));
 			pref->setOnlineIPAddress(ip);
 		}
@@ -871,7 +871,7 @@ static void saveOptions()
 	GadgetComboBoxGetSelectedPos( comboBoxResolution, &index );
 	Int xres, yres, bitDepth;
 
-	// GeneralsX @bugfix Claude 19/08/2026 Save the resolution in POINTS, not render PIXELS.
+	// GeneralsX: Save the resolution in POINTS, not render PIXELS.
 	//
 	// newDispSettings below is filled from getDisplayModeDescription, which is the offered mode list
 	// and is in POINTS. getWidth()/getHeight() are the RENDER resolution, which on a Retina Mac is
@@ -903,7 +903,7 @@ static void saveOptions()
 			{
 				dispChanged = TRUE;
 
-				// GeneralsX @bugfix Claude 14/09/2026 Read the EFFECTIVE size back; do not assume
+				// GeneralsX: Read the EFFECTIVE size back; do not assume
 				// the request survived.
 				//
 				// setDisplayMode can reduce a request that no attached display is able to present -
@@ -945,7 +945,7 @@ static void saveOptions()
 		}
 		else
 		{
-			// GeneralsX @bugfix Claude 11/08/2026 The selection already matches the running mode,
+			// GeneralsX: The selection already matches the running mode,
 			// but the stored preference may not: a startup migration (a no-longer-offered
 			// fullscreen resolution snapped to the nearest offered one) changes only the runtime
 			// globals, never Options.ini. Record the running value on an accepted options screen
@@ -1048,7 +1048,7 @@ void OptionsMenuInit( WindowLayout *layout, void *userData )
 
 	// TheSuperHackers @tweak 26/07/2026 The Send Delay feature was obsoleted because it only worked around
 	// a source port remapping bug in early 2000s Netgear firewalls, and its checkbox was hidden (ENABLE_GUI_HACKS).
-	// GeneralsX @feature Claude 28/09/2026 The slot is the Remastered graphics switch now (GXGraphicsSettings.h): a
+	// GeneralsX: The slot is the Remastered graphics switch now (GXGraphicsSettings.h): a
 	// retail checkbox, drawn with retail art where the layout already has room, and the only in-game control an iPad
 	// can reach (five-finger tap = ESC, then Options). Live in a match; not in the in-match disable list below. The
 	// label is short on purpose: a checkbox's text overflows to the right, not clipped, and the network section ends
@@ -1157,7 +1157,7 @@ void OptionsMenuInit( WindowLayout *layout, void *userData )
 
 	initLabelVersion();
 
-	// GeneralsX @bugfix Claude 28/09/2026 (Codex seam0948-r6) The online pick first, from the prefs as saved: the
+	// GeneralsX: The online pick first, from the prefs as saved: the
 	// LAN block below may rewrite IPAddress with the VPN-first head, and GameSpy must not inherit it.
 	const UnsignedInt onlineSelection = pref->getOnlineIPSelection();
 
@@ -1309,7 +1309,7 @@ void OptionsMenuInit( WindowLayout *layout, void *userData )
 	// populate resolution modes
 	GadgetComboBoxReset(comboBoxResolution);
 	Int numResolutions = TheDisplay->getDisplayModeCount();
-	// GeneralsX @bugfix Claude 19/08/2026 POINTS, not getWidth()/getHeight().
+	// GeneralsX: POINTS, not getWidth()/getHeight().
 	//
 	// These two are matched below against the offered mode list, and that list is in POINTS (see
 	// SDL3_GetRenderPixelDensity in W3DDisplay.cpp for the split). getWidth()/getHeight() carry
@@ -1647,7 +1647,7 @@ WindowMsgHandledType OptionsMenuSystem( GameWindow *window, UnsignedInt msg,
 			buttonAccept = TheNameKeyGenerator->nameToKey( "OptionsMenu.wnd:ButtonAccept" );
 			buttonKeyboardOptionsMenu = TheNameKeyGenerator->nameToKey( "OptionsMenu.wnd:ButtonKeyboardOptions" );
 
-			// GeneralsX @tweak Claude 28/07/2026 Removed the runtime-created "Debug" button.
+			// GeneralsX: Removed the runtime-created "Debug" button.
 			//
 			// It was added dynamically here because OptionsMenu.wnd in WindowZH.big has no such
 			// control, which meant it could only be positioned by hardcoded coordinates - it was
@@ -1779,7 +1779,7 @@ WindowMsgHandledType OptionsMenuSystem( GameWindow *window, UnsignedInt msg,
 			{
 				TheShell->push( "Menus/KeyboardOptionsMenu.wnd" );
 			}
-			// GeneralsX @tweak Claude 28/07/2026 Handler removed with the button that fed it - see
+			// GeneralsX: Handler removed with the button that fed it - see
 			// GWM_CREATE above. DebugMenuOpen() is still called from the floating debug overlay.
 			else if(controlID == checkDrawAnchorID )
       {

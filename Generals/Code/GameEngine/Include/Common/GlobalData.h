@@ -123,7 +123,7 @@ public:
 	// Run game without graphics, input or audio.
 	Bool m_headless;
 
-	// GeneralsX @feature BenderAI 21/04/2026 Allow user to opt out of the in-game update checker
+	// GeneralsX: Allow user to opt out of the in-game update checker
 	Bool m_checkForUpdates;
 
 	Bool m_windowed;
@@ -374,7 +374,7 @@ public:
 	AsciiString m_shellMapName;				///< Holds the shell map name
 	Bool m_shellMapOn;								///< User can set the shell map not to load
 	Real m_shellMapSoundVolumeScale;	///< Extra attenuation applied to shell map world SFX only (1.0 = retail). Menu music and UI sounds are never affected.
-	// GeneralsX @bugfix Claude 10/09/2026 Camera height limits as parsed from the FIRST GameData
+	// GeneralsX: Camera height limits as parsed from the FIRST GameData
 	// block, before SagePatch.ini, a loose Data\INI\GameData, Options.ini (View::init) or the Extras
 	// and Debug menus move them. Used for the shell map only. Runtime-only: not INI keys, not CRC'd,
 	// not xfer'd, and deliberately absent from BOTH field parse tables.
@@ -590,7 +590,7 @@ private:
 
 	static const FieldParse s_GlobalDataFieldParseTable[];
 
-	// GeneralsX @bugfix Claude 27/07/2026 Restricted field table for SagePatch.ini.
+	// GeneralsX: Restricted field table for SagePatch.ini.
 	//
 	// SagePatch.ini is auto-created in the user data directory and opens a "GameData" block, which
 	// meant it could set ANY field in s_GlobalDataFieldParseTable - including simulation constants.

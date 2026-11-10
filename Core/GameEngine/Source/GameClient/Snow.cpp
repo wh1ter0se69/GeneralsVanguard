@@ -55,17 +55,17 @@ void SnowManager::updateIniSettings()
 {
 	Real *dst=m_startingHeights;
 	//initialize a table of random starting positions for each particle.
-	// GeneralsX @bugfix Claude 06/10/2026 The Weather block's snow values come from any INI, a map's map.ini included,
+	// GeneralsX: The Weather block's snow values come from any INI, a map's map.ini included,
 	// and this runs as soon as one is parsed, snow on or not. A box below 1 divided by zero in the modulus below on every
 	// peer that loaded the map, one past Int's range made the conversion undefined, and W3DSnow turns density and the
 	// frequency scales into Int emitter counts, Int cube extents (camera position x density, camera up to 100000) and
 	// Fast_Sin phases. The limits keep all of those inside Int: density positive (0.001 if not) and at most 100, the
 	// cube's particle count (emitters across, squared) below 2^31, frequency scales within +-100. Shipped and community
 	// maps use boxes of 50-400, densities of 0.1-4 and frequency scales of 0-3.2, far inside them.
-	// GeneralsX @bugfix Claude 06/10/2026 Fitting Int was not enough: W3DSnow walks every emitter of the box around the
+	// GeneralsX: Fitting Int was not enough: W3DSnow walks every emitter of the box around the
 	// camera each frame, clipped only by the visible terrain box widened by SnowAmplitude, so a box inside the view (or any
 	// box with a large amplitude) costs (emitters across)^2 particles a frame - 1.6 billion for a 400 box at density 100,
-	// a client freeze that stalls the lockstep match (batch-0958 Codex r3-full). The box is thinned to at most 1,024
+	// a client freeze that stalls the lockstep match. The box is thinned to at most 1,024
 	// emitters across (~1M particles). The heaviest real map is 400 across (box 100 x density 4; 167 Weather blocks in the
 	// shipped INIs and 1,222 community maps), so every real map keeps its spacing.
 	const Real kMaxBoxSize = 100000.0f, kMinDensity = 0.001f, kMaxDensity = 100.0f, kMaxEmittersAcross = 1024.0f;
@@ -102,9 +102,9 @@ void SnowManager::updateIniSettings()
 	m_amplitude	= TheWeatherSetting->m_snowAmplitude;
 	m_pointSize = TheWeatherSetting->m_snowPointSize;
 	m_quadSize	= TheWeatherSetting->m_snowQuadSize;
-	// GeneralsX @bugfix Claude 06/10/2026 W3DSnow widens its clip box by amplitude + quad size and converts the clipped
-	// edges to Int emitter counts: a large negative amplitude turned the clip inside out and overflowed those Ints (Codex
-	// mh2-r1). Both are held to 0..1000 world units; shipped and community maps use amplitudes of 0-5 and quads of 0.1-0.5.
+	// GeneralsX: W3DSnow widens its clip box by amplitude + quad size and converts the clipped
+	// edges to Int emitter counts: a large negative amplitude turned the clip inside out and overflowed those Ints.
+	// Both are held to 0..1000 world units; shipped and community maps use amplitudes of 0-5 and quads of 0.1-0.5.
 	const Real kMaxOverscan = 1000.0f;
 	if (!(m_amplitude >= 0.0f))
 		m_amplitude = 0.0f;
@@ -171,7 +171,7 @@ void INI::parseWeatherDefinition( INI *ini )
 		TheWeatherSetting = newInstance(WeatherSetting);
 	} else if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES) {
 		WeatherSetting* ws = (WeatherSetting*) (TheWeatherSetting.getNonOverloadedPointer());
-		// GeneralsX @bugfix Claude 09/10/2026 Copy the FINAL override (INIWater.cpp's twin): a second Weather block closed a loop.
+		// GeneralsX: Copy the FINAL override (INIWater.cpp's twin): a second Weather block closed a loop.
 		ws = (WeatherSetting*) (ws->friend_getFinalOverride());
 		WeatherSetting* wsOverride = newInstance(WeatherSetting);
 		*wsOverride = *ws;

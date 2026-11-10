@@ -184,7 +184,7 @@ Shadow *W3DShadowManager::addShadow( RenderObjClass *robj, Shadow::ShadowTypeInf
 	if (shadowInfo)
 		type = shadowInfo->m_type;
 
-	// GeneralsX @bugfix Copilot 11/05/2026 ShadowType is bitmask; route by mask instead of exact enum value.
+	// GeneralsX: ShadowType is bitmask; route by mask instead of exact enum value.
 	if (type & SHADOW_VOLUME)
 	{
 		if (TheW3DVolumetricShadowManager)

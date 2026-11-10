@@ -101,7 +101,7 @@ public:
 	virtual UpdateSleepTime update() override;
 
 #if GX_LOGIC_60HZ
-	// GeneralsX @feature Claude 05/10/2026 GENERALS ONLINE PARITY: GO times deploying and packing in its 30 Hz "legacy"
+	// GeneralsX: GENERALS ONLINE PARITY: GO times deploying and packing in its 30 Hz "legacy"
 	// frames (frame / 2, DeployStyleAIUpdate.cpp), so the pack and unpack times are halved too. A deploy then ends on an
 	// even frame, the frame GO's every-second-frame turret (TurretAI::updateTurretAI) can aim on, as in GO.
 	UnsignedInt getUnpackTime()					const { return getDeployStyleAIUpdateModuleData()->m_unpackTime / 2; }

@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-C 11/10/2026 WS-C week 2: BC1/BC2/BC3 CPU decode (see GxDecode.h). Bit layouts: Khronos Data
+// GeneralsX: WS-C week 2: BC1/BC2/BC3 CPU decode (see GxDecode.h). Bit layouts: Khronos Data
 // Format Specification "S3TC Compressed Texture Image Formats"; colour rounding as the D3D reference ((2a+b+1)/3) - a GPU may
 // round the interpolants differently, which is why the tests compare against the GPU's own decode with a tolerance.
 #include "GxDecode.h"

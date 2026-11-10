@@ -1,5 +1,5 @@
-// GeneralsX @feature Claude 17/10/2026 THE REMASTERED GROUND's three ps.1.1 programs, created by W3DDevice/GameClient/TerrainTex.cpp
-// (gxgEnsureDevice). Moved here from TerrainTex.cpp by E · water-live-native-port 21/10/2026 (R-G1, Codex wnp-r2) so the native
+// GeneralsX: THE REMASTERED GROUND's three ps.1.1 programs, created by W3DDevice/GameClient/TerrainTex.cpp
+// (gxgEnsureDevice). Moved here from TerrainTex.cpp by E · water-live-native-port 21/10/2026 (R-G1) so the native
 // renderer's catalogue test (GXRender/Pipeline/tests/gx_cs_test.cpp) compares its ports with these COMPILED arrays, as it does for
 // live water's (GXWaterLive.h) - a text reader of a .cpp can be fooled by an #if 0 copy or a commented-out token, a compiler cannot.
 // The native catalogue ports them as gx:ground-base / -mult / -mult-lite (GxCustomCatalog.h, gx_cs_ps.frag cases 18-20): a change
@@ -57,7 +57,7 @@ static const unsigned kGxGroundMultPs[] = {
 	0x00000005, 0x810F0000, 0x80E40000, 0x80E40001,
 	0x0000FFFF
 };
-// GeneralsX @feature Claude 17/10/2026 MULT_LITE, governor step 1 (GXGroundSteps.h): MULT's t0/t1 declarations and its first two
+// GeneralsX: MULT_LITE, governor step 1 (GXGroundSteps.h): MULT's t0/t1 declarations and its first two
 // instructions, token for token, and nothing else - no detail grain, no macro variation, half the samples of the extra pass.
 // Drawn with the blend DESTCOLOR/ZERO (dest *= src), it is the product step 0 draws with those two layers at neutral: step 0's
 // dest *= cloud*noise' x (2 x detail') x (2 x macro'), and (2 x 0.5) x (2 x 0.5) = 1.

@@ -511,10 +511,10 @@ void AssaultTransportAIUpdate::xfer( Xfer *xfer )
 
 	xfer->xferInt( &m_currentMembers );
 
-	// GeneralsX @bugfix Claude 18/10/2026 The same bound Zero Hour's copy checks (its GeneralsX @bugfix above the loop):
+	// GeneralsX: The same bound Zero Hour's copy checks (its GeneralsX @bugfix above the loop):
 	// m_currentMembers comes straight off the save stream and bounds the writes into m_memberIDs[], m_memberHealing[]
 	// and, since xfer version 2 (#3148), m_newMember[], each MAX_TRANSPORT_SLOTS long. The runtime never holds a count
-	// outside [0, MAX_TRANSPORT_SLOTS], so a save that does is rejected (Codex tsh1018-b-sec-r1 P1).
+	// outside [0, MAX_TRANSPORT_SLOTS], so a save that does is rejected.
 	if( m_currentMembers < 0 || m_currentMembers > MAX_TRANSPORT_SLOTS )
 	{
 		DEBUG_CRASH(( "AssaultTransportAIUpdate::xfer - m_currentMembers %d is outside [0,%d].", m_currentMembers, MAX_TRANSPORT_SLOTS ));

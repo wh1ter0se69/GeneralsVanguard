@@ -32,10 +32,10 @@
 #include "Common/Snapshot.h"
 #if defined(GX_TEST_INSTRUMENTS)
 #include <cstdlib>
-/// GeneralsX @test Claude 03/11/2026 t2-cheap (test-instruments builds only): T2's OWN diagnostics - every [GXTAA] line and the scans that
+/// GeneralsX: t2-cheap (test-instruments builds only): T2's OWN diagnostics - every [GXTAA] line and the scans that
 /// only feed them (census, plane_gone, engageable, auto_air, cover) - run unless GX_TAA_DIAG=0. Off changes no decision: those blocks
 /// read the game and write stderr (and a log-only list, m_gxAirPrevRaid, that nothing saves, CRCs or reads); the engageable scan's
-/// damage estimate also refreshes caches every reader refreshes itself (Weapon::getStatus's m_status, armor - not CRC'd; Codex
+/// damage estimate also refreshes caches every reader refreshes itself (Weapon::getStatus's m_status, armor - not CRC'd;
 /// t2cheap-r1 P3). The [GXHOOK] timer stays on either way. A release build has none of this code.
 inline bool gxTaaDiagOn()
 {
@@ -155,7 +155,7 @@ public:
 	Bool m_reinforcement;						///< True if it is a unit to reinforce an existing team.
 	ObjectID m_reinforcementID;			///< True if it is a unit to reinforce an existing team.
 
-	// GeneralsX @performance Claude 23/09/2026 Memo of TheScriptEngine->findScriptByName(production condition), which is a linear
+	// GeneralsX: Memo of TheScriptEngine->findScriptByName(production condition), which is a linear
 	// scan of every side's scripts and ran every frame per queued/ready team. Runtime-only: not xfer'd or CRC'd, re-resolved
 	// when the condition name changes (m_team can be reassigned). Script lists are only replaced at map load/game setup.
 	const Script *getProductionConditionScript();
@@ -227,7 +227,7 @@ public: // AIPlayer interface, may be overridden by AISkirmishPlayer.  jba.
 	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): an AA guard on its way back into the tunnels after its assigned aircraft (the tunnel
 	/// guard's Return state then turns back for nothing - wh1ter0se 27/10: "pop and then instantly go back in").
 	Bool gxAirReturning(ObjectID unit) const;
-	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2, Codex t2-engine-r3 #14): with the ACTING watch on, a member of the air-watch team never
+	/// GeneralsX 27/10/2026 (ai-pro-rules-2 T2): with the ACTING watch on, a member of the air-watch team never
 	/// takes an aircraft as its own idle-mood attack target (AIIdleState) - every attack order at an aircraft is an assignment
 	Bool gxAirWatchTeamMemberSkips(const Object *unit, const Object *target) const;
 	Bool gxAirAttackAuthorized(const Object *unit, const Object *target) const;	///< T2 r8: may this unit attack this aircraft (its own row's plane only)

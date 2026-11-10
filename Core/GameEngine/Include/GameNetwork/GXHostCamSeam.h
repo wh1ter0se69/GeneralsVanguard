@@ -18,7 +18,7 @@
 
 // FILE: GXHostCamSeam.h /////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 24/08/2026 The GameNetwork side of the host-camera seam.
+// GeneralsX: The GameNetwork side of the host-camera seam.
 //
 // WHY THIS FILE EXISTS AT ALL, which is the first thing to check before deleting it.
 //

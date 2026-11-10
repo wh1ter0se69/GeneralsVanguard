@@ -313,11 +313,11 @@ GameMessageDisposition WindowTranslator::translateGameMessage(const GameMessage 
 			UnsignedByte key		= msg->getArgument( 0 )->integer;
 			UnsignedByte state	= msg->getArgument( 1 )->integer;
 
-			// GeneralsX @feature Claude 25/09/2026 An open drop-down list gets letter keys before the focus
+			// GeneralsX: An open drop-down list gets letter keys before the focus
 			// window does - focus is normally on a chat box, which would otherwise eat them. See
 			// GadgetComboBoxKeyPick for which keys and which drop-downs; everything else falls through.
 			// Offered here, not in winProcessKey, because only this message still carries the whole state:
-			// the byte above drops KEY_STATE_AUTOREPEAT, and a held key must pick once (codex keys-b1-r5).
+			// the byte above drops KEY_STATE_AUTOREPEAT, and a held key must pick once.
 			if( TheWindowManager && key != KEY_NONE &&
 					GadgetComboBoxKeyPick( key, (UnsignedShort)msg->getArgument( 1 )->integer ) )
 				returnCode = WIN_INPUT_USED;
@@ -351,7 +351,7 @@ GameMessageDisposition WindowTranslator::translateGameMessage(const GameMessage 
 				returnCode = WIN_INPUT_USED;
 			}
 
-			// GeneralsX @probe Claude 25/09/2026 GX_KEYTRACE (HotKey.h): a key the window system keeps never reaches
+			// GeneralsX: GX_KEYTRACE (HotKey.h): a key the window system keeps never reaches
 			// CommandMap or the command-button hotkeys, so name what kept it. A text-entry focus (chat, IP, login, password)
 			// is named without the key: the trace is handed over as a log and must not carry what was typed.
 			if( returnCode == WIN_INPUT_USED && GXKeyTraceEnabled() )

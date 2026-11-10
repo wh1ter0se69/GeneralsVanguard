@@ -69,7 +69,7 @@ static const FieldParse TheStaticGameLODFieldParseTable[] =
 	{ "UseBuildupScaffolds",			INI::parseBool,					nullptr,	offsetof( StaticGameLODInfo, m_useBuildupScaffolds ) },
 	{ "UseTreeSway",					INI::parseBool,					nullptr,	offsetof( StaticGameLODInfo, m_useTreeSway ) },
 	{ "UseEmissiveNightMaterials",		INI::parseBool,					nullptr,	offsetof( StaticGameLODInfo, m_useEmissiveNightMaterials ) },
-	// GeneralsX @bugfix Copilot 11/05/2026 Keep heat effects in the static LOD table and user preference flow.
+	// GeneralsX: Keep heat effects in the static LOD table and user preference flow.
 	{ "UseHeatEffects", 				INI::parseBool, 					nullptr,	offsetof( StaticGameLODInfo, m_useHeatEffects ) },
 	{ "TextureReductionFactor",		INI::parseInt,					nullptr,	offsetof( StaticGameLODInfo, m_textureReduction ) },
 	{ nullptr, nullptr, nullptr, 0 }
@@ -105,7 +105,7 @@ StaticGameLODInfo::StaticGameLODInfo()
 	m_useBuildupScaffolds=TRUE;
 	m_useTreeSway=TRUE;
 	m_useEmissiveNightMaterials=TRUE;
-	// GeneralsX @bugfix Copilot 11/05/2026 Default heat effects on for all static LOD presets.
+	// GeneralsX: Default heat effects on for all static LOD presets.
 	m_useHeatEffects=TRUE;
 	m_textureReduction = 0;	//none
 	m_useFpsLimit = TRUE;
@@ -269,7 +269,7 @@ void GameLODManager::initStaticLODLevels()
 	veryhigh.m_useBuildupScaffolds = TRUE;
 	veryhigh.m_useTreeSway = TRUE;
 	veryhigh.m_useEmissiveNightMaterials = TRUE;
-	// GeneralsX @bugfix Copilot 11/05/2026 Preserve heat effects at the highest preset.
+	// GeneralsX: Preserve heat effects at the highest preset.
 	veryhigh.m_useHeatEffects = TRUE;
 	veryhigh.m_textureReduction = 0;
 	veryhigh.m_useFpsLimit = TRUE;
@@ -409,7 +409,7 @@ void GameLODManager::init()
 		TheWritableGlobalData->m_useLightMap = optionPref.getLightmapEnabled();
 		TheWritableGlobalData->m_useCloudMap = optionPref.getCloudShadowsEnabled();
 		TheWritableGlobalData->m_showSoftWaterEdge = optionPref.getSmoothWaterEnabled();
-		// GeneralsX @bugfix Copilot 11/05/2026 Restore the user heat-effects toggle when custom detail is active.
+		// GeneralsX: Restore the user heat-effects toggle when custom detail is active.
 		TheWritableGlobalData->m_useHeatEffects = optionPref.getUseHeatEffects();
 		TheWritableGlobalData->m_useDrawModuleLOD = optionPref.getExtraAnimationsDisabled();
 		TheWritableGlobalData->m_useTreeSway = !TheWritableGlobalData->m_useDrawModuleLOD;	//borrow same setting.
@@ -635,11 +635,11 @@ void GameLODManager::applyStaticLODLevel(StaticGameLODLevel level)
 		TheWritableGlobalData->m_maxTankTrackOpaqueEdges=lodInfo->m_maxTankTrackOpaqueEdges;
 		TheWritableGlobalData->m_maxTankTrackFadeDelay=lodInfo->m_maxTankTrackFadeDelay;
 		TheWritableGlobalData->m_useTreeSway=lodInfo->m_useTreeSway;
-		// GeneralsX @bugfix Copilot 11/05/2026 Keep the active heat-effects state aligned with the selected static LOD.
+		// GeneralsX: Keep the active heat-effects state aligned with the selected static LOD.
 		TheWritableGlobalData->m_useHeatEffects=lodInfo->m_useHeatEffects;
 		TheWritableGlobalData->m_useDrawModuleLOD=!lodInfo->m_useBuildupScaffolds;
 		TheWritableGlobalData->m_enableDynamicLOD = lodInfo->m_enableDynamicLOD;
-		// GeneralsX @feature Claude 27/09/2026 A detail preset no longer switches the frame limiter. Its
+		// GeneralsX: A detail preset no longer switches the frame limiter. Its
 		// UseFPSLimit field is kept (GameLOD.ini parses it, Custom records it) but writes nothing: the
 		// frame rate is the player's one max-FPS setting (Common/FpsLimitPolicy.h).
 		TheWritableGlobalData->m_useTrees = requestedTrees;
@@ -711,7 +711,7 @@ const char *GameLODManager::getDynamicGameLODLevelName(DynamicGameLODLevel level
 	return DynamicGameLODNames[level];
 }
 
-// GeneralsX @bugfix Claude 17/08/2026 Predicate for the dynamic-LOD simulation guard in GameLOD.h;
+// GeneralsX: Predicate for the dynamic-LOD simulation guard in GameLOD.h;
 // the reasoning lives there, beside the reads it protects.
 //
 // This is EA's own test, lifted verbatim from GameLogic.cpp:1787. isMultiplayer() is TRUE for a

@@ -130,7 +130,7 @@ public:
 
 	virtual void iterateDrawablesInRegion( Region3D *region, GameClientFuncPtr userFunc, void *userData );		///< Calls userFunc for each drawable contained within the region
 
-	// GeneralsX @performance Claude 23/09/2026 Counts every change that can alter which drawables
+	// GeneralsX: Counts every change that can alter which drawables
 	// iterateDrawablesInRegion visits, and in what order: a drawable registered or destroyed (the only
 	// two writers of m_drawableList), or any drawable's position changing (Drawable::reactToTransformChange,
 	// which every Thing position/transform setter calls). Equal counts plus an equal region therefore
@@ -276,7 +276,7 @@ inline Drawable* GameClient::findDrawableByID( const DrawableID id )
 // the singleton
 extern GameClient *TheGameClient;
 
-// GeneralsX @test Claude 28/09/2026 True while GX_SHOT holds an accepted frame list on a peer with a display
+// GeneralsX: True while GX_SHOT holds an accepted frame list on a peer with a display
 // (GameClient.cpp); W3DDisplay runs the GX_SHOT capture clock only then.
 Bool gxShotCaptureOn( void );
 // The GX_SHOT capture clock (GameClient.cpp): drop-in replacements, for render-side animation only, of

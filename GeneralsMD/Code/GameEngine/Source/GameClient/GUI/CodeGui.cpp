@@ -28,7 +28,7 @@
 
 #include "PreRTS.h"
 
-// GeneralsX @feature Claude 27/07/2026 codeGuiFontFamily() has to tell iOS apart from macOS;
+// GeneralsX: codeGuiFontFamily() has to tell iOS apart from macOS;
 // TARGET_OS_IPHONE is only defined once this is included.
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -92,7 +92,7 @@ const CodeGuiTheme &CodeGuiGetTheme( void ) { return s_theme; }
 //-------------------------------------------------------------------------------------------------
 /** Spell the Arial family the way THIS platform's font locator wants it.
 	*
-	* GeneralsX @feature Claude 27/07/2026 Real bold on the FreeType platforms.
+	* GeneralsX: Real bold on the FreeType platforms.
 	*
 	* The Bool that winFindFont -> FontLibrary::getFont -> Get_FontChars -> Initialize_GDI_Font
 	* threads through only reaches FW_BOLD inside FontCharsClass::Create_GDI_Font. On macOS/iOS/Linux
@@ -129,7 +129,7 @@ static const char *codeGuiFontFamily( Bool bold )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 26/09/2026 THE DEBUG OVERLAY DRAWS IN TAHOMA BOLD (owner: "try a different, sharper,
+/** GeneralsX: THE DEBUG OVERLAY DRAWS IN TAHOMA BOLD (owner: "try a different, sharper,
 	* more beautiful font").
 	*
 	* Weight, not family, is what makes it sharper here, and that was measured, not assumed: rendered the way
@@ -212,7 +212,7 @@ static void codeGuiSetId( GameWindow *win, const char *idName )
 //-------------------------------------------------------------------------------------------------
 /** Draw code-built controls with Zero Hour's OWN art instead of flat theme colours.
 	*
-	* GeneralsX @feature Claude 09/08/2026
+	* GeneralsX:
 	*
 	* assignDefaultGadgetLook ALREADY installs the retail skin on every gadget this file creates -
 	* GameWindowManager.cpp calls winFindImage("PushButtonEnabled"), "PushButtonHilite",
@@ -930,7 +930,7 @@ static void codeGuiAdoptLook( GameWindow *win, GameWindow *tmpl )
 	if( tmpl->winGetFont() )
 		win->winSetFont( tmpl->winGetFont() );
 
-	// GeneralsX @fix Claude 13/08/2026 A cloned static-text row must inherit its template's
+	// GeneralsX: A cloned static-text row must inherit its template's
 	// JUSTIFICATION, not just its palette. Without this the caption is drawn hard against the left
 	// edge of a box whose authored neighbours are centred, which is the "cloned rows sit at a
 	// different x" the owner photographed on the Diplomacy screen.
@@ -1585,7 +1585,7 @@ Int CodeGuiRowsEnsure( GameWindow *parent, const char *idFormat, Int rowCount, C
 	firstWin->winGetPosition( &firstX, &firstY );
 	firstWin->winGetSize( &firstW, &firstH );
 
-	// GeneralsX @bugfix Claude 25/09/2026 FREE fit needs a template, never a pitch (Codex map-markers-r1).
+	// GeneralsX: FREE fit needs a template, never a pitch.
 	//
 	// A free-fit column is positioned by its owner afterwards - positionStartSpots puts the map start
 	// markers on the map's Player_N_Start waypoints - so the authored rects carry no layout this
@@ -1738,7 +1738,7 @@ Int CodeGuiRowsEnsure( GameWindow *parent, const char *idFormat, Int rowCount, C
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/11/2026 Scrolling seat rows - see CodeGuiRowsScrollSetup in CodeGui.h.
+// GeneralsX: Scrolling seat rows - see CodeGuiRowsScrollSetup in CodeGui.h.
 //-------------------------------------------------------------------------------------------------
 enum
 {
@@ -1833,7 +1833,7 @@ static void codeGuiRowScrollLayout( void )
 		}
 	}
 
-	// Moving a window does not move the keyboard focus (Codex lobby-scroll r1 P2): a focused row parked off screen -
+	// Moving a window does not move the keyboard focus (lobby-scroll r1 P2): a focused row parked off screen -
 	// the skirmish name field, say - would keep taking keys while invisible. Hand the focus back to the screen.
 	for( GameWindow *focus = TheWindowManager->winGetFocus(); focus != nullptr; focus = focus->winGetParent() )
 	{
@@ -2296,7 +2296,7 @@ void CodeGuiDestroyLayout( WindowLayout *&layout )
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 13/08/2026 Lend the row builder to the load screens, which are in Core.
+// GeneralsX: Lend the row builder to the load screens, which are in Core.
 //
 // LoadScreen.cpp is shared with the Generals twin and cannot call CodeGuiRowsEnsure - that function
 // reaches the widget factories above it in this file, and the twin has no CodeGui at all. So Core
@@ -2359,7 +2359,7 @@ static void codeGuiFitTextWidth( GameWindow *win, Int maxWidth )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 08/11/2026 The load screen's player list, once it knows how many rows it filled (see
+/** GeneralsX: The load screen's player list, once it knows how many rows it filled (see
 	* LoadScreenSplitRows in LoadScreen.h). Up to the authored row count it touches nothing - the rows are EA's. Past it
 	* the columns become two side-by-side groups over the same horizontal span, each with its own copy of the header row,
 	* row i in group i / R at row i % R, R = half the filled rows rounded up. The groups share the authored band: at the

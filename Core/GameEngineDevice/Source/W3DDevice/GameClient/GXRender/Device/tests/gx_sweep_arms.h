@@ -1,5 +1,5 @@
-// GeneralsX @test D · rw3-X-3 13/10/2026 A23-B merge gate item 2: the STRICT VALUE SWEEP (PREREG_T A23-B amendment 5 (4)).
-// TEST-ONLY. Every IDirect3DDevice8 entry point with NON-default argument values - the input list is Codex
+// GeneralsX: A23-B merge gate item 2: the STRICT VALUE SWEEP (PREREG_T A23-B amendment 5 (4)).
+// TEST-ONLY. Every IDirect3DDevice8 entry point with NON-default argument values - the input list is review
 // rw3x-a23b-code-r10-oracle's "Separate checklist", taken whole - each followed by what depends on it (a draw, the whole back
 // buffer read back), and every result (HRESULT, out-parameter, pixels) handed to `obs`. Only deterministic results are observed
 // (no pointers, window handles, raster position or free memory). Self-contained on the d3d8 interface: compiled into the A23-B
@@ -18,7 +18,7 @@
 #include <string>
 #include <vector>
 
-// NOT SWEPT, by family and why (Codex r12-oracle's census of the r10/r11 checklist; each is named here, not silently absent):
+// NOT SWEPT, by family and why (census of the r10/r11 checklist; each is named here, not silently absent):
 // * Combinatorial families are SAMPLED, not exhausted: render-state wrap x material-source combinations; texture-stage per-axis
 //   address / filter / argument-selector-modifier combinations; colour x depth x sample-count target pairings; texture / buffer /
 //   target / depth / image usage x size x format boundaries beyond the rows below; Reset interval x swap-effect combinations. Each
@@ -45,7 +45,7 @@ namespace gxsweep {
 using Obs = void (*)(const void*, size_t);
 struct S;
 // What a binary hands the sweep: its --strict obs sink (null in the base binary) and a device-counter observer called at every
-// read-back (Codex r11-oracle P2-3: the device's own draw / clear / creation accounting). Every observation also folds into a
+// read-back (the device's own draw / clear / creation accounting). Every observation also folds into a
 // file digest when GX_SWEEP_OBS=<file> is set - one line per arm - so gates2 compares the base binary's outputs with CS0's
 // (r11-oracle P2-1: a front-description error shared by CS0 and CS1 moves neither digest nor tap).
 struct Hooks
@@ -1358,7 +1358,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 			readBack(s);
 			// r11-oracle remainder: empty / inverted / negative rectangles, and a whole-surface host copy INTO THE BACK BUFFER - refused
 			// before any payload routing (a host copy needs a texture-level destination); the oversize host -> DEFAULT S path is
-			// gx_native_test's strict-copy-oversize (Codex r14-oracle P2-1)
+			// gx_native_test's strict-copy-oversize
 			const RECT odd[3] = { { 10, 10, 10, 20 }, { 20, 20, 12, 12 }, { -4, -4, 8, 8 } };
 			s.o(dev->CopyRects(im, odd, 3, s.bb, ps));
 			s.o(dev->CopyRects(im, nullptr, 0, s.bb, nullptr));
@@ -1394,7 +1394,7 @@ inline bool sweepRes(IDirect3DDevice8* dev, const Hooks& hk, std::string* d, con
 			if (t)
 				t->Release();
 	}
-	// ---- host -> DEFAULT copies at NONZERO destination points (Codex r15-oracle P2-1; the base binary runs them too, so base == CS0
+	// ---- host -> DEFAULT copies at NONZERO destination points (the base binary runs them too, so base == CS0
 	// covers a mode-independent offset error): two rectangles of an 8x8 image into a cleared 16x16 render-target texture at (9,7) and
 	// (1,12); a 64x64 image into a cleared 128x128 one at (32,40) (over the arm's largest command: S). Each read back whole.
 	for (int k = 0; k < 2; ++k) {

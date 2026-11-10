@@ -54,7 +54,7 @@ void INI::parseMusicTrackDefinition( INI* ini )
 	if (!track) {
 		return;
 	}
-	// GeneralsX @bugfix Claude 10/10/2026 A map.ini's audio edits and inventions end with the map (AudioManager::reset).
+	// GeneralsX: A map.ini's audio edits and inventions end with the map (AudioManager::reset).
 	if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
 		TheAudio->noteOverrideLoad( track, existing == nullptr );
 
@@ -86,7 +86,7 @@ void INI::parseAudioEventDefinition( INI* ini )
 	if (!track) {
 		return;
 	}
-	// GeneralsX @bugfix Claude 10/10/2026 A map.ini's audio edits and inventions end with the map (AudioManager::reset).
+	// GeneralsX: A map.ini's audio edits and inventions end with the map (AudioManager::reset).
 	if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
 		TheAudio->noteOverrideLoad( track, existing == nullptr );
 
@@ -117,7 +117,7 @@ void INI::parseDialogDefinition( INI* ini )
 	if (!track) {
 		return;
 	}
-	// GeneralsX @bugfix Claude 10/10/2026 A map.ini's audio edits and inventions end with the map (AudioManager::reset).
+	// GeneralsX: A map.ini's audio edits and inventions end with the map (AudioManager::reset).
 	if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
 		TheAudio->noteOverrideLoad( track, existing == nullptr );
 

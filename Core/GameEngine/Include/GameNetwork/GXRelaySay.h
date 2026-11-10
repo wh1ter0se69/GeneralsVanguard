@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 19/09/2026 Who is speaking on a GXSAY: a player, the relay, or the
+// GeneralsX: Who is speaking on a GXSAY: a player, the relay, or the
 // OPERATOR.
 //
 //     GXSAY <room> <sender> <text>
@@ -30,7 +30,7 @@
 //   0.0.0.0|a    an ADMIN, speaking through the relay's operator console
 //   0.0.0.0|m    a MODERATOR, through the same console
 //
-// GeneralsX @bugfix Claude 20/09/2026 Two tokens, so a moderator's line is never drawn as "@Admin" -
+// GeneralsX: Two tokens, so a moderator's line is never drawn as "@Admin" -
 // the distinction the whole enum below draws.
 //
 //

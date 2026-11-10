@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0 self-test: every gate and every fail arm in one binary.
+// GeneralsX: WS-B VkCtx v0 self-test: every gate and every fail arm in one binary.
 //
 //   gx_vkctx_test [--arm NAME|all] [--no-validation] [--device SEL] [--loader PATH]
 //
@@ -77,7 +77,7 @@ struct HostGate
 	std::thread thread;
 	std::atomic<int64_t> openedNs { 0 };   // steady_clock time the gate was signalled (0 = not yet): the R19 arms' boundary
 	std::atomic<bool> safetyOpened { false };   // openWhenBlocked opened it on its 10 s safety limit: NO boundary was observed, so
-	                                            // the arm's experiment is invalid, clean or planted (Codex rw3V-code-r4 P2-5)
+	                                            // the arm's experiment is invalid, clean or planted
 
 	bool create(VkCtx& c)
 	{
@@ -105,7 +105,7 @@ struct HostGate
 		});
 	}
 	// Opens once a thread is blocked in one of ctx's driver waits (the call under test reached its REAL wait) or *done is set (it
-	// returned without one): an acknowledged boundary, not a sleep race (Codex rw3V-code-r2 P2-5). 10 s safety.
+	// returned without one): an acknowledged boundary, not a sleep race. 10 s safety.
 	void openWhenBlocked(VkCtx& c, std::atomic<bool>* done)
 	{
 		VkDevice d = device;
@@ -479,9 +479,9 @@ bool testDeferredConsumer(VkCtx& ctx, std::string* detail)
 }
 
 // Non-coherent memory: no two live ranges may share a nonCoherentAtomSize atom (a flush of one would touch the other while
-// the GPU reads it - Codex r1). Every device here has coherent upload memory, so the atom is forced (256). Returns the
+// the GPU reads it). Every device here has coherent upload memory, so the atom is forced (256). Returns the
 // number of allocation pairs whose atoms overlap among 64 small, oddly sized allocations.
-// Returns false when the test could not run (setup failure is never a verdict - Codex r4); *shared = overlapping pairs.
+// Returns false when the test could not run (setup failure is never a verdict); *shared = overlapping pairs.
 bool testAtomIsolation(VkCtx& ctx, uint32_t* shared, std::string* detail)
 {
 	const VkDeviceSize atom = 256;
@@ -558,7 +558,7 @@ bool testFrameScopes(VkCtx& ctx, VkGpuTimer& timer, double* scopeMs, std::string
 
 // ------------------------------------------------------------------------------------------- the submit thread (R19, rw3-V)
 // DESIGN_submit-thread.md §4. Every arm builds its starting state behind VkCtx::testHoldAt (the thread stops before a given
-// value) and ASSERTS it before acting (Codex rw3V-design-r1 P2-6); fail arms plant one defect through g_testMutants.
+// value) and ASSERTS it before acting; fail arms plant one defect through g_testMutants.
 
 double msSince(std::chrono::steady_clock::time_point t0)
 {
@@ -598,7 +598,7 @@ bool testThreadOrder(VkCtx& ctx, std::string* d)
 	uint64_t prev = gfx(ctx).lastSubmitted(), last = 0;
 	uint32_t gaps = 0, waitFails = 0, queued = 0;
 	// owned by every callback: one that outlives this function (a retirement settled only at the context's shutdown, e.g. when
-	// counter reads failed) touches live memory (Codex rw3V-code-r9 P1)
+	// counter reads failed) touches live memory
 	struct Seen
 	{
 		uint32_t retired = 0;
@@ -621,7 +621,7 @@ bool testThreadOrder(VkCtx& ctx, std::string* d)
 		ctx.collect();
 	}
 	const bool lastOk = gfx(ctx).wait(last);
-	ctx.waitIdle();   // settles the retirements before they are counted (Codex rw3V-code-r8 P1)
+	ctx.waitIdle();   // settles the retirements before they are counted
 	// each retirement ran once, after its value completed; their callback ORDER is not part of the retire() contract (rw3V-code-r1)
 	std::vector<uint64_t> order = seen->order;
 	const uint32_t retired = seen->retired;
@@ -689,13 +689,13 @@ RefusalObs runRefusal(VkCtx& ctx, VkResult result)
 	ctx.testRelease();
 	helper.join();
 	// a correct wait(N) returns through the execution sync and never enters vkWaitSemaphores; the waitnosync plant always does, on a
-	// value never signalled. COUNTED, not sampled, so no scheduling can hide or invent it (Codex rw3V-code-r4 P2-4); no spin on
+	// value never signalled. COUNTED, not sampled, so no scheduling can hide or invent it; no spin on
 	// refusal() either - the nolatch plant never sets it (r4 P1-2)
 	o.sawBlocked = ctx.testSemWaitEntries() > entries0;
 	o.waitN1 = gfx(ctx).wait(o.n + 1, 2000000000ull);
 	o.after = submitOne(ctx, pool.cmds[3]);
 	o.waitPrev = gfx(ctx).wait(prev);
-	ctx.waitIdle();   // the skip of N+1 has been processed before the counts are read (Codex rw3V-code-r3 P2-5)
+	ctx.waitIdle();   // the skip of N+1 has been processed before the counts are read
 	const SubmitThreadStats s1 = ctx.threadStats();
 	o.executed = s1.submits - s0.submits + 1;
 	o.skipped = s1.skipped - s0.skipped;
@@ -724,7 +724,7 @@ std::string describe(const RefusalObs& o)
 bool refusalClean(const RefusalObs& o, VkResult result)
 {
 	// < 1000 ms after release (a correct wait returns as soon as the thread refuses N); the waitnosync plant sits ~1.9 s in its
-	// vkWaitSemaphores - the margin survives a loaded machine (Codex rw3V-code-r1 P2-6)
+	// vkWaitSemaphores - the margin survives a loaded machine
 	return o.setup && o.startQueued && !o.helperTrue && !o.sawBlocked && !o.waitN1 &&
 	       !o.after && o.waitPrev && o.executed == 1 && o.skipped >= 1 && o.lost && o.completed == o.n - 1 && o.refusal.value == o.n &&
 	       o.refusal.result == result;
@@ -792,7 +792,7 @@ struct CleanupObs
 };
 
 // a retirement tagged with a REFUSED value must run once, while the pool it frees into exists: the owner's shutdown (waitIdle,
-// then destroy the pool) settles it (Codex rw3V-design-r1 P1-2)
+// then destroy the pool) settles it
 CleanupObs runLatchCleanup(VkCtx& ctx)
 {
 	CleanupObs o;
@@ -845,7 +845,7 @@ DrainObs runDrain(VkCtx& ctx, bool viaShutdown)
 	o.setup = o.enqueued == uint64_t(n);
 	o.startQueued = ctx.threadStats().submits == s0.submits;
 	// the helper releases once the caller is BLOCKED in waitIdle's drain (a correct drain) or has returned and been observed (a
-	// plant): acknowledged boundaries, no timeout race (Codex rw3V-code-r1 P2-6, r2 P2-5). shutdown() clears the hold itself.
+	// plant): acknowledged boundaries, no timeout race. shutdown() clears the hold itself.
 	std::atomic<bool> observed { false }, safety { false };
 	std::thread helper([&ctx, &observed, &safety, viaShutdown]() {
 		int i = 0;
@@ -911,7 +911,7 @@ ReadbackObs runReadback(VkCtx& ctx, bool offByOne)
 	o.waitTrue = v2 && gfx(ctx).wait(v2);
 	o.waitMs = msSince(t0);
 	vmaInvalidateAllocation(ctx.allocator(), rb.alloc, 0, VK_WHOLE_SIZE);
-	o.word = static_cast<const uint32_t*>(rb.mapped)[0];   // observed BEFORE the gate may open (Codex rw3V-code-r3 P2-4)
+	o.word = static_cast<const uint32_t*>(rb.mapped)[0];   // observed BEFORE the gate may open
 	returned.store(true);
 	g_testMutants.waitFastPathOffByOne = false;
 	if (!offByOne) {   // the refused half (clean arm only: the plant's arm stops at the early read)
@@ -947,7 +947,7 @@ bool testFastPath(VkCtx& ctx, std::string* d)
 	const uint64_t v = submitOne(ctx, pool.cmds[0], &gw);
 	const uint64_t f0 = ctx.threadStats().waitFastPath;
 	std::atomic<bool> returned { false };
-	gate.openWhenBlocked(ctx, &returned);   // opens only once the first wait is blocked in the driver (Codex rw3V-code-r3 P2-6)
+	gate.openWhenBlocked(ctx, &returned);   // opens only once the first wait is blocked in the driver
 	const bool w1 = gfx(ctx).wait(v);   // unreached at the call: the real wait
 	returned.store(true);
 	const uint64_t f1 = ctx.threadStats().waitFastPath;
@@ -1096,7 +1096,7 @@ struct IdleChildObs
 
 // Runs idleChild in a child process (its exit is the behaviour under test), its STDERR alone in a temp file (stdout to /dev/null:
 // the FATAL line must come on fd 2); ends it with SIGKILL after 10 s. The bound, not that signal, must be what ends a clean child.
-// Both verdicts need the child's SETUP DONE line (the injected idle loop was reached - Codex rw3V-code-r4 P2-6), and the clean one
+// Both verdicts need the child's SETUP DONE line (the injected idle loop was reached), and the clean one
 // no validation error in the child (the layer prints each as it happens, before the exit).
 IdleChildObs runIdleChild(const Options& opt, bool unbounded, bool slowExit)
 {
@@ -1271,14 +1271,14 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		return res;
 	}
 	if (opt.validation && !ctx.validationEnabled()) {
-		// e.g. GX_VK_VALIDATION=0 in the environment: no gate ran, so this arm must not read as passed (Codex r1).
+		// e.g. GX_VK_VALIDATION=0 in the environment: no gate ran, so this arm must not read as passed.
 		res.detail = "validation was asked for but is not enabled - no gate ran";
 		res.detected = !res.expectDetected;
 		return res;
 	}
 	if (arm == "X-ring-shutdown-noidle" && !ctx.validationEnabled()) {   // its plant frees a PENDING command pool: only the layer
 		res.detail = "needs an active validation layer (its plant destroys a pending command pool; the layer skips that call)";   // stops it
-		res.detected = !res.expectDetected;   // (Codex rw3V-code-r5 P1-3)
+		res.detected = !res.expectDetected;
 		return res;
 	}
 	if (threadArm && !ctx.submitThreaded()) {   // e.g. GX_VK_SUBMIT_THREAD=0: no thread, no gate
@@ -1408,7 +1408,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		                   afterGate(o.retiredNs) && afterGate(o.refusedRetiredNs) && o.lost && o.refusal.value == o.prev + 1;
 		res.detected = res.expectDetected ? early : !(validationClean() && clean);
 	} else if (arm == "thread-lost-cleanup" || arm == "X-ring-shutdown-noidle") {
-		// held accepted work + a DRIVER loss, then a ring's own shutdown: it must destroy only after a proven idle (Codex r2 P1-1)
+		// held accepted work + a DRIVER loss, then a ring's own shutdown: it must destroy only after a proven idle
 		g_testMutants.ringShutdownNoIdle = arm == "X-ring-shutdown-noidle";
 		VkFrameRing ring;
 		HostGate gate;
@@ -1417,7 +1417,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		double ringMs = -1;
 		int64_t ringEndNs = 0;
 		bool startOk = false;
-		std::atomic<bool> returned { false };   // outlives gate.destroy()'s join (Codex rw3V-code-r3 P1-2)
+		std::atomic<bool> returned { false };   // outlives gate.destroy()'s join
 		if (setup) {
 			VkFrameRing::Frame* f = ring.begin();
 			SubmitDesc extra;
@@ -1450,7 +1450,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		res.detail += buf;
 		gate.destroy();   // joins the opener: openedNs is final
 		const int64_t opened = gate.openedNs.load();
-		const bool afterGate = opened && ringEndNs >= opened;   // the boundary is the gate's signal, not a sleep (Codex rw3V-code-r1 P2-6)
+		const bool afterGate = opened && ringEndNs >= opened;   // the boundary is the gate's signal, not a sleep
 		const bool safety = gate.safetyOpened.load();
 		if (safety)
 			res.detail += "INVALID: the gate opened on its safety limit; ";
@@ -1499,9 +1499,9 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		                                  : !(validationClean() && o.setup && !o.safety && o.waitTrue && o.word == 0x22222222u && o.refusedFalse &&
 		                                        o.untouched);
 	} else if (arm == "wait-device-lost") {
-		// a wait that sees VK_ERROR_DEVICE_LOST latches the loss (Codex rw3-T-cut2-r1 P1 #1); then a wait on a value that is still
+		// a wait that sees VK_ERROR_DEVICE_LOST latches the loss; then a wait on a value that is still
 		// UNREACHED (its submission held behind a host gate) returns false at once instead of blocking, and the next submit is refused
-		// (Codex rw3-T-cut2a-r1 #4: the post-loss wait must not be satisfiable by an ordinary completed wait)
+		// (the post-loss wait must not be satisfiable by an ordinary completed wait)
 		CmdPool pool;   // two buffers: the post-loss submit must be a FRESH one (re-submitting a pending buffer fails for its own reasons)
 		HostGate gate;
 		bool made = pool.create(ctx, 2) && pool.cmds.size() == 2 && gate.create(ctx);
@@ -1579,7 +1579,7 @@ ArmResult runArm(const std::string& arm, const Options& opt)
 		const bool timerOk = timer.init(ctx, 2, 8);
 		const VkGpuTimer::Provenance p = timerOk ? timer.validate(&report) : VkGpuTimer::Provenance::Unsupported;
 		timer.shutdown();
-		// Only the probe the mutant targets counts (Codex r5): a period error must fail GAP, work-ordering must fail SCALE;
+		// Only the probe the mutant targets counts: a period error must fail GAP, work-ordering must fail SCALE;
 		// an operational failure (allocation, submit) is no detection.
 		const VkGpuTimer::Report::Failure want = arm == "ts-no-work" ? VkGpuTimer::Report::Failure::Scale
 		                                                              : VkGpuTimer::Report::Failure::Gap;

@@ -134,7 +134,7 @@ void ArchiveFileSystem::loadIntoDirectoryTree(ArchiveFile *archiveFile, Bool ove
 		tokenizer.toLower();
 		tokenizer.nextToken(&token, "\\/");
 
-		// GeneralsX @bugfix Claude 01/10/2026 TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
+		// GeneralsX: TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
 		// the dot-guessing condition misfiled dotless file names as directories (tsh batch2 #53).
 		while (!tokenizer.isEmpty())
 		{
@@ -214,7 +214,7 @@ void ArchiveFileSystem::loadIntoDirectoryTree(ArchiveFile *archiveFile, Bool ove
 
 void ArchiveFileSystem::loadMods()
 {
-	// GeneralsX @bugfix Claude 23/09/2026 Same rule as loadBigFilesFromDirectory's guard: a -mod
+	// GeneralsX: Same rule as loadBigFilesFromDirectory's guard: a -mod
 	// BIG the asset scan already mounted is promoted, not opened and inserted a second time.
 	if (TheGlobalData->m_modBIG.isNotEmpty() && !promoteIfAlreadyMounted(TheGlobalData->m_modBIG.str()))
 	{
@@ -240,7 +240,7 @@ void ArchiveFileSystem::loadMods()
 	}
 }
 
-// GeneralsX @feature Claude 27/07/2026 Join-time SimID compatibility check - tier2 warn signal.
+// GeneralsX: Join-time SimID compatibility check - tier2 warn signal.
 // The map is keyed by the RAW insertion name, not by basename - loadMods inserts
 // TheGlobalData->m_modBIG verbatim above and loadBigFilesFromDirectory inserts
 // directory-prefixed names - so iterating the map in its own order and hashing
@@ -273,7 +273,7 @@ UnsignedInt ArchiveFileSystem::computeMountedArchiveFingerprint() const
 
 		std::sort(names.begin(), names.end());
 
-		// GeneralsX @feature Claude 27/07/2026 Print exactly what gets hashed.
+		// GeneralsX: Print exactly what gets hashed.
 		//
 		// assetID is one of the two tier2 SimID fields, and when it disagrees between two
 		// peers the value alone says nothing about WHICH archive is responsible. The engine's
@@ -340,7 +340,7 @@ ArchiveFileSystem::ArchivedDirectoryInfoResult ArchiveFileSystem::getArchivedDir
 	tokenizer.toLower();
 	tokenizer.nextToken(&token, "\\/");
 
-	// GeneralsX @bugfix Claude 01/10/2026 TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
+	// GeneralsX: TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
 	// the dot-guessing condition misfiled dotless file names as directories (tsh batch2 #53).
 	while (!tokenizer.isEmpty())
 	{

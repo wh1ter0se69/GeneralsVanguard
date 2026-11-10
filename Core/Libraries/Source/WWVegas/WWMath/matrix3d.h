@@ -85,7 +85,7 @@
 #endif
 
 #include "WWLib/always.h"
-// GeneralsX @bugfix Claude 28/07/2026 Deterministic trig for the rotation helpers.
+// GeneralsX: Deterministic trig for the rotation helpers.
 //
 // The earlier fix gave the engine its own bit-identical Sin/Cos (gamemath.h) and routed
 // WWMath::Sin/Cos and the *Trig wrappers through it, which covered Thing::setOrientation - the path

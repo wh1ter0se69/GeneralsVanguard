@@ -752,7 +752,7 @@ static void putPrisonersInPrison( Object *obj, void *userData )
 
 	// add up bounty for this prisoner
 	Player *prisonerOwningPlayer = obj->getControllingPlayer();
-	// GeneralsX @bugfix Claude 10/10/2026 Saturated (REAL_TO_UNSIGNEDINT): a negative or huge float sum converts to
+	// GeneralsX: Saturated (REAL_TO_UNSIGNEDINT): a negative or huge float sum converts to
 	// UnsignedInt differently by CPU, and a map's cost can be either.
 	prisonUnloadData->bounty = REAL_TO_UNSIGNEDINT( prisonUnloadData->bounty + TheGlobalData->m_prisonBountyMultiplier *
 															obj->getTemplate()->calcCostToBuild( prisonerOwningPlayer ) );

@@ -242,7 +242,7 @@ protected:
 
 
 	Bool							m_isCulled;														///< status of particle relative to screen bounds
-	// GeneralsX @bugfix Claude 29/10/2026 Union tag: TRUE from a load's xfer until loadPostProcess, while the union holds the
+	// GeneralsX: Union tag: TRUE from a load's xfer until loadPostProcess, while the union holds the
 	// saved ID rather than a pointer. Ports upstream PR #3579 (68d1668ab).
 	// Upstream reference: Caball009, PR #3579 https://github.com/TheSuperHackers/GeneralsGameCode/pull/3579
 	Bool							m_xferSystemUnderControl;							///< union tag to signal which field is active for systemUnderControl
@@ -591,7 +591,7 @@ public:
 	void rotateLocalTransformX( Real x );				///< rotate local transform matrix
 	void rotateLocalTransformY( Real y );				///< rotate local transform matrix
 	void rotateLocalTransformZ( Real z );				///< rotate local transform matrix
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6: out of line and deferred like the other operations - a model's
+	// GeneralsX: render-split step 6: out of line and deferred like the other operations - a model's
 	// bone-attached systems are repositioned by AnimatedParticleSysBoneClientUpdate, which StealthUpdate can run inside the tick.
 	void setSkipParentXfrm(Bool enable); ///<disable transforming particle system with parent matrix.
 
@@ -609,7 +609,7 @@ public:
 	void stop();													///< stop a particle system from emitting
 	void destroy();												///< stop emitting, and wait for particles to die, then destroy self
 
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6: the multiplier setters and trigger() are out of line and
+	// GeneralsX: render-split step 6: the multiplier setters and trigger() are out of line and
 	// deferred like every other operation on a published system (ParticleSys.cpp).
 	void setVelocityMultiplier( const Coord3D *value );	///< set the velocity multiplier coefficient
 	const Coord3D *getVelocityMultiplier() { return &m_velCoeff; }					///< get the velocity multiplier coefficient
@@ -626,7 +626,7 @@ public:
 	/// Force a burst of particles to be emitted immediately.
 	void trigger ();
 
-	// GeneralsX @bugfix Claude 23/09/2026 Both setters take LOGIC frames (every caller converts msec or a
+	// GeneralsX: Both setters take LOGIC frames (every caller converts msec or a
 	// logic duration) and store particle updates, which run on the 30 Hz legacy cadence. See ParticleSys.cpp.
 	void setInitialDelay( UnsignedInt logicFrames );
 
@@ -681,7 +681,7 @@ public:
 	DrawableID getAttachedDrawable() { return m_attachedToDrawableID; }
 
 	// Access to dynamically changing part of a particle system.
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6: out of line, so the simulation's per-tick resize of a
+	// GeneralsX: render-split step 6: out of line, so the simulation's per-tick resize of a
 	// published system (FirestormDynamicGeometryInfoUpdate) is deferred like the other operations (ParticleSys.cpp).
 	void setEmissionVolumeSphereRadius( Real newRadius );
 	void setEmissionVolumeCylinderRadius( Real newRadius );
@@ -758,13 +758,13 @@ protected:
 	Bool							m_isSaveable;													///< true if this system should be saved/loaded
 	Bool							m_skipParentXfrm;											///< true if this system is already in world space.
 
-	// GeneralsX @performance Claude 23/09/2026 Own node in ParticleSystemManager::m_allParticleSystemList,
+	// GeneralsX: Own node in ParticleSystemManager::m_allParticleSystemList,
 	// so retiring a system erases in O(1) instead of a std::find over every live system.
 	friend class ParticleSystemManager;
 	std::list<ParticleSystem *>::iterator m_managerListIt;
 	Bool							m_inManagerList;
 
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6 (GXRenderSplit.h, ParticleSys.cpp): a system created inside
+	// GeneralsX: render-split step 6 (GXRenderSplit.h, ParticleSys.cpp): a system created inside
 	// the tick window is STAGED - constructed, ID taken, pointer returned, but in none of the manager's lists until the
 	// window's replay publishes it. An operation the simulation side calls on a PUBLISHED system is queued by ID.
 	template <typename Apply> Bool gxDefer( const Apply &apply, Bool movesPosition = FALSE );	///< TRUE: queued, do not apply now
@@ -811,7 +811,7 @@ public:
 	void undoOverrideLoads();
 
 	/// given a template, instantiate a particle system
-	// GeneralsX @bugfix Claude 01/10/2026 Virtual in both CRC modes: ParticleSystemManagerDummy overrides it so a headless
+	// GeneralsX: Virtual in both CRC modes: ParticleSystemManagerDummy overrides it so a headless
 	// peer keeps its templates loaded but never creates a system (see the dummy below).
 	virtual ParticleSystem *createParticleSystem( const ParticleSystemTemplate *sysTemplate, Bool createSlaves = TRUE );
 
@@ -851,7 +851,7 @@ public:
 	// @todo const this jkmcd
 	ParticleSystemList &getAllParticleSystems() { return m_allParticleSystemList; }
 
-	// GeneralsX @performance Claude 29/09/2026 The systems a draw pass can take particles from: every system in
+	// GeneralsX: The systems a draw pass can take particles from: every system in
 	// m_allParticleSystemList that is not drawable-based and held a particle when the list was last built, in list
 	// order. The draw pass walked every live system each rendered frame, and most hold no particle at that moment, so
 	// the list-node and system loads of those empty systems were most of W3DParticleSystemManager::doParticles on the
@@ -871,7 +871,7 @@ public:
 	void friend_addParticleSystem( ParticleSystem *particleSystemToAdd );
 	void friend_removeParticleSystem( ParticleSystem *particleSystemToRemove );
 
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6: systems created inside the tick window wait here, private to
+	// GeneralsX: render-split step 6: systems created inside the tick window wait here, private to
 	// the simulation side, until the window's replay publishes them in creation order (GXRenderSplit.h). Only particle
 	// systems call these.
 	void gxStage( ParticleSystem *sys );
@@ -908,7 +908,7 @@ private:
 	std::vector<ParticleSystem *> m_renderableSystems;	///< see getRenderableSystems
 	Bool m_renderableSystemsDirty;
 
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6 (see gxStage)
+	// GeneralsX: render-split step 6 (see gxStage)
 	void gxPublish( ParticleSystemID id, UnsignedInt epoch );
 	void gxDestroyAttached( ObjectID id, unsigned long skipPublishedBy );
 	ParticleSystemIDMap m_gxStaged;	///< created inside the tick window, not published yet (by ID: O(1) publish and lookup)
@@ -921,7 +921,7 @@ private:
 class ParticleSystemManagerDummy : public ParticleSystemManager
 {
 public:
-	// GeneralsX @bugfix Claude 01/10/2026 (Codex rf-r2 P2) The retail-compatible arm in BOTH modes. Upstream's
+	// GeneralsX: The retail-compatible arm in BOTH modes. Upstream's
 	// RETAIL_COMPATIBLE_CRC=0 arm skipped init() here, so a headless peer loaded no particle templates while every
 	// rendering peer did: weapon/object INI then resolved each particle reference to nullptr on the headless side only
 	// (a DEBUG_ASSERTCRASH per reference in debug builds, INI::parseParticleSystemTemplate), and a headless host - the

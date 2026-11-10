@@ -848,7 +848,7 @@ Bool AIUpdateInterface::chooseLocomotorSetExplicit(LocomotorSetType wst)
 		// aircraft. Rebuilding discards the Locomotor instance that a slow death module mutated to
 		// ground it, so the wreck regains full lift from template and keeps flying.
 		//
-		// GeneralsX @bugfix Claude 11/08/2026 UNGATED from #if !RETAIL_COMPATIBLE_CRC, the same
+		// GeneralsX: UNGATED from #if !RETAIL_COMPATIBLE_CRC, the same
 		// deliberate divergence taken for the hacker re-command guard earlier today and for the same
 		// reason. Upstream must keep it gated because it changes the frame CRC against retail 1.04.
 		// GeneralsX has no retail peers - engineID/sourceID refuse any peer whose engine differs -
@@ -923,7 +923,7 @@ Object* AIUpdateInterface::checkForCrateToPickup()
 {
 	if (m_crateCreated != INVALID_ID)
 	{
-		// GeneralsX @bugfix Claude 05/10/2026 Look the crate up BEFORE clearing its ID. EA cleared it first, so the lookup
+		// GeneralsX: Look the crate up BEFORE clearing its ID. EA cleared it first, so the lookup
 		// was always findObjectByID(INVALID_ID) and a computer unit never went for the crate its victim dropped. As Zero
 		// Hour Reforged (Olcay Seygan, GPL-3.0-or-later).
 		Object* crate = TheGameLogic->findObjectByID(m_crateCreated);
@@ -1096,13 +1096,13 @@ UpdateSleepTime AIUpdateInterface::update()
 	UnsignedInt now = TheGameLogic->getFrame();
 	if (m_queueForPathFrame != 0 && now >= m_queueForPathFrame)
 	{
-		// GeneralsX @bugfix Claude 25/09/2026 Clear the timer only when the request got in: a full
+		// GeneralsX: Clear the timer only when the request got in: a full
 		// queue has just set a new retry through setQueueForPathTime (Pathfinder::queueForPath), and
 		// clearing it here would bring back the permanent stall that retry exists to end.
 		if (TheAI->pathfinder()->queueForPath(getObject()->getID()))
 			setQueueForPathTime(0);
 	}
-	// GeneralsX @bugfix Claude 25/09/2026 A pending retry bounds this sleep - INCLUDING the one a full queue
+	// GeneralsX: A pending retry bounds this sleep - INCLUDING the one a full queue
 	// has just set above. That one was set from inside this update, where setQueueForPathTime leaves the
 	// wake frame alone (m_isInUpdate) and trusts this function to account for it; with the old else-only
 	// branch nothing did, and a unit whose other modules had nothing to do slept forever and never retried.
@@ -1113,7 +1113,7 @@ UpdateSleepTime AIUpdateInterface::update()
 			subMachineSleep = UPDATE_SLEEP(sleepForPathDelta);
 	}
 
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. After the movement-complete clean-up above, so a finished move
+	// GeneralsX: WAYPOINT ENTER. After the movement-complete clean-up above, so a finished move
 	// cannot destroy the new enter's path. A state set from inside update() does not wake us (wakeUpNow while
 	// m_isInUpdate), so do not sleep past it.
 	if( m_gxEnterQueuePending )
@@ -1235,7 +1235,7 @@ void AIUpdateInterface::clearWaypointQueue()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER - waypoint mode + clicks on several containers.
+// GeneralsX: WAYPOINT ENTER - waypoint mode + clicks on several containers.
 //
 // Each unit keeps its OWN queue of containers. Nothing is assigned up front: the queue is carried by the unit's current
 // AI_ENTER / AI_FOLLOW_PATH, and when that state ends BY ITSELF (the transport filled up, died, was sniped empty, drove
@@ -1398,7 +1398,7 @@ void AIUpdateInterface::gxEnterQueueCrc( Xfer *xfer )
 }
 
 #if defined(GX_TEST_INSTRUMENTS)
-// GeneralsX @test Claude 26/09/2026 WAYPOINT ENTER test hooks (GameLogicDispatch.cpp gxTestEnterQueue*). Never built into
+// GeneralsX: WAYPOINT ENTER test hooks (GameLogicDispatch.cpp gxTestEnterQueue*). Never built into
 // a shipping binary.
 void AIUpdateInterface::gxTestLockMachine( Bool lock )
 {
@@ -1656,7 +1656,7 @@ Bool AIUpdateInterface::needToRotate()
 
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 06/10/2026 BLOCKED RING. processCollision's deadlock branch only frees a MUTUAL pair. Units that reach a
+// GeneralsX: BLOCKED RING. processCollision's deadlock branch only frees a MUTUAL pair. Units that reach a
 // crowded destination together can block each other in a ring of 3+ - each faces its own slot with another, still-arriving unit
 // standing in it, none idle, none blocked by the unit it blocks: they stood for the rest of the order (Golden Oasis, 12 Crusaders,
 // measured ring 509->514->511->507->509, all at speed 0). The ring is PROVEN in doLocomotor on the last collision pass's
@@ -1674,7 +1674,7 @@ Bool AIUpdateInterface::needToRotate()
 // collisions, and drives on; its order is kept. Every test can only refuse a ring. SPEC: the ring EXISTED in the last complete
 // collision pass and STILL HOLDS now by the pass's own tests - the footing retail's own deadlock escalation stands on; a ring that
 // would dissolve by itself later this frame (a member's own state machine, locomotor or physics update) is not a defect, and
-// predicting whether the next pass delivers an edge is out of scope (Codex pf-ringbreak r1-r16).
+// predicting whether the next pass delivers an edge is out of scope (pf-ringbreak r1-r16).
 Bool AIUpdateInterface::gxIsStillAndBlocked() const
 {
 	if (m_blockedFrames <= 0 || m_curLocomotor == nullptr)
@@ -1688,8 +1688,8 @@ Bool AIUpdateInterface::gxFacesItsPath() const
 {
 	// processCollision's own !needToRotate() - which the ring's "Just wait" edges satisfied - without needToRotate()'s side effect:
 	// computePointOnPath's cache countdown steers this unit's later path following, so read the point its own last update computed.
-	// It must be the point a fresh computePointOnPath would return now (cache reusable: Codex pf-ringbreak-r10); no path, a path
-	// not yet followed, a stale cache, or waiting for a path reads as turning (Codex pf-ringbreak-r9).
+	// It must be the point a fresh computePointOnPath would return now (cache reusable); no path, a path
+	// not yet followed, a stale cache, or waiting for a path reads as turning.
 	const Path *path = getPath();
 	Coord3D pointOnPath;
 	if (isWaitingForPath() || path == nullptr
@@ -1718,7 +1718,7 @@ Bool AIUpdateInterface::gxBlockedEdgeHolds(Object *blocker)
 		|| physics->isIgnoringCollisionsWith(blocker->getID()) || otherPhysics->isIgnoringCollisionsWith(self->getID())
 		|| blocker->canCrushOrSquish(self, TEST_CRUSH_ONLY))
 		return FALSE;	// onCollide would not hand the contact to processCollision
-	// processCollision's gates: no collision cheat, not pathing through units, moving (a Stop clears that before the goal: Codex
+	// processCollision's gates: no collision cheat, not pathing through units, moving (a Stop clears that before the goal:
 	// pf-ringbreak-r11), a POSITION goal - a scripted facing order (ANGLE) turns in place and pushes into no one (r8) -, facing
 	// its path (r9), ground movement on both sides, not panicking infantry
 	if (m_ignoreCollisionsUntil > now || m_canPathThroughUnits || !isMoving()
@@ -1732,7 +1732,7 @@ Bool AIUpdateInterface::gxBlockedEdgeHolds(Object *blocker)
 
 Bool AIUpdateInterface::gxIsTopOfBlockedRing()
 {
-	if (getObject()->isEffectivelyDead() || !gxIsStillAndBlocked())	// alive and still too (Codex pf-ringbreak-r5, r16)
+	if (getObject()->isEffectivelyDead() || !gxIsStillAndBlocked())	// alive and still too
 		return FALSE;
 	const ObjectID self = getObject()->getID();
 	AIUpdateInterface *ai = this;
@@ -1755,7 +1755,7 @@ Bool AIUpdateInterface::gxIsTopOfBlockedRing()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 06/10/2026 ROTATION LIVELOCK. processCollision's blocked branch suspends every escalation while this
+// GeneralsX: ROTATION LIVELOCK. processCollision's blocked branch suspends every escalation while this
 // unit still has to turn to face its path ("We are rotating": no blocked count, so no 2 s blocked repath and no blocked&stuck),
 // and the mutual-deadlock branch waits while the OTHER still has to turn - both assume the turn completes. A blocked unit that
 // cannot turn where it stands never completes it: wheels turn only while moving (moveTowardsPositionWheels scales the turn by
@@ -1771,8 +1771,8 @@ Bool AIUpdateInterface::gxIsTopOfBlockedRing()
 // state has none), not waiting for a path, and MOTIONLESS: a blocked locomotor scrubs its 2D velocity to exactly zero
 // (PhysicsBehavior::scrubVelocity2D). At zero a wheeled unit cannot turn at all (its turn scales with its speed) and every other
 // locomotor turns at its full rate, so the threshold below is a true upper bound on any turn still in progress; a unit creeping
-// at any speed may be turning slowly and is left alone (Codex pf-rotstall-r2 P2). processCollision records a run frame only
-// when this holds, so a turn made while moving never counts towards a stall (Codex pf-rotstall-r1 P2).
+// at any speed may be turning slowly and is left alone. processCollision records a run frame only
+// when this holds, so a turn made while moving never counts towards a stall.
 Bool AIUpdateInterface::gxStallableTurn() const
 {
 	if (isWaitingForPath() || (m_locomotorGoalType != POSITION_ON_PATH && m_locomotorGoalType != POSITION_EXPLICIT)
@@ -1789,7 +1789,7 @@ Bool AIUpdateInterface::gxRotationStalled() const
 		return FALSE;	// no current run (a frame without a stallable blocked turn ends it)
 	// Bounded by the SLOWEST turn rate the unit had on any frame of the run: a repair (TurnRateDamaged -> TurnRate), ULTRA_ACCURATE
 	// or a locomotor switch can raise the rate mid-run, and the current rate would then shorten the bound under a turn that was
-	// progressing at the slower one (Codex batch-0959 r8). Every frame of the run turned at >= this rate, so it bounds them all.
+	// progressing at the slower one. Every frame of the run turned at >= this rate, so it bounds them all.
 	const Real halfTurnFrames = m_gxRotMinTurnRate > 0.0f ? PI / m_gxRotMinTurnRate : 0.0f;	// 0: it cannot turn at all
 	return (Real)(now - m_gxRotBlockedSince) > (Real)(2 * LOGICFRAMES_PER_SECOND) + halfTurnFrames;
 }
@@ -1800,7 +1800,7 @@ Bool AIUpdateInterface::gxMoveOrderIgnoresPosition() const
 	return !getObject()->isMobile();
 }
 
-// GeneralsX @performance Claude 04/11/2026 TRUE: this object's move order cannot read the spiral's answer, and the spiral could
+// GeneralsX: TRUE: this object's move order cannot read the spiral's answer, and the spiral could
 // not mint the one name key canCrushOrSquish interns lazily, so skipping it changes nothing (see gxMoveOrderIgnoresPosition).
 static inline Bool gxSpiralAnswerUnread(const AIUpdateInterface *ai)
 {
@@ -1892,7 +1892,7 @@ Bool AIUpdateInterface::processCollision(PhysicsBehavior *physics, Object *other
 #if RETAIL_COMPATIBLE_CRC
 			if (!needToRotate())
 #else
-			// GeneralsX @bugfix Claude 06/10/2026 ROTATION LIVELOCK (see gxRotationStalled): a turn that never finishes no longer
+			// GeneralsX: ROTATION LIVELOCK (see gxRotationStalled): a turn that never finishes no longer
 			// suspends the escalations below. needToRotate() keeps its retail call here (it steps computePointOnPath's cache).
 			const Bool rotating = needToRotate();
 			if (rotating && gxStallableTurn())
@@ -2561,7 +2561,7 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 	m_isBlocked = FALSE;
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @bugfix Claude 06/10/2026 BLOCKED RING (see gxIsTopOfBlockedRing): the ring's top unit drives on through it.
+	// GeneralsX: BLOCKED RING (see gxIsTopOfBlockedRing): the ring's top unit drives on through it.
 	if (m_blockedFrames > LOGICFRAMES_PER_SECOND && isMoving() && gxIsTopOfBlockedRing())
 		setIgnoreCollisionTime(2*LOGICFRAMES_PER_SECOND);
 #endif
@@ -2643,7 +2643,7 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 								m_bumpSpeedLimit = speed;
 							}
 #if GX_LOGIC_60HZ
-							// GeneralsX @fix Claude 23/09/2026 a per-frame DECAY (and the 1.05 recovery below): at
+							// GeneralsX: a per-frame DECAY (and the 1.05 recovery below): at
 							// twice the rate it needs the square root, so two frames == one retail frame.
 							m_bumpSpeedLimit *= 0.974679434f;	// sqrt(0.95)
 #else
@@ -2724,7 +2724,7 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 #if RETAIL_COMPATIBLE_CRC
 			m_blockedFrames = 1;
 #else
-			// GeneralsX @bugfix Claude 06/10/2026 a blocked unit that stands still keeps counting, so the 1 s pass-through
+			// GeneralsX: a blocked unit that stands still keeps counting, so the 1 s pass-through
 			// (blockedBy) and the 2 s blocked repath (AIInternalMoveToState::update) can fire - CATALOG_pathfinding.md H-27.
 			// The locomotor reports "not blocked" both when it may accelerate and when its blocked branch needs no turn
 			// (Locomotor::locoUpdate_moveTowardsPosition), and this reset took either as progress. A column parked on a
@@ -2736,7 +2736,7 @@ UpdateSleepTime AIUpdateInterface::doLocomotor()
 			// (processCollision -> m_isBlockedAndStuck -> the same S:1839 request; friend_startingMove clears the flag before the
 			// queued computePath runs, so that is a fresh findPath with the findClosestPath fallback in retail too). The blocker
 			// here is busy but has stopped - idle in all but name. Promoting this unit to m_isBlockedAndStuck instead bought
-			// nothing for that reason and left a stale flag for the attack states (Codex pf-deckfreeze-r2, reverted).
+			// nothing for that reason and left a stale flag for the attack states (reverted).
 			const PhysicsBehavior *physics = getObject()->getPhysics();
 			const Real stillSpeed = 0.05f * m_curLocomotor->getMaxSpeedForCondition(getObject()->getBodyModule()->getDamageState());
 			if (physics == nullptr || physics->getVelocityMagnitude() > stillSpeed)
@@ -3813,7 +3813,7 @@ void AIUpdateInterface::privateFollowWaypointPathAsTeamExact( const Waypoint *wa
 //----------------------------------------------------------------------------------------
 void AIUpdateInterface::privateFollowPathAppend( const Coord3D *pos, CommandSourceType cmdSource )
 {
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. Only a player's waypoint click gets here (AIGroup
+	// GeneralsX: WAYPOINT ENTER. Only a player's waypoint click gets here (AIGroup
 	// groupMoveToPosition / groupTightenToPosition). A ground waypoint AFTER enter clicks ends the chain, even when it only
 	// appends to the running path below - that path has no clear() and so no carrier exit.
 	gxClearEnterQueue();
@@ -3826,8 +3826,8 @@ void AIUpdateInterface::privateFollowPathAppend( const Coord3D *pos, CommandSour
 		//We already have a path, so simply add the point to the end of it!
 		getStateMachine()->addToGoalPath(pos);
 #if !RETAIL_COMPATIBLE_CRC
-		// GeneralsX @bugfix Claude 06/10/2026 issue TheSuperHackers #45: this append stamps no source, so a player's waypoint
-		// added to a path a script or exit started clears the harvester latch here (Codex pf-supply-r3 P2 2; see setLastCommandSource)
+		// GeneralsX: issue TheSuperHackers #45: this append stamps no source, so a player's waypoint
+		// added to a path a script or exit started clears the harvester latch here (see setLastCommandSource)
 		if (cmdSource == CMD_FROM_PLAYER && getSupplyTruckAIInterface() != nullptr)
 			getSupplyTruckAIInterface()->setForceWantingState(FALSE);
 #endif
@@ -3871,7 +3871,7 @@ void AIUpdateInterface::privateFollowPath( std::vector<Coord3D>* path, Object *i
 	// clear current state machine
 	getStateMachine()->clear();
 
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. Enter clicks queue behind a player's waypoint path only - not
+	// GeneralsX: WAYPOINT ENTER. Enter clicks queue behind a player's waypoint path only - not
 	// behind an exit path or a script's (AIUpdateInterface::gxQueueEnter). Set after clear(), whose carrier exit resets it.
 	m_gxPlayerPath = ( cmdSource == CMD_FROM_PLAYER && !exitProduction );
 
@@ -4251,7 +4251,7 @@ void AIUpdateInterface::privateEnter( Object *obj, CommandSourceType cmdSource )
 {
 	Object *me = getObject();
 #if defined(GX_TEST_INSTRUMENTS)
-	// GeneralsX @test Claude 26/09/2026 the enterq-locked arm's RED observable: an enter attempted on a locked machine.
+	// GeneralsX: the enterq-locked arm's RED observable: an enter attempted on a locked machine.
 	if( getStateMachine()->isLocked() )
 	{
 		fprintf( stderr, "[GXENTERQ] locked-enter f=%u unit=%u\n", (unsigned)TheGameLogic->getFrame(), (unsigned)me->getID() );
@@ -4817,11 +4817,11 @@ Object* AIUpdateInterface::getEnterTarget()
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 06/10/2026 TheSuperHackers issue #45: AIGroup::groupTightenToPosition forwards a player's order to
+// GeneralsX: TheSuperHackers issue #45: AIGroup::groupTightenToPosition forwards a player's order to
 // a helipad unit (Chinook) as CMD_FROM_AI, so setLastCommandSource never sees the player. The latch is cleared where the order is
 // TAKEN - privateTightenToPosition past its mobility and lock tests, or a Chinook storing it to replay after take-off/landing
 // (ChinookAIUpdate::aiDoCommand, even while EMP'd: the replay waits for recovery) - never for an order the unit refuses: an
-// EMP-disabled or unpowered flying Chinook keeps its latch for its scheduled run (Codex batch-0958 r1, pf-supply-r5).
+// EMP-disabled or unpowered flying Chinook keeps its latch for its scheduled run.
 void AIUpdateInterface::gxTakePlayerGroupOrder()
 {
 	if (m_gxPlayerGroupOrder && getSupplyTruckAIInterface() != nullptr)
@@ -4832,7 +4832,7 @@ void AIUpdateInterface::setLastCommandSource( CommandSourceType source )
 {
 	m_lastCommandSource = source;
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @bugfix Claude 06/10/2026 Issue TheSuperHackers #45, after their PR #3170 (Stubbjax, open). A harvester leaving
+	// GeneralsX: Issue TheSuperHackers #45, after their PR #3170 (Stubbjax, open). A harvester leaving
 	// its supply centre carries a "force wanting" latch (SupplyCenterProductionExitUpdate) that outranked the next player
 	// order: it went back to gathering once the order ended. Measured in 1,000 top-player Generals Online games (B ·
 	// pathfinding-hunt, CATALOG_pathfinding.md U-45): the highest per-order stuck rate of any unit, 16x the base.
@@ -4841,7 +4841,7 @@ void AIUpdateInterface::setLastCommandSource( CommandSourceType source )
 	// privateGetRepaired's canGetRepairedAt, isAllowedToRespondToAiCommands), right after it clears the state machine.
 	// So a group order the truck refuses leaves it gathering, and one that interrupts it ends the autopilot - also when the
 	// new state then fails on entry (an unarmed truck's attack, a full transport): its exit path is already aborted, which
-	// is exactly what the same order does to a truck that is gathering (Codex pf-supply-r2 P2 1+2, r3 P2 1).
+	// is exactly what the same order does to a truck that is gathering.
 	// CMD_FROM_AI / CMD_FROM_SCRIPT keep the latch, as in retail. Elsewhere: a player's waypoint appended to a running path
 	// (privateFollowPathAppend), a player's helicopter group move (AIGroup::groupTightenToPosition), a Chinook landing for
 	// transport duty (ChinookTakeoffOrLandingState) and accepted dozer tasks (WorkerAIUpdate::newTask/construct).
@@ -5222,7 +5222,7 @@ Bool AIUpdateInterface::hasNationalism() const
 	if (const Player *player = getObject()->getControllingPlayer())
 	{
 		///@todo Find a better way to represent nationalism without hard coding here (CBD)
-		// GeneralsX @bugfix Claude 25/09/2026 was a process-lifetime static pointer; see UpgradeTemplateRef
+		// GeneralsX: was a process-lifetime static pointer; see UpgradeTemplateRef
 		static UpgradeTemplateRef s_nationalismTemplate( "Upgrade_Nationalism" );
 		const UpgradeTemplate *nationalismTemplate = s_nationalismTemplate.get();
 		if (nationalismTemplate != nullptr)
@@ -5240,7 +5240,7 @@ Bool AIUpdateInterface::hasFanaticism() const
 	if (const Player *player = getObject()->getControllingPlayer())
 	{
 		///@todo Find a better way to represent fanaticism without hard coding here (MAL)
-		// GeneralsX @bugfix Claude 25/09/2026 was a process-lifetime static pointer; see UpgradeTemplateRef
+		// GeneralsX: was a process-lifetime static pointer; see UpgradeTemplateRef
 		static UpgradeTemplateRef s_fanaticismTemplate( "Upgrade_Fanaticism" );
 		const UpgradeTemplate *fanaticismTemplate = s_fanaticismTemplate.get();
 		if (fanaticismTemplate != nullptr)
@@ -5848,7 +5848,7 @@ void AIUpdateInterface::loadPostProcess()
 {
 	UpdateModule::loadPostProcess();
 
-	// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER. m_gxPlayerPath is not saved (the retail save format stays as it
+	// GeneralsX: WAYPOINT ENTER. m_gxPlayerPath is not saved (the retail save format stays as it
 	// is), so rebuild it from what is: a path the player ordered carries CMD_FROM_PLAYER. A player's waypoint appended to
 	// an exit path before the save is not recoverable that way (the path keeps the exit's CMD_FROM_AI); after a load
 	// such a unit's next enter click replaces the path rather than queueing behind it.
@@ -5864,9 +5864,9 @@ void AIUpdateInterface::loadPostProcess()
 		chooseLocomotorSet(lst);
 	}
 
-	// GeneralsX @bugfix Claude 06/10/2026 A unit saved WAITING for its path is still moving somewhere: m_isMoving is not saved
+	// GeneralsX: A unit saved WAITING for its path is still moving somewhere: m_isMoving is not saved
 	// (it loads FALSE), but m_waitingForPath is, and its request is in the restored queue. Without this its saved goal cell was
-	// dropped for its current position, so another unit could take its destination before its path even came (Codex PF27
+	// dropped for its current position, so another unit could take its destination before its path even came (PF27
 	// 2b-r5 #2). Load only.
 	if (!isMoving() && (!m_waitingForPath || m_pathfindGoalCell.x < 0 || m_pathfindGoalCell.y < 0)) {
 		m_pathfindGoalCell.x = -1;
@@ -5878,11 +5878,11 @@ void AIUpdateInterface::loadPostProcess()
 	}	else {
 		if (m_pathfindGoalCell.x >= 0 && m_pathfindGoalCell.y >= 0) {
 			Coord3D goalPos;
-			// GeneralsX @bugfix Claude 06/10/2026 RE-RESERVE THE SAME CELL ON THE SAVED LAYER. updateGoal maps a position to
+			// GeneralsX: RE-RESERVE THE SAME CELL ON THE SAVED LAYER. updateGoal maps a position to
 			// floor(x/cell) for a centred footprint but floor(0.5 + x/cell) for the others, so the cell CENTRE this used to pass
 			// came back one cell over for every non-centred unit, and the restamp used the unit's current layer, not the one its
 			// goal was on (Object saves m_destinationLayer). A quarter cell in maps to the saved cell under both rules
-			// (Codex PF27 2b-r4 #5). Load only.
+			// (PF27 2b-r4 #5). Load only.
 			goalPos.x = m_pathfindGoalCell.x * PATHFIND_CELL_SIZE_F + PATHFIND_CELL_SIZE_F*0.25f;
 			goalPos.y = m_pathfindGoalCell.y * PATHFIND_CELL_SIZE_F + PATHFIND_CELL_SIZE_F*0.25f;
 			goalPos.z = 0.0f;

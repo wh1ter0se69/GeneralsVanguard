@@ -2162,7 +2162,7 @@ void HLodClass::Render(RenderInfoClass & rinfo)
  * HISTORY:                                                                                    *
  *   1/26/00    gth : Created.                                                                 *
  *=============================================================================================*/
-// GeneralsX @performance Claude 07/10/2026 R-CPU pose pre-pass (animobj.cpp Pose_Is_Worker_Safe).
+// GeneralsX: R-CPU pose pre-pass (animobj.cpp Pose_Is_Worker_Safe).
 bool HLodClass::Pose_Is_Worker_Safe()
 {
 	if (!Animatable3DObjClass::Pose_Is_Worker_Safe()) {

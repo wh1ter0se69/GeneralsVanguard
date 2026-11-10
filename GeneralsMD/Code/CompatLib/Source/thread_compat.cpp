@@ -2,7 +2,7 @@
 #include <map>
 #include <mutex>
 
-// GeneralsX @feature BenderAI 24/02/2026 Phase 5 - Thread ID mapper for legacy int-based APIs
+// GeneralsX: Phase 5 - Thread ID mapper for legacy int-based APIs
 static std::map<pthread_t, int> thread_id_map;
 static std::mutex thread_id_map_mutex;
 static int next_thread_id = 1;
@@ -15,7 +15,7 @@ THREAD_ID GetCurrentThreadId()
 
 int GetCurrentThreadIdAsInt()
 {
-	// GeneralsX @feature BenderAI 24/02/2026 Phase 5 - Convert pthread_t to unique int for legacy code
+	// GeneralsX: Phase 5 - Convert pthread_t to unique int for legacy code
 	pthread_t current = pthread_self();
 	
 	std::lock_guard<std::mutex> lock(thread_id_map_mutex);

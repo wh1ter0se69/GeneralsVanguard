@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @test Claude 01/10/2026 GX_ORDERS - a scripted human, so a multiplayer test match is not an idle one.
+// GeneralsX: GX_ORDERS - a scripted human, so a multiplayer test match is not an idle one.
 //
 // WHY. A headless human peer issues no orders, and skirmish AI orders are simulated locally on every peer rather than
 // sent. So a 12-peer loss match or a 34-peer scale match put almost nothing on the wire (ROADMAP_2027 M2 Smooth-1 and
@@ -274,7 +274,7 @@ void gather(const Player *me, Mine &m)
 			if (ai->isIdle() || (freeBuilder && !o->isKindOf(KINDOF_HARVESTER)))
 				m.spareWorkers.push_back(o);
 			else if (o->isKindOf(KINDOF_HARVESTER) && (dozer == nullptr || !dozer->isAnyTaskPending()))
-				m.gatherers.push_back(o);	// a Worker that is building or repairing is not a gatherer here (Codex r14)
+				m.gatherers.push_back(o);	// a Worker that is building or repairing is not a gatherer here
 		}
 		if (o->isKindOf(KINDOF_DOZER))
 		{
@@ -633,7 +633,7 @@ void gxOrderDriverUpdate()
 	s_budget += (Real)steps * s_cfg.opm / (60.0f * (Real)LOGICFRAMES_PER_SECOND);
 	if (s_budget > 4.0f)
 		s_budget = 4.0f;
-	// A failed attempt spends its budget too (Codex r11): attempts, and the object scans they cost, stay at the order rate
+	// A failed attempt spends its budget too: attempts, and the object scans they cost, stay at the order rate
 	// instead of repeating every frame while a player has nothing it can do.
 	while (s_budget >= 2.0f)
 	{

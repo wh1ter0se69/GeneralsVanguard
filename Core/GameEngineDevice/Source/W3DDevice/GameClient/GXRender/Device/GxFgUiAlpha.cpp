@@ -1,4 +1,4 @@
-// GeneralsX @feature B · dlss-fg-1 14/10/2026 GxFgUiAlpha.h. The pipeline shape is GxNativePresent's (one full-screen triangle, dynamic
+// GeneralsX: GxFgUiAlpha.h. The pipeline shape is GxNativePresent's (one full-screen triangle, dynamic
 // rendering, texelFetch through a combined image sampler that is never consulted).
 #include "GxFgUiAlpha.h"
 

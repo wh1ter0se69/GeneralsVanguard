@@ -16,13 +16,13 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @security Claude 25/09/2026 AN ADMIN'S CHEAT ORDER IS SIGNED BY THE ADMIN, so no other peer can send one
+// GeneralsX: AN ADMIN'S CHEAT ORDER IS SIGNED BY THE ADMIN, so no other peer can send one
 // in the admin's name.
 //
 // WHY A SIGNATURE AND NOT THE ORDER'S SENDER FIELD. A network order names its sender in a packet field
 // (NetCommandMsg::getPlayerID) that ConnectionManager::processNetCommand does not bind to the peer the datagram came
 // from - the packet router relays everybody's orders, a frame resend carries a third peer's, and a modified client
-// can forge the FRAMEINFO count as well (Codex r2 P1 on this branch; the NOT CLOSED note beside the ack gate in
+// can forge the FRAMEINFO count as well (on this branch; the NOT CLOSED note beside the ack gate in
 // ConnectionManager.cpp is the same gap). "The admin's slot sent it" is therefore not evidence. A signature is: each
 // relay-proven admin holds a per-match Ed25519 key (GameClient/GXAdminKey.h), the relay publishes the public half
 // for live admins only (relay.js GXAKR), every peer confirms the host stamped exactly that key at the start

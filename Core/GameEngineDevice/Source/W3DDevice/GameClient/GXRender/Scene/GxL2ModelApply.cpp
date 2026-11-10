@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the device-less wrapper model's LOGICAL layer - render_state, its dirty flags,
+// GeneralsX: WS-G Task 5: the device-less wrapper model's LOGICAL layer - render_state, its dirty flags,
 // the light environment and Apply_Render_State_Changes (GxL2Model.h). Cites are W/dx8wrapper.{h,cpp} at 3a59e5b2a.
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Model.h"
@@ -195,7 +195,7 @@ void setLightEnvironment(State &s, const Lenv *env)
 #if GX_L2M_MUTANT == 10
 				light.att1 = (float)(0.1 / a);	// M10: the double form
 #else
-				light.att1 = (float)0.1 / a;	// :4723 - the numerator rounds to float first (Codex rw1-G-model-r1 #8)
+				light.att1 = (float)0.1 / a;	// :4723 - the numerator rounds to float first
 #endif
 			light.att2 = 8.0f / (b * b);
 		}
@@ -244,7 +244,7 @@ void apply(State &s, Inputs &in)
 				if (vb.type == BT_DX8 || vb.type == BT_DYNAMIC_DX8) {
 					d.stream[i] = vb.d3d;
 					d.stride[i] = vb.fvfSize;
-					if (i == 0) d.streamKnown = true;	// only a real bind (Codex rw1-G-r25 #1)
+					if (i == 0) d.streamKnown = true;	// only a real bind
 					note(s, C_STREAM, i, vb.fvfSize, vb.d3d, true);
 					if (vb.fvf != 0) { d.vertexShader = s.vsCache = vb.fvf; note(s, C_VSHADER, vb.fvf, 0, 0, true); }	// no compare (W/dx8wrapper.h:1117-1127)
 				}	// SORTING types bind nothing here
@@ -406,7 +406,7 @@ DrawOut draw(State &s, Inputs &in, DrawArgs &a, unsigned lowBound, bool triangle
 	if (vt == BT_DX8 || vt == BT_DYNAMIC_DX8) {
 		if (it != BT_DX8 && it != BT_DYNAMIC_DX8) return DRAW_NONE;
 		a.startIndex = a.startIndex + r.ibaOffset;	// GxDrawHook / DrawIndexedPrimitive get start_index + iba_offset, integer-promoted (no
-												// 16-bit wrap: Codex rw1-G-r24 #3)
+												// 16-bit wrap)
 		return DRAW_INDEXED;
 	}
 	if ((vt == BT_SORTING || vt == BT_DYNAMIC_SORTING) && (it == BT_SORTING || it == BT_DYNAMIC_SORTING) && sb) {
@@ -422,7 +422,7 @@ DrawOut draw(State &s, Inputs &in, DrawArgs &a, unsigned lowBound, bool triangle
 		d.streamKnown = d.indicesKnown = true;
 		a.prim = 4;					// :3456-3462 - the copy is drawn as D3DPT_TRIANGLELIST from vertex 0 at the dynamic IB's offset
 		a.minIndex = 0;
-		a.startIndex = sb->ibOffset;	// (Codex rw1-G-r23 #3)
+		a.startIndex = sb->ibOffset;
 		return DRAW_SORTING;
 	}
 	return DRAW_NONE;

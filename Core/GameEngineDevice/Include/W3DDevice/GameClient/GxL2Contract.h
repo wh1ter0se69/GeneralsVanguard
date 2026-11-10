@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 10/10/2026 L2 data contract, reference rules (render-seam/CONTRACT_L2.md, WS-G0).
+// GeneralsX: L2 data contract, reference rules (render-seam/CONTRACT_L2.md, WS-G0).
 //
 // Which classic mesh-renderer draws the L2 scene renderer may take over in the HYBRID (L2 drawing inside DXVK's device at
 // the original DX8MeshRendererClass::Flush points), and the bin key / per-instance split for the ones it takes. Header-only
@@ -86,7 +86,7 @@ struct FlushCtx {
 // The EFFECTIVE depth/blend/colour/stencil state of the run, decoded from the device-truth table (E2) after the replay (§3.4) - never
 // from the wrapper's RenderStates cache (sentinels, H10), and never
 // from the ShaderClass bits: ShaderClass::Apply leaves raw writes standing when the bits match its cache (shader.cpp:424), e.g.
-// the shroud pass's ZFUNC EQUAL (W3DShaderManager.cpp:1304) or an RGB-only COLORWRITEENABLE (FlatHeightMap.cpp:539) - Codex
+// the shroud pass's ZFUNC EQUAL (W3DShaderManager.cpp:1304) or an RGB-only COLORWRITEENABLE (FlatHeightMap.cpp:539) - review
 // contract r2 #3. The bits stay the key.
 struct ShaderDesc {
 	uint32_t bits = 0;			// ShaderClass bits, the key
@@ -115,7 +115,7 @@ struct CatState {
 	uint8_t uvSource[2] = { 0, 1 };
 	ShaderDesc shader;
 	uint64_t effectiveState = 0;		// interned id of the run's post-replay RS/TSS/sampler snapshot (§1.4, §3.4): two eligible
-										// states that differ only in, e.g., ZFUNC LESS vs LESSEQUAL need two pipelines (Codex r3 #2)
+										// states that differ only in, e.g., ZFUNC LESS vs LESSEQUAL need two pipelines
 };
 
 // §1.3 one PolyRenderTaskClass: a mesh instance drawn through one polygon renderer of the category.
@@ -139,7 +139,7 @@ struct TaskState {
 	bool onlyVisibleTask = true;			// the mesh has exactly ONE visible task this flush - one pass AND one category (§2 E8):
 											// a mesh's polygons can sit in several categories of one pass (dx8renderer.cpp:1248,
 											// mesh.cpp:747), so anything less lets an opaque part be taken while a blended or
-											// later-refused part stays classic (Codex contract r6 #2)
+											// later-refused part stays classic (contract r6 #2)
 	bool vbOverflow = false;				// skins only: Base_Vertex_Offset == VERTEX_BUFFER_OVERFLOW
 	Aabb bounds = {};						// world-space, conservative
 };
@@ -247,7 +247,7 @@ inline WorldRecipe resolveWorld(const TaskState &t, const FlushCtx &f)
 {
 	WorldRecipe r;
 	// :1847 identity starts as the mesh's own flag; the billboard branches compute a look-at matrix but leave the flag
-	// alone, so a billboard whose transform is identity is still sent Set_World_Identity (:1883) - Codex contract r1 #1
+	// alone, so a billboard whose transform is identity is still sent Set_World_Identity (:1883) - review contract r1 #1
 	r.setIdentity = t.transformIdentity;
 	// the classic if / else-if order: ALIGNED, then ORIENTED, then SKIN
 #if GX_L2_MUTANT == 2
@@ -300,7 +300,7 @@ struct BinKey {
 	bool skinPath = false;
 	const void *polyRenderer = nullptr;	// one instanced draw = one index range
 	const void *skinMesh = nullptr;		// skins: each instance has its own deformed range (dx8renderer.cpp:1424), so a skin
-										// bin holds one mesh - phase 1b draws skins one task per draw (Codex contract r1 #2)
+										// bin holds one mesh - phase 1b draws skins one task per draw (contract r1 #2)
 
 	bool operator==(const BinKey &o) const
 	{
@@ -360,7 +360,7 @@ inline BinKey binKey(const CatState &c, const TaskState &t)
 inline bool tieCapable(const TaskState &a, const TaskState &b, float eps)
 {
 	// a billboard's copied bounds were built from its own transform, but it is drawn with Obj_Look_At (dx8renderer.cpp:1859),
-	// so an off-centre model sphere can leave them; never reorder one (Codex contract r2 #4; none in G2, rw1-G census)
+	// so an off-centre model sphere can leave them; never reorder one (contract r2 #4; none in G2, rw1-G census)
 #if GX_L2_MUTANT != 14
 	if (a.aligned || a.oriented || b.aligned || b.oriented) return true;
 #endif
@@ -387,9 +387,9 @@ struct Bin {
 
 // §3.3 instancing without a forbidden reorder: draws arrive in classic order; a draw may join an earlier bin of its key only
 // if it would not overtake a tie-capable draw, or a draw with another colour write mask (r9 - conservatively, as a ClaimedDraw carries
-// no screen rectangle: Codex rw1-G-r14), already placed in a later bin. The emission order is the bins' order, each
+// no screen rectangle), already placed in a later bin. The emission order is the bins' order, each
 // bin's members in classic order (Vulkan rasterises instances in order).
-// ponytail: O(draws x bins) bounding-box tests; a grid over the bounds when a flush's claimed count makes it show up.
+// Trade-off: O(draws x bins) bounding-box tests; a grid over the bounds when a flush's claimed count makes it show up.
 inline std::vector<Bin> planBins(const std::vector<ClaimedDraw> &in, const Policy &p)
 {
 	std::vector<Bin> bins;
@@ -418,7 +418,7 @@ inline std::vector<Bin> planBins(const std::vector<ClaimedDraw> &in, const Polic
 }
 
 // §3.3 / §4.3 C3: the WHOLE emitted sequence of a flush - classic draws at their places, every packet's draws where the packet
-// runs - checked against the classic order (Codex contract r1 #6: packets checked one by one can still invert a pair that
+// runs - checked against the classic order (contract r1 #6: packets checked one by one can still invert a pair that
 // sits in two different packets). Every pair whose emitted order is the reverse of the classic order must commute.
 struct SeqDraw {
 	TaskState task;
@@ -459,9 +459,9 @@ inline bool commutes(const SeqDraw &a, const SeqDraw &b, float eps)
 }
 
 // classicOrder[i] = the flush's draws in classic order; emitted = indices into it in emission order, which must be a
-// permutation: every draw exactly once. Returns -1 if it is not (a missing, duplicated or out-of-range draw - Codex contract
+// permutation: every draw exactly once. Returns -1 if it is not (a missing, duplicated or out-of-range draw - contract
 // r2 #6), else the number of non-commuting pairs the emission inverts (0 = the emission is CLASSIC-equivalent).
-// ponytail: O(n^2) pairs - a check-mode tool; sort by screen tiles if a flush's draw count makes it slow.
+// Trade-off: O(n^2) pairs - a check-mode tool; sort by screen tiles if a flush's draw count makes it slow.
 inline int validateEmission(const std::vector<SeqDraw> &classicOrder, const std::vector<int> &emitted, float eps)
 {
 	std::vector<int> pos(classicOrder.size(), -1);

@@ -178,7 +178,7 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
     fprintf(stderr,"Couldn't set nonblocking mode!\n");
 
   #ifdef _WIN32
-  // GeneralsX @bugfix Claude 10/08/2026 SIO_UDP_CONNRESET, long documented as this engine's
+  // GeneralsX: SIO_UDP_CONNRESET, long documented as this engine's
   // missing mitigation and now MEASURED biting: on Windows a peer that closes its socket sends
   // ICMP port-unreachable for every datagram still addressed to it, and each one makes the
   // NEXT recvfrom on this socket fail WSAECONNRESET. UDP::Read maps that to -1, and
@@ -223,7 +223,7 @@ Int UDP::Bind(UnsignedInt IP,UnsignedShort Port)
             (unsigned)((ntohl(IP)>>8)&0xff),  (unsigned)(ntohl(IP)&0xff),
             (unsigned)ntohs(Port));
     fflush(stderr);
-    // GeneralsX @bugfix Claude 19/09/2026 Close the socket a failed bind leaves behind. Transport::init
+    // GeneralsX: Close the socket a failed bind leaves behind. Transport::init
     // retries Bind on the same object for a whole second, and every attempt overwrote fd with a new
     // socket: with the port taken, macOS leaked ~61400 descriptors (kern.maxfilesperproc) in that
     // second. The process then could not open Options.ini, so the next initRelay read an ABSENT
@@ -340,7 +340,7 @@ Int UDP::mapPosixReadError()
 Int UDP::Read(unsigned char *msg,UnsignedInt len,sockaddr_in *from)
 {
   Int retval;
-  // GeneralsX @bugfix BenderAI 13/02/2026 Use socklen_t for POSIX socket functions (fighter19 pattern)
+  // GeneralsX: Use socklen_t for POSIX socket functions (fighter19 pattern)
   socklen_t alen=sizeof(sockaddr_in);
 
   if (from!=nullptr)
@@ -458,7 +458,7 @@ UDP::sockStat UDP::GetStatus()
       return ALREADY;
     case EAGAIN:
       return AGAIN;
-    // GeneralsX @bugfix BenderAI 13/02/2026 EWOULDBLOCK == EAGAIN on Linux (duplicate case)
+    // GeneralsX: EWOULDBLOCK == EAGAIN on Linux (duplicate case)
     #if EAGAIN != EWOULDBLOCK
     case EWOULDBLOCK:
       return WOULDBLOCK;
@@ -604,7 +604,7 @@ Int UDP::SetOutputBuffer(UnsignedInt bytes)
 int UDP::GetInputBuffer()
 {
    int retval,arg=0;
-   // GeneralsX @bugfix BenderAI 13/02/2026 Use socklen_t for POSIX socket functions (fighter19 pattern)
+   // GeneralsX: Use socklen_t for POSIX socket functions (fighter19 pattern)
    socklen_t len=sizeof(int);
 
    retval=getsockopt(fd,SOL_SOCKET,SO_RCVBUF,
@@ -616,7 +616,7 @@ int UDP::GetInputBuffer()
 int UDP::GetOutputBuffer()
 {
    int retval,arg=0;
-   // GeneralsX @bugfix BenderAI 13/02/2026 Use socklen_t for POSIX socket functions (fighter19 pattern)
+   // GeneralsX: Use socklen_t for POSIX socket functions (fighter19 pattern)
    socklen_t len=sizeof(int);
 
    retval=getsockopt(fd,SOL_SOCKET,SO_SNDBUF,

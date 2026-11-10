@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 19/09/2026 THE IN-MATCH KICK TICKET: what a moderator's kick carries into a
+// GeneralsX: THE IN-MATCH KICK TICKET: what a moderator's kick carries into a
 // running match, and the one decision every peer makes about it.
 //
 // A ticket is the panel's statement "the moderator <label> kicked the player at <vip> in <room> at <iat>",

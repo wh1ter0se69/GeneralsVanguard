@@ -544,7 +544,7 @@ static PoolSizeRec PoolSizes[] =
 	{ "NetDisconnectScreenOffCommandMsg", 32, 32 },
 	{ "NetFrameResendRequestCommandMsg", 32, 32 },
 	{ "NetKeepAliveCommandMsg", 32, 32 },
-	// GeneralsX @bugfix Claude 13/08/2026 NetCommandMsg.h is Core and compiles into BOTH games, so
+	// GeneralsX: NetCommandMsg.h is Core and compiles into BOTH games, so
 	// the pool row has to exist in both tables. See the GeneralsMD twin for why an absent row is a
 	// throw rather than a default-sized pool.
 	{ "NetLatencyReportCommandMsg", 32, 32 },

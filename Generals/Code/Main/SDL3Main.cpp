@@ -46,7 +46,7 @@
 #include "Common/GameEngine.h"
 #include "Common/GameMemory.h"
 #include "Common/Debug.h"
-#include "Common/version.h"  // GeneralsX @bugfix BenderAI 14/02/2026 Version class + TheVersion extern
+#include "Common/version.h"  // GeneralsX: Version class + TheVersion extern
 #include "SDL3GameEngine.h"
 
 // DXVK WSI
@@ -82,7 +82,7 @@ SDL_Window* TheSDL3Window = nullptr;
 // TheSuperHackers @build felipebraz 13/02/2026
 // GameText.cpp uses these paths to load CSF and STR files (game localization)
 // Format %s is replaced with language code in GameTextManager::init()
-// GeneralsX @bugfix BenderAI 13/02/2026 - Fix case-sensitivity on Linux (generals.csf vs Generals.csf)
+// GeneralsX: Fix case-sensitivity on Linux (generals.csf vs Generals.csf)
 const Char *g_csfFile = "data/%s/generals.csf";  ///< CSF file path (lowercase for Linux compatibility)
 const Char *g_strFile = "data/Generals.str";     ///< STR file path
 
@@ -103,7 +103,7 @@ extern Int GameMain();
  * Only applied when neither VK_DRIVER_FILES nor VK_ICD_FILENAMES is already set,
  * so the user can always override by setting those variables externally.
  *
- * GeneralsX @bugfix BenderAI 06/03/2026
+ * GeneralsX:
  */
 static void FilterSoftwareVulkanICDs()
 {
@@ -184,7 +184,7 @@ static void FilterSoftwareVulkanICDs()
  */
 static void FilterPipeWireOpenAL()
 {
-	// GeneralsX @bugfix Copilot 24/03/2026 PipeWire/OpenAL workaround is Linux-only; keep macOS CoreAudio backend selection untouched.
+	// GeneralsX: PipeWire/OpenAL workaround is Linux-only; keep macOS CoreAudio backend selection untouched.
 	#if defined(__linux__)
 	// Crash: alcOpenDevice() hits 'movaps %xmm1,0x26260(%rbx)' — SSE movaps requires
 	// 16-byte alignment; a misaligned ALCdevice struct faults regardless of backend.
@@ -257,7 +257,7 @@ int main(int argc, char* argv[])
 		// Initialize memory manager early (required by NEW operator)
 		initMemoryManager();
 
-		// GeneralsX @bugfix BenderAI 14/02/2026 Initialize Version singleton
+		// GeneralsX: Initialize Version singleton
 		// GameEngine::init() calls updateWindowTitle() which uses TheVersion
 		// Must be created before GameMain() to avoid nullptr dereference
 		TheVersion = NEW Version;
@@ -268,7 +268,7 @@ int main(int argc, char* argv[])
 		// For now, let CommandLine::parseCommandLineForStartup() handle this
 		CommandLine::parseCommandLineForStartup();
 
-		// GeneralsX @bugfix Copilot 17/05/2026 Skip SDL3 window bootstrap for CLI/headless replay execution.
+		// GeneralsX: Skip SDL3 window bootstrap for CLI/headless replay execution.
 		const bool isHeadlessMode = (TheGlobalData != nullptr && TheGlobalData->m_headless);
 		if (isHeadlessMode) {
 			fprintf(stderr, "INFO: Headless mode detected, skipping SDL3 video/Vulkan window initialization\n");
@@ -287,7 +287,7 @@ int main(int argc, char* argv[])
 			// Set DXVK WSI driver before loading Vulkan
 			setenv("DXVK_WSI_DRIVER", "SDL3", 1);
 
-			// GeneralsX @bugfix BenderAI 06/03/2026 - Exclude LLVMpipe Vulkan ICD before loading Vulkan.
+			// GeneralsX: Exclude LLVMpipe Vulkan ICD before loading Vulkan.
 			// libvulkan_lvp.so crashes during static initialization with LLVM 20.x when the Vulkan
 			// loader enumerates all ICDs. Restrict to hardware ICDs first.
 			FilterSoftwareVulkanICDs();
@@ -304,7 +304,7 @@ int main(int argc, char* argv[])
 			fprintf(stderr, "INFO: Creating SDL3 Vulkan window...\n");
 			Uint32 windowFlags = SDL_WINDOW_VULKAN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN;  // Start hidden, show after D3D init
 #if defined(__APPLE__)
-			// GeneralsX @bugfix Claude 17/08/2026 Request a native-resolution Metal drawable.
+			// GeneralsX: Request a native-resolution Metal drawable.
 			// Ported from the GeneralsMD twin (d5afaed6f). Without this the swapchain is built at
 			// POINT size and the compositor upscales the whole window: on a Retina Mac everything
 			// game-drawn is blown up 2x and blurred, while the OS-drawn cursor stays sharp and
@@ -358,13 +358,13 @@ int main(int argc, char* argv[])
 	}
 	SDL_Quit();
 
-	// GeneralsX @bugfix BenderAI 14/02/2026 Cleanup Version singleton
+	// GeneralsX: Cleanup Version singleton
 	if (TheVersion) {
 		delete TheVersion;
 		TheVersion = nullptr;
 	}
 
-	// GeneralsX @bugfix BenderAI 19/02/2026 Shutdown memory manager BEFORE nulling critical
+	// GeneralsX: Shutdown memory manager BEFORE nulling critical
 	// sections. Without this, global pool destructors (ObjectPoolClass) crash during atexit()
 	// because they call ::operator delete after the memory manager is already gone (SIGSEGV).
 	// Matches WinMain.cpp cleanup order: TheVersion -> shutdownMemoryManager -> null critSecs.
@@ -379,7 +379,7 @@ int main(int argc, char* argv[])
 
 	fprintf(stderr, "\nExiting with code %d\n", exitcode);
 
-	// GeneralsX @bugfix BenderAI 25/02/2026 — use _exit() to skip C++ global destructors.
+	// GeneralsX: — use _exit() to skip C++ global destructors.
 	// On macOS, __cxa_finalize_ranges runs ObjectPoolClass<X,256> global dtors after main() returns.
 	// Those dtors crash with a corrupted BlockListHead (SIGSEGV at 0x4ade32ec4ade0018) because
 	// pool block memory was already reused/overwritten during game shutdown.

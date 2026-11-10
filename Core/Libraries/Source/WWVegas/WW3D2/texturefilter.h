@@ -128,7 +128,7 @@ public:
 	void Set_U_Addr_Mode(TxtAddrMode mode) { UAddressMode=mode; }
 	void Set_V_Addr_Mode(TxtAddrMode mode) { VAddressMode=mode; }
 
-	// GeneralsX @bugfix Claude 05/10/2026 The filter a launch applies, from what Options.ini holds - see texturefilter.cpp.
+	// GeneralsX: The filter a launch applies, from what Options.ini holds - see texturefilter.cpp.
 	static void Resolve_Launch_Choice(bool picked_in_launcher, TextureFilterMode& mode, AnisotropicFilterMode& level);
 
 	// These need to be called after device has been created

@@ -82,7 +82,7 @@
 
 
 #include "ww3d.h"
-#include "WWLib/win.h"  // GeneralsX @build Copilot 11/05/2026 Keep win-compat type visibility parity (MMRESULT/timeBeginPeriod/BITMAP).
+#include "WWLib/win.h"  // GeneralsX: Keep win-compat type visibility parity (MMRESULT/timeBeginPeriod/BITMAP).
 #include "rinfo.h"
 #include "assetmgr.h"
 #include "boxrobj.h"
@@ -1067,7 +1067,7 @@ WW3DErrorType WW3D::Render(
 void WW3D::Flush(RenderInfoClass & rinfo)
 {
 	TheDX8MeshRenderer.Flush();
-	// GeneralsX @build Copilot 11/05/2026 Keep optional shader library flush ordering aligned with ZH runtime path.
+	// GeneralsX: Keep optional shader library flush ordering aligned with ZH runtime path.
 	SHD_FLUSH;
 	WW3D::Render_And_Clear_Static_Sort_Lists(rinfo);	//draws things like water
 

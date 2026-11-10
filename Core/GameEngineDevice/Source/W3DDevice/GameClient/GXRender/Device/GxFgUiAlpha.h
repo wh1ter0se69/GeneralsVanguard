@@ -1,4 +1,4 @@
-// GeneralsX @feature B · dlss-fg-1 14/10/2026 (PREREG A39c): DLSS Frame Generation's UI alpha (shaders/gx_fg_uialpha.frag) - 1 where the
+// GeneralsX: (PREREG A39c): DLSS Frame Generation's UI alpha (shaders/gx_fg_uialpha.frag) - 1 where the
 // final frame differs from the HUD-less one, both resolved by the same present shader, 0 elsewhere. One full-screen triangle into an
 // R16_SFLOAT target at back-buffer size. Render-only; nothing here is read by the simulation.
 #pragma once

@@ -34,7 +34,7 @@ void ShowUnderlyingGUIElements( Bool show, const char *layoutFilename, const cha
 															 const char **gadgetsToHide, const char **perPlayerGadgetsToHide );
 
 void PopulateColorComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool isObserver = FALSE);
-// GeneralsX @bugfix Claude 25/09/2026 keepSlotPick: select the slot's own faction afterwards instead
+// GeneralsX: keepSlotPick: select the slot's own faction afterwards instead
 // of entry 0. Selecting fires GCM_SELECTED into the screen's handlePlayerTemplateSelection, so entry 0
 // REWRITES the slot to Random - fine while building empty gadgets (retail), destructive on a rebuild
 // of a live slot list (the Limit Armies refresh). Selects nothing if the pick is not listed.
@@ -42,7 +42,7 @@ void PopulatePlayerTemplateComboBox(Int comboBox, GameWindow *comboArray[], Game
 void PopulateTeamComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool isObserver = FALSE);
 void PopulateStartingCashComboBox(GameWindow *comboBox, GameInfo *myGame);
 
-// GeneralsX @feature Claude 25/09/2026 Limit Armies: when myGame->oldFactionsOnly(), put every occupied
+// GeneralsX: Limit Armies: when myGame->oldFactionsOnly(), put every occupied
 // slot that holds a general's sub-faction back on Random. Returns TRUE if any slot changed.
 Bool EnforceArmyLimit(GameInfo *myGame);
 

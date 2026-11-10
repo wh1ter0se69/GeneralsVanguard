@@ -201,9 +201,9 @@ void SpyVisionUpdate::doActivationWork( Player *playerToSetFor, Bool setting )
 		}
 		else if( !setting )
 		{
-			// GeneralsX @bugfix Claude 06/10/2026 A player who stopped being an enemy while the vision was on (a map script)
+			// GeneralsX: A player who stopped being an enemy while the vision was on (a map script)
 			// is skipped by the walk above, as in retail; still drop the switch-on recorded against it, or Player::
-			// applyVisionSpies would go on marking its new units long after the vision went off (Codex rbugs-r1).
+			// applyVisionSpies would go on marking its new units long after the vision went off.
 			player->forgetVisionSpy( data->m_spyOnKindof, playerToSetFor->getPlayerIndex() );
 		}
 	}

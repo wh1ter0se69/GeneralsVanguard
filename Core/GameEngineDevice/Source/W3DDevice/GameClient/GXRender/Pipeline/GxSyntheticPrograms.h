@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-motion-units-1 13/10/2026 Synthetic custom programs: d3d8 shader "bytecode" that no game file ships,
+// GeneralsX: Synthetic custom programs: d3d8 shader "bytecode" that no game file ships,
 // created by the game's own code and matched by the custom catalogue like any file shader (by every token + the declaration,
 // GxCustomCatalog.h). Each blob is a version token, one comment block carrying a fixed tag, and the end token; it is never
 // executed as d3d8 bytecode - the native device draws it with the GLSL port named beside it. The classic path never creates these.

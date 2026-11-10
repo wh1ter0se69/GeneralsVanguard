@@ -506,7 +506,7 @@ void ScriptActions::doCreateReinforcements(const AsciiString& team, const AsciiS
 	if (theTeam==nullptr) {
 		return;
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 Object IDs are allocated one after another, so every object this call creates from
+	// GeneralsX: Object IDs are allocated one after another, so every object this call creates from
 	// here on gets an ID in [firstNewObjectID, the counter after it): that is how the order loop below tells this wave's
 	// transports from planes already in the team - an earlier wave's, or one the team's creation actions just made and
 	// ordered themselves (sweep c014-01).
@@ -724,7 +724,7 @@ void ScriptActions::doCreateReinforcements(const AsciiString& team, const AsciiS
 					continue;
 				}
 				AIUpdateInterface *ai = obj->getAIUpdateInterface();
-				// GeneralsX @bugfix Claude 06/10/2026 dp is the FIRST transport's module: calling it for every transport
+				// GeneralsX: dp is the FIRST transport's module: calling it for every transport
 				// re-ordered the first plane N times and left the others parked with their units aboard. A plane of THIS
 				// wave - one this call built from the transport template (any variation), or one the team starts with
 				// (created by this call and accepted by the base's own transport test below) - now delivers with its OWN
@@ -2553,7 +2553,7 @@ void ScriptActions::doPlayerKill(const AsciiString& playerName)
 //-------------------------------------------------------------------------------------------------
 void ScriptActions::doDisplayText(const AsciiString& displayText)
 {
-	// GeneralsX @bugfix Claude 06/10/2026 The label usually names the map's own map.str text, and message(label) used
+	// GeneralsX: The label usually names the map's own map.str text, and message(label) used
 	// that text as a printf format with no arguments: a map's "%n" crashed or corrupted every client, and a literal '%'
 	// (real maps write "HQ at 10%.") printed garbage. Show the text as written.
 	TheInGameUI->messageNoFormat(TheGameText->fetch(displayText));
@@ -2926,7 +2926,7 @@ void ScriptActions::doCameraMotionBlurJump(const AsciiString& waypointName, Bool
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 08/10/2026 The simulation's half first, as if the filter set succeeds: CAMERA_MOVEMENT_FINISHED
+	// GeneralsX: The simulation's half first, as if the filter set succeeds: CAMERA_MOVEMENT_FINISHED
 	// counts the blur (GameLogic/ScriptedCamera.h), and whether this peer's view can show it - a -headless one never can -
 	// must not decide what scripts read.
 	TheScriptedCamera.noteMotionBlur(TRUE, FALSE, TRUE);
@@ -2969,7 +2969,7 @@ void ScriptActions::doCameraMotionBlurJump(const AsciiString& waypointName, Bool
 //-------------------------------------------------------------------------------------------------
 void ScriptActions::doCameraMotionBlur(Bool zoomIn, Bool saturate)
 {
-	// GeneralsX @bugfix Claude 08/10/2026 The simulation's half first, as if the filter set succeeds: CAMERA_MOVEMENT_FINISHED
+	// GeneralsX: The simulation's half first, as if the filter set succeeds: CAMERA_MOVEMENT_FINISHED
 	// counts the blur (GameLogic/ScriptedCamera.h), and whether this peer's view can show it - a -headless one never can -
 	// must not decide what scripts read.
 	TheScriptedCamera.noteMotionBlur(FALSE, !zoomIn, FALSE);
@@ -4325,7 +4325,7 @@ void ScriptActions::doCameraStopTetherNamed()
 //-------------------------------------------------------------------------------------------------
 void ScriptActions::doCameraSetDefault(Real pitch, Real angle, Real heighScale)
 {
-	// GeneralsX @tweak Copilot 23/03/2026 Mirror ZH scripted camera defaults for aspect-ratio-aware limits.
+	// GeneralsX: Mirror ZH scripted camera defaults for aspect-ratio-aware limits.
 	TheTacticalView->setCameraHeightAboveGroundLimitsToDefault(heighScale);
 	TheScriptedCamera.setPitch(pitch);
 	TheScriptedCamera.setAngle(angle);
@@ -4792,7 +4792,7 @@ void ScriptActions::doForceObjectSelection(const AsciiString& teamName, const As
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 08/10/2026 The camera move is a scripted camera move (CAMERA_MOVEMENT_FINISHED, simulation
+	// GeneralsX: The camera move is a scripted camera move (CAMERA_MOVEMENT_FINISHED, simulation
 	// state since step B): made whether or not this peer has a drawable to select, which a -headless peer may not.
 	if (centerInView) {
 		Coord3D pos = *bestGuess->getPosition();
@@ -5094,7 +5094,7 @@ void ScriptActions::doSkirmishAttackNearestGroupWithValue( const AsciiString& te
 	Coord3D loc;
 	Coord3D groupLoc;
 	theGroup->getCenter(&groupLoc);
-	// GeneralsX @bugfix Claude 01/10/2026 Move only when a cell was found: 'loc' was left uninitialised when the
+	// GeneralsX: Move only when a cell was found: 'loc' was left uninitialised when the
 	// search found nothing or the comparison was not greater-than, and the team moved to it (tsh batch2 #412).
 	if ((comparison == Parameter::GREATER_EQUAL || comparison == Parameter::GREATER) &&
 		ThePartitionManager->getNearestGroupWithValue(player->getPlayerIndex(), ALLOW_ENEMIES, VOT_CashValue,
@@ -5320,7 +5320,7 @@ void ScriptActions::doTeamUseCommandButtonOnNearestGarrisonedBuilding( const Asc
 //-------------------------------------------------------------------------------------------------
 void ScriptActions::doTeamUseCommandButtonOnNearestKindof( const AsciiString& teamName, const AsciiString& commandAbility, Int kindofBit )
 {
-	// GeneralsX @bugfix Claude 06/10/2026 kindofBit is the parameter's int as the map file gave it: ReadParameter bounds it
+	// GeneralsX: kindofBit is the parameter's int as the map file gave it: ReadParameter bounds it
 	// only when the file tags the parameter KIND_OF_PARAM, and MAKE_KINDOF_MASK's std::bitset::set threw out_of_range -
 	// past every handler - for a bit outside KINDOF_COUNT under any other tag. Such an action does nothing.
 	if (kindofBit < 0 || kindofBit >= KINDOF_COUNT) {
@@ -5428,7 +5428,7 @@ void ScriptActions::doTeamUseCommandButtonOnNearestBuilding( const AsciiString& 
 //-------------------------------------------------------------------------------------------------
 void ScriptActions::doTeamUseCommandButtonOnNearestBuildingClass( const AsciiString& teamName, const AsciiString& commandAbility, Int kindofBit )
 {
-	// GeneralsX @bugfix Claude 06/10/2026 As in doTeamUseCommandButtonOnNearestKindof: a kind-of bit outside the mask does nothing.
+	// GeneralsX: As in doTeamUseCommandButtonOnNearestKindof: a kind-of bit outside the mask does nothing.
 	if (kindofBit < 0 || kindofBit >= KINDOF_COUNT) {
 		return;
 	}
@@ -6647,7 +6647,7 @@ void ScriptActions::executeAction( ScriptAction *pAction )
 			doSetStoppingDistance(pAction->getParameter(0)->getString(), pAction->getParameter(1)->getReal());
 			return;
 		case ScriptAction::SET_FPS_LIMIT:
-			// GeneralsX @feature Claude 27/09/2026 A map no longer sets the player's frame rate. The max-FPS
+			// GeneralsX: A map no longer sets the player's frame rate. The max-FPS
 			// cap is one setting, the player's (Common/FpsLimitPolicy.h). In retail this was also a game
 			// speed, because the logic followed the render rate; here it has not been one for a long time:
 			// a value under the tick rate was already lifted back to it by FramePacer's floor, and a value

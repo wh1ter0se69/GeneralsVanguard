@@ -94,7 +94,7 @@ DisconnectMenu::DisconnectMenu() {
 DisconnectMenu::~DisconnectMenu() {
 }
 
-// GeneralsX @bugfix Claude 12/08/2026 A ROW WITH NO CONTROL NAME MUST NOT REACH nameToKey.
+// GeneralsX: A ROW WITH NO CONTROL NAME MUST NOT REACH nameToKey.
 //
 // The four tables below are declared [MAX_SLOTS] but defined with SEVEN names, so every entry from
 // index 7 upward is a null pointer - and NameKeyGenerator::nameToKey(const char*) dereferences its

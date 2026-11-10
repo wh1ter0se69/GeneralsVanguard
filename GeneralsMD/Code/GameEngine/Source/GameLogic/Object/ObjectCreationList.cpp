@@ -630,7 +630,7 @@ public:
 				Coord3D force;
 				calcRandomForce(m_minMag, m_maxMag, m_minPitch, m_maxPitch, &force);
 #if GX_LOGIC_60HZ
-				// GeneralsX @fix Claude 23/09/2026 One-shot impulse = a per-frame velocity kick in 30 Hz units;
+				// GeneralsX: One-shot impulse = a per-frame velocity kick in 30 Hz units;
 				// halved (exact) so the arc under the per-frame^2 gravity matches retail. RNG draws unchanged.
 				force.scale( 0.5f );
 #endif
@@ -716,7 +716,7 @@ static const char* const DebrisDispositionNames[] =
 };
 
 std::vector<AsciiString>	debrisModelNamesGlobalHack;
-// GeneralsX @perf Claude 29/09/2026 The debris models a map.ini / solo.ini override names, for GameClient::preloadAssets:
+// GeneralsX: The debris models a map.ini / solo.ini override names, for GameClient::preloadAssets:
 // kept apart and cleared with the overrides themselves (ObjectCreationListStore::reset), because the base list never is.
 std::vector<AsciiString>	debrisModelNamesMapHack;
 
@@ -1124,7 +1124,7 @@ protected:
 				force.y = GameLogicRandomValueReal( -horizForce, horizForce );
 				force.z = 0;
 #if GX_LOGIC_60HZ
-				// GeneralsX @fix Claude 23/09/2026 One-shot impulse = a per-frame velocity kick in 30 Hz units;
+				// GeneralsX: One-shot impulse = a per-frame velocity kick in 30 Hz units;
 				// halved (exact) so the arc under the per-frame^2 gravity matches retail. RNG draws unchanged.
 				force.scale( 0.5f );
 #endif
@@ -1165,7 +1165,7 @@ protected:
 
 				// if omitted from INI, calc it based on intensity.
 #if GX_LOGIC_60HZ
-				// GeneralsX @fix Claude 23/09/2026 the fallback is raw rad/frame (the INI rates are already
+				// GeneralsX: the fallback is raw rad/frame (the INI rates are already
 				// parseAngularVelocityReal and are NOT touched): halved, exact.
 				Real spinRate		= m_spinRate >= 0.0f ? m_spinRate : ((PI/32.0f) * m_dispositionIntensity) * 0.5f;
 #else
@@ -1223,7 +1223,7 @@ protected:
 					DUMPCOORD3D(&force);
 				}
 #if GX_LOGIC_60HZ
-				// GeneralsX @fix Claude 23/09/2026 One-shot impulse = a per-frame velocity kick in 30 Hz units;
+				// GeneralsX: One-shot impulse = a per-frame velocity kick in 30 Hz units;
 				// halved (exact) so the arc under the per-frame^2 gravity matches retail. RNG draws unchanged.
 				force.scale( 0.5f );
 #endif
@@ -1252,7 +1252,7 @@ protected:
 				Real roll = GameLogicRandomValueReal( -m_dispositionIntensity, m_dispositionIntensity );
 				Real pitch = GameLogicRandomValueReal( -m_dispositionIntensity, m_dispositionIntensity );
 #if GX_LOGIC_60HZ
-				// GeneralsX @fix Claude 23/09/2026 raw rad/frame: halved (exact) after the same three draws.
+				// GeneralsX: raw rad/frame: halved (exact) after the same three draws.
 				yaw *= 0.5f; roll *= 0.5f; pitch *= 0.5f;
 #endif
 
@@ -1482,7 +1482,7 @@ protected:
 		GenericObjectCreationNugget* debrisNugget = (GenericObjectCreationNugget*)instance;
 		for (const char* token = ini->getNextToken(); token; token = ini->getNextTokenOrNull())
 		{
-			// GeneralsX @perf Claude 29/09/2026 An override's names go to the map list: the base list is never cleared now
+			// GeneralsX: An override's names go to the map list: the base list is never cleared now
 			// (GameClient::preloadAssets), so they would outlive their map and make later preloads depend on this session's maps.
 			if (TheGlobalData->m_preloadAssets)
 				(ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES ? debrisModelNamesMapHack : debrisModelNamesGlobalHack).push_back(token);
@@ -1674,7 +1674,7 @@ void ObjectCreationListStore::addObjectCreationNugget(ObjectCreationNugget* nugg
 	const char *c = ini->getNextToken();
 	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
 
-	// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#1974
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#1974
 	// Record what a map.ini is about to destroy, so reset() can put it back. operator[] would
 	// default-construct an entry for a name that does not exist yet, which is how a NEW OCL is
 	// told apart from an OVERRIDDEN one - so ask find() first, before touching the map.
@@ -1702,7 +1702,7 @@ void ObjectCreationListStore::addObjectCreationNugget(ObjectCreationNugget* nugg
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#1974
+// GeneralsX: TheSuperHackers/GeneralsGameCode#1974
 // Undo exactly what a map.ini did and nothing else. The OCLs parsed at startup are retained, as
 // they always were; only the entries an override load overwrote or invented are touched.
 void ObjectCreationListStore::reset()

@@ -12,7 +12,7 @@
 //                                                                            //
 //  IOSBackgroundTask.mm                                                      //
 //                                                                            //
-//  GeneralsX @feature Claude 07/08/2026 Keep the network alive for the ~30 s //
+//  GeneralsX: Keep the network alive for the ~30 s //
 //  iOS grants a backgrounded app.                                            //
 //                                                                            //
 //  WHY THIS EXISTS, measured rather than assumed.                            //

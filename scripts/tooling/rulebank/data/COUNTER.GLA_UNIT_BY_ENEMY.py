@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 02/11/2026 rule bank DATA rule COUNTER.GLA_UNIT_BY_ENEMY (C·rb-data-16): GLA picks its follow-up tank by the
+# GeneralsX: rule bank DATA rule COUNTER.GLA_UNIT_BY_ENEMY (C·rb-data-16): GLA picks its follow-up tank by the
 # China GENERAL it meets (row 1893: "Pick the follow-up by enemy: ... Quads vs vanilla China, Scorpions (after rocket upgrade) vs Nuke or Tank
 # China"; rows 1874-1875: "Do not build Scorpions against China Infantry ... build mostly Quad Cannons"). Stock Hard GLA sends Scorpion
 # waves at everyone. This, per general:
@@ -97,7 +97,7 @@ def apply(scb, scope, p):
         rb.matchup(scb, o)
         f = lambda n, v: rb.flag_is(scb, n, v)
         key = lambda: f(rb.mu_flag(MATCHUP), True)
-        # Codex rbd17-r1 P1: each half's leaves exclude every other half's by a leaf of its own (S: NT ON + INF OFF - the general latch sets
+        # each half's leaves exclude every other half's by a leaf of its own (S: NT ON + INF OFF - the general latch sets
         # one flag, so INF OFF adds nothing there), so a kept stock team and a variant are never producible together (guards.keep_blocks)
         leaves = {'Q': lambda: [key(), f(DONE, True), f(INF, False), f(NT, False)], 'I': lambda: [key(), f(INF, True)],
                   'S': lambda: [key(), f(NT, True), f(INF, False)]}

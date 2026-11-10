@@ -52,7 +52,7 @@ static int hexDigitToInt(char c)
 	return 0;
 }
 
-// GeneralsX @bugfix copilot 01/04/2026 Keep wire format locale-independent by allowing only ASCII alnum bytes as literal.
+// GeneralsX: Keep wire format locale-independent by allowing only ASCII alnum bytes as literal.
 static Bool isAsciiAlphaNumeric(unsigned char value)
 {
 	return (value >= '0' && value <= '9')
@@ -67,7 +67,7 @@ static Bool isHexDigit(char c)
 		|| (c >= 'a' && c <= 'f');
 }
 
-// GeneralsX @bugfix copilot 31/03/2026 Encode/decode UTF-16 code units explicitly to avoid wchar_t size dependency.
+// GeneralsX: Encode/decode UTF-16 code units explicitly to avoid wchar_t size dependency.
 static Bool appendQuotedPrintableByte(char *dest, int &index, unsigned char value)
 {
 	if (isAsciiAlphaNumeric(value))
@@ -128,7 +128,7 @@ AsciiString UnicodeStringToQuotedPrintable(UnicodeString original)
 		const unsigned short codeUnit = static_cast<unsigned short>(*src);
 		const unsigned char lowByte = static_cast<unsigned char>(codeUnit & 0xff);
 		const unsigned char highByte = static_cast<unsigned char>((codeUnit >> 8) & 0xff);
-		// GeneralsX @bugfix copilot 01/04/2026 Commit only full UTF-16 units to avoid partial trailing output.
+		// GeneralsX: Commit only full UTF-16 units to avoid partial trailing output.
 		const int savedIndex = i;
 
 		if (!appendQuotedPrintableByte(dest, i, lowByte) || !appendQuotedPrintableByte(dest, i, highByte))
@@ -185,7 +185,7 @@ UnicodeString QuotedPrintableToUnicodeString(AsciiString original)
 			break;
 		}
 
-		// GeneralsX @bugfix copilot 01/04/2026 Reject truncated odd-byte input instead of synthesizing a partial code unit.
+		// GeneralsX: Reject truncated odd-byte input instead of synthesizing a partial code unit.
 		if (!*src)
 		{
 			break;

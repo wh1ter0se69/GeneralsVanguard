@@ -425,7 +425,7 @@ void W3DSnowManager::render(RenderInfoClass &rinfo)
 	DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSPRITEENABLE, TRUE );
     DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSCALEENABLE,  TRUE );
     DX8Wrapper::Set_DX8_Render_State( D3DRS_POINTSIZE,     FtoDW(m_pointSize) );
-	// GeneralsX @feature D · render-hud-seam-1 13/10/2026 The scaled point size follows the render target's height, but these clamps
+	// GeneralsX: The scaled point size follows the render target's height, but these clamps
 	// are in its pixels: inside a scaled world pass (W3DWorldSeam) scale them too, or the upscale doubles them on screen at 50%.
 	// Exactly 1 outside the seam (water reflection pass included) and at full size, so those pictures keep today's values.
 	const Real gxClampScale = W3DWorldSeam::activeScale();

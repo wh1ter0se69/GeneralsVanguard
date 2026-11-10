@@ -4,7 +4,7 @@
 #include <streambuf>
 #include <ostream>
 
-// GeneralsX @bugfix Claude 06/08/2026 THIS FUNCTION WROTE NOTHING AT ALL ON macOS, AND IT CAUSED A
+// GeneralsX: THIS FUNCTION WROTE NOTHING AT ALL ON macOS, AND IT CAUSED A
 // CROSS-PLATFORM SIMULATION DIVERGENCE.
 //
 // The previous body handed `str` to std::stringbuf::pubsetbuf and streamed into it. pubsetbuf on a
@@ -118,7 +118,7 @@ char* _strlwr(char* str)
   return str;
 }
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - Linux portability: uppercase string
+// GeneralsX @build fbraz 11/02/2026 - Linux portability: uppercase string
 __attribute__((weak))
 char* _strupr(char* str)
 {

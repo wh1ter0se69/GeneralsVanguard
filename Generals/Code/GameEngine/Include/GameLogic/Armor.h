@@ -102,7 +102,7 @@ public:
 	virtual ~ArmorStore() override;
 
 	virtual void init() override { }
-	// GeneralsX @bugfix Claude 25/09/2026 TheSuperHackers/GeneralsGameCode#2060, adapted - was `{ }`.
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#2060, adapted - was `{ }`.
 	virtual void reset() override;
 	virtual void update() override { }
 
@@ -125,7 +125,7 @@ private:
 	typedef std::hash_map< NameKeyType, ArmorTemplate, rts::hash<NameKeyType>, rts::equal_to<NameKeyType>/**/> ArmorTemplateMap;
 	ArmorTemplateMap m_armorTemplates;
 
-	// GeneralsX @bugfix Claude 25/09/2026 TheSuperHackers/GeneralsGameCode#2060, adapted
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#2060, adapted
 	//
 	// parseArmorDefinition clear()s and re-parses the existing template IN PLACE on a map.ini load,
 	// and reset() was an empty inline, so a custom map's armor values outlived the map and reached

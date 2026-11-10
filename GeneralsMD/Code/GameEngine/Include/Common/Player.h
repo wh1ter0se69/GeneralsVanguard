@@ -478,7 +478,7 @@ public:
 	*/
 	void countObjectsByThingTemplate(Int numTmplates, const ThingTemplate* const * things, Bool ignoreDead, Int *counts, Bool ignoreUnderConstruction = TRUE ) const;
 
-	/// GeneralsX @performance Claude 06/10/2026 an object joined or left one of our teams, or changed its UNDER_CONSTRUCTION
+	/// GeneralsX: an object joined or left one of our teams, or changed its UNDER_CONSTRUCTION
 	/// status: countObjectsByThingTemplate's member histogram must be rebuilt (see there).
 	void noteMembersChanged() { m_memberTemplateCountsValid = false; }
 
@@ -555,7 +555,7 @@ public:
 	Bool removePlayerRelationship(const Player *that);
 	void setTeamRelationship(const Team *that, Relationship r);
 	Bool removeTeamRelationship(const Team *that);
-	/// GeneralsX @performance Claude 06/10/2026 true when this player has a relationship to some particular team
+	/// GeneralsX: true when this player has a relationship to some particular team
 	Bool hasTeamRelationships() const { return !m_teamRelations->m_map.empty(); }
 
 	void addTeamToList(TeamPrototype* team);
@@ -572,10 +572,10 @@ public:
 
 	/// All of our units are new spied upon; they sight for the given enemy
 	void setUnitsVisionSpied( Bool setting, KindOfMaskType whichUnits, PlayerIndex byWhom );
-	/// GeneralsX @bugfix Claude 05/10/2026 Put a unit joining (or leaving) this player under (or out of) every spy vision
+	/// GeneralsX: Put a unit joining (or leaving) this player under (or out of) every spy vision
 	/// now on against it, so a unit made after Satellite Hack switched on is spied too. As Zero Hour Reforged (Olcay Seygan, Player.cpp, GPL-3.0-or-later).
 	void applyVisionSpies( Object *obj, Bool setting ) const;
-	/// GeneralsX @bugfix Claude 06/10/2026 Drop a recorded switch-on without walking the units (see SpyVisionUpdate::doActivationWork)
+	/// GeneralsX: Drop a recorded switch-on without walking the units (see SpyVisionUpdate::doActivationWork)
 	void forgetVisionSpy( KindOfMaskType whichUnits, PlayerIndex byWhom );
 
 	/// Destroy all of the teams for this player, causing him to DIE.
@@ -799,7 +799,7 @@ private:
 
 	PlayerTeamList				m_playerTeamPrototypes;				///< ALL the teams we control, via prototype
 
-	// GeneralsX @performance Claude 06/10/2026 countObjectsByThingTemplate's histogram of our members (NOT saved): per
+	// GeneralsX: countObjectsByThingTemplate's histogram of our members (NOT saved): per
 	// distinct ThingTemplate, how many members have it and how many of those are under construction.
 	struct MemberTemplateCount { const ThingTemplate *tmpl; UnsignedShort id; Int all; Int underConstruction; };	// id: tmpl may be gone by the next rebuild
 	mutable std::vector<MemberTemplateCount>	m_memberTemplateCounts;

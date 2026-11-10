@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank DATA rule OIL.COUNT_GATES, CHINA PART (C·rb-data): China's Helix teams wait until the
+# GeneralsX: rule bank DATA rule OIL.COUNT_GATES, CHINA PART (C·rb-data): China's Helix teams wait until the
 # Capture Building research (Upgrade_InfantryCaptureBuilding) is done - research capture before the Helix, WITHOUT awaiting captures
 # (Dominator's answer, 31/10; rb-data-4 rewrote the gate from "own derricks >= oils_before_helix"). oils_before_helix is now an on/off
 # switch (0 = stock, any other value = gate on the research); the oil_wait_s clock floor still opens the gate if the research never lands. Stock Hard China builds its Helix teams from the
@@ -30,7 +30,7 @@ def apply(scb, scope, params):
     if CN not in scope or params['oils_before_helix'] == 0:
         return
     # PLAYER_BUILT_UPGRADE is consumed by the first script that reads it (ScriptConditions.cpp:1562, removeFromList = TRUE): one latch
-    # script reads it and raises my own flag; the gates read the flag (Codex rbd4-r1 P2)
+    # script reads it and raises my own flag; the gates read the flag
     kids = [rb.new_script(scb, LATCH, [[rb.cond(scb, 'PLAYER_BUILT_UPGRADE', ('SIDE', rb.SIDE_ME), ('UPGRADE', CAPTURE_UPGRADE))]],
                           [rb.act(scb, 'SET_FLAG', ('FLAG', DONE), ('BOOLEAN', 1))], oneshot=True, sub=False)]
     floor = WAVE3_NOMINAL + -(-params['oil_wait_s'] // 10)

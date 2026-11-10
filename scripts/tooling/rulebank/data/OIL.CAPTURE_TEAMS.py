@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank DATA rule OIL.CAPTURE_TEAMS (C·rb-data): take the oil early and in numbers. Stock Hard
+# GeneralsX: rule bank DATA rule OIL.CAPTURE_TEAMS (C·rb-data): take the oil early and in numbers. Stock Hard
 # captures tech buildings only when one lies within 500 of its inner perimeter (the cached "<S> Tech Building Detect" test), with ONE
 # team of 2 capturers (GLA: 1). This, per general:
 #   capture_radius   -> the Detect test's distance (a tech building near MY area, cached at its first evaluation: map layout);
@@ -10,7 +10,7 @@
 #                       definition, same trigger), and for REFINERY_WINDOW_S from _GX_CLOCK >= ceil(t/10) the oil refinery outranks
 #                       every derrick in it, then drops back to the stock value (the 30/10 smoke: kept up, it sent every team at the
 #                       ENEMY's refinery across the map, past the derricks). Clock only: every player of a general shares the table, so
-#                       no player's own state may move it (Codex rbd-r10-lensB).
+#                       no player's own state may move it.
 # Stock sets are never defined further (set names are global); the stock gate leaves copied into the new OR blocks are the stock gate
 # itself (the compiler accepts a tainted stock read only that way: same script, same actions). Detect / Build / Orders are 011 scripts:
 # exact under the tier gate, also Normal's under --tier-gate off (normal_also in the manifest).

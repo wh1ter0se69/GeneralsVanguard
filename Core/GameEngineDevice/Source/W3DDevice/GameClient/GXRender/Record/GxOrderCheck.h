@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: GxOrderCheck - the explicit buffer-ordering check for vertex, INSTANCE and
+// GeneralsX: WS-F1: GxOrderCheck - the explicit buffer-ordering check for vertex, INSTANCE and
 // index reads.
 //
 // Why it exists: Khronos synchronization validation does not check instance-rate vertex reads (farm val4, rw1-X: a missing
@@ -8,14 +8,14 @@
 // MoltenVK) - and the pass graph closes and resumes scopes often - so attachment order across instances is checked here too:
 // vkCmdBeginRendering's attachments (views mapped to images by the vkCreateImageView wrapper) must find the previous
 // instance's store made visible by an image or global barrier (LOAD: to the attachment read; CLEAR/DONT_CARE: to the attachment
-// WRITE - a write-after-write, Codex rw3-P-ordercheck-r1 #2).
+// WRITE - a write-after-write).
 //
 // How: install() swaps volk's global command pointers for wrappers that log, per command buffer, every device write to a
 // buffer (vkCmdCopyBuffer / UpdateBuffer / FillBuffer), every vkCmdPipelineBarrier2 (global and buffer barriers), the bound
 // pipeline (its vertex bindings' input rates come from the vkCreateGraphicsPipelines wrapper), the bound vertex / index
 // buffers and every draw. At vkQueueSubmit2 the logs are replayed in submission order against one queue state: a write is
 // made visible to a (stages, accesses) PAIR by a later barrier whose source ACCESS scope holds the write's stage and access
-// (TOP_OF_PIPE / BOTTOM_OF_PIPE widen only execution scopes - their access scope is empty, Codex rw3-P-ordercheck-r1 #1) (or
+// (TOP_OF_PIPE / BOTTOM_OF_PIPE widen only execution scopes - their access scope is empty) (or
 // chains on a pair that already reached it; a buffer barrier covering part of a write splits it), or by a semaphore wait
 // whose satisfying signal came from a submission after the write (pairs are never merged across dependencies; a host
 // signal orders no device write). A draw that reads a bound range (conservatively: from the
@@ -79,7 +79,7 @@ bool install();
 void uninstall();
 void reset();   // forget every log, the queue state and the counts
 // The image is being destroyed (GxPacketWriter::forget): its attachment history ends - now, and again where command buffers not
-// yet submitted replay its stores - so a new image that gets the same handle starts clean (Codex rw2-F1-r3 #4). No-op when
+// yet submitted replay its stores - so a new image that gets the same handle starts clean. No-op when
 // not installed.
 void forgetImage(VkImage img);
 Counts counts();

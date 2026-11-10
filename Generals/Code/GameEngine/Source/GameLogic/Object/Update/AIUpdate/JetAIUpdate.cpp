@@ -219,10 +219,10 @@ public:
 #if RETAIL_COMPATIBLE_CRC
 			return STATE_SUCCESS;
 #else
-			// GeneralsX @bugfix Claude 09/10/2026 Fail only on the way IN, which is what #3076 is about (no airfield to land on).
+			// GeneralsX: Fail only on the way IN, which is what #3076 is about (no airfield to land on).
 			// Going OUT, failing dropped to AI_IDLE before JetTakeoffOrLandingState had allowed air locomotion, and the pending
 			// order re-entered the same failing state forever: a parked jet whose airfield a script deleted (no onDie) never flew
-			// again (Codex tsh-port-1008-r5 P2). Taking off keeps retail's skip.
+			// again. Taking off keeps retail's skip.
 			return (m_landing) ? STATE_FAILURE : STATE_SUCCESS;
 #endif
 
@@ -456,10 +456,10 @@ public:
 #if RETAIL_COMPATIBLE_CRC
 			return STATE_SUCCESS;
 #else
-			// GeneralsX @bugfix Claude 09/10/2026 Fail only on the way IN, which is what #3076 is about (no airfield to land on).
+			// GeneralsX: Fail only on the way IN, which is what #3076 is about (no airfield to land on).
 			// Going OUT, failing dropped to AI_IDLE before JetTakeoffOrLandingState had allowed air locomotion, and the pending
 			// order re-entered the same failing state forever: a parked jet whose airfield a script deleted (no onDie) never flew
-			// again (Codex tsh-port-1008-r5 P2). Taking off keeps retail's skip.
+			// again. Taking off keeps retail's skip.
 			return (m_taxiMode == TO_PARKING) ? STATE_FAILURE : STATE_SUCCESS;
 #endif
 
@@ -600,10 +600,10 @@ public:
 #if RETAIL_COMPATIBLE_CRC
 			return STATE_SUCCESS;
 #else
-			// GeneralsX @bugfix Claude 09/10/2026 Fail only on the way IN, which is what #3076 is about (no airfield to land on).
+			// GeneralsX: Fail only on the way IN, which is what #3076 is about (no airfield to land on).
 			// Going OUT, failing dropped to AI_IDLE before JetTakeoffOrLandingState had allowed air locomotion, and the pending
 			// order re-entered the same failing state forever: a parked jet whose airfield a script deleted (no onDie) never flew
-			// again (Codex tsh-port-1008-r5 P2). Taking off keeps retail's skip.
+			// again. Taking off keeps retail's skip.
 			return (m_landing) ? STATE_FAILURE : STATE_SUCCESS;
 #endif
 
@@ -1449,9 +1449,9 @@ public:
 
 #if !RETAIL_COMPATIBLE_CRC
 		ParkingPlaceBehaviorInterface* pp = getPP(jet->getProducerID());
-		// GeneralsX @bugfix Claude 09/10/2026 Helicopters only, which is what #3080 is about: the heli machine fails RELOAD_AMMO to
+		// GeneralsX: Helicopters only, which is what #3080 is about: the heli machine fails RELOAD_AMMO to
 		// TAKING_OFF. This state is shared with runway jets, whose machine fails it to AI_IDLE with air locomotion still off, so a
-		// jet reloading at an airfield a script deleted (no onDie) stayed grounded for good (Codex tsh-port-1008-r6 P2).
+		// jet reloading at an airfield a script deleted (no onDie) stayed grounded for good.
 		if (pp == nullptr && !((JetAIUpdate*)jet->getAIUpdateInterface())->friend_needsRunway())
 			return STATE_FAILURE;
 #endif

@@ -324,7 +324,7 @@ void GameLODManager::init()
 
 	//always get this data in case we need it later.
 	testMinimumRequirements(nullptr,&m_cpuType,&m_cpuFreq,&m_numRAM,nullptr,nullptr,nullptr);
-	// GeneralsX @bugfix Copilot 11/05/2026 Apply non-Windows hardware fallbacks only when detection returns unknown/zero values.
+	// GeneralsX: Apply non-Windows hardware fallbacks only when detection returns unknown/zero values.
 #ifndef _WIN32
 	if (m_numRAM == 0)
 	{
@@ -632,7 +632,7 @@ void GameLODManager::applyStaticLODLevel(StaticGameLODLevel level)
 		TheWritableGlobalData->m_useDrawModuleLOD=!lodInfo->m_useBuildupScaffolds;
 		TheWritableGlobalData->m_useHeatEffects=lodInfo->m_useHeatEffects;
 		TheWritableGlobalData->m_enableDynamicLOD = lodInfo->m_enableDynamicLOD;
-		// GeneralsX @feature Claude 27/09/2026 A detail preset no longer switches the frame limiter. Its
+		// GeneralsX: A detail preset no longer switches the frame limiter. Its
 		// UseFPSLimit field is kept (GameLOD.ini parses it, Custom records it) but writes nothing: the
 		// frame rate is the player's one max-FPS setting (Common/FpsLimitPolicy.h).
 		TheWritableGlobalData->m_useTrees = requestedTrees;
@@ -704,7 +704,7 @@ const char *GameLODManager::getDynamicGameLODLevelName(DynamicGameLODLevel level
 	return DynamicGameLODNames[level];
 }
 
-// GeneralsX @bugfix Claude 17/08/2026 Predicate for the dynamic-LOD simulation guard in GameLOD.h;
+// GeneralsX: Predicate for the dynamic-LOD simulation guard in GameLOD.h;
 // the reasoning lives there, beside the reads it protects.
 //
 // This is EA's own test, lifted verbatim from GameLogic.cpp:2093. isMultiplayer() is TRUE for a

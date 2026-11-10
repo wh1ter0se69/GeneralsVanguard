@@ -292,7 +292,7 @@ DX8IndexBufferClass::DX8IndexBufferClass(unsigned short index_count_,UsageType u
 	:
 	IndexBufferClass(BUFFER_TYPE_DX8,index_count_)
 {
-	DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	WWASSERT(index_count);
 	unsigned usage_flags=
@@ -454,7 +454,7 @@ DynamicIBAccessClass::WriteLockClass::WriteLockClass(DynamicIBAccessClass* ib_ac
 			break;
 		}
 		DX8Ring::Fallback();
-		// GeneralsX @bugfix Claude 17/10/2026 A failed Lock hands back null, as the vertex side does now (Codex batch-0965 r5 P2):
+		// GeneralsX: A failed Lock hands back null, as the vertex side does now:
 		// Indices starts null, and a driver that wrote the pointer before failing must not leave it set.
 		{
 			const HRESULT hr = static_cast<DX8IndexBufferClass*>(DynamicIBAccess->IndexBuffer)->Get_DX8_Index_Buffer()->Lock(
@@ -550,7 +550,7 @@ void DynamicIBAccessClass::Allocate_Sorting_Dynamic_Buffer()
 	WWASSERT(new_index_count<65536);
 	if (new_index_count>_DynamicSortingIndexArraySize) {
 		REF_PTR_RELEASE(_DynamicSortingIndexArray);
-		// GeneralsX @bugfix Claude 23/09/2026 The size and offset are unsigned short. When this frame's
+		// GeneralsX: The size and offset are unsigned short. When this frame's
 		// cumulative indices pass 65535 the old code stored the truncated sum and handed out offset 0 of an
 		// array smaller than the request, so the caller wrote past the heap block. Start a fresh array
 		// sized for this request instead; nodes already queued hold refs to the old array.

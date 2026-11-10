@@ -1,10 +1,10 @@
 #!/bin/bash
-# GeneralsX @build BenderAI 24/02/2026 Deploy macOS build to runtime directory
+# GeneralsX: Deploy macOS build to runtime directory
 # Copies GeneralsXZH binary and required dylibs to ~/GeneralsX/GeneralsZH (legacy fallback: ~/GeneralsX/GeneralsMD)
 
 set -e
 
-# GeneralsX @bugfix BenderAI 09/03/2026 Resolve repository root correctly from scripts/build/macos.
+# GeneralsX: Resolve repository root correctly from scripts/build/macos.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/macos-vulkan"
@@ -12,12 +12,12 @@ SDL3_LIB_DIR="${BUILD_DIR}/_deps/sdl3-build"
 SDL3_IMAGE_LIB_DIR="${BUILD_DIR}/_deps/sdl3_image-build"
 FONTCONFIG_ETC_DIR="${BUILD_DIR}/vcpkg_installed/arm64-osx/etc/fonts"
 GAMESPY_LIB="${BUILD_DIR}/libgamespy.dylib"
-# GeneralsX @bugfix BenderAI 09/03/2026 Resolve DXVK dylib paths from both install copy and Meson output to avoid stale runtime libs.
+# GeneralsX: Resolve DXVK dylib paths from both install copy and Meson output to avoid stale runtime libs.
 DXVK_D3D8_LIB_INSTALL="${BUILD_DIR}/libdxvk_d3d8.0.dylib"
 DXVK_D3D9_LIB_INSTALL="${BUILD_DIR}/libdxvk_d3d9.0.dylib"
 DXVK_D3D8_LIB_MESON="${BUILD_DIR}/_deps/dxvk-build-macos/src/d3d8/libdxvk_d3d8.0.dylib"
 DXVK_D3D9_LIB_MESON="${BUILD_DIR}/_deps/dxvk-build-macos/src/d3d9/libdxvk_d3d9.0.dylib"
-# GeneralsX @bugfix BenderAI 01/04/2026 Align deploy runtime selection with launcher logic by preferring the directory that contains .big assets.
+# GeneralsX: Align deploy runtime selection with launcher logic by preferring the directory that contains .big assets.
 PREFERRED_RUNTIME_DIR="${HOME}/GeneralsX/GeneralsZH"
 LEGACY_RUNTIME_DIR="${HOME}/GeneralsX/GeneralsMD"
 RUNTIME_DIR="${PREFERRED_RUNTIME_DIR}"
@@ -53,8 +53,8 @@ BINARY_SRC="${BUILD_DIR}/GeneralsMD/GeneralsXZH"
 
 DXVK_D3D8_LIB="${DXVK_D3D8_LIB_INSTALL}"
 DXVK_D3D9_LIB="${DXVK_D3D9_LIB_INSTALL}"
-# GeneralsX @bugfix Claude 01/10/2026 The newer of the two, as bundle-macos-zh.sh: the install copy is refreshed only
-# when its own cmake target is built, so it can trail a rebuilt DXVK (Codex a2-r8).
+# GeneralsX: The newer of the two, as bundle-macos-zh.sh: the install copy is refreshed only
+# when its own cmake target is built, so it can trail a rebuilt DXVK.
 if [[ -f "${DXVK_D3D8_LIB_MESON}" && ( ! -f "${DXVK_D3D8_LIB}" || "${DXVK_D3D8_LIB_MESON}" -nt "${DXVK_D3D8_LIB}" ) ]]; then
     DXVK_D3D8_LIB="${DXVK_D3D8_LIB_MESON}"
 fi
@@ -77,7 +77,7 @@ fi
 mkdir -p "${RUNTIME_DIR}"
 
 echo "  Copying GeneralsXZH..."
-# GeneralsX @bugfix Claude 27/07/2026 Unlink before copying, so the new binary lands on a fresh
+# GeneralsX: Unlink before copying, so the new binary lands on a fresh
 # inode.
 #
 # The engine is ad-hoc "linker-signed". Overwriting such a binary in place keeps the inode, and
@@ -142,13 +142,13 @@ else
 fi
 
 # Write wrapper run script that sets DYLD_LIBRARY_PATH at launch time
-# GeneralsX @perf Claude 01/10/2026 A2: the pipeline seed, beside dxvk.conf (SDL3Main gxSeedDxvkCache reads
+# GeneralsX: A2: the pipeline seed, beside dxvk.conf (SDL3Main gxSeedDxvkCache reads
 # ./dxvk-seed when GX_DXVK_SEED_DIR is unset, the way DXVK reads ./dxvk.conf).
 mkdir -p "${RUNTIME_DIR}/dxvk-seed" && cp -v "${PROJECT_ROOT}/resources/dxvk/seed/GeneralsXZH.dxvk-cache" \
     "${PROJECT_ROOT}/resources/dxvk/seed/GeneralsXZH.dxvk-ffkeys" "${RUNTIME_DIR}/dxvk-seed/" ||
     { echo "ERROR: could not deploy resources/dxvk/seed (the A2 pipeline seed)" >&2; exit 1; }
 echo "  Deploying dxvk.conf..."
-# GeneralsX @bugfix BenderAI 13/03/2026 Make DXVK config deployment explicit and fail fast.
+# GeneralsX: Make DXVK config deployment explicit and fail fast.
 # Missing dxvk.conf silently caused terrain shader debugging to be misleading on macOS.
 DXVK_CONF_SRC="${PROJECT_ROOT}/resources/dxvk/dxvk.conf"
 DXVK_CONF_LEGACY_SRC="${PROJECT_ROOT}/GeneralsMD/Run/dxvk.conf"
@@ -172,7 +172,7 @@ if [[ -f "${SAGE_PATCH_LIB}" ]]; then
     cp -v "${SAGE_PATCH_LIB}" "${RUNTIME_DIR}/"
 fi
 
-# GeneralsX @build BenderAI 08/06/2026 Deploy ExtrasMenu.wnd so the engine can
+# GeneralsX: Deploy ExtrasMenu.wnd so the engine can
 # load it via TheFileSystem (local files override BIG archives).
 EXTRAS_WND_SRC="${PROJECT_ROOT}/GeneralsZH/Data/Window/Menus/ExtrasMenu.wnd"
 if [[ -f "${EXTRAS_WND_SRC}" ]]; then
@@ -180,7 +180,7 @@ if [[ -f "${EXTRAS_WND_SRC}" ]]; then
     cp -v "${EXTRAS_WND_SRC}" "${RUNTIME_DIR}/Window/Menus/ExtrasMenu.wnd"
 fi
 
-# GeneralsX @feature Claude 12/08/2026 Deploy the loose Multiplayer.ini (sixteen player
+# GeneralsX: Deploy the loose Multiplayer.ini (sixteen player
 # colours) and the small string table that names the four new ones.
 #
 # Refuse the deploy rather than ship half of it. Multiplayer.ini is CRC'd into iniCRC ->
@@ -206,12 +206,12 @@ if [[ -f "${MP_INI_SRC}" ]]; then
     cp -v "${COLOR_CSF_SRC}" "${RUNTIME_DIR}/Data/English/Generals.csf"
 fi
 
-# GeneralsX @feature Claude 24/09/2026 Data/INI/Weapon.ini (the Toxin Tractor balance change), cut
+# GeneralsX: Data/INI/Weapon.ini (the Toxin Tractor balance change), cut
 # from this peer's own CoreINI archive by scripts/tooling/make-weapon-ini.py - never committed, it is
 # the Community Patch's file. It is in iniCRC, so it moves dataID exactly like Multiplayer.ini. A peer
 # with no CoreINI archive anywhere joins nobody anyway (reported at the end), so that alone warns; an
 # archive the recipe refuses (another Community Patch release) is fatal.
-# 25/09/2026 (Codex P2): make-weapon-ini.py --root searches where this peer's engine mounts the
+# 25/09/2026: make-weapon-ini.py --root searches where this peer's engine mounts the
 # archive, $GENERALSX_PATCH_PATH and $CNC_GENERALS_ZH_PATH included, so a custom overlay or asset root
 # is not skipped (run.sh cds here, so the loose file in this folder is the one the engine reads).
 # It follows the ENGINE's order, and run.sh below changes that order: it exports the sibling
@@ -226,8 +226,8 @@ echo "  Generating Data/INI/Weapon.ini..."
     python3 "${PROJECT_ROOT}/scripts/tooling/make-weapon-ini.py" --root "${RUNTIME_DIR}" --if-archive
 ) || exit 1
 
-# GeneralsX @bugfix Copilot 24/03/2026 Deploy Fontconfig config into runtime dir so FreeType/Fontconfig can resolve fonts on macOS.
-# GeneralsX @bugfix BenderAI 24/03/2026 Guard Fontconfig conf.d copy so missing directory does not abort deploy under set -e.
+# GeneralsX: Deploy Fontconfig config into runtime dir so FreeType/Fontconfig can resolve fonts on macOS.
+# GeneralsX: Guard Fontconfig conf.d copy so missing directory does not abort deploy under set -e.
 echo "  Deploying Fontconfig config..."
 if [[ -f "${FONTCONFIG_ETC_DIR}/fonts.conf" ]]; then
     mkdir -p "${RUNTIME_DIR}/fontconfig"
@@ -247,10 +247,10 @@ fi
 echo "  Writing run.sh wrapper..."
 cat > "${RUNTIME_DIR}/run.sh" << WRAPPER
 #!/bin/bash
-# GeneralsX @build BenderAI 24/02/2026 - macOS wrapper for runtime directory
+# GeneralsX: macOS wrapper for runtime directory
 SCRIPT_DIR="\$(cd "\$(dirname "\$0")" && pwd)"
 
-# GeneralsX @feature Claude 12/08/2026 Community-patch overlay.
+# GeneralsX: Community-patch overlay.
 #
 # The archives every peer must load live OUTSIDE this folder, in a GeneralsX-owned sibling, and
 # the engine is pointed at them by environment. The engine's own <exe dir>/GeneralsXPatch
@@ -298,7 +298,7 @@ if [[ -f "\${SCRIPT_DIR}/MoltenVK_icd.json" ]]; then
     export VK_DRIVER_FILES="\${SCRIPT_DIR}/MoltenVK_icd.json"
 fi
 
-# GeneralsX @bugfix Copilot 24/03/2026 Set bundled Fontconfig config path to avoid "Cannot load default config file: (null)" on macOS.
+# GeneralsX: Set bundled Fontconfig config path to avoid "Cannot load default config file: (null)" on macOS.
 if [[ -f "\${SCRIPT_DIR}/fontconfig/fonts.conf" ]]; then
     export FONTCONFIG_FILE="\${SCRIPT_DIR}/fontconfig/fonts.conf"
     export FONTCONFIG_PATH="\${SCRIPT_DIR}/fontconfig"
@@ -315,7 +315,7 @@ fi
 # every loose INI / asset and only sees what is bundled inside the BIG files.
 cd "\${SCRIPT_DIR}"
 
-# GeneralsX @tweak Claude 27/07/2026 Silence DXVK's stderr stream by default.
+# GeneralsX: Silence DXVK's stderr stream by default.
 #
 # dxvk.conf's "dxvk.logLevel = none" only governs the log FILE; the same messages still go to
 # stderr. The engine issues SetRenderState(D3DRS_PATCHSEGMENTS) every frame and the D3D8 layer
@@ -330,7 +330,7 @@ exec "./GeneralsXZH" "\$@"
 WRAPPER
 chmod +x "${RUNTIME_DIR}/run.sh"
 
-# GeneralsX @feature Claude 12/08/2026 Report where this peer's shared archives are, and warn
+# GeneralsX: Report where this peer's shared archives are, and warn
 # only when it truly has none.
 #
 # The Windows packager and the iOS bundler treat a missing overlay as FATAL, and rightly - they
@@ -363,7 +363,7 @@ echo "   Vulkan:     ${RUNTIME_DIR}/libvulkan.dylib"
 echo "   MoltenVK:   ${RUNTIME_DIR}/libMoltenVK.dylib"
 echo "   VK ICD:     ${RUNTIME_DIR}/MoltenVK_icd.json"
 echo "   DXVK conf:  ${RUNTIME_DIR}/dxvk.conf"
-# GeneralsX @bugfix BenderAI 24/03/2026 Show Fontconfig status only when deployed to avoid misleading summary output.
+# GeneralsX: Show Fontconfig status only when deployed to avoid misleading summary output.
 if [[ -f "${RUNTIME_DIR}/fontconfig/fonts.conf" ]]; then
     echo "   Fontconfig: ${RUNTIME_DIR}/fontconfig/fonts.conf"
 else

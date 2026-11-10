@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# GeneralsX @feature Claude 12/08/2026
+# GeneralsX:
 #
 #   make-big.py <out.big> <virtual\path>=<source-file> [...]
 #   make-big.py --list <archive.big>

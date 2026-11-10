@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 25/09/2026 - each player's RESOLVED faction on GXSTAT (owner: "show me the Random
+// GeneralsX: each player's RESOLVED faction on GXSTAT (owner: "show me the Random
 // factions instead of telling me they are random").
 //
 //   GXSTAT <room> <memberIp> sq= mid= f= [rs=] p<slot>=<cells> ... fa<slot>=<faction> ...
@@ -11,12 +11,12 @@
 //   ... co<slot>=<colour>.<rgb> ...
 //
 //     <colour>   the player's colour's TooltipName less "Color:" ("SkyBlue") - the SAME word a GXSLOT seat carries.
-//                GeneralsX @bugfix Claude 25/09/2026 (Codex on feat/panel-seats-truth, P2) THE WORD, NOT ONLY THE INDEX.
+//                GeneralsX: THE WORD, NOT ONLY THE INDEX.
 //                The nine cells' colour is an index into THIS client's Multiplayer.ini, and the panel can only read an
 //                index against the stock order - so a mod that reorders the colours had a Random seat confidently named
 //                in the wrong one. The word is the colour's own name, whatever position a mod put it in.
 //     <rgb>      that colour's RGBColor as six lowercase hex digits ("32d7e6"), from this client's Multiplayer.ini.
-//                GeneralsX @bugfix Claude 25/09/2026 (Codex on feat/panel-nav-inline-chat r5, P2) AND WHAT IT LOOKS LIKE.
+//                GeneralsX: AND WHAT IT LOOKS LIKE.
 //                A mod may keep a colour's name and change its RGB, and the panel - which can only paint the stock
 //                palette (its CSP has no style-src) - drew the stock swatch for it. With the RGB it draws the swatch
 //                only when it IS the stock one, and says "modded colour" otherwise. ONE TOKEN, so a colour's name
@@ -91,7 +91,7 @@ inline int gxStatAppendFactions( char *line, size_t cap, int len, size_t lineMax
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 27/09/2026 THE MATCH RECORD SAYS WHAT THE MATCH WAS (owner, 27/09/2026: "real accurate
+// GeneralsX: THE MATCH RECORD SAYS WHAT THE MATCH WAS (owner, 27/09/2026: "real accurate
 // records"; the wire contract W13's relay/ingest side reads is this block).
 //
 //   GXEND ... r<slot>=... sb=1
@@ -108,7 +108,7 @@ inline int gxStatAppendFactions( char *line, size_t cap, int len, size_t lineMax
 //     One per reporter per match, right after its GXEND, with the next sq; the same mid and ef pair the two.
 //     du     game time, ef / logic frames per second.
 //     mp     the map file's leaf name less ".map", percent-encoded outside [A-Za-z0-9_.-]; left off past 64 BYTES
-//            DECODED (GX_SEAT_MAP_MAX), never cut. GeneralsX @bugfix Claude 27/09/2026 (Codex rel0946-r1 P2) THE BOUND
+//            DECODED (GX_SEAT_MAP_MAX), never cut. GeneralsX: THE BOUND
 //            IS THE NAME, NOT ITS ENCODING: relay.js GX_SEAT_MAP_RE takes 1..64 units (a plain byte or one %XX) and
 //            shared/event.mjs GX_MAP_MAX 64 decoded characters, so "past 64 encoded" dropped names every layer after
 //            this one records - 22 spaces encode to 66. The encoded form runs to 3 x 64 = 192, and the fullest stock
@@ -120,7 +120,7 @@ inline int gxStatAppendFactions( char *line, size_t cap, int len, size_t lineMax
 //            observers included; open and closed slots never. A seat that would take the line past
 //            GX_SEAT_LINE_MAX is left off whole, never cut, and counted.
 //
-//     n<slot> GeneralsX @feature Claude 02/10/2026 (owner: "Can I see the player names etc?") the name a human or an
+//     n<slot> GeneralsX: the name a human or an
 //            observer had in the lobby, UTF-8, percent-encoded outside [A-Za-z0-9_.-] like mp. AFTER every seat, so a
 //            seat is never lost for a name; a name that does not fit, or is over GX_SEAT_PLAYER_MAX bytes, is left off
 //            whole, never cut. Only the in-game name reaches it: the lobby already shows every one of them to every
@@ -139,7 +139,7 @@ enum
 };
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 07/11/2026 (STEP 0, lead C79 ruling) THE CEILINGS ARE THE RELAY'S, NOT THE CLIENT'S.
+// GeneralsX: THE CEILINGS ARE THE RELAY'S, NOT THE CLIENT'S.
 //
 // scale32 raised GX_STAT_LINE_MAX / GX_SEAT_LINE_MAX / GX_END_LINE_MAX to what a seats34 relay accepts (2560 / 3072 /
 // 2048) for EVERY relay, but a relay that never said seats34 - 0.9.69's, any rollback, an older relay after a failover -
@@ -177,7 +177,7 @@ inline GXRelayWireCeilings gxRelayWireCeilings( bool seats34 )
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 27/09/2026 (wh1ter0se, 27/09/2026: "Quitter = loser = left record") A PLAYER WHO QUITS LOST, AND LEFT.
+// GeneralsX: A PLAYER WHO QUITS LOST, AND LEFT.
 //
 //   GXEND ... r<slot>=x:...     x is LEFT: the wire's third outcome since 22/09/2026 (relay.js GX_END_OUTCOME x -> 2,
 //                               shared/event.mjs oc 0..2, D1 match_result.outcome 2). It now means "left before the end,
@@ -299,10 +299,10 @@ inline void gxSeatNameKey( int slot, const char *name, char *out, size_t cap )
 
 /// "GXSEAT <room> <memberIp> sq= mid= ef= du= [rs=] [sb=1] [mp=] s<slot>=<seat> ..." for the `count` occupied slots
 /// in `seats` (their slot numbers in `slots`). Returns the length, or -1 refused whole (no header, or no seat fits).
-/// `*leftOff` counts the seats that did not fit. `names` (GeneralsX @feature Claude 02/10/2026), when not NULL, holds
+/// `*leftOff` counts the seats that did not fit. `names` (GeneralsX:), when not NULL, holds
 /// `count` UTF-8 lobby names beside `seats` (NULL or "" for none): each placed seat's name goes on after every seat,
 /// " n<slot>=", as far as they fit (gxSeatNameKey); `*namesLeftOff` counts the ones that did not.
-/// `lineMax` (GeneralsX @bugfix Claude 07/11/2026, STEP 0) is the ceiling of the relay the line goes to
+/// `lineMax` (GeneralsX: STEP 0) is the ceiling of the relay the line goes to
 /// (gxRelayWireCeilings(...).seat): the line stays under it, and never over GX_SEAT_LINE_MAX.
 inline int gxComposeRelaySeatRecord( char *out, size_t cap, const char *room, const char *memberIp, unsigned int seq,
 	const char *matchId, unsigned int endFrame, unsigned int seconds, int reporterSlot, bool sandbox, const char *mapPath,

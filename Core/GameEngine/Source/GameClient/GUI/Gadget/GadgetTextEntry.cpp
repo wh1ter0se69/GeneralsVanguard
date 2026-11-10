@@ -61,7 +61,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 // PRIVATE DATA ///////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
-// GeneralsX @cleanup Claude 08/08/2026 Removed a dead `static Byte drawCnt = 0;` here. It was a
+// GeneralsX: Removed a dead `static Byte drawCnt = 0;` here. It was a
 // duplicate of the caret-blink counter in W3DTextEntry.cpp and referenced nowhere in this file -
 // grep for it and this declaration was the only hit. The real one is gone too: the caret now
 // blinks on the wall clock rather than on rendered frames.
@@ -101,7 +101,7 @@ WindowMsgHandledType GadgetTextEntryInput( GameWindow *window, UnsignedInt msg,
 		{
 			WideChar ch = (WideChar) mData1;
 
-			// GeneralsX @feature Claude 25/09/2026 An open drop-down takes the letters that name its
+			// GeneralsX: An open drop-down takes the letters that name its
 			// entries (see GadgetComboBox.cpp, LETTER KEYS): this character picks one, and typing it here
 			// as well would put "e" in the chat line every time a slot is set to Easy Army. Every other
 			// character, Enter included, and an IME's text still reach the chat line.

@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-S 11/10/2026 GxNativeD3D8: see GxNativeD3D8.h and render-seam/DESIGN_l1-device.md §1, §2.
+// GeneralsX: GxNativeD3D8: see GxNativeD3D8.h and render-seam/DESIGN_l1-device.md §1, §2.
 #include "GxNativeD3D8.h"
 
 #include "GxCustomCatalog.h"
@@ -23,7 +23,7 @@
 #include <mach-o/loader.h>
 #include <CommonCrypto/CommonDigest.h>
 #elif defined(_WIN32)
-// GeneralsX @feature D · native-windows-1 13/10/2026 S8 on Windows: the loader images come from the process's module list
+// GeneralsX: S8 on Windows: the loader images come from the process's module list
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -60,7 +60,7 @@ bool isLoader(const std::string& p)
 	std::string b = baseName(p);
 	if (b.compare(0, 9, "libvulkan") == 0 && b.find("MoltenVK") == std::string::npos)
 		return true;
-	// GeneralsX @feature D · native-windows-1 13/10/2026 the Windows loader names in the DXVK fork's search list (VkCtx.cpp
+	// GeneralsX: the Windows loader names in the DXVK fork's search list (VkCtx.cpp
 	// platformLoaderNames): vulkan-1.dll, winevulkan.dll. Module names are case-insensitive on Windows.
 	std::transform(b.begin(), b.end(), b.begin(), [](unsigned char c) { return char(std::tolower(c)); });
 	return b == "vulkan-1.dll" || b == "winevulkan.dll";
@@ -290,9 +290,9 @@ GxLoaderFacts GxNativeLoaderFacts(PFN_vkGetInstanceProcAddr gipa, const void* in
 		}
 	}
 #elif defined(_WIN32)
-	// GeneralsX @feature D · native-windows-1 13/10/2026 the Windows facts: the module holding the host's entry point, and every
+	// GeneralsX: the Windows facts: the module holding the host's entry point, and every
 	// loaded module named like a loader. A module's BUILD = the sha256 of its file (the Mac fallback's identity; a content hash, so
-	// a patched copy keeping its PE timestamp and size is still a second build - Codex nw1-r1). Each listed module is PINNED
+	// a patched copy keeping its PE timestamp and size is still a second build). Each listed module is PINNED
 	// (GetModuleHandleExW without UNCHANGED_REFCOUNT) while its path is read, so an unload between the snapshot and the read cannot
 	// leave us reading a freed mapping; no PE header is parsed at all.
 	auto utf8 = [](const std::wstring& w) {
@@ -318,7 +318,7 @@ GxLoaderFacts GxNativeLoaderFacts(PFN_vkGetInstanceProcAddr gipa, const void* in
 		bool ok = BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0) == 0 &&
 			BCryptCreateHash(alg, &hash, nullptr, 0, nullptr, 0, 0) == 0;
 		static thread_local uint8_t buf[65536];
-		for (DWORD got = 0; ok;) {   // a failed read fails the hash: never an identity of a prefix (Codex nw1-r2)
+		for (DWORD got = 0; ok;) {   // a failed read fails the hash: never an identity of a prefix
 			if (!ReadFile(fh, buf, sizeof(buf), &got, nullptr)) {
 				ok = false;
 				break;
@@ -576,7 +576,7 @@ private:
 			for (const auto& v : kVars)
 				if (!m_debug.skipEnvRow && envOf(m_session, v.var) != nullptr)
 					return classic(3, v.why);
-			// DXVK_HUD (set, not empty, not "0"): DXVK composites its HUD in the present; the native present has none (Codex rw3L-design-r3 #6)
+			// DXVK_HUD (set, not empty, not "0"): DXVK composites its HUD in the present; the native present has none
 			const char* hud = envOf(m_session, "DXVK_HUD");
 			if (!m_debug.skipEnvRow && hud && *hud && std::strcmp(hud, "0") != 0)
 				return classic(3, "DXVK_HUD set: the native present has no HUD");

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# GeneralsX @build GitHubCopilot 09/04/2026 Build a portable AppImage package for GeneralsXZH on Linux.
+# GeneralsX: Build a portable AppImage package for GeneralsXZH on Linux.
 # Usage:
 #   ./scripts/build/linux/build-linux-appimage-zh.sh [preset]
 set -euo pipefail
@@ -11,7 +11,7 @@ BUILD_DIR="${PROJECT_ROOT}/build/${PRESET}"
 APPIMAGE_ROOT="${PROJECT_ROOT}/build/appimage"
 APPDIR="${APPIMAGE_ROOT}/GeneralsXZH.AppDir"
 OUTPUT_APPIMAGE="${PROJECT_ROOT}/build/GeneralsXZH-${PRESET}-x86_64.AppImage"
-# GeneralsX @build GitHubCopilot 10/04/2026 Pin appimagetool to immutable upstream release and enforce checksum validation.
+# GeneralsX: Pin appimagetool to immutable upstream release and enforce checksum validation.
 APPIMAGETOOL_VERSION="${APPIMAGETOOL_VERSION:-1.9.1}"
 APPIMAGETOOL_URL="${APPIMAGETOOL_URL:-https://github.com/AppImage/appimagetool/releases/download/${APPIMAGETOOL_VERSION}/appimagetool-x86_64.AppImage}"
 APPIMAGETOOL_SHA256="${APPIMAGETOOL_SHA256:-ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0}"
@@ -54,7 +54,7 @@ copy_ldd_deps() {
 
     while IFS= read -r dep; do
         case "${dep}" in
-            # GeneralsX @bugfix GitHubCopilot 10/04/2026 Exclude glibc loader/runtime files across common Linux layouts to preserve AppImage portability.
+            # GeneralsX: Exclude glibc loader/runtime files across common Linux layouts to preserve AppImage portability.
             linux-vdso.so.1 | \
             /lib64/ld-linux* | /lib/*/ld-linux* | /usr/lib/*/ld-linux* | /usr/lib64/ld-linux* | \
             /lib/*/libc.so.* | /lib64/libc.so.* | /usr/lib/*/libc.so.* | /usr/lib64/libc.so.* | \
@@ -159,7 +159,7 @@ copy_optional_libs "${SDL3_LIB_DIR}" "libSDL3.so*"
 copy_optional_libs "${SDL3_IMAGE_LIB_DIR}" "libSDL3_image.so*"
 copy_optional_libs "${OPENAL_LIB_DIR}" "libopenal.so*"
 
-# GeneralsX @bugfix GitHubCopilot 10/04/2026 Bundle FFmpeg SONAME-compatible libs to avoid host version mismatch (e.g. Ubuntu 25.10).
+# GeneralsX: Bundle FFmpeg SONAME-compatible libs to avoid host version mismatch (e.g. Ubuntu 25.10).
 copy_codec_dep "libavcodec.so*"
 copy_codec_dep "libavformat.so*"
 copy_codec_dep "libavutil.so*"
@@ -229,8 +229,8 @@ python3 -I "${PROJECT_ROOT}/scripts/legal/third_party_notices.py" check-path --p
 
 cat > "${APPDIR}/AppRun" << 'EOF'
 #!/usr/bin/env bash
-# GeneralsX @build GitHubCopilot 09/04/2026 AppImage runtime launcher for GeneralsXZH.
-# GeneralsX @bugfix GitHubCopilot 09/04/2026 Honor CNC_GENERALS_PATH and CNC_GENERALS_ZH_PATH with deterministic precedence.
+# GeneralsX: AppImage runtime launcher for GeneralsXZH.
+# GeneralsX: Honor CNC_GENERALS_PATH and CNC_GENERALS_ZH_PATH with deterministic precedence.
 set -euo pipefail
 
 APPDIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -325,7 +325,7 @@ if [[ -z "${ALSOFT_DRIVERS:-}" ]]; then
     export ALSOFT_DRIVERS="pulse,alsa,oss,jack,null,wave"
 fi
 
-# GeneralsX @bugfix Claude 28/09/2026 DXVK reads $DXVK_CONFIG_FILE or $PWD/dxvk.conf, and this AppRun cds to
+# GeneralsX: DXVK reads $DXVK_CONFIG_FILE or $PWD/dxvk.conf, and this AppRun cds to
 # the Zero Hour data root above, so the bundled conf (and its 16x anisotropy) was never read. A caller's
 # DXVK_CONFIG_FILE, or a dxvk.conf the player keeps in that folder, still wins.
 if [[ -z "${DXVK_CONFIG_FILE:-}" && ! -f dxvk.conf && -f "${APPDIR}/usr/share/generalsxzh/dxvk.conf" ]]; then
@@ -368,7 +368,7 @@ cp "${ICON_SRC}" "${APPDIR}/usr/share/icons/hicolor/512x512/apps/GeneralsXZH.png
 if command -v appimagetool >/dev/null 2>&1 && [[ -z "${CI:-}" ]]; then
     APPIMAGETOOL_BIN="$(command -v appimagetool)"
 else
-    # GeneralsX @build GitHubCopilot 10/04/2026 Use pinned appimagetool artifact with mandatory SHA-256 verification for reproducible packaging.
+    # GeneralsX: Use pinned appimagetool artifact with mandatory SHA-256 verification for reproducible packaging.
     APPIMAGETOOL_BIN="${APPIMAGE_ROOT}/appimagetool.AppImage"
     mkdir -p "${APPIMAGE_ROOT}"
     if [[ ! -f "${APPIMAGETOOL_BIN}" ]]; then

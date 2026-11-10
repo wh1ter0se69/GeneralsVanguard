@@ -485,7 +485,7 @@ AIGroupPtr AI::createGroup()
  */
 void AI::destroyGroup( AIGroup *group )
 {
-	// GeneralsX @performance Claude 28/09/2026 was std::find over m_groupList; the index answers the same question in O(1)
+	// GeneralsX: was std::find over m_groupList; the index answers the same question in O(1)
 	std::hash_map<AIGroup *, std::list<AIGroup *>::iterator>::iterator found = m_groupIndex.find( group );
 
 	// make sure group is actually in the list
@@ -530,8 +530,8 @@ FormationID AI::getNextFormationID()
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 06/10/2026 internal linkage: SpectreGunshipUpdate.cpp defines another class of this name, and
-// once this one overrides getCellOwnerMask the two differ - the linker would keep one vtable for both (Codex guardscan-adv-r3)
+// GeneralsX: internal linkage: SpectreGunshipUpdate.cpp defines another class of this name, and
+// once this one overrides getCellOwnerMask the two differ - the linker would keep one vtable for both
 namespace {
 class PartitionFilterLiveMapEnemies : public PartitionFilter
 {
@@ -557,7 +557,7 @@ public:
 		return true;
 	}
 
-	// GeneralsX @performance Claude 06/10/2026 allow() passes ENEMIES only and has no side effects, so as the first filter
+	// GeneralsX: allow() passes ENEMIES only and has no side effects, so as the first filter
 	// (findClosestEnemy) it lets getClosestObjects skip cells holding no enemy (PartitionFilter::getCellOwnerMask)
 	virtual PartitionOwnerMask getCellOwnerMask() override
 	{
@@ -620,7 +620,7 @@ static void priorityFunc(Object *obj, void *userData)
 
 #if defined(GX_TEST_INSTRUMENTS)
 //-----------------------------------------------------------------------------
-// GeneralsX @performance Claude 30/09/2026 The retail attack-priority search, kept verbatim (the modifier passed in) as the
+// GeneralsX: The retail attack-priority search, kept verbatim (the modifier passed in) as the
 // reference for GX_HUNT_CHECK: every object that passes the filters, sorted near to far, scored in that order; the first
 // object with the largest (modPriority, curPriority) wins.
 static Object *findBestByPriorityRetail(const Object *me, Real range, PartitionFilter **filters,
@@ -631,7 +631,7 @@ static Object *findBestByPriorityRetail(const Object *me, Real range, PartitionF
 	Int			actualPriority=0;
 	ObjectIterator *iter = ThePartitionManager->iterateObjectsInRange(me, range, FROM_BOUNDINGSPHERE_2D, filters, ITER_SORTED_NEAR_TO_FAR);
 	MemoryPoolObjectHolder holder(iter);
-	// GeneralsX @performance Claude 23/09/2026 an empty iterator means no object passed the filters.
+	// GeneralsX: an empty iterator means no object passed the filters.
 	*noCandidates = (iter->first() == nullptr);
 	for (Object *theEnemy = iter->first(); theEnemy; theEnemy = iter->next())
 	{
@@ -675,7 +675,7 @@ static Object *findBestByPriorityRetail(const Object *me, Real range, PartitionF
 #endif // GX_TEST_INSTRUMENTS
 
 //-----------------------------------------------------------------------------
-// GeneralsX @performance Claude 30/09/2026 findBestByPriorityRetail's result from getClosestObjects' visitor mode. visit()
+// GeneralsX: findBestByPriorityRetail's result from getClosestObjects' visitor mode. visit()
 // gets the objects in the order the retail iterator INSERTED them; the iterator prepends and then merge-sorts stably by
 // the same distSqr key, so in its sorted order a smaller key comes first and, among equal keys, the later-inserted
 // object comes first. The retail loop keeps the first sorted object with the largest (modPriority, curPriority), so a
@@ -687,7 +687,7 @@ static Object *findBestByPriorityRetail(const Object *me, Real range, PartitionF
 // best modPriority: it can neither beat nor tie the best. Never with a best of 1 (a clamped 1 ties and wins on priority),
 // never unless the modifier is positive, and never when the caller says a filter has side effects (mayStop): a skipped
 // object is a skipped filter call, and PartitionFilterFreeOfFog's getShroudedStatus updates seen state and ghost
-// snapshots that scripts read later (Codex r3).
+// snapshots that scripts read later.
 class HuntPriorityVisitor : public PartitionRingVisitor
 {
 public:
@@ -753,7 +753,7 @@ public:
 	virtual Bool canStopAfter(Real minCentreDist, Real maxRadius) override
 	{
 		// a zero or negative AttackPriorityDistanceModifier (the INI accepts one) makes farther targets score the same or
-		// higher, so distance bounds nothing: walk everything, as retail did (Codex r1)
+		// higher, so distance bounds nothing: walk everything, as retail did
 		if (!m_mayStop || m_bestMod <= 1 || !(m_modifierDist > 0.0f))
 			return FALSE;
 		const Real lb = minCentreDist - m_myRadius - maxRadius - 1.0f;
@@ -773,7 +773,7 @@ public:
 
 #if defined(GX_TEST_INSTRUMENTS)
 //-----------------------------------------------------------------------------
-// GeneralsX @performance Claude 30/09/2026 GX_HUNT_CHECK=1 (test builds only,
+// GeneralsX: GX_HUNT_CHECK=1 (test builds only,
 // -DGX_TEST_INSTRUMENTS=ON; lead C55 29/10/2026): the equivalence harness for HuntPriorityVisitor. After each
 // attack-priority search it runs the retail search too and compares the winner and "no candidates"; prints cumulative
 // "[GXHUNT] f= q= diff= stopped=" every 600 logic frames. Off (the default) it costs one static flag test per search.
@@ -808,7 +808,7 @@ static void gxHuntCheck(const Object *me, Real range, PartitionFilter **filters,
 Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifiers,
 														 const AttackPriorityInfo *info, PartitionFilter *optionalFilter, Bool *noCandidates)
 {
-	// GeneralsX @performance Claude 23/09/2026 Report "no object passed the filters" so AIHuntState can skip an identical retry.
+	// GeneralsX: Report "no object passed the filters" so AIHuntState can skip an identical retry.
 	if (noCandidates)
 		*noCandidates = FALSE;
 
@@ -818,7 +818,7 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 			PartitionFilterPossibleToAttack would filter out everything anyway,
 			so just punt here.
 		*/
-		// GeneralsX @performance Claude 23/09/2026 nothing can pass PartitionFilterPossibleToAttack either.
+		// GeneralsX: nothing can pass PartitionFilterPossibleToAttack either.
 		if (noCandidates)
 			*noCandidates = TRUE;
 		return nullptr;
@@ -903,13 +903,13 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 	{
 		// No additional attack info, so just return the closest one.
 		Object* o = ThePartitionManager->getClosestObject( me, range, FROM_BOUNDINGSPHERE_2D, filters );
-		// GeneralsX @performance Claude 23/09/2026 getClosestObject returns null only when no object passed the filters.
+		// GeneralsX: getClosestObject returns null only when no object passed the filters.
 		if (noCandidates)
 			*noCandidates = (o == nullptr);
 		return o;
 	}
 
-	// GeneralsX @performance Claude 30/09/2026 An attack-priority search used to collect EVERY object that passed the
+	// GeneralsX: An attack-priority search used to collect EVERY object that passed the
 	// filters across the whole range (a hunter's is 9999.9: the map) into a sorted iterator and then score all of them:
 	// ~0.9 ms per hunt search with 12 Hard AIs, most of it visiting objects that could never win (ai-smartcheap P2/gco).
 	// The visitor scores them as the walk finds them and stops the walk once nothing unvisited can win - the same

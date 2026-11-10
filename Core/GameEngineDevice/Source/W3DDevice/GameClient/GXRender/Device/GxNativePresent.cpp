@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-L-2 11/10/2026 GxNativePresent.h. Every choice below is dxvk_swapchain_blitter.cpp's (cites
+// GeneralsX: GxNativePresent.h. Every choice below is dxvk_swapchain_blitter.cpp's (cites
 // are references/fbraz3-dxvk 954c5c692); the code is ours, the shaders are DXVK's (Device/shaders, SOURCE.txt).
 #include "GxNativePresent.h"
 

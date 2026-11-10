@@ -49,7 +49,7 @@
 #include <cstdint>
 
 // GeneralsX @bugfix fbraz 03/02/2026 Use guard macro to prevent typedef conflicts
-// GeneralsX @bugfix Claude 27/07/2026 Never typedef __int64/_int64 on MSVC.
+// GeneralsX: Never typedef __int64/_int64 on MSVC.
 // They are BUILT-IN KEYWORDS there, not macros, so the #ifndef guard below is always
 // true and the typedef is a hard error: C2628 "'int64_t' followed by '__int64' is
 // illegal". These shims exist only for compilers that lack the Microsoft extension.
@@ -154,7 +154,7 @@ public:
       \param frame number of recorded frame, or Total
       \return number of calls
     */
-    // GeneralsX @refactor BenderAI 10/02/2026
+    // GeneralsX:
     // Changed from unsigned _int64 (MSVC-specific) to u64 (platform typedef)
     u64 GetCalls(unsigned frame) const;
 
@@ -212,7 +212,7 @@ public:
 
       \return profile thread ID
     */
-  // GeneralsX @refactor BenderAI 10/02/2026 Use uintptr_t to avoid pointer precision loss on 64-bit
+  // GeneralsX: Use uintptr_t to avoid pointer precision loss on 64-bit
   uintptr_t GetId() const
     {
       return (uintptr_t)m_threadID;

@@ -757,7 +757,7 @@ void Player::initFromDict(const Dict* d)
 	Bool exists;
 	Bool skirmish = false;
 	Bool forceHuman = false;
-	// GeneralsX @bugfix Copilot 22/03/2026 Initialize multiplayer start index before any skirmish name/script qualification.
+	// GeneralsX: Initialize multiplayer start index before any skirmish name/script qualification.
 	m_mpStartIndex = d->getInt(TheKey_multiplayerStartIndex, &exists);
 	if (d->getBool(TheKey_playerIsSkirmish, &exists))
 	{
@@ -1608,7 +1608,7 @@ void Player::onStructureConstructionComplete( Object *builder, Object *structure
 		m_ai->onStructureProduced( builder, structure );
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @bugfix Claude 04/10/2026 A built structure's special powers became usable never. Without
+	// GeneralsX: A built structure's special powers became usable never. Without
 	// RETAIL_COMPATIBLE_CRC every SpecialPowerModule starts at the 0xFFFFFFFF ready frame (TheSuperHackers #1218), and a
 	// structure built UNDER_CONSTRUCTION skips startPowerRecharge in that constructor, so only a SpecialPowerCreate module
 	// (the superweapons) ever moved it. The Strategy Center has none: its battle plans and CIA Intelligence stayed
@@ -2097,7 +2097,7 @@ void Player::transferAssetsFromThat(Player *that)
 	std::list<Object *> objsToTransfer;
 
 	// let's not transfer beacons
-	// GeneralsX @bugfix Claude 01/10/2026 getPlayerTemplate() can be null (the neutral player, or a playerFaction
+	// GeneralsX: getPlayerTemplate() can be null (the neutral player, or a playerFaction
 	// missing from PlayerTemplate.ini). Mirrors the Zero Hour twin's guard (tsh batch2 #406).
 	const PlayerTemplate *thatTemplate = that->getPlayerTemplate();
 	const ThingTemplate *beaconTemplate = (thatTemplate != nullptr)
@@ -2392,8 +2392,8 @@ void Player::doBountyForKill(const Object* killer, const Object* victim)
 	Int bounty = REAL_TO_INT_CEIL(costToBuild * m_cashBountyPercent);
 #else
 	// TheSuperHackers @bugfix Stubbjax 20/02/2026 Subtract epsilon to ensure bounty is rounded up correctly.
-	// GeneralsX @bugfix Claude 10/10/2026 Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
-	// conversion differs by CPU (Codex tsh3-clamp-adv-r1).
+	// GeneralsX: Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
+	// conversion differs by CPU.
 	Int bounty = REAL_TO_INT(ceil((costToBuild * m_cashBountyPercent) - WWMATH_EPSILON));
 #endif
 
@@ -3539,7 +3539,7 @@ void Player::processCreateTeamGameMessage(Int hotkeyNum, const GameMessage *msg)
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 05/10/2026 A team of more than 255 units arrives in parts (GameClientDispatch.cpp,
+	// GeneralsX: A team of more than 255 units arrives in parts (GameClientDispatch.cpp,
 	// gxResendOversizedIdList - getArgumentCount() is an UnsignedByte). Every part after the first starts with a Boolean
 	// and ADDS to the squad instead of replacing it. A message of object ids alone - every sender before this - means
 	// exactly what it always did.
@@ -3885,7 +3885,7 @@ void Player::crc( Xfer *xfer )
 	xfer->xferInt( &m_sciencePurchasePoints );
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @feature Claude 01/10/2026 Determinism-1 (ROADMAP_2027 M1 item 1, CA-29): a player's money was in no
+	// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 1, CA-29): a player's money was in no
 	// CRC at all - Money::crc was empty and nothing called it - so a money split surfaced only once it had moved an
 	// object. Every peer now hashes it at every checkpoint. Changes the CRC every peer computes: an all-players change.
 	xfer->xferSnapshot( &m_money );

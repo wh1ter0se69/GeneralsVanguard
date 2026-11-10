@@ -498,7 +498,7 @@ private:
 	Int														m_whichAnimInCurState;						///< the index of the currently playing anim in cur state (if any)
 	WeaponRecoilInfoVec						m_weaponRecoilInfoVec[WEAPONSLOT_COUNT];
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate for handleClientRecoil(), which runs per
+	// GeneralsX: Class-C gate for handleClientRecoil(), which runs per
 	// RENDERED frame while m_recoilRate/m_recoilDamping/m_recoilSettle are per-LOGIC-FRAME steps -
 	// so recoil completed in ~3 iterations instead of ~3 frames and most shots showed no muzzle
 	// movement at all.

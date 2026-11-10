@@ -62,7 +62,7 @@ void INI::parseTerrainBridgeDefinition( INI* ini )
 	if( bridge == nullptr )
 	{
 		bridge = TheTerrainRoads->newBridge( name );
-		// GeneralsX @bugfix Claude 10/10/2026 A map.ini's invention ends with the map (TerrainRoadCollection::reset).
+		// GeneralsX: A map.ini's invention ends with the map (TerrainRoadCollection::reset).
 		if( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
 			TheTerrainRoads->noteOverrideAdded( bridge );
 	}

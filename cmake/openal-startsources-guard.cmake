@@ -1,4 +1,4 @@
-# GeneralsX @bugfix Claude 24/09/2026 openal-soft 1.24.2 StartSources: never dereference a null voice.
+# GeneralsX: openal-soft 1.24.2 StartSources: never dereference a null voice.
 #
 # Run by cmake/openal.cmake as the openal_soft PATCH_COMMAND: cmake -DSRC=<source dir> -P <this file>.
 #

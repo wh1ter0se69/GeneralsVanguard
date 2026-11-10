@@ -210,7 +210,7 @@ void CrateTemplate::parseCrateCreationEntry( INI* ini, void *instance, void *, c
 	const char *token = ini->getNextToken();
 	AsciiString crateName = token;
 
-	// GeneralsX @bugfix Claude 25/09/2026 The crate chance feeds sim randomness (CreateCrateDie), so it goes
+	// GeneralsX: The crate chance feeds sim randomness (CreateCrateDie), so it goes
 	// through the one INI number parser (INIScanNumber.h), not the platform sscanf. Throws INI_INVALID_DATA as before.
 	Real crateValue = INI::scanReal( ini->getNextToken() );
 

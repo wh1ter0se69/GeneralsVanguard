@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 03/10/2026 Build the Windows DXVK pair (d3d8.dll + d3d9.dll) players get - reproducibly.
+# GeneralsX: Build the Windows DXVK pair (d3d8.dll + d3d9.dll) players get - reproducibly.
 #
 # WHAT: upstream DXVK v2.6 + patches\*.patch, in name order:
 #   0001-0002  build fixes only: the <cstddef> include and upstream 62b99d7b0f. v2.6 does not compile with GCC 16 and
@@ -120,7 +120,7 @@ try {
 	# env, not -c user.*: GIT_COMMITTER_* in this box's environment would beat -c and move every sha
 	$env:GIT_COMMITTER_NAME = 'GeneralsX'; $env:GIT_COMMITTER_EMAIL = 'dxvk-build@generalsx.invalid'
 	Remove-Item Env:GIT_COMMITTER_DATE -ErrorAction SilentlyContinue
-	# GeneralsX @build Claude 03/10/2026 (Codex cand0953-r1 P2): countermand the user-level settings that change what git am
+	# GeneralsX: countermand the user-level settings that change what git am
 	# commits - commit.gpgSign (a signature, or no key = failure), am.messageid (a Message-Id line), mailinfo.scissors.
 	Native "git -C $src am -q --no-gpg-sign --no-message-id --no-scissors --committer-date-is-author-date $(($patches | ForEach-Object FullName) -join ' ')" 'git am patches'
 	$head = (git -C $src rev-parse HEAD).Trim()
@@ -158,7 +158,7 @@ try {
 	}
 	# 5) publish: $Root\out\<gx_tag> holds exactly the pinned pair (a stale or partial copy there is replaced, never mixed).
 	#    Under the default -Root that is the folder setup-run-win64.ps1 -DxvkPair gx stages from (Get-DxvkPairDefaultDir);
-	#    any other -Root is a scratch build and publishes only beneath itself (Codex r1).
+	#    any other -Root is a scratch build and publishes only beneath itself.
 	$out = "$Root\out\$($pins['gx_tag'])"
 	New-Item -ItemType Directory -Force $out | Out-Null
 	Copy-Item -Force -LiteralPath "$outw\d3d8.dll", "$outw\d3d9.dll" -Destination $out

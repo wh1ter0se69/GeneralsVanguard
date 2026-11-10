@@ -61,7 +61,7 @@
 #include "GameClient/Color.h"
 #include "GameClient/Display.h"
 #include "GameClient/TerrainVisual.h"
-#include "GameClient/GXUserDataDir.h"	// GeneralsX @feature Claude 23/09/2026 GX_USERDATA_DIR
+#include "GameClient/GXUserDataDir.h"	// GeneralsX: GX_USERDATA_DIR
 
 #include "GameNetwork/FirewallHelper.h"
 
@@ -72,7 +72,7 @@
 #include <cstdlib>      // getenv()
 #include <filesystem>   // std::filesystem::create_directories()
 
-// GeneralsX @feature BenderAI 24/02/2026 Phase 5 macOS cross-platform exe path detection
+// GeneralsX: Phase 5 macOS cross-platform exe path detection
 #ifdef __APPLE__
 #include <mach-o/dyld.h>  // _NSGetExecutablePath()
 #endif
@@ -87,9 +87,9 @@ GlobalData* GlobalData::m_theOriginal = nullptr;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 // PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-// GeneralsX @bugfix Claude 06/10/2026 PartitionCellSize is read raw by the value-map locations, the circle sizing, AIUpdate's
+// GeneralsX: PartitionCellSize is read raw by the value-map locations, the circle sizing, AIUpdate's
 // fudge and the client shroud as well as PartitionManager, so clamping it only in PartitionManager::init left them on the
-// map.ini's value: with 2000 on a 6000-unit map a value-map cell x=4 gave an attack/hunt target at x=8000 (Codex r5, batch-0959).
+// map.ini's value: with 2000 on a 6000-unit map a value-map cell x=4 gave an attack/hunt target at x=8000.
 // Clamped once here, wherever GameData is parsed (GameData.ini, a map.ini override), to 1..1000; NaN -> 1000. Shipped data uses 40.
 //GX-PARTITIONCELLSIZE-BEGIN
 static void parsePartitionCellSize( INI *ini, void *instance, void *store, const void* userData )
@@ -106,7 +106,7 @@ static void parsePartitionCellSize( INI *ini, void *instance, void *store, const
 /*static*/ const FieldParse GlobalData::s_GlobalDataFieldParseTable[] =
 {
 	{ "Windowed",									INI::parseBool,				nullptr,			offsetof( GlobalData, m_windowed ) },
-	// GeneralsX @feature BenderAI 21/04/2026 Opt-out for in-game update checker via Options.ini
+	// GeneralsX: Opt-out for in-game update checker via Options.ini
 	{ "CheckForUpdates",					INI::parseBool,				nullptr,			offsetof( GlobalData, m_checkForUpdates ) },
 	{ "XResolution",							INI::parseInt,				nullptr,			offsetof( GlobalData, m_xResolution ) },
 	{ "YResolution",							INI::parseInt,				nullptr,			offsetof( GlobalData, m_yResolution ) },
@@ -901,7 +901,7 @@ GlobalData::GlobalData()
 	m_stealthFriendlyOpacity = 0.5f;
 	m_defaultOcclusionDelay = LOGICFRAMES_PER_SECOND * 3;	//default to 3 seconds
 
-	// GeneralsX @perf Claude 29/09/2026 The retail asset preload is compulsory: every peer loads its faction models at
+	// GeneralsX: The retail asset preload is compulsory: every peer loads its faction models at
 	// map load instead of inside a logic tick (9-19 ms first-use spikes on an M4). It lives here, in the digest, and has
 	// no switch, so a peer that preloads can never meet one that does not. GameClient::preloadAssets prints [GXPRELOAD].
 	m_preloadAssets = TRUE;
@@ -1017,7 +1017,7 @@ GlobalData::GlobalData()
 
 	// network timing values.  Having these default to 0 would be bad. - BGC
 	//
-	// GeneralsX @performance Claude 07/08/2026 Shortened from 30/200 to 10/10, which is exactly
+	// GeneralsX: Shortened from 30/200 to 10/10, which is exactly
 	// what Generals Online runs in its live service (NGMPGame.cpp:413 sets both to 10; its
 	// "default" profile a few lines above keeps retail's 30/200).
 	//
@@ -1054,7 +1054,7 @@ GlobalData::GlobalData()
 	m_simulateReplays.clear();
 	m_simulateReplayJobs = SIMULATE_REPLAYS_SEQUENTIAL;
 
-	// GeneralsX @feature Claude 28/07/2026 Headless LAN host/join defaults.
+	// GeneralsX: Headless LAN host/join defaults.
 	m_lanRole = LANROLE_NONE;
 	m_lanGameName.clear();
 	m_lanJoinIP = 0;
@@ -1129,7 +1129,7 @@ GlobalData::GlobalData()
 
 	// GeneralsX @feature Bender 01/04/2026 Cross-platform user data directory
 	// Adopts upstream refactoring with extended cross-platform support.
-	// GeneralsX @feature Claude 23/09/2026 On Windows this no longer reads the registry leaf: the
+	// GeneralsX: On Windows this no longer reads the registry leaf: the
 	// folder is GeneralsX's own (see BuildUserDataPathFromRegistry). The name is kept because
 	// upstream has the same function.
 	m_userDataDir = BuildUserDataPathFromRegistry();
@@ -1155,7 +1155,7 @@ GlobalData::GlobalData()
 //-------------------------------------------------------------------------------------------------
 GlobalData::~GlobalData()
 {
-	// GeneralsX @bugfix Claude 06/10/2026 Only the original's deletion needs an empty override chain; reset() deletes each
+	// GeneralsX: Only the original's deletion needs an empty override chain; reset() deletes each
 	// override while the next one down is still linked, so the old unconditional check failed on a second override.
 	DEBUG_ASSERTCRASH( this != m_theOriginal || TheWritableGlobalData->m_next == nullptr, ("~GlobalData: theOriginal is not original") );
 
@@ -1200,7 +1200,7 @@ GlobalData *GlobalData::newOverride()
 
 	// copy the data from the latest override (TheWritableGlobalData) to the newly created instance
 	DEBUG_ASSERTCRASH( TheWritableGlobalData, ("GlobalData::newOverride() - no existing data") );
-	// GeneralsX @bugfix Claude 06/10/2026 The member-wise copy also copied the m_weaponBonusSet pointer, so the override
+	// GeneralsX: The member-wise copy also copied the m_weaponBonusSet pointer, so the override
 	// shared the set of the data it overrides (and leaked its own); deleting the override at reset then freed the set
 	// the original still reads on every weapon bonus lookup. A map.ini GameData block (sent with the map to every lobby
 	// peer) is enough. Keep the override's own set and copy the values into it, so each instance owns the set it frees.
@@ -1235,7 +1235,7 @@ void GlobalData::init()
 //-------------------------------------------------------------------------------------------------
 void GlobalData::reset()
 {
-	// GeneralsX @bugfix Claude 06/10/2026 The subsystem list resets the instance it registered - the original - so
+	// GeneralsX: The subsystem list resets the instance it registered - the original - so
 	// 'this' is not the latest override whenever one exists, and walking this->m_next (always null on the original)
 	// set TheWritableGlobalData to null and then looped forever. Walk the chain from its head, unlinking each override
 	// before deleting it.
@@ -1269,7 +1269,7 @@ void GlobalData::reset()
 //-------------------------------------------------------------------------------------------------
 /** Parse GameData entry */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 27/07/2026 The client-only fields SagePatch.ini may set.
+// GeneralsX: The client-only fields SagePatch.ini may set.
 // See the note on the declaration in GlobalData.h. Every field here is camera framing, keyboard
 // scroll speed, terrain draw distance or shell-map SFX attenuation - all client presentation, none
 // of it read by GameLogic,
@@ -1313,7 +1313,7 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 	ini->initFromINI( TheWritableGlobalData,
 		s_restrictToSagePatchFields ? s_SagePatchFieldParseTable : s_GlobalDataFieldParseTable );
 
-	// GeneralsX @bugfix Claude 10/09/2026 Capture the camera height limits exactly as parsed from the
+	// GeneralsX: Capture the camera height limits exactly as parsed from the
 	// FIRST GameData block, before anything overrides them. The shell map uses these so a player's
 	// camera preference cannot reframe the main menu backdrop, which is an authored scene with a
 	// scripted camera rather than a playfield.
@@ -1336,7 +1336,7 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 		TheWritableGlobalData->m_defaultCameraHeightsCaptured = TRUE;
 	}
 
-	// GeneralsX @bugfix Claude 13/08/2026 The three network history lengths are the divisors and
+	// GeneralsX: The three network history lengths are the divisors and
 	// the ring sizes of FrameMetrics, and nothing validated them. All three are plain INI::parseInt
 	// with no userData, so a data file could set any of them to zero:
 	//
@@ -1357,7 +1357,7 @@ void GlobalData::parseGameDataDefinition( INI* ini )
 	TheWritableGlobalData->m_networkCushionHistoryLength =
 		clamp<UnsignedInt>( 1, TheWritableGlobalData->m_networkCushionHistoryLength, 1024 );
 
-	// GeneralsX @bugfix Claude 01/10/2026 Idea of TheSuperHackers PR #2519 (open), hand-ported (tsh batch2 #30): these are
+	// GeneralsX: Idea of TheSuperHackers PR #2519 (open), hand-ported (tsh batch2 #30): these are
 	// loop bounds and allocation sizes that a data file sets unchecked. The lights index three fixed arrays; the road
 	// buffers use 16-bit indices and allocate the value + 4; the counts cannot be negative. Shipped data is in range.
 	// Left out on purpose: the MaxVisible* counts (W3DScene allocates only for a positive value) and MaxTankTrackEdges
@@ -1452,7 +1452,7 @@ UnsignedInt GlobalData::generateExeCRC()
 	DEBUG_LOG(("Fake EXE CRC is 0x%8.8X", exeCRC.get()));
 
 #elif defined(__linux__)
-	// GeneralsX @bugfix BenderAI 18/02/2026
+	// GeneralsX:
 	// On Linux, reading the entire 180MB+ binary for CRC is prohibitively slow
 	// and unnecessary. Instead, use version-based CRC which is fast and sufficient.
 	// Only compute CRC from version number below.
@@ -1508,7 +1508,7 @@ UnsignedInt GlobalData::generateExeCRC()
 		version = TheVersion->getVersionNumber();
 		exeCRC.computeCRC( &version, sizeof(UnsignedInt) );
 	}
-	// GeneralsX @bugfix Copilot 22/03/2026 Load shared script CRC inputs relative to the configured asset root.
+	// GeneralsX: Load shared script CRC inputs relative to the configured asset root.
 	// Add in MP scripts to the EXE CRC, since the game will go out of sync if they change
 	fp = TheFileSystem->openFile("Data\\Scripts\\SkirmishScripts.scb", File::READ | File::BINARY);
 	if (fp != nullptr) {
@@ -1541,7 +1541,7 @@ AsciiString GlobalData::BuildUserDataPathFromRegistry()
 {
 	AsciiString userDataDir;
 
-	// GeneralsX @feature Claude 23/09/2026 GX_USERDATA_DIR: the whole profile somewhere else, for A/B arms
+	// GeneralsX: GX_USERDATA_DIR: the whole profile somewhere else, for A/B arms
 	// and scripted peers (owner decision B). Asked FIRST and on every platform, so no known-folder, HOME
 	// or XDG lookup can win over it. Rules and refusals: GameClient/GXUserDataDir.h.
 	{
@@ -1593,7 +1593,7 @@ AsciiString GlobalData::BuildUserDataPathFromRegistry()
 		if (!myDocumentsDirectory.endsWith("\\"))
 			myDocumentsDirectory.concat('\\');
 
-		// GeneralsX @feature Claude 23/09/2026 GeneralsX's OWN folder: Documents\GeneralsX\GeneralsZH\.
+		// GeneralsX: GeneralsX's OWN folder: Documents\GeneralsX\GeneralsZH\.
 		//
 		// This used to be Documents\<registry UserDataLeafName, default "Command and Conquer Generals
 		// Zero Hour Data">. Retail Zero Hour and the Generals Online client resolve that folder the

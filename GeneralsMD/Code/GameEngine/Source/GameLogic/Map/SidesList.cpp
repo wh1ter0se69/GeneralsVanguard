@@ -227,7 +227,7 @@ void SidesList::reset()
 /**
  SidesList - clear -
 */
-// GeneralsX @probe Claude 19/08/2026 Forward declaration - the probe is used by
+// GeneralsX: Forward declaration - the probe is used by
 // ParseSidesDataChunk above its definition further down.
 static Bool gxSkirmishDiag(void);
 
@@ -248,7 +248,7 @@ void SidesList::clear()
 */
 Bool SidesList::ParseSidesDataChunk(DataChunkInput &file, DataChunkInfo *info, void *userData)
 {
-	// GeneralsX @probe Claude 19/08/2026 Timestamp the map's own sides arriving, so its order
+	// GeneralsX: Timestamp the map's own sides arriving, so its order
 	// relative to prepareForMP_or_Skirmish is observable rather than inferred.
 	if (gxSkirmishDiag())
 	{
@@ -275,8 +275,8 @@ Bool SidesList::ParseSidesDataChunk(DataChunkInput &file, DataChunkInfo *info, v
 		for (j=0; j<count; j++)
 		{
 			pBuildList = newInstance( BuildListInfo );
-			// GeneralsX @bugfix Claude 06/10/2026 A read below that throws (a damaged map, now refused, not fatal) left this node
-			// unowned until addToBuildList took it, once per attempt (Codex mlv-r10 #3): it is freed on the way out until then.
+			// GeneralsX: A read below that throws (a damaged map, now refused, not fatal) left this node
+			// unowned until addToBuildList took it, once per attempt: it is freed on the way out until then.
 			struct DeleteOnThrow { BuildListInfo *node; ~DeleteOnThrow() { if (node != nullptr) deleteInstance(node); } } unowned = { pBuildList };
 			pBuildList->setBuildingName(file.readAsciiString());
 			pBuildList->setTemplateName(file.readAsciiString());
@@ -312,10 +312,10 @@ Bool SidesList::ParseSidesDataChunk(DataChunkInput &file, DataChunkInfo *info, v
 		}
 	}
 
-	// GeneralsX @bugfix Claude 06/10/2026 ParseScriptsDataChunk publishes what it read to ScriptList's statics and this
+	// GeneralsX: ParseScriptsDataChunk publishes what it read to ScriptList's statics and this
 	// collects it just below - but a load REFUSED in between (a throw from a later chunk, now a damaged-map refusal
 	// rather than a crash) left them published, and the next map whose sides carry no PlayerScriptsList collected the
-	// refused map's scripts as its own (Codex mlv-r3 #1). Whatever is pending before this map's own parse is not this
+	// refused map's scripts as its own. Whatever is pending before this map's own parse is not this
 	// map's: discard it.
 	ScriptList *scripts[MAX_PLAYER_COUNT];
 	count = ScriptList::getReadScripts(scripts);
@@ -502,7 +502,7 @@ static Bool ParseTeamsDataChunk(DataChunkInput &file, DataChunkInfo *info, void 
 	return true;
 }
 
-// GeneralsX @probe Claude 19/08/2026 GX_SKIRMISH - why does a USER map get no skirmish sides?
+// GeneralsX: GX_SKIRMISH - why does a USER map get no skirmish sides?
 //
 // Measured 2026-08-19: on iOS a user map yields skirmishSides=0, no players and zero objects, while
 // an official map on the SAME DEVICE yields 14. On macOS both user maps work. skirmishSides=14 is
@@ -524,7 +524,7 @@ static Bool gxSkirmishDiag(void)
 
 void SidesList::prepareForMP_or_Skirmish()
 {
-	// GeneralsX @probe Claude 19/08/2026 The ORDERING question. m_numSkirmishSides is built from
+	// GeneralsX: The ORDERING question. m_numSkirmishSides is built from
 	// m_numSides a few lines below, so a later "numSkirmishSides=0" means the sides list was EMPTY
 	// when this ran - not that the scripts failed to parse. On iOS a user map reports sides=10 by
 	// the time the AI is counted, so if this prints 0 the sides arrive AFTER this function, and the
@@ -575,7 +575,7 @@ void SidesList::prepareForMP_or_Skirmish()
 		}
 	}
 	if (!gotScripts) {
-		// GeneralsX @bugfix Copilot 22/03/2026 Load default skirmish scripts relative to the configured asset root.
+		// GeneralsX: Load default skirmish scripts relative to the configured asset root.
 		AsciiString path = "Data\\Scripts\\SkirmishScripts.scb";
 		if (gxSkirmishDiag())
 		{
@@ -703,7 +703,7 @@ void SidesList::addSide(const Dict* d)
 	}
 	else
 	{
-		// GeneralsX @bugfix Claude 12/08/2026 This drop used to be SILENT in release. The dropped
+		// GeneralsX: This drop used to be SILENT in release. The dropped
 		// side is whichever arrives last - typically the neutral or the ReplayObserver - and the
 		// match then plays with players who own nothing while every count still reads full. Say so.
 		fprintf(stderr, "[GXCAP] SidesList::addSide: side table full (%d of %d) - dropping side '%s'\n",
@@ -986,7 +986,7 @@ void SidesList::xfer( Xfer *xfer )
 		scriptList = getSideInfo( i )->getScriptList();
 		scriptListPresent = scriptList ? TRUE : FALSE;
 		xfer->xferBool( &scriptListPresent );
-		// GeneralsX @bugfix Claude 25/09/2026 A save written before GameLogic::startNewGame gave side 0 a
+		// GeneralsX: A save written before GameLogic::startNewGame gave side 0 a
 		// script list on a map that has none (the multiplayer victory/defeat fix) recorded no list for
 		// it, while this load's startNewGame created one. Keep that list, unread - there is nothing in
 		// the save for it - rather than refuse the whole save; its victory scripts start fresh.
@@ -1103,7 +1103,7 @@ void BuildListInfo::parseStructure(INI *ini, void *instance, void* /*store*/, co
 
 
 /**
- GeneralsX @feature Claude 06/11/2026 base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md): GXFallbackLocation marks the fallback as the layout's, the one
+ GeneralsX: base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md): GXFallbackLocation marks the fallback as the layout's, the one
  place m_gxLayoutFallback is set from data.
 */
 void BuildListInfo::parseGXFallbackLocation(INI *ini, void *instance, void *store, const void *userData)

@@ -75,7 +75,7 @@ public:
 	NetCommandRef * processAck(NetCommandMsg *msg);
 	NetCommandRef * processAck(UnsignedShort commandID, UnsignedByte originalPlayerID);
 
-	// GeneralsX @security Claude 06/10/2026 The wrapper send window (DESIGN_wrapper-memory-cap v16 section 3; see the .cpp).
+	// GeneralsX: The wrapper send window (DESIGN_wrapper-memory-cap v16 section 3; see the .cpp).
 	void processWrapperAck(UnsignedByte originalPlayerID, UnsignedInt wrapSeq, UnsignedInt chunkNumber);
 	/// A replay obligation: a full copy of a recorded command (source, wrapSeq) owed to this connection's peer. Never dropped.
 	void enqueueObligation(NetCommandMsg *msg, RelayMaskType relay, Int source, UnsignedInt wrapSeq);
@@ -104,7 +104,7 @@ protected:
 	void updateRetryTime();				///< Track the measured path instead of a fixed 2000 ms. See the .cpp.
 	time_t retryTimeFor(const NetCommandRef *msg) const;	///< Frame data retries fast; everything else on m_retryTime. See the .cpp.
 
-	// GeneralsX @security Claude 06/10/2026 The wrapper send window - see the .cpp.
+	// GeneralsX: The wrapper send window - see the .cpp.
 	struct GXWrapState { UnsignedInt unacked; UnsignedInt claimedBytes; };
 	struct GXPendingWrap { NetCommandMsg *msg; RelayMaskType relay; UnsignedInt claimed; UnsignedInt chunks; Int obligationSource; UnsignedInt obligationSeq; };
 	Bool canWrapNow(UnsignedInt claimed) const;

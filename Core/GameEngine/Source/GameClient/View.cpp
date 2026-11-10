@@ -100,7 +100,7 @@ void View::init()
 
 	m_zoom = 1.0f;
 
-	// GeneralsX @bugfix Claude 20/08/2026 Options.ini camera limits apply at startup, not only
+	// GeneralsX: Options.ini camera limits apply at startup, not only
 	// through the Extras menu.
 	//
 	// The launcher and the Extras menu both write MinCameraHeight/MaxCameraHeight into
@@ -141,7 +141,7 @@ void View::init()
 			}
 		}
 
-		// GeneralsX @bugfix Claude 25/09/2026 Options.ini's TerrainDrawDistanceScale applies at startup
+		// GeneralsX: Options.ini's TerrainDrawDistanceScale applies at startup
 		// too. The Extras and Debug menus write it and apply it live, but only SagePatch.ini fed it at
 		// startup, so a player's draw distance reverted on every launch. Same placement and reasoning as
 		// the camera limits above; like them, a present key wins over SagePatch.ini.
@@ -155,7 +155,7 @@ void View::init()
 		// turn that percent into 2.0; fixing the getter would move the SimID digest (it is Common/).
 		TheWritableGlobalData->m_terrainDrawDistanceScale = getPrefTerrainDrawDistanceScale(prefs);
 
-		// GeneralsX @bugfix Claude 25/09/2026 A camera pitch the player chose in Extras or Debug applies at
+		// GeneralsX: A camera pitch the player chose in Extras or Debug applies at
 		// startup too; until now only the live view took it, so it reverted on every launch. What counts
 		// as a choice is getPrefCameraPitch's call. Unlike the draw distance, TheGlobalData's pitch is NOT
 		// overwritten: it stays GameData.ini's value, because that is what "no choice" resolves to - here,
@@ -163,7 +163,7 @@ void View::init()
 		cameraPitch = getPrefCameraPitch(prefs);
 	}
 
-	// GeneralsX @feature Claude 24/08/2026 Routed through GXHostCamera so the HOST's limits govern
+	// GeneralsX: Routed through GXHostCamera so the HOST's limits govern
 	// every peer in a networked match. Outside a networked match - which includes right here, since
 	// View::init runs at engine startup - the accessor returns TheGlobalData's pair unchanged, so
 	// this is the same read it has always been. See GXHostCamera.h.
@@ -204,8 +204,8 @@ Real View::getPrefCameraPitch( const OptionPreferences &prefs )
 
 // The one writer: Accept in Extras, Camera Apply in Debug. Both menus call it only for a slider the player MOVED
 // (they watch GSM_SLIDER_TRACK), so an untouched slider writes nothing and whatever the file held - a choice, or
-// nothing - stands; its position alone cannot say, since the default 37.5 and a chosen 38 both open at 38 (Codex
-// r1). A choice is written with a decimal so a chosen 37 can never read as the legacy "37". Defaults removes the
+// nothing - stands; its position alone cannot say, since the default 37.5 and a chosen 38 both open at 38.
+// A choice is written with a decimal so a chosen 37 can never read as the legacy "37". Defaults removes the
 // key, so the next start uses TheGlobalData's pitch itself rather than a rounded copy of it.
 void View::setPrefCameraPitch( OptionPreferences &prefs, Int sliderDegrees )
 {
@@ -219,7 +219,7 @@ void View::clearPrefCameraPitch( OptionPreferences &prefs )
 	prefs.erase("CameraPitch");
 }
 
-// GeneralsX @feature Claude 26/09/2026 Two caps on one key (owner): the launcher's camera range is the player's -
+// GeneralsX: Two caps on one key (owner): the launcher's camera range is the player's -
 // MaxCameraHeight 100 .. 1000, Generals Online's own lobby cap - while the Debug menu goes down to 10 and up to 3000.
 // Both write MinCameraHeight / MaxCameraHeight, so the Debug menu also marks the pair when it leaves the player's
 // range; without that mark the player's range clamps, so a MaxCameraHeight above 1000 from the launcher or a hand
@@ -244,7 +244,7 @@ Bool View::getPrefDebugCameraHeights( const OptionPreferences &prefs )
 	if (it == prefs.end() || it->second.compareNoCase("yes") != 0)
 		return FALSE;
 	// Only while a height really is outside the player's range: once the launcher or the Config tab has brought both
-	// back inside it, the pair is an ordinary one again whatever a stale mark says (Codex dbgcam-r6 P2). Inside the
+	// back inside it, the pair is an ordinary one again whatever a stale mark says. Inside the
 	// range both clamps give the same value, so this changes nothing for the readers below. NaN is never outside.
 	OptionPreferences::const_iterator mx = prefs.find("MaxCameraHeight");
 	OptionPreferences::const_iterator mn = prefs.find("MinCameraHeight");

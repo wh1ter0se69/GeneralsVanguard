@@ -37,7 +37,7 @@
 
 #include "mapper.h"
 
-// GeneralsX @bugfix Claude 29/10/2026 Cb-06a: every animated mapper below (UV scroll, grid, rotate, sine, step, zigzag,
+// GeneralsX: Cb-06a: every animated mapper below (UV scroll, grid, rotate, sine, step, zigzag,
 // random, edge) timed itself on WW3D's sync time, which only moves when a logic tick runs: at 120-240 fps a scrolling
 // texture moved in 16.7 ms steps, 1 draw in 2-4. They read WW3D::Get_Logic_Time_Milliseconds() now, the same clock plus the
 // time the draws since that tick covered - what SegLineRendererClass already reads (TheSuperHackers' render decoupling).

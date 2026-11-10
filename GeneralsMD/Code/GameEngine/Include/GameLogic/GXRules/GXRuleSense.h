@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 30/10/2026 AI RULE BANK sense layer (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.6, 4.3; rb-core plan D2): the
+// GeneralsX: AI RULE BANK sense layer (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.6, 4.3; rb-core plan D2): the
 // ONLY way a rule reads other players' objects. HARD and SENTIENT see what a human in that seat would see, BRUTAL sees the whole map:
 //   * collection is PARTITION ITERATION ONLY - never a walk of a player's object list. A rider of an enclosing container is taken out of
 //     the partition (OpenContain.cpp) and Object::getShroudedStatus answers CLEAR for an object with no partition data (Object.cpp), so
@@ -62,7 +62,7 @@ public:
 	};
 	/// every unit and building the viewer sees NOW whose owner AS SEEN is player `ownerIndex` (never the viewer itself) - the filters of
 	/// collectSightings (own sight and stealth for a FAIR viewer; BRUTAL: the whole map, stealth kept) and identity as seen. Computed at
-	/// every call from the world at that moment - no snapshot is kept (Codex rbs2-r2 P1), so no answer depends on when or by whom it was
+	/// every call from the world at that moment - no snapshot is kept, so no answer depends on when or by whom it was
 	/// first asked. Empty when the viewer owns nothing.
 	std::vector<Seen> seenOf(Int ownerIndex) const;
 #if defined(GX_TEST_INSTRUMENTS)

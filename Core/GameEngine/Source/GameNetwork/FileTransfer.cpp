@@ -49,7 +49,7 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 
 	if (mask)
 	{
-		// GeneralsX @debug Claude 10/08/2026 GX_MAPDBG: A1 measurement probes for the post-transfer
+		// GeneralsX @debug /08/2026 GX_MAPDBG: A1 measurement probes for the post-transfer
 		// lobby bounce. fprintf(stderr) so they survive release builds; env-gated so they cost one
 		// branch when off.
 		static const Bool s_mapDbg = (getenv("GX_MAPDBG") != NULL);
@@ -65,7 +65,7 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 
 		ls->setCurrentFilename(filename);
 		UnsignedInt startTime = timeGetTime();
-		// GeneralsX @tweak Claude 10/08/2026 One minute, was two. Owner's call, 2026-08-10: a stalled
+		// GeneralsX: One minute, was two. Owner's call, 2026-08-10: a stalled
 		// transfer is the failure mode people actually hit, and two minutes of "Preparing..." before
 		// anything is said is long enough that it reads as a hang rather than as a timeout. Halving it
 		// costs nothing on a working transfer - a real map is tens to a couple of hundred KB over a
@@ -90,7 +90,7 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 			Sleep(500);
 			fileCommandID = TheNetwork->sendFileAnnounce(filename, mask);
 
-			// GeneralsX @bugfix Claude 11/08/2026 0 means the announce was never sent - the file
+			// GeneralsX: 0 means the announce was never sent - the file
 			// could not be opened, or its portable name failed conversion and every receiver
 			// would have refused it silently. Waiting out the full timeout on a transfer that
 			// cannot start is the same 60 s dishonesty the receiver-side refusals used to cause;
@@ -115,7 +115,7 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 
 		while (!fileTransferDone)
 		{
-			// GeneralsX @bugfix Claude 11/08/2026 The delivery window used to be the one place a lost
+			// GeneralsX: The delivery window used to be the one place a lost
 			// MSG_GAME_START had no further chance to arrive: this loop blocks inside OnGameStart,
 			// LANAPI::update never runs, and a joiner that missed both immediate copies has no
 			// TheNetwork - so the host spent the whole timeout sending unackable chunks into a
@@ -134,7 +134,7 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 			fileTransferDone = TRUE;
 			fileTransferPercent = 100;
 
-			// GeneralsX @bugfix Claude 10/08/2026 A peer that could not write the file now says so
+			// GeneralsX: A peer that could not write the file now says so
 			// (GX_FILE_PROGRESS_FAILED, networkutil.h) instead of reporting a flat 100. Give up on it
 			// at once rather than spinning out the remaining timeout: the peer is not going to
 			// succeed, and two more minutes of "Recieving" in front of a failure that has already
@@ -233,7 +233,7 @@ static Bool doFileTransfer( AsciiString filename, MapTransferLoadScreen *ls, Rel
 //-------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------
 
-// GeneralsX @bugfix Claude 10/08/2026 These helpers were backslash-only, so on POSIX - where a
+// GeneralsX: These helpers were backslash-only, so on POSIX - where a
 // map path is '/home/.../maps/foo/foo.map' - GetBasePathFromPath found no separator and returned
 // empty, and every joined sidecar path came out as garbage like '\map.ini' or
 // '\/full/path/foo.tga'. Measured live 2026-08-10 (Linux relay harness, GX_MAPDBG): the joiner
@@ -362,7 +362,7 @@ AsciiString GetReadmeFromMap( AsciiString path )
 //-------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------
 
-// The on-disk spelling of a loose file, empty when there is none (Codex m1det3-2b-r9 P2). On a case-sensitive filesystem -
+// The on-disk spelling of a loose file, empty when there is none. On a case-sensitive filesystem -
 // Linux, iPadOS - the local file system finds "Map.ini" for "map.ini" when it OPENS a file, and the opened File carries the
 // resolved path (File::open's setName); a raw fopen/rename of the spelling built from the map name would miss it.
 static AsciiString gxLocalPathOnDisk( const AsciiString& path )
@@ -375,7 +375,7 @@ static AsciiString gxLocalPathOnDisk( const AsciiString& path )
 	return onDisk;
 }
 
-// GeneralsX @feature Claude 01/10/2026 M1 step 2b (Codex m1det2-2b-r1/r2 P2). The name a retired sidecar is renamed to (see
+// GeneralsX: M1 step 2b. The name a retired sidecar is renamed to (see
 // retireSidecar): the next free .gxstale, .gxstale1, ... - an earlier one is never overwritten, it may be the player's own
 // edit. Only loose files are ever retired; a sidecar inside an archive is the same on every install.
 static AsciiString gxStaleName( const AsciiString& path )
@@ -397,13 +397,13 @@ static AsciiString gxStaleName( const AsciiString& path )
 	return AsciiString::TheEmptyString;
 }
 
-// GeneralsX @bugfix Claude 02/10/2026 M1 step 2b (Codex m1det3-2b-r7 P1, r8 P2, r10 P2). A joiner about to RECEIVE this map
+// GeneralsX: M1 step 2b. A joiner about to RECEIVE this map
 // retires every loose copy of a sidecar first - renamed to the next free .gxstale name, never deleted, every case variant
 // ("Map.ini" and "map.ini" are two files on Linux/iPadOS and the local file system finds either) - so after reception
 // exactly the host's files are active. Reception used to overwrite the player's own edit in place, and a file the host
 // lacks, or a case variant beside the received one, stayed active and kept this peer's map data different forever.
 // FALSE when one could not be renamed: nothing is then transferred, since this peer would still hash the old file. Every
-// rename is recorded in `retired`, so a transfer that does not complete can put the player's files back (Codex r11 P2).
+// rename is recorded in `retired`, so a transfer that does not complete can put the player's files back.
 struct GXRetiredSidecar { AsciiString name, path, aside; };
 static Bool retireSidecar( const AsciiString& name, std::vector<GXRetiredSidecar>& retired )
 {
@@ -429,7 +429,7 @@ static Bool retireSidecar( const AsciiString& name, std::vector<GXRetiredSidecar
 }
 
 // The transfer did not complete: every retired sidecar goes back to its own spelling, newest first, so the map loads what
-// it loaded before (Codex m1det3-2b-r11 P2). First every copy active under one of those names NOW - a received one, in any
+// it loaded before. First every copy active under one of those names NOW - a received one, in any
 // spelling - is retired the same way, so the restored files are the only ones the file system can find (r12 P2: a received
 // "map.ini" shadowed a restored "Map.ini" on Linux). Nothing is deleted.
 static void restoreRetiredSidecars( const std::vector<GXRetiredSidecar>& retired )
@@ -454,7 +454,7 @@ static void restoreRetiredSidecars( const std::vector<GXRetiredSidecar>& retired
 Bool DoAnyMapTransfers(GameInfo *game, Bool keepShellUp)
 {
 	TheGameInfo = game;
-	// GeneralsX @feature Claude 06/11/2026 scale32: the transfer recipient mask is 64 bit (slots 0-33).
+	// GeneralsX: scale32: the transfer recipient mask is 64 bit (slots 0-33).
 	RelayMaskType mask = 0;
 	Int i=0;
 	for (i=1; i<MAX_SLOTS; ++i)
@@ -476,7 +476,7 @@ Bool DoAnyMapTransfers(GameInfo *game, Bool keepShellUp)
 	if (!mask)
 		return TRUE;
 
-	// GeneralsX @bugfix Claude 02/10/2026 M1 step 2b (Codex m1det2-2b-r5 P1). AN OFFICIAL MAP IS NEVER SENT: its files live
+	// GeneralsX: M1 step 2b. AN OFFICIAL MAP IS NEVER SENT: its files live
 	// in the game's own archives and Maps folder, sendFileAnnounce opens loose local files only, and a host must not write
 	// into another install's game folder. The setup screens refuse to start a lobby where a human lacks one
 	// (GUI:PlayerNoMap) - and since 2b a slot also lacks it when its map.ini/solo.ini differ from the host's although the

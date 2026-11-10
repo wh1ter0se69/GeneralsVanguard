@@ -18,7 +18,7 @@
 
 // FILE: GXHostCamera.h //////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 24/08/2026 Host-authoritative camera height limits.
+// GeneralsX: Host-authoritative camera height limits.
 //
 // WHAT THIS IS FOR. In a networked match every peer should see the same amount of map. Today each
 // peer's MinCameraHeight/MaxCameraHeight come from its own Options.ini (parsed by

@@ -559,11 +559,11 @@ TerrainTracksRenderObjClassSystem::TerrainTracksRenderObjClassSystem()
 	m_vertexBuffer = nullptr;
 
 	m_maxTankTrackEdges=TheGlobalData->m_maxTankTrackEdges;
-	// GeneralsX @bugfix Claude 23/09/2026 Clamp to the fixed m_edges[MAX_TRACK_EDGE_COUNT] ring: the value
+	// GeneralsX: Clamp to the fixed m_edges[MAX_TRACK_EDGE_COUNT] ring: the value
 	// comes unchecked from GameLOD INI (MaxTankTrackEdges), and a mod value above 100 wrote past m_edges.
 	if (m_maxTankTrackEdges > MAX_TRACK_EDGE_COUNT)
 		m_maxTankTrackEdges = MAX_TRACK_EDGE_COUNT;
-	// GeneralsX @bugfix Claude 01/10/2026 And from below: the index buffer is (edges - 1) * 6, so 0 or 1 asked for an
+	// GeneralsX: And from below: the index buffer is (edges - 1) * 6, so 0 or 1 asked for an
 	// empty or negative buffer (tsh batch2 #30, the tank-track part of TheSuperHackers PR #2519).
 	if (m_maxTankTrackEdges < 2)
 		m_maxTankTrackEdges = 2;
@@ -759,7 +759,7 @@ void TerrainTracksRenderObjClassSystem::update()
 		if (!TheGlobalData->m_makeTrackMarks)
 			mod->m_haveAnchor=false;	//force a track restart next time around.
 
-		// GeneralsX @bugfix Claude 23/09/2026 Bound the loop by the count at entry. The body decrements
+		// GeneralsX: Bound the loop by the count at entry. The body decrements
 		// m_activeEdgeCount as edges expire, so the old live bound skipped the last k edges' alpha update
 		// when k expired, and left some expired edges for later frames when over half expired at once. Expired edges are always a prefix
 		// (timeAdded is monotonic along the ring), so index stays correct.
@@ -788,7 +788,7 @@ void TerrainTracksRenderObjClassSystem::update()
 					mod->m_bottomIndex=0;	//roll buffer back to start
 			}
 		}
-		// GeneralsX @bugfix Claude 23/09/2026 Release after the loop, not inside it: a track unbound with
+		// GeneralsX: Release after the loop, not inside it: a track unbound with
 		// 0 edges (tank idle past the fade delay, or clearTracks on an LOD change) never entered the loop,
 		// so it was never returned to the 100-module pool and track marks stopped for the rest of the match.
 		if (mod->m_activeEdgeCount == 0 && !mod->m_bound)
@@ -839,7 +839,7 @@ Try improving the fit to vertical surfaces like cliffs.
 	//check if there is anything to draw and fill vertex buffer
 	if (m_edgesToFlush >= 2)
 	{
-		// GeneralsX @performance Claude 23/09/2026 Lock with DISCARD: this loop rewrites every vertex the draw
+		// GeneralsX: Lock with DISCARD: this loop rewrites every vertex the draw
 		// loop below reads, contiguously from 0, so the old contents are dead. A flags-0 lock on this
 		// DEFAULT|DYNAMIC buffer makes DXVK wait for last frame's track draw (CS sync + extra submit).
 		DX8VertexBufferClass::WriteLockClass lockVtxBuffer(m_vertexBuffer, D3DLOCK_DISCARD);
@@ -996,11 +996,11 @@ void TerrainTracksRenderObjClassSystem::setDetail()
 	ReleaseResources();
 
 	m_maxTankTrackEdges=TheGlobalData->m_maxTankTrackEdges;
-	// GeneralsX @bugfix Claude 23/09/2026 Clamp to the fixed m_edges[MAX_TRACK_EDGE_COUNT] ring: the value
+	// GeneralsX: Clamp to the fixed m_edges[MAX_TRACK_EDGE_COUNT] ring: the value
 	// comes unchecked from GameLOD INI (MaxTankTrackEdges), and a mod value above 100 wrote past m_edges.
 	if (m_maxTankTrackEdges > MAX_TRACK_EDGE_COUNT)
 		m_maxTankTrackEdges = MAX_TRACK_EDGE_COUNT;
-	// GeneralsX @bugfix Claude 01/10/2026 And from below: the index buffer is (edges - 1) * 6, so 0 or 1 asked for an
+	// GeneralsX: And from below: the index buffer is (edges - 1) * 6, so 0 or 1 asked for an
 	// empty or negative buffer (tsh batch2 #30, the tank-track part of TheSuperHackers PR #2519).
 	if (m_maxTankTrackEdges < 2)
 		m_maxTankTrackEdges = 2;

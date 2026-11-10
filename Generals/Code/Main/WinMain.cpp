@@ -699,7 +699,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 The main window's class, and what a second instance looks for.
+// GeneralsX: The main window's class, and what a second instance looks for.
 //
 // Retail registered "Game Window" but its already-running branch searched FindWindow() for the mutex
 // GUID as the CLASS, which nothing registers, so the branch never fired and a second double-click
@@ -709,7 +709,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 //
 // Only the copy holding the PRIMARY mutex registers GX_GAME_WINDOW_CLASS. A -replay copy skips that
 // mutex (CommandLine.cpp parseReplay), and a copy that loses it must raise the game, not the replay
-// (Codex review). Which mutex this copy holds is known here: the mutex is taken before this window.
+// Which mutex this copy holds is known here: the mutex is taken before this window.
 #define GX_GAME_WINDOW_CLASS TEXT("GeneralsX Game Window")
 #define GX_EXTRA_GAME_WINDOW_CLASS TEXT("GeneralsX Extra Game Window")
 
@@ -870,14 +870,14 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		MiniDumper::initMiniDumper(TheGlobalData->getPath_UserData());
 #endif
 		// TheSuperHackers @refactor The instance mutex now lives in its own class.
-		// GeneralsX @bugfix Claude 25/09/2026 Taken BEFORE the game window exists, not after it. A copy
+		// GeneralsX: Taken BEFORE the game window exists, not after it. A copy
 		// that loses the mutex then never creates one, so the GX_GAME_WINDOW_CLASS window is the primary
 		// holder's. Checked after the window, two copies double-clicked together each created one first
-		// and could raise each other instead of the running game (Codex review).
+		// and could raise each other instead of the running game.
 		if (!rts::ClientInstance::initialize())
 		{
 			// The winner takes the mutex just before it creates its window, so a copy launched in the
-			// same instant can look too early. Poll briefly. ponytail: fixed 2 s cap, because a headless
+			// same instant can look too early. Poll briefly. Trade-off: fixed 2 s cap, because a headless
 			// winner never gets a window; this copy has none either, so the wait shows nothing.
 			HWND ccwindow = FindWindow(GX_GAME_WINDOW_CLASS, nullptr);
 			for (int tries = 0; ccwindow == nullptr && tries < 20; ++tries)

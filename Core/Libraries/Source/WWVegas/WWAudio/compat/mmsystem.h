@@ -6,7 +6,7 @@
 ** For Linux builds with OpenAL, this provides empty type definitions.
 */
 
-// GeneralsX @bugfix Claude 27/07/2026
+// GeneralsX:
 // This stub lives in WWAudio/compat/ rather than WWAudio/ because WWAudio/ is on the -I path of
 // almost every translation unit in the tree (corei_wwaudio exports it INTERFACE-wide). A file
 // literally named mmsystem.h sitting there out-ranks the Windows SDK's <mmsystem.h> on MSVC, so on

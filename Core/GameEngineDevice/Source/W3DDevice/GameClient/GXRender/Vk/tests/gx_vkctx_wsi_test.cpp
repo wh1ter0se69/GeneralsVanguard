@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B WSI window test: an SDL3 window, a 1024x768 "game resolution" image with
+// GeneralsX: WS-B WSI window test: an SDL3 window, a 1024x768 "game resolution" image with
 // one triangle, presented through VkSwapchain's pillarbox exactly as the game presents its offscreen target.
 //
 //   gx_vkctx_wsi_test [--arm clean|no-present-transition|stretch|no-recovery|all] [--frames N] [--no-validation]
@@ -260,7 +260,7 @@ struct HookProbe
 	VkSwapchain* swapchain = nullptr;
 	std::thread::id mainThread;
 	std::atomic<uint64_t> starts { 0 }, ends { 0 }, unpaired { 0 }, onMain { 0 }, lockHeld { 0 }, threadMismatch { 0 }, tokenMismatch { 0 };
-	// Codex fg3-h2-r1 P2: end's thread and locks too, the swapchain's hostLock at both, every token seen by start exactly once
+	// end's thread and locks too, the swapchain's hostLock at both, every token seen by start exactly once
 	std::atomic<uint64_t> endOnMain { 0 }, endLockHeld { 0 }, hostHeld { 0 }, endHostHeld { 0 }, dupTokens { 0 };
 	std::vector<uint64_t> startOrder;   // tokens in start order (under m)
 	std::atomic<int> open { 0 };
@@ -463,7 +463,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 	if (arm == "stretch")
 		g_testMutants.presentStretch = true;
 	// R19: the thread runs a queued present before the queued submit that signals its semaphore - the layer must report it and,
-	// with call suppression on, the present never reaches the driver (Codex rw3V-design-r2 P2-5: it could strand MoltenVK)
+	// with call suppression on, the present never reaches the driver (it could strand MoltenVK)
 
 	World w;
 	w.validation = validation;
@@ -488,7 +488,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 		return res;
 	}
 
-	// R19: the present-first plant only under an ACTIVE layer, which suppresses the inverted present (Codex rw3V-code-r3 P1-3);
+	// R19: the present-first plant only under an ACTIVE layer, which suppresses the inverted present;
 	// without it the present would reach MoltenVK before its signalling submit
 	if (arm == "X-thread-presentfirst") {
 		if (!w.ctx.validationEnabled() || !w.ctx.submitThreaded()) {
@@ -517,7 +517,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 		if (statusOf(it->second) != st)
 			++resultMismatch;
 	};
-	// Codex fg3-h2-r1 P2: a deterministic non-success THROUGH the hook - the 7th present that reaches the driver reports SUBOPTIMAL
+	// a deterministic non-success THROUGH the hook - the 7th present that reaches the driver reports SUBOPTIMAL
 	// (TEST: its answer replaced after the driver call), and end must see exactly that
 	const uint64_t kForcedAt = 7;
 	if (hookArm)
@@ -647,7 +647,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 				w.ctx.testHoldAt(w.ctx.queue(QueueKind::Graphics).timeline.lastSubmitted() + 1);
 			const uint64_t v = w.ring.end(extra);
 			if (!v) {
-				// Nothing will signal the present semaphore: presenting now could hang (Codex r2).
+				// Nothing will signal the present semaphore: presenting now could hang.
 				say("[GXVK] wsi: frame submit failed - not presenting");
 				presentFailed = true;
 				break;
@@ -672,7 +672,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 				w.ctx.testRelease();
 			needRecreate = st == VkSwapchain::Status::OutOfDate || st == VkSwapchain::Status::Suboptimal;
 			if (st == VkSwapchain::Status::OutOfDate) {
-				++skipped; // nothing was presented (Codex r5): recreate and retry, counters untouched
+				++skipped; // nothing was presented: recreate and retry, counters untouched
 				continue;
 			}
 			if (st != VkSwapchain::Status::Ok && st != VkSwapchain::Status::Suboptimal) {
@@ -718,7 +718,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 		static_cast<unsigned long long>(errorsBeforeLoss), vc.warnings, vc.firstError.empty() ? "" : " first: ",
 		vc.firstError.substr(0, 300).c_str());
 	res.detail = buf;
-	// Every verdict requires its gate to have actually run (Codex r2): pixel checks done in all 5 phases, the loss reached
+	// Every verdict requires its gate to have actually run: pixel checks done in all 5 phases, the loss reached
 	// after real pre-loss frames.
 	if (arm == "clean")
 		res.detected = !(pixelChecks == 5 && allPixelsOk && !presentFailed && reachedLoss && preLossPresented > 0 &&
@@ -732,7 +732,7 @@ ArmResult runArm(const std::string& arm, int framesPerPhase, bool validation)
 	else if (hookArm) {
 		const SubmitThreadStats ts = w.ctx.initialized() ? w.ctx.threadStats() : SubmitThreadStats();
 		const bool threaded = w.ctx.submitThreaded();
-		bool onSubmitThread = false;   // Codex fg3-h2-r2 P2: the callbacks' thread IS gx-vk-submit (start and end: threadMismatch)
+		bool onSubmitThread = false;   // the callbacks' thread IS gx-vk-submit (start and end: threadMismatch)
 		{
 			std::lock_guard<std::mutex> g(probe.m);
 			onSubmitThread = probe.haveThread && probe.hookThread == submitThreadId && submitThreadId != std::thread::id();

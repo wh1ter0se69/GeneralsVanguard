@@ -132,7 +132,7 @@ void RadarUpgrade::upgradeImplementation()
 	Player *player = getObject()->getControllingPlayer();
 
 	// update the player with another radar facility
-	// GeneralsX @bugfix Claude 05/10/2026 Not while disabled: Object::onDisabledEdge adds the radar when the building
+	// GeneralsX: Not while disabled: Object::onDisabledEdge adds the radar when the building
 	// comes back, so adding it here too counted one building twice, and the player kept radar after it was gone. As Zero
 	// Hour Reforged (Olcay Seygan, RadarUpgrade.cpp, GPL-3.0-or-later); matches onDelete/onCapture's "disabled = already done".
 	if( !getObject()->isDisabled() )

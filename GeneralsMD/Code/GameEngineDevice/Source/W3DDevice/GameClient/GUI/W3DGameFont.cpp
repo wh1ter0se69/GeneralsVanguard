@@ -58,9 +58,9 @@
 
 namespace
 {
-// GeneralsX @bugfix GitHubCopilot 20/05/2026 Resolve a usable Unicode fallback font on macOS/Linux when localized font names are unavailable.
-// GeneralsX @tweak GitHubCopilot 27/05/2026 Add explicit stderr tracing for Unicode fallback font lookup decisions.
-// GeneralsX @bugfix GitHubCopilot 29/05/2026 Prevent circular Unicode fallback when the localized unicode family equals the base font family.
+// GeneralsX: Resolve a usable Unicode fallback font on macOS/Linux when localized font names are unavailable.
+// GeneralsX: Add explicit stderr tracing for Unicode fallback font lookup decisions.
+// GeneralsX: Prevent circular Unicode fallback when the localized unicode family equals the base font family.
 FontCharsClass *LoadUnicodeFallbackFont(Int size, Bool bold, const char *base_name)
 {
 	const char *preferred_name = nullptr;

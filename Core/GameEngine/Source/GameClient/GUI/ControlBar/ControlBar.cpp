@@ -191,7 +191,7 @@ Relationship ControlBar::getCurrentlyViewedPlayerRelationship(const Team* team)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 27/09/2026 General's Points keys - wh1ter0se's option A (27/09).
+// GeneralsX: General's Points keys - wh1ter0se's option A (27/09).
 //
 // Retail gives the purchase buttons no key: of the 74 buttons the shipped panels show, only
 // Command_PurchaseScienceDaisyCutter has a TextLabel, and no science name carries a '&', so getCommandButtonHotKey
@@ -289,7 +289,7 @@ namespace
 		for( Int i = 0; i < MAX_COMMANDS_PER_SET; ++i )
 		{
 			// populateCommand skips a slot with no ButtonCommandNN window (the script-only slots past the bar's 14): its button
-			// is never shown, so it must not lend its key (Codex r7). The names were all made at init (ControlBar::init), none is minted here.
+			// is never shown, so it must not lend its key. The names were all made at init (ControlBar::init), none is minted here.
 			AsciiString windowName;
 			windowName.format( "ControlBar.wnd:ButtonCommand%02d", i + 1 );
 			if( regularBarOnly && ( TheWindowManager == nullptr || TheWindowManager->winGetWindowFromId( nullptr, TheNameKeyGenerator->nameToKey( windowName.str() ) ) == nullptr ) )
@@ -317,7 +317,7 @@ namespace
 	}
 }
 
-/// GeneralsX @feature Claude 05/10/2026 wh1ter0se 05/10: a superweapon you own from ANOTHER faction ("ye use the one used as a normal
+/// GeneralsX: wh1ter0se 05/10: a superweapon you own from ANOTHER faction ("ye use the one used as a normal
 /// superweapon from the live keybinds") takes the key of that power's normal command. Returns the button whose key `shortcut`
 /// should show, or `shortcut` itself when it keeps its own: it is not a cross-faction shortcut power (the local faction's own
 /// shortcut set carries it, so retail's keys are untouched), the user bound IT explicitly, or no normal command exists.
@@ -335,7 +335,7 @@ const CommandButton *gxShortcutKeySource( const CommandButton *shortcut )
 	if( power == nullptr || player == nullptr || player->getPlayerTemplate() == nullptr || TheHotKeyManager->hasCommandButtonOverride( shortcut->getName() ) )
 		return shortcut;
 	std::vector<const CommandButton *> own;
-	gxAddSetButtons( TheControlBar->findCommandSet( player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet() ), own, FALSE );	// the shortcut bar has its own windows (Codex r9)
+	gxAddSetButtons( TheControlBar->findCommandSet( player->getPlayerTemplate()->getSpecialPowerShortcutCommandSet() ), own, FALSE );	// the shortcut bar has its own windows
 	for( size_t i = 0; i < own.size(); ++i )
 		if( own[ i ] == shortcut )
 			return shortcut;
@@ -343,7 +343,7 @@ const CommandButton *gxShortcutKeySource( const CommandButton *shortcut )
 	AsciiString wanted = shortcut->getName();
 	if( wanted.endsWith( "FromShortcut" ) )
 		wanted.truncateBy( 12 );
-	// Three tiers, the first that carries the power decides (a replaced button must never lose to the original it replaced, Codex r3/r4):
+	// Three tiers, the first that carries the power decides (a replaced button must never lose to the original it replaced, /r4):
 	// the sets the player's own objects show NOW (a CommandSetUpgrade swaps one: Object::getCommandSetString), then every template's sets
 	// (CommandSet::getCommandButton applies a map's control-bar overrides), then the button list's final overrides.
 	const CommandButton *rebound = nullptr, *named = nullptr, *first = nullptr;
@@ -364,7 +364,7 @@ const CommandButton *gxShortcutKeySource( const CommandButton *shortcut )
 		}
 		else
 		{
-			// The list has no slots: a button that some set puts only in a slot with no window stays hidden here too (Codex r11).
+			// The list has no slots: a button that some set puts only in a slot with no window stays hidden here too.
 			std::vector<const CommandButton *> seen, shown;
 			std::vector<AsciiString> sets;
 			player->iterateObjects( gxCollectLiveCommandSet, &sets );
@@ -399,10 +399,10 @@ const CommandButton *gxShortcutKeySource( const CommandButton *shortcut )
 			const CommandButton *b = live[ i ];
 			const SpecialPowerTemplate *bp = b->getSpecialPowerTemplate();
 			const GUICommandType bt = b->getCommandType();
-			// A SCRIPT_ONLY button is never shown (populateCommand skips it), so its key is nobody's (Codex r5).
+			// A SCRIPT_ONLY button is never shown (populateCommand skips it), so its key is nobody's.
 			if( ( bt != GUI_COMMAND_SPECIAL_POWER && bt != GUI_COMMAND_SPECIAL_POWER_CONSTRUCT ) || bp == nullptr || BitIsSet( b->getOptions(), SCRIPT_ONLY ) )
 				continue;
-			// populateCommand hides a button whose science the player lacks (NEED_SPECIAL_POWER_SCIENCE): nobody's key either (Codex r8).
+			// populateCommand hides a button whose science the player lacks (NEED_SPECIAL_POWER_SCIENCE): nobody's key either.
 			if( BitIsSet( b->getOptions(), NEED_SPECIAL_POWER_SCIENCE ) && bp->getRequiredScience() != SCIENCE_INVALID && !player->hasScience( bp->getRequiredScience() ) )
 				continue;
 			if( bp->getSpecialPowerType() != power->getSpecialPowerType() )
@@ -477,7 +477,7 @@ const CommandButton *ControlBar::resolvePurchaseScienceSource( const CommandButt
 		m_purchaseScienceSideBuilt = TRUE;
 		// The player's own objects first, each with the command set it shows NOW: a CommandSetUpgrade swaps an
 		// object's set (Object::getCommandSetString, which populateCommand shows), and the panel must teach the key of
-		// the button the command bar shows (Codex rel0945-r3). Then every template of the side, for what is not built.
+		// the button the command bar shows. Then every template of the side, for what is not built.
 		if( player != nullptr )
 		{
 			std::vector<AsciiString> liveSets;
@@ -585,7 +585,7 @@ void ControlBar::bindPurchaseScienceHotKeys( const Player *player )
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @probe Claude 27/09/2026 GX_PURCHASE_PROBE=<frame>:<key|click>:<CommandButton> buys one General's Points
+// GeneralsX: GX_PURCHASE_PROBE=<frame>:<key|click>:<CommandButton> buys one General's Points
 // button ONCE, at the first client update on or after logic frame <frame>, through the REAL input path: it puts raw
 // input on the message stream - MSG_RAW_KEY_DOWN/UP for the button's letter, or MSG_RAW_MOUSE_POSITION + LEFT_DOWN +
 // LEFT_UP at the button's centre - exactly what the keyboard or the mouse would append, so the translators, the hotkey
@@ -744,17 +744,17 @@ void ControlBar::populatePurchaseScience( Player* player )
 	const CommandSet *commandSet3;
 	const CommandSet *commandSet8;
 	Int i;
-	// GeneralsX @feature Claude 27/09/2026 The panel's keys are rebuilt from scratch below
+	// GeneralsX: The panel's keys are rebuilt from scratch below
 	// (bindPurchaseScienceHotKeys); a return before that leaves the panel with none. The keybind file is read
 	// first: evaluateContextUI repopulates the open panel BEFORE switchToContext's reset() re-reads it, so a
-	// rebind saved while the panel is open would otherwise reach the command bar and not the panel (Codex r2).
+	// rebind saved while the panel is open would otherwise reach the command bar and not the panel.
 	if( TheHotKeyManager )
 	{
 		TheHotKeyManager->clearPriorityHotKeys();
 		TheHotKeyManager->loadCommandButtonOverrides();
 	}
 	// The sources are worked out again for every populate: a script can swap a command-bar slot mid-match
-	// (GameLogic::setControlBarOverride), and the panel must teach the key of the button the bar shows now (Codex r3).
+	// (GameLogic::setControlBarOverride), and the panel must teach the key of the button the bar shows now.
 	clearPurchaseScienceSources();
 	if(TheScriptEngine->isGameEnding())
 		return;
@@ -983,7 +983,7 @@ void ControlBar::populatePurchaseScience( Player* player )
 
 	}
 
-	// GeneralsX @feature Claude 27/09/2026 Now that every button's state is final, give each key to one of them.
+	// GeneralsX: Now that every button's state is final, give each key to one of them.
 	bindPurchaseScienceHotKeys( player );
 
 	GameWindow *win = nullptr;
@@ -1010,7 +1010,7 @@ void ControlBar::populatePurchaseScience( Player* player )
 	if(win)
 	{
 		Int progress = 0;
-		// GeneralsX @bugfix Claude 23/09/2026 Guard the divide: equal consecutive rank thresholds (mod data or a script) make it zero, a SIGFPE on x86-64. Mirrors the TheSuperHackers guard in W3DCommandBarGenExpDraw.
+		// GeneralsX: Guard the divide: equal consecutive rank thresholds (mod data or a script) make it zero, a SIGFPE on x86-64. Mirrors the TheSuperHackers guard in W3DCommandBarGenExpDraw.
 		const Int skillPointsRequired = player->getSkillPointsLevelUp() - player->getSkillPointsLevelDown();
 		if( skillPointsRequired != 0 )
 			progress = ((player->getSkillPoints() - player->getSkillPointsLevelDown()) * 100) / skillPointsRequired;
@@ -1072,7 +1072,7 @@ void ControlBar::updateContextPurchaseScience()
 	if(win)
 	{
 		Int progress = 0;
-		// GeneralsX @bugfix Claude 23/09/2026 Guard the divide: equal consecutive rank thresholds (mod data or a script) make it zero, a SIGFPE on x86-64. Mirrors the TheSuperHackers guard in W3DCommandBarGenExpDraw.
+		// GeneralsX: Guard the divide: equal consecutive rank thresholds (mod data or a script) make it zero, a SIGFPE on x86-64. Mirrors the TheSuperHackers guard in W3DCommandBarGenExpDraw.
 		const Int skillPointsRequired = player->getSkillPointsLevelUp() - player->getSkillPointsLevelDown();
 		if( skillPointsRequired != 0 )
 			progress = ((player->getSkillPoints() - player->getSkillPointsLevelDown()) * 100) / skillPointsRequired;
@@ -1434,7 +1434,7 @@ void CommandSet::parseCommandButton( INI* ini, void *instance, void *store, cons
 
 	// get the index to store the command at, and the command array itself
 	const CommandButton **buttonArray = (const CommandButton **)store;
-	// GeneralsX @bugfix BenderAI 12/02/2026 - Cast via intptr_t for 64-bit compatibility
+	// GeneralsX: Cast via intptr_t for 64-bit compatibility
 	// userData is actually an integer index stored as a pointer (common pattern in callbacks).
 	// On 64-bit Linux, void* is 8 bytes but Int is 4 bytes. Cast through intptr_t first.
 	Int buttonIndex = static_cast<Int>(reinterpret_cast<intptr_t>(userData));
@@ -1496,7 +1496,7 @@ CommandSet::~CommandSet()
 // ControlBar /////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-// GeneralsX @bugfix Claude 10/10/2026 A copy of m_genStarFlash, written at EVERY place retail assigns it (init, reset,
+// GeneralsX: A copy of m_genStarFlash, written at EVERY place retail assigns it (init, reset,
 // getStarImage, onPlayerRankChanged, onPlayerSciencePurchasePointsChanged, showPurchaseScience), so the player look's General's
 // button (GXSpectatorHud.inl) pulses on the flag itself, in retail's own in-tick event order, and not on a sampled guess.
 // Client-only; every write sits outside the GX-SIMID regions. Read it only after ControlBar::update.
@@ -1507,7 +1507,7 @@ Bool gxGenStarFlash = FALSE;
 ControlBar::ControlBar()
 {
 	Int i;
-	// GX-SIMID-BEGIN the simulation reads this - the command dictionaries' roots, which region code links and walks (Codex det-codex-adv-r21)
+	// GX-SIMID-BEGIN the simulation reads this - the command dictionaries' roots, which region code links and walks
 	m_commandButtons = nullptr;
 	m_commandSets = nullptr;
 	// GX-SIMID-END
@@ -1516,12 +1516,12 @@ ControlBar::ControlBar()
 	m_observerLookAtPlayer = nullptr;
 	m_observedPlayer = nullptr;
 	m_buildToolTipLayout = nullptr;
-	// GeneralsX @performance Claude 23/09/2026 SWITCH_WEAPON scan cache, see ControlBar.h.
+	// GeneralsX: SWITCH_WEAPON scan cache, see ControlBar.h.
 	m_switchWeaponScanActive = FALSE;
 	for( i = 0; i < WEAPONSLOT_COUNT; ++i )
 		m_switchWeaponScan[ i ] = -1;
 	resetLogicStateMemos();
-	m_purchaseScienceSideBuilt = FALSE;	// GeneralsX @feature Claude 27/09/2026 see resolvePurchaseScienceSource
+	m_purchaseScienceSideBuilt = FALSE;	// GeneralsX: see resolvePurchaseScienceSource
 	m_showBuildToolTipLayout = FALSE;
 
 	m_animateDownWin1Pos.x = m_animateDownWin1Pos.y = 0;
@@ -1538,7 +1538,7 @@ ControlBar::ControlBar()
 	}
 
 	m_currContext = CB_CONTEXT_NONE;
-	// GeneralsX @feature Claude 13/08/2026 m_currentControlBarStage was never initialised here. Every
+	// GeneralsX: m_currentControlBarStage was never initialised here. Every
 	// pre-existing read of it happened after setDefaultControlBarConfig() had run, so the omission was
 	// latent; TOGGLE_GAME_HUD reads it to restore the stage, so give it the value that path sets.
 	m_currentControlBarStage = CONTROL_BAR_STAGE_DEFAULT;
@@ -1950,7 +1950,7 @@ void ControlBar::init()
 /** Reset the context sensitive control bar GUI */
 //-------------------------------------------------------------------------------------------------
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @performance Claude 23/09/2026 See ControlBar.h. The logic frame advances at the end of every
+/** GeneralsX: See ControlBar.h. The logic frame advances at the end of every
 	* GameLogic::update that ran the simulation (GameLogic.cpp "m_frame++"); the one update that changes state
 	* without advancing it is a frozen-time one (the script engine runs before the isTimeFrozen return), so a
 	* frozen frame never counts as unchanged. A new game or a load resets us through InGameUI::reset. */
@@ -1978,7 +1978,7 @@ void ControlBar::reset()
 {
 	hideSpecialPowerShortcut();
 	resetLogicStateMemos();
-	// GeneralsX @feature Claude 27/09/2026 Before the overridden buttons below are deleted: the cache points at buttons.
+	// GeneralsX: Before the overridden buttons below are deleted: the cache points at buttons.
 	clearPurchaseScienceSources();
 	if( TheHotKeyManager )
 		TheHotKeyManager->clearPriorityHotKeys();
@@ -2067,7 +2067,7 @@ void ControlBar::reset()
 	m_genStarFlash = gxGenStarFlash = TRUE;
 }
 
-// GeneralsX @bugfix Claude 29/10/2026 Cb-06a: the state of the radar-attack glow's and the command-button flash's base-frame
+// GeneralsX: Cb-06a: the state of the radar-attack glow's and the command-button flash's base-frame
 // counters (GameClient/GXClientAnimPolicy.h). One ControlBar; ControlBar.h is in the simulation digest, so they live here,
 // outside every GX-SIMID region.
 static const Real GX_FLASH_BASE_FRAMES = 10.0f;	///< a flash step every 10 frames at 60 fps (today's 60 fps look): 1/6 s
@@ -2083,7 +2083,7 @@ void ControlBar::update()
 	if (TheGlobalData->m_headless)
 		return;
 	getStarImage();
-	// GeneralsX @test Claude 29/10/2026 GX_ANIMTEST glow@F / flash@F (GameClient/GXAnimTrace.h): start the radar-attack glow, or
+	// GeneralsX: GX_ANIMTEST glow@F / flash@F (GameClient/GXAnimTrace.h): start the radar-attack glow, or
 	// flash the first command button shown 10 times as a script's "flash button" does, so both can be traced at several fps caps.
 	if (TheGameLogic != nullptr)
 	{
@@ -2152,7 +2152,7 @@ void ControlBar::update()
 	}*/
 
 	updateSpecialPowerShortcut();
-	runPurchaseProbe();	// GeneralsX @probe Claude 27/09/2026 GX_PURCHASE_PROBE; one cached getenv when unset
+	runPurchaseProbe();	// GeneralsX: GX_PURCHASE_PROBE; one cached getenv when unset
 	// if we're an observer, don't do the complete update
 	if( m_isObserverCommandBar)
 	{
@@ -2188,7 +2188,7 @@ void ControlBar::update()
 
 
 	// check flashing
-	// GeneralsX @bugfix Claude 29/10/2026 Cb-06a: a flash step ran on every UPDATE whose logic frame was a multiple of 10, so at
+	// GeneralsX: Cb-06a: a flash step ran on every UPDATE whose logic frame was a multiple of 10, so at
 	// k draws per tick it stepped k times in one tick (a whole flash could end inside a tick at 240+ fps) and on every
 	// update while time was frozen. It steps once per 10 reference (60 fps) frames of loop time now - its cadence at 60 fps
 	// before this change (wh1ter0se: "def 60 fps"); the first step comes on the first update of a flash, inside the old 0-10 frame
@@ -2253,11 +2253,11 @@ void ControlBar::update()
 	// enable/disable the beacon button depending on if the max has been reached
 	if (ThePlayerList && ThePlayerList->getLocalPlayer() && ThePlayerList->getLocalPlayer()->getPlayerTemplate())
 	{
-		// GeneralsX @performance Claude 23/09/2026 The count is simulation state: recount only when it can have changed.
+		// GeneralsX: The count is simulation state: recount only when it can have changed.
 		const Player *localPlayer = ThePlayerList->getLocalPlayer();
 		if( !isLogicStateUnchanged( m_beaconCountStamp ) || m_beaconCountPlayer != localPlayer )
 		{
-			// GeneralsX @bugfix Claude 01/10/2026 A player without a PlayerTemplate (broken faction on a custom map) dereferenced null here; idea from Generals Online d7ad06b19, reimplemented.
+			// GeneralsX: A player without a PlayerTemplate (broken faction on a custom map) dereferenced null here; idea from Generals Online d7ad06b19, reimplemented.
 			const PlayerTemplate *playerTemplate = localPlayer->getPlayerTemplate();
 			if( playerTemplate )
 			{
@@ -2662,7 +2662,7 @@ void ControlBar::evaluateContextUI()
 				switchToContext( CB_CONTEXT_COMMAND, drawToEvaluateFor );
 
 			}
-			else if (obj->getControllingPlayer()->getPlayerTemplate() // GeneralsX @bugfix Claude 01/10/2026 null template guard (idea from Generals Online d7ad06b19)
+			else if (obj->getControllingPlayer()->getPlayerTemplate() // GeneralsX: null template guard (idea from Generals Online d7ad06b19)
 				&& obj->getControllingPlayer()->getPlayerTemplate()->getBeaconTemplate().compare(obj->getTemplate()->getName()) == 0)
 			{
 				switchToContext( CB_CONTEXT_BEACON, drawToEvaluateFor );
@@ -2920,7 +2920,7 @@ void ControlBar::switchToContext( ControlBarContext context, Drawable *draw )
 	// save a pointer for the currently selected drawable
 	m_currentSelectedDrawable = draw;
 
-	// GeneralsX @bugfix Claude 26/09/2026 Take the keyboard back from the control bar only. A context switch
+	// GeneralsX: Take the keyboard back from the control bar only. A context switch
 	// (any selection change, a unit built or killed) used to drop focus from EVERY window but the chat box, so
 	// a text entry in a screen above the game - the Debug menu's search, cash and config fields - lost it in
 	// mid-word and the next keys fired hotkeys: "the debug input stops taking input and it goes into the game".
@@ -3290,7 +3290,7 @@ void ControlBar::setControlCommand( GameWindow *button, const CommandButton *com
 		// binding and the drawn glyph come from it. That is the whole point: a letter painted into
 		// the cameo art (as the community indicator packs do) keeps claiming 'A' after the player
 		// rebinds to something else, whereas this cannot drift - there is only one value.
-		// GeneralsX @feature Claude 27/09/2026 A General's Points button shows the key of the power or unit it buys
+		// GeneralsX: A General's Points button shows the key of the power or unit it buys
 		// (resolvePurchaseScienceSource), and is NOT bound here: bindPurchaseScienceHotKeys gives each of the panel's
 		// keys to one button, in HotKeyManager's priority layer, once every button's state is known. A purchase
 		// button a mod puts in an ordinary command set is not the panel's and keeps retail's behaviour.
@@ -3298,7 +3298,7 @@ void ControlBar::setControlCommand( GameWindow *button, const CommandButton *com
 		const CommandButton *keySource = purchase ? resolvePurchaseScienceSource( commandButton ) : gxShortcutKeySource( commandButton );
 		AsciiString hotKey = TheHotKeyManager->getCommandButtonHotKey( keySource->getName(),
 																																	 keySource->getTextLabel() );
-		// GeneralsX @bugfix Claude 25/09/2026 The letter is NEVER hidden (owner decision: "Still the unit's win
+		// GeneralsX: The letter is NEVER hidden (owner decision: "Still the unit's win
 		// but don't hide the buttons/keybinds"). addHotKey still refuses a key another visible button
 		// owns, so a selected unit's command keeps S over the general's-power shortcut, as in retail.
 		// The refused button keeps its letter; drawHotKeyLabel asks isHotKeyBoundTo every frame and
@@ -3548,7 +3548,7 @@ void ControlBar::showRallyPoint(const Coord3D* loc)
 
 	// sanity
 	DEBUG_ASSERTCRASH(marker, ("showRallyPoint: No rally point marker found"));
-	// GeneralsX @bugfix Claude 01/10/2026 A stale marker ID (drawable destroyed elsewhere) dereferenced null in release. Forget the ID and skip this
+	// GeneralsX: A stale marker ID (drawable destroyed elsewhere) dereferenced null in release. Forget the ID and skip this
 	// show; the next call recreates the marker. Idea from Generals Online d2c9a361e, reimplemented.
 	if (!marker)
 	{
@@ -3787,7 +3787,7 @@ void ControlBar::showPurchaseScience()
 
 void ControlBar::hidePurchaseScience()
 {
-	// GeneralsX @bugfix Claude 27/09/2026 The panel's keys go with it - they used to stay bound until the next context
+	// GeneralsX: The panel's keys go with it - they used to stay bound until the next context
 	// switch, so a key could still buy a science with the panel closed. Before the early return: nothing else may
 	// hold them once the panel is hidden.
 	if( TheHotKeyManager )
@@ -4040,7 +4040,7 @@ void ControlBar::updateRadarAttackGlow ()
 {
 	if(!m_radarAttackGlowOn || !m_radarAttackGlowWindow)
 		return;
-	// GeneralsX @bugfix Claude 29/10/2026 Cb-06a: the glow counted 150 UPDATES and blinked every 15: 2.5 s at 60 fps, a quarter of a
+	// GeneralsX: Cb-06a: the glow counted 150 UPDATES and blinked every 15: 2.5 s at 60 fps, a quarter of a
 	// second at 600. It counts reference (60 fps) frames of loop time now, each one exactly the old update: 2.5 s with a blink
 	// every 0.25 s at any fps, its look at 60 fps before this change (wh1ter0se: "def 60 fps"; GameClient/GXClientAnimPolicy.h).
 	for (Int steps = GXClientAnimPolicy::takeBaseFrames(s_gxRadarGlowCarry,
@@ -4102,7 +4102,7 @@ void ControlBar::initSpecialPowershortcutBar( Player *player)
 	NameKeyType id = TheNameKeyGenerator->nameToKey( tempName );
 	m_specialPowerShortcutParent = TheWindowManager->winGetWindowFromId( nullptr, id );//m_scienceLayout->getFirstWindow();
 
-	// GeneralsX @security Claude 06/10/2026 layoutName is the PlayerTemplate's SpecialPowerShortcutWinName, which a custom
+	// GeneralsX: layoutName is the PlayerTemplate's SpecialPowerShortcutWinName, which a custom
 	// map's map.ini can override (PlayerTemplateStore keeps a pristine copy for exactly that). It was concatenated into the
 	// format below, so a name holding "%n" or "%s" read and wrote through missing arguments on every client. It is an argument now.
 	m_currentlyUsedSpecialPowersButtons = MIN(pt->getSpecialPowerShortcutButtonCount(), MAX_SPECIAL_POWER_SHORTCUTS);
@@ -4154,7 +4154,7 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 	// populate the button with commands defined
 	Int currentButton = 0;
 	const CommandButton *commandButton;
-	// GeneralsX @feature Claude 05/10/2026 The faction set only spans the faction's own buttons; powers owned through another
+	// GeneralsX: The faction set only spans the faction's own buttons; powers owned through another
 	// faction's buildings are appended below, so the faction loop keeps its own bound while the live count may grow.
 	const Int factionButtons = MIN( player->getPlayerTemplate()->getSpecialPowerShortcutButtonCount(), (Int)MAX_SPECIAL_POWER_SHORTCUTS );
 	std::vector<SpecialPowerType> shownPowers;
@@ -4358,7 +4358,7 @@ void ControlBar::populateSpecialPowerShortcut( Player *player)
 
 	}
 
-	// GeneralsX @feature Claude 05/10/2026 A power the player can fire from a building it owns, whatever faction the building comes
+	// GeneralsX: A power the player can fire from a building it owns, whatever faction the building comes
 	// from (Scud Storm for a non-GLA, Particle Cannon for a non-USA, a captured or admin-spawned superweapon), gets the same shortcut
 	// button as the building's own faction: the stock FROM_SHORTCUT CommandButton, so it fires through the unchanged command path
 	// (ControlBarCommandProcessing -> findMostReadyShortcutSpecialPowerOfType) and takes its hotkey/countdown from the same code.
@@ -4474,7 +4474,7 @@ void ControlBar::updateSpecialPowerShortcut()
 	}
 	else if( !hasValidShortcutButton
 					 && !m_specialPowerShortcutParent->winIsHidden()
-					 // GeneralsX @bugfix Claude 23/09/2026 Null-check the animator before isFinished(), as every other use in this file does.
+					 // GeneralsX: Null-check the animator before isFinished(), as every other use in this file does.
 					 // Upstream reference: CryoTheRenegade, PR #3330
 					 // https://github.com/TheSuperHackers/GeneralsGameCode/pull/3330
 					 && m_animateWindowManagerForGenShortcuts
@@ -4522,7 +4522,7 @@ void ControlBar::updateSpecialPowerShortcut()
 		Object *obj = nullptr;
 		if( spTemplate )
 		{
-			// GeneralsX @performance Claude 23/09/2026 getCommandAvailability discards obj for the two *_FROM_SHORTCUT
+			// GeneralsX: getCommandAvailability discards obj for the two *_FROM_SHORTCUT
 			// types and repeats this exact lookup (a walk of every local object) itself, so skip it here for them.
 			const GUICommandType commandType = command->getCommandType();
 			if( commandType != GUI_COMMAND_SPECIAL_POWER_FROM_SHORTCUT
@@ -4606,7 +4606,7 @@ void ControlBar::drawSpecialPowerShortcutMultiplierText()
 		if( command == nullptr )
 			continue;
 
-		// GeneralsX @performance Claude 23/09/2026 The draw ran inside a 'for i < MAX_SPECIAL_POWER_SHORTCUTS' loop (11 passes) whose
+		// GeneralsX: The draw ran inside a 'for i < MAX_SPECIAL_POWER_SHORTCUTS' loop (11 passes) whose
 		// body never used its i (only an empty, commented-out m_shortcutDisplayStrings block did): each pass
 		// re-walked every local object and re-set the same label. One pass gives the identical label.
 		//draw superweapon ready multipliers

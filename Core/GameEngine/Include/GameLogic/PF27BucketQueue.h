@@ -1,4 +1,4 @@
-// GeneralsX @performance Claude 06/10/2026 PF27 - the open list of the new pathfinding kernel (fixes/pathfinding-2027).
+// GeneralsX: PF27 - the open list of the new pathfinding kernel (fixes/pathfinding-2027).
 //
 // The legacy open list (PathfindCell::forwardInsertionSort / reverseInsertionSort / removeFromOpenList in
 // AIPathfind.cpp) keeps cells sorted by total cost, and a cell lands AFTER every cell of equal cost, so among equal

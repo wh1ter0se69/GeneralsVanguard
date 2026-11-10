@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule COUNTER.USA_VS_GLA (C·rb-data-15): USA Air Force / Superweapon meet GLA with an
+# GeneralsX: rule bank DATA rule COUNTER.USA_VS_GLA (C·rb-data-15): USA Air Force / Superweapon meet GLA with an
 # early King Raptor opener and an earlier Colonel Burton (row 50: "a few early King Raptors; they shut down Technicals and force him into
 # Quad Cannons"; row 121: "As USA Superweapon always build Colonel Burton: at $1,200 he pays for himself with one Demo buggy kill";
 # Dominator: "make a few King Raptors, stop the initial technical"). This, per general:
@@ -13,7 +13,7 @@
 #              isPossibleToBuildTeam waits for. It runs stock's own Burton orders ("USA Commando Orders": the back-door path, then a
 #              hunt with his demo charge) at once - not the stock hook "USA Commando Raid Sequence", which waits on _LAUNCH_ATTACK (enemy
 #              state). burton_count 0 leaves the Burton team stock; 1 and 2 field ONE Burton: he is one per player (MaxSimultaneousOfType 1),
-#              so a team needing 2 could never complete and would disband (Codex rbd15-r2 P2) - the team re-forms when he dies.
+#              so a team needing 2 could never complete and would disband - the team re-forms when he dies.
 # No stock script changes; each switched stock team waits on its off gate "GX MU Off <team>".
 # Not built (UNUSED, defaults only): engage_after_cm, min_vet (row 72: "engage only after Countermeasures and some veterancy", with
 # Comanches sent at the Arms Dealer, tunnel and supply) - a target choice needs a NEW attack-priority set per general against a pool whose
@@ -124,7 +124,7 @@ def _burtons(obs, me):
 
 CONTRAST = {'what': 'own Raptors built by wave1_t + 100 s (200 s at least) plus own Colonel Burtons by 350 s (stock: AF\'s 2 wave-1 Supply Hunter King '
                     'Raptors, SW none; no Burton before wave 4 at 400 s)', 'direction': 1, 'min_delta': 1,
-            # Codex rbd15-r2 P2: an opener of 1-2 Raptors is FEWER than the stock Supply Hunters' 2 - it reads at or below OFF
+            # an opener of 1-2 Raptors is FEWER than the stock Supply Hunters' 2 - it reads at or below OFF
             'holds': 'raptors >= 3, or burton_count >= 1 with raptors >= 2'}
 
 

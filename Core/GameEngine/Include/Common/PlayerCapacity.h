@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 23/09/2026 How many lobby slots a map can take, in ONE place.
+// GeneralsX: How many lobby slots a map can take, in ONE place.
 //
 // Owner decision (23/09/2026): an over-capacity lobby is REFUSED - by the host before the
 // start, and by every peer at the start as a second line. A map's civilian sides are NEVER dropped
@@ -86,7 +86,7 @@ inline Int playerSlotCapacity(const KeptMapSides &kept)
 /// slot does not: GameLogic::startNewGame adds no side for it and PlayerList::assignSlotIndices maps
 /// it onto the ReplayObserver, which RESERVED_NON_SLOT_PLAYERS already pays for. That is what seats
 /// 12 players + 3 observers inside MAX_PLAYER_COUNT (16) without raising it.
-// GeneralsX @feature Claude 24/09/2026 Observer slots share the ReplayObserver (World Series 15 seats).
+// GeneralsX: Observer slots share the ReplayObserver (World Series 15 seats).
 inline Bool slotTakesPlayer(Bool isOccupied, Bool isObserver)
 {
 	return isOccupied && !isObserver;

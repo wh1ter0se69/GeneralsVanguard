@@ -18,7 +18,7 @@
 
 #pragma once
 
-// GeneralsX @feature Claude 27/07/2026
+// GeneralsX:
 // Join-time build/data compatibility identity ("SimID").
 //
 // SCOPE: validated for Apple targets only in this pass - macOS arm64 and iOS arm64.
@@ -36,7 +36,7 @@ struct SimIdWire;   // defined in GameNetwork/LANAPI.h inside its pack(1) region
 struct SimulationId
 {
 	Bool        valid;       // false until initialize() has run to completion
-	// GeneralsX @bugfix Claude 01/08/2026 This slot used to carry GitRevision, which is
+	// GeneralsX: This slot used to carry GitRevision, which is
 	// `git rev-list --count`. That value cannot order two builds, measured on this repository:
 	// it is not monotonic across lineages (three coexisting lineages report 27, 1656 and 2200,
 	// and main has no common ancestor with legacy/pre-fork-main), it is not unique per commit
@@ -85,7 +85,7 @@ enum SimIdVerdict
 	SIMID_SOURCE_DIFFERS,
 	SIMID_DATA_DIFFERS,
 	SIMID_ORDINAL_DIFFERS,
-	// GeneralsX @feature Claude 01/10/2026 M1 Determinism-1: one side's sourceID is the 0 "built without git" sentinel,
+	// GeneralsX: M1 Determinism-1: one side's sourceID is the 0 "built without git" sentinel,
 	// so nothing can tell whether the two sources match. Refused since then; before, the pair played with a warning.
 	SIMID_SOURCE_UNKNOWN
 };
@@ -100,7 +100,7 @@ enum
 
 // tier1 only, evaluated in exactly this precedence so the message is always specific.
 SimIdVerdict SimIdCompare( const SimIdWire &peer );
-/// GeneralsX @feature Claude 06/11/2026 this build's engineID computed with the lobby-wire sizes every build before 34 slots had
+/// GeneralsX: this build's engineID computed with the lobby-wire sizes every build before 34 slots had
 /// (SimulationId.cpp). A REPLAY's engineID equal to it is this simulation engine with the older lobby wire: replay checks map it to
 /// the current engineID before SimIdCompare. Never used for joins (the lobby wire really differs there).
 UnsignedInt SimIdReplayLegacyEngineID( void );
@@ -108,7 +108,7 @@ UnsignedInt SimIdReplayLegacyEngineID( void );
 // tier2 bitmask. Returns 0 when the peer is not a valid SimID peer.
 UnsignedInt  SimIdWarnFlags( const SimIdWire &peer );
 
-// GeneralsX @feature Claude 27/07/2026 Diagnostics for refused joins.
+// GeneralsX: Diagnostics for refused joins.
 //
 // Both write to stderr, NOT through DEBUG_LOG - DEBUG_LOG is ((void)0) in every shipping
 // preset (Debug.h:165-173), which is why a refused join previously produced no evidence

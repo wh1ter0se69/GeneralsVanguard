@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 30/10/2026 AI RULE BANK sense layer - see GXRuleSense.h for the rules it keeps (partition only, fog per tier,
+// GeneralsX: AI RULE BANK sense layer - see GXRuleSense.h for the rules it keeps (partition only, fog per tier,
 // stealth, identity as a human would see it). Read only: no order, no random draw, no state.
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -25,7 +25,7 @@ GXRuleSense::GXRuleSense(Player *viewer, unsigned (*tierOf)(const Player *)) : m
 
 namespace
 {
-/// test-instruments builds only: GX_TEST_SENSE_MUTANT=pre_r1 restores the sense layer before Codex rbs2-r1's fixes - the owner's
+/// test-instruments builds only: GX_TEST_SENSE_MUTANT=pre_r1 restores the sense layer before fixes - the owner's
 /// discounted price, the stock TARGETING stealth filter, the fog filter beside the eyes, the real controller of a hiding garrison - the
 /// red arm of the seen_value discount, seen_count disguise_neutral and own_sight edge subs. Always FALSE in a release build.
 Bool gxSensePreR1ForTest()
@@ -49,7 +49,7 @@ GXSeen gxSeen(Object *o, Player *viewer)
 	if (s.owner == nullptr)
 		return s;
 	// a garrison that hides itself from non-allies (GarrisonContain::getApparentControllingPlayer - a stealth garrison in a civilian
-	// building) shows the building's ORIGINAL owner to them, as InGameUI shows it (Codex rbs2-r1 P1)
+	// building) shows the building's ORIGINAL owner to them, as InGameUI shows it
 	const ContainModuleInterface *contain = o->getContain();
 	const Player *apparent = (contain != nullptr && !gxSensePreR1ForTest()) ? contain->getApparentControllingPlayer(viewer) : nullptr;
 	if (apparent != nullptr)
@@ -71,7 +71,7 @@ GXSeen gxSeen(Object *o, Player *viewer)
 	return s;
 }
 /// what a human knows a seen template costs: its LIST price (the final override's BuildCost) - never calcCostToBuild(owner), which
-/// applies the owner's hidden production discounts and handicap (an unseen Oil Refinery makes every unit 10% cheaper; Codex rbs2-r1 P1)
+/// applies the owner's hidden production discounts and handicap (an unseen Oil Refinery makes every unit 10% cheaper)
 Int gxListPrice(const ThingTemplate *t, const Player *owner = nullptr)
 {
 	if (t != nullptr && owner != nullptr && gxSensePreR1ForTest())
@@ -81,7 +81,7 @@ Int gxListPrice(const ThingTemplate *t, const Player *owner = nullptr)
 /// what is hidden from a viewer by stealth: a stealthed, undetected object - except a disguised disguiser, which every viewer sees AS ITS
 /// DISGUISE (gxSeen) whoever it imitates. The stock PartitionFilterStealthedAndUndetected is a TARGETING rule (a disguise as a friend
 /// counts as stealthed; a neutral building holding undetected stealth units counts as stealthed) and so undercounted what a human sees
-/// (Codex rbs2-r1 P2 + the P1 garrison case: the building stays seen, owned as gxSeen shows it)
+/// (the P1 garrison case: the building stays seen, owned as gxSeen shows it)
 class GXSightStealthFilter : public PartitionFilter
 {
 public:
@@ -100,7 +100,7 @@ public:
 Int gxSeenValue(Object *o, Player *viewer, const Object *anchor)
 {
 	if (o == anchor || o->isEffectivelyDead() || o->isDestroyed())
-		return 0;	// a unit a script deleted this frame is still in the partition (Codex sell-engine-r3 #1)
+		return 0;	// a unit a script deleted this frame is still in the partition
 	const GXSeen s = gxSeen(o, viewer);
 	if (s.owner == nullptr || s.tmpl == nullptr || s.owner == viewer)
 		return 0;
@@ -116,7 +116,7 @@ Int gxSeenValue(Object *o, Player *viewer, const Object *anchor)
 namespace
 {
 /// test-instruments builds only: GX_TEST_SENSE_MUTANT=no_owner_guard drops the own-anchor guard - the BROKEN sense layer the filters
-/// fixture's foreign_anchor case must catch (Codex core-r4-lensB P1). Always FALSE in a release build.
+/// fixture's foreign_anchor case must catch. Always FALSE in a release build.
 Bool gxSenseNoOwnerGuardForTest()
 {
 #if defined(GX_TEST_INSTRUMENTS)
@@ -127,7 +127,7 @@ Bool gxSenseNoOwnerGuardForTest()
 #endif
 }
 /// test-instruments builds only: GX_TEST_SENSE_MUTANT=brutal_no_stealth drops the stealth filter from BRUTAL's whole-map view - the
-/// BROKEN sense layer fx-filters-brutal-nostealth must catch (Codex core-r6-lensB P2: Brutal drops ONLY the fog filter, D2)
+/// BROKEN sense layer fx-filters-brutal-nostealth must catch (Brutal drops ONLY the fog filter, D2)
 Bool gxSenseBrutalNoStealthForTest()
 {
 #if defined(GX_TEST_INSTRUMENTS)
@@ -248,7 +248,7 @@ Int GXRuleSense::enemyValueNear(const Object *ownAnchor, Real r) const
 	GXSightStealthFilter fStealth;
 	// own sight only (rb-sense-2): the viewer's own units and buildings, never a granted reveal, a satellite ping or an ally's eyes. The
 	// eyes test REPLACES the fog filter: it needs a marked cell that is CLEAR, and also sees a building an eye shows only partly
-	// (OBJECTSHROUD_PARTIAL_CLEAR, which PartitionFilterFreeOfFog refuses; Codex rbs2-r1 P2). The any_reveal mutant is the old path.
+	// (OBJECTSHROUD_PARTIAL_CLEAR, which PartitionFilterFreeOfFog refuses). The any_reveal mutant is the old path.
 	GXOwnEyesFilter fEyes(this, m_viewer);
 	PartitionFilterStealthedAndUndetected fStockStealth(ownAnchor, false);
 	PartitionFilter *pre[] = { &fAlive, &fMap, &fFog, &fStockStealth, &fEyes, nullptr };	// the pre_r1 mutant
@@ -264,7 +264,7 @@ Int GXRuleSense::enemyValueNear(const Object *ownAnchor, Real r) const
 }
 
 // ---- SENSE.ENEMY_FACTION (GeneralsX 01/11/2026 rb-sense-1, gx-handoff ai/rulebank/core/NEXT_rb-sense-1.md) ----
-/// what the sighting pass may record (one rule for the pass and the save check, Codex sense-r6 P1): a unit or building - STRUCTURE,
+/// what the sighting pass may record (one rule for the pass and the save check): a unit or building - STRUCTURE,
 /// INFANTRY, VEHICLE or AIRCRAFT, never a PROJECTILE - judged on the template's FINAL override (StealthUpdate::xfer restores a disguise as the
 /// template before its map.ini override; the uninterrupted game held the override)
 const ThingTemplate *GXRuleSense::sightable(const ThingTemplate *t)
@@ -338,7 +338,7 @@ std::string GXRuleSense::baseSideOf(const ThingTemplate *t) const
 	if (t == nullptr || ThePlayerTemplateStore == nullptr)
 		return std::string();
 	// the FINAL override, whoever asks: an object is made from it (a map.ini can override a unit's Side) while findTemplate - the save
-	// check's lookup by name - returns the template before it; both must classify the same thing (Codex sense-r5 P1)
+	// check's lookup by name - returns the template before it; both must classify the same thing
 	t = static_cast<const ThingTemplate *>(t->getFinalOverride());
 	const size_t id = (size_t)t->getTemplateID();
 	if (id >= m_baseIdx.size())
@@ -431,7 +431,7 @@ private:
 };
 }
 
-// Computed at EVERY ask, never cached (Codex rbs2-r2 P1): a snapshot built at the first ask of a pass and reused depends on WHEN that
+// Computed at EVERY ask, never cached: a snapshot built at the first ask of a pass and reused depends on WHEN that
 // ask came, and a client-local condition earlier in an AND (one naming <Local Player>, say) makes that differ between peers - one peer
 // builds before a shared script deletes a unit, the other after, and their answers split. Computed per ask, an answer is a function of the
 // world at that moment alone, the same on every peer, in a replay and after a load; no state, nothing to save.
@@ -615,7 +615,7 @@ Object *gxFxSpawn(const char *tmpl, Player *owner, const Coord3D &at)
 	{
 		o->setPosition(&at);
 		// into its partition cells NOW, as this frame's PartitionManager::update() would (it only marked the object dirty): a fixture
-		// senses in the same tick it spawns (Codex core-r4-lensA P2 - without this every positive case saw an empty cell)
+		// senses in the same tick it spawns (- without this every positive case saw an empty cell)
 		if (o->friend_getPartitionData() != nullptr)
 			o->friend_getPartitionData()->friend_updateCellsTouched();
 	}
@@ -647,7 +647,7 @@ Player *gxFxPlayer(Player *viewer, Relationship rel, int n)
 Int gxFxCost(const char *tmpl, Player *owner)
 {
 	const ThingTemplate *t = TheThingFactory->findTemplate(AsciiString(tmpl), FALSE);
-	return (t != nullptr && owner != nullptr) ? gxListPrice(t) : -1;	// the list price, as the sense layer counts (Codex rbs2-r1 P1)
+	return (t != nullptr && owner != nullptr) ? gxListPrice(t) : -1;	// the list price, as the sense layer counts
 }
 void gxFxLine(GXRuleCtx &ctx, const char *cs, const char *sub, Int got, Int want, const char *extra = "")
 {
@@ -661,7 +661,7 @@ void gxFxLine(GXRuleCtx &ctx, const char *cs, const char *sub, Int got, Int want
 }
 
 // Every expectation below is an INDEPENDENT number (a template's build cost, or 0) written by hand from what a human in the viewer's
-// seat would see - never recomputed through the classifier under test (Codex core-r1-lensB P1/P2). Each sub-case prints its own
+// seat would see - never recomputed through the classifier under test. Each sub-case prints its own
 // "case= sub= got= want= result=" line; a case also needs every template it spawns (else result=SKIP why=template).
 void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which);
 void gxRuleSenseFixture(GXRuleCtx &ctx, const char *which)
@@ -690,7 +690,7 @@ void gxRuleSenseFixture(GXRuleCtx &ctx, const char *which)
 	at.x += 80.0f;
 	if (strcmp(which, "cargo") == 0)
 	{
-		// an EMPTY enclosing transport (a supply Chinook: no initial payload; Codex core-r2-lensB P2 - the Troop Crawler is armed and
+		// an EMPTY enclosing transport (a supply Chinook: no initial payload; the Troop Crawler is armed and
 		// starts with 8 passengers) and 4 armed Red Guards beside it, then inside it. The transport's own worth is MEASURED (it cancels
 		// out); the Red Guards' is an independent number: 4 x their build cost outside, 0 inside.
 		const Int v0 = sense.enemyValueNear(anchor, R);
@@ -782,7 +782,7 @@ void gxRuleSenseFixture(GXRuleCtx &ctx, const char *which)
 	}
 	if (strcmp(which, "filters") == 0)
 	{
-		// each exclusion its OWN sub-case against an independent number, measured as the step it adds (Codex core-r3-lensB P2: one
+		// each exclusion its OWN sub-case against an independent number, measured as the step it adds (one
 		// gate over all of them meant an armed "unarmed" template skipped every case): a live tank adds its cost; a dozer, a harvester,
 		// a dead tank and an UNARMED ordinary unit add 0 - a US Pilot (retail AmericaInfantryPilot: no Weapon line, no payload; the
 		// Listening Outpost has a dummy weapon and 2 Tank Hunters aboard); stealthed and undetected 0, detected again its cost; an anchor
@@ -819,7 +819,7 @@ void gxRuleSenseFixture(GXRuleCtx &ctx, const char *which)
 		}
 		if (tank != nullptr)
 		{
-			// the foreign anchor against a NON-ZERO control (Codex core-r4-lensB P1): a second visible armed enemy tank beside the first
+			// the foreign anchor against a NON-ZERO control: a second visible armed enemy tank beside the first
 			// counts from the viewer's own anchor (second_tank = its cost), so a sense layer without the own-anchor guard would count it
 			// around the first tank too (foreign_anchor = that cost, not 0) - the GX_TEST_SENSE_MUTANT=no_owner_guard red arm
 			Coord3D p2 = *tank->getPosition();
@@ -1224,7 +1224,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 	}
 	if (strcmp(which, "seen_stale") == 0)
 	{
-		// GeneralsX 02/11/2026 rb-sense-2 (Codex rbs2-r2 P1): an answer is the world at the moment of the ask, never a snapshot an earlier
+		// GeneralsX 02/11/2026 rb-sense-2: an answer is the world at the moment of the ask, never a snapshot an earlier
 		// ask made - two visible Scorpions of E are counted (that ask would prime any cache), one is destroyed, the next ask in the SAME
 		// tick counts one. Red arm: GX_TEST_SENSE_MUTANT=frame_cache answers 2 again.
 		ObjectTypes *scorp = newInstance(ObjectTypes);
@@ -1393,7 +1393,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 					if (o == nullptr)
 						return nullptr;
 					const ObjectShroudStatus st = o->getShroudedStatus(vi);
-					if (!o->isOffMap() && st != OBJECTSHROUD_CLEAR && st != OBJECTSHROUD_PARTIAL_CLEAR)	// nothing of it shows (Codex rbs3-r1 P2: a footprint an own eye touches is seen)
+					if (!o->isOffMap() && st != OBJECTSHROUD_CLEAR && st != OBJECTSHROUD_PARTIAL_CLEAR)	// nothing of it shows (a footprint an own eye touches is seen)
 					{
 						*out = c;
 						return o;
@@ -1482,7 +1482,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 					gxFxLine(ctx, which, "disguise_third", count(scorp), base + 2);
 				}
 			}
-			// a disguise is SEEN as its disguise whoever it imitates (Codex rbs2-r1 P2): E's truck shown as a NEUTRAL Humvee is one more
+			// a disguise is SEEN as its disguise whoever it imitates: E's truck shown as a NEUTRAL Humvee is one more
 			// neutral Humvee to the viewer (the stock targeting filter called a disguise as a non-enemy "stealthed" and hid it)
 			Player *neutral = ThePlayerList->getNeutralPlayer();
 			ObjectTypes *hum = newInstance(ObjectTypes);
@@ -1506,7 +1506,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 				gxFxLine(ctx, which, "disguise_neutral", bank.seenCount(neutral, *hum) - h0, 1, exn);
 			}
 			deleteInstance(hum);
-			// a garrison that hides itself (Codex rbs2-r1 P1; GarrisonContain::getApparentControllingPlayer): a civilian house holding only E's
+			// a garrison that hides itself (GarrisonContain::getApparentControllingPlayer): a civilian house holding only E's
 			// undetected Jarmen Kell is still the neutral house it was to a non-ally, as InGameUI draws it. A second house with E's Rebel, no
 			// stealth garrison, shows E. Then Kell is detected: the first house shows E too. Red arm: pre_r1 counted the real controller.
 			const char *houseT = "GermanCotage01";
@@ -1535,7 +1535,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 				gxFxLine(ctx, which, "garrison_detected_neutral", bank.seenCount(neutral, *houses) - h0, 0, exh);
 			}
 			deleteInstance(houses);
-			// "<Local Player>" names a different player on every peer, so the conditions refuse it in either seat (Codex sense-r1 P1) - asked through the
+			// "<Local Player>" names a different player on every peer, so the conditions refuse it in either seat - asked through the
 			// real condition entry with local moved to the very player the seat would then name, the split a real game would have. The control proves
 			// the same call answers TRUE when no seat says "<Local Player>". Red arm: GX_TEST_SENSE_MUTANT=local_player_ok.
 			auto askCond = [&](const char *aiName, UnsignedInt aiMask, const char *whoName, UnsignedInt whoMask) -> Int
@@ -1598,7 +1598,7 @@ void gxRuleSenseFactionFixture(GXRuleCtx &ctx, const char *which)
 		Object *dz = put("ChinaVehicleDozer", enemy, 60.0f);
 		gxFxLine(ctx, which, "unarmed", dz != nullptr && inArea(dz) ? value() : -1, 2 * crus);		// a dozer is no threat
 		// E's hidden production discount (an unseen Oil Refinery: -10% on vehicles) changes nothing the viewer sees: the LIST price counts
-		// (Codex rbs2-r1 P1 - calcCostToBuild(owner) moved the value with no visible change)
+		// (- calcCostToBuild(owner) moved the value with no visible change)
 		KindOfMaskType veh;
 		veh.set(KINDOF_VEHICLE);
 		enemy->addKindOfProductionCostChange(veh, -0.10f);

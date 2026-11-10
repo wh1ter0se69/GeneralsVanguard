@@ -1,6 +1,6 @@
 # dxvk-fork-guard.cmake - the Apple DXVK is the patched fork, or the configure fails.
 #
-# GeneralsX @bugfix Claude 25/09/2026 A FRESH WORKTREE BUILT AN UNPATCHED DXVK, SILENTLY.
+# GeneralsX: A FRESH WORKTREE BUILT AN UNPATCHED DXVK, SILENTLY.
 #
 # cmake/dx8.cmake takes references/fbraz3-dxvk only when that path has a .git, and falls through to a
 # GitHub clone at DXVK_REMOTE_REF otherwise - a clone whose wsi_window_sdl3.cpp still calls
@@ -58,7 +58,7 @@ function(gx_dxvk_assert_patched root src)
     endif()
 endfunction()
 
-# GeneralsX @bugfix Claude 01/10/2026 A FORK CHANGE NEVER REBUILT DXVK IN AN EXISTING BUILD DIRECTORY.
+# GeneralsX: A FORK CHANGE NEVER REBUILT DXVK IN AN EXISTING BUILD DIRECTORY.
 #
 # dx8.cmake's ExternalProject has no BUILD_ALWAYS, so its build step (ninja inside _deps/dxvk-build-macos) depends on its
 # configure stamp alone: moving the references/fbraz3-dxvk gitlink (A2's pipeline warm-up, 01/10/2026) left every existing
@@ -68,7 +68,7 @@ endfunction()
 #
 # So the step depends on the fork's own sources: an edit, a checkout or a gitlink move makes it dirty, the ninja inside
 # DXVK then rebuilds what changed, and an unchanged fork costs ninja a few hundred stats. CONFIGURE_DEPENDS re-globs at
-# build time, so a file added or removed by a gitlink move reconfigures even under build-macos-zh.sh --build-only (Codex
+# build time, so a file added or removed by a gitlink move reconfigures even under build-macos-zh.sh --build-only (
 # a2-r2: a configure-time snapshot of the fork's HEAD missed exactly that path). An always-dirty input does NOT work
 # here, measured: CMake gives custom commands restat = 1, so a command that never writes its output leaves the step
 # clean. Here and not in dx8.cmake for the reason in this file's header.
@@ -77,7 +77,7 @@ function(gx_dxvk_rebuild_on_fork_change src)
         return()
     endif()
     # A checkout left behind a gitlink move (no `git submodule update` in this worktree) would build the OLD fork, and
-    # the game takes a DXVK without the warm-up export as "no warm-up", silently (Codex a2-r3). So the checkout must be
+    # the game takes a DXVK without the warm-up export as "no warm-up", silently. So the checkout must be
     # the commit this tree pins; verify-4platform.sh's local gate already requires the same.
     execute_process(COMMAND git -C "${CMAKE_SOURCE_DIR}" rev-parse "HEAD:references/fbraz3-dxvk"
                     OUTPUT_VARIABLE pinned OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE rc1 ERROR_QUIET)
@@ -88,12 +88,12 @@ function(gx_dxvk_rebuild_on_fork_change src)
             "${pinned}. Building it would ship the wrong DXVK. Run, then configure again:\n"
             "    git submodule update --init --recursive references/fbraz3-dxvk")
     endif()
-    # include/ whole: its nested vulkan and spirv submodules are build inputs too (Codex a2-r3).
+    # include/ whole: its nested vulkan and spirv submodules are build inputs too.
     file(GLOB_RECURSE fork_inputs CONFIGURE_DEPENDS LIST_DIRECTORIES false
          "${src}/src/*" "${src}/include/*" "${src}/meson.build" "${src}/meson_options.txt")
     ExternalProject_Add_StepDependencies(dxvk_macos_build build ${fork_inputs})
     # And a rebuilt DXVK must reach the build-root copies the bundle prefers (bundle-macos-zh.sh): dx8.cmake's copy rule
-    # has only an order-only dependency on the DXVK target, so once a copy existed it was never refreshed (Codex a2-r4,
+    # has only an order-only dependency on the DXVK target, so once a copy existed it was never refreshed (
     # read in build.ninja: "CUSTOM_COMMAND || dxvk_macos_build"). The build step's stamp is touched whenever the step
     # runs, so it is the file-level trigger; copy_if_different keeps an unchanged DXVK from relinking anything.
     ExternalProject_Get_Property(dxvk_macos_build STAMP_DIR)

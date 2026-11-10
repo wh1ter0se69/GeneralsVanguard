@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule RAID.USA_LASER_RAIDER (C·rb-data-10): USA sends an early Humvee raider team at
+# GeneralsX: rule bank DATA rule RAID.USA_LASER_RAIDER (C·rb-data-10): USA sends an early Humvee raider team at
 # dozers and forward buildings. Stock USA Hard has no raider before its wave-1 teams. Per USA general this adds team "GX Humvee Raiders
 # <g>" (raid_size of the general's own Humvee, one at a time, re-formed when lost) from _GX_CLOCK >= raid_start_esc (the tip counts in
 # escalation steps; a rule may not read _ESCALATION, so one step is one clock tick, 10 s); on creation it stops and runs the stock back-door

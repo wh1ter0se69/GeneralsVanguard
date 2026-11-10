@@ -138,7 +138,7 @@ struct LegacyDDSURFACEDESC2 {
 	};
 	unsigned AlphaBitDepth;
 	unsigned Reserved;
-	// GeneralsX @bugfix BenderAI 19/02/2026 - DDS struct 64-bit size fix.
+	// GeneralsX: DDS struct 64-bit size fix.
 	// void* is 8 bytes on 64-bit Linux causing sizeof(LegacyDDSURFACEDESC2)=128
 	// but the DDS file spec stores this as a 4-byte DWORD placeholder.
 	// sizeof mismatch triggers the WWASSERT+return in DDSFileClass ctor →

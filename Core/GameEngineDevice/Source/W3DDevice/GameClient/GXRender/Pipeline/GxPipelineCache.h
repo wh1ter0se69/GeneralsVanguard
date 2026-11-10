@@ -120,7 +120,7 @@ struct GxPipeTestMutants {
 	bool noA2cTwins = false;          // B · a2c-1: prebuild() adds no A2C twin although setA2CTwins is on (a2c-twins-none: A2C draws miss)
 	bool noA2cPlainTwins = false;     // B · a2c-2: a session WITHOUT A2C queues no plain twin of a recorded A2C key (a2c-plain-twin-none: 1 miss)
 	std::atomic<bool> failA2cKeys { false };   // B · a2c-2: createPipeline() fails every alphaToCoverage = 1 key (the A2C prewarm-failure
-	                                  // plant; atomic - a specialised compile worker may read it while a test clears it: Codex a2c-code-r11 #5)
+	                                  // plant; atomic - a specialised compile worker may read it while a test clears it)
 	std::atomic<unsigned> failA2cHits { 0 };   // ...and counts every key it refused (the native arms' evidence that the plant was reached)
 	bool a2cModuleSwapOne = false;    // B · a2c-2: the FIRST plain FF key created takes the a2c module (a2c-modules-swap must catch it)
 	bool cumulativePrebuildFailed = false; // B · a2c-2: prebuildComplete() reads every prebuild's failures again (prebuild-again's X-)
@@ -158,19 +158,19 @@ public:
 
 	// Queues parts x configs (normalised, de-duplicated) + this machine's recorded misses for `workers` threads; returns the
 	// number queued. Returns at once. A key already built or claimed (in flight) is skipped.
-	// B · a2c-1 (Codex a2c-code-r3 #4): every key this cache has published (non-null) or recorded at `fromSamples`, re-made for each of
+	// B · a2c-1: every key this cache has published (non-null) or recorded at `fromSamples`, re-made for each of
 	// `configs` drawn at `toSamples` with the same depth presence (custom shader identity kept) - what an A2C session's Reset to another MSAA
 	// hands prebuild() as `extra` (whose A2C twins follow), so a key the session already drew is never compiled on first use again.
-	// B · a2c-2 (Codex a2c-code-r9 #4): a recorded key this session cannot build (recordedBuildable) is not re-made - startup skipped it too.
+	// B · a2c-2: a recorded key this session cannot build (recordedBuildable) is not re-made - startup skipped it too.
 	std::vector<GxPipelineKey> retargetedKeys(uint8_t fromSamples, uint8_t toSamples, const GxAttachConfig* configs, size_t configCount);
 	size_t prebuild(const GxDrawPart* parts, size_t partCount, const GxAttachConfig* configs, size_t configCount,
 	                unsigned workers, const std::vector<GxPipelineKey>* extra = nullptr);
 	bool prebuildDone() const { return m_prebuildRemaining.load(std::memory_order_acquire) == 0; }
 	// After the prebuild: every key of the last prebuild's WHOLE closure published and non-null - incl. keys it did not queue
-	// because a caller's get() had already failed them or was still compiling them (Codex r5 #1). False = do not start native
+	// because a caller's get() had already failed them or was still compiling them. False = do not start native
 	// rendering (DESIGN §4). A worker counts a failure BEFORE its decrement, so once the remaining count reads 0 (acquire) the
 	// failure count is final. Latched once true (pipelines are never removed before shutdown); prebuild() clears the latch.
-	// B · a2c-2 (Codex a2c-code-r7 #6): it reads the failures of the LAST prebuild() only (a session with one prebuild - every key-off
+	// B · a2c-2: it reads the failures of the LAST prebuild() only (a session with one prebuild - every key-off
 	// session - reads exactly what it read before; a later prebuild is not failed forever by an earlier one's key).
 	bool prebuildComplete() const;
 	void waitPrebuild();
@@ -244,7 +244,7 @@ private:
 	void recordMiss(const GxPipelineKey& key);
 	// The modules a GxShaderCustom key names (unchanged for a stage it does not name); false + why = this session cannot build it.
 	bool customModules(const GxPipelineKey& key, VkShaderModule* vs, VkShaderModule* fs, std::string* why) const;
-	// B · a2c-2 (Codex a2c-code-r9 #4): what prebuild() checks of a RECORDED key before queuing it - a velocity key needs this session's
+	// B · a2c-2: what prebuild() checks of a RECORDED key before queuing it - a velocity key needs this session's
 	// gx:vel modules, a custom key its program's modules. False = queuing it would fail the closure.
 	bool recordedBuildable(const GxPipelineKey& key) const;
 	bool limitsOk(std::string* why) const;

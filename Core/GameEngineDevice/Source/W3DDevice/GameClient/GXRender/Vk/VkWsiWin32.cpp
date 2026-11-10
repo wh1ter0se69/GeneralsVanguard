@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B WSI - Win32 glue, see VkWsi.h. Built with VK_USE_PLATFORM_WIN32_KHR.
+// GeneralsX: WS-B WSI - Win32 glue, see VkWsi.h. Built with VK_USE_PLATFORM_WIN32_KHR.
 #include "VkWsi.h"
 
 namespace GXRender { namespace Vk {

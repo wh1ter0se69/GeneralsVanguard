@@ -20,7 +20,7 @@ template <int N> inline bool gxWrapFailedIn( const GXWrapMemory<N> &m, const voi
 }
 
 // Records a failure. An existing entry for the same message is UPDATED, never duplicated: wider and wider retries of one message
-// would otherwise fill every slot and bring back the per-frame wrap toggle (Codex r4 P2-1).
+// would otherwise fill every slot and bring back the per-frame wrap toggle.
 template <int N> inline void gxWrapNoteFailure( GXWrapMemory<N> &m, const void *ds, unsigned stamp, int room )
 {
 	int freeSlot = -1;
@@ -45,7 +45,7 @@ template <int N> inline void gxWrapNoteFailure( GXWrapMemory<N> &m, const void *
 
 // A new message took this display string: forget what an earlier message with the same pointer failed. The display-string pool
 // hands a just-freed string straight to the next line, and while logic time is frozen the timestamp matches too, so the old entry
-// would read as alive and refuse the new line a wrap it has room for (Codex r4b-round P3).
+// would read as alive and refuse the new line a wrap it has room for.
 template <int N> inline void gxWrapForget( GXWrapMemory<N> &m, const void *ds )
 {
 	for( int k = 0; k < N; ++k )
@@ -54,7 +54,7 @@ template <int N> inline void gxWrapForget( GXWrapMemory<N> &m, const void *ds )
 }
 
 // The line's top y after clearing the game clock's rectangle (clockBottom <= 0: no clock drawn). Called with the FINAL block size,
-// wrapped or not (Codex r4 P2-2).
+// wrapped or not.
 inline int gxClearClock( int y, int lineH, int x, int textW, int clockTop, int clockBottom, int clockX0, int clockX1 )
 {
 	if( clockBottom > 0 && y < clockBottom && y + lineH > clockTop && x < clockX1 && x + textW > clockX0 )
@@ -64,8 +64,8 @@ inline int gxClearClock( int y, int lineH, int x, int textW, int clockTop, int c
 
 // The line's top y once clear of the readout row AND the game clock, each { top, bottom, x0, x1 } (bottom <= 0: not drawn). Row,
 // clock, row: y only moves down, so the block ends below whichever rectangle moved it last and clear of the other (the clock alone
-// could land on the row - Codex r4b). Run before the bar decision and again on the FINAL placement with the final size: wrapped,
-// unwrapped, or dropped below the bar, which used to skip it (Codex r4b-round P2).
+// could land on the row). Run before the bar decision and again on the FINAL placement with the final size: wrapped,
+// unwrapped, or dropped below the bar, which used to skip it.
 inline int gxClearRowAndClock( int y, int lineH, int x, int w, const int row[4], const int clock[4] )
 {
 	y = gxClearClock( y, lineH, x, w, row[ 0 ], row[ 1 ], row[ 2 ], row[ 3 ] );

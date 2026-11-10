@@ -133,7 +133,7 @@ D3DXCreateVolumeTexture(
 	D3DPOOL Pool,
 	LPDIRECT3DVOLUMETEXTURE8 *ppVolumeTexture);
 
-// GeneralsX @bugfix Claude 27/07/2026 Give D3DXBUFFER a body, not just a forward declaration.
+// GeneralsX: Give D3DXBUFFER a body, not just a forward declaration.
 //
 // Core/GameEngineDevice/Source/W3DDevice/GameClient/Water/W3DWater.cpp:943 calls
 // compiledShader->GetBufferPointer() and ->Release() on the LPD3DXBUFFER that D3DXAssembleShader

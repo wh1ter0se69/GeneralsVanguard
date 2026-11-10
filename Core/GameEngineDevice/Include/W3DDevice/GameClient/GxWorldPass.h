@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-hud-seam-1 13/10/2026 The world/HUD seam's private device interface
+// GeneralsX: The world/HUD seam's private device interface
 // (modernize/render-dlss/DESIGN_hud-seam.md §5).
 //
 // W3DWorldSeam asks the device for it once per device with QueryInterface(IID_GxWorldPass). DXVK and the GXCAP proxy answer
@@ -99,7 +99,7 @@ struct IGxWorldPass : public IUnknown
 	virtual BOOL STDMETHODCALLTYPE SharpensItself(uint32_t kind) = 0;
 };
 
-// render-motion-1 (Codex motion-design-r1 P1 #3): a vertex shader whose WVP the game builds itself from _Get_DX8_Transform(PROJECTION)
+// render-motion-1: a vertex shader whose WVP the game builds itself from _Get_DX8_Transform(PROJECTION)
 // (trees W3DTreeBuffer.cpp, water waves W3DWater.cpp) must add the world pass's jitter itself; the device answers GetTransform
 // clean. m = a D3D row-vector projection (what _Get_DX8_Transform returns). (0,0) jitter or no interface = unchanged.
 inline void GxWorldPassJitterProjection(IGxWorldPass *wp, float m[16])

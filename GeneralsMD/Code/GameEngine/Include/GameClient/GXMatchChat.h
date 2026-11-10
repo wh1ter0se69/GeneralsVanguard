@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 09/09/2026 In-match chat: the engine half of the GXM1 record envelope,
+// GeneralsX: In-match chat: the engine half of the GXM1 record envelope,
 // and the operator's voice inside a live match.
 //
 // ZERO HOUR ONLY, BY PATH AND NOT BY IFDEF. Base Generals' SDL3 engine contains zero references to
@@ -34,7 +34,7 @@
 // simsourcedigest_watcher.cmake's Common/GameLogic/GameNetwork pathspecs (lines 66-105), so old and
 // new clients still interoperate and this ships incrementally.
 //
-// GeneralsX @bugfix Claude 25/09/2026 EXCEPT ITS SEND: the record now leaves through
+// GeneralsX: EXCEPT ITS SEND: the record now leaves through
 // Transport::sendRelayMatchRecord (GXREC), and Transport is digested - so the change that added it
 // moved the digest and ships in the atomic four-platform batch. See gxMatchRecordEnabled for why.
 
@@ -95,7 +95,7 @@ inline Int gxUtf8FromUnicodeString( const UnicodeString &in, char *out, Int outS
 /// The opt-in. GX_MATCH_RECORD=1 lets this client emit record envelopes; ANYTHING ELSE, including
 /// not setting it at all, leaves the feature dark.
 ///
-/// GeneralsX @bugfix Claude 16/09/2026 THIS DEFAULTED **ON** AND THAT WAS THE LEAK ITSELF. The old
+/// GeneralsX: THIS DEFAULTED **ON** AND THAT WAS THE LEAK ITSELF. The old
 /// text below is kept because it is still the right description of the hazard - it simply drew the
 /// wrong conclusion from it:
 ///
@@ -118,7 +118,7 @@ inline Int gxUtf8FromUnicodeString( const UnicodeString &in, char *out, Int outS
 /// Same shape as the client's other env gates (GX_OAUTH_BASE at GXLoginFlow.cpp:70, GX_MAPDBG at
 /// FileTransfer.cpp:53), inverted.
 ///
-/// GeneralsX @feature Claude 25/09/2026 THE RELAY CAN NOW SAY IT, TOO - the capability the paragraph above
+/// GeneralsX: THE RELAY CAN NOW SAY IT, TOO - the capability the paragraph above
 /// and GXMatchRecord.h's gxMatchRecordRelayGateNote asked for. Measured on production 25/09/2026: the relay's
 /// counters showed zero match records on both ports and the newest event segment held none, through a live
 /// two-human match - because nobody's client sets GX_MATCH_RECORD, so the whole transcript path was dark.
@@ -127,7 +127,7 @@ inline Int gxUtf8FromUnicodeString( const UnicodeString &in, char *out, Int outS
 /// (GXLobbyPresence::relayRecordsMatchChat). Its ABSENCE keeps recording dark: an older relay, a launch
 /// that never visited the Online screen (no presence, no word). The env var stays as the explicit opt-in.
 ///
-/// GeneralsX @bugfix Claude 25/09/2026 THE WORD IS A HINT, NOT THE SAFETY PROPERTY (Codex, P1). It is latched
+/// GeneralsX: THE WORD IS A HINT, NOT THE SAFETY PROPERTY. It is latched
 /// from the lobby presence's last GXAUTH, and that socket is SUSPENDED for the whole match - so a relay
 /// rolled back while a match runs is never heard by it, and the latch stays TRUE against a relay that does
 /// not record. No latch can close that, not even one on the match transport: after a restart there is a
@@ -147,7 +147,7 @@ inline Bool gxMatchRecordEnabled()
 		return TRUE;
 	if( TheGXLobbyPresence != NULL && TheGXLobbyPresence->relayRecordsMatchChat() )
 		return TRUE;
-	// GeneralsX @bugfix Claude 25/09/2026 (Codex r9) ...OR THE SOCKET THAT CARRIES THE RECORD heard it. A match started
+	// GeneralsX: ...OR THE SOCKET THAT CARRIES THE RECORD heard it. A match started
 	// before the presence socket's first GXAUTH (or with no presence at all - a launch that never opened the Online
 	// screen) left the word unheard, and the presence is suspended for the whole match, so that match recorded nothing
 	// against a relay that records. TheLAN's transport registered in the match room before the match and read the
@@ -168,7 +168,7 @@ inline Bool gxMatchInNetworkMatch()
 /// Send one record-only envelope for a line this client has ALREADY sent natively. Returns TRUE
 /// only when a datagram actually left this process.
 ///
-/// GeneralsX @bugfix Claude 16/09/2026 THE RETURN VALUE EXISTS BECAUSE THIS IS THE PATH THAT MAKES
+/// GeneralsX: THE RETURN VALUE EXISTS BECAUSE THIS IS THE PATH THAT MAKES
 /// THE EVIDENCE. Transport::sendRelayMatchRecord answers FALSE when it is not on a relay or the text does
 /// not fit, and that answer used to be dropped on the floor here - so a transcript could be missing
 /// every line of a match with nothing anywhere saying so, and the first person to notice would be
@@ -203,12 +203,12 @@ inline Bool gxMatchSendRecord( const UnicodeString &text, RelayMaskType playerMa
 	// is refused here too so the reason is readable at the call site.
 	const Int slot = (Int)TheNetwork->getLocalPlayerID();
 	if( slot < 0 || slot > GX_MATCH_SLOT_MAX )	return FALSE;
-	// GeneralsX @feature Claude 24/09/2026 The audience is HUMANS. A slot at or past MAX_HUMAN_SLOTS holds an
+	// GeneralsX: The audience is HUMANS. A slot at or past MAX_HUMAN_SLOTS holds an
 	// AI only (the start refuses a human there), so its bit says nothing about who read the line. Cleared here,
 	// once, for both senders (the disconnect screen passes ALL_SLOTS_MASK).
-	// GeneralsX @feature Claude 25/09/2026 With 14 slots MAX_HUMAN_SLOTS == MAX_SLOTS, so this clears nothing
+	// GeneralsX: With 14 slots MAX_HUMAN_SLOTS == MAX_SLOTS, so this clears nothing
 	// today; it stays as the statement of the rule. GXM2's four mask digits carry every one of the 14 bits.
-	// GeneralsX @feature Claude 06/11/2026 scale32: GXM3's sixteen mask digits carry all 34 bits; the mask is RelayMaskType.
+	// GeneralsX: scale32: GXM3's sixteen mask digits carry all 34 bits; the mask is RelayMaskType.
 	// A caller that passed an Int -1 for "everyone" arrives sign-extended and is cut to the humans here.
 	static_assert( GX_MATCH_MASK_MAX == (unsigned long long)ALL_SLOTS_MASK, "GXMatchRecord.h GX_MATCH_MASK_MAX must be ALL_SLOTS_MASK" );
 	static_assert( GX_MATCH_SLOT_MAX == MAX_SLOTS - 1, "GXMatchRecord.h GX_MATCH_SLOT_MAX must be the last slot" );
@@ -254,7 +254,7 @@ inline Bool gxMatchSendRecord( const UnicodeString &text, RelayMaskType playerMa
 
 /// Decode one operator line's UTF-8 bytes into a UnicodeString.
 ///
-/// GeneralsX @bugfix Claude 20/09/2026 EXTRACTED so the LAN lobby can render operator lines too.
+/// GeneralsX: EXTRACTED so the LAN lobby can render operator lines too.
 /// It was the body of the loop below, and the LAN lobby now needs the identical decode: under
 /// RELAY_REQUIRE_IDENTITY the relay's "Online play needs a linked account" notice arrives as
 /// GXSAY <room> 0.0.0.0 <text> on a screen that had no drain at all, so a player was dropped from a
@@ -306,7 +306,7 @@ inline UnicodeString gxMatchWideFromUtf8( const char *line )
 /// drawn in the `senderIp == 0` branch at WOLLobbyMenu.cpp:5373-5393 and NOWHERE ELSE. So operator
 /// messaging is free in the lobby and costs exactly this function in a match.
 ///
-/// GeneralsX @bugfix Claude 16/09/2026 Citation corrected: this said 5186-5200, and the shell's own
+/// GeneralsX: Citation corrected: this said 5186-5200, and the shell's own
 /// drain said 5171. Both were wrong by ~190 lines - the drain is at 5362 and the branch at 5373 -
 /// and they were wrong in a comment THIS diff introduced, in a repo that already carries edf4e3ea7
 /// for exactly that. Resolved against the committed tree with
@@ -335,7 +335,7 @@ inline void gxMatchDrainOperatorLines()
 		// Room slots are the last octet of a virtual address and are never 0, which is why the
 		// relay uses 0.0.0.0 for a system notice (relay.js:3346 announceToRoom, :3374 noticeTo).
 		//
-		// GeneralsX @feature Claude 19/09/2026 ...and GX_SAY_FROM_OPERATOR is the admin panel's Say,
+		// GeneralsX: ...and GX_SAY_FROM_OPERATOR is the admin panel's Say,
 		// which the relay marks with a sender token no player can hold (GXRelaySay.h).
 		const GXSayVoice voice = gxSayVoiceOf( senderIp );
 		if( voice == GX_SAY_VOICE_PLAYER )
@@ -344,7 +344,7 @@ inline void gxMatchDrainOperatorLines()
 		// A -headless peer draws nowhere anyone can see, so one stderr line is its only surface - which
 		// is how a harness SEES the operator reach a live match (scripts/test/admin-chat-match-local.sh).
 		//
-		// GeneralsX @bugfix Claude 25/09/2026 (Codex) ONLY THERE. This printed for every client, and a
+		// GeneralsX: ONLY THERE. This printed for every client, and a
 		// relay-voice line is not always a broadcast: an operator `tell` arrives here too, and the
 		// shipping run scripts tee stderr into log files people attach to support requests. A client
 		// that draws the line writes nothing - the rule lanLobbySay's headless sink follows. Keyed on
@@ -373,7 +373,7 @@ inline void gxMatchDrainOperatorLines()
 			// their colour (ConnectionManager.cpp processChat), the operator's is "@Admin text" in
 			// the same admin colour the lobby uses - the '@' is what no player name can carry.
 			//
-			// GeneralsX @bugfix Claude 20/09/2026 A MODERATOR IS "<@Mod> text" in the moderator colour,
+			// GeneralsX: A MODERATOR IS "<@Mod> text" in the moderator colour,
 			// from the sender token the relay stamped. Both sites decide this the same way and neither
 			// decides it locally; see WOLLobbyMenu.cpp, which had the identical admin-only branch.
 			const GXAssertRole sayRole = ( voice == GX_SAY_VOICE_OPERATOR ) ? GX_ROLE_ADMIN : GX_ROLE_MOD;
@@ -391,7 +391,7 @@ inline void gxMatchDrainOperatorLines()
 	}
 }
 
-/// GeneralsX @bugfix Claude 25/09/2026 (owner) Out of the Online lobby while a network match runs, and back
+/// GeneralsX: Out of the Online lobby while a network match runs, and back
 /// in when it ends. Called once a frame from GameClient::update, beside gxMatchDrainOperatorLines.
 ///
 /// THE DEFECT. GXLobbyPresence::suspend() existed for exactly this and had no caller, so the lobby socket
@@ -401,7 +401,7 @@ inline void gxMatchDrainOperatorLines()
 /// memberships (8086 and 8088) all live through the same match, with no release or timeout between.
 ///
 /// Edge-triggered by construction, not by a flag of ours: suspend() acts only on an ADMITTED, ACQUIRING or
-/// (Codex r10) GAVE_UP presence and resume() only on a SUSPENDED one, so calling both every frame is a no-op
+/// GAVE_UP presence and resume() only on a SUSPENDED one, so calling both every frame is a no-op
 /// on every frame but the two edges - and a client that never entered Online (IDLE) is never touched.
 ///
 /// THE WHOLE MATCH, NOT THE GAME-SETUP ROOM. The shared-lobby design keeps a host listed while they wait
@@ -416,10 +416,10 @@ inline void gxMatchPresenceGate()
 		TheGXLobbyPresence->resume();
 }
 
-/// GeneralsX @feature Claude 25/09/2026 THE RELAY'S VOICES ON A RELAY-BACKED LAN SCREEN - the NETWORK lobby
+/// GeneralsX: THE RELAY'S VOICES ON A RELAY-BACKED LAN SCREEN - the NETWORK lobby
 /// and, new, the game-setup room. One loop for both, so the two cannot drift: a copy of this loop in
 /// LanLobbyMenu classified voices with `senderIp != 0` for three days after the other drains had moved to
-/// gxSayVoiceOf, and dropped every admin-panel say as player chat (23/09/2026, Codex round 4).
+/// gxSayVoiceOf, and dropped every admin-panel say as player chat.
 ///
 /// WHY THE GAME-SETUP ROOM NEEDED ONE. It is where a relay game sits between "joined" and "started", and the
 /// admin panel's Say addresses exactly that room - but its screen had no drain, so an operator line sent
@@ -453,7 +453,7 @@ inline void gxLobbyDrainRelayNotices( void (*say)( const UnicodeString &, Color 
 	}
 }
 
-/// GeneralsX @test Claude 25/09/2026 GX_TEST_MATCH_SAY="<frame>:<text>" - a scripted peer says one line to
+/// GeneralsX: GX_TEST_MATCH_SAY="<frame>:<text>" - a scripted peer says one line to
 /// EVERYONE at that logic frame, through exactly what the in-game chat box does on Enter (InGameChat.cpp):
 /// the native sendChat, then the GXM1 record copy. Unset, it costs one getenv per process. It is the only
 /// way a harness match can produce in-match chat, and without it "does in-match chat reach the record" had

@@ -91,7 +91,7 @@ ParticleUplinkCannonUpdateModuleData::ParticleUplinkCannonUpdateModuleData()
 	m_revealRange										= 0.0f;
   m_manualDrivingSpeed						= 0.0f;
   m_manualFastDrivingSpeed				= 0.0f;
-  m_doubleClickToFastDriveDelay		= GX_FRAMES30(500);	// GeneralsX @fix Claude 23/09/2026 raw-frame default when the INI omits it
+  m_doubleClickToFastDriveDelay		= GX_FRAMES30(500);	// GeneralsX: raw-frame default when the INI omits it
 	m_swathOfDeathAmplitude					= 0.0f;
 	m_swathOfDeathDistance					=	0.0f;
 }
@@ -291,7 +291,7 @@ Bool ParticleUplinkCannonUpdate::initiateIntentToDoSpecialPower(const SpecialPow
 	}
 	else
 	{
-		// GeneralsX @bugfix Claude 01/10/2026 Hand-ported from TheSuperHackers #3355 (18068d0e1, 832360698): a script
+		// GeneralsX: Hand-ported from TheSuperHackers #3355 (18068d0e1, 832360698): a script
 		// firing the cannon at an object passed a null targetPos here and crashed; with no target at all, give up.
 		DEBUG_ASSERTCRASH(targetPos || targetObj, ("Particle Cannon target data must not be null"));
 

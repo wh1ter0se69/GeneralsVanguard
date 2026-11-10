@@ -50,7 +50,7 @@ public:
 	/// -1 alongside a negative return. See the impl note for why worst rather than best.
 	Real getWorstPeerLatency(Int &worstSlotOut);
 
-	/// GeneralsX @feature Claude 13/08/2026 ONE peer's round trip, in seconds, or NEGATIVE when
+	/// GeneralsX: ONE peer's round trip, in seconds, or NEGATIVE when
 	/// that peer has no live real sample. Same per-peer reduction and same staleness rule as
 	/// getWorstPeerLatency - which is now written in terms of this - so the scoreboard and the HUD
 	/// can never disagree about a peer.
@@ -76,7 +76,7 @@ protected:
 																														///< When a new latency value is received, the old one is subtracted out and the new
 																														///< one is added in.
 
-	// GeneralsX @bugfix Claude 13/08/2026 THE SAME SAMPLES, SPLIT BY WHICH PEER PRODUCED THEM.
+	// GeneralsX: THE SAME SAMPLES, SPLIT BY WHICH PEER PRODUCED THEM.
 	//
 	// m_latencyList above is a single ring shared by every peer, because on the packet router every
 	// peer acks the router's own per-frame FRAMEINFO and all those acks land in one slot,

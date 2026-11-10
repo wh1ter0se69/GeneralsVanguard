@@ -193,14 +193,14 @@ enum : uint32_t {
 };
 } // namespace d3d8
 
-// A25: the 33 render states and 17 stage states GxPackFF and its helpers READ, on any path (Codex perfaudit-a25-design-r1 checked the
+// A25: the 33 render states and 17 stage states GxPackFF and its helpers READ, on any path (checked the
 // set complete at c1ec75c0c; RS_ZENABLE is read only for a pre-transformed FVF, RS_VERTEXBLEND / RS_CLIPPLANEENABLE only to refuse -
 // both kept). The translator invalidates its cached pack only when one of these changes; every other state is read per draw from the
 // live state. A new read in the packer must be added here (gx_ffstate_test's pack-inputs arm perturbs every index NOT listed and
 // requires identical output). Bitmasks built from the lists at compile time: a changed state costs a shift and a test, no call.
 namespace detail {
 using namespace d3d8;
-// inline: one object for every includer (Codex a25-code-r2: ODR)
+// inline: one object for every includer (ODR)
 inline constexpr uint32_t kPackFFRS[] = { RS_ZENABLE, RS_ALPHATESTENABLE, RS_ALPHAREF, RS_ALPHAFUNC, RS_FOGENABLE, RS_SPECULARENABLE,
 	RS_FOGCOLOR, RS_FOGTABLEMODE, RS_FOGSTART, RS_FOGEND, RS_FOGDENSITY, RS_RANGEFOGENABLE, RS_TEXTUREFACTOR, RS_LIGHTING, RS_AMBIENT,
 	RS_FOGVERTEXMODE, RS_COLORVERTEX, RS_LOCALVIEWER, RS_NORMALIZENORMALS, RS_DIFFUSEMATERIALSOURCE, RS_SPECULARMATERIALSOURCE,

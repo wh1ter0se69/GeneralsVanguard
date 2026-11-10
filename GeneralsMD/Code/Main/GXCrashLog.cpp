@@ -17,7 +17,7 @@
 */
 
 // FILE: GXCrashLog.cpp ///////////////////////////////////////////////////////
-// GeneralsX @feature Claude 25/09/2026 See GXCrashLog.h. No engine headers on purpose: the
+// GeneralsX: See GXCrashLog.h. No engine headers on purpose: the
 // writer runs inside a signal handler, and scripts/test/crash-log-test.sh compiles this file alone.
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -115,7 +115,7 @@ bool GXCrashLog_Install(const char *dir, const char *build)
 #ifdef _WIN32
 	if (!CreateDirectoryA(s_dir, nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) return false;
 #else
-	// Private (Codex crash-exposure-audit-r18 P3): a log is written before the launcher redacts it. The
+	// Private: a log is written before the launcher redacts it. The
 	// chmod covers a folder an earlier build made 0755.
 	if (mkdir(s_dir, 0700) != 0 && errno != EEXIST) return false;
 	(void)chmod(s_dir, 0700);
@@ -172,7 +172,7 @@ static bool crashLogPath(Buf &p, unsigned long long stamp)
 	return true;
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 A process can write more than one: a stopped save load writes one
+// GeneralsX: A process can write more than one: a stopped save load writes one
 // and plays on (SaveLoadFeedback.cpp), and a real crash in the same second would then find its name
 // taken. A taken name moves the stamp on a second, a few times, rather than lose the log; the header's
 // time: line stays the true one.
@@ -236,7 +236,7 @@ bool GXCrashLog_Write(const char *reason, void *const *frames, int n)
 	(void)!write(fd, h.b, h.n);
 	for (int i = 0; i < n; ++i) {
 		// One frame at a time, so one read always holds the whole line and a path is never split
-		// across two scrub calls. ponytail: a single symbol line over 4 KiB would be split and its
+		// across two scrub calls. Trade-off: a single symbol line over 4 KiB would be split and its
 		// head written unscrubbed; mangled template names have not come close.
 		backtrace_symbols_fd(&frames[i], 1, s_pipe[1]);
 		char line[4096];

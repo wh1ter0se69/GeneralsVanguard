@@ -578,7 +578,7 @@ void RTS3DScene::renderOneObject(RenderInfoClass &rinfo, RenderObjClass *robj, I
 	}
 
 	LightEnvironmentClass lightEnv;
-	// GeneralsX @performance Claude 23/09/2026 The plain scene lights are added to lightEnv lazily. An object lit
+	// GeneralsX: The plain scene lights are added to lightEnv lazily. An object lit
 	// only by m_globalLight (no tint, no selection colour, not infantry, and no LightList or dynamic light
 	// passing its cull) renders with the prebuilt m_defaultLightEnv instead of building an identical one.
 	// See the comment where rinfo.light_environment is chosen below.
@@ -652,7 +652,7 @@ void RTS3DScene::renderOneObject(RenderInfoClass &rinfo, RenderObjClass *robj, I
 
 		if (draw->isKindOf(KINDOF_INFANTRY))
 		{
-			// GeneralsX @bugfix Copilot 11/05/2026 Match Zero Hour infantry lighting path to avoid dark soldier shading on base Generals.
+			// GeneralsX: Match Zero Hour infantry lighting path to avoid dark soldier shading on base Generals.
 			//ambient = m_infantryAmbient;  //has no effect - see comment on m_infantryAmbient
 			sceneLights = m_infantryLight;
 		}
@@ -1094,7 +1094,7 @@ void RTS3DScene::Render(RenderInfoClass & rinfo)
 /** Custom render method for the RTS3DScene, custom render properties for our
   * particular game go here */
 //=============================================================================
-// GeneralsX @bugfix Claude 09/10/2026 (D · offmap-specks) A depth-only floor under the whole world, drawn right after the
+// GeneralsX: A depth-only floor under the whole world, drawn right after the
 // terrain: nothing below FLOOR_Z can show. The 2003 animations hide parts by parking their bones kilometres under the ground -
 // the GLA Worker's gun and supply sack sit at z -1261..-8197 (UIWRKR_IDA/RNA/TRA2...), and 70+ skeletons do the same
 // (Rebels, angry mobs, hackers, tunnel defenders, Black Lotus...). Inside the map the terrain hides them from any camera; but a
@@ -1140,7 +1140,7 @@ static void gxDrawUnderworldFloor( RenderInfoClass &rinfo )
 	DX8Wrapper::Set_Transform(D3DTS_WORLD, Matrix3D(true));
 	// Put back what the DEVICE holds, as the occluded-object pass does: the wrapper's cache can hold the 0x12345678 "unknown"
 	// sentinel after Invalidate_Cached_Render_States (terrain shader paths), and restoring that would switch colour off
-	// (Codex floor-r2 P1). Not recording here (the ring records only inside Flush), so this device read costs no drain.
+	// Not recording here (the ring records only inside Flush), so this device read costs no drain.
 	DWORD colorWrites = D3DCOLORWRITEENABLE_BLUE|D3DCOLORWRITEENABLE_GREEN|D3DCOLORWRITEENABLE_RED;
 	DX8Wrapper::_Get_D3D_Device8()->GetRenderState(D3DRS_COLORWRITEENABLE, &colorWrites);
 	DX8Wrapper::Set_DX8_Render_State(D3DRS_COLORWRITEENABLE, 0);
@@ -1726,7 +1726,7 @@ void RTS3DScene::flushTranslucentObjects(RenderInfoClass & rinfo)
 	DX8Wrapper::Set_DX8_Render_State(D3DRS_AMBIENT,DX8Wrapper::Convert_Color(this->Get_Ambient_Light(),0.0f));
 }
 
-// GeneralsX @performance Claude 23/09/2026 createLightsIterator()/destroyLightsIterator() removed from here:
+// GeneralsX: createLightsIterator()/destroyLightsIterator() removed from here:
 // the iterator is two non-owning pointers, so callers build it on the stack over getLightList().
 // Upstream reference: Mauller, PR #2646
 // https://github.com/TheSuperHackers/GeneralsGameCode/pull/2646

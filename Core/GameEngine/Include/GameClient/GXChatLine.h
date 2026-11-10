@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 20/09/2026 The two decisions a chat line makes, engine-free.
+// GeneralsX: The two decisions a chat line makes, engine-free.
 //
 // Owner, 20/09/2026, two reports on the same rendered row:
 //   "@wh1ter0se: hello the ':' is missing"

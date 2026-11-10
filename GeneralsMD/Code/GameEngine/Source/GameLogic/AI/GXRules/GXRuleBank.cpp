@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 30/10/2026 AI RULE BANK, the engine side - see GXRuleBank.h. Everything this file decides is GXRuleCore.h's
+// GeneralsX: AI RULE BANK, the engine side - see GXRuleBank.h. Everything this file decides is GXRuleCore.h's
 // or GXTierFilter.h's (pure, unit-tested by scripts/test/gx-rulebank-test.cpp); this file adapts. Determinism (PLAN_rulebank.md 4.1): no
 // random draw, rules in id order, own objects in ObjectID order, no wall clock / env / file in a decision - the clocks, the env knobs and
 // every [GXRULE] line exist in test-instruments builds only.
@@ -255,7 +255,7 @@ GXRuleBank::GXRuleBank(Player *player) :
 	s_gxRuleBanks.push_back(this);
 	g_gxHookFlushExtra = gxRuleBankFlushHook;
 	// the ENGINE's logic rate, straight from the constant the simulation runs at (not the bank's own dispatch argument): a gate derives
-	// every rule's expected frame stride and phase from it and the registry cadence (Codex core-r8 P1/P2)
+	// every rule's expected frame stride and phase from it and the registry cadence
 	char kv[48];
 	snprintf(kv, sizeof(kv), "fps=%d", (int)LOGICFRAMES_PER_SECOND);
 	gxRuleLine(player != nullptr ? player->getPlayerIndex() : -1, 0, "bank", kv);
@@ -583,7 +583,7 @@ void GXRuleBank::senseSample(unsigned now, Bool force)
 	if (!force && ((now + pi) % period) != 0u)
 		return;
 	senseLobby();
-	// GeneralsX @feature Claude 06/11/2026 a PlayerMaskType (64-bit), not 32 bits: MAX_PLAYER_COUNT is 40.
+	// GeneralsX: a PlayerMaskType (64-bit), not 32 bits: MAX_PLAYER_COUNT is 40.
 	PlayerMaskType track = 0u;
 	for (size_t i = 0; i < m_faction.size() && i < (size_t)MAX_PLAYER_COUNT; ++i)
 		if (gxrb::senseOpen(m_faction[i]))
@@ -861,7 +861,7 @@ void GXRuleBank::actionTemplate(int rule, int key, const AsciiString &templateNa
 	if (templateName.getLength() > 255)
 		ev.push_back(gxrb::mkEvent(rule, "unknown", "too_long", key));	// a save writes names with a one-byte length
 	else if (gxRuleEnvIs("GX_TEST_RULE_MUTANT", "template_noop"))
-		return;		// a BROKEN handler that drops the action: N2's config/probe check must catch it (Codex core-r3-lensB P1)
+		return;		// a BROKEN handler that drops the action: N2's config/probe check must catch it
 	else
 		m_cfg.setRef(rule, key, templateName.str(), gxrb::REF_TEMPLATE, tier(), &ev, this);
 	afterAction(ev, before);
@@ -875,7 +875,7 @@ void GXRuleBank::actionTeam(int rule, int key, const AsciiString &teamName)
 {
 #if defined(GX_TEST_INSTRUMENTS)
 	if (gxRuleEnvIs("GX_TEST_RULE_MUTANT", "team_noop"))
-		return;		// a BROKEN handler that drops the action: N2's team_action check must catch it (Codex core-r4-lensB P2)
+		return;		// a BROKEN handler that drops the action: N2's team_action check must catch it
 	{
 		// the TEAM action reached the bank, with the name as the script engine qualified it for this player
 		char kv[300];
@@ -888,7 +888,7 @@ void GXRuleBank::actionTeam(int rule, int key, const AsciiString &teamName)
 		ev.push_back(gxrb::mkEvent(rule, "unknown", "too_long", key));
 	else
 		m_cfg.setRef(rule, key, teamName.str(), gxRuleEnvIs("GX_TEST_RULE_MUTANT", "team_as_template") ? gxrb::REF_TEMPLATE : gxrb::REF_TEAM,
-			tier(), &ev, this);	// team_as_template: a BROKEN handler forwarding the wrong slot type (Codex core-r5-lensB P2)
+			tier(), &ev, this);	// team_as_template: a BROKEN handler forwarding the wrong slot type
 	afterAction(ev, before);
 #else
 	if (teamName.getLength() <= 255)
@@ -1076,18 +1076,18 @@ void GXRuleBank::xferState(int rule, unsigned short savedVersion, gxrb::ByteIO &
 			return;
 		}
 		bool once = m_senseBlockLoaded != FALSE;
-		gxrb::senseLoadBlock(io, m_faction, &wanted, &once);	// one SENSE block per load (Codex sense-r4 P1)
+		gxrb::senseLoadBlock(io, m_faction, &wanted, &once);	// one SENSE block per load
 		m_senseBlockLoaded = TRUE;
 		m_senseWanted = wanted ? TRUE : FALSE;	// the format keeps it; the first update's senseStart decides again from the loaded scripts
 		m_senseLobbyRead = FALSE;
 		senseLobby();	// the LOADED game info (CHUNK_GameStateMap is read before CHUNK_Players)
-		// what the block may hold: sightings only on a Random slot (Codex sense-r3 P1), and only templates the pass can record - in the data,
-		// a unit or building (GXRuleSense::sightable, Codex sense-r6 P1) - each of its entry's seen BASE side (Codex sense-r4 P1)
+		// what the block may hold: sightings only on a Random slot, and only templates the pass can record - in the data,
+		// a unit or building (GXRuleSense::sightable) - each of its entry's seen BASE side
 		const GXRuleSense &sense = *m_sense;
 		auto baseOf = [&sense](const std::string &name)
 		{
 			const ThingTemplate *t = TheThingFactory != nullptr ? TheThingFactory->findTemplate(AsciiString(name.c_str()), FALSE) : nullptr;
-			return t != nullptr ? sense.sightBaseOf(t) : std::string();	// only what the pass can record (Codex sense-r6 P1)
+			return t != nullptr ? sense.sightBaseOf(t) : std::string();	// only what the pass can record
 		};
 		if (!gxrb::senseStateFitsLobby(m_faction) || !gxrb::senseStateFitsCatalog(m_faction, baseOf))
 			io.refuse();
@@ -1114,7 +1114,7 @@ void GXRuleBank::xfer(Xfer *xfer)
 		&& !gxRuleEnvIs("GX_RULE_TEST_SAVE_EXTRA", "newer"))
 	{
 		gxRuleLine(m_player->getPlayerIndex(), 0, "test_save_extra", std::string("why=unknown_value value=") + gxRuleWord(extra) + " planted=nothing");
-		extra = nullptr;	// Codex core-r1-lensB P2: an unknown value plants nothing (never a silently different save)
+		extra = nullptr;	// an unknown value plants nothing (never a silently different save)
 	}
 	if (extra != nullptr && m_cfg.enabled(1))
 	{
@@ -1166,7 +1166,7 @@ void GXRuleBank::xfer(Xfer *xfer)
 	if (!m_saving && gxRuleEnvIs("GX_RULE_TEST_LOAD_CLEAR", "1"))
 	{
 		// a BROKEN load that keeps each rule's on/off and its state but drops its explicit params and refs (back to the registry
-		// defaults): the save/load judge's restored-configuration check must catch it (Codex core-r5-lensB P1)
+		// defaults): the save/load judge's restored-configuration check must catch it
 		std::vector<gxrb::RuleConfig> all = m_cfg.all();
 		for (size_t i = 0; i < all.size(); ++i)
 		{
@@ -1318,7 +1318,7 @@ int gxTierKeepSource(const gxrb::PlanRow &row)
 #endif
 	return row.src;
 }
-/// ONE implementation for both lists a player's copy holds at top level - its groups and its top-level scripts (Codex core-r6/r7 P2:
+/// ONE implementation for both lists a player's copy holds at top level - its groups and its top-level scripts (r7 P2:
 /// no general's list in the shipped scb has a top-level script, so only the group list can exercise this code, and it does: N3M's
 /// whole-group replacement and the keep_at red arm). Each kept row's entry, renamed, goes to `add` in plan order with its stock twin
 /// (the row's `at`); `keep` marks what stays, the caller frees the rest.
@@ -1443,7 +1443,7 @@ ScriptList *gxTierFilterScripts(ScriptList *in, const Player *p, const AsciiStri
 	gxKeepInPlanOrder(groups, gplan, &gkeep, [&](ScriptGroup *g, const gxrb::PlanRow &row, ScriptGroup *twin)
 	{
 #if defined(GX_TEST_INSTRUMENTS)
-		if (row.src != row.at)	// a REPLACED group: what the kept one holds vs its stock twin (Codex core-r6-lensB P2)
+		if (row.src != row.at)	// a REPLACED group: what the kept one holds vs its stock twin
 		{
 			char kv[200];
 			snprintf(kv, sizeof(kv), "name=%s used_delay=%d stock_delay=%d%s", gxRuleWord(row.name).c_str(), gxGroupDelaySum(g),

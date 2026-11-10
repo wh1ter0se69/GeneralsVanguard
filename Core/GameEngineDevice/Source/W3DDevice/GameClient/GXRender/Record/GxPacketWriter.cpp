@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: GxPacketWriter v1 (see GxPacketWriter.h for the pass graph and lifetimes).
+// GeneralsX: WS-F1: GxPacketWriter v1 (see GxPacketWriter.h for the pass graph and lifetimes).
 #include "GxPacketWriter.h"
 #include "GxLookFrame.h"
 #include "GxShadowCasters.h"
@@ -41,7 +41,7 @@ bool sameStencil(const VkStencilOpState& a, const VkStencilOpState& b) { return 
 
 const std::vector<VkDynamicState>& GxPacketWriter::customDynamicStates()
 {
-	// = GxPipelineCache::createPipeline's list with dynamic mask 0 (ponytail: a non-zero EDS3 mask makes blend/write mask/
+	// = GxPipelineCache::createPipeline's list with dynamic mask 0 (Trade-off: a non-zero EDS3 mask makes blend/write mask/
 	// samples dynamic there - the writer would then have to set them per draw; add it when a device policy enables one)
 	static const std::vector<VkDynamicState> s = {
 		VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_DEPTH_BIAS, VK_DYNAMIC_STATE_BLEND_CONSTANTS,
@@ -225,7 +225,7 @@ void GxPacketWriter::violation(const char* what)
 // readImage, copyFrom...) takes the frame's timeline value: everything this frame marked used retires one submission early
 // (a dynamic slice reused under a pending read, a freed buffer) and the foreign command buffer runs queued uploads before
 // this frame's earlier draws. Checked in EVERY mode, one compare per draw, and fatal like GXRES' own stale-staging check
-// (CLAUDE-ONLY review of 476488e99, P2): flush the frame (endFrame) before anything that submits on its own.
+// flush the frame (endFrame) before anything that submits on its own.
 void GxPacketWriter::checkForeignSubmit()
 {
 	if (m_ctx->queue(Vk::QueueKind::Graphics).timeline.pending() == m_frameValue)
@@ -363,7 +363,7 @@ VkCommandBuffer GxPacketWriter::initCmdGpu()
 	return init;
 }
 
-// S7 A92 (Codex p4-code-r2 #2): one armed query set read back into a sample (or counted missing) - beginFrame, when the set comes round
+// S7 A92: one armed query set read back into a sample (or counted missing) - beginFrame, when the set comes round
 // again, and drainGpuSets at teardown / exit
 void GxPacketWriter::readGpuSet(uint32_t set)
 {
@@ -402,7 +402,7 @@ void GxPacketWriter::readGpuSet(uint32_t set)
 		m_gpuSamples.push_back(g);
 	else {
 		++m_gpuMissing;   // unavailable stamps (or a frame that never submitted): missing, never 0 ms
-		m_gpuMissingLogic.push_back(g.logicFrame);   // S7 A92 (Codex p4-code-r1 #2): the dump keeps its logic frame
+		m_gpuMissingLogic.push_back(g.logicFrame);   // S7 A92: the dump keeps its logic frame
 	}
 	m_gpuRingSlot[set] = -1;
 }
@@ -416,7 +416,7 @@ bool GxPacketWriter::drainGpuSets(uint32_t* openLogic)
 		if (m_gpuRingSlot[set] >= 0 && !(m_open && int(set) == m_gpuSet))
 			readGpuSet(set);
 	}
-	// Codex p4-code-r3 #1: a frame still OPEN (draws, no Present yet) was never submitted - it can never be read: the caller accounts it
+	// a frame still OPEN (draws, no Present yet) was never submitted - it can never be read: the caller accounts it
 	// explicitly (MISSING, with its logic frame), while every submitted set above was read
 	if (m_open && m_gpuSet >= 0) {
 		if (openLogic)
@@ -467,7 +467,7 @@ void GxPacketWriter::setLogicFrame(uint32_t f)
 
 int GxPacketWriter::gpuBegin(const char* name)
 {
-	if (!m_gpu || !m_open || m_gpuSet < 0)   // S7 A92 (Codex p4-code-r1 #1): no stamp into a set this frame never reset
+	if (!m_gpu || !m_open || m_gpuSet < 0)   // S7 A92: no stamp into a set this frame never reset
 		return -1;
 	const int s = m_gpu->beginScope(m_cmd, name);
 	if (s < 0 && m_gpuSet >= 0)
@@ -539,7 +539,7 @@ uint64_t GxPacketWriter::endFrame(const Vk::SubmitDesc& extra)
 	m_gpuScope = -1;
 	checkForeignSubmit();
 	const uint64_t v = m_ring.end(extra);
-	if (m_gpuSet >= 0) {   // a frame that did not submit never ran its query reset: MISSING now, its set never read (Codex gpu-r1 P2)
+	if (m_gpuSet >= 0) {   // a frame that did not submit never ran its query reset: MISSING now, its set never read
 		if (!v && !m_debug.gpuReadFailedSets) {
 			m_gpuRingSlot[m_gpuSet] = -1;
 			++m_gpuMissing;
@@ -591,7 +591,7 @@ void GxPacketWriter::beginPass(const GxPassDesc& pass)
 	if (m_scope.open)
 		++m_stats.splitAttachments;
 	closeScope(true);
-	// an upload into a NEW attachment queued before this pass must land before the pass's clear (Codex rw2-F1-r3 #1): the clear
+	// an upload into a NEW attachment queued before this pass must land before the pass's clear: the clear
 	// becomes the load op, which the next draw's recordUploads() or a clear-only endFrame() would otherwise run first
 	if (m_open && ((p.color.image && p.colorLoad == GxLoad::Clear && m_res->hasPendingFor(p.color.image)) ||
 		(p.depth.image && p.depthLoad == GxLoad::Clear && m_res->hasPendingFor(p.depth.image))))
@@ -648,7 +648,7 @@ bool GxPacketWriter::openScope()
 	const GxScopeResolve& rs = m_resolve;
 	const bool world = depth && depth == rs.depthAtt && !m_resolveSuspended && depth->samples != VK_SAMPLE_COUNT_1_BIT;
 	// a resolve writes the render area only: a scope smaller than the depth (a smaller colour target over the world depth) cannot
-	// refresh the whole copy, so it carries none and the tap takes the copy itself (Codex fdepth-r2 #3)
+	// refresh the whole copy, so it carries none and the tap takes the copy itself
 	const bool wholeDepth = depth && m_scope.width == depth->width && m_scope.height == depth->height;
 	if (world && wholeDepth && rs.depthTarget && rs.depthView && rs.depthTarget->samples == VK_SAMPLE_COUNT_1_BIT &&
 		rs.depthTarget->format == depth->format && rs.depthTarget->width == depth->width && rs.depthTarget->height == depth->height)
@@ -661,7 +661,7 @@ bool GxPacketWriter::openScope()
 		m_resolveLast = resolve;   // what the targets will hold when this scope ends
 		m_resolveLastColour = (resolve & 2u) ? color : nullptr;
 	} else if (color && color == m_resolveLastColour && !m_debug.resolveKeepsRepaintedColour) {
-		m_resolveLast &= ~2u;   // this scope may write the held colour's source without resolving it (Codex fdepth-r2 #2)
+		m_resolveLast &= ~2u;   // this scope may write the held colour's source without resolving it
 		m_resolveLastColour = nullptr;
 	}
 	if (m_debug.scopeResolveDropped)
@@ -717,7 +717,7 @@ bool GxPacketWriter::openScope()
 	if (resolve)
 		++m_stats.scopeResolves;
 	if (m_gpu && m_gpuSet >= 0) {   // A17: the pass scope brackets the render encoder from outside the pass (MoltenVK stamps at encoder
-	                                // boundaries); S7 A92: never in a frame whose set was not initialised (no INIT buffer: Codex p4-code-r1 #1)
+	                                // boundaries); S7 A92: never in a frame whose set was not initialised (no INIT buffer)
 		m_gpuPass = m_gpu->beginScope(m_cmd, kGpuPass);
 		if (m_gpuPass < 0 && m_gpuSet >= 0)
 			++m_gpuSetRefused[m_gpuSet];
@@ -755,7 +755,7 @@ void GxPacketWriter::closeScope(bool attachmentChange)
 }
 
 // A whole-attachment clear waits in the scope's load op until the scope opens. Anything recorded OUTSIDE the scope before
-// that (copies, resolves, uploads) would run before the clear it follows in D3D order (Codex rw2-F1-r1 #1): run it first.
+// that (copies, resolves, uploads) would run before the clear it follows in D3D order: run it first.
 void GxPacketWriter::flushPendingClear()
 {
 	if (m_scope.wanted && !m_scope.open && (m_scope.colorLoad == GxLoad::Clear || m_scope.depthLoad == GxLoad::Clear)) {
@@ -796,7 +796,7 @@ void GxPacketWriter::clear(bool color, bool depth, bool stencil, const VkClearCo
 	if (!color && !depth && !stencil)
 		return;
 	++m_stats.clears;
-	// an upload into this attachment queued BEFORE the clear must land before it (Codex rw2-F1-r2 #1): run it now, so the
+	// an upload into this attachment queued BEFORE the clear must land before it: run it now, so the
 	// clear - folded into the load op or recorded in the scope - comes after
 	if ((m_scope.color.image && m_res->hasPendingFor(m_scope.color.image)) ||
 		(m_scope.depth.image && m_res->hasPendingFor(m_scope.depth.image)))
@@ -854,7 +854,7 @@ void GxPacketWriter::clear(bool color, bool depth, bool stencil, const VkClearCo
 	// per in-pass clear (rare), on every platform rather than a MoltenVK-only branch nobody tests elsewhere.
 	if (m_debug.disturbAfterClear) {   // TEST hook: that disturbance on every driver. An empty scissor, not zeroed push constants:
 		const VkRect2D none = {};         // every shader variant reads it, while a specialised FF shader ignores push constants
-		vkCmdSetScissor(m_cmd, 0, 1, &none);   // (Codex r38-clear-rebind-r1 #1)
+		vkCmdSetScissor(m_cmd, 0, 1, &none);
 	}
 	if (m_debug.noRebindAfterClear)    // TEST-ONLY plant: no re-send
 		return;
@@ -879,12 +879,12 @@ void GxPacketWriter::outsideScope(const std::function<void(VkCommandBuffer)>& fn
 	if (keepLook)
 		m_shadow.lookBound = true;
 	// whatever fn recorded on these images is unknown to the tracker: an UNKNOWN WRITE in the image's current layout, never
-	// made visible - not GXRES' upload guarantee, which a forget() would let a SHADER_READ_ONLY layout imply (Codex rw2-F1-r15 #2)
+	// made visible - not GXRES' upload guarantee, which a forget() would let a SHADER_READ_ONLY layout imply
 	for (uint32_t i = 0; i < touchedCount; ++i)
 		if (touched[i]) {
 			m_tracker.unknownWrite(*touched[i]);
 			touched[i]->markUsed(m_frameValue);
-			// F-depth+: outside work on a resolve's source or target leaves the resolved copy stale (Codex fdepth-r1 #4)
+			// F-depth+: outside work on a resolve's source or target leaves the resolved copy stale
 			if (touched[i] == m_resolve.depthAtt || touched[i] == m_resolve.depthTarget)
 				m_resolveLast &= ~1u;
 			if ((touched[i] == m_resolveLastColour || touched[i] == m_resolve.colourTarget) && touched[i])
@@ -918,7 +918,7 @@ uint32_t GxPacketWriter::suspendScopeResolve(const Res::GxImage* colourNow)
 	m_resolveSuspended = !m_debug.resolveNotSuspended;   // (the plant keeps the world's next scopes resolving)
 	uint32_t held = armed ? m_resolveLast : 0u;
 	if ((held & 2u) && m_resolveLastColour != colourNow && !m_debug.resolveAnyColourSource)
-		held &= ~2u;   // that scope resolved another colour target than the one bound now (Codex fdepth-r1 #5)
+		held &= ~2u;   // that scope resolved another colour target than the one bound now
 	m_resolveLast = 0;
 	m_resolveLastColour = nullptr;
 	return held;
@@ -1037,7 +1037,7 @@ bool GxPacketWriter::draw(const GxDrawPacket& p)
 	if (p.indexed && !p.indices && !p.upIndices)
 		return refuse("indexed draw without indices");
 	// a NONZERO stride below its binding's attribute extent is invalid with a dynamic stride (VUID-vkCmdBindVertexBuffers2-
-	// pStrides-06209): refused before anything is recorded, as GxPipelineKey.h promises (Codex rw2-F1-r9 #1). Keyed draws only:
+	// pStrides-06209): refused before anything is recorded, as GxPipelineKey.h promises. Keyed draws only:
 	// a custom pipeline's vertex input is its builder's business.
 	if (!p.pipeline) {
 		static const uint8_t kFmtBytes[GxFmtCount] = { 0, 4, 8, 12, 16, 4, 4 };
@@ -1067,7 +1067,7 @@ bool GxPacketWriter::draw(const GxDrawPacket& p)
 	Res::GxTexture* tex[GxRecordLayout::kStages];
 	bool barrier = false;
 	// views FIRST: view() marks the image used by this frame, so no barrier below can name an image that a failed later view
-	// leaves unmarked (and freeable before endFrame) - Codex rw2-F1-r15 #1; a failed view refuses before anything is recorded
+	// leaves unmarked (and freeable before endFrame); a failed view refuses before anything is recorded
 	// A22 (c): a stage whose texture an earlier stage of this draw already has (the dummy fills every unbound stage) takes that
 	// stage's view and skips its second view() / need() - both repeat to the same answer and change nothing
 	// (GxTexture::view: same lod, same mark; GxImageTracker::need: the first call left the image readable by this use)
@@ -1174,7 +1174,7 @@ bool GxPacketWriter::draw(const GxDrawPacket& p)
 		const VkStencilOpState& b = p.stencilBack;
 		++m_stats.stencilGroups;
 		if (!g_recTest.a25SlowP3 && sameStencil(f, b)) {   // A25 P3: D3D8 has one stencil state, so the faces are equal (4 calls, not 8)
-			// the plant acts only once both faces hold a state in this command buffer (Codex a25-code-r1 #7: a defined stale back face)
+			// the plant acts only once both faces hold a state in this command buffer (a defined stale back face)
 			const VkStencilFaceFlags both = m_debug.stencilFrontOnly && !first && sh.stencilSet ? VK_STENCIL_FACE_FRONT_BIT :
 				VK_STENCIL_FACE_FRONT_AND_BACK;
 			vkCmdSetStencilOp(m_cmd, both, f.failOp, f.passOp, f.depthFailOp, f.compareOp);
@@ -1358,7 +1358,7 @@ bool GxPacketWriter::draw(const GxDrawPacket& p)
 		else if (it != slot.textureSets.end())
 			set = it->second;
 		else {
-			// ponytail: a 64-bit hash names the set; a collision would bind another draw's textures - key the map by the
+			// Trade-off: a 64-bit hash names the set; a collision would bind another draw's textures - key the map by the
 			// 16 handles if a check-mode run ever counts one
 			if (!(set = allocSet(m_layout.textures)))
 				return refuse("descriptor set allocation failed (textures)");
@@ -1486,7 +1486,7 @@ bool GxPacketWriter::captureCaster(const GxDrawPacket& p, const VkBuffer* vb, co
 		return false;
 	}
 	const uint32_t b = pos->binding;
-	// Codex code-p0b-r1 P2: the replay binds this stride dynamically with a float3 attribute at 0 (VUID-vkCmdBindVertexBuffers2-
+	// the replay binds this stride dynamically with a float3 attribute at 0 (VUID-vkCmdBindVertexBuffers2-
 	// pStrides-06209): below 12 bytes, or over the device limit, the caster is skipped (counted) - both capture paths come here
 	const uint32_t stride = b == 0 && p.upVertices ? p.upStride : p.streams[b].stride;
 	if (stride < 12 || stride > m_casters->maxStride()) {

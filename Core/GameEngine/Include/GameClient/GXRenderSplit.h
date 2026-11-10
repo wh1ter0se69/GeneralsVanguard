@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 06/10/2026 render-split step 1 (gx-handoff modernize/render-split/DESIGN.md): the tick window
+// GeneralsX: render-split step 1 (gx-handoff modernize/render-split/DESIGN.md): the tick window
 // and the deferred render-command queue.
 //
 // The simulation calls 272 render-side entry points (scripts/test/audit/render-split-inventory.py). In a two-thread build
@@ -69,7 +69,7 @@ public:
 		// A second logic pass while the window is still open (time frozen: GameLogic::update opens it and returns before
 		// GameClient::step, and nothing stops another pass on the same frame before the next client update) closes the
 		// first window here: its calls replay before the second pass runs, as they would have applied in it directly,
-		// and its [GXRSPART] line keeps its own serial (Codex split-step6-code-r1 P2).
+		// and its [GXRSPART] line keeps its own serial.
 		const bool secondPass = m_window;
 		if (secondPass)
 			tickEnd();

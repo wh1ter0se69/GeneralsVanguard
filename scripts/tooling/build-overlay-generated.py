@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# GeneralsX @feature Claude 17/08/2026 Build the overlay archives this project AUTHORS.
+# GeneralsX: Build the overlay archives this project AUTHORS.
 #
 #   build-overlay-generated.py --dest <dir> [--game-dir <dir>]... [--check] [--quiet]
 #   build-overlay-generated.py --resolve [--game-dir <dir>]...
@@ -72,7 +72,7 @@ GENERATED = [
         "expect": ("Window\\Menus\\PopupHostGame.wnd", 5323212, 40101),
         "what": "host-game popup with the Confirm Password field",
     },
-    # GeneralsX @feature Claude 03/10/2026 The 7x16 / 10x24 occupancy pips (GXImageVariant.h). NO SOURCE ARCHIVE: the art
+    # GeneralsX: The 7x16 / 10x24 occupancy pips (GXImageVariant.h). NO SOURCE ARCHIVE: the art
     # is drawn in the generator's own grids, so nothing is read from an install and nothing EA shipped is committed. The
     # generator writes 'members' (archive path -> file it wrote) into the directory it is given.
     {
@@ -83,7 +83,7 @@ GENERATED = [
                     ("Data\\INI\\MappedImages\\TextureSize_512\\GXUIHD.ini", "GXUIHD.ini")],
         "what": "hand-drawn 7x16 / 10x24 unit pips for 1440p and taller",
     },
-    # GeneralsX @feature Claude 08/10/2026 The control bar's side buttons (Options, Worker, Chat, Beacon, the General's star button) and
+    # GeneralsX: The control bar's side buttons (Options, Worker, Chat, Beacon, the General's star button) and
     # the General's experience ladder, redrawn in the player HUD's palette. Redefines 137 EXISTING MappedImage names from
     # Data\INI\MappedImages\HandCreated\zz..., which ImageCollection::load parses last. NO SOURCE ARCHIVE, like !GXUIHD.big.
     {
@@ -151,7 +151,7 @@ def check_source(make_big, archive, expect):
     raise SystemExit("ERROR: %s does not contain %s." % (archive, want_name))
 
 
-# GeneralsX @bugfix Claude 18/09/2026 EVERY --game-dir IS TRIED, IN ORDER, and a miss names them all.
+# GeneralsX: EVERY --game-dir IS TRIED, IN ORDER, and a miss names them all.
 #
 # This took one directory, and each packager picked it from an env chain of its own rather than
 # from the directories its archive search walks. Release 85f9a6650 stopped on "WindowZH.big not

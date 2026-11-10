@@ -1,5 +1,5 @@
 /*
-** GeneralsX @feature Claude 20/08/2026 - the map from a .wnd's authored coordinates to screen
+** GeneralsX: the map from a .wnd's authored coordinates to screen
 ** pixels, as a pure function.
 **
 ** It lived inline in parseScreenRect, which meant the only way to check it was to run the game and

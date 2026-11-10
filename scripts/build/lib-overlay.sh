@@ -1,5 +1,5 @@
 #!/bin/bash
-# GeneralsX @feature Claude 12/08/2026 Shared helpers for the community-patch overlay.
+# GeneralsX: Shared helpers for the community-patch overlay.
 #
 # Sourced by the macOS/Linux deploy scripts and the iOS packager so that all three read the
 # SAME list (scripts/build/overlay-archives.txt) and resolve the overlay directory the same
@@ -121,7 +121,7 @@ gx_overlay_optional_label()   { printf '%s\n' "${1#*|*|}"; }
 # archive. Missing sources are fatal: an optional archive that is absent cannot be switched ON
 # later by the launcher, so "optional" would quietly become "unavailable".
 #
-# GeneralsX @bugfix Claude 17/08/2026 THE PRE-FLIGHT BELOW IS THE SAME BUG gx_overlay_count EXISTS
+# GeneralsX: THE PRE-FLIGHT BELOW IS THE SAME BUG gx_overlay_count EXISTS
 # FOR, and this function had no equivalent. `while read < <(gx_overlay_optional)` runs the parser
 # in a CHILD, so a missing or malformed list makes it return 1 where nothing can see it: the loop
 # body never runs, `missing` stays empty, and this returns 0 having staged NOTHING. The mandatory
@@ -333,7 +333,7 @@ gx_overlay_where() {
     return ${rc}
 }
 
-# GeneralsX @feature Claude 30/09/2026 gx_overlay_stage_shipped_maps <patch-dir>: the maps in overlay-maps.txt,
+# GeneralsX: gx_overlay_stage_shipped_maps <patch-dir>: the maps in overlay-maps.txt,
 # as GeneralsXPatch/ShippedMaps/<Name>/ (see that file). Loose files, inert to the engine's "*.big" overlay
 # scan; the launcher installs them into <userdata>/Maps. Fails (rc 1, nothing half-staged is trusted) when a
 # source is missing or its .map does not hash to the listed value. GX_MAPS_SRC overrides the source root (tests).

@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @feature Claude 05/10/2026 - the GeneralsX spectator HUD: "C2" caster layout + the "B3" Tab scoreboard,
+**	GeneralsX: the GeneralsX spectator HUD: "C2" caster layout + the "B3" Tab scoreboard,
 **	in the game's blue (the owner's pick of 05/10/2026, ui/LEAD-TO_wh1ter0se-observer-ui.md points 1-16).
 **
 **	Included ONCE, at the end of InGameUI.cpp, instead of being a .cpp of its own: a new translation unit has to be
@@ -64,7 +64,7 @@ extern Bool gxRadarRetailMargins;
 /// ControlBar.cpp: a copy of retail's m_genStarFlash, written at every place the original is.
 extern Bool gxGenStarFlash;
 
-Bool gxVoteKickBannerRect( Int *x, Int *y, Int *w, Int *h );		// GXVoteKickHud.inl (global, included after this file; Codex spec-toasts-r3 P1)
+Bool gxVoteKickBannerRect( Int *x, Int *y, Int *w, Int *h );		// GXVoteKickHud.inl (global, included after this file)
 
 namespace GXSpecHud
 {
@@ -132,7 +132,7 @@ static Bool s_boardNameCut[MAX_SLOTS];		///< this slot's name was shortened on t
 static Bool s_nameCut[MAX_SLOTS];			///< this slot's name was shortened on the top bar: its full name goes on the hover tip
 
 /// A teammate by the LOBBY is not enough: an alliance can be broken in the match (PLAYER_RELATES_PLAYER), and a former
-/// teammate is an enemy whose purchases a player must not see (Codex player-ui-c-r23 P2). The live relationship decides.
+/// teammate is an enemy whose purchases a player must not see. The live relationship decides.
 static Bool liveAlly( const Player *other )
 {
 	const Player *me = ThePlayerList ? ThePlayerList->getLocalPlayer() : nullptr;
@@ -439,7 +439,7 @@ static AsciiString gxHudPath()
 	return path;
 }
 
-// GeneralsX @bugfix Claude 22/10/2026 GXHud.ini is read and written through SettingsFile (GXSpectatorHud.h), which
+// GeneralsX: GXHud.ini is read and written through SettingsFile (GXSpectatorHud.h), which
 // tells a file that is not there from one that cannot be read: the second is never replaced, and a match whose load
 // could not read it saves nothing at all (it would save the defaults). The reasons go to the log once a match.
 static SettingsFile s_file;
@@ -522,7 +522,7 @@ static void loadMatchState()
 	noteFileOnce( why );
 	// "Follow the player's camera" is Options.ini's UseCameraInReplays, read again for every replay: on a map whose map.ini
 	// overrides GameData, TheWritableGlobalData is a copy for that match only, so the row's change during it died with the
-	// copy while Options.ini kept it (Codex fix0964-r1 P2).
+	// copy while Options.ini kept it.
 	if (TheRecorder != nullptr && TheRecorder->isPlaybackMode() && TheWritableGlobalData != nullptr)
 		TheWritableGlobalData->m_useCameraInReplay = OptionPreferences().useCameraInReplays();
 	loadChords();
@@ -728,7 +728,7 @@ static void applyStage( const std::string &list )
 		else if (item.compare( 0, 5, "view=" ) == 0) s_forceView = atoi( item.c_str() + 5 );
 		else if (item.compare( 0, 6, "click=" ) == 0)
 		{
-			std::string xy = item.substr( 6 );		// <x>x<y>: ';' already separates stages (Codex spectator-click r2 P3)
+			std::string xy = item.substr( 6 );		// <x>x<y>: ';' already separates stages (spectator-click r2 P3)
 			const size_t sep = xy.find( 'x' );
 			if (sep != std::string::npos)
 				injectClick( xy.replace( sep, 1, ";" ), FALSE );
@@ -861,8 +861,8 @@ static Status followedStatus()
 }
 
 /// Dead / Left and WHEN, kept every frame before the windows paint, whether or not any panel is drawn - so a status that
-/// changes while the HUD is hidden (F10, F11, the quit menu) still gets the frame it happened on (Codex player-ui-c-r1
-/// P2). All of it public: retail's Diplomacy shows Alive / Dead / Gone, and EVA announces a defeat as it happens.
+/// changes while the HUD is hidden (F10, F11, the quit menu) still gets the frame it happened on.
+/// All of it public: retail's Diplomacy shows Alive / Dead / Gone, and EVA announces a defeat as it happens.
 static void sampleStatuses()
 {
 	if (ThePlayerList == nullptr)
@@ -1051,9 +1051,9 @@ static const Row *rowForFocus()
 
 /// onSetReplayCamera locks the spectator's camera input until the next logic frame each time it plays a recorded camera. A
 /// paused replay never reaches that frame, so after leaving the follow (or switching the row off) wheel zoom and keyboard
-/// scrolling stayed dead until playback resumed (Codex fix0964-r1 P2). The lock only guards the frame a recorded camera was
+/// scrolling stayed dead until playback resumed. The lock only guards the frame a recorded camera was
 /// applied in; a follow that changed, or a camera the HUD itself moved (minimap, a feed row's jump), has nothing left for it
-/// to guard - and the lock is also what the chip's THEIR CAMERA reads (followsTheirCamera; Codex fix0964-r2). Client view
+/// to guard - and the lock is also what the chip's THEIR CAMERA reads (followsTheirCamera). Client view
 /// state only.
 static void releaseReplayCameraLock()
 {
@@ -1062,9 +1062,9 @@ static void releaseReplayCameraLock()
 }
 
 /// The follow changed by a path that is not ours - the retail observer bar behind F10/F11, its hotkeys: in a PAUSED replay the
-/// recorded camera lock of the player followed before is released too (Codex fix0964-r3 P3). Only when no logic step ran
-/// since the last look: a step may have just applied the NEW player's camera and its fresh lock, which must stay (Codex
-/// fix0964-r4 P2), and a running replay drops a stale lock on its own at the next step. Every frame, overlay hidden or not.
+/// recorded camera lock of the player followed before is released too. Only when no logic step ran
+/// since the last look: a step may have just applied the NEW player's camera and its fresh lock, which must stay,
+/// and a running replay drops a stale lock on its own at the next step. Every frame, overlay hidden or not.
 static Player *s_lockLookAt = nullptr;
 static UnsignedInt s_lockFrame = ~0u;
 static void releaseLockOnForeignFollow()
@@ -1091,7 +1091,7 @@ static void follow( Int slot )
 				rts::changeObservedPlayer( s_rows[i].player );
 			else
 				TheControlBar->setObserverLookAtPlayer( s_rows[i].player );
-			releaseReplayCameraLock();		// the follow keys too (Codex fix0964-r2 P2)
+			releaseReplayCameraLock();		// the follow keys too
 		}
 }
 
@@ -1182,7 +1182,7 @@ static Bool retailClicks()
 	return on;
 }
 
-/// A modal window (a scripted popup) is up: the battlefield behind it inspects nothing (Codex spectator-click r2 P2).
+/// A modal window (a scripted popup) is up: the battlefield behind it inspects nothing (spectator-click r2 P2).
 static Bool modalUp() { return TheWindowManager != nullptr && TheWindowManager->winGetModal() != nullptr; }
 
 /// What a spectator's click shows of an object, by retail's observer-portrait rules (ControlBar::setPortraitByObject): a
@@ -1210,7 +1210,7 @@ static ObjectID s_inspectID = INVALID_ID;	///< what a spectator's battlefield cl
 /// card and keeps the focus. It picks what retail's point click picks (SelectionTranslator: pickDrawable + CanSelectDrawable)
 /// and only REMEMBERS it: the client selection is never touched, because retail and simulation code read it (the observer
 /// bar's portrait mints NameKeys for its cameos, a solo mission's "named unit selected" condition, a selection carried over
-/// to a replacement object as MSG_CREATE_SELECTED_GROUP_NO_SOUND - Codex spectator-click r1 P1/P2).
+/// to a replacement object as MSG_CREATE_SELECTED_GROUP_NO_SOUND - spectator-click r1 P1/P2).
 static void inspectAt( Int x, Int y )
 {
 	if (TheTacticalView == nullptr || TheGameLogic == nullptr)
@@ -1454,7 +1454,7 @@ static void drawCard( const Row &r, Int x, Int y, Int w, Int h, Bool followed )
 		}
 		ty += th( 12 ) + S( 1 );
 	}
-	// A PLAYER's own card: income only in sandbox play, never units/buildings (owner 06/10; Codex r24 P2). Spectators keep both.
+	// A PLAYER's own card: income only in sandbox play, never units/buildings (owner 06/10). Spectators keep both.
 	if (shown( SHOW_INCOME ) && (s_mode != MODE_PLAYER || sandboxMatch()))
 	{
 		put( number( "card.cpm", r.slot, 11, FALSE, r.cpm, TRUE ), tx, ty, label() );
@@ -1760,8 +1760,8 @@ static Int s_toastLineCount = 0;
 static Int s_toastSeenId[kToastRing] = { 0, 0, 0, 0 };				///< per ring slot: the toast (toastHitId) it last held...
 static UnsignedInt s_toastSeenMs[kToastRing] = { 0, 0, 0, 0 };		///< ...and when this HUD first had it to draw (its motion starts there)
 /// Where the toast stack goes now (toastLayout, model-tested). Home: under the bar's HOME spot, its PLAYERS tab, the gear and where a cut
-/// name's tip appears - folded or open, any player count, so the stack never jumps (dragging the bar moves nothing else, Codex r24 P3).
-/// And never ON anything drawn (Codex spec-toasts-r1 P2 x3): the bar and its tab where they are (dragged or not), the gear, the VIEWING
+/// name's tip appears - folded or open, any player count, so the stack never jumps (dragging the bar moves nothing else).
+/// And never ON anything drawn: the bar and its tab where they are (dragged or not), the gear, the VIEWING
 /// chip, the vote-kick ballot, the customise panel, the minimap and the followed-player panel with their tabs - home when free, else
 /// the nearest free place. Called by drawToasts (after those panels, so their rects are this frame's) and by the retail message list
 /// (gxSpectatorHudToastZone, earlier in the frame: the dock offsets and open panels are current; the chip, the ballot and the focus
@@ -1817,7 +1817,7 @@ static ToastLayout toastLayoutNow()
 	return toastLayout( sc.above, 4, sc.avoid, sc.na, s_W, s_H, s_scale );
 }
 
-/// ONE place per frame for the stack (Codex spec-toasts-r5 P2): decided at the first ask - the retail message list's, which runs before
+/// ONE place per frame for the stack: decided at the first ask - the retail message list's, which runs before
 /// the HUD and the vote ballot draw - and drawn there by drawToasts, so the list never clears one place while the toasts land on
 /// another. s_frameSerial moves once per frame, where InGameUI::postDraw starts (gxSpectatorHudUnderWindows).
 static UnsignedInt s_frameSerial = 0;
@@ -1874,7 +1874,7 @@ static void drawToasts()
 			return;
 	}
 	// The message list was told there was no toast zone this frame (the HUD was hidden last frame - F11, the Debug screen - so it
-	// could not know it would draw now; Codex spec-toasts-r6 P2): its lines were not kept off, so no toast this one frame either.
+	// could not know it would draw now): its lines were not kept off, so no toast this one frame either.
 	if (s_zoneAskedSerial == s_frameSerial && !s_zoneGiven)
 		return;
 	// The banner ring is wall-clock and survives reset() (InGameUI.cpp): toastStack's toastShows gate never replays last match's
@@ -2001,7 +2001,7 @@ static void minimapLookAt( Int px, Int py )
 	if (TheRadar->radarToWorld( &cell, &world ))
 	{
 		TheTacticalView->lookAt( &world );
-		releaseReplayCameraLock();		// a paused replay: the view is the spectator's now, not the followed player's (Codex fix0964-r2 P3)
+		releaseReplayCameraLock();		// a paused replay: the view is the spectator's now, not the followed player's
 	}
 }
 
@@ -2085,7 +2085,7 @@ static const Image *chevronFor( const Object *o )
 }
 
 // ---- what is inside: the card's occupants ----------------------------------------------------------------------------
-// GeneralsX @feature Claude 24/10/2026 Owner, on a spectator's China Bunker card: "Am I not supposed to be able to see how many
+// GeneralsX: Owner, on a spectator's China Bunker card: "Am I not supposed to be able to see how many
 // units he has in those?" The card lists a container's occupants as retail's exit buttons do for their owner
 // (ControlBar::doTransportInventoryUI / populateStructureInventory): each occupant's ButtonImage cameo with its veterancy overlay,
 // then one empty box per free slot. Spectators only (mayShowOccupants); the decisions are GXSpectatorHud.h's, unit-tested.
@@ -2208,7 +2208,7 @@ static Int drawOccupants( const Rect &b, Object *o, const ThingTemplate *tt, Boo
 		}
 	}
 
-	// Run evidence (pictures, tests): one line per change of what the group says or how it is laid out (Codex spectator-occupants r1).
+	// Run evidence (pictures, tests): one line per change of what the group says or how it is laid out (spectator-occupants r1).
 	const std::wstring text = occupantLabel( kind, slots ) + L"|" + std::to_wstring( fit.units ) + L"," + std::to_wstring( fit.free ) + L","
 		+ std::to_wstring( fit.overflow );
 	if (s_occLogObj != o->getID() || s_occLogText != text)
@@ -2316,7 +2316,7 @@ static void drawObjectBand( const Rect &b, Object *o )
 	if (e != nullptr && cx + S( 260 ) <= b.x + b.w)
 	{
 		put( fixed( "obj.prod", 10, TRUE, L"PRODUCING" ), cx, b.y + pad, label() );
-		// One union in ProductionEntry: read only the member its type names (Codex spectator-click r1 P1).
+		// One union in ProductionEntry: read only the member its type names (spectator-click r1 P1).
 		const ThingTemplate *unit = e->getProductionType() == PRODUCTION_UNIT ? e->getProductionObject() : nullptr;
 		const UpgradeTemplate *upg = e->getProductionType() == PRODUCTION_UPGRADE ? e->getProductionUpgrade() : nullptr;
 		const void *what = unit != nullptr ? (const void *)unit : (const void *)upg;
@@ -2354,20 +2354,20 @@ static void drawFocus( const Rect &mapRect )
 	const FocusBarLayout lay = focusBarLayout( f != nullptr, sel != nullptr, kFocusFullH, kObjectBandH, 56 );
 	const Int homeW = max( S( 700 ), s_W - S( 16 ) - x );
 	// The dock offset (dx, dy) is measured against the FULL panel's home whatever is showing, so a collapsed or compact bar never
-	// clamps a zero-height rect into a permanent offset (Codex scb-r1 P2 x2); the shown strip sits on the home's bottom edge.
+	// clamps a zero-height rect into a permanent offset; the shown strip sits on the home's bottom edge.
 	// In a replay the GeneralsX replay strip (pause / speed / scrub) sits on the bottom edge: the bar stands on top of it, not behind
-	// it (Codex scb-r2/r3 P2; seen on the NEW picture, the card's lower rows ran under the strip).
+	// it (r3 P2; seen on the NEW picture, the card's lower rows ran under the strip).
 	// A CONSTANT clearance (the strip's home height + its gap), not its live rect: the bar's home just sits higher while a replay
-	// strip is up, so the saved dock offset is never rewritten and a drag starts from what is drawn (Codex scb-r4/r5 P2). A strip the
+	// strip is up, so the saved dock offset is never rewritten and a drag starts from what is drawn. A strip the
 	// user dragged elsewhere is the user's doing; the tab is still kept out from under it below.
 	Rect strip = { 0, 0, 0, 0 };
-	const Bool stripUp = Strip::liveRect( strip );		// up or not - never where the user dragged it (Codex scb-r6 P2)
+	const Bool stripUp = Strip::liveRect( strip );		// up or not - never where the user dragged it
 	const Int clearance = stripUp ? S( 44 + 6 ) : 0;
 	// The offset is clamped (and written back) against the strip-free home only; the clearance lifts what is drawn. A frame without
-	// the strip (the first after F11 brings overlays back, the quit menu) used to clamp a low offset 50 px up for good (Codex b0965-r1 P2).
+	// the strip (the first after F11 brings overlays back, the quit menu) used to clamp a low offset 50 px up for good.
 	const Rect fullHome = { x, s_H - S( 18 ) - S( kFocusFullH ), homeW, S( kFocusFullH ) };
 	Rect fullR = placed( fullHome, PANEL_FOCUS );
-	s_focusHidden = focusHiddenTop( fullR.y, clearance );	// a drag starts from the drawn bar (Codex b0965-r1f P3)
+	s_focusHidden = focusHiddenTop( fullR.y, clearance );	// a drag starts from the drawn bar
 	fullR.y = focusDrawnTop( fullR.y, clearance );
 	const Rect home = { x, focusBarTop( fullHome.y - clearance, S( kFocusFullH ), S( lay.panelH ) ), homeW, S( lay.panelH ) };
 	const Rect r = { fullR.x, focusBarTop( fullR.y, S( kFocusFullH ), S( lay.panelH ) ), fullR.w, S( lay.panelH ) };
@@ -2377,17 +2377,17 @@ static void drawFocus( const Rect &mapRect )
 	{
 		// The clicked object stacks on the panel, above it - or below it when the panel was dragged to the top edge.
 		Rect band = { r.x, r.y - S( 4 ) - S( lay.bandH ), r.w, S( lay.bandH ) };
-		if (band.y - S( 22 ) < 0)		// no room above for it AND the tab on top of it (Codex spectator-click r1 P3)
+		if (band.y - S( 22 ) < 0)		// no room above for it AND the tab on top of it (spectator-click r1 P3)
 			band.y = r.y + r.h + S( 4 );
 		else
 			tabY = band.y;
 		drawObjectBand( band, sel );
 		drawnBand = band;
 	}
-	tabY = min( tabY, s_H - S( 4 ) );		// a collapsed bar dragged down keeps its tab on screen (Codex scb-r2 P2)
-	if (stripUp)		// ... and never under the replay strip, which takes input first (Codex scb-r3 P2)
+	tabY = min( tabY, s_H - S( 4 ) );		// a collapsed bar dragged down keeps its tab on screen
+	if (stripUp)		// ... and never under the replay strip, which takes input first
 	{
-		// above the strip, or below one docked at the top edge; never off the top (Codex scb-r7 P2, b0965-r1/r1b P2)
+		// above the strip, or below one docked at the top edge; never off the top
 		tabY = focusTabY( tabY, home.x + S( 330 ) + s_dock.panel[PANEL_FOCUS].dx, S( 120 ), S( 20 ), strip, S( 22 ), S( 4 ) );
 	}
 	if (s_dock.panel[PANEL_FOCUS].open && f != nullptr && lay.compact)
@@ -3105,7 +3105,7 @@ static void fitRadarWindow( GameWindow *w, RadarFit how )
 static Rect s_blockHome = { 0, 0, 0, 0 }, s_blockSet = { 0, 0, 0, 0 };		///< the Pro bar's radar input blocker: its own rect / what we set (w == 0 = untouched)
 
 /// Pro's input blocker over the radar keeps the retail square: left alone it would eat clicks on the world the hole
-/// exposes (Codex r22 P2). Resized to `target` (a screen rect), or put back (nullptr) unless someone else moved it.
+/// exposes. Resized to `target` (a screen rect), or put back (nullptr) unless someone else moved it.
 static void fitRadarBlock( const Rect *target )
 {
 	GameWindow *b = barChild( BW_RADARBLOCK );
@@ -3235,7 +3235,7 @@ static void chromeWalk( GameWindow *c, Bool on, Bool dump )		// this window, the
 		std::map<std::string, ChromeSaved>::iterator it = s_chrome.find( name );
 		if (it != s_chrome.end() && it->second.win != c)
 		{
-			s_chrome.erase( it );		// a snapshot of a window that is gone (layout rebuilt): never put onto its replacement (Codex r23 P3)
+			s_chrome.erase( it );		// a snapshot of a window that is gone (layout rebuilt): never put onto its replacement
 			it = s_chrome.end();
 		}
 		if (on && it != s_chrome.end() && c->winGetParent() == nullptr && name.compare( 0, 22, "GeneralsExpPoints.wnd:" ) == 0)
@@ -3295,12 +3295,12 @@ static void applyLook( Bool skin )
 {
 	gxControlBarArtOff = skin;
 	// The same window shows a briefing/campaign movie, stretched over its rectangle (W3DLeftHUDDraw): while one plays it
-	// keeps the retail rect, and the map's shape resumes after (Codex r2 P2).
+	// keeps the retail rect, and the map's shape resumes after.
 	const Bool movie = TheInGameUI != nullptr && TheInGameUI->videoBuffer() != nullptr;
 	GameWindow *rw = barChild( BW_RADAR );
 	// The hug needs the world to show where the bar's frame was: only with a tactical view as tall as the screen (Pro's
 	// full viewport). With the stock 80% view the exposed strip would be the black clear colour: the retail box then, its
-	// margins W3DRadar's own (Codex r22 P2).
+	// margins W3DRadar's own.
 	const Bool worldBehind = TheTacticalView != nullptr && TheDisplay != nullptr && TheTacticalView->getHeight() >= TheDisplay->getHeight() - 4;
 	// The legacy look (the switch off) keeps the radar exactly as retail lays it out: its own box inside the bar's own frame,
 	// black margins and all (owner 21/10/2026, a legacy screenshot: "These shouldn't change if the UI is legacy" - newer than,
@@ -3334,7 +3334,7 @@ static void resetSkin()
 }
 
 /// The launcher's GENERAL rows MetaEvent.cpp catches in FRONT of the meta map (gxLoadGeneralKeys: select infantry, select
-/// all, Remastered) - not in MetaMapRec, so read here from the same file with the same defaults (Codex r1 P2).
+/// all, Remastered) - not in MetaMapRec, so read here from the same file with the same defaults.
 static Bool generalChordTaken( Int k, Int m )
 {
 	static const char *const keys[] = { "GXSelectInfantryKey", "GXSelectAllKey",
@@ -3361,7 +3361,7 @@ static Bool generalChordTaken( Int k, Int m )
 		Int gk = 0, gm = 0;
 		// MetaEvent's own parse: a value it cannot read leaves the default in force, so test the default then.
 		// MetaEvent's gxParseChord, exactly: split at the first '+', NO trimming of either half (so "CTRL +KEY_O" is
-		// refused there and the default stays), a modifier that is not NONE and a key that is not KEY_NONE (Codex r2 P2).
+		// refused there and the default stays), a modifier that is not NONE and a key that is not KEY_NONE.
 		std::string v = value.str();
 		for (size_t c = 0; c < v.size(); ++c)
 			v[c] = (char)std::toupper( (unsigned char)v[c] );		// the engine's lookup is case-blind (stricmp)
@@ -3375,7 +3375,7 @@ static Bool generalChordTaken( Int k, Int m )
 			return TRUE;
 	}
 	// GXCameraResetKey (MetaEvent.cpp, caught in front of the meta map too): a MODIFIED chord set there is taken. Its default
-	// and any bare navigation key carry no modifier, so they can never equal a spectator or player chord (Codex r8 P2).
+	// and any bare navigation key carry no modifier, so they can never equal a spectator or player chord.
 	if (have)
 	{
 		AsciiString value = prefs.getAsciiString( "GXCameraResetKey", AsciiString::TheEmptyString );
@@ -3505,7 +3505,7 @@ static void injectClick( const std::string &xy, Bool right )
 
 /// GX_PLAYERUI_SHOW clickocc (tests only, the occupants fairness picture): a real left click on the ENEMY container nearest the
 /// screen centre that this player could click himself - on screen, clear of the bars, not under his shroud, and the drawable a
-/// click there picks (pickDrawable: nothing stealthed or unselectable). It never reads what is inside (Codex spectator-occupants
+/// click there picks (pickDrawable: nothing stealthed or unselectable). It never reads what is inside (spectator-occupants
 /// r3 P1: GX_PLAYERUI_SHOW is an environment variable a player can set, so a hook that ranked or logged by contents was an
 /// enemy-contents leak); an empty container proves the same thing, since the spectator card shows even "0 / 5". "[GXPUI] TEST
 /// clickocc" names the object it clicked, or obj=0.
@@ -3589,7 +3589,7 @@ static void applyPlayerStage( const std::string &list )
 
 /// GX_PLAYERUI_AUDIT=1 (tests only): once a second, checks the rows a PLAYER's panels draw from - leaks = rows of another
 /// player carrying any private number. It reads the rows and nothing else: an audit that compared them with the real
-/// values would itself print what the HUD refuses to draw (Codex player-ui-c-r1 P1: a cash-above-zero count told a 1v1
+/// values would itself print what the HUD refuses to draw (a cash-above-zero count told a 1v1
 /// player his opponent's balance). The rule's red arm is the model test; this proves the shipped gather obeys it.
 static void auditFairness()
 {
@@ -3896,7 +3896,7 @@ static void drawBoardTip()
 }
 
 /// Retail Diplomacy's "in game" for a human (Diplomacy.cpp ~:525): connected right now. A defeated player who has since
-/// disconnected is DEAD on the board but can no longer be muted (Codex r11 P3). No network (skirmish) = nobody else to mute.
+/// disconnected is DEAD on the board but can no longer be muted. No network (skirmish) = nobody else to mute.
 static Bool slotConnected( Int slot )
 {
 	if (slot >= 0 && slot < MAX_SLOTS && s_fakeHuman[slot])
@@ -3961,7 +3961,7 @@ static void drawPlayerBoard( const Row *me )
 	plate( b, FALSE, TRUE );
 	if (sbW > 0)
 		s_listBox = b;
-	addHit( b, H_BLOCK, 0, -1 );		// a click on the board is not a click on the ground under it (Codex r1 P2)
+	addHit( b, H_BLOCK, 0, -1 );		// a click on the board is not a click on the ground under it
 	s_boardRect = b;					// ...nor on a retail window under it: BoardGate
 
 	Int y = b.y + S( 10 );
@@ -4185,7 +4185,7 @@ static void drawPlayerBoard( const Row *me )
 				putR( ping >= 0 ? txt( "pb.ping", r.slot, 14, TRUE, ping, [ping]() { UnicodeString u; u.format( L"%d ms", ping ); return u; } ) : fixed( "pb.nping", 14, TRUE, L"--" ),
 					b.x + S( R_PING ), sy, qualityColor( pingClass( ping ) ) );
 				// A player who has gone keeps his last average in the router's table: not shown once he is no longer
-				// connected (Codex r16 P3).
+				// connected.
 				if (refreshFigures || s_heldFps[r.slot] == -2)
 					s_heldFps[r.slot] = fpsShown( r.own, (Int)(TheDisplay->getAverageFPS() + 0.5f),
 						(net && slotConnected( r.slot )) ? TheNetwork->getSlotAverageFPS( r.slot ) : -1 );
@@ -4272,7 +4272,7 @@ static void trackGeneralPointUpdate()
 /// Every frame BEFORE the windows paint (InGameUI::postDraw): the mode, the Dead/Left times, and the bar's look for this
 /// frame's repaint - the art flag and the radar window's shape for everyone (the legacy look gets the map without black
 /// bars too) and, in player mode, the navy panels and the economy row UNDER the retail windows: drawn after them they
-/// dimmed every button (Codex player-ui-c-r1 P2). The overlays (players bar, board, hover card) still draw after.
+/// dimmed every button. The overlays (players bar, board, hover card) still draw after.
 static void underWindows( Bool overlayHidden )
 {
 	s_overlayHiddenNow = overlayHidden;
@@ -4299,10 +4299,10 @@ static void underWindows( Bool overlayHidden )
 	if (s_mode == MODE_SPECTATOR || bar == nullptr || bar->winIsHidden())
 	{
 		// A defeated player with F11 (overlay hidden) still sees the retail bar art: its radar must be the retail box again,
-		// not the centred map shape left from the legacy look (Codex r22 P2).
+		// not the centred map shape left from the legacy look.
 		if (bar != nullptr && s_radarSet.w > 0)
 			fitRadarWindow( barChild( BW_RADAR ), RADAR_HOME );
-		applyChrome( FALSE );		// the retail pop-ups are retail again wherever the look is not up (Codex r23 P3)
+		applyChrome( FALSE );		// the retail pop-ups are retail again wherever the look is not up
 		return;
 	}
 	const Bool skin = s_mode == MODE_PLAYER && !overlayHidden;		// F11 hides the GeneralsX panels with the readouts
@@ -4400,8 +4400,8 @@ static GameMessageDisposition onPlayerKey( Int key, Int mods, Bool down, Bool re
 	}
 	// A chord whose DOWN we took owns its key until the key goes up, whatever the modifiers by then (ownedKeyDrained, which
 	// runs before everything else): Alt+P, let go of Alt, then P - the bare P up would otherwise reach the command bar's
-	// hotkey, which fires on key-up (Codex r1 P2). Ownership starts on a FRESH down only: a modified auto-repeat of a key
-	// that was already down belongs to whoever took its first press (Codex r6 P2).
+	// hotkey, which fires on key-up. Ownership starts on a FRESH down only: a modified auto-repeat of a key
+	// that was already down belongs to whoever took its first press.
 	for (Int a = PA_BAR; a < PA_COUNT; ++a)
 	{
 		const Chord &c = s_pchords[a];
@@ -4515,7 +4515,7 @@ static void leaveMode()
 // ---- where the toast's power was aimed (owner 12/10/2026: "I wanna see WHERE it was called to like show the actual landing
 // thing just like it would show a player like the target preview") ---------------------------------------------------------
 /// Every targeted power's newest order, one per caster and power (a ring let unannounced radar scans push a live row's
-/// target out, Codex spectator-click r1-BC P2); emptied each match.
+/// target out, spectator-click r1-BC P2); emptied each match.
 struct NoteAt { PowerNote note; Coord3D at; };
 static std::map<std::pair<UnsignedInt, UnsignedInt>, NoteAt> s_notes;
 static RadiusDecal s_reticle;							///< the target preview drawn at a toast's target, kReticleMs long
@@ -4611,7 +4611,7 @@ static Bool draw()
 	if (s_forceView >= 0)
 	{
 		// changeObservedPlayer deselects, which appends MSG_DESTROY_SELECTED_GROUP: a render-stage hook may append no
-		// message (Codex r2 P2), so a staged view change waits for an empty selection.
+		// message, so a staged view change waits for an empty selection.
 		if (TheInGameUI == nullptr || TheInGameUI->getSelectCount() == 0)
 		{
 			for (Int i = 0; i < s_rowCount; ++i)
@@ -4629,7 +4629,7 @@ static Bool draw()
 	if (s_barHome.y < s_H / 3)
 	{
 		s_topInset = s_barHome.y + s_barHome.h + S( 26 );		// under the bar's home spot and its PLAYERS tab, open or not (never jumps)
-		s_insetSpanOn = s_dock.panel[PANEL_PLAYERS].open;		// drawBar draws nothing while the panel is folded (Codex r10)
+		s_insetSpanOn = s_dock.panel[PANEL_PLAYERS].open;		// drawBar draws nothing while the panel is folded
 		s_insetX0 = s_barHome.x; s_insetX1 = s_barHome.x + s_barHome.w; s_insetY0 = s_barHome.y;
 	}
 	mapHome();
@@ -4644,7 +4644,7 @@ static Bool draw()
 	if (s_set.show[SHOW_EVENT_TOAST])
 		drawToasts();
 	// Chat's text entry takes the keyboard and eats the scoreboard key's release (GadgetTextEntry handles Tab), so a board
-	// held while chat opens would stay up after the key is let go: let it go now (Codex codex-batch-1005 p1-spectator).
+	// held while chat opens would stay up after the key is let go: let it go now (p1-spectator).
 	if (s_boardHeld && IsInGameChatActive())
 		s_boardHeld = FALSE;
 	const Bool board = s_set.show[SHOW_TAB_BOARD] && (s_boardHeld || s_dock.panel[PANEL_BOARD].open);
@@ -4755,7 +4755,7 @@ static void reset()
 		s_apparentGeneral[i] = UnicodeString::TheEmptyString;
 	}
 	// Names and fixed text are keyed 0 per slot; a new match can put a different player in the same slot - and the strings
-	// go back to their manager between matches (B · vote-kick / Codex: its destructor asserts the list empty).
+	// go back to their manager between matches (B · vote-kick /: its destructor asserts the list empty).
 	freeStrings();
 }
 
@@ -4973,7 +4973,7 @@ public:
 
 /// The battlefield mouse is the HUD's whenever the GeneralsX look is a spectator's, decided NOW from the same inputs as decide():
 /// a network game translates and sends its input before the frame's draw refreshes s_mode, so a player defeated in the last
-/// tick would otherwise click the retail way once more (Codex spectator-click r3 P1; r2 P1 was the panels never drawing).
+/// tick would otherwise click the retail way once more (spectator-click r3 P1; r2 P1 was the panels never drawing).
 /// Both guards ask this: the click capture and the OrderGate.
 static Bool spectatorInput()
 {
@@ -4993,7 +4993,7 @@ static Bool spectatorInput()
 static void endRetailLeftPress()
 {
 	// Only a drag selection's own lock and box, as that release unlocks only when it was dragging: another gesture's camera
-	// lock (a held scroll key) is not this press's to end (Codex spectator-click r4 P2). The translator's own flag decides; the
+	// lock (a held scroll key) is not this press's to end (spectator-click r4 P2). The translator's own flag decides; the
 	// UI's can already be cleared by a script disabling input mid-drag (r5 P2).
 	const Bool dragging = (TheSelectionTranslator != nullptr && TheSelectionTranslator->isDragSelecting())
 		|| (TheInGameUI != nullptr && TheInGameUI->isSelecting());
@@ -5013,7 +5013,7 @@ static void endRetailLeftPress()
 
 /// A spectator's right DOUBLE click goes on as a plain right press: the camera (LookAtTranslator) treats both alike, but from a
 /// double click the meta map makes MSG_MOUSE_RIGHT_DOUBLE_CLICK, which with the alternate mouse and double-click attack-move on
-/// becomes a MSG_DO_GUARD_POSITION order (and an AcademyStats count) with no selection or ownership check (CommandXlat.cpp; Codex
+/// becomes a MSG_DO_GUARD_POSITION order (and an AcademyStats count) with no selection or ownership check (CommandXlat.cpp;
 /// spectator-click r4 P2). The press keeps the double click's position, modifiers and time.
 static GameMessageDisposition rightPressInstead( const GameMessage *msg )
 {
@@ -5047,7 +5047,7 @@ GameMessageDisposition OrderGate::translateGameMessage( const GameMessage *msg )
 	if (t <= GameMessage::MSG_BEGIN_NETWORK_MESSAGES || t >= GameMessage::MSG_END_NETWORK_MESSAGES)
 		return KEEP_MESSAGE;
 	// ...and the double-click guard order, the one order retail makes with no selection or ownership check (CommandXlat.cpp,
-	// MSG_MOUSE_*_DOUBLE_CLICK): a MetaEvent double-click flag left from before a defeat can still form it (Codex r5 P2).
+	// MSG_MOUSE_*_DOUBLE_CLICK): a MetaEvent double-click flag left from before a defeat can still form it.
 	const Bool selection = t == GameMessage::MSG_CREATE_SELECTED_GROUP || t == GameMessage::MSG_CREATE_SELECTED_GROUP_NO_SOUND
 		|| t == GameMessage::MSG_DESTROY_SELECTED_GROUP || t == GameMessage::MSG_REMOVE_FROM_SELECTED_GROUP
 		|| t == GameMessage::MSG_DO_GUARD_POSITION;
@@ -5077,7 +5077,7 @@ static GameMessageDisposition onKey( const GameMessage *msg )
 	// The scoreboard is HELD: shown while the key is down, so its key-up matches whatever the modifiers are by then - but
 	// only the up of a down this HUD took (s_boardHeld), and while held its auto-repeats whatever the modifiers. With a
 	// modified binding (Ctrl+Up) a bare Up's down goes on to the camera, and eating its up left the camera scrolling
-	// (Codex codex-batch-1005 p1-spectator).
+	// (p1-spectator).
 	const Chord &b = s_chords[A_BOARD];
 	if (b.valid && key == b.key && down && !repeat && mods == b.mods && s_set.show[SHOW_TAB_BOARD])		// repeats and the up: ownedKeyDrained
 	{
@@ -5111,8 +5111,8 @@ static GameMessageDisposition onKey( const GameMessage *msg )
 }
 
 /// A key whose DOWN a chord of ours took - the held board, a player chord - stays ours until its up: repeats and release,
-/// whatever the modifiers, the mode (player -> spectator on defeat), the bar's visibility or chat do meanwhile (Codex
-/// r4-r6). Ownership is the physical key and nothing else. A fresh non-repeat down of an owned key means its up was eaten
+/// whatever the modifiers, the mode (player -> spectator on defeat), the bar's visibility or chat do meanwhile.
+/// Ownership is the physical key and nothing else. A fresh non-repeat down of an owned key means its up was eaten
 /// upstream: that ownership is stale and ends here, the press then routed as new.
 static Bool ownedKeyDrained( Int key, Bool down, Bool repeat )
 {
@@ -5162,7 +5162,7 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 	{
 		// Hidden panels (F11, the Debug screen) hide the HUD, not the spectator: his battlefield clicks still only inspect (the card
 		// shows when the panels come back) and never go the retail way, whose selection and double-click guard order would be
-		// sent to every peer (Codex spectator-click r1 P2). Every left message is drained, a release or drag of a press that was
+		// sent to every peer (spectator-click r1 P2). Every left message is drained, a release or drag of a press that was
 		// never ours included (r2 P2: the meta map would make it a click). Other messages pass; a panel capture ends as below.
 		if (s_capture != CAP_WORLD)
 		{
@@ -5206,7 +5206,7 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 		else if (ht == GameMessage::MSG_RAW_MOUSE_LEFT_DRAG || ht == GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_UP)
 		{
 			// The press was ours before the HUD hid (F11): its release must not reach the meta map as a click that could
-			// execute a pending targeted command (Codex r9 P2).
+			// execute a pending targeted command.
 			if (s_leftOwned)
 			{
 				if (ht == GameMessage::MSG_RAW_MOUSE_LEFT_BUTTON_UP)
@@ -5236,7 +5236,7 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 		return KEEP_MESSAGE;
 	// Each mouse message carries the position it happened at (Mouse::createStreamMessages). Several can queue in one
 	// client update and the status holds only the last, so reading it made a press-drag-release inside one update a
-	// click (Codex codex-batch-1005 p1-spectator). The status is still what the stale-capture test below reads.
+	// click (p1-spectator). The status is still what the stale-capture test below reads.
 	const ICoord2D at = msg->getArgument( 0 )->pixel;
 	const Int x = at.x, y = at.y;
 	switch (t)
@@ -5282,7 +5282,7 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 		{
 			// A fresh left press while a capture is still open: that capture's release never reached us (a retail window
 			// ate it), so it is retired HERE, at this press's place in the stream - never from BoardGate, which runs a
-			// whole batch ahead of this translator (Codex player-ui-c-r18/r19/r20 P2).
+			// whole batch ahead of this translator.
 			if (s_capture != CAP_NONE)
 			{
 				if (s_capture == CAP_SLIDER)
@@ -5355,14 +5355,14 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 				saveSettings();
 			else if (c == CAP_WORLD)
 			{
-				// Not where a panel now is: one opened under the cursor, or a release just inside one (Codex spectator-click r1 P2).
+				// Not where a panel now is: one opened under the cursor, or a release just inside one (spectator-click r1 P2).
 				if (isClickNotDrag( s_worldPress.x, s_worldPress.y, x, y, S( 4 ) ) && hitAt( x, y ) == nullptr && !modalUp())
 					inspectAt( x, y );
 			}
 			else if (c == CAP_DOCK && (s_pressHit.kind == H_TOAST || s_pressHit.kind == H_CHIP || s_pressHit.kind == H_BARPAGE))
 			{
 				// Panel -1: the dock tracks no press for it (Dock::press ignores the id), so Dock::release would say NONE and the
-				// click would never act. A click = released over the same toast it was pressed on (Claude review, player-ui-c-5).
+				// click would never act. A click = released over the same toast it was pressed on.
 				const Hit *up = hitAt( x, y );
 				if (up != nullptr && up->kind == s_pressHit.kind && up->id == s_pressHit.id)
 					act( s_pressHit );
@@ -5381,7 +5381,7 @@ GameMessageDisposition Translator::translateGameMessage( const GameMessage *msg 
 
 		case GameMessage::MSG_RAW_MOUSE_RIGHT_BUTTON_DOWN:
 		case GameMessage::MSG_RAW_MOUSE_RIGHT_DOUBLE_CLICK:
-			// While playing, a right click on a panel is not an order to the ground under it (Codex player-ui-c-r1 P2).
+			// While playing, a right click on a panel is not an order to the ground under it.
 			// A spectator's right click orders nothing, so it passes as before.
 			if (s_mode == MODE_PLAYER && hitAt( x, y ) != nullptr)
 			{
@@ -5461,13 +5461,13 @@ GameMessageDisposition BoardGate::translateGameMessage( const GameMessage *msg )
 	// make the next press elsewhere the board's.
 	const Bool owned = button != 0 && !down && (s_boardPress & button) != 0;
 	// A modal window (a scripted popup that pauses the match) wins fresh input over the board, which is not drawn then
-	// either (drawPlayerMode) - Codex r11 P2.
+	// either (drawPlayerMode).
 	const Bool open = s_inputLive && s_mode == MODE_PLAYER && (TheWindowManager == nullptr || TheWindowManager->winGetModal() == nullptr);
 	if (!boardGateTakes( open, s_boardRect, at.x, at.y, kind, owned ))
 	{
 		if (down)
 			s_boardPress &= ~button;
-		if (s_puiTest && (down || up) && s_boardRect.w > 0)		// tests only (Codex r12 P3: never in a real player's log)
+		if (s_puiTest && (down || up) && s_boardRect.w > 0)		// tests only (never in a real player's log)
 			fprintf( stderr, "[GXPUI] gate passed %s button=%d at %d,%d f=%u\n", down ? "down" : "up", button, at.x, at.y, TheGameLogic->getFrame() );
 		return KEEP_MESSAGE;
 	}
@@ -5475,7 +5475,7 @@ GameMessageDisposition BoardGate::translateGameMessage( const GameMessage *msg )
 		fprintf( stderr, "[GXPUI] gate took %s button=%d at %d,%d f=%u\n", down ? "down" : "up", button, at.x, at.y, TheGameLogic->getFrame() );
 	// The board's own buttons are handled HERE, in stream order, with the gate's own press record - never through the
 	// shared Translator capture state: the gate (9) sees a whole batch before Translator (11) does, so a newer press on the
-	// board would otherwise become the "capture" an older battlefield release then completed (Codex player-ui-c-r17 P2).
+	// board would otherwise become the "capture" an older battlefield release then completed.
 	if (down)
 	{
 		s_boardPress |= button;
@@ -5497,7 +5497,7 @@ GameMessageDisposition BoardGate::translateGameMessage( const GameMessage *msg )
 		{
 			// A click is a press and a release on the same button, still on screen, while the board is still held: not
 			// after Tab was let go (r11 P3), nor in the batch its release is queued in (r12 P3).
-			// ...and not behind a modal popup that opened meanwhile (Codex r18 P3): the release is still drained.
+			// ...and not behind a modal popup that opened meanwhile: the release is still drained.
 			const Hit *now = hitAt( at.x, at.y );
 			if (open && now != nullptr && now->kind == s_boardPressHit.kind && now->id == s_boardPressHit.id
 				&& (s_pBoardForced || (s_boardHeld && !s_boardKeyUp)))
@@ -5548,7 +5548,7 @@ Bool gxSpectatorHudInsetSpan( Int *x0, Int *x1, Int *y0 )
 /// Where the event toasts can be this frame, [x0,x1) x [y0,y1) - every place of the stack, the drop and the leaving fourth, outer lines
 /// included - while at least one announcement is alive (TOAST_LIFE_MS); FALSE when none is, the toasts are off, the spectator HUD is
 /// not up or the stack has no free place. The retail message list (InGameUI::postDraw) runs BEFORE the HUD draws (postWindowDraw), so
-/// this is computed when asked, never kept from the last frame (Codex spec-toasts-r2 P2): a toast about to appear or slide is already
+/// this is computed when asked, never kept from the last frame: a toast about to appear or slide is already
 /// in it. The toasts no longer move s_topInset (a burst of three would push the superweapon timers and the message list a whole stack
 /// down and back up every few seconds): the list keeps only a line that would run into this zone off it.
 Bool gxSpectatorHudToastZone( Int *x0, Int *x1, Int *y0, Int *y1 )

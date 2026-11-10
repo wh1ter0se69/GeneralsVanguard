@@ -309,7 +309,7 @@ public:
 	// parse a duration in msec and convert to duration in integral number of frames, (unsignedint) rounding UP
 	static void parseDurationUnsignedInt( INI *ini, void *instance, void *store, const void* userData );
 #if GX_LOGIC_60HZ
-	// GeneralsX @feature Claude 05/10/2026 rounds UP on the 60 Hz grid, as Generals Online does: see GX_PARSE_GO_DURATION
+	// GeneralsX: rounds UP on the 60 Hz grid, as Generals Online does: see GX_PARSE_GO_DURATION
 	static void parseDurationUnsignedIntGO( INI *ini, void *instance, void *store, const void* userData );
 #endif
 	static void parseDurationUnsignedShort( INI *ini, void *instance, void *store, const void *userData );
@@ -414,7 +414,7 @@ protected:
 #endif
 };
 
-// GeneralsX @feature Claude 05/10/2026 the duration parser for the timers that decide when a shot happens: Generals Online's
+// GeneralsX: the duration parser for the timers that decide when a shot happens: Generals Online's
 // 60 Hz rounding at 60 Hz (INI::parseDurationUnsignedIntGO), the stock parser at 30 Hz.
 #if GX_LOGIC_60HZ
 #define GX_PARSE_GO_DURATION INI::parseDurationUnsignedIntGO

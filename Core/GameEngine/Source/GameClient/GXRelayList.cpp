@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 29/10/2026 S1-3 relay-list-v2. See the header for the design; this file keeps
+// GeneralsX: S1-3 relay-list-v2. See the header for the design; this file keeps
 // to its order of checks. GX_RELAYLIST_STANDALONE (scripts/test/relay-list-test.sh) compiles the pure layer,
 // the store and the fetch without any engine header; the engine build adds the process-wide class at the end.
 
@@ -462,10 +462,10 @@ GXRelaySource gxRelayResolve(int envOptOut, const char *key, const char *launche
 	// Checked BEFORE the key, so a sandbox can force "no relay" even over an inherited Options.ini.
 	if (envOptOut)
 		return GX_RELAY_SRC_NONE;
-	// The Windows launcher's own value (Codex r6): not a pin while a verified list is held. "none" always means no
+	// The Windows launcher's own value: not a pin while a verified list is held. "none" always means no
 	// relay at all, whatever a marker says.
 	//
-	// AND THE LEGACY ONE (Codex r8). Every launcher before the marker wrote RelayAddress = the list's field-4 home, which
+	// AND THE LEGACY ONE. Every launcher before the marker wrote RelayAddress = the list's field-4 home, which
 	// has only ever been the compiled-in bootstrap name, and a Tauri-driven install runs the updater with --check only,
 	// so the marker may never be written there. A RelayAddress naming exactly the bootstrap on the default port is
 	// therefore read as the launcher's too: a pin to that host can only mean "the official relay", which is what
@@ -607,7 +607,7 @@ void persist(GXRelayListStore *s)
 	// The document first, then the state that describes it. A crash between the two leaves a cached document
 	// above the stored floor; the next load re-judges it against that floor, and accepts it - it had passed the
 	// horizon on its arrival, which is the one check a load does not repeat.
-	// And the state ONLY if the document landed (Codex relaylist-v2-r9): a floor saved for a document that is not on disk
+	// And the state ONLY if the document landed: a floor saved for a document that is not on disk
 	// makes the next load refuse the older cache it still holds - the working home and standbys lost for nothing. With
 	// both unsaved, this session keeps the newer list in memory and the next launch is offered it again.
 	if (s->have && s->cfg.cachePath[0] != '\0' && !writeFileAtomic(s->cfg.cachePath, s->wire, s->wireLen))

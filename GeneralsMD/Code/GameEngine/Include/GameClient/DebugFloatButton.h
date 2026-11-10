@@ -27,7 +27,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
-** GeneralsX @feature Claude 26/07/2026 Floating DEBUG button, reachable from the shell AND in-game.
+** GeneralsX: Floating DEBUG button, reachable from the shell AND in-game.
 **
 ** This is a parentless, off-stack GameWindow carrying WIN_STATUS_ABOVE, not a control on any screen.
 ** That is the only construction that survives everything the game does to its GUI: Shell::push and
@@ -49,7 +49,7 @@
 **   3. Anchored structure placement lets the button's own mouse-up ALSO reach the world.
 **   4. Full-screen video, letterbox and cinematic text render after winRepaint and cover it.
 **
-** GeneralsX @feature Claude 26/07/2026 Movable and retractable.
+** GeneralsX: Movable and retractable.
 **
 ** A fixed overlay always covers something — on the in-game HUD that is the control bar, the minimap
 ** or the unit you are trying to select — and on a touch-only device there is no keyboard to get it

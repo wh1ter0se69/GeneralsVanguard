@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @feature Claude 06/10/2026 - the replay strip: time reached / whole length, click ahead to race there, pause,
+**	GeneralsX: the replay strip: time reached / whole length, click ahead to race there, pause,
 **	speeds 0.5x-8x. Included ONCE, after GXSpectatorHud.inl at the end of InGameUI.cpp, for the same reason that file is
 **	(a new .cpp would move the SimID digest) and so that it shares the spectator HUD's palette and text helpers without
 **	editing that file. Nothing here is read by the simulation.
@@ -140,7 +140,7 @@ static Int currentSpeed()
 	return speedFromState( TheFramePacer != nullptr ? TheFramePacer->getFastForward() : 1, isHalved() );
 }
 
-// GeneralsX @bugfix Claude 07/10/2026 A SEEK RACE RUNS WITH FAST FORWARD OFF AND SOUND EFFECTS MUTED, and puts both back
+// GeneralsX: A SEEK RACE RUNS WITH FAST FORWARD OFF AND SOUND EFFECTS MUTED, and puts both back
 // where they were when it lands. Fast forward capped the race at k x the tick rate (the fast mode is uncapped) and its
 // every-k-th-pass draws never met the race's own frames, so a 2x-10x seek drew nothing until it landed (wh1ter0se 07/10: "it
 // froze when i did like 4x and dragged"); W3DDisplay::draw now draws a race by GXReplayStrip::passRenders alone. Sound
@@ -300,7 +300,7 @@ static void envDriver()
 
 static const SHit *hitOf( Int kind, Int id );
 
-// GeneralsX @test Claude 07/10/2026 GX_REPLAY_STRIP_INPUT=<ms>:<act>[,...] - the strip's MOUSE path, scripted: raw left-button
+// GeneralsX: GX_REPLAY_STRIP_INPUT=<ms>:<act>[,...] - the strip's MOUSE path, scripted: raw left-button
 // messages into TheMessageStream exactly as Mouse::createStreamMessages makes them, so a click goes through the translator
 // (and its seek runs inside a message callback, as a real click's does - GX_REPLAY_SEEK calls seekTo between frames instead).
 // <ms> counts from the first pass a replay was up and never restarts; entries fire in order, one raw message per pass.

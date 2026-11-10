@@ -1,5 +1,5 @@
 #!/bin/bash
-# GeneralsX @build Claude 25/09/2026 Ship the openal-soft this build compiled, not the distro's.
+# GeneralsX: Ship the openal-soft this build compiled, not the distro's.
 #
 # Sourced by the Linux deploy and tarball scripts. cmake/openal.cmake FetchContents openal-soft
 # 1.24.2 on EVERY platform, patches it (openal-startsources-guard.cmake) and links the engine to

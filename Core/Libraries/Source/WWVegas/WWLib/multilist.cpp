@@ -164,7 +164,7 @@ bool GenericMultiListClass::Internal_Add_After(MultiListObjectClass * obj,const 
 
 	// find the node hanging off 'existing_list_member' that corresponds to this list (O(numlists))
 	MultiListNodeClass * existing_node = existing_list_member->Get_List_Node();
-	// GeneralsX @bugfix Claude 01/10/2026 Null test first: the old order dereferenced existing_node before testing it. Idea from Generals Online 5e217b8c0, reimplemented.
+	// GeneralsX: Null test first: the old order dereferenced existing_node before testing it. Idea from Generals Online 5e217b8c0, reimplemented.
 	while ((existing_node) && (existing_node->List != this)) {
 		existing_node = existing_node->NextList;
 	}

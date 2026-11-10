@@ -159,8 +159,8 @@ static Condition::ConditionType ParameterChangesVer2[] =
 
 enum { AT_END = 0x00FFFFFF };
 
-// GeneralsX @bugfix Claude 06/10/2026 A map reader below that throws (a damaged map, now refused rather than fatal) left the node
-// it was building unowned, once per attempt (Codex mlv-r10 #2). Each reader holds its node in one of these, which frees it on
+// GeneralsX: A map reader below that throws (a damaged map, now refused rather than fatal) left the node
+// it was building unowned, once per attempt. Each reader holds its node in one of these, which frees it on
 // the way out, until the node's owner takes it (node = nullptr).
 namespace {
 template <class T> struct DeleteOnThrow
@@ -539,14 +539,14 @@ Bool ScriptList::ParseScriptsDataChunk(DataChunkInput &file, DataChunkInfo *info
 		deleteInstance(s_readLists[i]);
 		s_readLists[i] = nullptr;
 	}
-	s_numInReadList = 0;	// GeneralsX @bugfix Claude 06/10/2026 with the pointers: a throw below would otherwise leave a count of nulls
+	s_numInReadList = 0;	// GeneralsX: with the pointers: a throw below would otherwise leave a count of nulls
 	TScriptListReadInfo readInfo;
 	for (i=0; i<MAX_PLAYER_COUNT; i++) {
 		readInfo.readLists[i] = nullptr;
 	}
 	readInfo.numLists = 0;
-	// GeneralsX @bugfix Claude 06/10/2026 The lists read so far live only here until they are published below: a reader that
-	// threw in a later list, or one that refused it, lost every one of them (Codex mlv-r10 #2).
+	// GeneralsX: The lists read so far live only here until they are published below: a reader that
+	// threw in a later list, or one that refused it, lost every one of them.
 	struct FreeUnpublished { TScriptListReadInfo &info; ~FreeUnpublished() { for (Int k = 0; k < info.numLists; k++) deleteInstance(info.readLists[k]); } } unpublished = { readInfo };
 	if (file.parse(&readInfo)) {
 		DEBUG_ASSERTCRASH(readInfo.numLists<MAX_PLAYER_COUNT, ("Read too many, overrun buffer."));
@@ -886,7 +886,7 @@ Bool ScriptGroup::ParseGroupDataChunk(DataChunkInput &file, DataChunkInfo *info,
 {
 	ScriptList *pList = (ScriptList *)userData;
 	ScriptGroup *pGroup = newInstance(ScriptGroup);
-	DeleteOnThrow<ScriptGroup> unowned = { pGroup };	// GeneralsX @bugfix Claude 06/10/2026 until the list takes it (Codex mlv-r10 #2)
+	DeleteOnThrow<ScriptGroup> unowned = { pGroup };	// GeneralsX: until the list takes it
 
 	pGroup->m_groupName = file.readAsciiString();
 	pGroup->m_isGroupActive = file.readByte();
@@ -1253,7 +1253,7 @@ void Script::WriteScriptDataChunk(DataChunkOutput &chunkWriter, Script *pScript)
 Script *Script::ParseScript(DataChunkInput &file, unsigned short version)
 {
 	Script *pScript = newInstance(Script);
-	DeleteOnThrow<Script> unowned = { pScript };	// GeneralsX @bugfix Claude 06/10/2026 until the caller takes it (Codex mlv-r10 #2)
+	DeleteOnThrow<Script> unowned = { pScript };	// GeneralsX: until the caller takes it
 
 	pScript->m_scriptName = file.readAsciiString();
 	pScript->m_comment = file.readAsciiString();
@@ -1665,11 +1665,11 @@ void Condition::WriteConditionDataChunk(DataChunkOutput &chunkWriter, Condition	
 Bool Condition::ParseConditionDataChunk(DataChunkInput &file, DataChunkInfo *info, void *userData)
 {
 	Condition	*pCondition = newInstance(Condition);
-	DeleteOnThrow<Condition> unowned = { pCondition };	// GeneralsX @bugfix Claude 06/10/2026 until pOr takes it below (Codex mlv-r10 #2)
+	DeleteOnThrow<Condition> unowned = { pCondition };	// GeneralsX: until pOr takes it below
 	OrCondition *pOr = (OrCondition *)userData;
 	pCondition->m_conditionType = (enum ConditionType)file.readInt();
 	pCondition->m_numParms =file.readInt();
-	// GeneralsX @bugfix Claude 06/10/2026 THE MAP'S PARAMETER COUNT IS NOT TRUSTED (sweep c018-01). m_parms is a fixed
+	// GeneralsX: THE MAP'S PARAMETER COUNT IS NOT TRUSTED (sweep c018-01). m_parms is a fixed
 	// MAX_PARMS array and this count comes straight from the map file, which reaches every player in a lobby by map
 	// transfer: a larger count wrote Parameter pointers past the array into the neighbouring pool memory of every peer
 	// that started the match. Refuse the condition - FALSE, no parameters - and let closeDataChunk skip what is left of
@@ -1689,7 +1689,7 @@ Bool Condition::ParseConditionDataChunk(DataChunkInput &file, DataChunkInfo *inf
 
 	if (file.getChunkVersion() < K_SCRIPT_CONDITION_VERSION_2) {
 		for (int j = 0; ParameterChangesVer2[j] != -1; ++j) {
-			// GeneralsX @bugfix Claude 06/10/2026 Only the version-1 shape - two parameters - gets the third. Any other count
+			// GeneralsX: Only the version-1 shape - two parameters - gets the third. Any other count
 			// wrote slot m_numParms (one past the array at MAX_PARMS) or left slots 1-2 null under a count of 3.
 			if (pCondition->m_conditionType == ParameterChangesVer2[j] && pCondition->m_numParms == 2) {
 				pCondition->m_parms[pCondition->m_numParms] = newInstance(Parameter)(Parameter::SURFACES_ALLOWED, 3);
@@ -1703,8 +1703,8 @@ Bool Condition::ParseConditionDataChunk(DataChunkInput &file, DataChunkInfo *inf
 		case SKIRMISH_SPECIAL_POWER_READY:
 			if (pCondition->m_numParms == 1)
 			{
-				// GeneralsX @bugfix Claude 06/10/2026 The new parameter is made before the slots move: an allocation that
-				// threw with both slots on the old one had it freed twice by the guard above (Codex msto-r1 #2).
+				// GeneralsX: The new parameter is made before the slots move: an allocation that
+				// threw with both slots on the old one had it freed twice by the guard above.
 				Parameter *pSide = newInstance(Parameter)(Parameter::SIDE, 0);
 				pCondition->m_numParms = 2;
 				pCondition->m_parms[1] = pCondition->m_parms[0];
@@ -1988,8 +1988,8 @@ AsciiString Parameter::getUiText() const
 			break;
 
 		case BOUNDARY:
-			// GeneralsX @bugfix Claude 06/10/2026 m_int is the map file's, and a negative one read BORDER_COLORS[-1] here (Codex
-			// mlv-r5 #2); TerrainLogic::setActiveBoundary ignores it. The table cycles, so a negative index cycles too.
+			// GeneralsX: m_int is the map file's, and a negative one read BORDER_COLORS[-1] here;
+			// TerrainLogic::setActiveBoundary ignores it. The table cycles, so a negative index cycles too.
 			uiText.format("Boundary %s", BORDER_COLORS[((m_int % BORDER_COLORS_SIZE) + BORDER_COLORS_SIZE) % BORDER_COLORS_SIZE].m_colorName);
 			break;
 
@@ -2085,7 +2085,7 @@ void Parameter::WriteParameter(DataChunkOutput &chunkWriter)
 Parameter *Parameter::ReadParameter(DataChunkInput &file)
 {
 	Parameter *pParm = newInstance(Parameter)( (ParameterType)file.readInt());
-	DeleteOnThrow<Parameter> unowned = { pParm };	// GeneralsX @bugfix Claude 06/10/2026 until its condition or action takes it (Codex mlv-r10 #2)
+	DeleteOnThrow<Parameter> unowned = { pParm };	// GeneralsX: until its condition or action takes it
 	pParm->m_initialized = true;
 	if (pParm->getParameterType() == COORD3D) {
 		Coord3D pos;
@@ -2103,9 +2103,9 @@ Parameter *Parameter::ReadParameter(DataChunkInput &file)
 
 	if (pParm->getParameterType() == COUNTER || pParm->getParameterType() == FLAG)
 	{
-		// GeneralsX @bugfix Claude 06/10/2026 A counter's or flag's int is its slot in ScriptEngine's m_counters /
+		// GeneralsX: A counter's or flag's int is its slot in ScriptEngine's m_counters /
 		// m_flags (MAX_COUNTERS / MAX_FLAGS = 256 each); 0 means "allocate one by name" and anything else was used as the
-		// index as it stood, so INT_MAX wrote m_counters[INT_MAX] the first time the action ran (Codex mlv-r4 #1). Real
+		// index as it stood, so INT_MAX wrote m_counters[INT_MAX] the first time the action ran. Real
 		// maps always save 0 (34,144 counter and flag parameters scanned).
 		const Int slots = (pParm->getParameterType() == COUNTER) ? (Int)ScriptEngine::MAX_COUNTERS : (Int)ScriptEngine::MAX_FLAGS;
 		if (pParm->m_int < 0 || pParm->m_int >= slots) {
@@ -2217,8 +2217,8 @@ Parameter *Parameter::ReadParameter(DataChunkInput &file)
     else
     {
 			// Seems weird, but this is so WB will load them into the proper format.
-			// GeneralsX @bugfix Claude 06/10/2026 m_int comes straight from the file and indexed the KINDOF_COUNT names
-			// with no bound (sweep v-map-07, Codex mlv-r2 #1): INT_MAX read a pointer from far past the table and copied
+			// GeneralsX: m_int comes straight from the file and indexed the KINDOF_COUNT names
+			// with no bound (sweep v-map-07): INT_MAX read a pointer from far past the table and copied
 			// the string it found. A kind-of the game does not have is a damaged file, as an unknown kind-of name above is.
 			if (pParm->m_int < 0 || pParm->m_int >= KINDOF_COUNT) {
 				throw ERROR_CORRUPT_FILE_FORMAT;
@@ -2240,8 +2240,8 @@ m_hasWarnings(false),
 m_numParms(0),
 m_nextAction(nullptr)
 {
-	// GeneralsX @bugfix Claude 06/10/2026 As Condition() does: a reader that throws part-way through the parameters frees the
-	// half-read action, whose destructor frees m_parms up to the count the file gave (Codex mlv-r10 #2).
+	// GeneralsX: As Condition() does: a reader that throws part-way through the parameters frees the
+	// half-read action, whose destructor frees m_parms up to the count the file gave.
 	Int i;
 	for (i = 0; i < MAX_PARMS; i++)
 	{
@@ -2410,7 +2410,7 @@ Bool ScriptAction::ParseActionDataChunk(DataChunkInput &file, DataChunkInfo *inf
 	Script *pScript = (Script *)userData;
 
 	ScriptAction	*pScriptAction = newInstance(ScriptAction);
-	DeleteOnThrow<ScriptAction> unowned = { pScriptAction };	// GeneralsX @bugfix Claude 06/10/2026 until the script takes it (Codex mlv-r10 #2)
+	DeleteOnThrow<ScriptAction> unowned = { pScriptAction };	// GeneralsX: until the script takes it
 
 	pScriptAction->m_actionType = (enum ScriptActionType)file.readInt();
 
@@ -2422,7 +2422,7 @@ Bool ScriptAction::ParseActionDataChunk(DataChunkInput &file, DataChunkInfo *inf
 #endif
 
 	pScriptAction->m_numParms =file.readInt();
-	// GeneralsX @bugfix Claude 06/10/2026 The map's parameter count is not trusted - see Condition::ParseConditionDataChunk.
+	// GeneralsX: The map's parameter count is not trusted - see Condition::ParseConditionDataChunk.
 	if (pScriptAction->m_numParms < 0 || pScriptAction->m_numParms > MAX_PARMS)
 	{
 		fprintf(stderr, "[GXSCRIPT] refused script action %d with %d parameters (at most %d): made NO_OP\n",
@@ -2442,8 +2442,8 @@ Bool ScriptAction::ParseActionDataChunk(DataChunkInput &file, DataChunkInfo *inf
 		case SKIRMISH_FIRE_SPECIAL_POWER_AT_MOST_COST:
 			if (pScriptAction->m_numParms == 1)
 			{
-				// GeneralsX @bugfix Claude 06/10/2026 The new parameter is made before the slots move: an allocation that
-				// threw with both slots on the old one had it freed twice by the guard above (Codex msto-r1 #2).
+				// GeneralsX: The new parameter is made before the slots move: an allocation that
+				// threw with both slots on the old one had it freed twice by the guard above.
 				Parameter *pSide = newInstance(Parameter)(Parameter::SIDE, 0);
 				pScriptAction->m_numParms = 2;
 				pScriptAction->m_parms[1] = pScriptAction->m_parms[0];
@@ -2558,11 +2558,11 @@ Bool ScriptAction::ParseActionFalseDataChunk(DataChunkInput &file, DataChunkInfo
 	Script *pScript = (Script *)userData;
 
 	ScriptAction	*pScriptAction = newInstance(ScriptAction);
-	DeleteOnThrow<ScriptAction> unowned = { pScriptAction };	// GeneralsX @bugfix Claude 06/10/2026 until the script takes it (Codex mlv-r10 #2)
+	DeleteOnThrow<ScriptAction> unowned = { pScriptAction };	// GeneralsX: until the script takes it
 
 	pScriptAction->m_actionType = (enum ScriptActionType)file.readInt();
 	pScriptAction->m_numParms =file.readInt();
-	// GeneralsX @bugfix Claude 06/10/2026 The map's parameter count is not trusted - see Condition::ParseConditionDataChunk.
+	// GeneralsX: The map's parameter count is not trusted - see Condition::ParseConditionDataChunk.
 	if (pScriptAction->m_numParms < 0 || pScriptAction->m_numParms > MAX_PARMS)
 	{
 		fprintf(stderr, "[GXSCRIPT] refused script action %d with %d parameters (at most %d): made NO_OP\n",

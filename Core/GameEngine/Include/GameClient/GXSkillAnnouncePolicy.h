@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @bugfix Claude 24/08/2026 - which general's-skill PURCHASES are worth a replay banner.
+**	GeneralsX: which general's-skill PURCHASES are worth a replay banner.
 **
 **	WHY THIS IS A HEADER OF ITS OWN, AND PURE.
 **

@@ -138,7 +138,7 @@ private:
 	Coord3D									m_originalPos;
 	Bool										m_hasPendingCommand;
 
-	// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#54
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#54
 	// Which KIND of guard to put back after this transport landed to let something board
 	// while it was GUARDING. GUARDTARGET_NONE means "no resume pending".
 	//

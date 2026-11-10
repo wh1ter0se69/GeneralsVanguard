@@ -424,7 +424,7 @@ size_t NetPacketDisconnectVoteCommandBase::copyBytes(UnsignedByte *buffer, const
 // NetPacketChatCommand
 ////////////////////////////////////////////////////////////////////////////////
 
-// GeneralsX @bugfix Claude 17/08/2026 sizeof(NetWireChar), not sizeof(WideChar) - see the note on
+// GeneralsX: sizeof(NetWireChar), not sizeof(WideChar) - see the note on
 // writeStringAsWireChars in NetPacketStructs.h. getSize and copyBytes must stay literally identical
 // in their arithmetic: getSize is the room check NetPacket::addCommand makes before copyBytes
 // writes into m_packet[MAX_PACKET_SIZE].
@@ -436,7 +436,7 @@ size_t NetPacketChatCommandData::getSize(const NetCommandMsg &msg)
 	size_t size = 0;
 	size += sizeof(UnsignedByte);
 	size += textLength * sizeof(network::NetWireChar);
-	// GeneralsX @feature Claude 06/11/2026 scale32: the chat recipient mask is RelayMaskType (64 bit) on the wire, same width in
+	// GeneralsX: scale32: the chat recipient mask is RelayMaskType (64 bit) on the wire, same width in
 	// getSize, copyBytes and NetPacket::readChatMessage - a Int mask cannot address slots 32-33.
 	size += sizeof(RelayMaskType);
 	return size;
@@ -478,7 +478,7 @@ size_t NetPacketDisconnectChatCommandData::getSize(const NetCommandMsg &msg)
 
 	size_t size = 0;
 	size += sizeof(UnsignedByte);
-	// GeneralsX @bugfix Claude 17/08/2026 Same 16-bit wire character as the in-game chat above. The
+	// GeneralsX: Same 16-bit wire character as the in-game chat above. The
 	// disconnect screen's chat is a different UI but the identical payload shape, and leaving one of
 	// the pair on sizeof(WideChar) would keep the cross-platform split alive on the one screen you
 	// reach precisely when the connection is already in trouble.
@@ -564,7 +564,7 @@ size_t NetPacketGameCommandData::getSize(const NetCommandMsg &msg)
 		case ARGUMENTDATATYPE_TIMESTAMP:
 			size += arg->getArgCount() * sizeof(UnsignedInt);
 			break;
-		// GeneralsX @bugfix Claude 22/09/2026 sizeof(GXWireChar), not sizeof(WideChar). Must stay
+		// GeneralsX: sizeof(GXWireChar), not sizeof(WideChar). Must stay
 		// literally in step with the copyBytes case below and with
 		// NetPacket::readGameMessageArgumentFromPacket - see GXWireChar.h.
 		case ARGUMENTDATATYPE_WIDECHAR:
@@ -636,7 +636,7 @@ size_t NetPacketGameCommandData::copyBytes(UnsignedByte *buffer, const NetComman
 		case ARGUMENTDATATYPE_TIMESTAMP:
 			size += network::writePrimitive(buffer + size, arg.timestamp);
 			break;
-		// GeneralsX @bugfix Claude 22/09/2026 A fixed 16-bit unit, not the host's wchar_t. The
+		// GeneralsX: A fixed 16-bit unit, not the host's wchar_t. The
 		// count of units written always equals the count getSize() billed above, because
 		// gxWireCharWrite folds anything outside the BMP to '?' rather than emitting nothing.
 		case ARGUMENTDATATYPE_WIDECHAR:
@@ -785,7 +785,7 @@ size_t NetPacketFileAnnounceCommandData::getSize(const NetCommandMsg &msg)
 	size_t size = 0;
 	size += cmdMsg->getPortableFilename().getByteCount() + 1;
 	size += sizeof(UnsignedShort);
-	// GeneralsX @bugfix Claude 14/08/2026 sizeof(RelayMaskType), not sizeof(UnsignedByte). The mask
+	// GeneralsX: sizeof(RelayMaskType), not sizeof(UnsignedByte). The mask
 	// was widened for twelve human slots and copyBytes below followed it; this did not, and this is
 	// the ONLY size estimator in the file that disagreed with its own writer.
 	//

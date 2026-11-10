@@ -769,9 +769,9 @@ StateReturnType AITNGuardIdleState::update()
 #if RETAIL_COMPATIBLE_CRC
 			ExitInterface* goalExitInterface = bestTunnel->getContain() ? bestTunnel->getContain()->getContainExitInterface() : nullptr;
 #else
-			// GeneralsX @bugfix Claude 09/10/2026 "Contained by something" is not "inside this tunnel network": a guard
+			// GeneralsX: "Contained by something" is not "inside this tunnel network": a guard
 			// riding in a transport was thrown out through a tunnel, which cleared its containment and left it on the
-			// transport's list; and with no tunnel left bestTunnel is null (Codex tsh-port-1008-sec-r1 P2). Only a
+			// transport's list; and with no tunnel left bestTunnel is null. Only a
 			// passenger of the network leaves through one of its tunnels.
 			ContainModuleInterface *bestContain = bestTunnel != nullptr ? bestTunnel->getContain() : nullptr;
 			if (bestContain == nullptr || !bestContain->isContained(getMachineOwner()))
@@ -894,7 +894,7 @@ StateReturnType AITNGuardAttackAggressorState::onEnter()
 //-------------------------------------------------------------------------------------------------
 StateReturnType AITNGuardAttackAggressorState::update()
 {
-	// GeneralsX @bugfix Claude 06/10/2026 loadPostProcess() calls onEnter() and drops its result, and onEnter()
+	// GeneralsX: loadPostProcess() calls onEnter() and drops its result, and onEnter()
 	// builds no m_attackState when the aggressor no longer resolves - so a save taken while a tunnel guard attacked a
 	// unit that had just died left this state resident with null, dereferenced below on the first tick. Report what
 	// onEnter() reported (SUCCESS: no one to attack), which moves the machine on as a normal entry would. The Inner and

@@ -40,7 +40,7 @@ public:
 	~FramePacer();
 
 	void update(); ///< Signal that the app/render update is done and wait for the fps limit if applicable.
-	// GeneralsX @bugfix Claude 27/09/2026 The main loop's form (GameEngine::execute, HeadlessMatch): in a network
+	// GeneralsX: The main loop's form (GameEngine::execute, HeadlessMatch): in a network
 	// game, while it holds for the cap, betweenDraws - GameEngine::updateBetweenDraws, a network and logic pass
 	// with no draw - runs at NetworkPollFps. The loop ticks the logic at most once per pass and there is no
 	// network thread, so a cap at the tick rate lost ~1 tick in 60 in a match (W7 lockstep runs). The cap still
@@ -55,12 +55,12 @@ public:
 	Bool isFramesPerSecondLimitEnabled() const; ///< Returns whether the fps limit is enabled here.
 	Bool isActualFramesPerSecondLimitEnabled() const; ///< Returns whether the fps limit is actually enabled when considering all game settings and setups.
 	Int  getActualFramesPerSecondLimit() const; // Get the actual update fps limit.
-	Bool isScriptFastForward() const; ///< GeneralsX: SET_VISUAL_SPEED_MULTIPLIER above 1 or the debug fast-forward - lifts the cap, and the logic runs with the loop (Codex W7-r8).
+	Bool isScriptFastForward() const; ///< GeneralsX: SET_VISUAL_SPEED_MULTIPLIER above 1 or the debug fast-forward - lifts the cap, and the logic runs with the loop.
 
 	Real getUpdateTime() const; ///< Get the last update delta time in seconds.
 	Real getUpdateFps() const; ///< Get the last update fps.
 
-	// GeneralsX @feature Claude 02/08/2026 Exposed so a probe can separate "my own limiter held
+	// GeneralsX: Exposed so a probe can separate "my own limiter held
 	// me" from "I am blocked on a peer's input". getUpdateTime() cannot: it reports the whole
 	// iteration and reads the same whether the frame was slow or the limiter slept.
 	Int64 getTotalHoldNs() const { return m_frameRateLimit.getTotalHoldNs(); } ///< Cumulative ns spent limiting. Baseline it and diff; see FrameRateLimit.h.
@@ -81,7 +81,7 @@ public:
 	Real getLogicTimeStepSeconds(LogicTimeQueryFlags flags = 0) const; ///< Get the logic time step in seconds
 	Real getLogicTimeStepMilliseconds(LogicTimeQueryFlags flags = 0) const; ///< Get the logic time step in milliseconds
 
-	// GeneralsX @feature Claude 30/09/2026 Fast forward: the match at 2, 3, 4, 5 or 10 times its normal tick rate.
+	// GeneralsX: Fast forward: the match at 2, 3, 4, 5 or 10 times its normal tick rate.
 	// LOCAL PACING ONLY - nothing here is simulation state; see FramePacer.cpp. Who may turn it on (a match whose only
 	// human is this player) is the caller's business: changeFastForward, CommandXlat.cpp.
 	enum { FastForwardDrawFps = 60 }; ///< draws per second at the target rate while fast forward is on; the other iterations only tick
@@ -92,16 +92,16 @@ public:
 	Bool isFastForwardDrawDue(); ///< should this iteration draw? Always TRUE unless fast forward is active
 	Real getFastForwardAchieved() const; ///< ticks over the last whole second / the normal rate; 0 until measured
 
-	// GeneralsX @feature Claude 30/09/2026 -maxspeed (CommandLine.cpp): a -headless match with no human runs as fast as the
+	// GeneralsX: -maxspeed (CommandLine.cpp): a -headless match with no human runs as fast as the
 	// CPU allows. Set from the command line before any pacer exists, hence static; Network::timeForNewFrame applies it.
-	// GeneralsX @feature Claude 02/10/2026 Tick catch-up (Common/CatchUpPolicy.h): a network match whose draws are slow keeps
+	// GeneralsX: Tick catch-up (Common/CatchUpPolicy.h): a network match whose draws are slow keeps
 	// its tick rate by skipping draws the pacer is owed, never by running two ticks per client update.
 	void enableCatchUp( Bool enable ) { m_catchUpEnabled = enable; } ///< W3DDisplay::init (Zero Hour) unless GX_CATCHUP=0
 	Bool isCatchUpEnabled() const { return m_catchUpEnabled; } ///< also lets Network::timeForNewFrame carry CatchUpDebtFrames
 	Bool isCatchUpDrawSkip(); ///< once per draw: should this iteration skip its draw and run a logic-only pass?
 	UnsignedInt getCatchUpPasses() const { return m_catchUpPasses; } ///< logic-only catch-up passes so far ([GXPACE] cu=)
 	Real getCatchUpPassFraction() const { return m_catchUpPassFraction; } ///< recent share of iterations that skipped their draw
-	// GeneralsX @feature Claude 07/10/2026 ...and single player, skirmish and replays (the regular gate, no network): the gate
+	// GeneralsX: ...and single player, skirmish and replays (the regular gate, no network): the gate
 	// keeps CatchUpPolicy::regularGate's state and reports it here after each pass; the draw reads it.
 	Bool isRegularCatchUpEligible() const; ///< the regular gate may keep debt and the draw may skip to repay it: see FramePacer.cpp
 	Int getRegularCatchUpRate() const; ///< min(logic time scale, render cap); 0 = none
@@ -130,7 +130,7 @@ protected:
 	Int m_fastForward;
 	Int64 m_ffNextDrawNs;	///< the last fast-forward draw (isFastForwardDrawDue)
 	Int m_ffItersSinceDraw;
-	Int m_ffDrawCredit;	///< FastForwardDrawFps per iteration, a draw costs the tick rate: an exact fractional cadence (Codex ffwd-r14)
+	Int m_ffDrawCredit;	///< FastForwardDrawFps per iteration, a draw costs the tick rate: an exact fractional cadence
 	Int64 m_ffWindowStartNs;
 	UnsignedInt m_ffWindowStartFrame;
 	Real m_ffAchieved;

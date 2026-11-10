@@ -297,7 +297,7 @@ extern void PopupJoinGameInit( WindowLayout *layout, void *userData );
 extern WindowMsgHandledType PopupJoinGameSystem( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 );
 extern WindowMsgHandledType PopupJoinGameInput( GameWindow *window, UnsignedInt msg, WindowMsgData mData1, WindowMsgData mData2 );
 
-// GeneralsX @feature Claude 17/08/2026 The lobby password prompt, and why it is a LANAPI subclass.
+// GeneralsX: The lobby password prompt, and why it is a LANAPI subclass.
 //
 // A host that requires a password answers a join with RET_NEEDS_PASSWORD, and a wrong one with
 // RET_BAD_PASSWORD (LANAPI.h). Both land in LANAPI::OnGameJoin, which lives in
@@ -334,14 +334,14 @@ extern LANAPI *GXCreateLobbyLANAPI( void );
 /// still built, just against an interface address).
 extern Bool SetUpOnlineLobbyLAN( void );
 
-// GeneralsX @feature Claude 07/08/2026 /nickname, applied to every identity the game has.
+// GeneralsX: /nickname, applied to every identity the game has.
 //
 // There are three, and before this they could disagree: the relay-held nickname (what the lobby
 // browser and lobby chat show), the LAN slot-list name (what GAME OPTIONS and in-match chat
 // show), and the persisted preference (what you are called next launch). Setting only the first
 // is why a name chosen in the lobby vanished the moment you joined a game and the slot list went
 // back to "r0se-winx64". Returns FALSE and fills outNote with the reason on rejection.
-// GeneralsX @refactor Claude 11/08/2026 Wide in (a name is characters, not bytes - callers use
+// GeneralsX: Wide in (a name is characters, not bytes - callers use
 // GXLobbyTakeNickRest so the remainder never round-trips through AsciiString), normalisation
 // inside (space-trim, the LAN , : ; strip, g_lanPlayerNameLength cap, non-ASCII refused), and
 // outApplied returns the one normalised value for callers whose screen state must agree - the
@@ -349,7 +349,7 @@ extern Bool SetUpOnlineLobbyLAN( void );
 extern Bool GXApplyNickname( const UnicodeString &requested, UnicodeString &outNote,
 							 UnicodeString *outApplied = nullptr );
 
-// GeneralsX @feature Claude 16/08/2026 Hosting through the stock PopupHostGame on the relay path.
+// GeneralsX: Hosting through the stock PopupHostGame on the relay path.
 //
 // PopupHostGame.wnd is shared by two lobbies that have nothing else in common: the GameSpy one,
 // whose Create button builds a PeerRequest and hands it to TheGameSpyPeerMessageQueue, and ours,
@@ -359,7 +359,7 @@ extern Bool GXApplyNickname( const UnicodeString &requested, UnicodeString &outN
 extern Bool GXRelayLobbyIsActive( void );
 extern void GXRelayHostGameWithOptions( const UnicodeString &gameName, const AsciiString &password );
 
-// GeneralsX @feature Claude 11/08/2026 The retail buddy overlay on the relay path.
+// GeneralsX: The retail buddy overlay on the relay path.
 //
 // WOLBuddyOverlay.wnd re-pointed at the local friends store. The layout is owned by
 // WOLLobbyMenu.cpp (created directly - GameSpyOpenOverlay null-derefs the buddy queue the relay
@@ -373,21 +373,21 @@ extern void GXBuddyOverlayClose( void );
 extern void GXBuddyOverlayToggle( void );
 extern void GXBuddyOverlaySetGxMode( Bool on );		///< defined in WOLBuddyOverlay.cpp
 extern void GXBuddyCloseRCMenu( void );				///< RC menus are lone layouts; transitions close them explicitly
-/// GeneralsX @feature Claude 25/09/2026 Runs the overlay's update wherever it is open - lobby, game room or
+/// GeneralsX: Runs the overlay's update wherever it is open - lobby, game room or
 /// match - from GameClient::update. It used to be pumped by the lobby screen alone, which went deaf the
 /// moment the overlay could be opened anywhere else.
 extern void GXBuddyOverlayPump( void );
-/// GeneralsX @feature Claude 25/09/2026 Does the Friends key (MetaEvent.cpp, F5 by default) belong to
+/// GeneralsX: Does the Friends key (MetaEvent.cpp, F5 by default) belong to
 /// Friends right now? Only in a live relay session - the relay lobby, a relay game room, a relay match
 /// (owner, 25/09/2026: "F5 = Friends ONLINE only"). The rule: GameClient/GXFriendsKey.h.
 extern Bool GXFriendsKeyHere( void );
 
-/// GeneralsX @feature Claude 11/08/2026 Presence of one id: 1 online, 0 offline, -1 not known.
+/// GeneralsX: Presence of one id: 1 online, 0 offline, -1 not known.
 /// The lobby's already-decoded GXHERE answer - never a second Transport consumer;
 /// takeRelayPresence is a destructive read with exactly one permitted caller.
 extern Int GXRelayPresenceFor( const char *id );
 
-// GeneralsX @feature Claude 11/08/2026 The card exchange, overlay-driven. GXRelayCardAction is
+// GeneralsX: The card exchange, overlay-driven. GXRelayCardAction is
 // the ONE writer of the fq/fa/fi pending state: the overlay's right-click handler maps its
 // buttons onto these actions and every piece of trust logic - roster revalidation against the
 // snapshot, send-before-mutate ordering, durable-id resolution at action time, decline-in-silence
@@ -412,7 +412,7 @@ extern void GXBuddyOpenRosterRCMenu( const char *layoutName, Int slot,
 									 const AsciiString &nickSnapshot, Int mouseX, Int mouseY,
 									 Bool flipIgnoreLabel );
 
-// GeneralsX @feature Claude 18/09/2026 Sign-out, from the player's own name in the Online lobby.
+// GeneralsX: Sign-out, from the player's own name in the Online lobby.
 //
 // GXBuddyOpenSelfRCMenu opens EA's retail RCLocalPlayerMenu.wnd with its one button relabelled
 // "Sign Out" (WOLBuddyOverlay.cpp). Pressing it calls GXLobbyAskSignOut, which only RAISES A FLAG:
@@ -422,7 +422,7 @@ extern void GXBuddyOpenRosterRCMenu( const char *layoutName, Int slot,
 extern void GXBuddyOpenSelfRCMenu( Int mouseX, Int mouseY );
 extern void GXLobbyAskSignOut( void );
 
-// GeneralsX @feature Claude 09/08/2026 The friends/ignore/private-message commands, as controls.
+// GeneralsX: The friends/ignore/private-message commands, as controls.
 //
 // GXRelayRunSocialCommand is the ONE seam between the code-built friends panel and the existing
 // implementation. It takes a whole "/verb rest" line, splits it exactly the way relaySubmitChat
@@ -436,7 +436,7 @@ extern void GXLobbyAskSignOut( void );
 // text box, and would echo the player's own command back at them.
 extern Bool GXRelayRunSocialCommand( const AsciiString &line );
 
-// GeneralsX @refactor Claude 11/08/2026 The CodeGui friends panel (LobbyFriendsPanel.cpp) is
+// GeneralsX: The CodeGui friends panel (LobbyFriendsPanel.cpp) is
 // DELETED - the retail overlay above replaced it, driven through this same social-command seam.
 // The panel's own reasoning ("the shipped .wnd has no Add/Delete/Yes/No buttons") was correct and
 // still is: the overlay does not use those buttons either - add and accept live on the retail
@@ -471,7 +471,7 @@ extern WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg, W
 extern void ToggleControlBar( Bool immediate = TRUE );
 extern void HideControlBar( Bool immediate = TRUE );
 extern void ShowControlBar( Bool immediate = TRUE );
-// GeneralsX @feature Claude 13/08/2026 TOGGLE_GAME_HUD. Declared in BOTH games' GUICallbacks.h
+// GeneralsX: TOGGLE_GAME_HUD. Declared in BOTH games' GUICallbacks.h
 // because it is defined in Core/ControlBarCallback.cpp, which compiles into both.
 extern void ToggleGameHud();
 

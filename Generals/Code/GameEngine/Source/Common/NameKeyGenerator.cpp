@@ -110,7 +110,7 @@ inline UnsignedInt calcHashForLowercaseString(const char* p)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @performance Claude 23/09/2026 O(1) via m_bucketsByKey instead of a walk of every
+// GeneralsX: O(1) via m_bucketsByKey instead of a walk of every
 // socket and chain (15+ us per call, ~3,500 calls per AI player at match load). Keys are unique,
 // so the indexed bucket is the one the walk would have found; a key never minted returns empty.
 AsciiString NameKeyGenerator::keyToName(NameKeyType key)
@@ -228,7 +228,7 @@ NameKeyType NameKeyGenerator::createNameKey(UnsignedInt hash, const AsciiString&
 	b->m_nextInSocket = m_sockets[hash];
 	m_sockets[hash] = b;
 
-	// GeneralsX @performance Claude 23/09/2026 Record the bucket under its key for keyToName.
+	// GeneralsX: Record the bucket under its key for keyToName.
 	const UnsignedInt index = (UnsignedInt)b->m_key;
 	if (index >= m_bucketsByKey.size())
 		m_bucketsByKey.resize(index + 1, nullptr);

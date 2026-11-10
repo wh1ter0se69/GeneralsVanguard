@@ -75,7 +75,7 @@ static Bool isWidePrintfFlag(WideChar ch)
 	return ch == L'-' || ch == L'+' || ch == L' ' || ch == L'#' || ch == L'0' || ch == L'\'';
 }
 
-// GeneralsX @bugfix copilot 19/04/2026 Normalize wide printf specifiers to preserve MSVC semantics on POSIX.
+// GeneralsX: Normalize wide printf specifiers to preserve MSVC semantics on POSIX.
 static Bool normalizeWidePrintfFormatForPosix(const WideChar *src, WideChar *dst, Int dstCapacity)
 {
 	if (src == nullptr || dst == nullptr || dstCapacity <= 0)
@@ -621,7 +621,7 @@ Bool UnicodeString::endsWithNoCase(const WideChar* p) const
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 01/10/2026 Hand-ported from TheSuperHackers #3374 (0ba1a4fe4); see AsciiString::nextToken
+// GeneralsX: Hand-ported from TheSuperHackers #3374 (0ba1a4fe4); see AsciiString::nextToken
 // (tsh batch2 #53).
 Bool UnicodeString::nextToken(UnicodeString* tok, const WideChar* separators)
 {
@@ -648,7 +648,7 @@ Bool UnicodeString::nextToken(UnicodeString* tok, const WideChar* separators)
 	{
 		Int len = end - start;
 		WideChar* tmp = tok->getBufferForRead(len + 1);
-		// GeneralsX @bugfix copilot 31/03/2026 Remove 2-byte WideChar assumption in token copy.
+		// GeneralsX: Remove 2-byte WideChar assumption in token copy.
 		memcpy(tmp, start, len * sizeof(WideChar));
 		tmp[len] = 0;
 

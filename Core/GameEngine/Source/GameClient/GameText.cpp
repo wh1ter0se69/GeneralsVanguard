@@ -298,7 +298,7 @@ void GameTextManager::init()
 	csfFile.format(g_csfFile, GetRegistryLanguage().str());
 	Int format;
 
-	// GeneralsX @bugfix BenderAI 16/02/2026 - Debug CSF init
+	// GeneralsX: Debug CSF init
 	fprintf(stderr, "[CSF] init() - START\n");
 
 	if ( m_initialized )
@@ -382,20 +382,20 @@ void GameTextManager::init()
 
 	qsort( m_stringLUT, m_textCount, sizeof(StringLookUp), compareLUT  );
 
-	// GeneralsX @bugfix BenderAI 22/05/2026 Load fallback CSF instance when a mod provides an incomplete table.
-	// GeneralsX @security Claude 06/10/2026 A string FILE (Generals.str) gets the CSF as its fallback too (Codex format-strings-r5 P2).
+	// GeneralsX: Load fallback CSF instance when a mod provides an incomplete table.
+	// GeneralsX: A string FILE (Generals.str) gets the CSF as its fallback too.
 	// Without it a label an incomplete .str lacks fell through to the loaded map's map.str, and the engine uses ~120 such labels as
 	// printf formats (format(fetch("CONTROLBAR:PowerDescription"), ...) and the like), so a custom map could supply the format.
 	// Which CSF: instance 0 is the loose file when one exists, else the first archive (FileSystem::openFile). GeneralsX ships its overlay
 	// as the loose Data/<lang>/Generals.csf, so with it the retail table is instance 1; without it the retail table is instance 0 -
-	// instance 1 would then be W3DEnglishZH.big's older CSF, with stale text (Codex format-strings-r7 P3). CSF mode keeps instance 1.
+	// instance 1 would then be W3DEnglishZH.big's older CSF, with stale text. CSF mode keeps instance 1.
 	{
 		Int fallbackCount = 0;
 		LanguageID originalLanguage = m_language;
 		FileInstance fallbackInstance = 1;
 		if ( format == STRING_FILE )
 		{
-			// A lone loose CSF (no archive copy behind it) is itself the fallback (Codex format-strings-r8).
+			// A lone loose CSF (no archive copy behind it) is itself the fallback.
 			const Bool loose = TheLocalFileSystem && TheLocalFileSystem->doesFileExist(csfFile.str());
 			if ( !loose || !getCSFInfo(csfFile.str(), fallbackCount, m_language, 1) )
 				fallbackInstance = 0;
@@ -596,7 +596,7 @@ void GameTextManager::readToEndOfQuote( File *file, Char *in, Char *out, Char *w
 	Int len = 0;
 	Int done = FALSE;
 
-	// GeneralsX @bugfix Claude 06/10/2026 A damaged map.str (sent to every lobby peer with the map) must not write past
+	// GeneralsX: A damaged map.str (sent to every lobby peer with the map) must not write past
 	// m_buffer2/m_buffer3 or hang the loader. The text loop now keeps the last byte for its terminator (it still reads the
 	// closing quote there, so a string that fits exactly keeps its wave name), the wave-name loop below never wrote with any
 	// bound at all, and end of file was never seen: readChar() returned 0 there, not EOF, so an unclosed quote at the end
@@ -801,7 +801,7 @@ void GameTextManager::translateCopy( WideChar *outbuf, Char *inbuf )
 					formatWord = FALSE;
 				}
 				*b++ = ch;
-				// GeneralsX @bugfix Claude 06/10/2026 A string ending in '\\' or '%' made both copies below step over the
+				// GeneralsX: A string ending in '\\' or '%' made both copies below step over the
 				// terminator, and the outer loop then read past the end of the text (m_buffer2 for a map.str entry).
 				if ( ch == '\\' && *inbuf != 0 )
 				{
@@ -1002,7 +1002,7 @@ Bool GameTextManager::parseCSF( const Char *filename, StringInfo *stringInfo, In
 	Bool ok = FALSE;
 	CSFHeader header;
 
-	// GeneralsX @bugfix BenderAI 16/02/2026 - Debug parseCSF
+	// GeneralsX: Debug parseCSF
 	fprintf(stderr, "[CSF] parseCSF() - START filename='%s'\n", filename);
 
 	file = TheFileSystem->openFile(filename, File::READ | File::BINARY, File::BUFFERSIZE, instance);
@@ -1021,11 +1021,11 @@ Bool GameTextManager::parseCSF( const Char *filename, StringInfo *stringInfo, In
 		return FALSE;
 	}
 
-	// GeneralsX @bugfix BenderAI 17/02/2026 - Log header for debugging
+	// GeneralsX: Log header for debugging
 	fprintf(stderr, "[CSF] parseCSF() - Header: id=%#x version=%d num_labels=%d num_strings=%d skip=%d langid=%d\n",
 		header.id, header.version, header.num_labels, header.num_strings, header.skip, header.langid);
 
-	// GeneralsX @bugfix BenderAI 17/02/2026 - Skip extra bytes after header
+	// GeneralsX: Skip extra bytes after header
 	// The 'skip' field indicates how many bytes to advance before reading first label
 	if (header.skip > 0) {
 		fprintf(stderr, "[CSF] parseCSF() - Skipping %d bytes as indicated by header.skip\n", header.skip);
@@ -1081,7 +1081,7 @@ Bool GameTextManager::parseCSF( const Char *filename, StringInfo *stringInfo, In
 
 			if ( len )
 			{
-				// GeneralsX @bugfix BenderAI 17/02/2026 Linux wchar_t compatibility
+				// GeneralsX: Linux wchar_t compatibility
 				// CSF files store 16-bit wide chars (UCS-2), but Linux wchar_t is 32-bit (UCS-4)
 #ifdef _WIN32
 				file->read ( m_tbuffer, len*sizeof(WideChar) );
@@ -1107,7 +1107,7 @@ Bool GameTextManager::parseCSF( const Char *filename, StringInfo *stringInfo, In
 
 					while ( *ptr )
 					{
-						// GeneralsX @bugfix BenderAI 17/02/2026 Bitwise NOT for 16-bit values only
+						// GeneralsX: Bitwise NOT for 16-bit values only
 #ifdef _WIN32
 						*ptr = ~*ptr;
 #else
@@ -1144,7 +1144,7 @@ Bool GameTextManager::parseCSF( const Char *filename, StringInfo *stringInfo, In
 
 		listCount++;
 		
-		// GeneralsX @bugfix BenderAI 17/02/2026 Progress logging every 500 labels
+		// GeneralsX: Progress logging every 500 labels
 		if (listCount % 500 == 0) {
 			fprintf(stderr, "[CSF] parseCSF() - Progress: %d/%d labels processed\n", listCount, textCount);
 		}
@@ -1194,7 +1194,7 @@ Bool GameTextManager::parseStringFile( const char *filename )
 		if( ( *(unsigned short *)m_buffer == 0x2F2F) || !m_buffer[0])			//	0x2F2F is Hex for //
 			continue;
 
-		// GeneralsX @bugfix Claude 06/10/2026 The table was sized by getStringCount(), which reads a line that starts with
+		// GeneralsX: The table was sized by getStringCount(), which reads a line that starts with
 		// a quote as a string (and swallows the END lines inside it) where this loop reads it as a label, so a damaged
 		// file yields more labels than the table holds. Stop at the table's end instead of writing past it.
 		if ( listCount >= m_textCount )
@@ -1337,7 +1337,7 @@ Bool GameTextManager::parseMapStringFile( const char *filename )
 		if( ( *(unsigned short *)m_buffer == 0x2F2F) || !m_buffer[0])			//	0x2F2F is Hex for //
 			continue;
 
-		// GeneralsX @bugfix Claude 06/10/2026 Same table bound as parseStringFile; a map.str comes from the lobby host.
+		// GeneralsX: Same table bound as parseStringFile; a map.str comes from the lobby host.
 		if ( listCount >= m_mapTextCount )
 		{
 			DEBUG_CRASH(( "Map string file '%s' has more labels than its table holds (%d)", filename, m_mapTextCount ));
@@ -1432,7 +1432,7 @@ UnicodeString GameTextManager::fetch( const Char *label, Bool *exists )
 	return fetchFrom( label, exists, TRUE );
 }
 
-// GeneralsX @bugfix Claude 06/10/2026 fetchFormat, fetchOrSubstituteFormat and fetchOrSubstitute (whose result callers
+// GeneralsX: fetchFormat, fetchOrSubstituteFormat and fetchOrSubstitute (whose result callers
 // format too) use the text they find as a printf format. A label missing from the game's own tables - every new
 // GeneralsX string behind FETCH_OR_SUBSTITUTE starts that way - used to fall through to the map's map.str, which arrives
 // with the map from the lobby host, so a map could supply "%n" or "%s" for it and crash or corrupt every client that
@@ -1458,13 +1458,13 @@ UnicodeString GameTextManager::fetchFrom( const Char *label, Bool *exists, Bool 
 
 	lookUp = (StringLookUp *) bsearch( &key, (void*) m_stringLUT, m_textCount, sizeof(StringLookUp), compareLUT );
 
-	// GeneralsX @bugfix BenderAI 22/05/2026 Fallback to lower-priority CSF when override tables are incomplete.
+	// GeneralsX: Fallback to lower-priority CSF when override tables are incomplete.
 	if ( lookUp == nullptr && m_fallbackStringLUT && m_fallbackTextCount )
 	{
 		lookUp = (StringLookUp *) bsearch( &key, (void*) m_fallbackStringLUT, m_fallbackTextCount, sizeof(StringLookUp), compareLUT );
 	}
 
-	// GeneralsX @bugfix Claude 06/10/2026 The map's map.str comes LAST, after the fallback CSF. It was searched before the
+	// GeneralsX: The map's map.str comes LAST, after the fallback CSF. It was searched before the
 	// fallback, and the deployed Generals.csf is an overlay of a few labels with the retail CSF as that fallback, so a map
 	// could replace almost every retail string - including the ~120 that the engine uses as printf formats (a map's
 	// "%n" for CONTROLBAR:PowerDescription crashed the client). In retail the game's table always wins over the map's.
@@ -1620,7 +1620,7 @@ AsciiStringVec& GameTextManager::getStringsWithLabelPrefix(AsciiString label)
 // GameTextManager::readLine
 //============================================================================
 
-// GeneralsX @bugfix Claude 06/10/2026 Reads at most max chars and then writes the terminator, so the buffer must hold
+// GeneralsX: Reads at most max chars and then writes the terminator, so the buffer must hold
 // max+1: every caller passes sizeof(m_buffer) - 1 (two used to pass the whole buffer, so a 10 KB line in a map.str wrote
 // past m_buffer), and the '\n' appended after a line that opens a quote is added only when it still fits.
 Bool	GameTextManager::readLine( char *buffer, Int max, File *file )

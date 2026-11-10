@@ -45,7 +45,7 @@
 #include "GameNetwork/GXRelaySlotsWire.h"	// RequestGameOptions: the GXSLOT seat list
 #include "Common/GXAdminOrder.h"			// GX_ADMIN_MAX_PER_MATCH
 
-// GeneralsX @feature Claude 19/09/2026 The seat states GXRelaySlotsWire.h restates, pinned to SlotState so
+// GeneralsX: The seat states GXRelaySlotsWire.h restates, pinned to SlotState so
 // a reordered enum is a build error rather than an AI reported as a human.
 static_assert((Int)SLOT_OPEN == (Int)GX_SEAT_OPEN, "GXRelaySlotsWire.h GXSeatState must match SlotState");
 static_assert((Int)SLOT_CLOSED == (Int)GX_SEAT_CLOSED, "GXRelaySlotsWire.h GXSeatState must match SlotState");
@@ -54,14 +54,14 @@ static_assert((Int)SLOT_MED_AI == (Int)GX_SEAT_MED_AI, "GXRelaySlotsWire.h GXSea
 static_assert((Int)SLOT_BRUTAL_AI == (Int)GX_SEAT_BRUTAL_AI, "GXRelaySlotsWire.h GXSeatState must match SlotState");
 static_assert((Int)SLOT_PLAYER == (Int)GX_SEAT_PLAYER, "GXRelaySlotsWire.h GXSeatState must match SlotState");
 static_assert(MAX_SLOTS <= GX_RELAY_SEATS_MAX, "GXSLOT carries at most GX_RELAY_SEATS_MAX seats");
-// GeneralsX @feature Claude 24/08/2026 Host-authoritative camera height limits. Resolves to
+// GeneralsX: Host-authoritative camera height limits. Resolves to
 // GameClient/GXHostCamera.h when feat/hostcam-apply is present, to inert no-ops when it is not.
 #include "GameNetwork/GXHostCamSeam.h"
 
 
 static const UnsignedShort lobbyPort = 8086; ///< This is the UDP port used by all LANAPI communication
 
-// GeneralsX @feature Claude 08/08/2026 Lobby password / private flag, carried across a LANAPI
+// GeneralsX: Lobby password / private flag, carried across a LANAPI
 // rebuild.
 //
 // This has to outlive the object because relayJoinSelectedGame DELETES TheLAN AND BUILDS A NEW
@@ -110,7 +110,7 @@ static UnsignedInt findBroadcastAddrForIP( UnsignedInt localIP )
 
 const UnsignedInt LANAPI::s_resendDelta = 10 * 1000;	///< This is how often we announce ourselves to the world
 
-// GeneralsX @feature Claude 17/08/2026 The two lobby-name caps must agree, and this is the only
+// GeneralsX: The two lobby-name caps must agree, and this is the only
 // translation unit that can see both.
 //
 // GameInfo::setLobbyName caps what a host may type (g_lobbyDisplayNameLength, GameInfo.h);
@@ -166,7 +166,7 @@ LANAPI::LANAPI() : m_transport(nullptr)
 	m_actionTimeout = 5000; // ms
 	m_lastUpdate = 0;
 
-	// GeneralsX @feature Claude 10/08/2026 Reassert state - see the block comment in update().
+	// GeneralsX: Reassert state - see the block comment in update().
 	// The memset matters: a stack-garbage m_lastJoinRequest must never be sendable.
 	m_hasMapBurstNext = 0;
 	m_hasMapBurstLeft = 0;
@@ -186,20 +186,20 @@ LANAPI::LANAPI() : m_transport(nullptr)
 	m_transport = new Transport;
 	m_isActive = TRUE;
 
-	// GeneralsX @feature Claude 27/07/2026 Uninitialised members would otherwise be formatted
+	// GeneralsX: Uninitialised members would otherwise be formatted
 	// into the user-facing join-failure dialog as if they were a real peer's version numbers.
 	m_remoteSimValid = FALSE;
 	memset(&m_remoteSim, 0, sizeof(m_remoteSim));
 	m_remoteSimVerdict = SIMID_OK;
 	m_pendingSimWarnFlags = 0;
 
-	// GeneralsX @bugfix Claude 22/09/2026 A brand new LAN subsystem has told nobody anything yet.
+	// GeneralsX: A brand new LAN subsystem has told nobody anything yet.
 	// Stack garbage here would MUTE a real desync warning rather than duplicate one, so this is the
 	// one of the two failure directions that is silent - which is why it is initialised explicitly
 	// even though the relay join path rebuilds LANAPI and would mask the omission most of the time.
 	m_saidSimWarnFlags = 0;
 
-	// GeneralsX @feature Claude 24/08/2026 Host-camera lobby notice. A stack-garbage flag word would
+	// GeneralsX: Host-camera lobby notice. A stack-garbage flag word would
 	// make a brand new LANAPI emit a warning about numbers that were never on any wire.
 	m_pendingHostCamFlags = 0;
 	m_pendingHostCamHostMin = 0.0f;
@@ -207,13 +207,13 @@ LANAPI::LANAPI() : m_transport(nullptr)
 	m_pendingHostCamLocalMin = 0.0f;
 	m_pendingHostCamLocalMax = 0.0f;
 
-	// GeneralsX @feature Claude 24/08/2026 A fresh LAN subsystem holds no host camera override.
+	// GeneralsX: A fresh LAN subsystem holds no host camera override.
 	// Hygiene rather than a fix: the seam refuses to apply a pair outside a multiplayer match and
 	// drops it when one ends, and the relay join path DESTROYS AND REBUILDS LANAPI, so this runs
 	// on exactly the transition where a carried-over pair would be least expected.
 	GXHostCamera::clearHostLimits();
 
-	// GeneralsX @feature Claude 08/08/2026 Lobby password / private game state. All of it has to
+	// GeneralsX: Lobby password / private game state. All of it has to
 	// start at a known value: m_hostPwRequired governs whether joins are refused at all, and a
 	// stack-garbage TRUE would make a brand new lobby reject everyone with no way to find out why.
 	m_hostPwRequired = FALSE;
@@ -232,7 +232,7 @@ LANAPI::LANAPI() : m_transport(nullptr)
 	m_joinPwAutoRetries = 0;
 	m_pendingLobbyNotice = FALSE;
 
-	// GeneralsX @feature Claude 08/08/2026 Headless and scripted peers have no chat box, so the
+	// GeneralsX: Headless and scripted peers have no chat box, so the
 	// password arrives through the environment instead - the same channel and the same precedence
 	// rule GENERALSX_LANROOM already uses. Applies to BOTH roles: a headless host binds it as the
 	// lobby password, a headless joiner answers with it.
@@ -291,7 +291,7 @@ void LANAPI::init()
 	m_currentGame = nullptr;
 	m_directConnectRemoteIP = 0;
 
-	// GeneralsX @feature Claude 10/08/2026 A re-init is a fresh lobby; drop any reassert state.
+	// GeneralsX: A re-init is a fresh lobby; drop any reassert state.
 	m_hasMapBurstNext = 0;
 	m_hasMapBurstLeft = 0;
 	m_lastJoinRequestValid = FALSE;
@@ -371,7 +371,7 @@ void LANAPI::reset()
 	m_sawNetworkMatch = FALSE;
 	m_currentGame = nullptr;
 
-	// GeneralsX @bugfix Claude 23/09/2026 The address dies with the lobby too. LanLobbyMenuInit runs
+	// GeneralsX: The address dies with the lobby too. LanLobbyMenuInit runs
 	// reset(), init(), SetLocalIP(nic) on a TheLAN that can have come from the ONLINE screen, so init()
 	// bound ONLINE's relay address (10.42.x.x). With the LAN screen local (Transport::enterLocalScreen)
 	// nothing widens that bind any more, and on Windows - which binds the address it is given - it is on
@@ -380,7 +380,7 @@ void LANAPI::reset()
 	// calls SetLocalIP next or deletes this object.
 	m_localIP = 0;
 
-	// GeneralsX @feature Claude 10/08/2026 Reassert state dies with the lobby it belonged to.
+	// GeneralsX: Reassert state dies with the lobby it belonged to.
 	m_hasMapBurstNext = 0;
 	m_hasMapBurstLeft = 0;
 	m_lastJoinRequestValid = FALSE;
@@ -388,7 +388,7 @@ void LANAPI::reset()
 	m_gameStartBurstLeft = 0;
 	m_gameStartBurstNext = 0;
 
-	// GeneralsX @feature Claude 24/08/2026 Same reasoning as in the constructor. reset() is only ever
+	// GeneralsX: Same reasoning as in the constructor. reset() is only ever
 	// called on entry to the LAN lobby and the Direct Connect screen (LanLobbyMenu,
 	// NetworkDirectConnect) - never mid-match, and TheLAN is not in the engine's subsystem list,
 	// so nothing calls this behind our back at match start. Verified before adding the call:
@@ -396,7 +396,7 @@ void LANAPI::reset()
 	GXHostCamera::clearHostLimits();
 }
 
-// GeneralsX @bugfix Claude 14/08/2026 Send the bytes the message actually needs, not the size of
+// GeneralsX: Send the bytes the message actually needs, not the size of
 // the whole union. See the long note at LANAPI.h's g_lanLegacyOptionsLength for why: sending
 // sizeof(LANMessage) padded every chat line and ready tick to ~763 bytes and every peer on a
 // 476-capped build dropped them without a word.
@@ -414,7 +414,7 @@ void LANAPI::reset()
 // build already expects to receive.
 Int LANAPI::wireSize(const LANMessage *msg)
 {
-	// GeneralsX @feature Claude 25/09/2026 One definition, in LANAPI.h, so the self-test measures
+	// GeneralsX: One definition, in LANAPI.h, so the self-test measures
 	// the function the engine sends with. A long MSG_GAME_ANNOUNCE now goes out at its own length
 	// too - see LANMessageWireSize.
 	return LANMessageWireSize(msg);
@@ -430,7 +430,7 @@ void LANAPI::sendMessage(LANMessage *msg, UnsignedInt ip /* = 0 */)
 	}
 	else if ((m_currentGame != nullptr) && (m_currentGame->getIsDirectConnect()))
 	{
-		// GeneralsX @feature Claude 30/07/2026 Trace the unicast fan-out too.
+		// GeneralsX: Trace the unicast fan-out too.
 		//
 		// The broadcast arm below has always been traced and this one was not, on the reasoning
 		// that an established peer has already demonstrated discovery. That left a real failure
@@ -462,7 +462,7 @@ void LANAPI::sendMessage(LANMessage *msg, UnsignedInt ip /* = 0 */)
 	}
 	else
 	{
-		// GeneralsX @feature Claude 27/07/2026 Release-visible. Pairs with the [LAN] recv trace in
+		// GeneralsX: Release-visible. Pairs with the [LAN] recv trace in
 		// update(): together they tell a send that never happened from a send that was never
 		// received. Only the broadcast arm is traced - the unicast arms are driven by an already
 		// established peer, so by then discovery has demonstrably worked.
@@ -510,7 +510,7 @@ AsciiString GetMessageTypeString(UnsignedInt type)
 			returnString.format("Set Accept(%d)",type);
 			break;
 		case LANMessage::MSG_MAP_AVAILABILITY:
-			// GeneralsX @bugfix Claude 11/08/2026 Was missing, so every availability announce logged
+			// GeneralsX: Was missing, so every availability announce logged
 			// as "Unknown Message (9)" - which cost a whole evening of mis-classified evidence.
 			returnString.format("Map Status (%d)",type);
 			break;
@@ -595,7 +595,7 @@ extern Bool LANbuttonPushed;
 extern Bool LANSocketErrorDetected;
 void LANAPI::update()
 {
-	// GeneralsX @bugfix Claude 22/09/2026 THE RESET for the "already said" tier2 mask, and the whole
+	// GeneralsX: THE RESET for the "already said" tier2 mask, and the whole
 	// reason the de-duplication is safe. The mask suppresses a condition for the rest of a lobby
 	// session; if it survived into the NEXT lobby it would suppress a real desync warning forever,
 	// turning an annoyance into a silent failure.
@@ -615,25 +615,25 @@ void LANAPI::update()
 	if (m_inLobby || m_currentGame == nullptr)
 		m_saidSimWarnFlags = 0;
 
-	// GeneralsX @feature Claude 27/07/2026 Deferred tier2 warnings for the joining side. Must
+	// GeneralsX: Deferred tier2 warnings for the joining side. Must
 	// run before both early returns: LANbuttonPushed stays TRUE from OnGameJoin(RET_OK) until
 	// LanGameOptionsMenuInit clears it, and the 200 ms throttle below returns just as early -
 	// that window is exactly when the chat listbox comes into existence.
 	if (m_pendingSimWarnFlags != 0)
 		flushPendingSimWarnings();
 
-	// GeneralsX @feature Claude 08/08/2026 Same deferral, same window, same reason - see the note
+	// GeneralsX: Same deferral, same window, same reason - see the note
 	// on flushPendingLobbyNotice. Must be above the early returns for the same reason as above.
 	if (m_pendingLobbyNotice)
 		flushPendingLobbyNotice();
 
-	// GeneralsX @feature Claude 24/08/2026 And the host-camera notice, third user of the same
+	// GeneralsX: And the host-camera notice, third user of the same
 	// deferral. Above the early returns for the same reason: the window in which the LAN game
 	// options listbox comes into existence is exactly the window in which both returns fire.
 	if (m_pendingHostCamFlags != 0)
 		flushPendingHostCameraNotice();
 
-	// GeneralsX @feature Claude 30/07/2026 Say so when the latch kills the pump.
+	// GeneralsX: Say so when the latch kills the pump.
 	//
 	// This return disables BOTH halves of LANAPI - no periodic send and, via the
 	// `!LANbuttonPushed` condition on the receive loop below, no draining of the inbound queue.
@@ -651,7 +651,7 @@ void LANAPI::update()
 			fflush(stderr);
 		}
 
-		// GeneralsX @bugfix Claude 06/08/2026 Keep the joiner's keepalive alive across the latch.
+		// GeneralsX: Keep the joiner's keepalive alive across the latch.
 		//
 		// This is the root cause of "Accept and Back do nothing", measured from both ends.
 		//
@@ -689,7 +689,7 @@ void LANAPI::update()
 	static const UnsignedInt LANAPIUpdateDelay = 200;
 	UnsignedInt now = timeGetTime();
 
-	// GeneralsX @bugfix Claude 07/08/2026 Drain the socket EVERY call. The 200 ms delay below is a
+	// GeneralsX: Drain the socket EVERY call. The 200 ms delay below is a
 	// send throttle and was never meant to be a receive throttle.
 	//
 	// This used to sit after that early return, so inbound was serviced 5 times a second. Every
@@ -714,7 +714,7 @@ void LANAPI::update()
 		}
 	}
 
-	// GeneralsX @bugfix Claude 08/08/2026 The relay listing is DERIVED STATE, not a latch.
+	// GeneralsX: The relay listing is DERIVED STATE, not a latch.
 	//
 	// The ghost lobby: the operator hosted a game, left it, and his own game was still in the
 	// Online browser afterwards. clearGameAdvertisement() existed and was correct - and had
@@ -737,7 +737,7 @@ void LANAPI::update()
 	// the match is actually running, which is what closes the "host returns to the shell after the
 	// match and keeps advertising a game that ended" case.
 	//
-	// GeneralsX @bugfix Claude 12/08/2026 And now it TELLS the relay, rather than only going quiet.
+	// GeneralsX: And now it TELLS the relay, rather than only going quiet.
 	// Silence still delists - it has to, for the host that crashes - but it takes the relay's 15 s
 	// expiry plus a sweep plus the browser's own publish lag, which is the remaining half of the
 	// ghost row. withdrawGameAdvertisement() says the game is gone and clears the advertisement
@@ -796,7 +796,7 @@ void LANAPI::update()
 			}
 
 			LANMessage *msg = (LANMessage *)(m_transport->m_inBuffer[i].data);
-			// GeneralsX @bugfix Claude 24/09/2026 Terminate before any handler reads a string; see
+			// GeneralsX: Terminate before any handler reads a string; see
 			// SanitizeReceivedLANMessage in LANAPI.h.
 			static_assert(sizeof(m_transport->m_inBuffer[i].data) >= sizeof(LANMessage),
 				"the receive slot must hold a whole LANMessage for the blind cast and the sanitizer");
@@ -804,7 +804,7 @@ void LANAPI::update()
 			//DEBUG_LOG(("LAN message type %s from %ls (%s@%s)", GetMessageTypeString(msg->messageType).str(),
 			//	msg->name, msg->userName, msg->hostName));
 
-			// GeneralsX @feature Claude 27/07/2026 Release-visible inbound trace. This is the only
+			// GeneralsX: Release-visible inbound trace. This is the only
 			// place that can distinguish the two failures that look identical from outside the
 			// process: nothing arrived (firewall drop, wrong broadcast address, wrong interface)
 			// versus something arrived and was rejected further down. Both otherwise present as a
@@ -819,7 +819,7 @@ void LANAPI::update()
 				(int)m_transport->m_inBuffer[i].length);
 			fflush(stderr);
 
-			// GeneralsX @bugfix Claude 06/08/2026 ANY packet from a slot proves that slot is alive.
+			// GeneralsX: ANY packet from a slot proves that slot is alive.
 			//
 			// Defence in depth for the drop described at the top of update(). The host used to
 			// refresh a slot's last-heard from exactly one message type, MSG_GAME_OPTIONS, so a
@@ -917,7 +917,7 @@ void LANAPI::update()
 			// Mark it as read
 			m_transport->m_inBuffer[i].length = 0;
 		}
-		// GeneralsX @bugfix Claude 08/08/2026 Scan the WHOLE buffer. This used to `break` at the
+		// GeneralsX: Scan the WHOLE buffer. This used to `break` at the
 		// first empty slot, which is only correct while the occupied slots are a prefix - and this
 		// very loop is the thing that breaks that invariant.
 		//
@@ -933,7 +933,7 @@ void LANAPI::update()
 		//
 		// The cost of not breaking is a scan of MAX_MESSAGES ints at 5 Hz.
 	}
-	// GeneralsX @feature Claude 30/07/2026 The second gate. Distinct message from the first on
+	// GeneralsX: The second gate. Distinct message from the first on
 	// purpose: reaching here means the latch was CLEAR at the top of update() and got SET while
 	// this very call was processing inbound messages - almost certainly by OnGameJoin or
 	// OnGameCreate firing out of the receive loop above. That is a different bug from arriving
@@ -948,7 +948,7 @@ void LANAPI::update()
 			fflush(stderr);
 		}
 
-		// GeneralsX @bugfix Claude 06/08/2026 The SECOND gate needs the keepalive too.
+		// GeneralsX: The SECOND gate needs the keepalive too.
 		//
 		// The first fix only patched the early return at the top of update(). Driving the Windows
 		// GUI through a real join proved that insufficient: the gate that actually fired was this
@@ -965,7 +965,7 @@ void LANAPI::update()
 		}
 		return;
 	}
-	// GeneralsX @feature Claude 06/08/2026 Say why the keepalive is or is not going out.
+	// GeneralsX: Say why the keepalive is or is not going out.
 	//
 	// Measured over a driven join: the client sent 5 Game Options at join and then nothing for 90
 	// seconds, with NEITHER latch gate firing in that window. So update() was running past both
@@ -1013,7 +1013,7 @@ void LANAPI::update()
 				RequestGameOptions( text, true );
 #endif
 				RequestGameOptions( "HELLO", false );
-				// GeneralsX @feature Claude 10/08/2026 Re-announce map availability with the
+				// GeneralsX: Re-announce map availability with the
 				// keepalive. Closes the tail the burst below can miss (all three shots lost, or
 				// a status change the host's stale slot list keeps overriding on other peers).
 				sendHasMapNow();
@@ -1026,7 +1026,7 @@ void LANAPI::update()
 		}
 	}
 
-	// GeneralsX @feature Claude 10/08/2026 Lobby datagram reasserts.
+	// GeneralsX: Lobby datagram reasserts.
 	//
 	// MSG_MAP_AVAILABILITY and MSG_REQUEST_JOIN are single unacked datagrams that gate real
 	// decisions. A lost hasMap=false leaves every peer believing the sender has the map (slots
@@ -1125,7 +1125,7 @@ void LANAPI::update()
 	{
 		if ( !AmIHost() && (m_currentGame->getLastHeard() + s_resendDelta*16 < now) )
 		{
-			// GeneralsX @bugfix Claude 12/08/2026 Do not offer this game back to us thirty seconds
+			// GeneralsX: Do not offer this game back to us thirty seconds
 			// after telling us its host stopped answering.
 			//
 			// This branch is the guest's half of the ghost row, and it is the half with NO other
@@ -1149,7 +1149,7 @@ void LANAPI::update()
 			LANMessage msg;
 			fillInLANMessage( &msg );
 			msg.messageType = LANMessage::MSG_REQUEST_GAME_LEAVE;
-			// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+			// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 			CopyWcharToWindowsWideChar(msg.name, m_currentGame->getPlayerName(0).str(), ARRAY_SIZE(msg.name) - 1);
 			handleRequestGameLeave(&msg, m_currentGame->getIP(0));
 			UnicodeString text;
@@ -1168,7 +1168,7 @@ void LANAPI::update()
 					UnicodeString theStr;
 					theStr.format(TheGameText->fetchGameOnly("LAN:PlayerDropped"), m_currentGame->getPlayerName(p).str());
 					msg.messageType = LANMessage::MSG_REQUEST_GAME_LEAVE;
-					// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+					// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 					CopyWcharToWindowsWideChar(msg.name, m_currentGame->getPlayerName(p).str(), ARRAY_SIZE(msg.name) - 1);
 					handleRequestGameLeave(&msg, m_currentGame->getIP(p));
 					OnChat(UnicodeString::TheEmptyString, m_localIP, theStr, LANCHAT_SYSTEM);
@@ -1263,7 +1263,7 @@ void LANAPI::RequestGameJoin( LANGameInfo *game, UnsignedInt ip /* = 0 */ )
 		return;
 	}
 
-	// GeneralsX @feature Claude 27/07/2026 Set the verdict BEFORE calling OnGameJoin, or the
+	// GeneralsX: Set the verdict BEFORE calling OnGameJoin, or the
 	// dialog's switch has no matching case and will either render empty or quote a stale peer
 	// that was never contacted. This fires when GameEngine::init threw between the XferCRC and
 	// the m_iniCRC assignment and was swallowed by the handlers at the bottom of init.
@@ -1272,7 +1272,7 @@ void LANAPI::RequestGameJoin( LANGameInfo *game, UnsignedInt ip /* = 0 */ )
 		m_remoteSimValid = FALSE;
 		memset(&m_remoteSim, 0, sizeof(m_remoteSim));
 		m_remoteSimVerdict = SIMID_LOCAL_INVALID;
-		// GeneralsX @bugfix Claude 11/08/2026 (cross-model review) Terminal. Reached from
+		// GeneralsX: (cross-model review) Terminal. Reached from
 		// handleGameAnnounce mid-direct-connect, this used to leave ACT_JOINDIRECTCONNECT
 		// pending - so the game-info reassert kept knocking, every announce re-entered here and
 		// reopened this dialog, and the player got a second, misleading RET_TIMEOUT at expiry.
@@ -1284,7 +1284,7 @@ void LANAPI::RequestGameJoin( LANGameInfo *game, UnsignedInt ip /* = 0 */ )
 		return;
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 A user-initiated join resets the automatic password
+	// GeneralsX: A user-initiated join resets the automatic password
 	// retry budget. Without this, the second game you try in one lobby session would inherit an
 	// exhausted budget from the first and never get past the "needs a password" refusal.
 	m_joinPwAutoRetries = 0;
@@ -1295,7 +1295,7 @@ void LANAPI::RequestGameJoin( LANGameInfo *game, UnsignedInt ip /* = 0 */ )
 	m_expiration = timeGetTime() + m_actionTimeout;
 }
 
-// GeneralsX @feature Claude 08/08/2026 The one place a MSG_REQUEST_JOIN is built.
+// GeneralsX: The one place a MSG_REQUEST_JOIN is built.
 //
 // Factored out of RequestGameJoin because handleJoinDeny has to send the identical message again
 // with a password attached, and two copies of a join request would eventually disagree about the
@@ -1304,7 +1304,7 @@ void LANAPI::RequestGameJoin( LANGameInfo *game, UnsignedInt ip /* = 0 */ )
 void LANAPI::sendJoinRequest( UnsignedInt gameIP, UnsignedInt destIP )
 {
 	LANMessage msg;
-	// GeneralsX @feature Claude 27/07/2026 The appended sim field must not ship stack garbage.
+	// GeneralsX: The appended sim field must not ship stack garbage.
 	// This memset must stay HERE and must NOT be hoisted into fillInLANMessage: this function
 	// and RequestLocations both set messageType BEFORE calling fillInLANMessage, and
 	// MSG_REQUEST_LOCATIONS is enum value 0, so a memset in there would silently rewrite every
@@ -1320,14 +1320,14 @@ void LANAPI::sendJoinRequest( UnsignedInt gameIP, UnsignedInt destIP )
 	msg.GameToJoin.iniCRC = TheGlobalData->m_iniCRC;
 	SimulationId::get().toWire( msg.GameToJoin.sim );
 
-	// GeneralsX @feature Claude 09/08/2026 Declare what kind of build this is, so the host can
+	// GeneralsX: Declare what kind of build this is, so the host can
 	// refuse a mismatch. The tag is what separates "a plain release build" (flags 0, tag present)
 	// from "a peer too old to have been asked" (tag absent) - the receive path blind-casts the
 	// datagram, so without the sentinel those two are the same eight bytes of dead union.
 	msg.GameToJoin.buildTag   = BUILDKIND_WIRE_TAG;
 	msg.GameToJoin.buildFlags = gxLocalBuildKind();
 
-	// GeneralsX @feature Claude 24/08/2026 Declare OUR camera height limits to the host. Nobody
+	// GeneralsX: Declare OUR camera height limits to the host. Nobody
 	// adopts these - the host's pair governs the lobby, not ours - so this is not a negotiation.
 	// It exists so the host can be told which of its players are having their own settings
 	// overridden, and by how much; the host is the only machine that can do anything about it.
@@ -1350,7 +1350,7 @@ void LANAPI::sendJoinRequest( UnsignedInt gameIP, UnsignedInt destIP )
 	GetStringFromRegistry("\\ergc", "", s);
 	strlcpy(msg.GameToJoin.serial, s.str(), ARRAY_SIZE(msg.GameToJoin.serial));
 
-	// GeneralsX @feature Claude 08/08/2026 Attach a password answer when we have one for THIS
+	// GeneralsX: Attach a password answer when we have one for THIS
 	// host. The salt and challenge only ever arrive in a refusal from that host, so the first
 	// knock at any game is always password-free - which is exactly what an unprotected game
 	// expects to receive, and is why no advertisement flag is needed anywhere.
@@ -1368,7 +1368,7 @@ void LANAPI::sendJoinRequest( UnsignedInt gameIP, UnsignedInt destIP )
 		m_joinPwOffered = FALSE;
 	}
 
-	// GeneralsX @feature Claude 10/08/2026 Keep the exact bytes for the 1 Hz reassert in
+	// GeneralsX: Keep the exact bytes for the 1 Hz reassert in
 	// update(). Verbatim on purpose: rebuilding the request on a retry would re-read password
 	// state this function deliberately consumes (m_joinPwOffered is one-shot, just above), and
 	// two builds of the same request that disagree would present as a version-mismatch refusal
@@ -1382,7 +1382,7 @@ void LANAPI::sendJoinRequest( UnsignedInt gameIP, UnsignedInt destIP )
 	sendMessage(&msg, destIP);
 }
 
-// GeneralsX @feature Claude 08/08/2026 Host: mint a single-use challenge.
+// GeneralsX: Host: mint a single-use challenge.
 UnsignedInt LANAPI::issuePasswordChallenge()
 {
 	const UnsignedInt challenge = LobbyPasswordRandom();
@@ -1397,7 +1397,7 @@ UnsignedInt LANAPI::issuePasswordChallenge()
 	return challenge;
 }
 
-// GeneralsX @feature Claude 08/08/2026 Host: verify one answer. THIS IS THE GATE.
+// GeneralsX: Host: verify one answer. THIS IS THE GATE.
 Bool LANAPI::checkPasswordResponse( UnsignedInt challenge, const UnsignedByte *response )
 {
 	if (!m_hostPwRequired || challenge == 0)
@@ -1435,7 +1435,7 @@ Bool LANAPI::checkPasswordResponse( UnsignedInt challenge, const UnsignedByte *r
 	return FALSE;
 }
 
-// GeneralsX @feature Claude 08/08/2026 Host: bind (or clear) the lobby password.
+// GeneralsX: Host: bind (or clear) the lobby password.
 void LANAPI::setHostPassword( const AsciiString &password )
 {
 	// Every outstanding challenge was minted against the old verifier. Dropping them means a
@@ -1460,7 +1460,7 @@ void LANAPI::setHostPassword( const AsciiString &password )
 	m_hostPwRequired = TRUE;
 }
 
-// GeneralsX @feature Claude 08/08/2026 The chat-command entry point. See the note on the
+// GeneralsX: The chat-command entry point. See the note on the
 // declaration in LANAPI.h for why this is a chat command and not a text box.
 Bool LANAPI::applyLobbyCommand( const AsciiString &line, UnicodeString &reply )
 {
@@ -1560,10 +1560,10 @@ void LANAPI::RequestGameJoinDirectConnect(UnsignedInt ipaddress)
 	msg.messageType = LANMessage::MSG_REQUEST_GAME_INFO;
 	fillInLANMessage(&msg);
 	msg.PlayerInfo.ip = GetLocalIP();
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+	// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 	CopyWcharToWindowsWideChar(msg.PlayerInfo.playerName, m_name.str(), ARRAY_SIZE(msg.PlayerInfo.playerName) - 1);
 
-	// GeneralsX @bugfix Claude 11/08/2026 The direct-connect handshake's FIRST datagram gets the
+	// GeneralsX: The direct-connect handshake's FIRST datagram gets the
 	// same 1 Hz reassert as the join request (see update()). This was deferred in the first cut
 	// as "the relay path uses ACT_JOIN" - measured wrong the same night: the harness joins by
 	// IP, so its opening MSG_REQUEST_GAME_INFO was still a single unacked shot, and a netem run
@@ -1586,7 +1586,7 @@ void LANAPI::RequestGameLeave()
 	LANMessage msg;
 	msg.messageType = LANMessage::MSG_REQUEST_GAME_LEAVE;
 	fillInLANMessage( &msg );
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+	// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 	CopyWcharToWindowsWideChar(msg.PlayerInfo.playerName, m_name.str(), ARRAY_SIZE(msg.PlayerInfo.playerName) - 1);
 	sendMessage(&msg);
 	m_transport->update();  // Send immediately, before OnPlayerLeave below resets everything.
@@ -1595,7 +1595,7 @@ void LANAPI::RequestGameLeave()
 	// offer a game that has gone. The relay would delist it anyway once the advertisements stop,
 	// but that takes a timeout - this makes a clean exit immediate.
 	//
-	// GeneralsX @bugfix Claude 12/08/2026 WITHDRAW here rather than only clearing, and this call
+	// GeneralsX: WITHDRAW here rather than only clearing, and this call
 	// site specifically - which is not a return to enumerating teardown paths. The invariant in
 	// update() is still the catch-all and still fires for every path that does not come through
 	// here. But this one runs before OnPlayerLeave pops the screen, and landing back on the browser
@@ -1607,12 +1607,12 @@ void LANAPI::RequestGameLeave()
 	// at once, and it must - the host's game is not over because we left it.
 	m_transport->withdrawGameAdvertisement();
 
-	// GeneralsX @feature Claude 24/08/2026 We are leaving this game, so whatever its host told us
+	// GeneralsX: We are leaving this game, so whatever its host told us
 	// about camera limits stops applying. Callers are the game-options Back button and the
 	// headless harness's teardown - both unambiguously outside a running match.
 	GXHostCamera::clearHostLimits();
 
-	// GeneralsX @bugfix Claude 08/08/2026 A joiner leaves its own screen at once, like the host.
+	// GeneralsX: A joiner leaves its own screen at once, like the host.
 	//
 	// Reported live: a joiner clicks Back, the host removes them instantly, and the joiner's own
 	// screen sits there for about ten seconds. The host branch below has always exited
@@ -1651,7 +1651,7 @@ void LANAPI::RequestGameLeave()
 
 void LANAPI::RequestGameAnnounce()
 {
-	// GeneralsX @feature Claude 08/08/2026 A private game does not broadcast either. The relay
+	// GeneralsX: A private game does not broadcast either. The relay
 	// half is handled in RequestGameOptions; this is the LAN half - MSG_GAME_ANNOUNCE is what
 	// puts a row in every other machine's LAN browser.
 	//
@@ -1681,7 +1681,7 @@ void LANAPI::RequestGameAnnounce()
 			reply.messageType = LANMessage::MSG_GAME_ANNOUNCE;
 
 			strlcpy(reply.GameInfo.options,gameOpts.str(), ARRAY_SIZE(reply.GameInfo.options));
-			// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+			// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 			CopyWcharToWindowsWideChar(reply.GameInfo.gameName, m_currentGame->getName().str(), ARRAY_SIZE(reply.GameInfo.gameName) - 1);
 			reply.GameInfo.inProgress = m_currentGame->isGameInProgress();
 			reply.GameInfo.isDirectConnect = m_currentGame->getIsDirectConnect();
@@ -1700,11 +1700,11 @@ void LANAPI::RequestAccept()
 	fillInLANMessage( &msg );
 	msg.messageType = LANMessage::MSG_SET_ACCEPT;
 	msg.Accept.isAccepted = true;
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+	// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 	CopyWcharToWindowsWideChar(msg.Accept.gameName, m_currentGame->getName().str(), ARRAY_SIZE(msg.Accept.gameName) - 1);
 	sendMessage(&msg);
 
-	// GeneralsX @bugfix Claude 08/08/2026 Show the accept on the machine that pressed it.
+	// GeneralsX: Show the accept on the machine that pressed it.
 	//
 	// Reported live: a joiner clicks Accept, the HOST ticks it immediately, and the joiner's own
 	// screen does nothing. The reason is that the tick is drawn from slot->isAccepted() in
@@ -1738,14 +1738,14 @@ void LANAPI::RequestAccept()
 	}
 }
 
-// GeneralsX @feature Claude 10/08/2026 The datagram half of RequestHasMap, callable from the
+// GeneralsX: The datagram half of RequestHasMap, callable from the
 // reassert timer in update() without re-printing the transfer notice or re-arming the burst.
 void LANAPI::sendHasMapNow()
 {
 	if (m_inLobby || !m_currentGame)
 		return;
 
-	// GeneralsX @bugfix Claude 11/08/2026 Announce the TRUTH, never the unexamined default. A fresh
+	// GeneralsX: Announce the TRUTH, never the unexamined default. A fresh
 	// slot's hasMap is TRUE by construction, and the headless driver announces immediately after
 	// joining - before any options parse has run the map-cache recheck - so the joiner's first
 	// datagram claimed it had a map it had never looked for. The host accepted it, started, and
@@ -1759,7 +1759,7 @@ void LANAPI::sendHasMapNow()
 	fillInLANMessage( &msg );
 	msg.messageType = LANMessage::MSG_MAP_AVAILABILITY;
 	msg.MapStatus.hasMap = m_currentGame->getSlot(m_currentGame->getLocalSlotNum())->hasMap();
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+	// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 	CopyWcharToWindowsWideChar(msg.MapStatus.gameName, m_currentGame->getName().str(), ARRAY_SIZE(msg.MapStatus.gameName) - 1);
 	CRC mapNameCRC;
 //mapNameCRC.computeCRC(m_currentGame->getMap().str(), m_currentGame->getMap().getLength());
@@ -1767,7 +1767,7 @@ void LANAPI::sendHasMapNow()
 	mapNameCRC.computeCRC(portableMapName.str(), portableMapName.getLength());
 	msg.MapStatus.mapCRC = mapNameCRC.get();
 
-	// GeneralsX @feature Claude 11/08/2026 Sender half of the handleHasMap drop probe: what CRC
+	// GeneralsX: Sender half of the handleHasMap drop probe: what CRC
 	// we are announcing, over what string. If the receiver logs a DROP with a different CRC,
 	// these two lines are the whole diagnosis.
 	fprintf(stderr, "[LAN] announcing map availability: hasMap=%d mapCRC=%08X portable='%s'\n",
@@ -1784,7 +1784,7 @@ void LANAPI::RequestHasMap()
 
 	sendHasMapNow();
 
-	// GeneralsX @feature Claude 10/08/2026 Arm the reassert burst - see update(). One announce is
+	// GeneralsX: Arm the reassert burst - see update(). One announce is
 	// one unacked datagram, and a lost hasMap=false reads as "has the map" (slots default TRUE).
 	m_hasMapBurstLeft = 2;
 	m_hasMapBurstNext = timeGetTime() + 1000;
@@ -1806,7 +1806,7 @@ void LANAPI::RequestHasMap()
 			mapDisplayName.format(L"%hs", TheGameState->getMapLeafName(m_currentGame->getMap()).str());
 			willTransfer = WouldMapTransfer(m_currentGame->getMap());
 		}
-		// GeneralsX @feature Claude 02/10/2026 M1 step 2b (Codex m1det2-2b-r5 P1): when this peer HAS the host's .map and
+		// GeneralsX: M1 step 2b: when this peer HAS the host's .map and
 		// only its map.ini/solo.ini differ, "you do not have the map" is false and points the player at the wrong fix.
 		const Bool mapDataOnly = mapData != nullptr && mapData->m_CRC == m_currentGame->getMapCRC()
 			&& GetMapDataHash(m_currentGame->getMap()) != m_currentGame->getMapDataHash();
@@ -1828,7 +1828,7 @@ void LANAPI::RequestHasMap()
 
 void LANAPI::RequestChat( UnicodeString message, ChatType format )
 {
-	// GeneralsX @feature Claude 08/08/2026 Lobby commands are intercepted HERE, before anything
+	// GeneralsX: Lobby commands are intercepted HERE, before anything
 	// is built or sent, because /password must never reach the wire in any form. This is the one
 	// funnel both LanLobbyMenu and LanGameOptionsMenu call, in both the Generals and the Zero
 	// Hour tree, so one interception covers every LAN screen on all four platforms.
@@ -1846,11 +1846,11 @@ void LANAPI::RequestChat( UnicodeString message, ChatType format )
 
 	LANMessage msg;
 	fillInLANMessage( &msg );
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+	// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 	CopyWcharToWindowsWideChar(msg.Chat.gameName, (m_currentGame) ? m_currentGame->getName().str() : L"", ARRAY_SIZE(msg.Chat.gameName) - 1);
 	msg.messageType = LANMessage::MSG_CHAT;
 	msg.Chat.chatType = format;
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+	// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 	CopyWcharToWindowsWideChar(msg.Chat.message, message.str(), ARRAY_SIZE(msg.Chat.message) - 1);
 	sendMessage(&msg);
 
@@ -1868,7 +1868,7 @@ void LANAPI::RequestGameStart()
 	msg.messageType = LANMessage::MSG_GAME_START;
 	fillInLANMessage( &msg );
 
-	// GeneralsX @feature Claude 11/08/2026 Stamp a fresh nonce so every re-send of THIS start -
+	// GeneralsX: Stamp a fresh nonce so every re-send of THIS start -
 	// the immediate double-send, the post-launch burst, and the delivery-window resends from
 	// doFileTransfer - is verbatim and idempotent at the receiver. handleGameStart drops a
 	// repeated nonce at any time, which is what makes re-sending safe after a transfer-only
@@ -1880,7 +1880,7 @@ void LANAPI::RequestGameStart()
 	msg.GameStart.nonceTag = STARTNONCE_WIRE_TAG;
 	msg.GameStart.nonce = m_startNonceCounter;
 
-	// GeneralsX @feature Claude 24/08/2026 The host's camera height limits, stamped on the
+	// GeneralsX: The host's camera height limits, stamped on the
 	// authoritative message. Every peer resolves its view from THIS pair for the whole match.
 	//
 	// WRITTEN UNCONDITIONALLY, INCLUDING THE CLEAR. `msg` above is a bare stack LANMessage and
@@ -1901,7 +1901,7 @@ void LANAPI::RequestGameStart()
 			GXHostCamWireClear(msg.GameStart.cam);
 	}
 
-	// GeneralsX @security Claude 25/09/2026 THE RELAY-PROVEN ADMIN SLOTS AND THEIR KEYS, stamped on the authoritative
+	// GeneralsX: THE RELAY-PROVEN ADMIN SLOTS AND THEIR KEYS, stamped on the authoritative
 	// message, from an answer asked for NOW (one round trip, bounded) and tied to that question by its nonce. With no
 	// fresh answer nothing is stamped: this peer grants nothing on its own word, and every other peer refuses to start
 	// unless a fresh answer of its own says exactly what is stamped (OnGameStart). Set on our own game too, so this
@@ -1910,14 +1910,14 @@ void LANAPI::RequestGameStart()
 		RelayMaskType adminMask = 0;
 		unsigned char adminKeys[MAX_SLOTS][32];
 		memset(adminKeys, 0, sizeof(adminKeys));
-		// GeneralsX @bugfix Claude 25/09/2026 The host waits longer than a joiner does (its 2 s, OnGameStart): the
+		// GeneralsX: The host waits longer than a joiner does (its 2 s, OnGameStart): the
 		// question is re-asked every 250 ms until an answer lands, so this only lengthens a start whose relay is not
-		// answering - and a host with no answer at the end stamps "unconfirmed", never a bare empty mask (Codex batch-r2).
+		// answering - and a host with no answer at the end stamps "unconfirmed", never a bare empty mask.
 		const Bool relay = (m_transport != NULL && m_transport->isRelayEnabled());
 		Bool fresh = relay && m_transport->refreshRelayAdminKeysNow(5000);
 #if defined(GX_TEST_INSTRUMENTS)
 		// GX_TEST_ADMIN_NOANSWER=1 - a TEST INSTRUMENT: the host's admin query ends as if it had timed out, while every
-		// joiner's own query is answered. scripts/test/net-kill-gates.sh admin-host-noanswer (Codex batch-r2).
+		// joiner's own query is answered. scripts/test/net-kill-gates.sh admin-host-noanswer.
 		if (fresh && getenv("GX_TEST_ADMIN_NOANSWER") != NULL)
 		{
 			fresh = FALSE;
@@ -1971,7 +1971,7 @@ void LANAPI::RequestGameStart()
 	sendMessage(&msg);
 	m_transport->update(); // force a send
 
-	// GeneralsX @bugfix Claude 11/08/2026 The start itself was the last single-shot gate: a peer
+	// GeneralsX: The start itself was the last single-shot gate: a peer
 	// that misses this one datagram sits in the lobby while everyone else launches (measured -
 	// the two-start transfer flow doubles the exposure and a confirm run lost the second start).
 	//
@@ -2006,7 +2006,7 @@ void LANAPI::RequestGameStart()
 	}
 }
 
-// GeneralsX @feature Claude 11/08/2026 Re-emit the stored MSG_GAME_START, verbatim (same
+// GeneralsX: Re-emit the stored MSG_GAME_START, verbatim (same
 // nonce). Called from the transfer loop while the host blocks in its delivery run - the one
 // window where a lost start previously had NO further chance to arrive (round-2 run 6: the
 // joiner missed the single... then double... start, never built a TheNetwork, and the host
@@ -2080,7 +2080,7 @@ void LANAPI::RequestGameOptions( AsciiString gameOptions, Bool isPublic, Unsigne
 	//
 	// Policy for now is that a relay host lists itself, unless it has asked not to be.
 	//
-	// GeneralsX @feature Claude 08/08/2026 /private is now the thing that exposes the choice the
+	// GeneralsX: /private is now the thing that exposes the choice the
 	// comment below used to say nothing exposed. The mechanism was always here: the relay lists a
 	// room only for as long as an advertisement keeps arriving, so withdrawing one is the whole
 	// implementation. HeadlessMatch has been telling operators "a private game never advertises -
@@ -2096,7 +2096,7 @@ void LANAPI::RequestGameOptions( AsciiString gameOptions, Bool isPublic, Unsigne
 	}
 	else if (m_transport && m_transport->isRelayEnabled() && AmIHost())
 	{
-		// GeneralsX @bugfix Claude 08/08/2026 The denominator is the seats this lobby actually has,
+		// GeneralsX: The denominator is the seats this lobby actually has,
 		// not MAX_SLOTS.
 		//
 		// The browser showed "1/8" for a game on Alpine Assault, a TWO player map. MAX_SLOTS is a
@@ -2174,7 +2174,7 @@ void LANAPI::RequestGameOptions( AsciiString gameOptions, Bool isPublic, Unsigne
 		if (nameLen > 4 && _stricmp(mapName + nameLen - 4, ".map") == 0)
 			mapName[nameLen - 4] = '\0';
 
-		// GeneralsX @feature Claude 17/08/2026 The lobby's own name, so a BROWSER can show it.
+		// GeneralsX: The lobby's own name, so a BROWSER can show it.
 		//
 		// This is the field the host actually typed. It already rides the LAN announce as "LN=" and
 		// is already the in-game game-options title, but the announce is ROOM-SCOPED - every browsing
@@ -2203,7 +2203,7 @@ void LANAPI::RequestGameOptions( AsciiString gameOptions, Bool isPublic, Unsigne
 
 		m_transport->setGameAdvertisement(gameName.str(), mapName, players, advertisedSlots);
 
-		// GeneralsX @feature Claude 19/09/2026 Every seat, for the admin console: what each one holds - a
+		// GeneralsX: Every seat, for the admin console: what each one holds - a
 		// human, an AI and its difficulty, open, closed - and its faction, team and colour where chosen, with
 		// the MAP's player count as the denominator the advertisement cannot carry. GXRelaySlotsWire.h has the
 		// format and why it is its own tag. After the advertisement, because the relay accepts it only from
@@ -2262,7 +2262,7 @@ void LANAPI::RequestGameCreate( UnicodeString gameName, Bool isDirectConnect )
 	// No games of the same name should exist...  Ignore that for now.
 	/// @todo: make sure LAN games with identical names don't crash things like in RA2.
 
-	// GeneralsX @feature Claude 27/07/2026 Same pre-flight as RequestGameJoin - a
+	// GeneralsX: Same pre-flight as RequestGameJoin - a
 	// half-initialised engine must not be able to host either, and the verdict must be set
 	// before the callback. Without this, a build whose identity never initialised can still
 	// host: it writes tag=0, every joiner sees SIMID_PEER_SILENT and is told the HOST is too
@@ -2275,10 +2275,10 @@ void LANAPI::RequestGameCreate( UnicodeString gameName, Bool isDirectConnect )
 		OnGameCreate(LANAPIInterface::RET_CRC_MISMATCH);
 		return;
 	}
-	// GeneralsX @feature Claude 01/10/2026 M1 Determinism-1 (Codex m1det2-src0-r1 P2): a build without git provenance
+	// GeneralsX: M1 Determinism-1: a build without git provenance
 	// (sourceID 0) is refused at every join now (SimIdCompare, SIMID_SOURCE_UNKNOWN) - even by an identical build - so a
 	// room it hosted could never be joined. Refuse the room instead of advertising one. Not for a headless host
-	// (Codex m1det2-src0-r3 P2): its solo -lanhost AI match admits no peer and must still run; a scripted host that does
+	// its solo -lanhost AI match admits no peer and must still run; a scripted host that does
 	// wait for peers gets them refused at the join, which its lobby timeout reports.
 	if (SimulationId::get().sourceID == 0u && !TheGlobalData->m_headless)
 	{
@@ -2371,7 +2371,7 @@ void LANAPI::RequestGameCreate( UnicodeString gameName, Bool isDirectConnect )
 	msg.messageType = LANMessage::MSG_GAME_ANNOUNCE;
 */
 
-	// GeneralsX @feature Claude 08/08/2026 Report the lobby's password/private state to its own
+	// GeneralsX: Report the lobby's password/private state to its own
 	// host once the game options screen exists. Set here rather than inside OnGameCreate because
 	// that callback lives in LANAPICallbacks.cpp and immediately pushes a shell screen - this is
 	// the last point at which we are still plainly "the code that created a game".
@@ -2467,7 +2467,7 @@ void LANAPI::RequestSetName( UnicodeString newName )
 	// Set up timer
 	m_lastResendTime = timeGetTime();
 
-	// GeneralsX @bugfix Claude 07/08/2026 Set the name even when we are not in the LOBBY.
+	// GeneralsX: Set the name even when we are not in the LOBBY.
 	//
 	// m_name was assigned only inside the `m_inLobby` branch below, so calling this from a game -
 	// which is what /nickname on the GAME OPTIONS screen does - silently did nothing: the
@@ -2526,7 +2526,7 @@ void LANAPI::fillInLANMessage( LANMessage *msg )
 	if (!msg)
 		return;
 
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+	// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 	CopyWcharToWindowsWideChar(msg->name, m_name.str(), ARRAY_SIZE(msg->name) - 1);
 	strlcpy(msg->userName, m_userName.str(), ARRAY_SIZE(msg->userName));
 	strlcpy(msg->hostName, m_hostName.str(), ARRAY_SIZE(msg->hostName));
@@ -2731,7 +2731,7 @@ Bool LANAPI::SetLocalIP( UnsignedInt localIP )
 	retval = m_transport->init(m_localIP, lobbyPort);
 	m_transport->allowBroadcasts(true);
 
-	// GeneralsX @feature Claude 27/07/2026 Release-visible. This is the single point where the
+	// GeneralsX: Release-visible. This is the single point where the
 	// announced identity and the discovery destination are decided, and both were invisible in a
 	// shipping build - a wrong interface, a bad broadcast address and a failed bind all presented
 	// identically as an empty lobby that times out after 5 s.
@@ -2772,7 +2772,7 @@ void LANAPI::setIsActive(Bool isActive) {
 }
 
 
-// GeneralsX @feature Claude 06/08/2026 Relay lobby chat. Thin passes to the transport - LANAPI owns
+// GeneralsX: Relay lobby chat. Thin passes to the transport - LANAPI owns
 // the socket the lobby talks on, so it is the natural place for the menu to reach it, and keeping
 // the protocol itself in Transport means the relay plaintext lives in exactly one file.
 Bool LANAPI::sendLobbyChat( const char *text )
@@ -2824,7 +2824,7 @@ const char *LANAPI::getLobbyRosterOS( Int i )
 	return m_transport->getRosterOS(i);
 }
 
-// GeneralsX @feature Claude 11/08/2026 The signed identity, and the role the relay read out of it.
+// GeneralsX: The signed identity, and the role the relay read out of it.
 // See Transport::sendRelayIdentity for why the client only ever forwards this and never trusts it.
 Bool LANAPI::setLobbyIdentity( const char *assertion )
 {
@@ -2840,7 +2840,7 @@ const char *LANAPI::getLobbyRosterRole( Int i )
 	return m_transport->getRosterRole(i);
 }
 
-// GeneralsX @security Claude 25/09/2026 See LANAPI.h. Human slots only: an AI or an open slot has no relay
+// GeneralsX: See LANAPI.h. Human slots only: an AI or an open slot has no relay
 // membership, so a bit there is a claim no relay answer can back and every peer refuses it.
 static_assert((Int)GX_ADMIN_WIRE_KEYS == (Int)GX_ADMIN_MAX_PER_MATCH, "the start message carries every admin a match may have");
 void LANAPI::gxRelayAdmins( const LANGameInfo *game, RelayMaskType *mask, unsigned char keys[MAX_SLOTS][32] ) const

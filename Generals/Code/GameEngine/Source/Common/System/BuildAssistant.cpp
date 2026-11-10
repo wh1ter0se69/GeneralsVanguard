@@ -752,7 +752,7 @@ Bool BuildAssistant::isLocationClearOfObjects( const Coord3D *worldPos,
 	if (myFactoryExitWidth>0) {
 		myExitPos = *worldPos;
 		checkMyExit = true;
-		// GeneralsX @bugfix Claude 02/10/2026 Determinism-1 item 3: Sin/Cos (Lib/trig.h, GameMath - basic IEEE ops only), not libm,
+		// GeneralsX: Determinism-1 item 3: Sin/Cos (Lib/trig.h, GameMath - basic IEEE ops only), not libm,
 		// whose last bit differs per platform library; the factory-exit rect decides build legality for humans and AI.
 		Real c = Cos(angle);
 		Real s = Sin(angle);
@@ -789,7 +789,7 @@ Bool BuildAssistant::isLocationClearOfObjects( const Coord3D *worldPos,
 		if (themFactoryExitWidth>0) {
 			hisExitPos = *them->getPosition();
 			checkHisExit = true;
-			// GeneralsX @bugfix Claude 02/10/2026 Determinism-1 item 3: Sin/Cos, not libm (see the exit rect above).
+			// GeneralsX: Determinism-1 item 3: Sin/Cos, not libm (see the exit rect above).
 			Real c = Cos(them->getOrientation());
 			Real s = Sin(them->getOrientation());
 			Real offset = them->getGeometryInfo().getMajorRadius() + themFactoryExitWidth/2.0f;

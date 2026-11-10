@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 23/09/2026 - GX_USERDATA_DIR: the whole user-data folder somewhere else.
+// GeneralsX: GX_USERDATA_DIR: the whole user-data folder somewhere else.
 //
 // Owner decision B, 23/09/2026. A/B arms and scripted peers must never read or write the owner's
 // profile. Options.ini, Network.ini, Replays, Maps, MapCache.ini, GXLogin.txt (his sign-in),
@@ -86,7 +86,7 @@ inline GXUserDataDirStatus gxResolveUserDataDir(const char *value, bool windows,
 	bool absolute;
 	if (windows)
 	{
-		// GeneralsX @bugfix Claude 26/09/2026 (backlog #13, Codex) \\server\share, never \\server alone: a UNC
+		// GeneralsX: \\server\share, never \\server alone: a UNC
 		// path names no folder without its share, so creating it fails and the engine would run on a profile
 		// that cannot exist while WinMain skips the normal migration.
 		size_t server = 2;

@@ -17,7 +17,7 @@
 */
 
 // LobbyPassword.cpp //////////////////////////////////////////////////////////
-// GeneralsX @feature Claude 08/08/2026 See LobbyPassword.h for the protocol and the honest
+// GeneralsX: See LobbyPassword.h for the protocol and the honest
 // statement of what it does and does not protect against.
 //
 // SHA-256 is implemented here rather than pulled in because nothing in this build ships one:
@@ -96,7 +96,7 @@ void Sha256Block( UnsignedInt *state, const UnsignedByte *block )
 
 } // anonymous namespace
 
-// GeneralsX @feature Claude 08/08/2026 The initial state and the compression function, exported.
+// GeneralsX: The initial state and the compression function, exported.
 // See the note in LobbyPassword.h for who wants them and why. ONE copy of the constants: the
 // one-shot below now reads this array rather than repeating it, so the two entry points cannot
 // drift apart.

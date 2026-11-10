@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 21/08/2026 ONE chat cooldown, shared by every chat box in the game.
+// GeneralsX: ONE chat cooldown, shared by every chat box in the game.
 //
 // The engine has six places a player can type a chat line - the in-game overlay, the LAN lobby, the
 // LAN game setup, the online lobby, the online game setup, and the disconnect screen - and each one
@@ -39,7 +39,7 @@
 // client, so a modified client can ignore it. Stopping a determined spammer needs the same rule on
 // the relay, where the sender cannot edit it. That is a separate change and it is not this one.
 //
-// GeneralsX @tweak Claude 20/09/2026 3000 -> 1000 ms. The owner's report was "chat is 3 s delayed".
+// GeneralsX: 3000 -> 1000 ms. The owner's report was "chat is 3 s delayed".
 // It is not latency - wire time is 0.3 ms - it is this gate plus the relay's, stacked. Under a second
 // reads as immediate to a person, and nobody types meaningful lobby chat faster than one short line a
 // second sustained, so this is the smallest number that removes the complaint rather than merely
@@ -48,7 +48,7 @@
 //
 // THE ADMIN EXEMPTION, AND WHY IT IS ALLOWED TO LIVE IN THE CLIENT.
 //
-// GeneralsX @feature Claude 20/09/2026, owner's decision after this file argued the other way and was
+// GeneralsX: owner's decision after this file argued the other way and was
 // overruled with an argument rather than an instruction. The argument is recorded because the rule it
 // turns on is one this codebase takes seriously.
 //

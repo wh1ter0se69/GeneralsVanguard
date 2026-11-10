@@ -18,7 +18,7 @@
 
 // FILE: GXStderrLog.h ////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 17/08/2026 Make a desync leave evidence on disk.
+// GeneralsX: Make a desync leave evidence on disk.
 //
 // GameLogic.cpp:3000 already prints, in RELEASE builds, the frame and every
 // player's CRC the moment a desync is detected:
@@ -80,7 +80,7 @@ int GXStderrLog_GetFd(void);
  * top of the unhandled-exception filter. Deliberately does NOT touch stderr's
  * FILE lock: the faulting thread may not be the one holding it.
  *
- * Darwin (GeneralsX @perf Claude 02/10/2026): the sink queues lines for a pump
+ * Darwin (GeneralsX:): the sink queues lines for a pump
  * thread, so this waits - at most 1 s - until everything queued before the call
  * is written. Async-signal-safe (atomics and nanosleep): call it at the top of a
  * fatal-signal handler and before _exit(). exit() already runs it.

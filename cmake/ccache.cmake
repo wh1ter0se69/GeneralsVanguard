@@ -1,4 +1,4 @@
-# GeneralsX @build BenderAI 29/05/2025
+# GeneralsX:
 # ccache compiler cache support
 #
 # Significantly speeds up recompilation by caching object files.
@@ -17,7 +17,7 @@ if(SAGE_USE_CCACHE)
         set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "C++ compiler launcher")
         message(STATUS "ccache enabled: ${CCACHE_PROGRAM}")
         
-        # GeneralsX @build BenderAI 25/02/2026
+        # GeneralsX:
         # Use CCACHE_SLOPPINESS env var so we don't mutate the global ccache config
         # as a side-effect of CMake configure.  The env var is inherited by compiler
         # invocations launched through CMAKE_<LANG>_COMPILER_LAUNCHER.
@@ -29,7 +29,7 @@ if(SAGE_USE_CCACHE)
         message(STATUS "ccache not found, building without compiler cache")
     endif()
 else()
-    # GeneralsX @bugfix Claude 27/07/2026 Actually disable it.
+    # GeneralsX: Actually disable it.
     #
     # The ON branch above sets these with CACHE STRING, so they PERSIST in CMakeCache.txt.
     # Printing "ccache disabled" while leaving CMAKE_CXX_COMPILER_LAUNCHER pointing at

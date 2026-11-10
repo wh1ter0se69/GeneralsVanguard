@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: D3D8 device calls -> GxPacketWriter packets (see GxD3D8Translate.h).
+// GeneralsX: WS-F1: D3D8 device calls -> GxPacketWriter packets (see GxD3D8Translate.h).
 // Every mapping cites the DXVK fork code it reproduces (references/fbraz3-dxvk src/d3d9, src/d3d8), the CLASSIC reference.
 #include "GxD3D8Translate.h"
 #include "GxShadowCasters.h"
@@ -284,7 +284,7 @@ void GxD3D8Translate::transform(uint32_t type, const float m[16], bool multiply)
 		return;
 	}
 	// d3d9_device.cpp MultiplyTransform: current * ConvertMatrix(m) in DXVK's column-major Matrix4 = m * current in this
-	// row-major storage (Codex rw3L-translate-r1 #2)
+	// row-major storage
 	float r[16];
 	for (int i = 0; i < 4; ++i)
 		for (int j = 0; j < 4; ++j) {
@@ -308,9 +308,9 @@ void GxD3D8Translate::vertexShader(uint32_t handle, bool programmable)
 		m_packValid = false;
 	if (handle == 0 && !m_debug.vsZeroClears) {
 		// d3d8_device.cpp:1915-1927: with d3d8's current handle already 0 (none set, or the bound shader deleted) nothing changes
-		// (Codex rw3L-translate-r2 #2); an FVF stays in effect (d3d9 SetFVF(0) is a no-op); a LIVE programmable shader is unbound
+		// an FVF stays in effect (d3d9 SetFVF(0) is a no-op); a LIVE programmable shader is unbound
 		// and its declaration kept - fixed function on a shader declaration, not modelled: its draws are refused by name
-		// (Codex rw3L-code-r4 #2)
+		//
 		if (m_vsProgrammable && m_vsDeleted != m_vs && !m_debug.vsZeroKeepsProgram)
 			m_vsDeclOnly = true;
 		return;
@@ -534,7 +534,7 @@ void GxD3D8Translate::clear(uint32_t n, const int32_t* rects, uint32_t flags, ui
 	if (dsFlags && m_depth.image && m_depth.image->samples != m_color.image->samples && !m_debug.depthClearFollowsDrop) {
 		// The writer draws this pair without its depth (DXVK cannot bind two sample counts together), but DXVK clears the bound
 		// depth on its own (d3d9_device.cpp Clear -> ClearImageView): WaterRenderObjClass::renderMirror's single-sample target
-		// over the MSAA depth (Codex rw3L-code-r8 #3). A depth-only pass takes the clear; the next draw begins the colour pass.
+		// over the MSAA depth. A depth-only pass takes the clear; the next draw begins the colour pass.
 		if (!cr.empty()) {
 			GxPassDesc p;
 			p.name = "depth-clear";
@@ -848,7 +848,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 			if (!vsSame || !specSame || std::memcmp(&cp, &m_pack.ps, sizeof(cp)) != 0) {
 				++m_stats.packCheckMismatches;
 				g_recTest.packCheckMismatches.fetch_add(1, std::memory_order_relaxed);   // TEST-ONLY tally (check mode only)
-				// TEST-ONLY: the TextureFactor word is the ONLY difference (packTableShort's own symptom; Codex a25-code-r5). Only a
+				// TEST-ONLY: the TextureFactor word is the ONLY difference (packTableShort's own symptom). Only a
 				// successful fresh pack is read (vsSame implies it: a refusal may leave cp unwritten - r6)
 				if (vsSame && specSame) {
 					GxFFPsBlock tf = cp;
@@ -1056,7 +1056,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 		const bool positionT = !csVs && (m_vs & d3d8::FVF_POSITION_MASK) == d3d8::FVF_XYZRHW;
 		const bool worldPos = !csVs || csVs->program == GxCsVsTrees;   // the wave / shadow-volume VS write no world position
 		if ((m_shadowTags & kShadowTagReceive) && !positionT && worldPos) {
-			// the RESOLVED Vulkan factors (after the BOTH* fixup and the alpha swizzle of a target without alpha: Codex code-p2-r1 P3)
+			// the RESOLVED Vulkan factors (after the BOTH* fixup and the alpha swizzle of a target without alpha)
 			bits = GxDraw_Receive;
 			const bool modulate = b.enable && (b.srcColor == VK_BLEND_FACTOR_DST_COLOR || b.dstColor == VK_BLEND_FACTOR_SRC_COLOR);
 			if (!modulate || m_debug.smBitsIgnoreBlend)
@@ -1133,7 +1133,7 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 	}
 	p.push = specUsed;
 	p.pushBytes = sizeof(*specUsed);
-	const uint32_t (*tss)[32] = stale ? m_staleSnap->tss : m_ff.tss;   // rows, so each stage indexes its own array (Codex a25-code-r2)
+	const uint32_t (*tss)[32] = stale ? m_staleSnap->tss : m_ff.tss;   // rows, so each stage indexes its own array
 	for (uint32_t i = 0; i < 8; ++i) {
 		p.textures[i] = m_textures[i];
 		const uint32_t* ts = tss[i];
@@ -1150,11 +1150,11 @@ bool GxD3D8Translate::emit(Kind kind, uint32_t t, uint32_t n, uint32_t first, in
 		if (m_anisoOverride >= 0 && (sd.minFilter > 1 || m_debug.anisoIgnoresPoint)) {   // DXVK's samplerAnisotropy override
 			if (m_anisoOverride > 0)
 				sd.minFilter = 3;   // GxSamplers enables anisotropy only for min == ANISOTROPIC
-			sd.maxAnisotropy = uint8_t(std::min<int32_t>(m_anisoOverride, 255));   // 0 disables it (Codex r2 #3)
+			sd.maxAnisotropy = uint8_t(std::min<int32_t>(m_anisoOverride, 255));   // 0 disables it
 		}
 	}
 	// the writer's stride rule (GxPacketWriter::draw, VUID-vkCmdBindVertexBuffers2-pStrides-06209) - it skips packets that carry a
-	// pipeline, and every translated packet does (Codex rw3L-translate-r1 #1)
+	// pipeline, and every translated packet does
 	{
 		static const uint8_t kFmtBytes[GxFmtCount] = { 0, 4, 8, 12, 16, 4, 4 };
 		uint32_t extent = 0;

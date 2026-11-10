@@ -70,7 +70,7 @@ set(WW3D2_SRC
     font3d.h
     formconv.cpp
     formconv.h
-    # GeneralsX @build fbraz 10/02/2026 BenderAI - FramGrab uses Windows-only VFW/AVI APIs (Phase 3 out-of-scope)
+    # GeneralsX @build fbraz 10/02/2026 - FramGrab uses Windows-only VFW/AVI APIs (Phase 3 out-of-scope)
     #FramGrab.cpp
     #framgrab.h
     hanim.cpp
@@ -234,7 +234,7 @@ set(WW3D2_SRC
     ww3dtrig.h
 )
 
-# GeneralsX @bugfix Claude 27/07/2026 FramGrab is Windows-only, but it is not optional there.
+# GeneralsX: FramGrab is Windows-only, but it is not optional there.
 #
 # It was commented out of WW3D2_SRC above for the Linux port because it uses the VFW/AVI APIs.
 # ww3d.cpp was not made conditional with it though - it includes framgrab.h, holds a
@@ -256,7 +256,7 @@ target_include_directories(corei_ww3d2 INTERFACE
     "${CMAKE_CURRENT_SOURCE_DIR}"
 )
 
-# GeneralsX @build fbraz 11/02/2026 BenderAI - Enable FreeType text rendering on Linux/macOS/iOS
+# GeneralsX @build fbraz 11/02/2026 - Enable FreeType text rendering on Linux/macOS/iOS
 target_compile_definitions(corei_ww3d2 INTERFACE
     $<$<PLATFORM_ID:Linux,Darwin,iOS>:SAGE_USE_FREETYPE>
 )
@@ -267,7 +267,7 @@ if (MSVC AND NOT IS_VS6_BUILD)
     )
 endif()
 
-# GeneralsX @build fbraz 11/02/2026 BenderAI - FreeType2 for Unix text rendering (Linux + macOS Phase 5)
+# GeneralsX @build fbraz 11/02/2026 - FreeType2 for Unix text rendering (Linux + macOS Phase 5)
 if(UNIX)
     find_package(Freetype REQUIRED)
     # iOS resolves fonts from a bundled fonts/ dir (render2dsentence.cpp); fontconfig is Linux/macOS only

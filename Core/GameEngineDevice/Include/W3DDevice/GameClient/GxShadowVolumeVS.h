@@ -1,7 +1,7 @@
 // GxShadowVolumeVS.h - the GX_SHADOW_GPU shadow-volume vertex shader (vs.1.1) and its declaration: ONE copy, read by the game
 // (W3DVolumetricShadow.cpp gxShadowGpuOn creates it) and by the native renderer's custom-shader catalogue (scripts/render/ws-E/
 // gen_catalog.py parses this file; GxNativeD3D8.cpp S7 resolves these bytes), so the two cannot drift apart.
-// GeneralsX @feature C · rw3-R11 13/10/2026: moved here from W3DVolumetricShadow.cpp, where it was assembled by macros (08/10/2026);
+// GeneralsX: moved here from W3DVolumetricShadow.cpp, where it was assembled by macros (08/10/2026);
 // the dwords are that block's output, byte for byte, and each line's comment is its disassembly (scripts/render/ws-E/sm1_dis.py).
 // Plain uint32_t (no d3d8 headers): the game passes them to CreateVertexShader as const DWORD*.
 //

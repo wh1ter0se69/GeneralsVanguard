@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 02/10/2026 - prefer the V-cache CCD on X3D CPUs.
+// GeneralsX: prefer the V-cache CCD on X3D CPUs.
 //
 // A Ryzen X3D part with two CCDs (7900X3D, 7950X3D, 9900X3D, 9950X3D) has a large L3 on one CCD and a normal one
 // on the other. AMD's driver moves a game onto the cache CCD only when Windows Game Mode is on AND Windows knows

@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 10/10/2026 WS-X hybrid spike: Vulkan types for GxInterop, without a loader of our own.
+// GeneralsX: WS-X hybrid spike: Vulkan types for GxInterop, without a loader of our own.
 //
 // The types come from <vulkan/vulkan_core.h> on the include path - DXVK's own Vulkan-Headers, appended last by
 // Core/GameEngineDevice/CMakeLists.txt when references/fbraz3-dxvk is checked out (GX_HAVE_VULKAN_HEADERS). VK_NO_PROTOTYPES:

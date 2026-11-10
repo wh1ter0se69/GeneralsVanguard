@@ -1031,7 +1031,7 @@ void ShaderClass::Apply()
 	DX8Wrapper::Set_DX8_Render_State(D3DRS_CULLMODE,Get_Cull_Mode() ? _PolygonCullMode : D3DCULL_NONE);
 
 	// NPATCHES
-	// GeneralsX @performance Claude 07/08/2026 Only set the tessellation level on a device that
+	// GeneralsX: Only set the tessellation level on a device that
 	// actually tessellates.
 	//
 	// This was the single N-patch site in the tree with no Support_NPatches() guard - every other

@@ -1,7 +1,7 @@
 /* Ed25519 verification. See GXEd25519.h for why this is written rather than called, and for the
  * accept set it is deliberately stricter about than libsodium.
  *
- * GeneralsX @feature Claude 08/08/2026; moved into the engine and de-Windowsed 11/08/2026
+ * GeneralsX: moved into the engine and de-Windowsed 11/08/2026
  *
  * WHY IT MOVED. This began beside the Windows launcher, where the only document anyone needed to
  * verify was the release manifest. Identity (docs/WORKDIR/FRIENDS_V2_SPEC.md section 2) makes the
@@ -859,7 +859,7 @@ int gx_ed25519_verify(const unsigned char *pk, const unsigned char *sig,
 }
 
 /* ============================================================================================
- * GeneralsX @security Claude 25/09/2026 SIGNING (see GXEd25519.h for who may use it and why).
+ * GeneralsX: SIGNING (see GXEd25519.h for who may use it and why).
  *
  * RFC 8032 section 5.1.6, over the arithmetic above. The two pieces that did not exist are the point
  * encoding and arithmetic modulo L; both are written the plainest way there is - an inverse and a

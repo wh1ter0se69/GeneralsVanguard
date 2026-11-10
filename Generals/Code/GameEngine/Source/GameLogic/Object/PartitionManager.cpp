@@ -1473,7 +1473,7 @@ void PartitionCell::validateCoiList()
 void PartitionCell::crc( Xfer *xfer )
 {
 
-	// GeneralsX @feature Claude 06/11/2026 16 planes while the match has <= 16 Players (what every 16-Player build
+	// GeneralsX: 16 planes while the match has <= 16 Players (what every 16-Player build
 	// hashed, so <= 14-slot matches and their replays keep their CRC), all MAX_PLAYER_COUNT above that (GameCommon.h).
 	xfer->xferUser(&m_shroudLevel, sizeof(ShroudLevel) * gxCrcPlayerSpan());
 	xfer->xferUser(&m_cellX, sizeof(m_cellX));
@@ -1581,7 +1581,7 @@ void PartitionData::friend_setShroudednessPrevious(Int playerIndex, ObjectShroud
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 02/10/2026 see the header. getShroudedStatus's SHROUDED condition from the cells, read-only.
+// GeneralsX: see the header. getShroudedStatus's SHROUDED condition from the cells, read-only.
 Bool PartitionData::isFullyShroudedForPlayer( Int playerIndex ) const
 {
 	CellAndObjectIntersection *coi = m_coiArray;	// getCell() is non-const; the cell is only read
@@ -1634,9 +1634,9 @@ ObjectShroudStatus PartitionData::getShroudedStatus(Int playerIndex)
 		else if( shroudedCells == m_coiInUseCount )
 		{	m_shroudedness[playerIndex] = OBJECTSHROUD_SHROUDED;				// every cell I use is shrouded
 			m_everSeenByPlayer[playerIndex] = false; //force object as never seen by the player
-			// GeneralsX @bugfix Claude 16/10/2026 Whatever the previous status was, not only FOGGED: a snapshot kept through the
+			// GeneralsX: Whatever the previous status was, not only FOGGED: a snapshot kept through the
 			// "enemy building never seen" refinement below (previous SHROUDED) is fog memory too, and every cell is shrouded
-			// now (Codex ghostleak-r1). freeSnapShot is a no-op without a snapshot; see the CLEAR branch below.
+			// now. freeSnapShot is a no-op without a snapshot; see the CLEAR branch below.
 			if (m_ghostObject)
 			{	//we are shrouding an area that used to be fogged so release our memory of what was there.
 				m_ghostObject->freeSnapShot(playerIndex);
@@ -1675,13 +1675,13 @@ ObjectShroudStatus PartitionData::getShroudedStatus(Int playerIndex)
 		{	//Record that this object was seen by the player.  This info will be used to show fogged enemy faction buildings.
 			m_everSeenByPlayer[playerIndex] = true;
 			m_shroudedness[playerIndex] = OBJECTSHROUD_CLEAR;
-			// GeneralsX @bugfix Claude 16/10/2026 A visible object has no fog memory: free its snapshot whatever the previous
+			// GeneralsX: A visible object has no fog memory: free its snapshot whatever the previous
 			// status was (both visible branches; freeSnapShot is a no-op without one), not only after FOGGED. A snapshot taken
 			// while FOGGED survives a later recompute that the "enemy building never seen" refinement above turns into SHROUDED
 			// (e.g. a derrick fogged while neutral, then captured by an enemy unseen): previous became SHROUDED, so retail's
 			// "== FOGGED" never freed it, and the stale clone stayed in the scene for good - a destroyed building drawn standing
 			// over its rubble (wh1ter0se 14/10, proven in gameplay/NOTE_ghost-leak-proof-wh1ter0se-bugs-1015-live.md). A save written
-			// by a leaking build can hold such a snapshot with previous CLEAR (Codex ghostleak-r1). freeSnapShot touches only
+			// by a leaking build can hold such a snapshot with previous CLEAR. freeSnapShot touches only
 			// the client's scene and snapshot list; m_shroudedness, m_everSeenByPlayer and m_shroudednessPrevious are written
 			// exactly as before. Freeing at the refinement instead would make a fogged building vanish from the fog when an
 			// enemy captures it unseen - telling the player about the capture.
@@ -1695,7 +1695,7 @@ ObjectShroudStatus PartitionData::getShroudedStatus(Int playerIndex)
 		{	//Record that this object was seen by the player.  This info will be used to show fogged enemy faction buildings.
 			m_everSeenByPlayer[playerIndex] = true;
 			m_shroudedness[playerIndex] = OBJECTSHROUD_PARTIAL_CLEAR;		// I am at least partially clear otherwise
-			// GeneralsX @bugfix Claude 16/10/2026 Whatever the previous status was, see the CLEAR branch above.
+			// GeneralsX: Whatever the previous status was, see the CLEAR branch above.
 			if (m_ghostObject)
 			{	//object was previously fogged but now is visible so we no longer
 				//need a ghost object.
@@ -2657,10 +2657,10 @@ void PartitionManager::init()
 	m_cellSize = TheGlobalData->m_partitionCellSize;
 	if (m_cellSize < 1.0)
 		m_cellSize = 1.0;
-	// GeneralsX @bugfix Claude 06/10/2026 The terrain-height cache below samples every cell whole, about every MAP_XY_FACTOR
+	// GeneralsX: The terrain-height cache below samples every cell whole, about every MAP_XY_FACTOR
 	// units in Zero Hour and every 2 in Generals: the grid tiles the map, so the work is the map's area - until one cell is
 	// larger than the map. A map.ini PartitionCellSize of 100,000 was 100 million samples (2.5 billion in Generals), and at
-	// 1e9 the float step stopped advancing the loop (Codex mh2-r2). Held to 1,000 world units (NaN too); shipped data uses 40.
+	// 1e9 the float step stopped advancing the loop. Held to 1,000 world units (NaN too); shipped data uses 40.
 	const Real MAX_PARTITION_CELL_SIZE = 1000.0f;
 	if (!(m_cellSize <= MAX_PARTITION_CELL_SIZE))
 		m_cellSize = MAX_PARTITION_CELL_SIZE;
@@ -2682,13 +2682,13 @@ void PartitionManager::init()
 			m_worldExtents.hi.y = m_worldExtents.lo.y + 1.0f;
 		m_cellCountX = REAL_TO_INT_CEIL(m_worldExtents.width() * m_cellSizeInv);
 		m_cellCountY = REAL_TO_INT_CEIL(m_worldExtents.height() * m_cellSizeInv);
-		// GeneralsX @bugfix Claude 06/10/2026 The product used to be taken in Int, so a large enough extent wrapped it
+		// GeneralsX: The product used to be taken in Int, so a large enough extent wrapped it
 		// (2^20 x 2^12 cells -> 0), allocated that, and the loop below then initialised cellCountX x cellCountY cells
 		// far past the allocation. The map's boundaries are bounded where they are read (WorldHeightMap.cpp
 		// boundariesFitHeightMap), so this only fires on a grid no map produces; refusing it beats corrupting the heap,
 		// and a start refuses an ERROR_CORRUPT_FILE_FORMAT as a damaged map (GameLogic::startNewGame).
-		// GeneralsX @bugfix Claude 06/10/2026 PartitionCellSize comes from GameData, which a map.ini may override: 1 on an
-		// 8,000-unit map asked for 64 million PartitionCells (gigabytes, then each initialised) before play (Codex mh2-r1).
+		// GeneralsX: PartitionCellSize comes from GameData, which a map.ini may override: 1 on an
+		// 8,000-unit map asked for 64 million PartitionCells (gigabytes, then each initialised) before play.
 		// The grid is refused past 2^20 cells. Shipped data uses 40 everywhere and no map.ini sets it (817 scanned); the
 		// largest real map (802 x 860 height cells) makes 43,000 cells at 40.
 		const Int64 MAX_PARTITION_CELLS = 1 << 20;
@@ -4063,14 +4063,14 @@ Bool PartitionManager::findPositionAround( const Coord3D *center,
 // is in Object where Allies make sense.  AddLooker literally just adds a looker for the player you specify.
 // This way, Full map reveals and Observer mode active look will not carry over to all
 // allies.  They'll use the RevealWholeDamnMap series, which call addLooker directly.
-// GeneralsX @bugfix Claude 06/10/2026 A map script's reveal or shroud radius (MAP_REVEAL_AT_WAYPOINT, MAP_SHROUD_AT_WAYPOINT,
+// GeneralsX: A map script's reveal or shroud radius (MAP_REVEAL_AT_WAYPOINT, MAP_SHROUD_AT_WAYPOINT,
 // MAP_REVEAL_PERMANENTLY_AT_WAYPOINT and the named reveals) reaches these four as the file gave it: 1e10 overflowed the cell
-// conversion and DiscreteCircle reserved radius << 1 edges - a negative or multi-gigabyte request (Codex mlv-r7 #2). Capped at a
+// conversion and DiscreteCircle reserved radius << 1 edges - a negative or multi-gigabyte request. Capped at a
 // million world units (100,000 cells): a circle that large around any point of a map already covers all of it, so the cells
 // it touches are the same. Real maps use 1..20,000 (2,641 maps scanned); sight ranges are far below. A NaN radius is 0 (one
-// cell, the minimum below): Zero Hour's fast_float_ceil turned NaN into INT_MAX cells, the same crash (Codex mlv-r8).
-// GeneralsX @bugfix Claude 06/10/2026 The threat and value maps size the same circles from an object's VisionRange, which a
-// map.ini may override, so they take the same cap (real vision ranges reach 99,999; batch-0958 Codex r3-full).
+// cell, the minimum below): Zero Hour's fast_float_ceil turned NaN into INT_MAX cells, the same crash.
+// GeneralsX: The threat and value maps size the same circles from an object's VisionRange, which a
+// map.ini may override, so they take the same cap (real vision ranges reach 99,999; batch-0958).
 static const Real MAX_SHROUD_RADIUS = 1000000.0f;
 static Real shroudRadius(Real radius)
 {
@@ -4079,15 +4079,15 @@ static Real shroudRadius(Real radius)
 	return radius > MAX_SHROUD_RADIUS ? MAX_SHROUD_RADIUS : radius;
 }
 
-// GeneralsX @bugfix Claude 06/10/2026 The cap above is in world units, so with PartitionCellSize = 1 (a map.ini may set it)
-// a reveal still built a million-cell DiscreteCircle and walked each scanline's whole two-million-cell span (batch-0958
-// Codex r3-full). A circle that reaches every cell of the grid touches the same cells, each once, as any larger one, so the
+// GeneralsX: The cap above is in world units, so with PartitionCellSize = 1 (a map.ini may set it)
+// a reveal still built a million-cell DiscreteCircle and walked each scanline's whole two-million-cell span.
+// A circle that reaches every cell of the grid touches the same cells, each once, as any larger one, so the
 // radius a circle is built with stops there: the Manhattan distance from the centre cell to the farthest grid cell, plus 2
 // (the discrete circle of that radius contains the whole diamond, and so the grid - scripts/test/discrete-circle-test.sh
 // compares every cell against the uncapped circle, centres outside the grid included). Only the circle's size changes:
 // the threat and value falloff keeps its own radius, so every cell gets exactly the value it got before.
 // A circle whose bounding square (every row and span lies within centre +- radius) misses the grid touches no cell: 0, and
-// the caller draws nothing - nor builds a circle around a centre far enough out to overflow its Int rows (Codex mh2-r1).
+// the caller draws nothing - nor builds a circle around a centre far enough out to overflow its Int rows.
 // Left: a centre outside the grid whose circle reaches part of it costs one linear walk of its radius (at most a million).
 static Int gridCircleRadius(Int cellCenterX, Int cellCenterY, Int cellRadius, Int cellCountX, Int cellCountY)
 {
@@ -4206,8 +4206,8 @@ void PartitionManager::queueUndoShroudReveal(Real centerX, Real centerY, Real ra
 	newInfo->m_where.y = centerY;
 	newInfo->m_howFar = radius;
 	newInfo->m_forWhom = playerMask;
-	// GeneralsX @bugfix Claude 06/10/2026 UnlookPersistDuration (GameData, which a map.ini may override) is how long every
-	// unlook waits in this queue: a duration of weeks kept every unlook of the match queued (Codex mh2-r1). Capped at a
+	// GeneralsX: UnlookPersistDuration (GameData, which a map.ini may override) is how long every
+	// unlook waits in this queue: a duration of weeks kept every unlook of the match queued. Capped at a
 	// minute; shipped data says 5 seconds.
 	const UnsignedInt MAX_UNLOOK_PERSIST = 60 * LOGICFRAMES_PER_SECOND;
 	const UnsignedInt persist = TheGlobalData->m_unlookPersistDuration;
@@ -4589,7 +4589,7 @@ Int PartitionManager::iterateCellsBreadthFirst(const Coord3D *pos, CellBreadthFi
 	// Call proc on each cell, and if it returns non-zero, then return the cell index
 	// -1 means error, but we should add a define later for this.
 
-	// GeneralsX @bugfix Claude 01/10/2026 worldToCell does not clamp, so an off-map start indexed past the grid.
+	// GeneralsX: worldToCell does not clamp, so an off-map start indexed past the grid.
 	// tsh batch2 #412, idea of Generals Online 5499057ee (reimplemented).
 	if (m_cells == nullptr || m_cellCountX <= 0 || m_cellCountY <= 0)
 		return -1;
@@ -4644,7 +4644,7 @@ Int PartitionManager::iterateCellsBreadthFirst(const Coord3D *pos, CellBreadthFi
 		}
 
 		// bottom
-		// GeneralsX @bugfix Claude 01/10/2026 was 'curY + 1 > 0', always true: from the last row this read the
+		// GeneralsX: was 'curY + 1 > 0', always true: from the last row this read the
 		// bit field past its end and queued a cell past the grid (tsh batch2 #412).
 		if (curY + 1 < m_cellCountY) {
 			if (!bitField[(curY + 1) * m_cellCountX + curX]) {
@@ -5011,7 +5011,7 @@ Bool PartitionManager::getNearestGroupWithValue( Int playerIndex, UnsignedInt wh
 	}
 
 	// all done
-	// GeneralsX @bugfix Claude 01/10/2026 Report whether a cell was found, so the caller does not move to an
+	// GeneralsX: Report whether a cell was found, so the caller does not move to an
 	// unset location (tsh batch2 #412).
 	return false;
 }
@@ -5748,9 +5748,9 @@ static int cellValueProc(PartitionCell* cell, void* userData)
 }
 
 // -----------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 06/10/2026 The eight hLine* scanlines below walked x1..x2 whole and skipped the cells off the grid
+// GeneralsX: The eight hLine* scanlines below walked x1..x2 whole and skipped the cells off the grid
 // one by one, so a wide circle around a centre outside the grid cost its full span on every in-grid row - billions of
-// skipped steps (Codex mh2-r1). Each now clips the span to the grid first: the same cells, in the same order.
+// skipped steps. Each now clips the span to the grid first: the same cells, in the same order.
 void hLineAddLooker(Int x1, Int x2, Int y, void *playerIndexVoid)
 {
 	if (y < 0 || y >= ThePartitionManager->m_cellCountY || x1 >= ThePartitionManager->m_cellCountX || x2 < 0)

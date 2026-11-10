@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: render-target and depth-stencil surfaces (see GxRenderTarget.h).
+// GeneralsX: WS-C GXRES v0: render-target and depth-stencil surfaces (see GxRenderTarget.h).
 #include "GxRenderTarget.h"
 #include "GxD3D.h"
 
@@ -22,7 +22,7 @@ VkSampleCountFlagBits GxRenderTarget::clampSamples(const VkPhysicalDeviceLimits&
 		return VK_SAMPLE_COUNT_1_BIT; // DXVK refuses a non-power-of-two type (D3DERR_INVALIDCALL); D3D8 has none in use
 	VkSampleCountFlags supported = limits.framebufferColorSampleCounts & limits.framebufferDepthSampleCounts;
 	if (maxSamples) // forced reduced capability: the counts above the cap do not exist (cap rounded DOWN to a power of two:
-		supported &= VkSampleCountFlags((capPow2(maxSamples) << 1) - 1); // samples=3 built mask 0x5 and allowed 4x - Codex rw2-C-r2 P2)
+		supported &= VkSampleCountFlags((capPow2(maxSamples) << 1) - 1); // samples=3 built mask 0x5 and allowed 4x)
 	// DXVK's loop, verbatim (d3d9_util.cpp DecodeMultiSampleType): it compares the count with the MASK as a number...
 	while (count > supported)
 		count >>= 1;
@@ -59,7 +59,7 @@ bool GxRenderTarget::init(GxResources& res, const RenderTargetDesc& desc, std::s
 	else if (desc.sampled && !f->depth) {
 		VkSampleCountFlags can = res.ctx().limits().sampledImageColorSampleCounts;
 		if (uint32_t cap = res.formats().caps().maxSampledSamples)   // forced: counts above the cap taken away (a cap of 3 means x2,
-			can &= (VkSampleCountFlags(capPow2(cap)) << 1) - 1;          // Codex rw3L-code-r7 #4)
+			can &= (VkSampleCountFlags(capPow2(cap)) << 1) - 1;          // )
 		if (!(can & samples) && !res.debug().sampledIgnoresLimit) {
 			if (why)
 				*why = std::string(f->name) + ": sampled MSAA x" + std::to_string(unsigned(samples)) + " unsupported on this device";
@@ -82,7 +82,7 @@ bool GxRenderTarget::init(GxResources& res, const RenderTargetDesc& desc, std::s
 	ci.format = f->vk;
 	ci.subresourceRange = {f->aspect, 0, 1, 0, 1};
 	const bool injected = res.debug().failRtViewOnce;   // TEST - cleared only when armed: init runs on the front AND (a present
-	if (injected)                                         // target) on the worker; an unconditional store races (Codex r1-res P1)
+	if (injected)                                         // target) on the worker; an unconditional store races
 		res.debug().failRtViewOnce = false;
 	if (injected || vkCreateImageView(res.ctx().device(), &ci, nullptr, &m_view) != VK_SUCCESS) {
 		if (why)
@@ -102,7 +102,7 @@ bool GxRenderTarget::init(GxResources& res, const RenderTargetDesc& desc, std::s
 			vkDestroyImageView(res.ctx().device(), m_view, nullptr);
 			m_view = VK_NULL_HANDLE;
 			// never recorded, queued or published: freed at once, off every worker list (A23-B: creation runs on the front -
-			// D · look-fdepth-plus, Codex fdepth-r2 #1; the attachment-view failure above already does this)
+			// D · look-fdepth-plus, the attachment-view failure above already does this)
 			m_image.destroyUnpublished(res);
 			m_res = nullptr;
 			return false;

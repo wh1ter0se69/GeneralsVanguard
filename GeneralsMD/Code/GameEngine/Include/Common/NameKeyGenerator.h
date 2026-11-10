@@ -116,7 +116,7 @@ public:
 	void verifyNameKeyID(UnsignedInt expectedNextID) const;
 #endif
 
-	// GeneralsX @feature Claude 27/07/2026
+	// GeneralsX:
 	// Next ordinal to be handed out. Captured immediately before and immediately after
 	// initSubsystem(TheScienceStore, ...) in GameEngine::init and folded into the
 	// join-time compatibility identity. Deliberately OUTSIDE the RETAIL_COMPATIBLE_CRC
@@ -136,7 +136,7 @@ private:
 	void freeSockets();
 
 	Bucket*				m_sockets[SOCKET_COUNT];			///< Catalog of all Buckets already generated
-	// GeneralsX @performance Claude 23/09/2026 Reverse index for keyToName: keys are minted
+	// GeneralsX: Reverse index for keyToName: keys are minted
 	// sequentially by createNameKey, so the key is the index. Lookup only; minting is unchanged.
 	std::vector<Bucket*>	m_bucketsByKey;
 	UnsignedInt		m_nextID;											///< Next available ID

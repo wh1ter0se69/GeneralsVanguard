@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/08/2026 A single-shot loopback listener: the browser hands the
+// GeneralsX: A single-shot loopback listener: the browser hands the
 // login back to the machine that started it.
 //
 // ================================================================================================

@@ -1,4 +1,4 @@
-// GeneralsX @bugfix Claude 18/09/2026 - wipe a buffer that held the sign-in when the scope that
+// GeneralsX: wipe a buffer that held the sign-in when the scope that
 // declared it ends, on EVERY path out of it.
 //
 // WHY A GUARD AND NOT A CLEAR BEFORE EACH return. The buffers this is for sit in functions with many

@@ -1,10 +1,10 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule NOFLOAT.EXTRA_FACTORIES (C·rb-data-10): Air Force spends spare money on War
+# GeneralsX: rule bank DATA rule NOFLOAT.EXTRA_FACTORIES (C·rb-data-10): Air Force spends spare money on War
 # Factories, not on more Air Fields. Stock Air Force Hard builds up to four Air Fields fast ("USA Air Field - H" at the first supply
 # centre, then "Build Second / Third / Fourth Air Field - H" at 1000 cash each) and one War Factory (the High Money copy waits for 30000).
 # Here the Air Field scripts past airfields_max get the never-true condition "fewer than 0 own Air Fields", and one-shot scripts
 # "GX Extra War Factory <n> - H", n = 2..1 + wf_extra, each place War Factory n the way the stock RICH scripts place an extra building
 # (AI_PLAYER_BUILD_SUPPLY_CENTER, minimum 1000 - ENGINE_READS, listed in the manifest) once the first is complete, cash >= bank_min,
-# own oil derricks >= oil_min and the player owns fewer than n (one order per number: Codex rbd10-r1 P2, a repeating order over-built). Own state only. Air Force only: stock China Tank Hard already builds
+# own oil derricks >= oil_min and the player owns fewer than n (one order per number: a repeating order over-built). Own state only. Air Force only: stock China Tank Hard already builds
 # three War Factories ("China War Factory" 1-3) and one Air Field, which is this rule's default.
 # rb-data-11: under the cap stock still placed one more Air Field (smoke8: 243 s, cash 17000): "USA Air Field RICH<j> AirF_AmericaAirfield"
 # (cash >= 15000/30000/50000/80000 and _ESCALATION >= 10/20/30/45: enemy-gated, not editable). RICH<j> is field 4 + j, past every

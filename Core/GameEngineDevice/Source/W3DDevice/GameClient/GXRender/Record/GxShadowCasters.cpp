@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 GPU sun shadow map: the caster list and its INIT replay (see the header).
+// GeneralsX: S7 GPU sun shadow map: the caster list and its INIT replay (see the header).
 #include "GxShadowCasters.h"
 #include "GxLookFrame.h"
 #include "GxOwnPull.h"
@@ -116,7 +116,7 @@ void GxShadowCasters::shutdown()
 	if (!m_ctx)
 		return;
 	VkDevice dev = m_ctx->device();
-	// Codex code-p0b-r1 P2: a replay recorded into a submitted INIT buffer may still be executing - nothing here is destroyed
+	// a replay recorded into a submitted INIT buffer may still be executing - nothing here is destroyed
 	// before the GPU is idle (shutdown is device teardown or a test: never per frame)
 	if (m_opaque)
 		m_ctx->waitIdle();
@@ -178,7 +178,7 @@ void GxShadowCasters::record(VkCommandBuffer cmd)
 		VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
 		VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 	const int replays = debug.replayTwice ? 2 : 1;
-	// A73 (Codex a71-r1 #1): a non-zero clamp needs the device's depthBiasClamp (VUID-vkCmdSetDepthBias-depthBiasClamp-00790). Without it
+	// A73: a non-zero clamp needs the device's depthBiasClamp (VUID-vkCmdSetDepthBias-depthBiasClamp-00790). Without it
 	// the clamp is dropped - 0 = unclamped, the pre-A73 bias: valid, airborne casters' shadows checkered - counted, and logged once
 	float clamp = m_pass.depthBias[1];
 	if (clamp != 0.f && (!m_biasClampFeature || debug.noBiasClampFeature) && !debug.noBiasGuard) {
@@ -199,7 +199,7 @@ void GxShadowCasters::record(VkCommandBuffer cmd)
 			float pulledVP[16];
 			gxOwnPullViewProj(pull, m_pass.lightViewProj[c], pulledVP);
 			if ((c > 0 || copy > 0) && !debug.noCascadeBarrier) {   // A92: also between replay-k copies on the scratch image
-				// Codex code-p0b-r1 P1: the next cascade's rendering instance (its CLEAR load op) on the SAME atlas subresource is
+				// the next cascade's rendering instance (its CLEAR load op) on the SAME atlas subresource is
 				// ordered after the previous one's depth writes and store - disjoint render areas are not a synchronization guarantee
 				VkMemoryBarrier2 mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER_2 };
 				mb.srcStageMask = mb.dstStageMask = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;

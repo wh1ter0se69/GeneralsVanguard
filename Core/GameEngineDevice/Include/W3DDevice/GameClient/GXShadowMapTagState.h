@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-shadowmaps-3 17/10/2026 S7 PREREG A41: what the device must hold (tags + a clamped instance's own light) for
+// GeneralsX: S7 PREREG A41: what the device must hold (tags + a clamped instance's own light) for
 // each draw boundary the mesh renderer reports - pure logic, host-tested (scripts/test/sm-fit/sm-fit-test.cpp A41-tag-*), used by the ZH
 // glue (W3DShadowMap.cpp), which sends each value to the device only when it changes (integrator A40 T4: on change only, no stale own light).
 // Render-only.

@@ -86,7 +86,7 @@ private:
 	Real m_curWobblePhase;
 	Real m_curZOffset;
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate. doDrawModule() runs per RENDERED frame but
+	// GeneralsX: Class-C gate. doDrawModule() runs per RENDERED frame but
 	// the wobble phase and the drop integrator below it are per-LOGIC-FRAME steps, so a rappel rope
 	// wobbled and accelerated up to 8x too fast and decoupled from the logic-driven rope length.
 	// NOT xfer'd (see xfer(), version 1) - it is a render-pacing detail, not saved state.

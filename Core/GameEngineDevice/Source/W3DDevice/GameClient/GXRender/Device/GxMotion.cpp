@@ -1,4 +1,4 @@
-// GeneralsX @feature E · render-motion-1 13/10/2026 GxMotion.h (DESIGN_motion.md rev 2: §4 depth, §5 jitter, §6.9 resolve).
+// GeneralsX: GxMotion.h (DESIGN_motion.md rev 2: §4 depth, §5 jitter, §6.9 resolve).
 #include "GxMotion.h"
 
 #include "shaders/gx_present.vert.h"
@@ -204,8 +204,8 @@ const float* GxMotion::begin(const GxMotionBegin& b, Res::GxImage* depthImage, V
 	m_active = false;
 	m_jitterOn = false;
 	m_published = false;
-	m_object = nullptr;    // a registration never outlives its pass (Codex motion-code-r2 #3)
-	m_objectView = VK_NULL_HANDLE;   // nothing of this pass is visible until its resolve is recorded (Codex motion-code-r1 #4)
+	m_object = nullptr;    // a registration never outlives its pass
+	m_objectView = VK_NULL_HANDLE;   // nothing of this pass is visible until its resolve is recorded
 	if (!b.temporal) {     // a spatial / bilinear pass: no motion, and history restarts when temporal resumes (#3)
 		m_havePrev = false;
 		if (whyOff)
@@ -240,7 +240,7 @@ const float* GxMotion::begin(const GxMotionBegin& b, Res::GxImage* depthImage, V
 	// --- jitter (§5): Halton(2,3), 1-based, phase count int(8 * (out/render)^2) truncated, at least m_minPhases
 	static const bool forceJitter = [] { const char* v = std::getenv("GX_MOTION_JITTER"); return v && *v == '1'; }();
 	m_jitterOn = (b.temporal && m_consumer && m_debugView == GxMotionDebugView::None) || forceJitter;
-	// FidelityFX 1.1.4 ffxFsr3GetJitterPhaseCount: int32_t(8 * ratio^2), truncated (Codex motion-design-r1 #27)
+	// FidelityFX 1.1.4 ffxFsr3GetJitterPhaseCount: int32_t(8 * ratio^2), truncated
 	const float ratio = b.outputW > m_begin.viewW ? float(b.outputW) / float(m_begin.viewW) : 1.f;   // output / render viewport
 	m_phaseCount = std::max(uint32_t(8.f * ratio * ratio), m_minPhases);
 
@@ -253,7 +253,7 @@ const float* GxMotion::begin(const GxMotionBegin& b, Res::GxImage* depthImage, V
 		gxMat4Mul(invVp, prevVp, c2p);
 		// camera cut (§8): the screen centre and the four NDC corners, at the view depth halfway between the clip planes, moved
 		// more than GX_MOTION_RESET_FRAC of the render width (a calibration knob, set from pictures) - corners catch a fast spin or
-		// FOV jump the centre misses (Codex motion-design-r1 #21). No planes = only the seam's reset.
+		// FOV jump the centre misses. No planes = only the seam's reset.
 		static const float cutFrac = envFloat("GX_MOTION_RESET_FRAC", 0.25f);
 		if (b.farZ > b.nearZ && b.nearZ >= 0.f) {
 			const float vz = (b.proj[11] < 0.f ? -0.5f : 0.5f) * (b.nearZ + b.farZ);   // right-handed views look down -z
@@ -464,7 +464,7 @@ bool GxMotion::ensureMv(uint32_t w, uint32_t h)
 	ci.subresourceRange = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	if (vkCreateImageView(m_ctx->device(), &ci, nullptr, &m_mvView) == VK_SUCCESS)
 		return true;
-	m_mvView = VK_NULL_HANDLE;   // no half-made image survives to pass the fast path (Codex motion-code-r1 #5)
+	m_mvView = VK_NULL_HANDLE;   // no half-made image survives to pass the fast path
 	m_mv.destroy(*m_res);
 	m_mv = Res::GxImage();
 	return false;
@@ -644,7 +644,7 @@ bool GxMotion::record(VkCommandBuffer cmd, const GxMotionResolve& r)
 			allocSet(r.mvView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_NULL_HANDLE, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		if (dbg && set) {
 			const DebugPush dp = { { r.debug[0], r.debug[1], r.debug[2], r.debug[3] } };
-			// LOAD reads the world's colour: the barrier makes those writes visible to the attachment read (Codex motion-code-r1 #2)
+			// LOAD reads the world's colour: the barrier makes those writes visible to the attachment read
 			r.colour->transition(cmd, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
 				VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT);
 			pass(r.colourView, VK_ATTACHMENT_LOAD_OP_LOAD, dbg, set, &dp, sizeof(dp), whole);

@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank DATA rule TECH.CHINA_UPGRADE_GATES (C·rb-data): buy China's key upgrades on the army
+# GeneralsX: rule bank DATA rule TECH.CHINA_UPGRADE_GATES (C·rb-data): buy China's key upgrades on the army
 # they help, and Black Napalm only in a safe window (rows 132, 134, 180, 254). Stock Hard China buys Black Napalm and MiG Armor at 4
 # Dragons / MiGs, Subliminal Messaging on a Speaker Tower alone, the nuke upgrades behind 2 Overlords, and Tank's Autoloader the moment
 # its Propaganda Center stands. Per China general the stock upgrade scripts change in place:

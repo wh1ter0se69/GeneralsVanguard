@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 GPU sun shadow map: the Core side of the game glue
+// GeneralsX: S7 GPU sun shadow map: the Core side of the game glue
 // (modernize/look-director/d2/PREREG_look-shadowmaps.md; PLAN Task 5).
 //
 // W3DView.cpp (Core: both games) defines these and calls the frame hooks around the tactical scene; the ZH glue
@@ -35,5 +35,5 @@ inline void GxShadowMapFireArmed(CameraClass *camera, SceneClass *scene)
 // This frame's map is ON (step < 3): the ZH volumetric manager skips today's volumes and their darkening quad.
 extern bool GxShadowMapActive;
 // Set by W3DView::update when the terrain rebuilds (a lowered cell's partial update or a full update): the fit re-scans the terrain's
-// height range before its next frame and clears it (Codex code-fit4-r1: a crater must not wait for a periodic scan).
+// height range before its next frame and clears it (a crater must not wait for a periodic scan).
 extern bool GxShadowMapTerrainChanged;

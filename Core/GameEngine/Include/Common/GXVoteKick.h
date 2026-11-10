@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 06/10/2026 IN-MATCH VOTE KICK - the rules, and nothing else.
+// GeneralsX: IN-MATCH VOTE KICK - the rules, and nothing else.
 //
 // wh1ter0se, 05/10/2026: "Kick needs to be initiated by one play; one play can initiate a vote to kick once every 5 minutes; and a
 // small banner appears with ... f1 to accept, f2 to reject; EVERYONE should vote YES for a kick to happen, one vetos the thing,
@@ -24,7 +24,7 @@
 
 #include <stdint.h>
 
-// GeneralsX @feature Claude 06/11/2026 32 -> 64 with MAX_PLAYER_COUNT 40 (a Player index must fit the masks).
+// GeneralsX: 32 -> 64 with MAX_PLAYER_COUNT 40 (a Player index must fit the masks).
 enum { GXVK_MAX_PLAYERS = 64 };	///< mask width; GameLogic asserts MAX_PLAYER_COUNT fits
 typedef uint64_t GXVoteKickMask;	///< one bit per Player index
 

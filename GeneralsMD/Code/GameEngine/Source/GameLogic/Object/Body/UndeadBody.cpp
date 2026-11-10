@@ -91,7 +91,7 @@ void UndeadBody::attemptDamage( DamageInfo *damageInfo )
 	}
 #else
 	// TheSuperHackers @bugfix Stubbjax 20/09/2025 Battle Buses now correctly apply damage modifiers when calculating lethal damage
-	// GeneralsX @bugfix Claude 06/10/2026 ...all of them: judge the damage ActiveBody::attemptDamage will actually DEAL - the
+	// GeneralsX: ...all of them: judge the damage ActiveBody::attemptDamage will actually DEAL - the
 	// raw amount times armor (estimateDamage) times the body's damage scalar (a battle plan's armor bonus), which it multiplies
 	// in after armor. Judging without the scalar burned the first life on a hit a bus under Hold the Line would survive. And
 	// the clamp of the RAW amount to health - 1 is kept, but where armor or a scalar above 1 would still multiply it to the
@@ -141,7 +141,7 @@ void UndeadBody::attemptDamage( DamageInfo *damageInfo )
 	ActiveBody::attemptDamage(damageInfo);
 
 #if !(RETAIL_COMPATIBLE_CRC || PRESERVE_PREMATURE_BATTLE_BUS_DEATH)
-	// GeneralsX @bugfix Claude 06/10/2026 Further victims of a reused DamageInfo get what the base left there (sweep c037-01).
+	// GeneralsX: Further victims of a reused DamageInfo get what the base left there (sweep c037-01).
 	damageInfo->in.m_amount = handOn;
 #endif
 

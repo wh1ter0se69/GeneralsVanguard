@@ -41,7 +41,7 @@ Bool WorkingDirectory::saveStartupWorkingDirectory()
 {
 	// An earlier static constructor may call a setter before our initializer runs.
 	// Cache the first capture, including failure, without logging or allocating.
-	// GeneralsX @build Claude 21/09/2026 Off Windows this is the getcwd() shim in
+	// GeneralsX: Off Windows this is the getcwd() shim in
 	// CompatLib/Include/file_compat.h, which returns the same length-or-zero contract.
 	static const DWORD len = ::GetCurrentDirectory(ARRAY_SIZE(s_startupWorkingDirectory), s_startupWorkingDirectory);
 	return len > 0 && len < ARRAY_SIZE(s_startupWorkingDirectory);
@@ -57,7 +57,7 @@ Bool WorkingDirectory::setWorkingDirectory(const char *path)
 
 	if (::SetCurrentDirectory(path) == 0)
 	{
-		// GeneralsX @build Claude 21/09/2026 GetLastError() has no shim off Windows.
+		// GeneralsX: GetLastError() has no shim off Windows.
 #ifdef _WIN32
 		DEBUG_LOG(("Failed to set working directory to '%s' (error %d)", path, GetLastError()));
 #else
@@ -110,7 +110,7 @@ Bool WorkingDirectory::setExecutableWorkingDirectory()
 
 	return setWorkingDirectory(buffer);
 #else
-	// GeneralsX @build Claude 21/09/2026 Deliberately not implemented off Windows.
+	// GeneralsX: Deliberately not implemented off Windows.
 	//
 	// Upstream's body chdir()s to the executable's own directory, which on Windows is also the
 	// data root. It is not on the platforms this fork targets: the macOS bundle puts the binary

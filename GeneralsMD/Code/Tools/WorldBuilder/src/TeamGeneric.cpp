@@ -72,7 +72,7 @@ void TeamGeneric::_fillComboBoxesWithScripts()
 	while (s_allControls[i][1]) {
 		CComboBox *pCombo = (CComboBox*) GetDlgItem(s_allControls[i][1]);
 		if (!pCombo) {
-			++i;	// GeneralsX @bugfix Claude 01/10/2026 step on: a bare continue re-tested the same control forever
+			++i;	// GeneralsX: step on: a bare continue re-tested the same control forever
 			continue;
 		}
 
@@ -97,13 +97,13 @@ void TeamGeneric::_dictToScripts()
 
 		pText = GetDlgItem(s_allControls[i][0]);
 		if (!pText) {
-			++i;	// GeneralsX @bugfix Claude 01/10/2026 step on: a bare continue re-tested the same control forever
+			++i;	// GeneralsX: step on: a bare continue re-tested the same control forever
 			continue;
 		}
 
 		pCombo = (CComboBox*) GetDlgItem(s_allControls[i][1]);
 		if (!pCombo) {
-			++i;	// GeneralsX @bugfix Claude 01/10/2026 step on: a bare continue re-tested the same control forever
+			++i;	// GeneralsX: step on: a bare continue re-tested the same control forever
 			continue;
 		}
 
@@ -146,13 +146,13 @@ void TeamGeneric::_dictToScripts()
 	while (s_allControls[i][1]) {
 		pText = GetDlgItem(s_allControls[i][0]);
 		if (!pText) {
-			++i;	// GeneralsX @bugfix Claude 01/10/2026 step on: a bare continue re-tested the same control forever
+			++i;	// GeneralsX: step on: a bare continue re-tested the same control forever
 			continue;
 		}
 
 		pCombo = (CComboBox*) GetDlgItem(s_allControls[i][1]);
 		if (!pCombo) {
-			++i;	// GeneralsX @bugfix Claude 01/10/2026 step on: a bare continue re-tested the same control forever
+			++i;	// GeneralsX: step on: a bare continue re-tested the same control forever
 			continue;
 		}
 
@@ -178,13 +178,13 @@ void TeamGeneric::_scriptsToDict()
 
 		pText = GetDlgItem(s_allControls[i][0]);
 		if (!pText) {
-			++i;	// GeneralsX @bugfix Claude 01/10/2026 step on: a bare continue re-tested the same control forever
+			++i;	// GeneralsX: step on: a bare continue re-tested the same control forever
 			continue;
 		}
 
 		pCombo = (CComboBox*) GetDlgItem(s_allControls[i][1]);
 		if (!pCombo) {
-			++i;	// GeneralsX @bugfix Claude 01/10/2026 step on: a bare continue re-tested the same control forever
+			++i;	// GeneralsX: step on: a bare continue re-tested the same control forever
 			continue;
 		}
 

@@ -1,5 +1,5 @@
 # On 64-bit Windows, macOS, and Linux: use our d3dx8 implementation (GLI/GLM for math helpers)
-# GeneralsX @build BenderAI 24/02/2026 Phase 5 - Skip d3dx8 on macOS/Linux due to GLI/GLM ambiguity
+# GeneralsX: Phase 5 - Skip d3dx8 on macOS/Linux due to GLI/GLM ambiguity
 # GeneralsX @build felipebraz 20/06/2025 - Also build d3dx8 STATIC on macOS (D3DX math/texture stubs required for link)
 # GeneralsX @bugfix felipebraz 02/03/2026 - Build real d3dx8 STATIC on Linux too (D3DXGetFVFVertexSize / D3DXLoadSurfaceFromSurface required for link)
 # d3dx8 is a math/texture helper stub; core game code doesn't require it
@@ -35,7 +35,7 @@ endif()
 # d3dx8 needs bittype.h from WWLib for Win32 types (DWORD, BYTE, UINT, etc.)
 # Add only WWLib directory (not full core_wwcommon to avoid d3d8.h conflicts from WWAudio)
 #
-# GeneralsX @bugfix Claude 27/07/2026 Publish the d3dx8-only staging dir, not CompatLib/Include.
+# GeneralsX: Publish the d3dx8-only staging dir, not CompatLib/Include.
 #
 # This target_include_directories is PUBLIC and d3dx8 is linked by core_wwcommon consumers, the
 # game Main targets and (via d3d8lib) practically everything else, so whatever it names lands on
@@ -75,7 +75,7 @@ add_library(d3dx8 INTERFACE)
 target_link_libraries(d3dx8 INTERFACE d3d8lib)
 endif()
 
-# GeneralsX @build BenderAI 10/02/2026
+# GeneralsX:
 # Configure d3d8lib target globally (created early in Core/CMakeLists.txt)
 # Fighter19's approach: Windows uses min-dx8-sdk, Linux uses ONLY DXVK headers
 if(SAGE_USE_DX8)
@@ -94,7 +94,7 @@ else()
     # DXVK provides complete Wine-compatible DirectX 8 headers
     # CRITICAL: Linux uses a pre-built tarball (headers in include/dxvk/ flat)
     #           macOS builds DXVK from source (headers in include/native/windows + directx + vulkan)
-    # GeneralsX @build BenderAI 24/02/2026 Phase 5 - DXVK v2.6 uses include/native/windows + include/native/directx
+    # GeneralsX: Phase 5 - DXVK v2.6 uses include/native/windows + include/native/directx
     # GeneralsX @build fbraz 24/02/2026 - Also need include/native for WSI headers (wsi/native_wsi.h)
     # GeneralsX @bugfix felipebraz 02/03/2026 - Restore Linux path (tarball = include/dxvk, not include/native)
     if(NOT dxvk_SOURCE_DIR)
@@ -114,7 +114,7 @@ else()
             ${dxvk_SOURCE_DIR}/include/dxvk
         )
     endif()
-    # GeneralsX @bugfix BenderAI 25/02/2026 On macOS, DXVK dylibs live in the Meson build dir
+    # GeneralsX: On macOS, DXVK dylibs live in the Meson build dir
     # (_deps/dxvk-build-macos/src/d3d*/), not in ${dxvk_SOURCE_DIR}/lib — that path does not exist.
     # Linux prebuilt DXVK native package does have a lib/ dir, so the guard is macOS-only.
     # Passing a non-existent -L path produces: ld: warning: search path '.../dxvk-src/lib' not found
@@ -139,11 +139,11 @@ list(TRANSFORM SOURCE_COMPAT PREPEND "Source/")
 
 add_library(CompatLib STATIC ${SOURCE_COMPAT})
 
-# GeneralsX @build BenderAI 24/02/2026 Phase 5 - Require C++17 for std::filesystem in compat headers
+# GeneralsX: Phase 5 - Require C++17 for std::filesystem in compat headers
 set_property(TARGET CompatLib PROPERTY CXX_STANDARD 17)
 set_property(TARGET d3dx8 PROPERTY CXX_STANDARD 17)
 
-# GeneralsX @bugfix BenderAI 02/03/2026 - Enforce DXVK source availability before CompatLib compiles
+# GeneralsX: Enforce DXVK source availability before CompatLib compiles
 # On macOS, DXVK is built via ExternalProject (Meson) which clones the source during the BUILD phase,
 # not during configure. This means _deps/dxvk-src/include/native/windows/windows_base.h does not
 # exist when d3dx8 or CompatLib start compiling unless we declare an explicit ordering dependency.
@@ -158,7 +158,7 @@ target_include_directories(CompatLib PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/Include
 )
 
-# GeneralsX @build BenderAI 10/02/2026
+# GeneralsX:
 # Fighter19 pattern: d3d8lib (INTERFACE) links TO CompatLib
 # This makes CompatLib includes transitively available to all targets linking d3d8lib
 # REVERSED from previous (CompatLib linking TO d3d8lib)

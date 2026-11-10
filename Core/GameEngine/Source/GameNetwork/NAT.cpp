@@ -487,7 +487,7 @@ void NAT::establishConnectionPaths() {
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 14/08/2026 THE PAIRING TABLE ONLY AUTHORS 2..8 NODES, and past that
+	// GeneralsX: THE PAIRING TABLE ONLY AUTHORS 2..8 NODES, and past that
 	// it does not run out of entries - it silently produces a WRONG plan.
 	//
 	// m_connectionPairs is declared [MAX_SLOTS-1][MAX_SLOTS-1][MAX_SLOTS], which followed MAX_SLOTS
@@ -924,9 +924,9 @@ void NAT::gotMangledPort(Int nodeNumber, UnsignedShort mangledPort) {
 		return;
 	}
 
-	// GeneralsX @security Claude 06/10/2026 Not our target: done, before anything is indexed. This test used to come
+	// GeneralsX: Not our target: done, before anything is indexed. This test used to come
 	// after m_connectionNodes[m_targetNodeNumber] was read, and a node sitting a round out has target -1 - a PORT
-	// from another player then read m_connectionNodes[-1] (Codex net-hardening nat-port-r1). nodeNumber is already
+	// from another player then read m_connectionNodes[-1] (net-hardening nat-port-r1). nodeNumber is already
 	// bounded by processGlobalMessage, so after this the target is a valid node.
 	if (nodeNumber != m_targetNodeNumber) {
 		DEBUG_LOG(("NAT::gotMangledPort - got a mangled port number for someone that isn't my target. node = %d, target node = %d", nodeNumber, m_targetNodeNumber));
@@ -1111,7 +1111,7 @@ void NAT::sendMangledPortNumberToTarget(UnsignedShort mangledPort, GameSlot *tar
 
 void NAT::processGlobalMessage(Int slotNum, const char *options) {
 	const char *ptr = options;
-	// skip preceding whitespace. GeneralsX @bugfix Claude 06/10/2026 As unsigned char: a peer byte >= 0x80 is
+	// skip preceding whitespace. GeneralsX: As unsigned char: a peer byte >= 0x80 is
 	// negative as char, outside isspace's domain (a debug-CRT assertion on Windows).
 	while (isspace((unsigned char)*ptr)) {
 		++ptr;
@@ -1138,7 +1138,7 @@ void NAT::processGlobalMessage(Int slotNum, const char *options) {
 		while (*c == ' ') {
 			++c;
 		}
-*/		// GeneralsX @bugfix Claude 14/08/2026 THREE defects on one wire-controlled index, and the
+*/		// GeneralsX: THREE defects on one wire-controlled index, and the
 		// third only becomes an out-of-bounds WRITE at twelve, which is why eight never caught it.
 		//
 		//   1. sscanf's return was not checked. On a malformed CONNDONE the two locals are left
@@ -1189,7 +1189,7 @@ void NAT::processGlobalMessage(Int slotNum, const char *options) {
 		// meant to be a phallic reference, you sicko.
 		const char *c = ptr + strlen("PORT");
 		Int node = atoi(c);
-		// GeneralsX @security Claude 06/10/2026 Stop at the end of the string (sweep v-net-04). The text is a
+		// GeneralsX: Stop at the end of the string (sweep v-net-04). The text is a
 		// staging-room option another player sends, and "PORT5" with no space made the first loop walk off the
 		// end of it. An honest message always carries both fields, so one without them is ignored.
 		while (*c != '\0' && *c != ' ') {

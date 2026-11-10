@@ -54,7 +54,7 @@
 #include "Win32Device/GameClient/Win32Mouse.h"
 #include "W3DDevice/GameClient/W3DMouse.h"
 
-// GeneralsX @build BenderAI 10/03/2026 - Phase 1.5 SDL3 input devices
+// GeneralsX: Phase 1.5 SDL3 input devices
 #ifndef _WIN32
 #include <cstdlib>
 #include "SDL3Device/GameClient/SDL3Mouse.h"
@@ -130,7 +130,7 @@ protected:
 
 };
 
-// GeneralsX @build BenderAI 10/03/2026 - Phase 1.5 SDL3 input factory wiring
+// GeneralsX: Phase 1.5 SDL3 input factory wiring
 inline Keyboard *W3DGameClient::createKeyboard( void ) {
 #ifndef _WIN32
 	return NEW SDL3Keyboard();  // Linux: SDL3 keyboard
@@ -141,7 +141,7 @@ inline Keyboard *W3DGameClient::createKeyboard( void ) {
 
 inline Mouse *W3DGameClient::createMouse()
 {
-// GeneralsX @bugfix BenderAI 14/03/2026 SDL3 mouse creation must fail fast instead of returning nullptr.
+// GeneralsX: SDL3 mouse creation must fail fast instead of returning nullptr.
 #ifndef _WIN32
 	// Linux: SDL3 mouse requires the pre-initialized SDL3GameEngine window.
 	SDL3GameEngine* sdlEngine = dynamic_cast<SDL3GameEngine*>(TheGameEngine);

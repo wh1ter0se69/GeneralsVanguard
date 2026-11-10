@@ -1,6 +1,6 @@
 // FILE: GXReplayDiagDevice.cpp ///////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 03/11/2026 What only the device layer knows, for the replay diagnostics block (GameClient/GXReplayDiag.h).
+// GeneralsX: What only the device layer knows, for the replay diagnostics block (GameClient/GXReplayDiag.h).
 //
 // Every native call the block needs lives here (AGENTS.md: platform code stays in the device layer). Of D3DADAPTER_IDENTIFIER8
 // only the model and the driver version leave: DeviceIdentifier is a GUID, SubSysId names the board, and Driver can be a path on
@@ -212,7 +212,7 @@ static void gxReplayDiagDeviceFacts( GXReplayDiagPutFn put )
 
 // GX-TEL-SAMPLER-BEGIN
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature B · replay-tel-3 06/11/2026 TELEMETRY PHASE 2 (wh1ter0se msg 238d): the game's own CPU and memory beside the machine's,
+// GeneralsX: TELEMETRY PHASE 2 (wh1ter0se msg 238d): the game's own CPU and memory beside the machine's,
 // for the PERF row (GXReplayDiagFormat.h kind 3), from a sampler thread. SPEC_replay-telemetry.md 2.4 is the table of sources. Phase 2
 // reads NO GPU and walks no thread: per-thread class CPU, process GPU and machine GPU are cut to a phase 2b on every platform (lead C69
 // 06/11), so cpu_render / cpu_audio / gpu_proc / sys_gpu are always UNKNOWN.
@@ -277,7 +277,7 @@ struct Raw
 	long long pcoreNs;		///< time on performance cores
 	long long sysBusy, sysTotal;	///< whole machine, in one unit of the OS's choosing
 	uint32_t sysEpoch;		///< how many reads so far found a machine counter LOWER than the read before (Linux /proc/stat's iowait
-					///< may fall, proc(5)): no delta spans one (osDelta; Codex replay-tel-7-r12)
+					///< may fall, proc(5)): no delta spans one (osDelta)
 	uint64_t rss, avail;		///< bytes at the sample; UINT64_MAX = unknown
 };
 
@@ -341,10 +341,10 @@ struct ProcStatCpu
 
 /// /proc/stat's all-cores line into the sample: total = the first eight fields, iowait INCLUDED (it is elapsed time the CPUs spent idle,
 /// waiting), busy = total - idle - iowait. A field may go DOWN between two reads (proc(5): iowait is not reliable); a delta across that
-/// would read the fall as busy time (Codex replay-tel-6-r11), and leaving iowait out of total instead counts a waiting second as busy
+/// would read the fall as busy time, and leaving iowait out of total instead counts a waiting second as busy
 /// (replay-tel-7-r12) - so a read with any field below the previous read's breaks the machine CPU's continuity and no delta spans it.
 /// EVERY field the line reports is watched, guest and guest_nice included; only the first eight are summed, since guest time is already
-/// inside user / nice (Codex replay-tel-7-r13).
+/// inside user / nice.
 inline bool procStatSample( const char *line, ProcStatCpu &st, Raw &r )
 {
 	if( strncmp( line, "cpu ", 4 ) != 0 )
@@ -417,7 +417,7 @@ inline long long meminfoKb( const char *text, const char *key )
 
 /// Which sample the row closing now subtracts from: 2 = the one the previous row ended on, 1 = the sampler's own previous sample (a new
 /// recording's first row), 0 = none - nothing new since the last row, or no sample of the ACTIVE recording's run. A query in flight across
-/// a restart publishes the ended run's gen and is never used, so no delta spans two recordings (Codex replay-tel-3-r1).
+/// a restart publishes the ended run's gen and is never used, so no delta spans two recordings.
 inline int pickBase( const Raw &cur, const Raw &prev, bool havePrev, const Raw &last, bool haveLast, uint32_t activeGen )
 {
 #ifndef GX_TEL_RED_ANY_GEN	// fail arm: a sample of an ended run is used
@@ -471,8 +471,8 @@ static void sampleOs( Sampler &s, Raw &r, long long now )
 	if( host_statistics64( s.host, HOST_VM_INFO64, (host_info64_t)&vm, &n ) == KERN_SUCCESS && s.pageSize != 0 )
 		r.avail = ( (uint64_t)vm.free_count + vm.inactive_count ) * (uint64_t)s.pageSize;	// free_count already holds the speculative pages (vm_statistics.h)
 
-	// The process's CPU counters LAST, then their stamp at once: nothing read between them can stretch their interval (Codex
-	// replay-tel-6-r11). Machine CPU is a ratio and memory a level, so their own read time does not enter a row's numbers.
+	// The process's CPU counters LAST, then their stamp at once: nothing read between them can stretch their interval.
+	// Machine CPU is a ratio and memory a level, so their own read time does not enter a row's numbers.
 #if !TARGET_OS_IPHONE && defined( __arm64__ )
 	// Time on P-cores. rusage_info's times are mach ticks, not ns (measured 06/11 on an M5: ri_user_time + ri_system_time x 125/3 =
 	// getrusage's total), so they go through the timebase.
@@ -510,7 +510,7 @@ static void sampleOs( Sampler &, Raw &r, long long now )
 	(void)now;
 	FILETIME idle, kernel, user;
 	// with more than one processor group (> 64 logical CPUs) GetSystemTimes may cover only this thread's group: unknown then, never one
-	// group's idle standing for the machine (Codex replay-tel-5-r8)
+	// group's idle standing for the machine
 	if( GetActiveProcessorGroupCount() <= 1 && GetSystemTimes( &idle, &kernel, &user ) )
 	{
 		r.sysTotal = fileTimeNs( kernel ) + fileTimeNs( user );	// kernel time includes idle
@@ -524,7 +524,7 @@ static void sampleOs( Sampler &, Raw &r, long long now )
 	if( GlobalMemoryStatusEx( &machine ) )
 		r.avail = machine.ullAvailPhys;
 
-	// The process's CPU counters LAST, then their stamp at once (Codex replay-tel-6-r11)
+	// The process's CPU counters LAST, then their stamp at once
 	FILETIME created, exited;
 	if( GetProcessTimes( GetCurrentProcess(), &created, &exited, &kernel, &user ) )
 		r.procNs = fileTimeNs( kernel ) + fileTimeNs( user );
@@ -568,7 +568,7 @@ static void sampleOs( Sampler &s, Raw &r, long long now )
 		if( kb >= 0 )
 			r.avail = (uint64_t)kb * 1024u;
 	}
-	// The process's CPU counters LAST, then their stamp at once (Codex replay-tel-6-r11)
+	// The process's CPU counters LAST, then their stamp at once
 	struct rusage ru;
 	if( getrusage( RUSAGE_SELF, &ru ) == 0 )
 		r.procNs = ( (long long)ru.ru_utime.tv_sec + ru.ru_stime.tv_sec ) * 1000000000LL + ( (long long)ru.ru_utime.tv_usec + ru.ru_stime.tv_usec ) * 1000LL;

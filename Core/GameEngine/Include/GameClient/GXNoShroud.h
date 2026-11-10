@@ -1,4 +1,4 @@
-// GeneralsX @probe Claude 26/09/2026 (backlog #22, Codex) GX_NOSHROUD=1 draws the whole map on THIS client, and
+// GeneralsX: GX_NOSHROUD=1 draws the whole map on THIS client, and
 // changes nothing else - see the note above gxNoShroud() in GeneralsMD's GameClient.cpp for what it is for.
 //
 // It used to CLEAR TheGlobalData->m_shroudOn, retail's ENABLE_CONFIGURABLE_SHROUD switch. But GameClient::update's
@@ -19,7 +19,7 @@ inline Bool &gxNoShroudProbe() { static Bool s_on = FALSE; return s_on; }
 
 /// Does this client draw by the shroud? Retail's m_shroudOn, and never under the probe. For DRAWING decisions only: a
 /// shroud QUERY must run on the same schedule on every peer, so nothing may gate one on this.
-/// Without the configurable shroud GlobalData has no m_shroudOn and the shroud is always drawn (Codex r5).
+/// Without the configurable shroud GlobalData has no m_shroudOn and the shroud is always drawn.
 #if defined(RTS_DEBUG) || ENABLE_CONFIGURABLE_SHROUD
 inline Bool gxShroudDrawn() { return TheGlobalData->m_shroudOn && !gxNoShroudProbe(); }
 #else

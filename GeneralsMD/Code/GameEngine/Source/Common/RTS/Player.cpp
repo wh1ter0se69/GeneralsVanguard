@@ -373,7 +373,7 @@ void Player::init(const PlayerTemplate* pt)
 	deleteInstance(m_battlePlanBonuses);
 	m_battlePlanBonuses = nullptr;
 
-	m_visionSpies.clear();	// GeneralsX @bugfix Claude 05/10/2026 spy visions belong to one match
+	m_visionSpies.clear();	// GeneralsX: spy visions belong to one match
 
 	deleteUpgradeList();
 
@@ -801,7 +801,7 @@ void Player::initFromDict(const Dict* d)
 	Bool exists;
 	Bool skirmish = false;
 	Bool forceHuman = false;
-	// GeneralsX @bugfix Copilot 22/03/2026 Initialize multiplayer start index before any skirmish name/script qualification.
+	// GeneralsX: Initialize multiplayer start index before any skirmish name/script qualification.
 	m_mpStartIndex = d->getInt(TheKey_multiplayerStartIndex, &exists);
 	if (d->getBool(TheKey_playerIsSkirmish, &exists))
 	{
@@ -906,7 +906,7 @@ void Player::initFromDict(const Dict* d)
 			qualifier.format("%d", m_mpStartIndex);
 			ScriptList *scripts = TheSidesList->getSkirmishSideInfo(skirmishNdx)->getScriptList()->duplicateAndQualify(
 						qualifier, qualTemplatePlayerName, pname);
-			// GeneralsX @feature Claude 30/10/2026 rb-core: the TIER FILTER (GXRules/GXTierFilter.h, gx-handoff ai/rulebank/PLAN_rulebank.md
+			// GeneralsX: rb-core: the TIER FILTER (GXRules/GXTierFilter.h, gx-handoff ai/rulebank/PLAN_rulebank.md
 			// 2.8): this player's own copy keeps the marked GXT.<tiers>.<name> entries of ITS tier, under the stock names, and drops every
 			// other marked entry - a Hard player gets exactly the stock list. A list with no marked name is returned untouched.
 			gxRuleLogTier(this);
@@ -926,7 +926,7 @@ void Player::initFromDict(const Dict* d)
 			// Now add teams.
 
 			AsciiString originalPlayerName = TheSidesList->getSkirmishSideInfo(skirmishNdx)->getDict()->getAsciiString(TheKey_playerName);
-			// GeneralsX @feature Claude 30/10/2026 rb-core: the tier filter for teams - this owner's teams in their stock order, copied in
+			// GeneralsX: rb-core: the tier filter for teams - this owner's teams in their stock order, copied in
 			// the plan's order under the plan's names (the identity, and so the stock loop, unless a team name is marked).
 			std::vector<Int> gxTeamIdx;
 			std::vector<std::string> gxTeamNames;
@@ -1090,7 +1090,7 @@ void Player::becomingTeamMember(Object *obj, Bool yes)
 			TheInGameUI->removeIdleWorker(obj, getPlayerIndex());
 	}
 
-	// GeneralsX @bugfix Claude 05/10/2026 Spy visions on against this player (see setUnitsVisionSpied). A new object is not
+	// GeneralsX: Spy visions on against this player (see setUnitsVisionSpied). A new object is not
 	// ready here yet; Object::initObject marks it. One being destroyed is gone. As Zero Hour Reforged (Olcay Seygan, Player.cpp, GPL-3.0-or-later).
 	if( obj->areModulesReady() && !obj->isDestroyed() )
 		applyVisionSpies( obj, yes );
@@ -1685,7 +1685,7 @@ void Player::onStructureConstructionComplete( Object *builder, Object *structure
 		m_ai->onStructureProduced( builder, structure );
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @bugfix Claude 04/10/2026 A built structure's special powers became usable never. Without
+	// GeneralsX: A built structure's special powers became usable never. Without
 	// RETAIL_COMPATIBLE_CRC every SpecialPowerModule starts at the 0xFFFFFFFF ready frame (TheSuperHackers #1218), and a
 	// structure built UNDER_CONSTRUCTION skips startPowerRecharge in that constructor, so only a SpecialPowerCreate module
 	// (the superweapons) ever moved it. The Strategy Center has none: its battle plans and CIA Intelligence stayed
@@ -1829,7 +1829,7 @@ void Player::countObjectsByThingTemplate(Int numTmplates, const ThingTemplate* c
 	for (i = 0; i < numTmplates; ++i)
 		counts[i] = 0;
 
-	// GeneralsX @performance Claude 06/10/2026 ProductionUpdate asks this every frame for every busy factory (twice, through
+	// GeneralsX: ProductionUpdate asks this every frame for every busy factory (twice, through
 	// calcTimeToBuild), and each call walked every member: ~144 us per logic tick in a late 6v6 (fps-profile N2). Without
 	// ignoreDead an object's answer depends only on its template and its UNDER_CONSTRUCTION status - the first i whose
 	// template it is equivalent to, unless it is skipped - so the members are counted once per distinct template, kept until
@@ -2601,8 +2601,8 @@ void Player::doBountyForKill(const Object* killer, const Object* victim)
 	Int bounty = REAL_TO_INT_CEIL(costToBuild * m_cashBountyPercent);
 #else
 	// TheSuperHackers @bugfix Stubbjax 20/02/2026 Subtract epsilon to ensure bounty is rounded up correctly.
-	// GeneralsX @bugfix Claude 10/10/2026 Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
-	// conversion differs by CPU (Codex tsh3-clamp-adv-r1).
+	// GeneralsX: Saturated (REAL_TO_INT): a map's cost can leave Int range, and the plain
+	// conversion differs by CPU.
 	Int bounty = REAL_TO_INT(ceil((costToBuild * m_cashBountyPercent) - WWMATH_EPSILON));
 #endif
 
@@ -3257,7 +3257,7 @@ Upgrade *Player::addUpgrade( const UpgradeTemplate *upgradeTemplate, UpgradeStat
 */
 void Player::onUpgradeCompleted( const UpgradeTemplate *upgradeTemplate )
 {
-	// GeneralsX @feature Claude 19/08/2026 Announce it during replay playback. Same shape as the
+	// GeneralsX: Announce it during replay playback. Same shape as the
 	// science hook above: the gate, the label lookup and all formatting live in InGameUI, so this
 	// stays one unconditional line in a file the SimID digest covers.
 	if( TheInGameUI )
@@ -3853,7 +3853,7 @@ void Player::processCreateTeamGameMessage(Int hotkeyNum, const GameMessage *msg)
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 05/10/2026 A team of more than 255 units arrives in parts (GameClientDispatch.cpp,
+	// GeneralsX: A team of more than 255 units arrives in parts (GameClientDispatch.cpp,
 	// gxResendOversizedIdList - getArgumentCount() is an UnsignedByte). Every part after the first starts with a Boolean
 	// and ADDS to the squad instead of replacing it. A message of object ids alone - every sender before this - means
 	// exactly what it always did.
@@ -4129,7 +4129,7 @@ void Player::setUnitsVisionSpied( Bool setting, KindOfMaskType whichUnits, Playe
 	data.byWhom = byWhom;
 	// Being spied is now a property of the unit, not us, since we can spy only a portion of the enemy.
 	iterateObjects( iterator_setUnitsVisionSpied, &data );
-	// GeneralsX @bugfix Claude 05/10/2026 EA only marked the units standing when the power went on, so a Command Center
+	// GeneralsX: EA only marked the units standing when the power went on, so a Command Center
 	// built under a Satellite Hack stayed dark - and the switch-off walk then took every unit of that kind one below zero,
 	// leaving the late unit dark through the next window too. Remember each switch-on so becomingTeamMember / initObject
 	// mark what joins later. As Zero Hour Reforged (Olcay Seygan, Player.cpp, GPL-3.0-or-later).
@@ -4222,7 +4222,7 @@ void Player::crc( Xfer *xfer )
 	xfer->xferInt( &m_sciencePurchasePoints );
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @feature Claude 01/10/2026 Determinism-1 (ROADMAP_2027 M1 item 1, CA-29): a player's money was in no
+	// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 1, CA-29): a player's money was in no
 	// CRC at all - Money::crc was empty and nothing called it - so a money split surfaced only once it had moved an
 	// object. Every peer now hashes it at every checkpoint. Changes the CRC every peer computes: an all-players change.
 	xfer->xferSnapshot( &m_money );
@@ -4784,7 +4784,7 @@ void Player::xfer( Xfer *xfer )
 	else
 		m_unitsShouldHunt = FALSE;
 
-	// GeneralsX @bugfix Claude 05/10/2026 spy visions on against this player (version 9; an older save has none, which is
+	// GeneralsX: spy visions on against this player (version 9; an older save has none, which is
 	// exactly what the game did before). As Zero Hour Reforged (Olcay Seygan, Player.cpp, GPL-3.0-or-later).
 	UnsignedShort visionSpyCount = (UnsignedShort)m_visionSpies.size();
 	if( version >= 9 )

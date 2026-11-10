@@ -184,7 +184,7 @@ void ShowUnderlyingGUIElements( Bool show, const char *layoutFilename, const cha
 
 void PopulateColorComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool isObserver)
 {
-	// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+	// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 	if (comboArray[comboBox] == nullptr) return;
 
 	Int numColors = TheMultiplayerSettings->getNumColors();
@@ -353,7 +353,7 @@ void PopulateTeamComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGa
 		return;
 	}
 
-	// GeneralsX @feature Claude 13/08/2026 Each team gets its own colour in the picker.
+	// GeneralsX: Each team gets its own colour in the picker.
 	//
 	// Every entry used to be drawn in the RANDOM colour - white - so twelve rows of team numbers
 	// were twelve identical white digits and telling "who is on 2" apart from "who is on 3" meant
@@ -551,7 +551,7 @@ void UpdateSlotList( GameInfo *myGame, GameWindow *comboPlayer[],
 				max = GadgetComboBoxGetLength(comboColor[i]);
 				for (idx=0; idx<max; ++idx)
 				{
-					// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+					// GeneralsX: 64-bit safe pointer cast
 					Int color = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(comboColor[i], idx)));
 					if (color == slot->getColor())
 					{
@@ -565,7 +565,7 @@ void UpdateSlotList( GameInfo *myGame, GameWindow *comboPlayer[],
 				max = GadgetComboBoxGetLength(comboTeam[i]);
 				for (idx=0; idx<max; ++idx)
 				{
-					// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+					// GeneralsX: 64-bit safe pointer cast
 					Int team = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(comboTeam[i], idx)));
 					if (team == slot->getTeamNumber())
 					{
@@ -579,7 +579,7 @@ void UpdateSlotList( GameInfo *myGame, GameWindow *comboPlayer[],
 				max = GadgetComboBoxGetLength(comboPlayerTemplate[i]);
 				for (idx=0; idx<max; ++idx)
 				{
-					// GeneralsX @build BenderAI 12/02/2026  64-bit safe pointer cast
+					// GeneralsX:  64-bit safe pointer cast
 					Int playerTemplate = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(comboPlayerTemplate[i], idx)));
 					if (playerTemplate == slot->getPlayerTemplate())
 					{

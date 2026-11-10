@@ -1,6 +1,6 @@
 # The community-patch overlay set: the archives that must reach EVERY peer.
 #
-# GeneralsX @feature Claude 12/08/2026
+# GeneralsX:
 #
 # One filename per line, blank lines and '#' comments ignored. This file is the single
 # definition of the set, read by every packaging and deploy script, so the four platforms
@@ -53,7 +53,7 @@
 # archive as UNEXPECTED, which is what makes the split visible rather than silent - but only on a
 # peer somebody actually runs a deploy or run script on. Adding a line has no such problem.
 
-# GeneralsX @feature Claude 20/08/2026 ADDED, NOT SWAPPED, and that is the whole point.
+# GeneralsX: ADDED, NOT SWAPPED, and that is the whole point.
 #
 # !!GXCameoHD.big carries the 240x192 cameo atlases, their MappedImages, and a NON-EMPTY
 # Data\INI\CommandButton.ini. It is '!!'-prefixed so it resolves ahead of !HotkeysLeikeze*, which
@@ -109,7 +109,7 @@
 !!GXCameoHD.big
 500_900_CommunityPatch_CoreINI.big
 
-# GeneralsX @feature D · batch-0964 13/10/2026 A DATED EXCEPTION to this file's rule: !!GXPropsHD.big does NOT move dataID
+# GeneralsX: A DATED EXCEPTION to this file's rule: !!GXPropsHD.big does NOT move dataID
 # and is listed anyway. It is the HD (2x) texture pack for multiplayer-map props, vehicles and trees (E · look-hd-1, batches
 # A+B, 2228 DDS; EA-derived art, never in git), and the owner wants it in every install with no toggle (wh1ter0se 11/10/2026:
 # "ship it by default without anything else to toggle"; 13/10/2026: "KEEP HD"). overlay-optional.txt would make it a launcher
@@ -126,7 +126,7 @@
 # joins); P shows the same measurement does see a data change. iOS ships it too (lead C35 13/10): MEASURED on wh1ter0se's iPad
 # Air M3 (8 GB), same G4 replay, in-process phys_footprint: peak 2.23 GB without it, 2.96 GB with it (+0.73 GB, paid at
 # load), per-app limit 5.37 GB, no jetsam (release/batch0964/ipad/). A smaller iPad would need a memory-gated mount.
-# GeneralsX @feature D · look-ship-1017 17/10/2026 THE SAME FILE NAME, NEW CONTENTS FOR 0.9.65: the 71 HD smoke/fire/explosion particle
+# GeneralsX: THE SAME FILE NAME, NEW CONTENTS FOR 0.9.65: the 71 HD smoke/fire/explosion particle
 # textures (E · look-fire, 13/10, ~/gx-hd/fx/members71.txt; wh1ter0se 17/10 "yes all green": ship) are folded INTO !!GXPropsHD.big, so no
 # list entry, launcher list or download artifact is added. They join as Art\Textures\*.dds next to the 2228 prop textures; no name was in
 # both (the four shared ones, exgrid/extnkmzl01/muzzflsh_front/muzzflsh_side, were already left out of the fx set), and the packer refuses
@@ -143,7 +143,7 @@
 # same measurement sees a data move. (A first F that removed CoreINI from the overlay only did NOT move: the Mini's retail dir carries a
 # copy, which then mounted - a control has to take the file out of every place the engine looks.)
 !!GXPropsHD.big
-# GeneralsX @feature D · hd-batch-0966 18/10/2026 THE SAME FILE NAME, NEW CONTENTS FOR 0.9.66 (wh1ter0se 18/10/2026 "more hd yes"): the 0.9.65
+# GeneralsX: THE SAME FILE NAME, NEW CONTENTS FOR 0.9.66 (wh1ter0se 18/10/2026 "more hd yes"): the 0.9.65
 # pack above (ef240ccf, 2299 entries) + 194 HD textures of the ORIGINAL art, made sharper, never restyled (Real-ESRGAN x4plus, palette-locked;
 # EA-derived, never in git; recipe and evidence: gx-handoff modernize/look-models/hd-batch/):
 #   - 4 tank/tyre track decals (extiretrack, extiretrack2, extiretrack03, extnktrack; 4x). The track strip samples with WRAP, so they are
@@ -167,7 +167,7 @@
 # maps (MapsZH incl. campaign, the shipped and test maps) the worst, MD_CHI03, goes 51 -> 198 tiles, atlas 512 -> 1024 px (+4 MiB RGBA8).
 # The release step replaces !!GXPropsHD.big in GX_PATCH_SRC on every packaging host (an old host ships 0.9.65's pack: joins, stock look).
 
-# GeneralsX @feature E · look-packs-0965 17/10/2026 THE SAME DATED EXCEPTION for !!GXModelsHD.big: the 3D model pack (wh1ter0se 16-17/10:
+# GeneralsX: THE SAME DATED EXCEPTION for !!GXModelsHD.big: the 3D model pack (wh1ter0se 16-17/10:
 # "everything we have worked on should be in one build"). Rewritten EA models, never in git: round wheels/tyres/drums/pillars/domes
 # (look-models AC, pack ac5, China buildings left stock - wh1ter0se 14/10), fused round parts + tank running gear (look-models B, Crusader end
 # wheels B-4), sandbag walls with real bags + recessed doors/windows (look-models E, ROUNDED - wh1ter0se 17/10), every part that sits on a

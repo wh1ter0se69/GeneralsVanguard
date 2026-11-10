@@ -74,7 +74,7 @@ const Real LOGICFRAMES_PER_SECONDS_REAL = (Real)LOGICFRAMES_PER_SECOND;
 const Real SECONDS_PER_LOGICFRAME_REAL = 1.0f / LOGICFRAMES_PER_SECONDS_REAL;
 
 // ----------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 05/08/2026 GX_FRAMES30 - retune a hard-coded frame count to the tick rate.
+// GeneralsX: GX_FRAMES30 - retune a hard-coded frame count to the tick rate.
 //
 // The engine is full of durations written as bare frame counts against the historic 30 Hz tick:
 // `m_framesToWait = 15`, `UPDATE_SLEEP(2)`, `m_scanDelayInFrames = 100`. Every one of them means a
@@ -136,7 +136,7 @@ inline Real ConvertAngularVelocityInDegreesPerSecToRadsPerFrame(Real degPerSec)
 // ----------------------------------------------------------------------------------------------
 enum
 {
-	// GeneralsX @feature Claude 06/11/2026 Raised 16 -> 40: 32 player seats + neutral + ReplayObserver
+	// GeneralsX: Raised 16 -> 40: 32 player seats + neutral + ReplayObserver
 	// + up to 6 kept map sides (PlayerCapacity.h). Every 16-wide save block widens with it (old saves
 	// are refused, GameState.cpp); the CRC keeps the 16-wide view while a match has <= 16 Players
 	// (gxCrcPlayerSpan below), so a <= 14-slot match stays CRC-identical to the 16-Player build.
@@ -147,10 +147,10 @@ enum
 /**
 	a bitmask that can uniquely represent each player.
 */
-// GeneralsX @bugfix Claude 23/09/2026 This was `#if MAX_PLAYER_COUNT <= 16 ... #else #error`, which
+// GeneralsX: This was `#if MAX_PLAYER_COUNT <= 16 ... #else #error`, which
 // could never fire: MAX_PLAYER_COUNT is an enumerator, and the preprocessor reads an unknown
 // identifier as 0, so the #if was always true. A compile-time check has to be a static_assert.
-// GeneralsX @feature Claude 06/11/2026 Widened to 64 bits for MAX_PLAYER_COUNT 40. PLAYERMASK_ALL
+// GeneralsX: Widened to 64 bits for MAX_PLAYER_COUNT 40. PLAYERMASK_ALL
 // covers the valid Player indices only: getEachPlayerFromMask DEBUG_CRASHes on leftover high bits.
 // Build a player bit with gxPlayerBit(), never `1 << index`.
 typedef UnsignedInt64 PlayerMaskType;

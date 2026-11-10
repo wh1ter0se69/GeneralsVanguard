@@ -62,7 +62,7 @@ static UnsignedInt theGameLogicSeed[6] =
 	0xf22d0e56L, 0x883126e9L, 0xc624dd2fL, 0x702c49cL, 0x9e353f7dL, 0x6fdf3b64L
 };
 
-// GeneralsX @feature Claude 06/10/2026 render-split step 2 (gx-handoff modernize/render-split/DESIGN.md): the simulation's
+// GeneralsX: render-split step 2 (gx-handoff modernize/render-split/DESIGN.md): the simulation's
 // COSMETIC stream. Twenty-one lines of tick code drew the CLIENT stream for values that only place or time effects - particle
 // offsets, a scorch mark, rotor wash, toppling-building bursts, floating-text jitter, the stealth shimmer phase. The client
 // stream already differs from peer to peer (a rendered peer draws its particles from it), so none of those values was ever
@@ -88,7 +88,7 @@ UnsignedInt GetGameLogicRandomSeedCRC()
 	return c.get();
 }
 
-// GeneralsX @test Claude 29/09/2026 The client stream's state, for the [GXPRELOAD] line: nothing hashes it, and some
+// GeneralsX: The client stream's state, for the [GXPRELOAD] line: nothing hashes it, and some
 // logic modules save a value drawn from it (StealthUpdate, StructureToppleUpdate), so a change that draws from it must show.
 UnsignedInt GetGameClientRandomSeedCRC()
 {
@@ -517,7 +517,7 @@ Real ClientRandomValueClass::GetRandomValueReal( Real lo, Real hi, const char *f
 	return GetGameClientRandomValueReal(lo, hi, file, line);
 }
 
-// GeneralsX @feature Claude 06/10/2026 render-split step 2: the simulation's cosmetic stream (theGameLogicCosmeticSeed above).
+// GeneralsX: render-split step 2: the simulation's cosmetic stream (theGameLogicCosmeticSeed above).
 // The same arithmetic as the client stream's, on its own state.
 Int GetGameLogicCosmeticRandomValue( int lo, int hi, const char *file, int line )
 {

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @test Claude 11/10/2026 WS-X2 - see W3DDevice/GameClient/GxDepthShot.h.
+// GeneralsX: WS-X2 - see W3DDevice/GameClient/GxDepthShot.h.
 //
 // One readback per screenshot, synchronous (a test switch): on the main thread with the d3d8 ring drained, RecordExternal hands
 // our recorder DXVK's execution command buffer with the bound depth/stencil surface in its default layout (the break path,
@@ -83,7 +83,7 @@ unsigned s_shots = 0;
 void (*s_prevRelease)() = nullptr;
 
 // One capture's inputs and results. The CS-thread recorder reads only this (never s_buffer / s_size, which the main thread owns):
-// after a timeout the main thread forgets the buffer while a suspended recorder may still run (Codex rw1x-design-r14 #5, r15 #2).
+// after a timeout the main thread forgets the buffer while a suspended recorder may still run.
 // s_ctx is never written again once a capture timed out (depth shots go off), so the recorder's inputs stay valid.
 struct Capture_Ctx
 {
@@ -211,7 +211,7 @@ void Record(const DxvkGxRecordInfo *info, void *user)
 	const DxvkGxImage &d = info->depth;
 	c->ok = 0;
 	// barriers with layout changes and vkCmdCopyImageToBuffer are invalid inside a render pass; with DXVK_GX_INPASS=1 an open pass (e.g.
-	// the stencil probe's Clear) can be offered here - refuse instead of recording (Codex rw1x2-code-r5)
+	// the stencil probe's Clear) can be offered here - refuse instead of recording
 	if (info->inPass)
 	{
 		c->inPass = 1;
@@ -319,7 +319,7 @@ static bool Read_Once(unsigned n, const char *tag)
 		if (std::chrono::steady_clock::now() - t0 > std::chrono::seconds(20))
 		{
 			// the GPU or the CS thread may still own s_buffer / s_ctx: never reuse them (review r14 P3-5), and never destroy
-			// them either - the release hook runs before DXVK's device waits for idle (Codex r14 #5). ponytail: leaked on purpose,
+			// them either - the release hook runs before DXVK's device waits for idle. Trade-off: leaked on purpose,
 			// one readback buffer per process after a GPU timeout; a diagnostic that already failed.
 			fprintf(stderr, "[GXDSHOT] n=%u timed out waiting for the GPU - depth shots off for this process (buffer leaked)\n", n);
 			s_buffer = VK_NULL_HANDLE;
@@ -399,7 +399,7 @@ void GxDepthShot::Capture()
 	if (DX8Wrapper::Pillarbox_Get_Rect(px, py, pw, ph))
 	{
 		// under pillarbox scaling the scene is drawn into the pillarbox's own depth surface and Pillarbox_End has already put the
-		// presentation one back by now: the bound surface is not the photographed scene's (Codex rw1x2-code-r1 #1) - refuse loudly
+		// presentation one back by now: the bound surface is not the photographed scene's - refuse loudly
 		fprintf(stderr, "[GXDSHOT] n=%u unsupported under pillarbox scaling (the scene depth is not the bound surface here)\n", n);
 		return;
 	}

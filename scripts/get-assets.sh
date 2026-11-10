@@ -7,7 +7,7 @@
 #
 # Steam Guard: you'll be prompted for the code on first login.
 #
-# GeneralsX @feature Claude 16/08/2026 --with-generals, and it is the fix for "why is there no
+# GeneralsX: --with-generals, and it is the fix for "why is there no
 # music". Zero Hour's music list asks for 57 tracks and a Zero Hour install carries 8 of them; the
 # other ~50 live in the ORIGINAL Generals, and Zero Hour ships a stub in their place (its
 # Music.big is 768 KB and contains one non-audio file, generalsa.sec - measured, not assumed).

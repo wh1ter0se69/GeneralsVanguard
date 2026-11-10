@@ -221,7 +221,7 @@ VideoStreamInterface* FFmpegVideoPlayer::createStream( File* file )
 		stream->m_player = this;
 		m_firstStream = stream;
 
-		// GeneralsX @bugfix Claude 21/09/2026 The gain is written by FFmpegVideoStream's constructor
+		// GeneralsX: The gain is written by FFmpegVideoStream's constructor
 		// and refreshed by FFmpegVideoPlayer::setVolume; what used to stand here computed a Bink
 		// volume into a [[maybe_unused]] local next to a commented-out BinkSetVolume and did nothing.
 	}
@@ -288,7 +288,7 @@ VideoStreamInterface*	FFmpegVideoPlayer::load( AsciiString movieTitle )
 void FFmpegVideoPlayer::setVolume( Real volume )
 {
 #ifdef SAGE_USE_OPENAL
-	// GeneralsX @bugfix Claude 21/09/2026 Upstream's FFmpeg override is a deliberately empty body -
+	// GeneralsX: Upstream's FFmpeg override is a deliberately empty body -
 	// it has no non-Bink movie audio to aim at. Here the soundtrack really does run through the
 	// shared OpenAL "bink" source, so push the gain onto it.
 	//
@@ -411,7 +411,7 @@ void FFmpegVideoStream::onFrame(AVFrame *frame, int stream_idx, int stream_type,
         int outputFrameSize = frameSize;
         uint8_t* frameData = frame->data[0];
 
-        // GeneralsX @bugfix BenderAI 22/04/2026 Convert float32 FFmpeg output to PCM16 for robust OpenAL compatibility.
+        // GeneralsX: Convert float32 FFmpeg output to PCM16 for robust OpenAL compatibility.
         if (sampleFmt == AV_SAMPLE_FMT_FLT || sampleFmt == AV_SAMPLE_FMT_FLTP)
         {
             outputBitsPerSample = 16;
@@ -490,7 +490,7 @@ void FFmpegVideoStream::onFrame(AVFrame *frame, int stream_idx, int stream_type,
 void FFmpegVideoStream::update( void )
 {
 #ifdef SAGE_USE_OPENAL
-    // GeneralsX @bugfix BenderAI 22/04/2026 Keep source maintenance without force-restarting playback each frame.
+    // GeneralsX: Keep source maintenance without force-restarting playback each frame.
     // Calling play() from the video update loop can continuously reset source progress
     // during loadscreen transitions, leading to effective silence.
     OpenALAudioStream* audioStream = (OpenALAudioStream*)TheAudio->getHandleForBink();

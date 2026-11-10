@@ -40,16 +40,16 @@
 #include "Common/Diagnostic/SimulationId.h"
 #include "GameNetwork/LANAPICallbacks.h"
 #include "GameClient/MapUtil.h"
-// GeneralsX @feature Claude 24/08/2026 TheGameText, for the host-camera lobby notice below.
+// GeneralsX: TheGameText, for the host-camera lobby notice below.
 // FETCH_OR_SUBSTITUTE, so the line ships as CODE ONLY - a new .csf would mean a new .big and a
 // new .big moves assetID, which turns a one-line chat message into a data rollout.
 #include "GameClient/GameText.h"
-// GeneralsX @feature Claude 24/08/2026 Host-authoritative camera height limits. This header
+// GeneralsX: Host-authoritative camera height limits. This header
 // resolves to GameClient/GXHostCamera.h when feat/hostcam-apply is present and to a set of
 // inert no-ops when it is not, so the wire half builds and links on its own. See GXHostCamSeam.h.
 #include "GameNetwork/GXHostCamSeam.h"
 
-// GeneralsX @build BenderAI 13/02/2026 WideCharWindows conversion helpers (fighter19 pattern)
+// GeneralsX: WideCharWindows conversion helpers (fighter19 pattern)
 // These functions handle conversion between WideChar (wchar_t) and WideCharWindows (uint16_t)
 // Required because wchar_t size varies (2 bytes Windows, 4 bytes Linux) but network protocol needs fixed size
 
@@ -77,7 +77,7 @@ void CopyWcharToWindowsWideChar( WideCharWindows *dest, const WideChar *src, Uns
 	}
 }
 
-// GeneralsX @bugfix Claude 12/08/2026 WindowsWideCharToWchar and the field-size-deduced
+// GeneralsX: WindowsWideCharToWchar and the field-size-deduced
 // GetWindowsWideCharFieldAsWchar now live in LANAPI.h, so the SAFE reader is the exported one.
 // The unbounded pointer form that used to be declared there is deleted; it had no call sites.
 
@@ -108,7 +108,7 @@ void LANAPI::handleRequestLocations( LANMessage *msg, UnsignedInt senderIP )
 					fillInLANMessage( &reply );
 					reply.messageType = LANMessage::MSG_GAME_ANNOUNCE;
 					strlcpy(reply.GameInfo.options, gameOpts.str(), ARRAY_SIZE(reply.GameInfo.options));
-					// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+					// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 					CopyWcharToWindowsWideChar(reply.GameInfo.gameName, m_currentGame->getName().str(), ARRAY_SIZE(reply.GameInfo.gameName) - 1);
 					reply.GameInfo.inProgress = m_currentGame->isGameInProgress();
 					reply.GameInfo.isDirectConnect = m_currentGame->getIsDirectConnect();
@@ -133,7 +133,7 @@ void LANAPI::handleRequestLocations( LANMessage *msg, UnsignedInt senderIP )
 	{
 		removePlayer(player);
 	}
-	// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+	// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 	player->setName(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->name)));
 	player->setHost(msg->hostName);
 	player->setLogin(msg->userName);
@@ -159,17 +159,17 @@ void LANAPI::handleGameAnnounce( LANMessage *msg, UnsignedInt senderIP )
 
 		if (m_currentGame == nullptr)
 		{
-			// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+			// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 			LANGameInfo *game = LookupGame(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->GameInfo.gameName)));
 			if (!game)
 			{
 				game = NEW LANGameInfo;
-				// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+				// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 				game->setName(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->GameInfo.gameName)));
 				addGame(game);
 			}
 			Bool success = ParseGameOptionsString(game,AsciiString(msg->GameInfo.options));
-			// GeneralsX @bugfix Claude 06/10/2026 Flags only from a parsed announce (as the other branch). The address we
+			// GeneralsX: Flags only from a parsed announce (as the other branch). The address we
 			// dialled is otherwise trusted for its game as before - through NAT its slot 0 is a private address.
 			if (success)
 			{
@@ -184,7 +184,7 @@ void LANAPI::handleGameAnnounce( LANMessage *msg, UnsignedInt senderIP )
 				delete game;
 				return;
 			}
-			// GeneralsX @bugfix Claude 11/08/2026 Only the FIRST announce advances the handshake.
+			// GeneralsX: Only the FIRST announce advances the handshake.
 			// m_currentGame stays null until the accept arrives, so this branch is re-entered by
 			// every further announce from the host - including its periodic 10 s re-announce and
 			// the replies to the reasserted game-info request above. Each used to call
@@ -197,9 +197,9 @@ void LANAPI::handleGameAnnounce( LANMessage *msg, UnsignedInt senderIP )
 	}
 	else
 	{
-		// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+		// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 		LANGameInfo *game = LookupGame(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->GameInfo.gameName)));
-		// GeneralsX @security Claude 06/10/2026 An announce speaks only for its sender's own game (sweep v-net-03).
+		// GeneralsX: An announce speaks only for its sender's own game (sweep v-net-03).
 		// The lookup is by NAME, and the game we are in - as host or joiner - is in m_games too, so any peer could
 		// rewrite it (slots, IPs, map, seed) by announcing the same name, or free it with one that failed to parse.
 		// The game we are in, and the row of a game we are joining, answer only to their slot-0 address - who the lobby
@@ -207,7 +207,7 @@ void LANAPI::handleGameAnnounce( LANMessage *msg, UnsignedInt senderIP )
 		// a name, and names are not owned (base behaviour: the next announce wins), but an announce is taken only if it
 		// is self-consistent: its slot 0 is its sender, or it says in progress and its sender plays in it (the packet
 		// router re-announcing a running match whose host left). That keeps a peer from writing rows that point at a
-		// third party, and keeps a squatter from locking a host out of its own name (Codex net-hardening r2-r5). It is
+		// third party, and keeps a squatter from locking a host out of its own name (net-hardening r2-r5). It is
 		// checked on a scratch copy, so a refused announce changes nothing. A host whose packets leave from another
 		// address than its slot 0 is not listed: it could not start a game for anyone anyway.
 		const Bool joiningThis = (game != nullptr) && (m_pendingAction == ACT_JOIN)
@@ -236,7 +236,7 @@ void LANAPI::handleGameAnnounce( LANMessage *msg, UnsignedInt senderIP )
 		}
 		if (!accepted)
 		{
-			static Int s_refusals = 0;	// ponytail: capped so a flood cannot become a flood of fflush
+			static Int s_refusals = 0;	// Trade-off: capped so a flood cannot become a flood of fflush
 			if (s_refusals < 32)
 			{
 				++s_refusals;
@@ -249,14 +249,14 @@ void LANAPI::handleGameAnnounce( LANMessage *msg, UnsignedInt senderIP )
 		if (!game)
 		{
 			game = NEW LANGameInfo;
-			// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+			// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 			game->setName(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->GameInfo.gameName)));
 			addGame(game);
 		}
 		Bool success = ParseGameOptionsString(game,AsciiString(msg->GameInfo.options));
-		// GeneralsX @bugfix Claude 06/10/2026 Only a parsed announce updates the flags: the game we are in is kept on
+		// GeneralsX: Only a parsed announce updates the flags: the game we are in is kept on
 		// a failed parse, and must not become "in progress" (which stops every later announce, option and start)
-		// on the word of an announce whose options were refused (Codex net-hardening r1).
+		// on the word of an announce whose options were refused (net-hardening r1).
 		if (success)
 		{
 			game->setGameInProgress(msg->GameInfo.inProgress);
@@ -289,7 +289,7 @@ void LANAPI::handleLobbyAnnounce( LANMessage *msg, UnsignedInt senderIP )
 	{
 		removePlayer(player);
 	}
-	// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+	// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 	player->setName(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->name)));
 	player->setHost(msg->hostName);
 	player->setLogin(msg->userName);
@@ -320,7 +320,7 @@ void LANAPI::handleRequestGameInfo( LANMessage *msg, UnsignedInt senderIP )
 			reply.messageType = LANMessage::MSG_GAME_ANNOUNCE;
 
 			strlcpy(reply.GameInfo.options,gameOpts.str(), ARRAY_SIZE(reply.GameInfo.options));
-			// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+			// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 			CopyWcharToWindowsWideChar(reply.GameInfo.gameName, m_currentGame->getName().str(), ARRAY_SIZE(reply.GameInfo.gameName) - 1);
 			reply.GameInfo.inProgress = m_currentGame->isGameInProgress();
 			reply.GameInfo.isDirectConnect = m_currentGame->getIsDirectConnect();
@@ -375,19 +375,19 @@ static Bool ContainsAnyReadableChars(const WideChar* playerName)
 	return false;
 }
 
-// GeneralsX @feature Claude 27/07/2026 Tier2 SimID warnings. Both peers see the same wording
+// GeneralsX: Tier2 SimID warnings. Both peers see the same wording
 // from one place: the host emits them inline from handleRequestJoin, the joiner has to defer
 // its copy until its chat listbox exists (see LANAPI::flushPendingSimWarnings below), and the
 // two must not be allowed to drift apart. These are warnings, not denials - the pair is still
 // allowed to play, so the text says what to suspect if the game does desync.
 //
-// GeneralsX @bugfix Claude 22/09/2026 ONCE PER LOBBY, and `said` is what makes it once. Every
+// GeneralsX: ONCE PER LOBBY, and `said` is what makes it once. Every
 // caller passes the SAME LANAPI member, so the anti-drift rule above now covers suppression too:
 // there is no arrangement of joins in which one path says a line the other path would have
 // swallowed. Passing nullptr restores the old per-join behaviour and is used only by the self-test.
 // See GXSimWarnUnsaidFlags in LANAPI.h for the scope choice and the reset.
 //
-// GeneralsX @bugfix Claude 22/09/2026 WORDING, for the two conditions that fire on every ordinary
+// GeneralsX: WORDING, for the two conditions that fire on every ordinary
 // mixed-platform game. Both were written as faults and neither is one:
 //
 //   PLATFORM  "cross-platform play has not been validated" was true when it was written and reads
@@ -429,7 +429,7 @@ static void PostSimWarningsToChat( LANAPI *lan, UnsignedInt warn, UnsignedInt *s
 			LANAPIInterface::LANCHAT_SYSTEM);
 }
 
-// GeneralsX @feature Claude 24/08/2026 THE ONE PLACE the host-camera notice is worded - BOTH
+// GeneralsX: THE ONE PLACE the host-camera notice is worded - BOTH
 // sentences, in one function, on purpose.
 //
 // Same split as PostSimWarningsToChat directly above: GXHostCamDiffFlags decides (pure, testable,
@@ -511,7 +511,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 		return; // Not us.  Ignore it.
 	}
 	LANMessage reply;
-	// GeneralsX @feature Claude 27/07/2026 `reply` carries every deny AND the accept in this
+	// GeneralsX: `reply` carries every deny AND the accept in this
 	// function, and only the RET_GAME_FULL branch fills GameNotJoined.gameName. The
 	// RET_GAME_STARTED branch, both RET_DUPLICATE_NAME branches and the RET_GAME_GONE branch
 	// all shipped ~34 bytes of uninitialised stack that handleJoinDeny then feeds straight into
@@ -531,7 +531,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 		}
 		else
 		{
-			// GeneralsX @feature Claude 10/08/2026 Idempotent re-accept. The joiner re-sends an
+			// GeneralsX: Idempotent re-accept. The joiner re-sends an
 			// unanswered MSG_REQUEST_JOIN once a second (LANAPI::update), so a request from a
 			// peer already seated in this game means our MSG_JOIN_ACCEPT was lost or still in
 			// flight. Without this branch the duplicate walks into the duplicate-name scan below
@@ -552,7 +552,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 					&& m_currentGame->getIP(seated) == senderIP
 					&& seatedSlot->getName().compare(GetWindowsWideCharFieldAsWchar(msg->name)) == 0)
 				{
-					// GeneralsX @fix Claude 10/08/2026 (cross-model review) Clear the slot's accept.
+					// GeneralsX: (cross-model review) Clear the slot's accept.
 					// For a true retransmission this is a no-op - the peer has not seen our accept,
 					// so it cannot have readied up. For a crash-and-rejoin inside the 80 s reap
 					// window it is the fix: the old session's accept must not let the host start a
@@ -583,7 +583,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 			int player;
 			Bool canJoin = true;
 
-			// GeneralsX @feature Claude 27/07/2026 Join-time build/data compatibility check.
+			// GeneralsX: Join-time build/data compatibility check.
 			// Unconditional on purpose: both retail guards had to go, not just the inner one.
 			// RTS_ZEROHOUR=1 compiled the inner CRC check away entirely in Zero Hour, and the
 			// outer RTS_DEBUG plus m_netMinPlayers guard left it skipped in every release build,
@@ -596,7 +596,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 			// build check is the first gate.
 			const SimIdVerdict simVerdict = SimIdCompare( msg->GameToJoin.sim );
 
-			// GeneralsX @feature Claude 09/08/2026 Does the build KIND explain this mismatch?
+			// GeneralsX: Does the build KIND explain this mismatch?
 			//
 			// computeEngineID() puts RTS_DEBUG in engine bit 7, and engineID is tier1 - so a debug
 			// peer against a release host is already refused here, as SIMID_ENGINE_DIFFERS, before
@@ -627,7 +627,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 				// LanGameOptionsMenu with the listbox live, so this reaches the screen.
 				const SimulationId &me = SimulationId::get();
 
-				// GeneralsX @feature Claude 27/07/2026 The chat line below is capped at what fits
+				// GeneralsX: The chat line below is capped at what fits
 				// on screen and drops parseID/assetID/platformID entirely. Log the full field-by-field
 				// comparison to stderr as well, so a refusal is diagnosable from the log alone - this
 				// is the host half of the pair, the joiner half is in the JOIN_ACCEPT handler.
@@ -662,7 +662,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 				}
 				else
 				{
-					// GeneralsX @bugfix Claude 01/08/2026 "build %u" was a commit count and is now
+					// GeneralsX: "build %u" was a commit count and is now
 					// a unix build timestamp - see SimulationId.h. Left as a raw number rather
 					// than a date: this is the HOST's diagnostic chat line, sitting beside four
 					// %08X digests, and a reader comparing it against the [SIMID] stderr line
@@ -676,7 +676,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 				}
 				OnChat(UnicodeString::TheEmptyString, m_localIP, sysMsg, LANAPIInterface::LANCHAT_SYSTEM);
 			}
-			// GeneralsX @feature Claude 08/08/2026 LOBBY PASSWORD GATE. This is the enforcement.
+			// GeneralsX: LOBBY PASSWORD GATE. This is the enforcement.
 			//
 			// It lives here, in the host's inbound handler, and nowhere else. Hiding a game behind
 			// a prompt on the joining machine protects nothing - the joiner is the machine you do
@@ -720,7 +720,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 				}
 			}
 
-			// GeneralsX @feature Claude 09/08/2026 BUILD-KIND GATE.
+			// GeneralsX: BUILD-KIND GATE.
 			//
 			// sourceID does not catch this and cannot: it digests the simulation SOURCE, so a debug
 			// build and a release build of the same commit have the same sourceID and join each
@@ -814,7 +814,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 			// should not be in a player name. It should also not consist of only space characters.
 			if (canJoin)
 			{
-				// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+				// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 				if (ContainsInvalidChars(GetWindowsWideCharFieldAsWchar(msg->name)) || !ContainsAnyReadableChars(GetWindowsWideCharFieldAsWchar(msg->name)))
 				{
 					// Just deny with a duplicate name reason, for backwards compatibility with retail
@@ -832,7 +832,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 			for (player = 0; canJoin && player<MAX_SLOTS; ++player)
 			{
 				LANGameSlot *slot = m_currentGame->getLANSlot(player);
-				// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+				// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 				if (slot->isHuman() && slot->getName().compare(GetWindowsWideCharFieldAsWchar(msg->name)) == 0)
 				{
 					// just deny duplicates
@@ -848,7 +848,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 			}
 
 			// TheSuperHackers @bugfix Stubbjax 26/09/2025 Players can now join open slots regardless of starting spots on the map.
-			// GeneralsX @feature Claude 12/08/2026 Humans may only occupy slots 0..MAX_HUMAN_SLOTS-1:
+			// GeneralsX: Humans may only occupy slots 0..MAX_HUMAN_SLOTS-1:
 			// the byte-wide relay destination mask cannot address a machine in slot 8+, so a human
 			// placed there would form the lobby and then never receive a single in-match command.
 			// Slots MAX_HUMAN_SLOTS..MAX_SLOTS-1 are for AI only. See NetworkDefs.h.
@@ -858,18 +858,18 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 				{
 					// OK, add him in.
 					reply.messageType = LANMessage::MSG_JOIN_ACCEPT;
-					// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+					// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 					CopyWcharToWindowsWideChar(reply.GameJoined.gameName, m_currentGame->getName().str(), ARRAY_SIZE(reply.GameJoined.gameName) - 1);
 					reply.GameJoined.slotPosition = player;
 					reply.GameJoined.gameIP = m_localIP;
 					reply.GameJoined.playerIP = senderIP;
-					// GeneralsX @feature Claude 27/07/2026 The accept carries the host's identity so
+					// GeneralsX: The accept carries the host's identity so
 					// the joiner can verify it too - the host is the machine that may be stale, and
 					// its own check above only proves the joiner matches whatever the host is.
 					SimulationId::get().toWire( reply.GameJoined.sim );
 
 					LANGameSlot newSlot;
-					// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+					// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 					newSlot.setState(SLOT_PLAYER, UnicodeString(GetWindowsWideCharFieldAsWchar(msg->name)));
 					newSlot.setIP(senderIP);
 					newSlot.setPort(NETWORK_BASE_PORT_NUMBER);
@@ -878,14 +878,14 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 					m_currentGame->setSlot(player,newSlot);
 					DEBUG_LOG(("LANAPI::handleRequestJoin - added player %ls at ip 0x%08x to the game", msg->name, senderIP));
 
-					// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+					// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 					OnPlayerJoin(player, UnicodeString(GetWindowsWideCharFieldAsWchar(msg->name)));
 
-					// GeneralsX @feature Claude 27/07/2026 Host side tier2 warnings, posted only
+					// GeneralsX: Host side tier2 warnings, posted only
 					// now that the peer is genuinely in a slot. The LanGameOptionsMenu listbox is
 					// already live on this side, so unlike the joiner (see flushPendingSimWarnings)
 					// these can go straight out.
-					// GeneralsX @bugfix Claude 22/09/2026 The mask argument is what stops this
+					// GeneralsX: The mask argument is what stops this
 					// repeating per joiner: this runs once for EVERY peer that takes a slot, so
 					// before it a 4-player lobby printed the same sentence three times.
 					// (Deliberately not naming the member in prose - a comment that spells it
@@ -893,7 +893,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 					PostSimWarningsToChat( this, SimIdWarnFlags( msg->GameToJoin.sim ),
 						&m_saidSimWarnFlags, m_localIP );
 
-					// GeneralsX @feature Claude 24/08/2026 Host side of the camera notice, item 3 of
+					// GeneralsX: Host side of the camera notice, item 3 of
 					// the same shape. Inline rather than deferred for the same reason the tier2
 					// warnings above are: the LanGameOptionsMenu chat listbox is ALREADY live on this
 					// side, so there is nothing to wait for. Only the joiner has to stash and flush.
@@ -935,7 +935,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 			if (canJoin && player == MAX_HUMAN_SLOTS)
 			{
 				reply.messageType = LANMessage::MSG_JOIN_DENY;
-				// GeneralsX @bugfix BenderAI 13/02/2026 Use CopyWcharToWindowsWideChar (fighter19 pattern)
+				// GeneralsX: Use CopyWcharToWindowsWideChar (fighter19 pattern)
 				CopyWcharToWindowsWideChar(reply.GameNotJoined.gameName, m_currentGame->getName().str(), ARRAY_SIZE(reply.GameNotJoined.gameName) - 1);
 				reply.GameNotJoined.reason = LANAPIInterface::RET_GAME_FULL;
 				reply.GameNotJoined.gameIP = m_localIP;
@@ -951,7 +951,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 		reply.GameNotJoined.gameIP = m_localIP;
 		reply.GameNotJoined.playerIP = senderIP;
 	}
-	// GeneralsX @feature Claude 09/08/2026 The host's own build kind rides EVERY reply, accept or
+	// GeneralsX: The host's own build kind rides EVERY reply, accept or
 	// deny, and it is stamped HERE - one place, immediately before the send, after messageType has
 	// stopped changing.
 	//
@@ -965,7 +965,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 		reply.GameJoined.buildTag   = BUILDKIND_WIRE_TAG;
 		reply.GameJoined.buildFlags = gxLocalBuildKind();
 
-		// GeneralsX @feature Claude 24/08/2026 Our camera height limits ride the accept, stamped
+		// GeneralsX: Our camera height limits ride the accept, stamped
 		// in the same block and for the same union reason: accept and deny put their appended
 		// fields at different offsets, so this may only be written once messageType has stopped
 		// changing. The DENY path deliberately carries nothing - a peer that was refused has no
@@ -1003,7 +1003,7 @@ void LANAPI::handleRequestJoin( LANMessage *msg, UnsignedInt senderIP )
 
 void LANAPI::handleJoinAccept( LANMessage *msg, UnsignedInt senderIP )
 {
-	// GeneralsX @bugfix Claude 28/07/2026 NAT: the joiner and the host do not agree on the
+	// GeneralsX: NAT: the joiner and the host do not agree on the
 	// joiner's address.
 	//
 	// The stock test is `msg->GameJoined.playerIP == m_localIP`, which assumes the address the
@@ -1017,11 +1017,11 @@ void LANAPI::handleJoinAccept( LANMessage *msg, UnsignedInt senderIP )
 	// host. m_directConnectRemoteIP is zero for ordinary LAN joins, so LAN behaviour is
 	// unchanged, and an unsolicited accept from any other address is still ignored.
 	const Bool addressedToUs = (msg->GameJoined.playerIP == m_localIP);
-	// GeneralsX @security Claude 06/10/2026 Addressed to us is not enough: it must come from the host our pending
+	// GeneralsX: Addressed to us is not enough: it must come from the host our pending
 	// MSG_REQUEST_JOIN went to. Any peer could send an accept naming our address and seat us in whatever listing, at
-	// whatever slot, it named (Codex net-hardening r1). That host is the address we dialled for a direct connect
+	// whatever slot, it named (net-hardening r1). That host is the address we dialled for a direct connect
 	// (sendJoinRequest keeps it as m_lastJoinRequestDest) - the only authority there: the slot-0 address it announced
-	// can be a private one some peer on our own LAN holds (Codex r2) - and otherwise the listing's host, the gameIP the
+	// can be a private one some peer on our own LAN holds - and otherwise the listing's host, the gameIP the
 	// request named, which answers from the address handleGameStart already requires. Through NAT a direct-connect
 	// host sees our public address, so there the accept need not name m_localIP.
 	const Bool directJoin = (m_lastJoinRequestDest != 0);
@@ -1044,12 +1044,12 @@ void LANAPI::handleJoinAccept( LANMessage *msg, UnsignedInt senderIP )
 
 		if (m_pendingAction == ACT_JOIN) // Are we trying to join?
 		{
-			// GeneralsX @feature Claude 27/07/2026 The host may be the un-upgraded machine:
+			// GeneralsX: The host may be the un-upgraded machine:
 			// handleRequestJoin's only pre-SimID check was wrapped in #if defined(RTS_DEBUG) and
 			// #if !RTS_ZEROHOUR, so a stale host accepts happily and the desync surfaces around
 			// frame 100. Verify the host's identity here, independently. Runs before LookupGame
 			// below, so no game state is mutated on a rejected accept.
-			// GeneralsX @feature Claude 09/08/2026 The host let us in, and this says what it is
+			// GeneralsX: The host let us in, and this says what it is
 			// running. Under lockstep a debug HOST degrades every peer in the match, and the host
 			// is the one machine whose build kind nobody else can refuse - so if it is going to be
 			// slow, it should at least be explicable from the log rather than a mystery.
@@ -1069,7 +1069,7 @@ void LANAPI::handleJoinAccept( LANMessage *msg, UnsignedInt senderIP )
 			m_remoteSimVerdict = SimIdCompare( m_remoteSim );
 			if (m_remoteSimVerdict != SIMID_OK)
 			{
-				// GeneralsX @feature Claude 27/07/2026 Joiner half of the refusal trace. Without
+				// GeneralsX: Joiner half of the refusal trace. Without
 				// this the joiner only ever shows RET_CRC_MISMATCH in a MessageBox, which names no
 				// field, and the host's stderr is on a different machine.
 				{
@@ -1094,7 +1094,7 @@ void LANAPI::handleJoinAccept( LANMessage *msg, UnsignedInt senderIP )
 			}
 			m_pendingSimWarnFlags = SimIdWarnFlags( m_remoteSim );
 
-			// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+			// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 			m_currentGame = LookupGame(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->GameJoined.gameName)));
 
 			if (!m_currentGame)
@@ -1105,12 +1105,12 @@ void LANAPI::handleJoinAccept( LANMessage *msg, UnsignedInt senderIP )
 			else
 			{
 				m_inLobby = false;
-				// GeneralsX @bugfix Claude 11/08/2026 Fresh room, fresh start-nonce history. A new host
+				// GeneralsX: Fresh room, fresh start-nonce history. A new host
 				// counts nonces from 1, so a stale value from a previous room's host could swallow
 				// this room's first genuine start.
 				m_lastStartNonceProcessed = 0;
 
-				// GeneralsX @feature Claude 24/08/2026 The host's camera height limits, learned in the
+				// GeneralsX: The host's camera height limits, learned in the
 				// lobby. Adopted here rather than only at GAME_START so the pair is known while the
 				// player can still back out; the GAME_START copy is the authoritative one and REPLACES
 				// whatever this left behind, including replacing it with nothing (see handleGameStart).
@@ -1126,7 +1126,7 @@ void LANAPI::handleJoinAccept( LANMessage *msg, UnsignedInt senderIP )
 					{
 						GXHostCamera::setHostLimits(hostCamMin, hostCamMax);
 
-						// GeneralsX @feature Claude 24/08/2026 Say so, if it actually changes anything for us.
+						// GeneralsX: Say so, if it actually changes anything for us.
 						//
 						// COMPARED AFTER validate(), NOT AS RECEIVED. validate() applies exactly the clamp
 						// setHostLimits will apply, so this compares the pair that will really be in force
@@ -1194,7 +1194,7 @@ void LANAPI::handleJoinAccept( LANMessage *msg, UnsignedInt senderIP )
 	}
 }
 
-// GeneralsX @feature Claude 27/07/2026 Joining side only. handleJoinAccept discovers the tier2
+// GeneralsX: Joining side only. handleJoinAccept discovers the tier2
 // warnings, but cannot print them: OnChat routes to listboxChatWindowLanGame once we are in a
 // game setup, and LanGameOptionsMenuInit does not assign that window until Shell::update()
 // instantiates the layout - Shell::push only records m_pendingPush - so anything emitted from
@@ -1221,14 +1221,14 @@ void LANAPI::flushPendingSimWarnings()
 
 	const UnsignedInt warn = m_pendingSimWarnFlags;
 	m_pendingSimWarnFlags = 0;   // cleared first, so nothing OnChat does can print these twice
-	// GeneralsX @bugfix Claude 22/09/2026 The SAME mask the host side passes. A joiner reaches this
+	// GeneralsX: The SAME mask the host side passes. A joiner reaches this
 	// once per join and so does not repeat on its own, but it must share the mask anyway: the two
 	// paths are not exclusive - a peer that hosts after joining, or joins after hosting, runs both
 	// against one LANAPI, and a second mask is exactly how the two sentences drift apart.
 	PostSimWarningsToChat( this, warn, &m_saidSimWarnFlags, m_localIP );
 }
 
-// GeneralsX @feature Claude 08/08/2026 Tell the host what kind of lobby they just opened.
+// GeneralsX: Tell the host what kind of lobby they just opened.
 //
 // This is not decoration. /password and /private both survive from one game to the next (they
 // have to - the relay join path destroys and rebuilds LANAPI, see the note in LANAPI.cpp), so a
@@ -1266,7 +1266,7 @@ void LANAPI::flushPendingLobbyNotice()
 			LANAPIInterface::LANCHAT_SYSTEM);
 }
 
-// GeneralsX @feature Claude 24/08/2026 Joining side only, and deferred for the third time in this
+// GeneralsX: Joining side only, and deferred for the third time in this
 // file for the third identical reason: handleJoinAccept discovers the difference, but OnChat routes
 // to listboxChatWindowLanGame and LanGameOptionsMenuInit has not assigned it yet - Shell::push only
 // records m_pendingPush, and the layout is not instantiated until Shell::update runs. A line emitted
@@ -1304,7 +1304,7 @@ void LANAPI::flushPendingHostCameraNotice()
 
 void LANAPI::handleJoinDeny( LANMessage *msg, UnsignedInt senderIP )
 {
-	// GeneralsX @bugfix Claude 09/08/2026 NAT: a DENY was only ever accepted when the host's idea
+	// GeneralsX: NAT: a DENY was only ever accepted when the host's idea
 	// of our address matched our own, and through NAT it does not - the host fills playerIP with
 	// the packet's source, our PUBLIC address, while m_localIP is private.
 	//
@@ -1316,9 +1316,9 @@ void LANAPI::handleJoinDeny( LANMessage *msg, UnsignedInt senderIP )
 	//
 	// Same shape as the accept: addressed to us, OR from the host we are direct-connecting to.
 	const Bool denyAddressedToUs = (msg->GameNotJoined.playerIP == m_localIP);
-	// GeneralsX @security Claude 06/10/2026 As handleJoinAccept: only the host our pending join went to may refuse us.
+	// GeneralsX: As handleJoinAccept: only the host our pending join went to may refuse us.
 	// Any peer could abort our join with a denial addressed to us, or answer NEEDS_PASSWORD naming itself as gameIP,
-	// which re-aimed the password retry (and so m_lastJoinRequest) at itself and let its own accept through (Codex
+	// which re-aimed the password retry (and so m_lastJoinRequest) at itself and let its own accept through (
 	// net-hardening r1).
 	const Bool denyDirectJoin = (m_lastJoinRequestDest != 0);
 	const UnsignedInt denyAskedHost = denyDirectJoin ? m_lastJoinRequestDest : m_lastJoinRequest.GameToJoin.gameIP;
@@ -1328,7 +1328,7 @@ void LANAPI::handleJoinDeny( LANMessage *msg, UnsignedInt senderIP )
 	{
 		if (m_pendingAction == ACT_JOIN) // Are we trying to join?
 		{
-			// GeneralsX @feature Claude 27/07/2026 OnGameJoin cannot take extra parameters without
+			// GeneralsX: OnGameJoin cannot take extra parameters without
 			// changing the LANAPIInterface virtual contract, so stash the host's identity here for
 			// the failure dialog to format. Note this function reads msg->GameJoined.playerIP out
 			// of a JOIN_DENY, which works because both union arms keep playerIP at the same
@@ -1337,7 +1337,7 @@ void LANAPI::handleJoinDeny( LANMessage *msg, UnsignedInt senderIP )
 			m_remoteSimValid   = (m_remoteSim.tag == SIMID_WIRE_TAG);
 			m_remoteSimVerdict = SimIdCompare( m_remoteSim );
 
-			// GeneralsX @feature Claude 09/08/2026 Both sides of the build-kind comparison, in the
+			// GeneralsX: Both sides of the build-kind comparison, in the
 			// log the joiner actually has. The dialog can only say what the rule is; this says
 			// which side broke it, and it is the one piece of information that turns "refused"
 			// into "turn off your debug build".
@@ -1355,7 +1355,7 @@ void LANAPI::handleJoinDeny( LANMessage *msg, UnsignedInt senderIP )
 				fflush(stderr);
 			}
 
-			// GeneralsX @feature Claude 27/07/2026 We were denied by the host. Log why, but only
+			// GeneralsX: We were denied by the host. Log why, but only
 			// for the build-mismatch reason - this branch also carries "game full", "duplicate
 			// name" and friends, and dumping a SimID table for those would be noise.
 			if (msg->GameNotJoined.reason == LANAPIInterface::RET_CRC_MISMATCH)
@@ -1366,7 +1366,7 @@ void LANAPI::handleJoinDeny( LANMessage *msg, UnsignedInt senderIP )
 				SimIdLogMismatch("JOINER-DENIED", peerAddr, m_remoteSimVerdict, m_remoteSim);
 			}
 
-			// GeneralsX @feature Claude 08/08/2026 Lobby password: take the host's salt and
+			// GeneralsX: Lobby password: take the host's salt and
 			// challenge off the refusal, then answer it.
 			//
 			// This is what makes the two-phase handshake invisible to the player. They type
@@ -1390,7 +1390,7 @@ void LANAPI::handleJoinDeny( LANMessage *msg, UnsignedInt senderIP )
 				// wrong, and re-sending the same wrong password would just burn the new challenge
 				// and produce the same refusal with a worse error message.
 				//
-				// GeneralsX @fix Claude 10/08/2026 (cross-model review) Budget raised 1 -> 3. The
+				// GeneralsX: (cross-model review) Budget raised 1 -> 3. The
 				// 1 Hz join-request reassert means the host can see MORE THAN ONE password-free
 				// knock and answer each with NEEDS_PASSWORD + a fresh challenge. With a budget of
 				// 1, the deny for the SECOND knock arrived after the budget was spent, was treated
@@ -1416,12 +1416,12 @@ void LANAPI::handleJoinDeny( LANMessage *msg, UnsignedInt senderIP )
 				}
 			}
 
-			// GeneralsX @feature Claude 10/08/2026 The host answered no. Stop re-knocking - each
+			// GeneralsX: The host answered no. Stop re-knocking - each
 			// further knock would be re-denied, and on a password game each re-deny mints a fresh
 			// challenge into the 8-deep ring, evicting other joiners' live challenges.
 			m_lastJoinRequestValid = FALSE;
 
-			// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+			// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 			OnGameJoin(msg->GameNotJoined.reason, LookupGame(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->GameNotJoined.gameName))));
 			m_pendingAction = ACT_NONE;
 			m_expiration = 0;
@@ -1440,7 +1440,7 @@ void LANAPI::handleRequestGameLeave( LANMessage *msg, UnsignedInt senderIP )
 			{
 				if (player == 0)
 				{
-					// GeneralsX @bugfix Claude 12/08/2026 The host said goodbye - stop showing its game.
+					// GeneralsX: The host said goodbye - stop showing its game.
 					//
 					// This is the EXPLICIT half of "the host is gone". The other half, the host that
 					// crashed or lost its link, is caught by the staleness sweep in LANAPI::update();
@@ -1484,13 +1484,13 @@ void LANAPI::handleRequestGameLeave( LANMessage *msg, UnsignedInt senderIP )
 						slot.setState(SLOT_OPEN);
 						m_currentGame->setSlot( player, slot );
 					}
-					// GeneralsX @security Claude 06/10/2026 A remote leave is never ours (update() drops our own
+					// GeneralsX: A remote leave is never ours (update() drops our own
 					// datagrams), but OnPlayerLeave reads our own name as "we are leaving" - and the name is the
-					// packet's, so a seated peer naming the host made the host walk out of its own game (Codex
+					// packet's, so a seated peer naming the host made the host walk out of its own game (
 					// net-hardening r1). Its other branch does not use the name; a leave that names us is simply not
 					// passed on (the options sent below still tell the room). The packet's name stays otherwise: a
-					// guest's /nick does not reach the host's copy of its slot (Codex r1 on the slot-name version).
-					// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+					// guest's /nick does not reach the host's copy of its slot (on the slot-name version).
+					// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 					const UnicodeString leaverName(GetWindowsWideCharFieldAsWchar(msg->name));
 					if (m_name.compare(leaverName) != 0)
 					{
@@ -1499,7 +1499,7 @@ void LANAPI::handleRequestGameLeave( LANMessage *msg, UnsignedInt senderIP )
 					else if (AmIHost())
 					{
 						// What OnPlayerLeave does for anybody else's leave (LANAPICallbacks.cpp): the room gets a
-						// fresh slot list now (Codex r2 - an honest guest renamed to our name must still be seen to go).
+						// fresh slot list now (- an honest guest renamed to our name must still be seen to go).
 						m_lastResendTime = 0;
 						lanUpdateSlotList();
 						RequestGameOptions( GenerateGameOptionsString(), true );
@@ -1520,9 +1520,9 @@ void LANAPI::handleRequestGameLeave( LANMessage *msg, UnsignedInt senderIP )
 		LANGameInfo *game = m_games;
 		while (game)
 		{
-			// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
-			// GeneralsX @security Claude 06/10/2026 Only the game's own host takes its listing down; any peer could
-			// delete any row by naming it, then announce that name itself (Codex net-hardening r1).
+			// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+			// GeneralsX: Only the game's own host takes its listing down; any peer could
+			// delete any row by naming it, then announce that name itself (net-hardening r1).
 			if (game->getName().compare(GetWindowsWideCharFieldAsWchar(msg->GameToLeave.gameName)) == 0
 				&& game->getIP(0) == senderIP)
 			{
@@ -1581,7 +1581,7 @@ void LANAPI::handleHasMap( LANMessage *msg, UnsignedInt senderIP )
 		mapNameCRC.computeCRC(portableMapName.str(), portableMapName.getLength());
 		if (mapNameCRC.get() != msg->MapStatus.mapCRC)
 		{
-			// GeneralsX @feature Claude 11/08/2026 This drop used to be SILENT, and it is the
+			// GeneralsX: This drop used to be SILENT, and it is the
 			// leading suspect for "the announce arrived and the host still started alone": the
 			// sender computes its CRC over a portable name for a file it may not HAVE, and the
 			// conversion's documented fallback ships the raw path. A refused hasMap=false leaves
@@ -1614,14 +1614,14 @@ void LANAPI::handleChat( LANMessage *msg, UnsignedInt senderIP )
 		LANPlayer *player;
 		if((player=LookupPlayer(senderIP)) != nullptr)
 		{
-			// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+			// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 			OnChat(UnicodeString(player->getName()), player->getIP(), UnicodeString(GetWindowsWideCharFieldAsWchar(msg->Chat.message)), msg->Chat.chatType);
 			player->setLastHeard(timeGetTime());
 		}
 	}
 	else
 	{
-		// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+		// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 		if (LookupGame(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->Chat.gameName))) != m_currentGame)
 		{
 			DEBUG_LOG(("Game '%ls' is not my game", msg->Chat.gameName));
@@ -1637,7 +1637,7 @@ void LANAPI::handleChat( LANMessage *msg, UnsignedInt senderIP )
 		{
 			if (m_currentGame && m_currentGame->getIP(player) == senderIP)
 			{
-				// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+				// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 				OnChat(UnicodeString(GetWindowsWideCharFieldAsWchar(msg->name)), m_currentGame->getIP(player), UnicodeString(GetWindowsWideCharFieldAsWchar(msg->Chat.message)), msg->Chat.chatType);
 				break;
 			}
@@ -1647,7 +1647,7 @@ void LANAPI::handleChat( LANMessage *msg, UnsignedInt senderIP )
 
 void LANAPI::handleGameStart( LANMessage *msg, UnsignedInt senderIP )
 {
-	// GeneralsX @tweak Claude 11/08/2026 Deterministic loss forcing for the netem harness. The
+	// GeneralsX: Deterministic loss forcing for the netem harness. The
 	// natural rate of "both immediate start copies lost" is p-squared per start - too rare to
 	// force economically with netem (15/15 baseline runs passed while the round-2 class sat at
 	// ~1 in 8) - so the harness drops the first N starts HERE and the recovery machinery has to
@@ -1661,7 +1661,7 @@ void LANAPI::handleGameStart( LANMessage *msg, UnsignedInt senderIP )
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 11/08/2026 Nonce dedupe FIRST, unconditionally. The legacy
+	// GeneralsX: Nonce dedupe FIRST, unconditionally. The legacy
 	// duplicate gate below (!isGameInProgress) is disarmed exactly where duplicates are most
 	// dangerous: after a transfer-only round restores the lobby, and during the
 	// drain-before-teardown epilogue. A re-sent start we already ran must be inert at ANY time -
@@ -1684,7 +1684,7 @@ void LANAPI::handleGameStart( LANMessage *msg, UnsignedInt senderIP )
 		if (nonced)
 			m_lastStartNonceProcessed = msg->GameStart.nonce;
 
-		// GeneralsX @feature Claude 24/08/2026 Adopt the host's camera height limits, and do it
+		// GeneralsX: Adopt the host's camera height limits, and do it
 		// HERE - after the nonce gate, so a re-sent start cannot re-latch, and before OnGameStart,
 		// which is where the match begins and after which the seam refuses to change the pair.
 		//
@@ -1702,7 +1702,7 @@ void LANAPI::handleGameStart( LANMessage *msg, UnsignedInt senderIP )
 				GXHostCamera::clearHostLimits();
 		}
 
-		// GeneralsX @security Claude 25/09/2026 Adopt the host's relay-proven admin slots and keys from THIS message, for the
+		// GeneralsX: Adopt the host's relay-proven admin slots and keys from THIS message, for the
 		// reason the camera pair is adopted here: every peer starts on the one mask the host stamped, never on a
 		// lobby options string that may be stale. Adopting is not trusting - OnGameStart refuses to start unless a
 		// fresh answer from our own relay says exactly this. An unstamped arm reads as no admin at all.
@@ -1747,7 +1747,7 @@ void LANAPI::handleInActive(LANMessage *msg, UnsignedInt senderIP) {
 	}
 
 	UnicodeString playerName;
-	// GeneralsX @bugfix BenderAI 13/02/2026 Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
+	// GeneralsX: Wrap WideCharWindows with GetWindowsWideCharFieldAsWchar (fighter19 pattern)
 	playerName = UnicodeString(GetWindowsWideCharFieldAsWchar(msg->name));
 
 	Int slotNum = m_currentGame->getSlotNum(playerName);

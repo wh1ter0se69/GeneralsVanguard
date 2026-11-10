@@ -62,7 +62,7 @@ public:
 	// Carrying the real length also lets the file-message reader bound its copy
 	// against the actual buffer instead of trusting a wire-supplied size.
 	static NetCommandRef * ConstructNetCommandMsgFromRawData(UnsignedByte *data, UnsignedInt dataLength);
-	// GeneralsX @security Claude 06/10/2026 Chunk IDs already queued (any ID-bearing command of the same player) in
+	// GeneralsX: Chunk IDs already queued (any ID-bearing command of the same player) in
 	// @p skipIdsQueuedIn are skipped, so NetCommandList::addMessage never drops a chunk as a duplicate (design v16 section 3).
 	static NetCommandList *ConstructBigCommandList(NetCommandRef *ref, NetCommandList *skipIdsQueuedIn = nullptr);
 	/// GeneralsX: what a receiver reserves for a wrap of @p msg (GXWrapReserve of ConstructBigCommandList's geometry); its chunk count too.
@@ -75,7 +75,7 @@ public:
 	UnsignedInt getAddr();
 	UnsignedShort getPort();
 
-	// GeneralsX @feature Claude 14/08/2026 [GXPKT]. Bytes this packet spent on the 'R' (relay)
+	// GeneralsX: [GXPKT]. Bytes this packet spent on the 'R' (relay)
 	// field. The field is delta-encoded - emitted only when the mask differs from the previous
 	// command in the same packet - so widening RelayMaskType for twelve slots does NOT cost a
 	// byte per command, it costs a byte per mask CHANGE. That distinction is the whole
@@ -106,7 +106,7 @@ protected:
 	static NetCommandMsg * readDisconnectPlayerMessage(UnsignedByte *data, Int &i);
 	static NetCommandMsg * readPacketRouterQueryMessage(UnsignedByte *data, Int &i);
 	static NetCommandMsg * readPacketRouterAckMessage(UnsignedByte *data, Int &i);
-	// GeneralsX @security Claude 17/08/2026 Both chat readers now take the size of the buffer they
+	// GeneralsX: Both chat readers now take the size of the buffer they
 	// are reading out of, the same way readFileMessage does. The old signatures took the sender's
 	// length byte on trust and memcpy'd up to 255 wire characters out of m_packet, which is only
 	// MAX_PACKET_SIZE (476) bytes - so a peer could name a length that ran the copy off the end of
@@ -142,12 +142,12 @@ protected:
 	UnsignedShort		m_lastCommandID;
 	UnsignedByte		m_lastPlayerID;
 	UnsignedByte		m_lastCommandType;
-	// GeneralsX @bugfix Claude 12/08/2026 Must be RelayMaskType, not UnsignedByte. This is the
+	// GeneralsX: Must be RelayMaskType, not UnsignedByte. This is the
 	// packet writer's delta-compression state: the 'R' field is emitted only when it differs from
 	// the previous command's mask. Held in a byte, a mask of 0x0101 stored as 0x01 then compares
 	// EQUAL to a following 0x0001, so the relay field is suppressed and the reader inherits the
 	// wrong mask - delivering a command to slot 8 that was addressed only to slot 0.
 	RelayMaskType		m_lastRelay;
-	// GeneralsX @feature Claude 14/08/2026 [GXPKT] accounting - see getRelayFieldBytes().
+	// GeneralsX: [GXPKT] accounting - see getRelayFieldBytes().
 	Int							m_relayFieldBytes;
 };

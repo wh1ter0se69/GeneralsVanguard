@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 17/10/2026 LIVE WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterLive.h).
+// GeneralsX: LIVE WATER - the engine glue (the look and its arithmetic: GameClient/GXWaterLive.h).
 //
 // Included at the end of W3DWater.cpp, below every GX-SIMID region (and below GXWaterClearGlue.inl). Called from render code
 // outside the SimID closure: WaterRenderObjClass's ReAcquireResources / ReleaseResources (device resources), load (the map's
@@ -33,7 +33,7 @@ namespace
 	// One foam cell = one terrain cell within the foam's depth range: its corners in shoreline order (BaseHeightMap
 	// updateShorelineTile) (i,j) (i+1,j) (i+1,j+1) (i,j+1) and the water level over it. The draw splits each of its two
 	// triangles at the water line - the wet part flat on the water, the dry part on the ground - because a triangle whose
-	// corners were each raised to the water separately floated above both between them (Codex lw2-r1).
+	// corners were each raised to the water separately floated above both between them.
 	struct GxFoamCorner
 	{
 		float x, y;
@@ -71,7 +71,7 @@ static std::vector<float> &gxCrestLines() { static std::vector<float> *v = new s
 static std::vector<float> &gxSurfDistance() { static std::vector<float> *v = new std::vector<float>(); return *v; }
 
 // The water polygons' levels, in list order: a script that raises or lowers a water area changes one, and the foam cells are
-// rebuilt for the new shore line. Compared level by level (Codex lw2-r3: a weighted sum of them could cancel out). A handful
+// rebuilt for the new shore line. Compared level by level (a weighted sum of them could cancel out). A handful
 // of polygon triggers per map; cheap to read every frame.
 static void gxWaterLiveWaterLevels(std::vector<Real> &out)
 {
@@ -100,7 +100,7 @@ static UnsignedInt gxWaterLiveWallMs()
 }
 
 // Whether the water at (x, y) with level `lv` is a river polygon's. A WaveGuide's deformable grid replaces the rivers while it
-// runs (WaterRenderObjClass m_disableRiver): their fixed polygon level is then not the surface (Codex lw2-r10).
+// runs (WaterRenderObjClass m_disableRiver): their fixed polygon level is then not the surface.
 static Bool gxWaterLiveRiverAt(Real x, Real y, Real lv)
 {
 	ICoord3D at;
@@ -172,8 +172,8 @@ static void gxWaterLiveScanFoamCells(Int i0, Int j0, Int i1, Int j1)
 				continue;	// open water, far from any shore
 			// Every corner inside a water area, as BaseHeightMap::updateShorelineTile requires of its shoreline tiles: a cell
 			// the polygon only partly covers would carry the water's level past the polygon's edge, where no water is drawn
-			// (Codex lw2-r3). And one water surface: a cell between two water areas at different levels belongs to neither
-			// (Codex lw2-r4).
+			// And one water surface: a cell between two water areas at different levels belongs to neither
+			//
 			Real lv = INVALID_WATER_HEIGHT, lo = 1e9f;
 			Bool covered = TRUE;
 			for (Int k = 0; k < 4; ++k)
@@ -313,7 +313,7 @@ static void gxWaterLiveBuildFoamCells(const char *why)
 
 // The ground changed (a structure's foundation, a script): the cells touching the changed vertices are scanned again - and
 // every cell within the shore margin of them, because whether a cell is near dry ground depends on vertices up to
-// kGxFoamShoreCells away (Codex lw2-r6). A changed vertex (x, y) belongs to the cells (x-1..x, y-1..y).
+// kGxFoamShoreCells away. A changed vertex (x, y) belongs to the cells (x-1..x, y-1..y).
 static void gxWaterLiveRescanDirty()
 {
 	if (gxFoamDirty().empty() || !gxWaterLiveFoamReady())
@@ -403,7 +403,7 @@ static void gxWaterLiveMakeFoamTable()
 
 // The swell's gain for the whole map: the worst standing-water patch's, over the same patches renderWater hands
 // drawTrapezoidWater - enough vertices per wavelength (gxWaterLiveSurgeGain) and a seam between differently subdivided
-// neighbours under kGxSwellSeamMax (gxWaterLiveSeamGain, at this map's surge). One value for every patch (Codex lw3-r1, r2).
+// neighbours under kGxSwellSeamMax (gxWaterLiveSeamGain, at this map's surge). One value for every patch.
 // The polygons' shapes do not change after load (scripts move levels, not corners).
 static void gxWaterLiveMeasureSwell()
 {
@@ -568,13 +568,13 @@ static void gxWaterLiveMapReset()
 
 // WaterRenderObjClass::update, once per client update (GameClient::update -> W3DTerrainVisual::update), including the
 // iterations fast-forward and catch-up do not draw: `logicFrames` = gxRenderTimeScale(), that iteration's logic time, so the
-// sum is game time however the iterations are drawn (Codex lw3-r2).
+// sum is game time however the iterations are drawn.
 static void gxWaterLiveTick(Real logicFrames)
 {
 	const double prev = s_gxLiveClock;
 	const double stepped = gxWaterLiveClockStep(prev, logicFrames, (float)LOGICFRAMES_PER_SECOND);
 	// Then follow the game's own time (only READ here: the logic frame counter), so fast-forward and stalls keep the water in
-	// step with the game (gxWaterLiveClockFollow, Codex lw3-r3).
+	// step with the game (gxWaterLiveClockFollow).
 	s_gxLiveClock = (TheGameLogic != nullptr) ? gxWaterLiveClockFollow(prev, stepped,
 		(double)TheGameLogic->getFrame() / (double)LOGICFRAMES_PER_SECOND, 1.0 / (double)LOGICFRAMES_PER_SECOND) : stepped;
 }

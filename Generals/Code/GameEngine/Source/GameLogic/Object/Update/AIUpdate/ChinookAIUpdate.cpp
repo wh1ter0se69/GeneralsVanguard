@@ -236,10 +236,10 @@ public:
 			// A chinook given transport duty loses his supplies.
 			while( ai->loseOneBox() );
 #if !RETAIL_COMPATIBLE_CRC
-			// GeneralsX @bugfix Claude 06/10/2026 TheSuperHackers PR #3170 (issue #45): ...and its leave-the-supply-centre
+			// GeneralsX: TheSuperHackers PR #3170 (issue #45): ...and its leave-the-supply-centre
 			// latch. Infantry boarding a fresh Chinook land it through setMyState(CMD_FROM_AI), which never reaches
 			// setLastCommandSource(CMD_FROM_PLAYER); without this it flies back to gathering, passengers aboard, once it takes
-			// off (Codex pf-supply-r2 P2 3). A script landing is transport duty too: it drops the boxes on the line above.
+			// off. A script landing is transport duty too: it drops the boxes on the line above.
 			ai->setForceWantingState(FALSE);
 #endif
 		}
@@ -1164,9 +1164,9 @@ void ChinookAIUpdate::privateCombatDrop( Object* target, const Coord3D& pos, Com
 void ChinookAIUpdate::aiDoCommand(const AICommandParms* parms)
 {
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @bugfix Claude 09/10/2026 Upstream #3115's enter checks, moved out of the switch below to the very top: as a
+	// GeneralsX: Upstream #3115's enter checks, moved out of the switch below to the very top: as a
 	// case of their own they ended in "break", so a VALID enter skipped the default case and a landed Chinook started AI_ENTER
-	// on the ground instead of taking off first (Codex tsh-port-1008-r3 P2); and first, so an enter they refuse changes
+	// on the ground instead of taking off first; and first, so an enter they refuse changes
 	// nothing at all - not the healing airfield, not the guard post to resume, not a command waiting for take-off or landing
 	// to finish (sec-r4 P2).
 	if (parms->m_cmd == AICMD_ENTER)
@@ -1180,10 +1180,10 @@ void ChinookAIUpdate::aiDoCommand(const AICommandParms* parms)
 			return;
 	}
 
-	// GeneralsX @bugfix Claude 09/10/2026 The same refusal privateExit applies (TheSuperHackers #3089/#3136), made before the
+	// GeneralsX: The same refusal privateExit applies (TheSuperHackers #3089/#3136), made before the
 	// AICMD_EXIT case below starts landing the Chinook: a script's "team exit all buildings" sends aiExit(nullptr) to every
 	// member, and a flying Chinook in the team landed (dropping its order) only to find it was inside nothing
-	// (Codex tsh-port-1008-sec-r5 P3).
+	//
 	if (parms->m_cmd == AICMD_EXIT)
 	{
 		const Object *container = parms->m_obj != nullptr ? parms->m_obj : getObject()->getContainedBy();

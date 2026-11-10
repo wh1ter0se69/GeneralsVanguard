@@ -1,4 +1,4 @@
-// GeneralsX @feature D · rw3-X-2 13/10/2026 A23-B §3.8 (perf-audit/DESIGN_A23_wide-ring.md v8.1): the ONE owner of a failed
+// GeneralsX: A23-B §3.8 (perf-audit/DESIGN_A23_wide-ring.md v8.1): the ONE owner of a failed
 // device-memory allocation. Every in-scope VMA allocation - GxBuffer's static buffer and dynamic slices, GxImage::create, the
 // upload rings' dedicated buffers, the read-back buffer - goes through gxCreateBuffer / gxCreateImage (the render-seam lint
 // refuses a raw vmaCreateBuffer / vmaCreateImage in Res/ and VkUploadRing). With no policy installed they ARE the raw calls.

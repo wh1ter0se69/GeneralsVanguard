@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank DATA rule ARMY.USA_HUMVEE_MD (C·rb-data): USA can stay on Humvees + Missile Defenders
+# GeneralsX: rule bank DATA rule ARMY.USA_HUMVEE_MD (C·rb-data): USA can stay on Humvees + Missile Defenders
 # (+1 Ambulance) all game (rows 6, 27, 28); the Air Force mixes Raptors with that ground team and keeps one Comanche home (row 70).
 # Team edits only, Hard wave teams of USA and the Air Force:
 #   wave 1 Rush: md Missile Defenders, humvees Humvees, ambulance Ambulances (stock: 4 MD + 2 Crusaders);

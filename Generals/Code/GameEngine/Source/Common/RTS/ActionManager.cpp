@@ -270,7 +270,7 @@ Bool ActionManager::canTransferSuppliesAt( const Object *obj, const Object *tran
 			return FALSE;
 		}
 #else
-		// GeneralsX @bugfix Claude 02/10/2026 The shroud test must not read the lazy shroud cache. A FOGGED object that owns a
+		// GeneralsX: The shroud test must not read the lazy shroud cache. A FOGGED object that owns a
 		// ghost object is answered SHROUDED if it is neutral and mobile, or non-neutral and either a mine or not (immobile
 		// and seen before, PartitionData::m_everSeenByPlayer) - and a -headless peer owns no ghost objects
 		// (GhostObjectManagerDummy), while everSeen is set by whichever client query ran first, which depends on the

@@ -73,7 +73,7 @@ extern Int  GadgetComboBoxGetLength( GameWindow *comboBox );
 
 extern void GadgetComboBoxHideList( GameWindow *comboBox );
 
-// GeneralsX @feature Claude 25/09/2026 Letter keys on an open drop-down (see GadgetComboBox.cpp).
+// GeneralsX: Letter keys on an open drop-down (see GadgetComboBox.cpp).
 /// Open this combo's list as if its button had been clicked (no-op when already open or disabled).
 extern void GadgetComboBoxOpenList( GameWindow *comboBox );
 /// Offer a key to the open non-editable drop-down, if any. TRUE = consumed; do not pass it on.

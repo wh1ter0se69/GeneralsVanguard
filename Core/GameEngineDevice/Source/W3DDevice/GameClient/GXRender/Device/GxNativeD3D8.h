@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-S 11/10/2026 L1 in the game: the IDirect3D8 proxy and the per-session native/classic decision
+// GeneralsX: L1 in the game: the IDirect3D8 proxy and the per-session native/classic decision
 // (render-seam/DESIGN_l1-device.md §1, §2, §5.2, §8.1; RW3_PLAN_1710 brief S).
 //
 // GxNativeD3D8 wraps DXVK's own IDirect3D8. Every adapter query is forwarded, so caps / identity / modes / formats are DXVK's
@@ -77,7 +77,7 @@ GxNativeD3D8* GxNativeProxyFrom(IDirect3D8* d3d);
 // The session the proxy last decided (valid after its CreateDevice).
 const GxNativeSession& GxNativeLastSession(const GxNativeD3D8* proxy);
 
-// --- S8, pure so tests can feed it fake images (DESIGN §2.1 row S8; Codex rw3L-design-r1 #8).
+// --- S8, pure so tests can feed it fake images (DESIGN §2.1 row S8).
 // `procAddrImage` = the image `dladdr` finds for the host's vkGetInstanceProcAddr ("" = the host gave none, the device searched
 // itself); `images` = the process's loaded images, symlinks already resolved. Qualified = the proc-addr image is a Vulkan
 // LOADER (libvulkan*, not MoltenVK) and the process holds exactly one distinct loader build and exactly one MoltenVK.

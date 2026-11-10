@@ -36,7 +36,7 @@
 #include "GameClient/ParticleSys.h"
 #include "GameLogic/GameLogic.h"
 #include "GameNetwork/NetworkInterface.h"
-// GeneralsX @bugfix Claude 06/08/2026 Pull in whichever audio backend this build actually compiles.
+// GeneralsX: Pull in whichever audio backend this build actually compiles.
 // Core/GameEngineDevice/CMakeLists.txt now excludes the Miles sources when SAGE_USE_OPENAL is set
 // (one backend per binary - the two headers declare different types under the same global names),
 // so including the Miles header here unconditionally would declare types whose definitions are not
@@ -123,7 +123,7 @@ inline WebBrowser *Win32GameEngine::createWebBrowser() { return NEW CComObject<W
 inline AudioManager *Win32GameEngine::createAudioManager(Bool dummy)
 {
 #if defined(SAGE_USE_OPENAL)
-	// GeneralsX @feature Claude 06/08/2026 The OpenAL branch. This is what was missing: win64 had
+	// GeneralsX: The OpenAL branch. This is what was missing: win64 had
 	// no path to any backend but Miles, so even a fully working OpenAL device could never be
 	// constructed and the build was silent by construction rather than by failure.
 	//

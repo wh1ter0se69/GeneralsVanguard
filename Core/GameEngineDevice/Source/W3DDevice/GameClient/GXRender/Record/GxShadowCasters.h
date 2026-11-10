@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 GPU sun shadow map: the caster list and its replay.
+// GeneralsX: S7 GPU sun shadow map: the caster list and its replay.
 //
 // PREREG: modernize/look-director/d2/PREREG_look-shadowmaps.md (A1, A21, A22, A23, A30); PLAN Task 2.
 //

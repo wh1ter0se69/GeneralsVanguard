@@ -527,7 +527,7 @@ void ThingTemplate::parseModuleName(INI* ini, void *instance, void* store, const
 {
 	ThingTemplate* self = (ThingTemplate*)instance;
 	ModuleInfo* mi = (ModuleInfo*)store;
-	// GeneralsX @build BenderAI 11/02/2026 - Use uintptr_t for pointer-to-int cast (64-bit compat)
+	// GeneralsX: Use uintptr_t for pointer-to-int cast (64-bit compat)
 	ModuleType type = (ModuleType)(UnsignedInt)(uintptr_t)userData;
 	const char* token = ini->getNextToken();
 	AsciiString tokenStr = token;
@@ -646,7 +646,7 @@ void ThingTemplate::parseModuleName(INI* ini, void *instance, void* store, const
 //-------------------------------------------------------------------------------------------------
 void ThingTemplate::parseIntList(INI* ini, void *instance, void* store, const void* userData)
 {
-	// GeneralsX @build BenderAI 11/02/2026 - Use uintptr_t for pointer-to-int cast (64-bit compat)
+	// GeneralsX: Use uintptr_t for pointer-to-int cast (64-bit compat)
 	Int numberEntries = (Int)(uintptr_t)userData;
 	Int *intList = (Int*)store;
 
@@ -1245,7 +1245,7 @@ void ThingTemplate::validate()
 
 //-------------------------------------------------------------------------------------------------
 // copy the guts of that into this, but preserve this' name, id, and list-links.
-// GeneralsX @bugfix Claude 09/10/2026 And its override link: `*this = *that` copied that's place in ITS override chain too.
+// GeneralsX: And its override link: `*this = *that` copied that's place in ITS override chain too.
 // A map.ini "ObjectReskin A A" left A's new override pointing at itself, so getFinalOverride never returned and every peer
 // hung at the first script naming A (measured on 0.9.61 in AttackPriorityInfo::setPriority); a reskin of a template with
 // overrides shared their chain (deleted twice by ThingFactory::reset); a reskin made by a map.ini lost its override mark
@@ -1585,7 +1585,7 @@ Int ThingTemplate::calcCostToBuild( const Player* player) const
 	// changePercent format is "-.2 equals 20% cheaper"
 	Real factionModifier = 1 + player->getProductionCostChangePercent( getName() );
 	factionModifier *= player->getProductionCostChangeBasedOnKindOf( m_kindof );
-	// GeneralsX @bugfix Claude 10/10/2026 Saturated, as calcTimeToBuild's (a float -> Int differs by CPU out of range).
+	// GeneralsX: Saturated, as calcTimeToBuild's (a float -> Int differs by CPU out of range).
 	return REAL_TO_INT(getBuildCost() * factionModifier * player->getHandicap()->getHandicap(Handicap::BUILDCOST, this));
 }
 
@@ -1604,10 +1604,10 @@ Int ThingTemplate::calcTimeToBuild( const Player* player) const
 		return finalOverride->calcTimeToBuild(player);
 #endif
 
-	// GeneralsX @bugfix Claude 10/10/2026 Every float -> Int below goes through REAL_TO_INT, which saturates (and is the
+	// GeneralsX: Every float -> Int below goes through REAL_TO_INT, which saturates (and is the
 	// plain conversion in range). A map.ini BuildTime of 4e7 (charged since #3445) is 2.4e9 frames: plainly converted that
 	// is INT_MAX on arm64 but INT_MIN on x86-64, which ProductionUpdate's <= 0 branch completes at once, on x86 only - a
-	// desync between a Mac and a Windows peer (Codex batch-0962 r33d P1).
+	// desync between a Mac and a Windows peer.
 	Int buildTime = REAL_TO_INT(getBuildTime() * static_cast<float>(LOGICFRAMES_PER_SECOND));
 	buildTime = REAL_TO_INT(buildTime * player->getHandicap()->getHandicap(Handicap::BUILDTIME, this));
 

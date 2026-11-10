@@ -87,7 +87,7 @@ static ICoord2D	s_dragOrigin	= { 0, 0 };
 // device pixels) so the two layers agree on what counts as a tap.
 static const Int DEBUG_FLOAT_DEAD_ZONE_PX = 8;
 
-// GeneralsX @bugfix Claude 08/10/2026 Defined in InGameUI.cpp (GXSpectatorHud.inl): where the spectator HUD's top strip ends (0 =
+// GeneralsX: Defined in InGameUI.cpp (GXSpectatorHud.inl): where the spectator HUD's top strip ends (0 =
 // no strip). The default corner sits below it - at y = margin the DEBUG button covered the last player card (owner 08/10).
 extern Int gxSpectatorHudTopInset();
 
@@ -386,7 +386,7 @@ static void debugFloatBuild( void )
 //-------------------------------------------------------------------------------------------------
 /// Is the debug overlay wanted at all?
 ///
-/// GeneralsX @bugfix Claude 09/08/2026 IT USED TO BE UNCONDITIONAL. DebugFloatButtonCreate() ran
+/// GeneralsX: IT USED TO BE UNCONDITIONAL. DebugFloatButtonCreate() ran
 /// from GameClient::init() on every build, so a RELEASE build a friend installed showed a DEBUG
 /// button and a frame-rate readout over the main menu - and the launcher's "Enable debug mode"
 /// checkbox had nothing to do with it, because nothing anywhere read that setting. Turning the

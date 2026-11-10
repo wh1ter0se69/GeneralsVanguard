@@ -73,7 +73,7 @@ extern const Color acceptFalseColor;
 void lanUpdateSlotList();
 void updateGameOptions();
 void setLANPlayerTooltip(LANPlayer* player);
-// GeneralsX @feature Claude 10/08/2026 The first start only transferred the map and LANAPI has
+// GeneralsX: The first start only transferred the map and LANAPI has
 // restored the room; the menu must reset its start machinery (phase machine, button caption,
 // LANbuttonPushed) and redraw. Accepts and closed slots survive on purpose - see OnGameStart.
 void lanNotifyTransferOnlyStart(void);

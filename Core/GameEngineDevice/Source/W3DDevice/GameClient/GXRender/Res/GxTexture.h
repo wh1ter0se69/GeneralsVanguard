@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: 2D textures and standalone surfaces with D3D8 semantics.
+// GeneralsX: WS-C GXRES v0: 2D textures and standalone surfaces with D3D8 semantics.
 //
 // MANAGED   image + a host copy of every level (DXVK keeps the same copy for this pool: d3d9_common_texture.cpp
 //           DetermineMapMode -> BACKED, never evicted on 64-bit). LockRect returns the host copy, so texels a lock does not

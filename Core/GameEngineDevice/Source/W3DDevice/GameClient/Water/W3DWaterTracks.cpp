@@ -65,10 +65,10 @@
 #include "WW3D2/dx8wrapper.h"
 #include "GameClient/GXWaterLive.h"	// GeneralsX @feature live water: the crests' colour and alpha (flush)
 
-// GeneralsX @feature Claude 17/10/2026 The crests' colour this frame: retail's pure white unless live water lights them
+// GeneralsX: The crests' colour this frame: retail's pure white unless live water lights them
 // (flush sets it from gxWaterLiveWaveFrame; GXWaterLiveGlue.inl). The render below ORs it under the wave's alpha.
 static unsigned s_gxWaveRgb = 0xffffff;
-// GeneralsX @bugfix Claude 22/10/2026 ...and whether live water grows the crests in this frame, on its clock, lap and flow
+// GeneralsX: ...and whether live water grows the crests in this frame, on its clock, lap and flow
 // (flush sets it; WaterTracksObj::render reads it).
 static GxWaterLiveWaveFrame s_gxWave = { false, 0xffffff, 1, 0.0, 7.0f, { 1.0f, 0.0f } };
 
@@ -305,7 +305,7 @@ Int WaterTracksObj::update(Int msElapsed)
 Int WaterTracksObj::render(DX8VertexBufferClass	*vertexBuffer, Int batchStart)
 {
 	// TheSuperHackers @tweak The wave movement time step is now decoupled from the render update.
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): the pacer's value unless capturing.
 	m_elapsedMs += gxRenderStepMs();
 
 	VertexFormatXYZDUV1 *vb;
@@ -316,7 +316,7 @@ Int WaterTracksObj::render(DX8VertexBufferClass	*vertexBuffer, Int batchStart)
 	Real	widthFrac;
 	Real	heightFrac;
 
-	// GeneralsX @bugfix Claude 22/10/2026 Live water grows the crests in (wh1ter0se 22/10: "i dont like how the waves spawn out of
+	// GeneralsX: Live water grows the crests in (wh1ter0se 22/10: "i dont like how the waves spawn out of
 	// nowhere make it more natural spawning"). The retail pose below gives every crest of the map one clock (SYNC_WAVES) and a
 	// crest is a sliver at full alpha the moment it starts to surge, so the whole coast drew a white line in one frame (Mini
 	// 22/10, TournamentB frame 855). With live water's waves part the crest is posed here instead, before the lock, so a crest
@@ -877,7 +877,7 @@ void WaterTracksRenderSystem::shutdown()
 void WaterTracksRenderSystem::update()
 {
 
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
 	static  Int iLastTime=gxRenderNowMs();
 	WaterTracksObj *mod=m_usedModules,*nextMod;
 
@@ -898,7 +898,7 @@ void WaterTracksRenderSystem::update()
 	}
 }
 
-// GeneralsX @bugfix BenderAI 13/02/2026 Keep Windows-only debug water editor hooks guarded on non-Windows
+// GeneralsX: Keep Windows-only debug water editor hooks guarded on non-Windows
 #ifdef _WIN32
 void TestWaterUpdate();
 #endif
@@ -921,7 +921,7 @@ Try improving the fit to vertical surfaces like cliffs.
 		return;
 
 	if (TheGlobalData->m_usingWaterTrackEditor)
-	// GeneralsX @bugfix BenderAI 13/02/2026 Windows-only debug function
+	// GeneralsX: Windows-only debug function
 #ifdef _WIN32
 	if (TheGlobalData->m_usingWaterTrackEditor)
 		TestWaterUpdate();
@@ -963,7 +963,7 @@ Try improving the fit to vertical surfaces like cliffs.
 	//Force apply of render states so we can override them.
 	DX8Wrapper::Apply_Render_State_Changes();
 
-	// GeneralsX @feature Claude 17/10/2026 Live water: the crests lit by the map (EA's diffuseLight above, never used) and
+	// GeneralsX: Live water: the crests lit by the map (EA's diffuseLight above, never used) and
 	// their thin wave256 alpha doubled - else they read as faint lines. Off: white, alpha as retail.
 	gxWaterLiveWaveFrame(&s_gxWave);	// 22/10: and grown in on the swell's time (WaterTracksObj::render)
 	s_gxWaveRgb = s_gxWave.rgb;
@@ -1088,7 +1088,7 @@ void WaterTracksRenderSystem::loadTracks()
 		file->seek(0, File::START);
 		for (Int i=0; i<trackCount; i++)
 		{
-			// GeneralsX @bugfix Claude 06/10/2026 A map's .wak comes from the lobby host with the map. The wave type
+			// GeneralsX: A map's .wak comes from the lobby host with the map. The wave type
 			// indexed waveTypeInfo[] unchecked (a read outside the table, whose texture name pointer was then
 			// dereferenced), a short file was never noticed, and a duplicate record jumped back with a goto that skipped
 			// the loop's count check, so a count larger than the records looped forever on the last one. Now a record
@@ -1116,7 +1116,7 @@ void WaterTracksRenderSystem::loadTracks()
 			if (umod)
 			{	//umod->init(1.5f*MAP_XY_FACTOR,Vector2(0,0),Vector2(1,1),"wave256.tga");
 				// GeneralsX: live water's foam follows the surf that is DRAWN - a record past the track pool draws no wave, so it
-				// makes no foam either (Codex wsl-r6)
+				// makes no foam either
 				gxWaterLiveCrest(startPos.X, startPos.Y, endPos.X, endPos.Y, waveTypeInfo[wtype].m_finalWidth);
 				flipU ^= 1;	//toggle flip state
 				umod->init(waveTypeInfo[wtype].m_finalHeight,waveTypeInfo[wtype].m_finalWidth,startPos,endPos,waveTypeInfo[wtype].m_textureName,0);

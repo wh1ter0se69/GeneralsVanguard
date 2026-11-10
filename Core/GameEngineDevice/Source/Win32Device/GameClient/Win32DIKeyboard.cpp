@@ -433,10 +433,10 @@ Bool DirectInputKeyboard::getCapsState()
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @bugfix Claude 25/09/2026 The character the ACTIVE keyboard layout puts on this key,
+/** GeneralsX: The character the ACTIVE keyboard layout puts on this key,
 	* asked of Windows at the press. The key table (initKeyNames) is chosen once, at startup, from the
 	* game's language, so a French game on a US layout - or any layout switched to mid-session - named
-	* the key the drop-down letter keys read by the wrong letter (codex keys-b1-r5). DirectInput's key
+	* the key the drop-down letter keys read by the wrong letter. DirectInput's key
 	* is the scan code; extended keys (0x80 set) are never letters. 0 = the key types no character here
 	* (ComboLayoutChar), never the table's name for it. */
 //-------------------------------------------------------------------------------------------------

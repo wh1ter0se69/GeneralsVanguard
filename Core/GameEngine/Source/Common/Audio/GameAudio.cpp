@@ -296,10 +296,10 @@ void AudioManager::reset()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/10/2026 Undo exactly what a map.ini did to the audio events. Each device's reset() calls this AFTER
+// GeneralsX: Undo exactly what a map.ini did to the audio events. Each device's reset() calls this AFTER
 // it has stopped every sound and dropped every request (stopAllAudioImmediately, removeAllAudioRequests), the place its own
 // removeLevelSpecificAudioEventInfos already needs: a sound still playing reads its event (Miles' completion callback runs on the
-// MSS timer thread and dereferences it), so none may be rewritten or renamed under it (Codex mapini-rollback-r1 P2).
+// MSS timer thread and dereferences it), so none may be rewritten or renamed under it.
 void AudioManager::undoOverrideLoads()
 {
 	// The parsers write an existing event
@@ -310,7 +310,7 @@ void AudioManager::undoOverrideLoads()
 	// template naming a sound that did not exist then finds the map's), so the retired event's name is cleared and the cache drops
 	// it on its next use (getAudioEventInfo compares the names) and looks the name up again, as a fresh process would. A music
 	// track's block also appended its name to the track list every time; the list goes back to its length before the map.
-	// ponytail: retired events are freed only in the destructor - a few per custom map, per process.
+	// Trade-off: retired events are freed only in the destructor - a few per custom map, per process.
 	for (size_t i = 0; i < m_overrideBackups.size(); ++i)
 	{
 		*m_overrideBackups[i].first = *m_overrideBackups[i].second;
@@ -320,7 +320,7 @@ void AudioManager::undoOverrideLoads()
 	for (size_t i = 0; i < m_overrideAdded.size(); ++i)
 	{
 		// A music track too: the score screen, which plays the map's ScoreScreenMusic AFTER this reset, plays it from a copy
-		// ScoreScreenInit took before it (Codex mapini-rollback-r5 and r7 P2s), not by name.
+		// ScoreScreenInit took before it (r7 P2s), not by name.
 		// By the entry, not by m_audioName: the table's key is the block's name, which the parser copies in only after the
 		// Default* event's (a block that failed before that line still left its entry).
 		for (AudioEventInfoHashIt it = m_allAudioEventInfo.begin(); it != m_allAudioEventInfo.end(); ++it)
@@ -340,7 +340,7 @@ void AudioManager::undoOverrideLoads()
 	m_overrideTrackCount = -1;
 	// The settings themselves (AudioRoot and the folders name every sound file, and a file's length feeds the script latches): a
 	// map a start can refuse may not define the block (INI.cpp theTypeTable), a shell map or a campaign mission still may
-	// (Codex mapini-rollback-adv-r3 P2), so they go back too.
+	// so they go back too.
 	if (m_overrideAudioSettings != nullptr)
 	{
 		*m_audioSettings = *m_overrideAudioSettings;
@@ -464,7 +464,7 @@ void AudioManager::update()
 
 	set3DVolumeAdjustment( m_zoomVolume );
 
-	// GeneralsX @feature Claude 10/09/2026 Deliberately NO shell-boundary volume-refresh edge-detect
+	// GeneralsX: Deliberately NO shell-boundary volume-refresh edge-detect
 	// here. applyVolumes() raises m_volumeHasChanged unconditionally and this function runs every
 	// frame, so processPlayingList() already re-gains every playing list on every frame the
 	// has3DSensitiveStreamsPlaying() suppression does not clear the flag. A forced raise would also
@@ -474,7 +474,7 @@ void AudioManager::update()
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 10/09/2026 Shell map world-SFX attenuation.
+/** GeneralsX: Shell map world-SFX attenuation.
   *
   * The shell map (Maps/ShellMap1) is a real running game behind the main menu, so its ambients and
   * unit sounds play at full gameplay volume while the player is only trying to read a menu. This
@@ -513,7 +513,7 @@ void AudioManager::update()
 Real AudioManager::getShellMapSoundVolumeScale( const AudioEventRTS *event ) const
 {
 	const Real scale = (TheGlobalData != nullptr) ? TheGlobalData->m_shellMapSoundVolumeScale : 1.0f;
-	// GeneralsX @bugfix Claude 10/09/2026 Validate, do not trust. INI::parsePercentToReal does no
+	// GeneralsX: Validate, do not trust. INI::parsePercentToReal does no
 	// range checking at all - it just divides by 100 - so a hand-edited GameData or SagePatch.ini can
 	// hand us a negative or absurd value, and a negative gain is out of contract for both AL_GAIN and
 	// AIL. Written as a positive test for the valid band so a NaN, which fails every comparison, also
@@ -535,7 +535,7 @@ Real AudioManager::getShellMapSoundVolumeScale( const AudioEventRTS *event ) con
 	if (!BitIsSet( info->m_type, ST_WORLD ))
 		return 1.0f;
 
-	// GeneralsX @bugfix Claude 10/09/2026 These are combinable BITS, not an enum choice, so ST_WORLD
+	// GeneralsX: These are combinable BITS, not an enum choice, so ST_WORLD
 	// alone does not imply "not global" or "not voice" - GameSounds.cpp tests
 	// isPositionalAudio() && !ST_GLOBAL, which is only meaningful because WORLD|GLOBAL occurs. An
 	// earlier revision claimed ST_WORLD excluded these and it did not: a WORLD|GLOBAL or WORLD|VOICE
@@ -654,7 +654,7 @@ AudioHandle AudioManager::addAudioEvent(const AudioEventRTS *eventToAdd)
 		return AHSV_Muted;
 	}
 
-	// GeneralsX @feature Claude 30/09/2026 Fast forward (FramePacer::setFastForward) thins one-shot world sound effects to
+	// GeneralsX: Fast forward (FramePacer::setFastForward) thins one-shot world sound effects to
 	// one in k, so k times the gunfire per second does not become k times the voices, the playing list and its lookups
 	// (FiringTracker's isCurrentlyPlaying) - the audio stays at its 1x load. HERE, after the cull above, because everything
 	// before it can draw on the logical random seed for a logical event (RETAIL_COMPATIBLE_CRC: generateFilename,
@@ -663,7 +663,7 @@ AudioHandle AudioManager::addAudioEvent(const AudioEventRTS *eventToAdd)
 	// simulation state depends on it (FiringTracker keeps its handle out of crc/xfer).
 	// Only ordinary world one-shots, the class getShellMapSoundVolumeScale also singles out: ST_WORLD and not ST_GLOBAL,
 	// ST_VOICE or ST_UI, not a loop (a dropped loop stays silent until its owner re-adds it), not AP_CRITICAL. A global or
-	// critical cue is unique, not the k-th copy of a volley (Codex ffwd-r1). The counter is wall-side state only.
+	// critical cue is unique, not the k-th copy of a volley. The counter is wall-side state only.
 	if (soundType == AT_SoundEffect && TheFramePacer != nullptr && TheFramePacer->isFastForwardActive())
 	{
 		const AudioEventInfo *info = audioEvent->getAudioEventInfo();
@@ -953,7 +953,7 @@ void AudioManager::setVolume( Real volume, AudioAffect whichToAffect )
 
 /// Recompute the four live volumes from the values that actually own them.
 ///
-/// GeneralsX @bugfix Claude 16/08/2026 THE MUTE USED TO DESTROY THE VOLUMES IT MUTED, and restore
+/// GeneralsX: THE MUTE USED TO DESTROY THE VOLUMES IT MUTED, and restore
 /// them from a snapshot. That is the whole bug behind "I turn it down and it's still very loud",
 /// "it doesn't save", and the missing EVA announcer.
 ///
@@ -1008,7 +1008,7 @@ Real AudioManager::getVolume( AudioAffect whichToGet )
 //-------------------------------------------------------------------------------------------------
 void AudioManager::set3DVolumeAdjustment( Real volumeAdjustment )
 {
-	// GeneralsX @bugfix Claude 16/08/2026 Store the adjustment and recompute through applyVolumes,
+	// GeneralsX: Store the adjustment and recompute through applyVolumes,
 	// so the mute factor is honoured here too. Assigning m_sound3DVolume directly used to make the
 	// camera-zoom update UNMUTE the 3D leg while the window was away.
 	m_zoomVolume = volumeAdjustment;
@@ -1213,12 +1213,12 @@ Real AudioManager::getAudioLengthMS( const AudioEventRTS *event )
 
 	AudioEventRTS tmpEvent = *event;
 
-	// GeneralsX @bugfix Claude 07/10/2026 A length is simulation state (ScriptEngine::isSpeechComplete/isAudioComplete
+	// GeneralsX: A length is simulation state (ScriptEngine::isSpeechComplete/isAudioComplete
 	// latch on it), so an AC_RANDOM event picks the file it measures from the logic seed, read without advancing it
 	// (GameLogicRandomValueUnchanged), as the scripted play does. The callers' events are not logical, so the pick came
 	// from GameAudioRandomValue, a stream every sound THIS peer plays advances: variants of different lengths gave
 	// different latch frames on different peers. Not under RETAIL_COMPATIBLE_CRC: there the Unchanged read DOES advance
-	// the logic seed (RandomValue.cpp), which retail never did for a length (Codex speech-length-r2 P2).
+	// the logic seed (RandomValue.cpp), which retail never did for a length.
 #if !RETAIL_COMPATIBLE_CRC
 	tmpEvent.setIsLogicalAudio(true);
 #endif
@@ -1423,7 +1423,7 @@ void INI::parseAudioSettingsDefinition( INI *ini )
 	TheAudio->friend_getAudioSettings()->m_preferredMusicVolume		= prefs.getMusicVolume() / 100.0f;
 	TheAudio->friend_getAudioSettings()->m_preferredMoneyTransactionVolume = prefs.getMoneyTransactionVolume() / 100.0f;
 
-	// GeneralsX @note Claude 16/08/2026 DO NOT "APPLY" THESE HERE. It is the obvious-looking fix and
+	// GeneralsX @note /08/2026 DO NOT "APPLY" THESE HERE. It is the obvious-looking fix and
 	// it is wrong, measured: this parse runs BEFORE AudioManager::init(), while m_script*Volume is
 	// still zero, so setVolume() here computes m_musicVolume = 0 * preferred = 0 and the game goes
 	// silent. init() runs afterwards and copies m_preferred* into the live volumes itself

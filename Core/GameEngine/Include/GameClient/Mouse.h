@@ -319,7 +319,7 @@ public:
 	Int getCursorIndex( const AsciiString& name );
 	void resetTooltipDelay();
 
-	// GeneralsX @feature Claude 07/08/2026 Tooltip persistence.
+	// GeneralsX: Tooltip persistence.
 	//
 	// Identifies what the cursor is currently hovering, so the hover wait can be restarted when
 	// the cursor moves to a DIFFERENT thing rather than every time it moves at all. `owner` is

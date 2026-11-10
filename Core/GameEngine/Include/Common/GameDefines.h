@@ -23,7 +23,7 @@
 // Note: Retail compatibility must not be broken before this project officially does.
 // Use RETAIL_COMPATIBLE_CRC, RETAIL_COMPATIBLE_DATA and RETAIL_COMPATIBLE_XFER_SAVE to guard breaking changes.
 
-// GeneralsX @feature Claude 01/08/2026 EVERY PRESERVE_* AND RETAIL_COMPATIBLE_* SWITCH BELOW MUST
+// GeneralsX: EVERY PRESERVE_* AND RETAIL_COMPATIBLE_* SWITCH BELOW MUST
 // HAVE A SIMBIT IN computeEngineID (Core/GameEngine/Source/Common/Diagnostic/SimulationId.cpp).
 // These switches change simulation behaviour, and engineID is what refuses a peer that disagrees.
 // A switch that is declared here but missing there does not fail loudly: both peers compute the
@@ -33,7 +33,7 @@
 // Note also that the common call-site form `#if RETAIL_COMPATIBLE_CRC || PRESERVE_X` guards the
 // OLD behaviour, so a PRESERVE_X set to 0 only takes effect while RETAIL_COMPATIBLE_CRC is 0.
 //
-// GeneralsX @bugfix Claude 01/10/2026 THE UPSTREAM FIXES ARE BUILT IN, ALWAYS (wh1ter0se, 30/09/2026: "the whole
+// GeneralsX: THE UPSTREAM FIXES ARE BUILT IN, ALWAYS (wh1ter0se, 30/09/2026: "the whole
 // point is to fix all bugs ... i do not want a switch to enable bug fixes"). CRC, XFER_SAVE, PATHFINDING,
 // PATHFINDING_ALLOCATION, NETWORKING and AIGROUP below default to 0, as Generals Online ships them. GeneralsX
 // never plays against retail peers or loads retail saves (engineID refuses the one, the save format moved long
@@ -158,7 +158,7 @@
 #define RETAIL_COMPATIBLE_AIGROUP (0) // AIGroup logic is expected to be CRC compatible with retail Generals 1.08, Zero Hour 1.04
 #endif
 
-// GeneralsX @feature Claude 27/07/2026
+// GeneralsX:
 // Manual escape hatch for the join-time compatibility identity (SimID).
 // The automatic source digest is the primary detector and you should normally never
 // touch this; bump it only when you knowingly change simulation behaviour from a file
@@ -205,7 +205,7 @@
 // closes that hole for every peer built from here on: an epoch-4 binary refuses an epoch-5 one
 // at engineID outright, git metadata or not. Deliberately shipped WITH the first post-ungate
 // digest batch rather than alone, because the bump itself forces the atomic 4-platform rebuild.
-// GeneralsX @bugfix Claude 17/08/2026 Epoch 6: the dynamic Game LOD fields that GameLogic reads
+// GeneralsX: Epoch 6: the dynamic Game LOD fields that GameLogic reads
 // (DebrisSkipMask via isDebrisSkipped, SlowDeathScale) are now pinned to their neutral values
 // whenever TheRecorder->isMultiplayer(), because the LOD level selecting them is chosen from the
 // local render rate and can never be made to agree between peers. Same class as epoch 5 and bumped
@@ -215,7 +215,7 @@
 // pairing when either side was built without git metadata: SimulationId.cpp skips the sourceID
 // comparison outright when either value is the reserved 0 sentinel. engineID is the only gate that
 // still fires for those peers, and the epoch is what moves it.
-// GeneralsX @bugfix Claude 24/08/2026 Epoch 8: Pathfinder::findClosestPath now has an expansion
+// GeneralsX: Epoch 8: Pathfinder::findClosestPath now has an expansion
 // and allocation bound (MAX_CLOSEST_PATH_CELL_COUNT / MAX_CLOSEST_PATH_INFO_COUNT in
 // AIPathfind.cpp), and a bounded search can return a different "closest" cell than the unbounded
 // one it replaces. Same class as epochs 5 and 6 and bumped for the same reason rather than for any
@@ -223,7 +223,7 @@
 // the sourceID comparison outright when either side is the reserved 0 sentinel, which is what a
 // peer built without git metadata carries. For those peers engineID is the only gate left, and the
 // epoch is what moves it.
-// GeneralsX @bugfix Claude 25/08/2026 Epoch 9: Pathfinder::internalFindPath now has the same
+// GeneralsX: Epoch 9: Pathfinder::internalFindPath now has the same
 // allocation bound (MAX_INTERNAL_PATH_INFO_COUNT and the renamed PATHFIND_SEARCH_FREE_RESERVE in
 // AIPathfind.cpp), and a bounded search can FAIL where an unbounded one succeeded - a sharper
 // divergence than epoch 8's, because the caller then takes the findClosestPath fallback and the
@@ -239,7 +239,7 @@
 // wrong. If nothing else in the batch bumps, this must ship, because the change above is a
 // simulation-behaviour change.
 //
-// GeneralsX @simid Claude 25/08/2026 EPOCH 10 - checkPathCost's cost return.
+// GeneralsX @simid /08/2026 EPOCH 10 - checkPathCost's cost return.
 //
 // ONE of the two fixes above needs this; the other does not, and the difference is the whole
 // reason to read this paragraph rather than pattern-match it.

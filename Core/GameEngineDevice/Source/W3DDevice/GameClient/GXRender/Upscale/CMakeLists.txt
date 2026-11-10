@@ -1,4 +1,4 @@
-# GeneralsX @feature B · dlss-streamline-1 13/10/2026 gx_streamline: NVIDIA Streamline (DLSS SR) for the native renderer,
+# GeneralsX: gx_streamline: NVIDIA Streamline (DLSS SR) for the native renderer,
 # Windows x64 only (PREREG A36). See GxStreamline.h for the licence rules: nothing of NVIDIA's is in this tree.
 #
 #   standalone:  cmake -S <this dir> -B <build> -G Ninja -DGX_STREAMLINE_SDK=<extracted streamline-sdk-v2.14.1>

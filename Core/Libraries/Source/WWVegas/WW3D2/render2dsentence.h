@@ -43,11 +43,11 @@
 #include "WWLib/wwstring.h"
 #include "WWLib/win.h"
 
-// GeneralsX @build fbraz 11/02/2026 BenderAI - FreeType2 for Linux text rendering (Phase 1.5)
+// GeneralsX @build fbraz 11/02/2026 - FreeType2 for Linux text rendering (Phase 1.5)
 #if defined(SAGE_USE_FREETYPE) && !defined(_WIN32)
     #include <ft2build.h>
     #include FT_FREETYPE_H
-    // GeneralsX @bugfix Claude 27/07/2026 ftmodapi.h for FT_Property_Set, ftdriver.h for
+    // GeneralsX: ftmodapi.h for FT_Property_Set, ftdriver.h for
     // TT_INTERPRETER_VERSION_35. See the hinting note in Create_Freetype_Font.
     #include <freetype/ftoutln.h>   // FT_Outline_Embolden - synthetic bold, see render2dsentence.cpp
     #include <freetype/ftmodapi.h>
@@ -75,14 +75,14 @@ class FontCharsClassCharDataStruct
 public:
 	WCHAR				Value;
 	short				Width;
-	uint32 *		Buffer;	// GeneralsX @bugfix Claude 19/08/2026 8-bit alpha glyphs, see the .cpp note
+	uint32 *		Buffer;	// GeneralsX: 8-bit alpha glyphs, see the .cpp note
 };
 
 enum { CHAR_BUFFER_LEN		= 32768 };
 
 // TheSuperHackers @fix arcticdolphin 07/09/2026 Buffer is a heap array whose Length may exceed
 // CHAR_BUFFER_LEN, so that a single glyph larger than CHAR_BUFFER_LEN still fits.
-// GeneralsX @bugfix Claude 24/09/2026 Ported by hand from upstream PR #3268 (b57adac01). uint32 where
+// GeneralsX: Ported by hand from upstream PR #3268 (b57adac01). uint32 where
 // upstream has uint16 (this fork stores 8-bit alpha glyphs). W3DMPO_CODE goes with the fixed array: the
 // class is held BY VALUE in FontCharsClass::BufferList and never pool-allocated. The leftover
 // "FontCharsBuffer" pool row went with upstream #3288 (f746af7e6).
@@ -122,7 +122,7 @@ public:
 
 	int Get_Extra_Overlap() {return PixelOverlap;}
 
-	// GeneralsX @bugfix Claude 14/09/2026 surface_width/surface_height are the atlas bounds; see
+	// GeneralsX: surface_width/surface_height are the atlas bounds; see
 	// Blit_Char in render2dsentence.cpp. They are mandatory - the only fit check used to be a
 	// WWASSERT, which compiles to nothing in the shipping build.
 	void	Blit_Char( WCHAR ch, uint32 *dest_ptr, int dest_stride, int x, int y, int surface_width, int surface_height );
@@ -132,14 +132,14 @@ private:
 	//
 	//	Private methods
 	//
-	// GeneralsX @build fbraz 11/02/2026 BenderAI - Windows GDI text rendering
+	// GeneralsX @build fbraz 11/02/2026 - Windows GDI text rendering
 #ifdef _WIN32
 	bool							Create_GDI_Font( const char *font_name );
 	void							Free_GDI_Font();
 	const FontCharsClassCharDataStruct *	Store_GDI_Char( WCHAR ch );
 #endif
 	
-	// GeneralsX @build fbraz 11/02/2026 BenderAI - FreeType2 methods for Linux
+	// GeneralsX @build fbraz 11/02/2026 - FreeType2 methods for Linux
 #if defined(SAGE_USE_FREETYPE) && !defined(_WIN32)
 	bool							Create_Freetype_Font( const char *font_name );
 	void							Free_Freetype_Font( void );
@@ -147,7 +147,7 @@ private:
 	const char *					Locate_Font_FontConfig( const char *font_name );
 #endif
 	
-	// GeneralsX @bugfix Claude 14/09/2026 returns false for a degenerate cell (no width or no height);
+	// GeneralsX: returns false for a degenerate cell (no width or no height);
 	// the callers must not write the cell in that case.
 	bool							Update_Current_Buffer( int char_width );
 	const FontCharsClassCharDataStruct	*	Get_Char_Data( WCHAR ch );
@@ -169,7 +169,7 @@ private:
 	int									PointSize;
 	StringClass							GDIFontName;
 	
-	// GeneralsX @build fbraz 11/02/2026 BenderAI - Platform-specific font rendering members
+	// GeneralsX @build fbraz 11/02/2026 - Platform-specific font rendering members
 #ifdef _WIN32
 	HFONT									OldGDIFont;
 	HBITMAP								OldGDIBitmap;

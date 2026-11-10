@@ -675,7 +675,7 @@ public:
 	void remove( AsciiString groupName, Bool skipPending = FALSE );// remove the animation from the current or pending groups.
 	TransitionGroup *getNewGroup( AsciiString name );
 
-	// GeneralsX @feature Claude 14/08/2026 Give a window created in code the transitions that the
+	// GeneralsX: Give a window created in code the transitions that the
 	// window it was cloned from has. See the definition for what this is for and what it costs.
 	Int mirrorWindowTransitions( AsciiString templateName, AsciiString cloneName );
 private:

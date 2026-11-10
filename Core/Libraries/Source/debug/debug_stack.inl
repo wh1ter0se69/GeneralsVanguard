@@ -18,7 +18,7 @@
 
 // Used for dynamically linking to dbghelp.dll functions.
 
-// GeneralsX @bugfix Claude 27/07/2026 Address parameters are DWORD_PTR, not DWORD.
+// GeneralsX: Address parameters are DWORD_PTR, not DWORD.
 // imagehlp.h remaps StackWalk/SymFunctionTableAccess/SymGetModuleBase/SymGetSymFromAddr/
 // SymGetLineFromAddr and the STACKFRAME/IMAGEHLP_* structs to their ...64 forms under _WIN64, and
 // those take DWORD64 addresses. Leaving DWORD here made the generated function-pointer types

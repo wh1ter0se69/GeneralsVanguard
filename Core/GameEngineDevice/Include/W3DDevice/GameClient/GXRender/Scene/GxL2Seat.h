@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/10/2026 WS-G: the S1 DrawRun seat's engine-free logic (rw1-G/PLAN_seat.md D1, D4, D5; CONTRACT_L2 §3.2
+// GeneralsX: WS-G: the S1 DrawRun seat's engine-free logic (rw1-G/PLAN_seat.md D1, D4, D5; CONTRACT_L2 §3.2
 // S1-DR, §3.4 under DrawRun). GxScene.cpp drives it from the category task loop; scripts/test/l2-seat-test.cpp drives it by hand.
 
 #pragma once

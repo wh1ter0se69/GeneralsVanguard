@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 20/09/2026 A PEER WITH NO MENUS COULD NEVER DECLARE ITS IDENTITY.
+// GeneralsX: A PEER WITH NO MENUS COULD NEVER DECLARE ITS IDENTITY.
 //
 // THE DEFECT, traced end to end against 0b84d8c1e:
 //
@@ -131,7 +131,7 @@ inline unsigned long long gxAssertionFingerprint64( const char *s )
 /// GXLobbyLANAPI::init already covers that case and this is a second net; in a headless build TheLAN
 /// is built once in HeadlessMatch::setup and lives for the process, so the pair is exact.
 ///
-/// THE LOBBY PRESENCE IS KEYED ON THE FINGERPRINT ALONE, AND NOT ON TheLAN AT ALL (Codex r3 P2).
+/// THE LOBBY PRESENCE IS KEYED ON THE FINGERPRINT ALONE, AND NOT ON TheLAN AT ALL.
 /// TheGXLobbyPresence is one object for the life of the process, keeps its identity across a
 /// re-acquire, and outlives every TheLAN: Back from a lobby deletes TheLAN and the presence keepalive
 /// goes on sending whatever it holds every 5 s. This used to return at `TheLAN == NULL` before reading
@@ -186,11 +186,11 @@ inline void gxDeclareIdentityIfChanged( void )
 	// The shared-lobby socket, a SECOND relay member with its own sub (GXLobbyPresence.h:177). NULL in a
 	// headless build, and IDLE on a client that never entered Online - see the header on why ADMITTED.
 	const Bool presence = TheGXLobbyPresence != NULL && TheGXLobbyPresence->isAdmitted();
-	// GeneralsX @security Claude 25/09/2026 THE ADMIN KEY rides the same pump, on the game socket only: offer the public
+	// GeneralsX: THE ADMIN KEY rides the same pump, on the game socket only: offer the public
 	// half of this client's current per-match key (GameClient/GXAdminKey.h) whenever the transport does not already
 	// hold exactly it. It is public and grants nothing by itself - the relay publishes it only for a live admin
 	// (relay.js gxLiveAdmin) - so every client offers one, scripted peers included. ASKED OF THE TRANSPORT ITSELF, not
-	// remembered here (Codex r3 P1): a GUI path that deletes TheLAN and rebuilds it in the same frame can land the new
+	// remembered here: a GUI path that deletes TheLAN and rebuilds it in the same frame can land the new
 	// one on the old address, and a (pointer, key) memo would then skip a transport that holds nothing. The transport
 	// repeats what it holds on every keepalive.
 	{
@@ -202,7 +202,7 @@ inline void gxDeclareIdentityIfChanged( void )
 	if (!game && !presence)
 		return;													// no relay member is up: read nothing, send nothing
 
-	// GeneralsX @bugfix Claude 24/09/2026 A SCRIPTED PEER DECLARES A BOT LOGIN OR NOTHING - NEVER THE
+	// GeneralsX: A SCRIPTED PEER DECLARES A BOT LOGIN OR NOTHING - NEVER THE
 	// PROFILE'S OWN SIGN-IN (merge-candidate review, P1).
 	//
 	// Every -lanhost/-lanjoin peer runs HeadlessMatch, headless or rendered, and outside bot mode the
@@ -235,7 +235,7 @@ inline void gxDeclareIdentityIfChanged( void )
 		s_lastLan = (const void *)TheLAN;
 		s_lastFp  = fp;
 
-		// GeneralsX @test Claude 23/09/2026 ONE LINE PER DECLARE, never the value (review r2): the only
+		// GeneralsX: ONE LINE PER DECLARE, never the value (review r2): the only
 		// thing that shows this ran. headless-identity-test.sh reads it - present in the relay arms (fails
 		// without HeadlessMatch::pumpUntil's call, signed or not), absent in the relay-less one (fails if
 		// the guard above is inverted). Sending "" is silent on the wire, so the relay alone cannot tell.

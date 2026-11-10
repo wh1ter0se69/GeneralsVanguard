@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule HARVPROT.USA_CHINOOK_GUARD (C·rb-data-10): USA keeps a Humvee at home guarding
+# GeneralsX: rule bank DATA rule HARVPROT.USA_CHINOOK_GUARD (C·rb-data-10): USA keeps a Humvee at home guarding
 # its Chinooks. Every stock USA Hard Humvee joins a wave. Per USA general this adds team "GX Chinook Guard <g>" (home_guard_n of the
 # general's own Humvee, one at a time, re-formed when lost) once an own War Factory is complete; on creation it guards the player's own
 # inner perimeter ([Skirmish]MyInnerPerimeter, the stock base-guard area). No stock script or team changes; no condition reads the

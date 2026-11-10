@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: D3D8 texture-stage sampler state -> VkSampler, cached for the session.
+// GeneralsX: WS-F1: D3D8 texture-stage sampler state -> VkSampler, cached for the session.
 //
 // The mapping is DXVK's (references/fbraz3-dxvk src/d3d9/d3d9_device.cpp BindSampler + d3d9_util.h Decode*), so a native
 // draw samples exactly as the CLASSIC path on the same device: POINT/NONE -> NEAREST, anything above -> LINEAR; mip NONE ->

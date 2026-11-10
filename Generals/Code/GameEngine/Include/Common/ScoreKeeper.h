@@ -132,8 +132,8 @@ private:
 //-----------------------------------------------------------------------------
 // INLINING ///////////////////////////////////////////////////////////////////
 //-----------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/10/2026 Two's-complement wrap, as the plain add gave on every target, without the signed-
-// overflow UB: a map can make a cost INT_MAX (Codex tsh3-clamp-adv-r1 P2).
+// GeneralsX: Two's-complement wrap, as the plain add gave on every target, without the signed-
+// overflow UB: a map can make a cost INT_MAX.
 inline void ScoreKeeper::addMoneySpent( Int money )							{	m_totalMoneySpent = (Int)((UnsignedInt)m_totalMoneySpent + (UnsignedInt)money); }
 inline void ScoreKeeper::addMoneyEarned( Int money )						{	m_totalMoneyEarned = (Int)((UnsignedInt)m_totalMoneyEarned + (UnsignedInt)money); }
 

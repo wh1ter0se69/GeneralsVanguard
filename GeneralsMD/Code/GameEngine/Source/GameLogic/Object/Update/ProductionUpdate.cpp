@@ -229,7 +229,7 @@ CanMakeType ProductionUpdate::canQueueUpgrade( const UpgradeTemplate *upgrade ) 
 
 //-------------------------------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/10/2026 How many objects one queued unit of this type yields here: the QuantityModifier
+// GeneralsX: How many objects one queued unit of this type yields here: the QuantityModifier
 // lookup queueCreateUnit makes below, for the AI's batch-aware order split (AIPlayer::buildSpecificAITeam).
 Int ProductionUpdate::getUnitsPerOrder( const ThingTemplate *unitType ) const
 {
@@ -685,9 +685,9 @@ UpdateSleepTime ProductionUpdate::update()
 
 	// figure out our percent complete
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @bugfix Claude 09/10/2026 A build time of 0 (a map.ini BuildTime 0, charged since #3445) is done at once at
+	// GeneralsX: A build time of 0 (a map.ini BuildTime 0, charged since #3445) is done at once at
 	// 100%, not at frames / 0 = +inf: the percent is saved, and the control bar converts it to an Int while the unit waits
-	// for its door (Codex tsh3-3445-adv-r1 P3).
+	// for its door.
 	if( totalProductionFrames <= 0 )
 		production->m_percentComplete = 100.0f;
 	else
@@ -890,7 +890,7 @@ UpdateSleepTime ProductionUpdate::update()
 				UnicodeString upgradeName = TheGameText->fetch( upgrade->getDisplayNameLabel().str() );
 
 				msg.format( format.str(), upgradeName.str() );
-				// GeneralsX @bugfix Claude 06/10/2026 The upgrade name can be the map's own text (a map.ini DisplayName
+				// GeneralsX: The upgrade name can be the map's own text (a map.ini DisplayName
 				// naming a map.str label); message() would run it through printf a second time. Show it as built.
 				TheInGameUI->messageNoFormat( msg );
 

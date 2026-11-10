@@ -12,8 +12,8 @@ extern "C"
 char* itoa(int value, char* str, int base);
 
 int _vsnwprintf(wchar_t* buffer, size_t count, const wchar_t* format, va_list args);
-// GeneralsX @build fbraz 11/02/2026 BenderAI - Removed _strlwr declaration (conflicts with Utility inline definition)
-// GeneralsX @build fbraz 11/02/2026 BenderAI - _strupr implemented in string_compat.cpp as weak symbol
+// GeneralsX @build fbraz 11/02/2026 - Removed _strlwr declaration (conflicts with Utility inline definition)
+// GeneralsX @build fbraz 11/02/2026 - _strupr implemented in string_compat.cpp as weak symbol
 char* _strupr(char* str);
 }
 #define _vsnprintf vsnprintf

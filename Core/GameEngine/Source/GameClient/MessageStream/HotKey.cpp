@@ -74,7 +74,7 @@
 //-----------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------
-// GeneralsX @probe Claude 25/09/2026 See HotKey.h.
+// GeneralsX: See HotKey.h.
 Bool GXKeyTraceEnabled()
 {
 	static Int s_on = -1;
@@ -186,7 +186,7 @@ void HotKeyManager::init()
 //-----------------------------------------------------------------------------
 void HotKeyManager::reset()
 {
-	// GeneralsX @feature Claude 27/09/2026 Not m_priorityHotKeyMap: this runs on every context switch, and the
+	// GeneralsX: Not m_priorityHotKeyMap: this runs on every context switch, and the
 	// General's Points panel's keys must outlive those while it is open (see addPriorityHotKey).
 	m_hotKeyMap.clear();
 	// Re-read on reset so a rebind made between matches applies without restarting the game.
@@ -194,7 +194,7 @@ void HotKeyManager::reset()
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @feature Claude 27/09/2026 See HotKey.h.
+// GeneralsX: See HotKey.h.
 Bool HotKeyManager::addPriorityHotKey( GameWindow *win, const AsciiString& keyIn )
 {
 	AsciiString key = keyIn;
@@ -354,7 +354,7 @@ AsciiString HotKeyManager::searchHotKey( const UnicodeString& uStr )
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 26/09/2026 See HotKey.h. scripts/test/audit/bench/tooltip_hotkey_label.cpp carries a copy.
+// GeneralsX: See HotKey.h. scripts/test/audit/bench/tooltip_hotkey_label.cpp carries a copy.
 UnicodeString HotKeyManager::labelWithHotKey( const UnicodeString& label, const AsciiString& boundKey )
 {
 	const Int len = label.getLength();
@@ -435,7 +435,7 @@ UnicodeString HotKeyManager::labelWithHotKey( const UnicodeString& label, const 
 static const char *KEYBIND_PREFS_FILE = "CommandButtonHotKeys.ini";
 static const char *KEYBIND_SHOW_KEY   = "ShowHotKeyIndicators";
 
-// GeneralsX @feature Claude 29/09/2026 The letter badge (HotKey.h getBadgeCorner). Values are matched case-blind; one
+// GeneralsX: The letter badge (HotKey.h getBadgeCorner). Values are matched case-blind; one
 // this build does not know keeps the default. The launcher (gxio keybinds.rs BADGE_KEYS) writes the same spellings and
 // looks for KEYBIND_BADGE_CORNER in this binary before it offers any of them.
 static const char *KEYBIND_BADGE_CORNER = "GXHotKeyBadgeCorner";
@@ -490,7 +490,7 @@ void HotKeyManager::loadCommandButtonOverrides()
 			continue;	// the letter badge, not a button binding
 		if( stricmp( it->first.str(), "GXFriendsKey" ) == 0 )
 			continue;	// the Friends key (MetaEvent.cpp), not a button binding
-		// GeneralsX @feature Claude 26/09/2026 The launcher's GENERAL tab chords (MetaEvent.cpp gxLoadGeneralKeys).
+		// GeneralsX: The launcher's GENERAL tab chords (MetaEvent.cpp gxLoadGeneralKeys).
 		if( stricmp( it->first.str(), "GXSelectInfantryKey" ) == 0 || stricmp( it->first.str(), "GXSelectAllKey" ) == 0
 				|| stricmp( it->first.str(), "GXIdleWorkerKey" ) == 0 || stricmp( it->first.str(), "GXCameraResetKey" ) == 0 )
 			continue;
@@ -533,7 +533,7 @@ AsciiString HotKeyManager::getCommandButtonHotKey( const AsciiString& commandBut
 																									 const AsciiString& textLabel )
 {
 	HotKeyOverrideMap::const_iterator it = m_commandButtonOverrides.find( commandButtonName );
-	// GeneralsX @test Claude 30/09/2026 GX_KEYS_TRACE=1: one stderr line per lookup, to see what a proof run's buttons ask
+	// GeneralsX: GX_KEYS_TRACE=1: one stderr line per lookup, to see what a proof run's buttons ask
 	// for and whether the override file answered (the Mini in-game proof showed a rebound button keeping its letter).
 	static const Bool s_trace = getenv( "GX_KEYS_TRACE" ) != nullptr;
 	if( s_trace )
@@ -548,7 +548,7 @@ AsciiString HotKeyManager::getCommandButtonHotKey( const AsciiString& commandBut
 	// No override - retail behaviour, the '&' marker inside the localized string.
 	AsciiString key = searchHotKey( textLabel );
 #if RTS_ZEROHOUR
-	// GeneralsX @feature Claude 03/11/2026 Sell defaults to Z, for every army (asked by a pro player on 0.9.69: "I like it
+	// GeneralsX: Sell defaults to Z, for every army (asked by a pro player on 0.9.69: "I like it
 	// as Z for all armies"). Retail's CONTROLBAR:Sell is plain "Sell", no '&', so Sell had no key at all. Measured on the
 	// release data (English generals.csf + CommandButton.ini + every CommandSet): Command_Sell sits in 213 sets, slot 14 in
 	// 209 and slot 12 in 4, and no other button in any of them - nor on any of the 13 shortcut bars - uses Z; the only

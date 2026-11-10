@@ -94,7 +94,7 @@ void Shell::construct()
 //-------------------------------------------------------------------------------------------------
 void Shell::deconstruct()
 {
-	// GeneralsX @bugfix Claude 12/08/2026 (upstream issue #2777) Popping a screen normally runs the
+	// GeneralsX: (upstream issue #2777) Popping a screen normally runs the
 	// revealed screen's init below it. During teardown the shell is destroyed from GameClient's dtor
 	// in reverse-order subsystem shutdown, so subsystems inited after TheGameClient (e.g. TheGameState)
 	// are already gone; re-initing a revealed save/load menu then read destroyed state and crashed
@@ -195,7 +195,7 @@ void Shell::update()
 	// we keep the shell updates fixed in time so that we can write consistent animation
 	// speeds during the screen update functions
 	//
-	// GeneralsX @bugfix Claude 29/10/2026 Cb-06a: the gate restarted its period at the draw that passed it, so a render rate
+	// GeneralsX: Cb-06a: the gate restarted its period at the draw that passed it, so a render rate
 	// that does not divide 1/30 s ran it on every 4th draw at 100 fps (25 Hz) or 5th at 144 (28.8 Hz): menus animated 17%
 	// and 4% slow. It keeps its phase now (GameClient/GXClientAnimPolicy.h): 30 Hz on average at any render rate, one
 	// update per draw below 30 fps, as before, and one update after a stall.
@@ -226,7 +226,7 @@ void Shell::update()
 		}
 
 		m_schemeManager->update();
-		if (GXAnimTrace::on())	// GeneralsX @test Claude 29/10/2026 Cb-06a: each 30 Hz shell update (GameClient/GXAnimTrace.h)
+		if (GXAnimTrace::on())	// GeneralsX: Cb-06a: each 30 Hz shell update (GameClient/GXAnimTrace.h)
 			fprintf(stderr, "[GXANIM] shell wall=%.3f dt=%d\n", GXAnimTrace::wallMs(), (int)(now - lastUpdate));
 
 		// mark last time we ran the updates
@@ -340,7 +340,7 @@ void Shell::hide( Bool hide )
 //-------------------------------------------------------------------------------------------------
 void Shell::push( AsciiString filename, Bool shutdownImmediate )
 {
-	// GeneralsX @feature BenderAI 18/02/2026 Debug logging for shell push
+	// GeneralsX: Debug logging for shell push
 	fprintf(stderr, "DEBUG: Shell::push() called with filename='%s'\n", filename.str());
 	fflush(stderr);
 
@@ -499,7 +499,7 @@ void Shell::showShell( Bool runInit )
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 25/09/2026 The shell is up BEFORE the top's Init runs, as it is for a
+	// GeneralsX: The shell is up BEFORE the top's Init runs, as it is for a
 	// doPush (the score screen's pop runs the room's Init with the shell already active). A screen's
 	// Init asks showShellMap for its backdrop, and with the shell map off that returns early while the
 	// shell is inactive - so a refused start's return to the lobby (GameLogic::startNewGame) came back
@@ -620,7 +620,7 @@ void Shell::showShellMap(Bool useShellMap )
 //-------------------------------------------------------------------------------------------------
 void Shell::hideShell()
 {
-	// GeneralsX @feature Claude 25/09/2026 A match is starting: the overlay opened in the game room does not
+	// GeneralsX: A match is starting: the overlay opened in the game room does not
 	// ride along over the loading screen. F5 opens it again in the match; at the match's end the score
 	// screen's push (doPush) closes it like every other screen change.
 	GXBuddyCloseRCMenu();
@@ -713,14 +713,14 @@ void Shell::unlinkScreen( WindowLayout *screen )
 //-------------------------------------------------------------------------------------------------
 void Shell::doPush( AsciiString layoutFile )
 {
-	// GeneralsX @feature BenderAI 18/02/2026 Debug logging - actually pushing layout
+	// GeneralsX: Debug logging - actually pushing layout
 	fprintf(stderr, "DEBUG: Shell::doPush() called with layoutFile='%s'\n", layoutFile.str());
 	fflush(stderr);
 
 	if(TheGameSpyInfo)
 			GameSpyCloseAllOverlays();
 
-	// GeneralsX @bugfix Claude 10/08/2026 The friends overlay is created WIN_STATUS_ABOVE so it
+	// GeneralsX: The friends overlay is created WIN_STATUS_ABOVE so it
 	// floats over the lobby, and it was only ever closed from ONE lobby exit (WOLLobbyMenu.cpp).
 	// Leaving by any other route - this push included - left it alive and still above everything
 	// drawn afterwards, which is why it appeared painted on top of screens it has nothing to do
@@ -832,7 +832,7 @@ void Shell::shutdownComplete( WindowLayout *screen, Bool impendingPush )
 	// check for pending push or pop
 	if( m_pendingPush )
 	{
-		// GeneralsX @feature BenderAI 18/02/2026 Debug logging - pending push being processed
+		// GeneralsX: Debug logging - pending push being processed
 		fprintf(stderr, "DEBUG: Shell::update() - Processing pending push: '%s'\n", m_pendingPushName.str());
 		fflush(stderr);
 

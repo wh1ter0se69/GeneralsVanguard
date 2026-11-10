@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-fdepth-plus 17/10/2026 F-depth+: the scene copies' private device interface
+// GeneralsX: F-depth+: the scene copies' private device interface
 // (look-director/d2/PLAN_fdepth-plus.md; PLAN_look.md §4 item 4).
 //
 // The game asks the device for it once per device with QueryInterface(IID_GxSceneTap); DXVK and the GXCAP proxy answer

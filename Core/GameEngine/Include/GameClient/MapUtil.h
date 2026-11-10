@@ -89,7 +89,7 @@ public:
 	Coord3DList m_techPositions;
 	AsciiString m_fileName;
 
-	// GeneralsX @bugfix Claude 19/08/2026 THE PATH AS IT ACTUALLY IS ON DISK, case intact.
+	// GeneralsX: THE PATH AS IT ACTUALLY IS ON DISK, case intact.
 	//
 	// m_fileName is deliberately lowercased (MapUtil.cpp, findMaps) because it is the cache KEY and
 	// the identity that travels in the multiplayer game options (GameInfo.cpp:1796). That is fine on
@@ -114,13 +114,13 @@ class MapCache : public std::map<AsciiString, MapMetaData>
 	typedef std::set<AsciiString> MapNameSet;
 
 public:
-	// GeneralsX @bugfix Claude 19/08/2026 Translate a lowercased map identity back to the path as it
+	// GeneralsX: Translate a lowercased map identity back to the path as it
 	// exists on disk. Returns the input unchanged when the cache has no on-disk path for it - an
 	// entry restored from MapCache.ini has only the lowercased form - so callers keep today's
 	// behaviour rather than getting an empty string.
 	AsciiString getPathOnDisk(const AsciiString& lowerPath) const;
 
-	// GeneralsX @bugfix Claude 20/08/2026 Erase user-map entries that do not live under the current
+	// GeneralsX: Erase user-map entries that do not live under the current
 	// user map root - i.e. left over from a previous iOS data-container UUID. clearUnseenMaps cannot:
 	// it only inspects keys under the root it is given.
 	Bool clearMapsOutsideRoot(const AsciiString& userMapDir);
@@ -139,7 +139,7 @@ public:
 
 	const MapMetaData *findMap(AsciiString mapName);
 
-	// GeneralsX @feature Claude 23/09/2026 How many lobby slots this map takes (Common/PlayerCapacity.h),
+	// GeneralsX: How many lobby slots this map takes (Common/PlayerCapacity.h),
 	// read from the map's own side list before it is loaded, for the host's Start check. -1 when the
 	// map cannot be read; the start itself refuses an over-capacity lobby on every peer regardless.
 	Int getPlayerSlotCapacity(const AsciiString &mapName);

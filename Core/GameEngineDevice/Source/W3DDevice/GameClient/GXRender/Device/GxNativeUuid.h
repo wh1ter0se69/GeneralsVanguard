@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-L 11/10/2026 __uuidof for the d3d8 interfaces the native device answers QueryInterface for. DXVK's
+// GeneralsX: __uuidof for the d3d8 interfaces the native device answers QueryInterface for. DXVK's
 // native d3d8.h declares the IIDs (DEFINE_GUID, d3d8.h:90-123) but no __uuidof helpers; these are the same values. Included only by
 // the device's own .cpp files (an explicit specialization must not meet another one for the same type).
 #pragma once

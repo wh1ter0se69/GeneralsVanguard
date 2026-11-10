@@ -2,14 +2,14 @@
 
 #include <string.h>  // For memset, used by GlobalMemoryStatus stub
 
-// GeneralsX @build BenderAI 12/02/2026 Pre-define guards to prevent DXVK conflicts
+// GeneralsX: Pre-define guards to prevent DXVK conflicts
 // CRITICAL: Define these BEFORE including windows_base.h so DXVK skips its incomplete versions!
 #ifndef _WIN32
 #define _MEMORYSTATUS_DEFINED  // Tell DXVK: we'll provide the full 8-field MEMORYSTATUS later
 #define _IUNKNOWN_DEFINED      // Tell DXVK: we'll provide IUnknown via DECLARE_INTERFACE later
 #endif
 
-// GeneralsX @build BenderAI 12/02/2026 Include DXVK Windows types FIRST
+// GeneralsX: Include DXVK Windows types FIRST
 // CRITICAL: On Linux, DXVK provides core Windows types (WINBOOL, LARGE_INTEGER, PALETTEENTRY, etc.)
 // Must be included BEFORE our compatibility layer so d3d8types.h can find them!
 #ifndef _WIN32
@@ -24,7 +24,7 @@
 #define __stdcall
 #endif
 
-// GeneralsX @build BenderAI 12/02/2026 Windows __fastcall passes first 2 args in ECX/EDX registers
+// GeneralsX: Windows __fastcall passes first 2 args in ECX/EDX registers
 #if !defined(__fastcall)
 #define __fastcall
 #endif
@@ -65,10 +65,10 @@ static unsigned int GetDoubleClickTime()
 // types_compat.h adds Windows-specific types (HANDLE, HWND, etc.)
 #include "types_compat.h"
 
-// GeneralsX @build BenderAI 10/02/2026 - Win32 window management API stubs
+// GeneralsX: Win32 window management API stubs
 #include "wnd_compat.h"
 
-// GeneralsX @build BenderAI 13/02/2026 pthread-based threading (fighter19 pattern)
+// GeneralsX: pthread-based threading (fighter19 pattern)
 #ifndef _WIN32
 #include "thread_compat.h"
 #endif
@@ -145,13 +145,13 @@ typedef const void *LPCVOID;
 #include <sys/time.h>
 #include <time.h>  // clock_gettime, CLOCK_MONOTONIC (timeGetTime below)
 
-// GeneralsX @TheSuperHackers @build BenderAI 11/02/2026 Windows crash dump types (stubbed for Linux)
+// GeneralsX: Windows crash dump types (stubbed for Linux)
 #ifndef _WIN32
 struct _EXCEPTION_POINTERS;
 typedef struct _EXCEPTION_POINTERS EXCEPTION_POINTERS;
 #endif
 
-// GeneralsX @build BenderAI 11/02/2026 - Windows version info stubs (GameState.cpp)
+// GeneralsX: Windows version info stubs (GameState.cpp)
 #ifndef _WIN32
 
 // OSVERSIONINFO structure for version checking (stubbed on Linux)
@@ -185,7 +185,7 @@ inline BOOL GetVersionEx(OSVERSIONINFO* lpVersionInfo) {
 // TheSuperHackers @build 10/02/2026 Bender
 // Timing functions: timeBeginPeriod(), timeEndPeriod() for Linux
 //
-// GeneralsX @bugfix Claude 23/09/2026 Monotonic, like Win32 timeGetTime(), not the wall clock.
+// GeneralsX: Monotonic, like Win32 timeGetTime(), not the wall clock.
 // gettimeofday() made this epoch-ms truncated to 32 bits: it jumped with every NTP/manual clock
 // step, and it wrapped on the SAME instant on every non-Windows peer (next: 2026-10-03 04:22:42
 // UTC). GameNetwork stores it in 64-bit time_t and subtracts, so after a wrap
@@ -238,7 +238,7 @@ static inline DWORD timeEndPeriod(DWORD period)
 
 // ================================================================================================
 // MUTEX & ERROR HANDLING STUBS (ClientInstance multi-instance check)
-// GeneralsX @build BenderAI 11/02/2026 - Multi-instance protection (always allows on Linux)
+// GeneralsX: Multi-instance protection (always allows on Linux)
 // ================================================================================================
 
 // GetLastError - returns pseudo error code (always 0 = success on Linux stub)
@@ -276,7 +276,7 @@ inline int CloseHandle(void* hObject) {
 #endif
 
 // Process spawning stubs (WorldBuilder/external tools)
-// GeneralsX @build BenderAI 12/02/2026 - MSVC _spawnl not available on Linux
+// GeneralsX: MSVC _spawnl not available on Linux
 // Used to launch WorldBuilder.exe (Windows-only map editor) via Main Menu button
 // Phase 1 (compilation): Stub returns -1 (error) since .exe won't run on Linux anyway
 // Future: Could use wine/proton to launch WorldBuilder, or build native Linux map editor
@@ -292,7 +292,7 @@ inline int _spawnl(int mode, const char* cmdname, const char* arg0, ...) {
 }
 
 #endif
-// GeneralsX @build BenderAI 24/02/2026 Phase 5 - malloc.h compatibility for macOS ONLY
+// GeneralsX: Phase 5 - malloc.h compatibility for macOS ONLY
 // macOS does not ship malloc.h; Linux has it natively and works without this stub.
 // Do NOT apply to Linux - it would shadow the real malloc.h and break alloca/memalign.
 #ifdef __APPLE__

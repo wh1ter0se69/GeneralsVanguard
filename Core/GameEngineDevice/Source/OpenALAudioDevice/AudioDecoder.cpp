@@ -17,7 +17,7 @@
 */
 
 //////// AudioDecoder.cpp ///////////////////////
-// GeneralsX @feature Claude 06/08/2026
+// GeneralsX:
 /////////////////////////////////////////////////
 //
 // Two implementations of the AudioDecoder facade, selected by the definition that

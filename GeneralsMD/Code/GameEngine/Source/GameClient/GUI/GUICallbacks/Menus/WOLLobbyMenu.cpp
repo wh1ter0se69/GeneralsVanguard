@@ -86,7 +86,7 @@
 #include "GameNetwork/Transport.h"
 #include "GameNetwork/GXRelaySay.h"
 
-// GeneralsX @feature Claude 08/08/2026 Friends and ignore. The store lives under GameClient/ and
+// GeneralsX: Friends and ignore. The store lives under GameClient/ and
 // is not digested; see the long block by relayFriendIndexByNick for what it can and cannot do
 // from this screen.
 #include "GameClient/GXLobbyCommands.h"
@@ -96,7 +96,7 @@
 
 
 // ==============================================================================================
-// GeneralsX @feature Claude 14/08/2026 Roster and chat come from the SHARED lobby room.
+// GeneralsX: Roster and chat come from the SHARED lobby room.
 //
 // This screen was always wired to a roster and a chat box; they were just wired to the WRONG room.
 // SetUpOnlineLobbyLAN() enters Transport::getLocalHostRoom() - the room this client would HOST in -
@@ -186,7 +186,7 @@ static Bool gxLobbyTakeChat( char *outText, Int outSize, UnsignedInt *outSenderI
 	return (TheLAN != nullptr) ? TheLAN->takeLobbyChat(outText, outSize, outSenderIp) : FALSE;
 }
 
-// GeneralsX @bugfix Claude 09/09/2026 ONE normalised value, not one raw value and two opinions.
+// GeneralsX: ONE normalised value, not one raw value and two opinions.
 //
 // This function is the whole bug (spec S9.7). It handed the SAME un-normalised display name to two
 // senders that disagree about what a name is:
@@ -242,7 +242,7 @@ static Bool gxLobbyTakeChat( char *outText, Int outSize, UnsignedInt *outSenderI
 // are on the friends/ignore comparison path, not on the GXNICK path: neither sets a relay-held
 // nickname, so neither is in the wire invariant's scope and neither is changed here. Folding them
 // into gxNicknameCharIsAccepted is a safe follow-up with no red arm in this plan.
-// GeneralsX @bugfix Claude 15/09/2026 A refusal the player can see and act on - plan G, item G-1.
+// GeneralsX: A refusal the player can see and act on - plan G, item G-1.
 //
 // The early return below was correct and INVISIBLE. "/nick !!!" normalises to nothing, so nothing
 // was sent, the lobby list went on showing the old name, and the player was told the name was set.
@@ -371,14 +371,14 @@ static Bool buttonPushed = false;
 static const char *nextScreen = nullptr;
 static Bool raiseMessageBoxes = false;
 static time_t gameListRefreshTime = 0;
-// GeneralsX @bugfix Claude 07/08/2026 10 s was long enough to read as broken.
+// GeneralsX: 10 s was long enough to read as broken.
 //
 // A player joining a game changes its slot count, and at a 10 s sweep the browser showed the old
 // count until the next one - reported as "I joined from the PC and the iPad still said 4/8 until
 // I hit refresh". The sweep is one small datagram out and one per listed game back, so 3 s costs
 // almost nothing and makes the list feel live.
 //
-// GeneralsX @info Claude 17/08/2026 Two corrections, because both would send the next tuner wrong.
+// GeneralsX: Two corrections, because both would send the next tuner wrong.
 //
 // THE RELAY'S LOBBY REPLIES ARE RATE-LIMITED, so the cost of tuning this down is not paid by the
 // tuner alone: B browsers against G games ask for B*G/interval replies, one burst clamped to
@@ -400,7 +400,7 @@ static time_t gameListRefreshTime = 0;
 static const time_t gameListRefreshInterval = 3000;
 static time_t playerListRefreshTime = 0;
 static const time_t playerListRefreshInterval = 5000;
-// GeneralsX @bugfix Claude 20/09/2026 (owner) The roster as it was last PAINTED - see gxLobbyRosterPrint
+// GeneralsX: The roster as it was last PAINTED - see gxLobbyRosterPrint
 // and refreshPlayerList. The initial value is not load-bearing and no claim is made that a real roster
 // cannot hash to it: the first paint is forced by `playerListRefreshTime == 0` regardless, and it is that
 // arm, not this value, that guarantees the screen is drawn once before the print means anything.
@@ -471,7 +471,7 @@ static Bool justEntered = FALSE;
 /// WOLLobbyMenuInit, off the absence of a GameSpy backend.
 static Bool s_relayLobby = FALSE;
 
-// GeneralsX @feature Claude 11/08/2026 The entry banner is printed ONCE per run. See the long note
+// GeneralsX: The entry banner is printed ONCE per run. See the long note
 // at the print site for why this is a flag and not the chat box's own emptiness.
 static Bool s_lobbyBannerPrinted = FALSE;
 
@@ -487,11 +487,11 @@ static Bool s_relayOwnsGameSpy = FALSE;
 // that legitimately returns nothing still empties the list (0 twice in a row is settled too).
 static Int s_relayCountLastFrame = -1;
 static Int s_relayCountLastBuilt = -1;
-// GeneralsX @bugfix Claude 07/08/2026 What the list CONTAINED when it was last built, not just how
+// GeneralsX: What the list CONTAINED when it was last built, not just how
 // many rows it had. See relayLobbyUpdate.
 static UnsignedInt s_relayListLastBuilt = 0;
 static time_t s_relayLastQueryTime = 0;
-// GeneralsX @bugfix Claude 12/08/2026 The withdrawal serial this screen has already asked about.
+// GeneralsX: The withdrawal serial this screen has already asked about.
 //
 // A player who leaves a game they hosted lands back HERE, and the relay has just been told the game
 // is gone - but this screen browses on a 3 s cadence, so their own browser could still show their
@@ -529,7 +529,7 @@ static void relayResetGameTable()
 	s_relayLastQueryTime = 0;
 	s_relayHeardFromRelay = FALSE;
 	s_relaySelectedID = -1;
-	// GeneralsX @bugfix Claude 20/09/2026 (owner) Reset with its siblings: a print carried over from the
+	// GeneralsX: Reset with its siblings: a print carried over from the
 	// previous visit would match the new screen's first roster and hold the repaint back exactly when the
 	// player is waiting for it.
 	s_playerListPrint = 0;
@@ -560,7 +560,7 @@ static Transport *relayTransport()
 /// Rebuilt wholesale rather than diffed, because the relay has no teardown message ON PURPOSE - a
 /// host that crashes or loses its link cannot send one, so a room drops off by simply not being in
 /// the next sweep. The list IS the truth; diffing it would only invent ways to disagree with it.
-// GeneralsX @bugfix Claude 07/08/2026 Show the authored map name in the browser row.
+// GeneralsX: Show the authored map name in the browser row.
 //
 // The row prints md->m_displayName when TheMapCache->findMap() hits, and the raw string otherwise
 // (LobbyUtils.cpp:617-638, and identically in the row tooltip at :301-319). It was always missing,
@@ -643,7 +643,7 @@ static AsciiString relayResolveAdvertisedMap( const char *advertised )
 	return best.isEmpty() ? raw : best;
 }
 
-// GeneralsX @feature Claude 07/08/2026 Turn the wire's OS tag into something readable.
+// GeneralsX: Turn the wire's OS tag into something readable.
 //
 // The tag on the wire stays one or two characters ("W", "M", "L", "iP") because it rides a
 // keepalive and is validated by the relay's PLAT_RE. The label is expanded HERE, on the client,
@@ -673,7 +673,7 @@ static UnicodeString relayPlatformLabel( const char *tag )
 	return label;
 }
 
-// GeneralsX @bugfix Claude 07/08/2026 Widen the player list's icon column.
+// GeneralsX: Widen the player list's icon column.
 //
 // WOLCustomLobby.wnd declares this listbox COLUMNS: 2 at 10% and 90%. Ten percent is about two
 // characters, and the note further down records that overflow WRAPS rather than clipping - so a
@@ -709,7 +709,7 @@ static void relayFixPlayerListColumns( GameWindow *listbox )
 		list->columnWidth[i] = list->columnWidthPercentage[i] * totalWidth / 100;
 }
 
-// GeneralsX @bugfix Claude 07/08/2026 Claim the persisted name as the RELAY-held nickname too.
+// GeneralsX: Claim the persisted name as the RELAY-held nickname too.
 //
 // The name has always been restored into the slot list on both the host and join paths, via
 // RequestSetName from LANPreferences - but never as the relay nickname, which is the one the
@@ -750,7 +750,7 @@ static void relayClaimPersistedNickname()
 }
 
 // ==============================================================================================
-// GeneralsX @feature Claude 08/08/2026 Friends, lobby ignore, and a friends-only game filter.
+// GeneralsX: Friends, lobby ignore, and a friends-only game filter.
 //
 // The store behind this is GXPlayerIdentity (Core/.../GameClient/GXPlayerIdentity.{h,cpp}). It was
 // written, correct, compiling - and completely unreferenced: an unbounded grep for the class name
@@ -823,7 +823,7 @@ static void relayClaimPersistedNickname()
 // ==============================================================================================
 
 /// Room slots are the last octet of a relay-assigned virtual address, 1..MEMBERS_PER_ROOM.
-// GeneralsX @bugfix Claude 14/08/2026 This indexes RELAY SLOTS, so it must equal the relay's
+// GeneralsX: This indexes RELAY SLOTS, so it must equal the relay's
 // maximum - and it silently did not, once MEMBERS_PER_ROOM went 8 -> 12.
 //
 // Eleven statics are sized [GX_ROOM_SLOTS + 1] and indexed by a slot the relay issues, which is
@@ -843,9 +843,9 @@ static void relayClaimPersistedNickname()
 // digest - reaching for it would move the digest and force an atomic four-platform rebuild for a
 // bounds fix that otherwise needs none. If the relay's room size changes again, all three move
 // together, and this one being SMALLER is an out-of-bounds write rather than a display glitch.
-// GeneralsX @feature Claude 25/09/2026 12 -> 14 with the relay's MEMBERS_PER_ROOM (12 players + 2
+// GeneralsX: 12 -> 14 with the relay's MEMBERS_PER_ROOM (12 players + 2
 // observers), all three together as the note above says.
-// GeneralsX @feature Claude 06/11/2026 scale32: 14 -> 34 with the relay (32 players + 2 observers), all three together.
+// GeneralsX: scale32: 14 -> 34 with the relay (32 players + 2 observers), all three together.
 enum { GX_ROOM_SLOTS = 34 };
 /// Comfortably over the relay's MAX_NICK_LEN (20) and over Transport's own GX_NICK_MAX (24),
 /// which is private. Sized here rather than shared so this file cannot be broken by a change
@@ -878,7 +878,7 @@ static Bool s_ignoreSlot[GX_ROOM_SLOTS + 1];
 static char s_ignoreNick[GX_ROOM_SLOTS + 1][GX_LOBBY_NICK_MAX];
 
 // ---------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/08/2026 Slot -> durable id, learned this session from friend cards.
+// GeneralsX: Slot -> durable id, learned this session from friend cards.
 //
 // SESSION SCOPE, DELIBERATELY. A room slot is the last octet of a relay-assigned virtual address;
 // the relay recycles those across humans, and the operator watched his own walk P1 -> P3 -> P4 -> P5
@@ -897,7 +897,7 @@ static char s_slotIdNick[GX_ROOM_SLOTS + 1][GX_LOBBY_NICK_MAX];
 // sequence; these are what make an UNSOLICITED card droppable, which is the only thing standing
 // between "friends are real" and "anyone in the lobby can add themselves to your list".
 //
-// GeneralsX @feature Claude 11/08/2026 THE SENDING HALF IS BACK, driven by the overlay, not by
+// GeneralsX: THE SENDING HALF IS BACK, driven by the overlay, not by
 // chat verbs. The chat-hygiene pass retired /friend request and /friend accept and left this
 // state only-ever-cleared; the buddy overlay's right-click menus are the surface that was always
 // supposed to drive it. GXRelayCardAction is the single writer: Add on a stranger sends "fq" and
@@ -915,7 +915,7 @@ static Bool s_cardTheyAsked[GX_ROOM_SLOTS + 1];		///< they sent "fq"; an overlay
 static Bool s_cardWeAsked[GX_ROOM_SLOTS + 1];		///< our "fq" is out; solicits exactly one "fa"
 static Bool s_cardWeAccepted[GX_ROOM_SLOTS + 1];	///< our "fa" is out; solicits exactly one "fi"
 
-// GeneralsX @feature Claude 11/08/2026 THE NONCE IS THE CONTINUITY PROOF. Slots are recycled and
+// GeneralsX: THE NONCE IS THE CONTINUITY PROOF. Slots are recycled and
 // nicknames are claimable by anyone who can read the room, so neither can authenticate that the
 // peer answering an exchange is the peer it was started with - cross-model review demonstrated
 // the replay concretely. Each "fq" therefore carries a fresh unguessable token, unicast to the
@@ -930,7 +930,7 @@ enum { GX_CARD_NONCE_LEN = 12 };
 static char s_cardOurNonce[GX_ROOM_SLOTS + 1][GX_CARD_NONCE_LEN + 1];
 static char s_cardTheirNonce[GX_ROOM_SLOTS + 1][GX_CARD_NONCE_LEN + 1];
 
-// GeneralsX @feature Claude 11/08/2026 THE OTHER HALF OF THE SLOT-REUSE PROBLEM, and it is not
+// GeneralsX: THE OTHER HALF OF THE SLOT-REUSE PROBLEM, and it is not
 // the same as the one the nonce solves. The nonce stops a replacement occupant COMPLETING an
 // exchange it did not start. It cannot stop us DISCLOSING to one: accepting unicasts our card to
 // whoever holds the slot at that instant, and if the roster we validated against is stale, that
@@ -953,7 +953,7 @@ static char s_cardTheirNonce[GX_ROOM_SLOTS + 1][GX_CARD_NONCE_LEN + 1];
 // cleverer arrangement of these three datagrams.
 enum { GX_CARD_REQUEST_TTL_MS = 20000 };
 static UnsignedInt s_cardTheyAskedMs[GX_ROOM_SLOTS + 1];
-// GeneralsX @bugfix Claude 15/08/2026 The mirror of the above for the OUTGOING offer. Without
+// GeneralsX: The mirror of the above for the OUTGOING offer. Without
 // it s_cardWeAsked never expires: sendRelayPeerLine does not report whether the datagram left,
 // so one lost 'fq' made every later Add answer "you have already asked" for the rest of the
 // session, and only a restart cleared it. Same TTL as the incoming side.
@@ -1026,7 +1026,7 @@ static void relayClearSocialSession()
 	s_lastDmNick[0] = '\0';
 }
 
-// GeneralsX @bugfix Claude 10/08/2026 THE FRIEND REQUEST THAT NEVER ARRIVED.
+// GeneralsX: THE FRIEND REQUEST THAT NEVER ARRIVED.
 //
 // This was reported as "somebody added me and I never got a request", and the request is not what
 // was broken - it is delivered, and it is displayed. It was being DESTROYED a moment later.
@@ -1057,7 +1057,7 @@ static void relayClearSocialSession()
 // consecutive occupants of one slot who claim the SAME name - or no name - compare equal. This
 // change extends that pre-existing window across a screen re-entry; it does not create a new class
 // of it, and the alternative is a friends feature that silently loses every request.
-// GeneralsX @bugfix Claude 16/08/2026 THE BOUNDARY HAS TO WATCH THE ROOM THE BINDINGS ARE IN.
+// GeneralsX: THE BOUNDARY HAS TO WATCH THE ROOM THE BINDINGS ARE IN.
 //
 // This guard used to read the GAME room unconditionally. That was right while the peer line only
 // ever travelled on the game socket, and it stopped being right the moment the carrier began
@@ -1185,7 +1185,7 @@ static const char *relayRosterNickForSlot( UnsignedInt slot, Bool *outPresent = 
 	return "";
 }
 
-/// GeneralsX @feature Claude 11/08/2026 The role code the relay published for a room slot: "m", "a"
+/// GeneralsX: The role code the relay published for a room slot: "m", "a"
 /// or "". Mirrors relayRosterNickForSlot exactly, because the two are read from the same roster and
 /// a second lookup shape would be a second place for the slot arithmetic to go wrong.
 ///
@@ -1208,7 +1208,7 @@ static const char *relayRosterRoleForSlot( UnsignedInt slot )
 	return "";
 }
 
-/// GeneralsX @feature Claude 08/08/2026 The durable id bound to a room slot, "" when we have not
+/// GeneralsX: The durable id bound to a room slot, "" when we have not
 /// exchanged a friend card with whoever is in it.
 ///
 /// This is also where a binding EXPIRES, checked lazily for the same reason the ignore bookkeeping
@@ -1299,7 +1299,7 @@ static void relayBindSlotId( UnsignedInt slot, const char *id )
 /// expires: checked lazily rather than on a roster callback because there is no roster callback to
 /// hang it on, and this runs on the drain path where the answer is actually needed.
 ///
-/// GeneralsX @feature Claude 08/08/2026 Two ignore scopes, checked in this order:
+/// GeneralsX: Two ignore scopes, checked in this order:
 ///
 ///   1. the DURABLE, id-keyed list in GXPlayerIdentity, which is only reachable for a slot we have
 ///      exchanged a friend card with. It survives restarts and follows the person across rooms and
@@ -1367,7 +1367,7 @@ static UnsignedInt relayResolveRoomSlot( const AsciiString &arg )
 	{
 		const char *nick = gxLobbyRosterNick(i);
 		if (nick != nullptr && nick[0] != '\0' && relayNamesMatch(nick, arg.str()))
-			// GeneralsX @security Claude 06/11/2026 scale32: the relay admits ids up to 10.42.0.254, so a roster entry can exceed
+			// GeneralsX: scale32: the relay admits ids up to 10.42.0.254, so a roster entry can exceed
 			// GX_ROOM_SLOTS; every caller indexes a [GX_ROOM_SLOTS + 1] table (s_ignoreSlot...) with this - bound it like the digits arm.
 			return (ips[i] >= 1 && ips[i] <= (UnsignedInt)GX_ROOM_SLOTS) ? ips[i] : 0;
 	}
@@ -1416,9 +1416,9 @@ static Int relayFriendIndexByToken( const AsciiString &token )
 	return relayFriendIndexByNick(token.str());
 }
 
-/// GeneralsX @feature Claude 08/08/2026 Our own room slot, 0 when we are not on a relay.
+/// GeneralsX: Our own room slot, 0 when we are not on a relay.
 ///
-/// GeneralsX @bugfix Claude 15/08/2026 Ask the SHARED ROOM which slot we are, when that is what the
+/// GeneralsX: Ask the SHARED ROOM which slot we are, when that is what the
 /// rest of this screen is reading.
 ///
 /// The roster and the chat queue are both keyed by the last octet of the shared-room virtual
@@ -1447,7 +1447,7 @@ static UnsignedInt relayMySlot()
 	return (t != nullptr) ? (t->getLocalVirtualIP() & 0xff) : 0;
 }
 
-/// GeneralsX @bugfix Claude 16/08/2026 The same question, asked of the OTHER room.
+/// GeneralsX: The same question, asked of the OTHER room.
 ///
 /// relayMySlot() above answers "which roster row is me", and once presence is up that row lives in
 /// the SHARED lobby room. But a slot number arriving from Transport::takeRelayPeerLine() was
@@ -1467,7 +1467,7 @@ static UnsignedInt relayMyTransportSlot()
 	return (t != nullptr) ? (t->getLocalVirtualIP() & 0xff) : 0;
 }
 
-/// GeneralsX @feature Claude 08/08/2026 The name to put in a friend card, filtered to the relay's
+/// GeneralsX: The name to put in a friend card, filtered to the relay's
 /// nickname charset.
 ///
 /// FILTERED HERE EVEN THOUGH THE RELAY ALREADY FILTERS ITS COPY. A card is a space-separated line
@@ -1490,7 +1490,7 @@ static AsciiString relayMyCardNick()
 	return out;
 }
 
-/// GeneralsX @feature Claude 08/08/2026 Resolve a command argument to a room slot, accepting one
+/// GeneralsX: Resolve a command argument to a room slot, accepting one
 /// more form than relayResolveRoomSlot: a friend's CODE or cached name, resolved through the
 /// slot bindings learned this session.
 ///
@@ -1546,7 +1546,7 @@ static Bool relayHostIsFriend( const char *advertisedName )
 	return TRUE;
 }
 
-/// GeneralsX @feature Claude 08/08/2026 Is the player in this room slot a friend?
+/// GeneralsX: Is the player in this room slot a friend?
 ///
 /// TWO ANSWERS OF DIFFERENT QUALITY, and the caller is told which one it got. `outByName` comes back
 /// TRUE when the match came from the nickname fallback, so a caller that is deciding anything more
@@ -1575,7 +1575,7 @@ static Bool relaySlotIsFriend( UnsignedInt slot, Bool *outByName = nullptr )
 }
 
 // ---------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/08/2026 The unicast peer line: private messages and friend cards.
+// GeneralsX: The unicast peer line: private messages and friend cards.
 //
 // WHY THIS IS NOT A RELAY CONTROL TAG. Read this before adding a "GXDM" to relay.js, because that
 // is the obvious design and it is wrong twice over.
@@ -1609,7 +1609,7 @@ static Bool relaySlotIsFriend( UnsignedInt slot, Bool *outByName = nullptr )
 //
 // A kind this build does not know is IGNORED SILENTLY rather than displayed. Displaying it would
 // make the chat box a place a peer can write arbitrary text into by inventing a verb.
-// GeneralsX @bugfix Claude 16/08/2026 SEND ON THE SOCKET THAT SHARES THE ROOM WITH THE ROSTER.
+// GeneralsX: SEND ON THE SOCKET THAT SHARES THE ROOM WITH THE ROSTER.
 //
 // Every caller of this function resolves its slot out of the roster - relayResolveTargetSlot(), a
 // friend card's row, the slot a line arrived from. When presence is up that roster is the SHARED
@@ -1645,7 +1645,7 @@ static Bool relaySendPeerLine( UnsignedInt slot, const char *body )
 /// ever sent to the relay, which is the whole point of doing the filtering on the receive side.
 static void relaySocialSay( const UnicodeString &line, Color color )
 {
-	// GeneralsX @feature Claude 10/08/2026 Give this a sink when there is no chat listbox.
+	// GeneralsX: Give this a sink when there is no chat listbox.
 	//
 	// This is the SINGLE output chokepoint for everything the relay/friends feature prints, and it
 	// used to silently DROP every line when the listbox was absent - which is every headless run.
@@ -1658,7 +1658,7 @@ static void relaySocialSay( const UnicodeString &line, Color color )
 	//
 	// Note this deliberately does NOT require TheGameSpyInfo: that object only exists to own the
 	// listbox's text buffer, so a headless peer having none is not a reason to lose the line.
-	// GeneralsX @feature Claude 11/08/2026 "[S]HH:MM " - this line came from YOUR client and
+	// GeneralsX: "[S]HH:MM " - this line came from YOUR client and
 	// nobody else can see it. Applied HERE, at the single sink every client-originated line already
 	// goes through, so no caller can forget it and no two callers can format it differently.
 	//
@@ -1673,7 +1673,7 @@ static void relaySocialSay( const UnicodeString &line, Color color )
 		return;
 	}
 
-	// GeneralsX @feature Claude 13/08/2026 Composed AFTER the headless bail, not before it. The
+	// GeneralsX: Composed AFTER the headless bail, not before it. The
 	// prefix is only printed once per run of like lines, so GXLobbyChatRow has to be called exactly
 	// as often as a row is really inserted - composing above the early return would count a row that
 	// never existed and swallow the prefix off the next one that did.
@@ -1682,7 +1682,7 @@ static void relaySocialSay( const UnicodeString &line, Color color )
 }
 
 // ---------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/08/2026 GXKEY and GXSEEN/GXHERE - the client half of the protocol
+// GeneralsX: GXKEY and GXSEEN/GXHERE - the client half of the protocol
 // tools/relay/relay.js has spoken since 08/08/2026 and nothing had ever spoken back.
 //
 // WHAT GXKEY BUYS AND WHAT IT DOES NOT. It tells the relay our durable id so that the relay can
@@ -1701,7 +1701,7 @@ static void relaySocialSay( const UnicodeString &line, Color color )
 /// it on its own 30 s tag tick, so calling this on every entry to the lobby costs one datagram.
 static void relayDeclareIdentity()
 {
-	// GeneralsX @bugfix Claude 18/09/2026 THE LOBBY PRESENCE SOCKET TOO, and before anything that can
+	// GeneralsX: THE LOBBY PRESENCE SOCKET TOO, and before anything that can
 	// return early.
 	//
 	// The shared-lobby socket is a SECOND member on the relay - its own endpoint, its own member
@@ -1731,7 +1731,7 @@ static void relayDeclareIdentity()
 
 	transport->sendRelayKey(id);
 
-	// GeneralsX @feature Claude 11/08/2026 And the SIGNED identity, beside the self-minted one.
+	// GeneralsX: And the SIGNED identity, beside the self-minted one.
 	//
 	// The two are not alternatives. The durable id is a client-minted bearer token and is what
 	// friendship and presence are keyed on; the assertion is what a relay can actually verify, and
@@ -1743,7 +1743,7 @@ static void relayDeclareIdentity()
 	transport->sendRelayIdentity(GXPlayerIdentity::getVerifiedAssertionText());
 }
 
-/// GeneralsX @bugfix Claude 11/08/2026 Re-declare when the identity CHANGES while the lobby is open.
+/// GeneralsX: Re-declare when the identity CHANGES while the lobby is open.
 ///
 /// Found by cross-model review. relayDeclareIdentity ran once, on screen entry, so a /login that
 /// completed while the player was sitting in the lobby never reached the relay: GXLoginFlow refreshes
@@ -1757,7 +1757,7 @@ static void relayDeclareIdentity()
 /// Compared by VALUE rather than by a "did a login happen" flag: the flag is a second thing to keep
 /// in sync, and the value is what actually has to match. An assertion is at most 256 bytes and this
 /// runs at the lobby's refresh cadence, so the compare is free.
-// GeneralsX @bugfix Claude 18/09/2026 A FINGERPRINT, NOT A COPY. This used to keep the last
+// GeneralsX: A FINGERPRINT, NOT A COPY. This used to keep the last
 // declared assertion itself in s_lastDeclared - a second copy of a bearer token, living as long as
 // the process and outliving every sign-out, because only a later lobby tick ever overwrote it (a
 // /logout from the LAN lobby never reached one). Found by cross-model review. The comparison only
@@ -1788,7 +1788,7 @@ static void relayRedeclareIdentityIfChanged()
 
 	s_lastDeclared = fp;
 
-	// GeneralsX @bugfix Claude 18/09/2026 The lobby presence socket follows every change too, and
+	// GeneralsX: The lobby presence socket follows every change too, and
 	// above the transport guard for the reason relayDeclareIdentity gives. A /login that completes
 	// while the player sits in the lobby has to reach BOTH sockets, or the shared room goes on
 	// treating them as nobody; a /logout has to clear BOTH, or the relay keeps applying that account's
@@ -1887,7 +1887,7 @@ static Int relayPresenceFor( const char *id )
 {
 	if (s_presenceKnownCount <= 0 || id == nullptr || id[0] == '\0')
 		return -1;
-	// GeneralsX @bugfix Claude 25/09/2026 An answer nobody has renewed is not an answer (GXFriendsKey.h).
+	// GeneralsX: An answer nobody has renewed is not an answer (GXFriendsKey.h).
 	if (!GXPresenceAnswerCurrent(timeGetTime(), s_presenceAnsweredMs))
 		return -1;
 	for (Int i = 0; i < s_presenceKnownCount && i < 16; ++i)
@@ -1898,7 +1898,7 @@ static Int relayPresenceFor( const char *id )
 	return -1;
 }
 
-// GeneralsX @feature Claude 11/08/2026 The buddy overlay's window into the SAME answer. A thin
+// GeneralsX: The buddy overlay's window into the SAME answer. A thin
 // exported wrapper rather than promoting the static: takeRelayPresence is a destructive read
 // with exactly one permitted consumer (relayUpdatePresence, above), and every other reader must
 // come through this lobby-side decode or the two would race and each see half the answers.
@@ -1913,7 +1913,7 @@ static void relayRebuildStagingRooms()
 	if (transport == nullptr || TheGameSpyInfo == nullptr || TheLAN == nullptr)
 		return;
 
-	// GeneralsX @bugfix Claude 07/08/2026 The transient-empty guard that used to live here is gone,
+	// GeneralsX: The transient-empty guard that used to live here is gone,
 	// because the cause is now fixed at source.
 	//
 	// It debounced three consecutive empty sweeps before believing the browser was empty, which
@@ -1954,7 +1954,7 @@ static void relayRebuildStagingRooms()
 			&& strcmp(listing->room, transport->getRelayRoom()) == 0)
 			continue;
 
-		// GeneralsX @feature Claude 08/08/2026 Friends-only filter.
+		// GeneralsX: Friends-only filter.
 		//
 		// Applied HERE rather than when drawing, so a hidden game is absent from s_relayGames as
 		// well as from the listbox. That matters: relayJoinSelectedGame resolves the selected row
@@ -1988,7 +1988,7 @@ static void relayRebuildStagingRooms()
 		entry.slots = listing->slots;
 		++s_relayGameCount;
 
-		// GeneralsX @feature Claude 08/08/2026 Prefix the row with the relay's REGION, the way
+		// GeneralsX: Prefix the row with the relay's REGION, the way
 		// Generals Online labels its list ("[EU] FFA 10k NO RULES").
 		//
 		// Composed HERE and not on the wire. The region is a property of the relay we asked, not of
@@ -2000,7 +2000,7 @@ static void relayRebuildStagingRooms()
 		// GameClient/ is not digested, so the FORMAT of this row can be changed for one platform
 		// without a lockstep-wide rebuild. Keep it that way: put presentation here, not in LANAPI.
 		//
-		// GeneralsX @feature Claude 17/08/2026 The lobby's own NAME leads the row, with the host in
+		// GeneralsX: The lobby's own NAME leads the row, with the host in
 		// parentheses after it: "[EU] FFA 10k NO RULES (Bobtista)". That is the whole point of
 		// carrying it - a browser full of player names says nothing about what the games ARE.
 		//
@@ -2044,7 +2044,7 @@ static void relayRebuildStagingRooms()
 		room.setLadderIP(AsciiString::TheEmptyString);
 		room.setLadderPort(0);
 
-		// GeneralsX @feature Claude 07/08/2026 End-to-end latency, both halves measured.
+		// GeneralsX: End-to-end latency, both halves measured.
 		//
 		// Everything in a relayed game travels browser -> relay -> host, so the round trip is our
 		// leg plus the host's. We time ours from the GXROOM/GXMEMB pair; the host reports its own
@@ -2274,7 +2274,7 @@ static void relayPrintFriends()
 			GameSpyColor[GSCOLOR_MOTD]);
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 Refresh presence while the panel is being read. The
+	// GeneralsX: Refresh presence while the panel is being read. The
 	// answer arrives asynchronously and lands in the NEXT print - which is why the rows below say
 	// "checking" rather than "offline" when nothing has come back yet.
 	relayPollPresence();
@@ -2288,7 +2288,7 @@ static void relayPrintFriends()
 		const char *nick = GXPlayerIdentity::getFriendNick(i);
 		const Bool named = (nick != nullptr && nick[0] != '\0');
 
-		// GeneralsX @feature Claude 08/08/2026 "Here in the lobby" is now an ID match wherever we
+		// GeneralsX: "Here in the lobby" is now an ID match wherever we
 		// have exchanged a card with the slot, and only falls back to the name otherwise. That is
 		// the difference between "somebody using your friend's name is in this room" and "your
 		// friend is in this room", and the panel now distinguishes them.
@@ -2350,7 +2350,7 @@ static void relayPrintFriends()
 				L"  - someone called that is here as P%d (matched by name)"), (Int)inLobbySlot);
 		else
 		{
-			// GeneralsX @feature Claude 08/08/2026 Presence, from GXHERE. THREE states, not two: a
+			// GeneralsX: Presence, from GXHERE. THREE states, not two: a
 			// relay that does not speak GXSEEN must not make every friend read as offline, because
 			// that is indistinguishable from them actually being away.
 			//
@@ -2373,7 +2373,7 @@ static void relayPrintFriends()
 
 		UnicodeString row;
 		row.format(L"  %d. %ls%ls", i + 1, wideNick.str(), where.str());
-		// GeneralsX @tweak Claude 10/08/2026 Blue, matching the player list, so "a friend" is one
+		// GeneralsX: Blue, matching the player list, so "a friend" is one
 		// colour everywhere instead of gold here and blue three inches to the right. The two shades
 		// keep the reachable/not distinction this line already made: bright for somebody you can
 		// act on right now, dim for a name on the list who is not here.
@@ -2381,7 +2381,7 @@ static void relayPrintFriends()
 		                                         : GameMakeColor(  95, 150, 205, 255 ));
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 Anyone who has asked to swap codes, so a friend request
+	// GeneralsX: Anyone who has asked to swap codes, so a friend request
 	// is not something you have to have been looking at the chat box to notice.
 	for (Int s = 1; s <= GX_ROOM_SLOTS; ++s)
 	{
@@ -2449,7 +2449,7 @@ static void relayPrintFriends()
 /// and it is a safety property, not tidiness: a "/add <code>" that fell through would put the
 /// player's bearer credential in front of the whole room.
 ///
-/// GeneralsX @feature Claude 11/08/2026 That is now belt AND braces. relaySubmitChat used to
+/// GeneralsX: That is now belt AND braces. relaySubmitChat used to
 /// broadcast anything it did not recognise; GXLobbyGuardUnknownCommand refuses it instead, so a
 /// fallthrough here is a bug rather than a disclosure. Keep the returns anyway - the guard is the
 /// backstop, not the design.
@@ -2461,7 +2461,7 @@ static Bool relayHandleSocialCommand( const AsciiString &verb, AsciiString rest 
 		return TRUE;
 	}
 
-	// GeneralsX @feature Claude 11/08/2026 /add and /remove, flattened out of /friend's sub-verbs.
+	// GeneralsX: /add and /remove, flattened out of /friend's sub-verbs.
 	//
 	// THE CARD EXCHANGE THAT USED TO LIVE HERE IS GONE BY DECISION, not by accident. Owner,
 	// 11/08/2026: "two adds = friend - if I add someone and someone adds me, that's it, I don't have
@@ -2612,7 +2612,7 @@ static Bool relayHandleSocialCommand( const AsciiString &verb, AsciiString rest 
 		const UnsignedInt slot = relayResolveTargetSlot(rest);
 		if (slot == 0)
 		{
-			// GeneralsX @feature Claude 11/08/2026 A CODE works on somebody who is not here.
+			// GeneralsX: A CODE works on somebody who is not here.
 			//
 			// The resolver above answers for anyone PRESENT - by name, by P3, or by the code of a
 			// friend whose slot is bound - and present targets keep taking that path so the row
@@ -2702,7 +2702,7 @@ static Bool relayHandleSocialCommand( const AsciiString &verb, AsciiString rest 
 			return TRUE;
 		}
 
-		// GeneralsX @feature Claude 08/08/2026 Durable when, and ONLY when, there is a real identity
+		// GeneralsX: Durable when, and ONLY when, there is a real identity
 		// to key it on.
 		//
 		// The store has always had an id-keyed ignore list and it was deliberately left unreachable,
@@ -2759,7 +2759,7 @@ static Bool relayHandleSocialCommand( const AsciiString &verb, AsciiString rest 
 		return TRUE;
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 Private messages.
+	// GeneralsX: Private messages.
 	//
 	//     /msg <name|P3|friend code> <text>
 	//     /r <text>                            answer whoever last messaged you
@@ -2771,7 +2771,7 @@ static Bool relayHandleSocialCommand( const AsciiString &verb, AsciiString rest 
 	// EVERY path returns TRUE, including every error. relaySubmitChat broadcasts what it does not
 	// recognise, so a mistyped /msg falling through would put a private message in front of the
 	// whole room - the exact failure this feature exists to prevent, arrived at by a typo.
-	// GeneralsX @feature Claude 11/08/2026 One spelling each. The five retired aliases are named
+	// GeneralsX: One spelling each. The five retired aliases are named
 	// in GXLobbyCommands.cpp's retired table, which runs BEFORE this - so /w still answers, it just
 	// answers with "that is now /msg" instead of putting the message in front of the room.
 	if (verb == "msg" || verb == "r")
@@ -2884,7 +2884,7 @@ static Bool relayHandleSocialCommand( const AsciiString &verb, AsciiString rest 
 	return FALSE;
 }
 
-// GeneralsX @feature Claude 09/08/2026 The seam the code-built friends panel drives.
+// GeneralsX: The seam the code-built friends panel drives.
 //
 // Deliberately NOT a second parser. The split below is character-for-character what relaySubmitChat
 // does above the same call (skip the '/', nextToken the verb, lowercase it, trim the rest), so a
@@ -2913,7 +2913,7 @@ Bool GXRelayRunSocialCommand( const AsciiString &line )
 
 /// Host a game on the relay. Same two calls the Direct Connect screen makes; the LAN callbacks push
 /// the game options screen from OnGameCreate.
-// GeneralsX @feature Claude 16/08/2026 `hostName` and `password` come from PopupHostGame when the
+// GeneralsX: `hostName` and `password` come from PopupHostGame when the
 // player hosted through it; both null reproduces the previous behaviour exactly, which is what the
 // LAN screens and any non-popup caller still get.
 static void relayHostGame( const UnicodeString *hostName = nullptr,
@@ -2931,7 +2931,7 @@ static void relayHostGame( const UnicodeString *hostName = nullptr,
 	// keeps one identity across all three rather than being renamed by which screen they came in
 	// through.
 	//
-	// GeneralsX @bugfix Claude 16/08/2026 THE HOST'S NAME IS THE HOST'S NAME AGAIN.
+	// GeneralsX: THE HOST'S NAME IS THE HOST'S NAME AGAIN.
 	//
 	// This used to read `hostName` here when PopupHostGame supplied one, on the reasoning that the
 	// browser's "Game (host)" column IS this name and the relay model had no separate game-name
@@ -2990,7 +2990,7 @@ static void relayHostGame( const UnicodeString *hostName = nullptr,
 	}
 }
 
-/// GeneralsX @feature Claude 16/08/2026 PopupHostGame's relay entry point.
+/// GeneralsX: PopupHostGame's relay entry point.
 ///
 /// The popup is stock Zero Hour UI (Menus/PopupHostGame.wnd, inside WindowZH.big) and it already
 /// carries a Game Name and a Game Password box. Nothing about it is edited here and nothing needs
@@ -3023,7 +3023,7 @@ void GXRelayHostGameWithOptions( const UnicodeString &gameName, const AsciiStrin
 ///   4. only then SetLocalIP, which rebinds the transport and re-runs initRelay against the new
 ///      room and identity;
 ///   5. and only then dial the host.
-// GeneralsX @feature Claude 06/08/2026 GX_UI trace for driving this screen without seeing it.
+// GeneralsX: GX_UI trace for driving this screen without seeing it.
 //
 // A DXVK window does not survive a GDI screen grab - CopyFromScreen returns a black client area,
 // and probe-102-hotkey.sh already records nine blank screenshots being mistaken for a result. So
@@ -3153,7 +3153,7 @@ static void relayLobbyUpdate()
 	// and the relay delists purely by not hearing from them, so this is also how a dead host leaves
 	// the list.
 	//
-	// GeneralsX @bugfix Claude 12/08/2026 Except after a withdrawal, which is not something to wait
+	// GeneralsX: Except after a withdrawal, which is not something to wait
 	// out a poll for: the relay has already been told the game is gone, so the answer to the next
 	// query is known to differ from the one on screen. Compared as a serial rather than timed, so
 	// this fires exactly once per withdrawal however long the frame took.
@@ -3164,7 +3164,7 @@ static void relayLobbyUpdate()
 		relayRequestGameList();
 	}
 
-	// GeneralsX @bugfix Claude 07/08/2026 Rebuild when the list's CONTENT changes, not only when the
+	// GeneralsX: Rebuild when the list's CONTENT changes, not only when the
 	// number of games does.
 	//
 	// The old test was `count != s_relayCountLastBuilt`, so a row was only ever rebuilt when a game
@@ -3240,7 +3240,7 @@ Bool g_debugSlots = FALSE;
 
 std::list<PeerResponse> TheLobbyQueuedUTMs;
 
-// GeneralsX @refactor Claude 11/08/2026 handleLobbySlashCommands is DELETED, not preserved.
+// GeneralsX: handleLobbySlashCommands is DELETED, not preserved.
 //
 // It was the GameSpy lobby's /host /me /refresh (/fakecrc /slots in debug) interceptor, and it
 // has been unreachable in this build since the Online button started pushing WOLCustomLobby.wnd
@@ -3252,11 +3252,11 @@ std::list<PeerResponse> TheLobbyQueuedUTMs;
 // with the dead screen.
 
 static Bool s_tryingToHostOrJoin = FALSE;
-// GeneralsX @feature Claude 18/09/2026 The sign-out request flags - see gxDrainSignOut.
+// GeneralsX: The sign-out request flags - see gxDrainSignOut.
 static Bool s_signOutAsk = FALSE;	///< Sign Out was pressed: show the confirmation next frame
 static Bool s_signOutGo = FALSE;	///< Yes was pressed and the sign-out DONE: leave (or explain) next frame
 static GXSignOutResult s_signOutResult = GX_SIGNOUT_NOT_SIGNED_IN;	///< what that sign-out achieved
-// GeneralsX @bugfix Claude 23/09/2026 relayReacquireIfStranded's rebind failed and took the socket with it.
+// GeneralsX: relayReacquireIfStranded's rebind failed and took the socket with it.
 static Bool s_reacquireRebindOwed = FALSE;
 void SetLobbyAttemptHostJoin(Bool start)
 {
@@ -3281,7 +3281,7 @@ static void playerTooltip(GameWindow *window,
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 30/07/2026 Same crash as gameTooltip, same screen, same window of
+	// GeneralsX: Same crash as gameTooltip, same screen, same window of
 	// frames - see the long note in Core/.../GameSpy/LobbyUtils.cpp. WOLLobbyMenuShutdown calls
 	// TearDownGameSpy(), which nulls TheGameSpyInfo, and then leaves the layout on screen animating
 	// out; this listbox keeps its tooltip func the whole time, so pointer motion over a populated
@@ -3556,7 +3556,7 @@ void PopulateLobbyPlayerListbox()
 	if (!listboxLobbyPlayers)
 		return;
 
-	// GeneralsX @feature Claude 06/08/2026 The online-player list, on a relay.
+	// GeneralsX: The online-player list, on a relay.
 	//
 	// Everything below this block reads TheGameSpyInfo's PlayerInfoMap, which is populated by
 	// peerchat. There is no peerchat on a relay, so that map is permanently empty and the list was
@@ -3588,11 +3588,11 @@ void PopulateLobbyPlayerListbox()
 					s_relayHeardFromRelay = TRUE;	// same relay, so it is reachable and answering
 			}
 
-			// GeneralsX @bugfix Claude 06/08/2026 The roster stores the last OCTET (the room slot),
+			// GeneralsX: The roster stores the last OCTET (the room slot),
 			// while m_localVirtualIP is a full address in host order. Comparing them directly never
 			// matched, so nobody was ever marked "(you)".
 			//
-			// GeneralsX @bugfix Claude 15/08/2026 ...and once it DID match, it matched the wrong
+			// GeneralsX: ...and once it DID match, it matched the wrong
 			// row. Masking the game transport's address fixed the type error but not the source
 			// error: on the lobby screen the roster comes from the shared room, so the transport's
 			// octet is a number from a different session that still lands on SOME row. The observed
@@ -3609,10 +3609,10 @@ void PopulateLobbyPlayerListbox()
 				// This column fits TWO characters. "P2 (you)" wrapped; "P2*" still clipped the
 				// asterisk. So the text carries no marker at all and "you" is shown by COLOUR,
 				// which costs no width. Widening the column means editing the .wnd inside a .big.
-				// GeneralsX @feature Claude 07/08/2026 Show the relay-held nickname when there is
+				// GeneralsX: Show the relay-held nickname when there is
 				// one. The name comes back inside the roster, so it is known for everyone in the
 				// room the moment we ask - including peers who set it long before we arrived.
-				// GeneralsX @bugfix Claude 07/08/2026 Names go in column 1, not column 0.
+				// GeneralsX: Names go in column 1, not column 0.
 				//
 				// WOLCustomLobby.wnd declares this listbox as
 				//     COLUMNS: 2, COLUMNSWIDTH: 10, COLUMNSWIDTH: 90
@@ -3635,19 +3635,19 @@ void PopulateLobbyPlayerListbox()
 					row.format(L"P%d", (Int)ips[i]);
 				}
 
-				// GeneralsX @feature Claude 08/08/2026 Friends and ignored players are coloured, not
+				// GeneralsX: Friends and ignored players are coloured, not
 				// labelled. This column has already been established as too narrow for a marker -
 				// "P2 (you)" wrapped and "P2*" clipped the asterisk - and colour costs no width at
 				// all. Order matters: "you" wins over everything (you cannot be your own friend and
 				// the store refuses to record it), then ignored, then friend.
-				// GeneralsX @feature Claude 08/08/2026 The friend test is now relaySlotIsFriend,
+				// GeneralsX: The friend test is now relaySlotIsFriend,
 				// which matches on the DURABLE ID for any slot we have swapped a card with and only
 				// falls back to the nickname otherwise. Two shades rather than one: a confirmed
 				// friend is brighter than a name that merely looks like one, so the friend colour
 				// stops meaning two different things at once. The column is still too narrow for a
 				// marker (see above), and colour still costs no width.
 				//
-				// GeneralsX @tweak Claude 10/08/2026 BLUE, not gold - owner's call, and the legend
+				// GeneralsX: BLUE, not gold - owner's call, and the legend
 				// printed on entry is updated in the same change so the help cannot contradict the
 				// screen. (That legend was ALREADY wrong in a second way: it said "gold", but a
 				// GameSpy-path friend renders in GSCOLOR_PLAYER_BUDDY, which multiplayer.ini sets to
@@ -3674,7 +3674,7 @@ void PopulateLobbyPlayerListbox()
 					rowColor = friendByName ? GameMakeColor(  95, 150, 205, 255 )
 					                        : GameMakeColor( 105, 190, 255, 255 );
 
-				// GeneralsX @feature Claude 07/08/2026 OS tag in the icon column.
+				// GeneralsX: OS tag in the icon column.
 				//
 				// Column 0 has been free since names moved to column 1 - it is the 10% column the
 				// stock GameSpy path draws the rank badge into, and the relay path draws nothing
@@ -3693,7 +3693,7 @@ void PopulateLobbyPlayerListbox()
 				const char *os = gxLobbyRosterOS(i);
 				const UnicodeString osTag = relayPlatformLabel(os);
 
-				// GeneralsX @feature Claude 11/08/2026 The role's NAME colour, and this is the
+				// GeneralsX: The role's NAME colour, and this is the
 				// surface that can carry it. ListboxChat is COLUMNS: 1, so a chat row has exactly
 				// one colour and the spec's "purple name with light-green text" cannot both live
 				// there. ListboxPlayers is COLUMNS: 2 and ListEntryCell already holds a Color per
@@ -3711,7 +3711,7 @@ void PopulateLobbyPlayerListbox()
 
 				const Int rowIndex = GadgetListBoxAddEntryText(listboxLobbyPlayers, osTag, rowColor, -1, 0);
 				GadgetListBoxAddEntryText(listboxLobbyPlayers, row, nameColor, rowIndex, 1);
-				// GeneralsX @feature Claude 11/08/2026 The room slot rides the row, STAMPED AT
+				// GeneralsX: The room slot rides the row, STAMPED AT
 				// RENDER - the right-click handler must never resolve a row index against a
 				// roster that may have refreshed underneath the click. Info rows below carry no
 				// item-data, so they can never grow a menu.
@@ -3720,7 +3720,7 @@ void PopulateLobbyPlayerListbox()
 					reinterpret_cast<void *>(static_cast<intptr_t>(ips[i])), rowIndex, 0);
 			}
 
-			// GeneralsX @bugfix Claude 07/08/2026 Do not answer before the relay has.
+			// GeneralsX: Do not answer before the relay has.
 			//
 			// The roster is a round trip. For the first few seconds after entering the lobby we
 			// have asked and not yet heard, and saying "Nobody else here yet" in that window is
@@ -3869,12 +3869,12 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 	nextScreen = nullptr;
 	buttonPushed = false;
 	isShuttingDown = false;
-	s_signOutAsk = FALSE;	// GeneralsX @feature Claude 18/09/2026 never carry a request into a new visit
+	s_signOutAsk = FALSE;	// GeneralsX: never carry a request into a new visit
 	s_signOutGo = FALSE;
 	s_signOutResult = GX_SIGNOUT_NOT_SIGNED_IN;
 	s_reacquireRebindOwed = FALSE;	// SetUpOnlineLobbyLAN below binds afresh, or a joined game keeps its live socket
 
-	// GeneralsX @feature Claude 14/08/2026 Take up presence in the SHARED lobby room.
+	// GeneralsX: Take up presence in the SHARED lobby room.
 	//
 	// Idempotent, and deliberately NOT paired with a leaveLobby() in WOLLobbyMenuShutdown: this
 	// screen is torn down when you join a game, and dropping presence there is precisely the
@@ -3887,7 +3887,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 		TheGXLobbyPresence->enterLobby();
 	}
 
-	// GeneralsX @bugfix Claude 30/07/2026 Clear LANbuttonPushed here, like every other lobby Init.
+	// GeneralsX: Clear LANbuttonPushed here, like every other lobby Init.
 	//
 	// LANbuttonPushed is a latch that means "a screen transition is in flight, stop touching the
 	// network". LANAPI::update() honours it at TWO points - it returns outright at the top, and the
@@ -3930,7 +3930,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 	{
 		relayResetGameTable();
 
-		// GeneralsX @bugfix Claude 06/08/2026 Do NOT re-derive our identity if we are already in
+		// GeneralsX: Do NOT re-derive our identity if we are already in
 		// somebody else's game room.
 		//
 		// SetUpOnlineLobbyLAN() destroys TheLAN and asks the relay for an address in OUR OWN room
@@ -4002,7 +4002,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 	listboxLobbyChat = TheWindowManager->winGetWindowFromId(parent, listboxLobbyChatID);
 	TheGameSpyInfo->registerTextWindow(listboxLobbyChat);
 
-	// GeneralsX @feature Claude 13/08/2026 No block survives a visit to this screen. The window is
+	// GeneralsX: No block survives a visit to this screen. The window is
 	// freshly created, so a remembered row index would name a row in a box that no longer exists -
 	// and the pointer can legitimately be reused at the same address by the next visit, which is the
 	// one case identity alone cannot catch.
@@ -4017,7 +4017,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 	{
 		// GeneralsX @feature Matchmaking. Turn off the controls that have nothing behind them.
 		//
-		// GeneralsX @feature Claude 06/08/2026 Lobby chat now HAS something behind it: the relay
+		// GeneralsX: Lobby chat now HAS something behind it: the relay
 		// carries GXCHT/GXSAY, so the entry is live. Lines are length-capped and control-byte
 		// stripped on both ends.
 		//
@@ -4030,14 +4030,14 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 		// Buddies are GameSpy profiles. There are no accounts on the relay, so there is nothing a
 		// buddy list could be a list OF, and GameSpyOpenOverlay(GSOVERLAY_BUDDY) dereferences the
 		// buddy message queue we deliberately never created.
-		// GeneralsX @bugfix Claude 06/08/2026 ButtonEmote is the SEND button, not an emote picker -
+		// GeneralsX: ButtonEmote is the SEND button, not an emote picker -
 		// LanLobbyMenu.cpp:926 reads the entry and sends on it. Leaving it disabled while enabling
 		// the text entry is why typing worked and nothing was ever sent: the operator's line stayed
 		// in the box because the only control that submits it was dead.
 		if (buttonEmote)
 			buttonEmote->winEnable(TRUE);
 
-		// GeneralsX @feature Claude 08/08/2026 ButtonBuddy is now the FRIENDS button.
+		// GeneralsX: ButtonBuddy is now the FRIENDS button.
 		//
 		// Reused rather than replaced: a new control means a new .wnd, .wnd files live inside
 		// WindowZH.big, and editing shipped data moves dataID - every peer would then refuse to
@@ -4082,7 +4082,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 			if (relayHost.isEmpty())
 				label = TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayLobbyNoRelay", L"No server configured");
 			else
-				// GeneralsX @bugfix Claude 06/08/2026 Do NOT put the relay address on screen.
+				// GeneralsX: Do NOT put the relay address on screen.
 				//
 				// This printed the raw host - an IP in practice - at the top of the lobby, where it
 				// is visible in every screenshot, stream and bug report anyone posts. It tells the
@@ -4107,7 +4107,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 			}
 			else
 			{
-				// GeneralsX @feature Claude 08/08/2026 The dropdown is the game-list filter.
+				// GeneralsX: The dropdown is the game-list filter.
 				//
 				// Item data carries the meaning, not the row index: the strings are localised and
 				// the order could reasonably change, and reading the selection back by position
@@ -4143,7 +4143,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 	// if we're not in a room, this will join the best available one
 	if (s_relayLobby)
 	{
-		// GeneralsX @feature Claude 08/08/2026 Declare our durable id, and drop every binding that
+		// GeneralsX: Declare our durable id, and drop every binding that
 		// was made in whatever room we were in before.
 		//
 		// The clear comes FIRST and is not optional. This screen is re-entered after a game, and it
@@ -4152,7 +4152,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 		// must never do. relayDeclareIdentity is idempotent - Transport keeps the id and re-sends it
 		// on its own tag tick - so calling it on every entry costs one datagram.
 		//
-		// GeneralsX @bugfix Claude 10/08/2026 ON A ROOM CHANGE, not on every entry to this screen -
+		// GeneralsX: ON A ROOM CHANGE, not on every entry to this screen -
 		// the unconditional wipe destroyed every pending friend request on a CREATE GAME -> BACK
 		// round trip. See relaySyncSocialSessionToRoom for the reproduction and for why keeping the
 		// bindings inside one room is safe.
@@ -4162,11 +4162,11 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 		// No group rooms: they are GameSpy chat channels, and joining one is a peerchat round trip.
 		// Our rooms are relay rooms and we are already in ours - SetUpOnlineLobbyLAN put us there.
 		//
-		// GeneralsX @bugfix Claude 06/08/2026 ONCE, not on every entry to this screen. This block
+		// GeneralsX: ONCE, not on every entry to this screen. This block
 		// runs again whenever the lobby is re-entered and the chat listbox survives, so the banner
 		// stacked up - the operator's screenshot showed each line printed twice.
 		//
-		// GeneralsX @bugfix Claude 11/08/2026 A HAVE-PRINTED FLAG, not the box's own emptiness.
+		// GeneralsX: A HAVE-PRINTED FLAG, not the box's own emptiness.
 		//
 		// The old guard was `GadgetListBoxGetNumEntries(listboxLobbyChat) == 0`. That is the box's
 		// state, and /clear is the player deliberately setting it - so /clear followed by CREATE
@@ -4175,7 +4175,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 		// be able to undo. It is never reset: the cost of losing it is one line, and GXLobbyChatCommand
 		// reprints the same hint from /clear itself so a cleared box is never a dead end.
 		//
-		// GeneralsX @feature Claude 11/08/2026 ONE line instead of three paragraphs. The colour
+		// GeneralsX: ONE line instead of three paragraphs. The colour
 		// legend that used to be the second paragraph is now `/help colours` - it is reference
 		// material a player wants once, not something to re-read on every entry.
 		if (!s_lobbyBannerPrinted)
@@ -4184,7 +4184,7 @@ void WOLLobbyMenuInit( WindowLayout *layout, void *userData )
 			GXLobbyPrintHelpHint(GX_LOBBY_SCREEN_ONLINE, relaySocialSay);
 		}
 
-		// GeneralsX @feature Claude 08/08/2026 Say so, EVERY time, when the filter is still on.
+		// GeneralsX: Say so, EVERY time, when the filter is still on.
 		//
 		// Outside the once-only block above on purpose. The filter survives leaving and re-entering
 		// this screen, and a filtered browser with no friends online is indistinguishable from a
@@ -4294,18 +4294,18 @@ static void shutdownComplete( WindowLayout *layout )
 //-------------------------------------------------------------------------------------------------
 void WOLLobbyMenuShutdown( WindowLayout *layout, void *userData )
 {
-	s_signOutAsk = FALSE;	// GeneralsX @feature Claude 18/09/2026 nor out of this one
+	s_signOutAsk = FALSE;	// GeneralsX: nor out of this one
 	s_signOutGo = FALSE;
 	s_signOutResult = GX_SIGNOUT_NOT_SIGNED_IN;
 
-	// GeneralsX @feature Claude 11/08/2026 The buddy overlay is an off-stack layout with its own
+	// GeneralsX: The buddy overlay is an off-stack layout with its own
 	// lifecycle, so nothing tears it down with this screen - it would otherwise stay on top of
 	// whatever comes next, still holding keyboard focus. Closing is a no-op when it is not open.
 	// (The CodeGui panel that used to get the same treatment here is deleted.)
 	GXBuddyCloseRCMenu();
 	GXBuddyOverlayClose();
 
-	// GeneralsX @bugfix Claude 25/09/2026 QUITTING FROM A RELAY GAME ROOM CRASHED ON EXIT.
+	// GeneralsX: QUITTING FROM A RELAY GAME ROOM CRASHED ON EXIT.
 	//
 	// This function runs TWICE for one visit in relay mode. Hosting or joining pushes the game
 	// options screen, and Shell::push shuts this screen down first - that run saves the prefs and
@@ -4463,14 +4463,14 @@ static const char* getMessageString(Int t)
 
 //-------------------------------------------------------------------------------------------------
 
-// GeneralsX @feature Claude 06/08/2026 One submit path for lobby chat, shared by the Enter key
+// GeneralsX: One submit path for lobby chat, shared by the Enter key
 // (GEM_EDIT_DONE) and the send button (ButtonEmote). They were separate in the stock code and that
 // is how the button ended up doing nothing while typing appeared to work.
-// GeneralsX @feature Claude 07/08/2026 Name for a roster slot, "" when that slot has not claimed
+// GeneralsX: Name for a roster slot, "" when that slot has not claimed
 // one. Chat carries only the sender's virtual address, so this is how a line gets a name on it.
 static UnicodeString relayNickFor( UnsignedInt lastOctet )
 {
-	// GeneralsX @feature Claude 08/08/2026 One roster lookup, shared with the ignore bookkeeping.
+	// GeneralsX: One roster lookup, shared with the ignore bookkeeping.
 	// This used to walk the roster itself; relayRosterNickForSlot is the same walk and is the
 	// version relaySlotIsIgnored has to agree with exactly, or a chat line could be labelled with
 	// one name and matched against another.
@@ -4491,7 +4491,7 @@ static UnicodeString relayLabelFor( UnsignedInt slot )
 }
 
 // ---------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 08/08/2026 Drain the unicast peer channel: private messages and friend
+// GeneralsX: Drain the unicast peer channel: private messages and friend
 // cards. See the design block at the top of the social section for the message kinds.
 //
 // EVERYTHING HERE IS DEFENSIVE AND IT HAS TO BE. A peer line is composed entirely by another
@@ -4499,7 +4499,7 @@ static UnicodeString relayLabelFor( UnsignedInt slot )
 // input. The sender's slot is the only thing not taken from the payload; it comes out of the relay
 // routing header. A kind this build does not know is dropped in silence, so a peer cannot write
 // arbitrary text into this chat box by inventing a verb.
-// GeneralsX @feature Claude 11/08/2026 The card exchange's ONE writer, called by the overlay's
+// GeneralsX: The card exchange's ONE writer, called by the overlay's
 // right-click handler for every BY_SLOT action. Centralised here because every input it trusts -
 // the roster, the latches, the slot->id bindings, relaySendPeerLine - is a static of this file,
 // and the id-vs-name taxonomy above governs all of it. Contract, in order:
@@ -4599,7 +4599,7 @@ Bool GXRelayCardAction( Int action, Int slot, const AsciiString &nickSnapshot )
 			return TRUE;
 		}
 
-		// GeneralsX @bugfix Claude 15/08/2026 Do not offer to somebody who is ALREADY a friend, and
+		// GeneralsX: Do not offer to somebody who is ALREADY a friend, and
 		// do not offer twice. Reported from the live lobby: the buddy list showed the player and
 		// the button still answered "Friend request sent".
 		//
@@ -4689,7 +4689,7 @@ Bool GXRelayPendingRequestAt( Int index, Int *outSlot, AsciiString *outNick )
 	return FALSE;
 }
 
-// GeneralsX @bugfix Claude 16/08/2026 Read from the carrier that shares a room with the roster.
+// GeneralsX: Read from the carrier that shares a room with the roster.
 //
 // The counterpart to relaySendPeerLine's branch, and it has a second job that branch does not: every
 // piece of state this parser touches is INDEXED BY SLOT - s_cardOurNonce, s_cardTheirNonce,
@@ -4768,7 +4768,7 @@ static void relayDrainPeerLines()
 			// The asking half, and it carries no id at all - so an unsolicited one costs the
 			// recipient nothing but a line of text they can ignore.
 			//
-			// GeneralsX @feature Claude 11/08/2026 "fq <nonce> <nick>". The nonce is the
+			// GeneralsX: "fq <nonce> <nick>". The nonce is the
 			// exchange's continuity proof (see the declaration block): our eventual "fa" echoes
 			// it, and their "fi" must echo it back. Outstanding solicitations to this slot are
 			// deliberately NOT cleared - an earlier draft cleared them to kill a nick-replay,
@@ -4810,7 +4810,7 @@ static void relayDrainPeerLines()
 			// Ask the relay who is in the room now, so the row the player sees is as current as
 			// the client can make it before they decide.
 			gxLobbyRequestRoster();
-			// GeneralsX @bugfix Claude 11/08/2026 LATCH THE ROSTER NAME, NEVER THE CARRIED ONE.
+			// GeneralsX: LATCH THE ROSTER NAME, NEVER THE CARRIED ONE.
 			// s_cardNick is not a label - it is the identity this exchange is recorded against.
 			// relayCardPeerUnchanged compares it against the live roster on every enumeration and
 			// clears all three card flags when they differ, and GXRelayCardAction refuses SILENTLY
@@ -4846,7 +4846,7 @@ static void relayDrainPeerLines()
 			// pending state is keyed on a room SLOT, so without it the answer could come from
 			// whoever inherited the slot of the person we actually asked.
 			//
-			// GeneralsX @feature Claude 11/08/2026 "fa <nonce> <id> <nick>" / "fi <nonce> <id>
+			// GeneralsX: "fa <nonce> <id> <nick>" / "fi <nonce> <id>
 			// <nick>". The nonce check is the REAL solicitation test: the flag says an exchange
 			// is open, the nonce proves the answer comes from the endpoint the exchange was
 			// started with - a recycled slot can echo a visible nickname but never a nonce that
@@ -4875,7 +4875,7 @@ static void relayDrainPeerLines()
 			if (strcmp(theirId.str(), GXPlayerIdentity::getPlayerId()) == 0)
 				continue;
 
-			// GeneralsX @feature Claude 11/08/2026 On "fa" the REPLY GOES FIRST, and state only
+			// GeneralsX: On "fa" the REPLY GOES FIRST, and state only
 			// mutates when the send call succeeds. The old order added them, cleared the latch,
 			// then tried to send "fi" - a failed send left a one-sided exchange the peer could
 			// never learn about and nothing could restart. Now a failed send leaves the latch
@@ -4953,7 +4953,7 @@ static void relayUpdatePresence()
 		}
 	}
 
-	// GeneralsX @bugfix Claude 11/08/2026 A login or logout completed while this screen is open has
+	// GeneralsX: A login or logout completed while this screen is open has
 	// to reach the relay. Cheap: a strncmp against the last value declared, and a no-op unless it
 	// actually moved. See relayRedeclareIdentityIfChanged.
 	relayRedeclareIdentityIfChanged();
@@ -4971,9 +4971,9 @@ static void relayUpdatePresence()
 	}
 }
 
-/// GeneralsX @bugfix Claude 23/09/2026 A signed-out lobby transport the relay no longer accepts gets a NEW
+/// GeneralsX: A signed-out lobby transport the relay no longer accepts gets a NEW
 /// id, the way this screen's entry gets one - enterRelayRoom, then SetLocalIP - instead of waiting for the
-/// player to leave and come back (Codex r3 on 3d0cefbfc). See Transport::isRelayIdentityStranded for why
+/// player to leave and come back. See Transport::isRelayIdentityStranded for why
 /// the transport cannot do this itself and why nothing the sign-out discarded comes back.
 ///
 /// Only with no game on this TheLAN and nothing in flight: a LANGameInfo holds its own copy of the address,
@@ -4981,7 +4981,7 @@ static void relayUpdatePresence()
 /// presence socket's GX_GAVEUP_RETRY_MS - because an unanswered enterRelayRoom blocks this thread for its
 /// DNS lookup and its retries (5 x 400 ms), exactly as this screen's own entry does in an outage.
 ///
-/// GeneralsX @bugfix Claude 23/09/2026 ...AND DOUBLED ON EVERY UNANSWERED ONE, to 5 min (Claude r6). Silence is
+/// GeneralsX: ...AND DOUBLED ON EVERY UNANSWERED ONE, to 5 min. Silence is
 /// the whole signal, and an unreachable relay is silence too: at a flat 30 s that was a 2 s freeze of this
 /// screen every 30 s for as long as it lasted. An answer resets it. What a forged trigger can buy is
 /// bounded besides: an answered
@@ -4997,7 +4997,7 @@ static void relayReacquireIfStranded()
 	if (transport == nullptr || !(transport->isRelayIdentityStranded() || s_reacquireRebindOwed))
 		return;
 	// hasPendingAction: a same-room browser join sets no flag here (see relayJoinSelectedGame), and a new id
-	// mid-handshake leaves the host holding the old one (Codex r4).
+	// mid-handshake leaves the host holding the old one.
 	if (s_tryingToHostOrJoin || isShuttingDown || TheLAN->GetMyGame() != nullptr || TheLAN->hasPendingAction())
 		return;
 	const UnsignedInt now = timeGetTime();
@@ -5015,7 +5015,7 @@ static void relayReacquireIfStranded()
 		return;
 	}
 	s_reacquireWaitMs = REACQUIRE_RETRY_MS;
-	// GeneralsX @bugfix Claude 23/09/2026 THE DEADLINE TOO (Codex on 5db38bb2f): it was stamped above with the
+	// GeneralsX: THE DEADLINE TOO: it was stamped above with the
 	// interval an earlier outage had raised, up to 5 min, so a failed rebind below - which re-arms this very
 	// path - waited that out instead of the 30 s an answer resets to.
 	s_nextReacquireMs = now + s_reacquireWaitMs;
@@ -5024,14 +5024,14 @@ static void relayReacquireIfStranded()
 		room.str(), PRINTF_IP_AS_4_INTS(ip));
 	fflush(stderr);
 	// A failed bind has already deleted the old socket, and initRelay zeroed the count: nothing would ever
-	// ask again. So the failure itself is what re-arms the next attempt, 30 s on (Codex r4).
+	// ask again. So the failure itself is what re-arms the next attempt, 30 s on.
 	s_reacquireRebindOwed = !TheLAN->SetLocalIP(ip);
 	if (s_reacquireRebindOwed)
 		return;
 	relayDeclareIdentity();		// the durable id now, not on the 30 s tag tick; a no-op identity when signed out
 }
 
-// GeneralsX @feature Claude 07/08/2026 Apply a nickname to every identity at once.
+// GeneralsX: Apply a nickname to every identity at once.
 //
 // Three separate identities existed and nothing kept them in step:
 //   * the relay-held nickname  - the lobby browser's player list and lobby chat
@@ -5043,7 +5043,7 @@ static void relayReacquireIfStranded()
 // Deliberately not gated on being in a relay room: the LAN name and the preference are worth
 // setting even when the relay half cannot be, so the command does something useful on the
 // game-options screen and in a plain LAN game too.
-// GeneralsX @refactor Claude 11/08/2026 WIDE in, normalised ONCE, one value drives everything.
+// GeneralsX: WIDE in, normalised ONCE, one value drives everything.
 //
 // Three changes travelling together, each forced by a real defect:
 //   * The parameter is the WIDE remainder. Every caller used to tokenise the ASCII translation of
@@ -5069,7 +5069,7 @@ Bool GXApplyNickname( const UnicodeString &requested, UnicodeString &outNote,
 	{
 		if (*c == L',' || *c == L':' || *c == L';')
 			continue;
-		// GeneralsX @feature Claude 11/08/2026 '@' is RESERVED for the role decoration - a moderator
+		// GeneralsX: '@' is RESERVED for the role decoration - a moderator
 		// renders as <@Name> and an admin as @Name - so a name that could contain one would let
 		// anyone who can type forge the marker.
 		//
@@ -5110,7 +5110,7 @@ Bool GXApplyNickname( const UnicodeString &requested, UnicodeString &outNote,
 	AsciiString narrow;
 	narrow.translate(wide);		// safe: anything above 127 was refused above
 
-	// GeneralsX @bugfix Claude 15/09/2026 The relay's refusal, carried back to whichever screen
+	// GeneralsX: The relay's refusal, carried back to whichever screen
 	// asked - plan G, item G-1. Empty means the relay-held nickname was claimed, or was never
 	// attempted at all because TheLAN is null. Non-empty is the clause appended to outNote below,
 	// and every /nick call site prints outNote through its own sink, so this is how the message
@@ -5131,7 +5131,7 @@ Bool GXApplyNickname( const UnicodeString &requested, UnicodeString &outNote,
 
 	// Persist, so it survives a restart rather than reverting to the machine name.
 	//
-	// GeneralsX @bugfix Claude 07/08/2026 QUOTED-PRINTABLE, not the raw string.
+	// GeneralsX: QUOTED-PRINTABLE, not the raw string.
 	//
 	// LANPreferences::getUserName() reads this key back through
 	// QuotedPrintableToUnicodeString (LanLobbyMenu.cpp), so a name written raw is decoded as if it
@@ -5143,7 +5143,7 @@ Bool GXApplyNickname( const UnicodeString &requested, UnicodeString &outNote,
 	prefs["UserName"] = UnicodeStringToQuotedPrintable(wide);
 	prefs.write();
 
-	// GeneralsX @bugfix Claude 15/09/2026 ONE note, telling the truth about BOTH halves - G-1.
+	// GeneralsX: ONE note, telling the truth about BOTH halves - G-1.
 	//
 	// The relay-held nickname is the only half that can fail here, and it fails without stopping
 	// anything: RequestSetName has already run and the preference is already written, so the LAN
@@ -5183,7 +5183,7 @@ static void relaySubmitChat( void )
 	AsciiString ascii;
 	ascii.translate(txtInput);
 
-	// GeneralsX @feature Claude 11/08/2026 /help, /clear, and the verbs this build has retired.
+	// GeneralsX: /help, /clear, and the verbs this build has retired.
 	//
 	// FIRST, and that ordering is load-bearing rather than tidy: three of the retired verbs
 	// (/pass, /nopassword, /lobbyhelp) are still recognised DOWNSTREAM by
@@ -5197,7 +5197,7 @@ static void relaySubmitChat( void )
 		return;
 	}
 
-	// GeneralsX @feature Claude 21/08/2026 One chat line every ChatRate::MIN_INTERVAL_MS, shared
+	// GeneralsX: One chat line every ChatRate::MIN_INTERVAL_MS, shared
 	// with every other chat box in the game - see GameClient/ChatRateLimit.h. Placed BELOW the
 	// slash-command interception on purpose, so /help and /clear cost no allowance, and the
 	// refused line goes back in the box rather than being dropped.
@@ -5220,7 +5220,7 @@ static void relaySubmitChat( void )
 		}
 	}
 
-	// GeneralsX @feature Claude 07/08/2026 /nick <name> - claim a display name.
+	// GeneralsX: /nick <name> - claim a display name.
 	//
 	// Sent to the RELAY, which holds it on the member record and returns it with the roster. That
 	// is what makes it stick without anyone refreshing: a name broadcast peer-to-peer is only
@@ -5237,7 +5237,7 @@ static void relaySubmitChat( void )
 		AsciiString verb;
 		rest.nextToken(&verb);
 		verb.toLower();
-		// GeneralsX @refactor Claude 11/08/2026 The name comes off the WIDE line - see
+		// GeneralsX: The name comes off the WIDE line - see
 		// GXLobbyTakeNickRest. The ascii tokens above still dispatch every other verb.
 		{
 			UnicodeString nickRest;
@@ -5252,7 +5252,7 @@ static void relaySubmitChat( void )
 			}
 		}
 
-		// GeneralsX @feature Claude 08/08/2026 Friends and ignore. Handled before the send below
+		// GeneralsX: Friends and ignore. Handled before the send below
 		// for the same reason /nick is - and here it also matters that an unrecognised line used to
 		// be BROADCAST: see the note on relayHandleSocialCommand.
 		if (relayHandleSocialCommand(verb, rest))
@@ -5262,7 +5262,7 @@ static void relaySubmitChat( void )
 			return;
 		}
 
-		// GeneralsX @feature Claude 08/08/2026 /password, /private, /public. The relay
+		// GeneralsX: /password, /private, /public. The relay
 		// lobby is the screen a player hosts and joins from, so it is where these have to be
 		// typeable; the LAN screens get the same commands for free because LANAPI::RequestChat
 		// intercepts them, and this screen does not go through RequestChat.
@@ -5278,7 +5278,7 @@ static void relaySubmitChat( void )
 			UnicodeString note;
 			if (TheLAN->applyLobbyCommand(ascii, note))
 			{
-				// GeneralsX @bugfix Claude 13/08/2026 Through the sink, not around it. This is a
+				// GeneralsX: Through the sink, not around it. This is a
 				// line this client produced for this player alone - the definition of [S] - and it
 				// was the one such line printing bare, because it wrote to the listbox directly.
 				// Going around the sink also meant it landed between a block's header and its
@@ -5290,7 +5290,7 @@ static void relaySubmitChat( void )
 			}
 		}
 
-		// GeneralsX @feature Claude 11/08/2026 A '/' line nothing recognised is REFUSED, not sent.
+		// GeneralsX: A '/' line nothing recognised is REFUSED, not sent.
 		//
 		// THIS IS WHAT MAKES RETIRING AN ALIAS SAFE. sendLobbyChat below publishes to every member
 		// of the room, so without this "/w bob meet me at the back" - a private-message verb this
@@ -5332,7 +5332,7 @@ static void relaySubmitChat( void )
 	// never receives their own line.
 	// Prefer the relay-held nickname, so your own lines read the same way everyone else sees them.
 	//
-	// GeneralsX @bugfix Claude 15/08/2026 Go through relayMySlot(), do NOT re-derive the slot here.
+	// GeneralsX: Go through relayMySlot(), do NOT re-derive the slot here.
 	// This line had its own inlined copy of the pre-fix relayMySlot() body, so it asked the GAME
 	// transport which slot we are while the roster it then indexes comes from the shared room. That
 	// is what put another player's name on our own echoed chat lines. There must be exactly one
@@ -5342,7 +5342,7 @@ static void relaySubmitChat( void )
 		myName = TheLAN->GetMyName();
 	if (myName.isEmpty())
 		myName = TheGameText->FETCH_OR_SUBSTITUTE("GUI:RelayLobbyChatMe", L"me");
-	// GeneralsX @feature Claude 11/08/2026 Timestamped like every other line. Your own echo is
+	// GeneralsX: Timestamped like every other line. Your own echo is
 	// decorated with YOUR role too - the relay knows it, and a moderator who cannot see their own
 	// marker has no way to tell whether it is working.
 	UnicodeString mine = GXLobbyTimestamp();
@@ -5353,7 +5353,7 @@ static void relaySubmitChat( void )
 	mine = GXLobbyChatRow(listboxLobbyChat, UnicodeString::TheEmptyString, mine);
 	TheGameSpyInfo->addText(mine, GameSpyColor[GSCOLOR_CHAT_OWNER], listboxLobbyChat);
 
-	// GeneralsX @bugfix Claude 06/08/2026 Put the caret back in the box.
+	// GeneralsX: Put the caret back in the box.
 	//
 	// Submitting drops focus, so on iPadOS the on-screen keyboard closes and the entry stops
 	// accepting input - the operator had to tap another control and tap back to type a second
@@ -5391,7 +5391,7 @@ void refreshGameList( Bool forceRefresh )
 /** refreshPlayerList
 		The Bool is used to force refresh if the refresh button was hit.*/
 //-------------------------------------------------------------------------------------------------
-/* GeneralsX @bugfix Claude 20/09/2026 (owner) THE ROSTER AS IT IS RENDERED, as one number.
+/* GeneralsX: THE ROSTER AS IT IS RENDERED, as one number.
  *
  * Deliberately the same device the GAME list already uses a few hundred lines up (s_relayListLastBuilt):
  * an FNV-1a over exactly the fields that are drawn, so the screen rebuilds when its CONTENT changes and
@@ -5426,7 +5426,7 @@ void refreshPlayerList( Bool forceRefresh )
 {
 		Int refreshInterval = playerListRefreshInterval;
 
-		/* GeneralsX @bugfix Claude 20/09/2026 (owner) A 5 SECOND REPAINT WAITING ON A 0.21 SECOND ANSWER.
+		/* GeneralsX: A 5 SECOND REPAINT WAITING ON A 0.21 SECOND ANSWER.
 		 *
 		 * This gate was the timer alone. WOLLobbyMenuInit zeroes playerListRefreshTime, so the FIRST paint
 		 * happened on the screen's first frame - necessarily before any relay answer could exist - and the
@@ -5456,7 +5456,7 @@ void refreshPlayerList( Bool forceRefresh )
 //-------------------------------------------------------------------------------------------------
 /** WOL Lobby Menu update method */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 11/08/2026 The retail buddy overlay, opened DIRECTLY on the relay path.
+// GeneralsX: The retail buddy overlay, opened DIRECTLY on the relay path.
 //
 // GameSpyOpenOverlay is not usable here: it dereferences TheGameSpyBuddyMessageQueue->isConnected()
 // before doing anything, and the relay path deliberately never creates that queue. It also parks
@@ -5499,7 +5499,7 @@ void GXBuddyOverlayOpen( void )
 void GXBuddyOverlayClose( void )
 {
 	// An RC menu opened FROM the overlay is an independent lone-window layout; closing the
-	// overlay without it leaves an actionable menu floating over nothing (codex r2 of the diff
+	// overlay without it leaves an actionable menu floating over nothing (of the diff
 	// review - the Escape path reached here without the transition closers running).
 	GXBuddyCloseRCMenu();
 	if (s_gxOverlay == nullptr)
@@ -5526,7 +5526,7 @@ void GXBuddyOverlayPump( void )
 {
 	if (s_gxOverlay == nullptr)
 		return;
-	// GeneralsX @bugfix Claude 25/09/2026 Presence follows the overlay out of the lobby (codex-B P2). The lobby
+	// GeneralsX: Presence follows the overlay out of the lobby (-B P2). The lobby
 	// screen polls it (WOLLobbyMenuUpdate); in a game room or a match that screen is gone, so while the overlay
 	// is open there, poll from here - GXSEEN needs no room (Transport::requestRelayPresence) and this stays the
 	// one takeRelayPresence consumer. Not while the lobby screen runs its own, so nothing polls twice.
@@ -5550,7 +5550,7 @@ Bool GXFriendsKeyHere( void )
 		TheNetwork != nullptr);
 }
 
-// GeneralsX @feature Claude 18/09/2026 SIGN-OUT FROM THE PLAYER'S OWN NAME. See GUICallbacks.h.
+// GeneralsX: SIGN-OUT FROM THE PLAYER'S OWN NAME. See GUICallbacks.h.
 //
 // Two flags, drained one frame apart, so no message box is ever opened from inside another
 // window's callback (the wedge MainMenu.cpp documents) and the confirmation's Yes never does the
@@ -5686,10 +5686,10 @@ static void gxDrainSignOut( void )
 
 void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 {
-	// GeneralsX @feature Claude 25/09/2026 The gx overlay's update is pumped by GameClient::update now
+	// GeneralsX: The gx overlay's update is pumped by GameClient::update now
 	// (GXBuddyOverlayPump): F5 opens it in the game room and in a match, where this screen is gone.
 
-	gxDrainSignOut();	// GeneralsX @feature Claude 18/09/2026 see above
+	gxDrainSignOut();	// GeneralsX: see above
 
 		if(justEntered)
 	{
@@ -5709,7 +5709,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 	}
 
 
-	// GeneralsX @feature Claude 11/08/2026 Drain the login flow's queued lines into the chat box.
+	// GeneralsX: Drain the login flow's queued lines into the chat box.
 	//
 	// WITHOUT THIS THE FEATURE DOES NOT WORK AT ALL. The service issues a short code the player has
 	// to type in the browser, and this is the only thing that ever puts that code on screen -
@@ -5726,7 +5726,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 		}
 	}
 
-	// GeneralsX @feature Claude 06/08/2026 Drain incoming relay lobby chat into the chat box.
+	// GeneralsX: Drain incoming relay lobby chat into the chat box.
 	//
 	// Drained here rather than from the transport's receive path because the listbox is a UI object
 	// and doRecv runs wherever the socket is serviced. The queue is bounded (Transport.h), so a
@@ -5744,12 +5744,12 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 			UnicodeString wide, shown;
 			wide.translate(AsciiString(chatLine));
 
-			// GeneralsX @feature Claude 19/09/2026 The OPERATOR, from the admin panel's Say - drawn
+			// GeneralsX: The OPERATOR, from the admin panel's Say - drawn
 			// exactly like an admin's own line ("HH:MM @Admin text" in the admin row colour) so it
 			// reads as somebody with authority speaking rather than as a grey room notice. Only the
 			// relay can produce this sender (GXRelaySay.h); never ignorable, never folded into a block.
 			//
-			// GeneralsX @bugfix Claude 20/09/2026 ...AND A MODERATOR IS DRAWN AS A MODERATOR. The role
+			// GeneralsX: ...AND A MODERATOR IS DRAWN AS A MODERATOR. The role
 			// comes from the sender token the relay stamped, so it is as trustworthy as the relay and
 			// nothing on this side decides it. This branch used to be admin-only and the relay had one
 			// token, so a moderator's Say drew as "@Admin" in the admin colour.
@@ -5765,7 +5765,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 				continue;
 			}
 
-			// GeneralsX @feature Claude 07/08/2026 Sender 0 is the RELAY talking, not a player.
+			// GeneralsX: Sender 0 is the RELAY talking, not a player.
 			//
 			// Room slots are the last octet of a virtual address and are never 0, so the relay uses
 			// 0.0.0.0 as the sender for a system notice - currently "[P3] has changed their name to
@@ -5773,7 +5773,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 			// a statement about the room rather than as something a player typed.
 			if (senderIp == 0)
 			{
-				// GeneralsX @feature Claude 11/08/2026 "[L]HH:MM " - the LOBBY is talking, not a
+				// GeneralsX: "[L]HH:MM " - the LOBBY is talking, not a
 				// player and not your own client.
 				//
 				// "[L]" does NOT collide with the OS column on this same screen - that column
@@ -5793,7 +5793,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 				continue;
 			}
 
-			// GeneralsX @feature Claude 08/08/2026 Lobby ignore, applied HERE and nowhere else.
+			// GeneralsX: Lobby ignore, applied HERE and nowhere else.
 			//
 			// Receive side, in the menu layer, on purpose. Filtering at the sender would be a
 			// promise the wire cannot keep - the relay broadcasts GXSAY to every member of the room
@@ -5804,7 +5804,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 			if (relaySlotIsIgnored(senderIp))
 				continue;
 
-			// GeneralsX @feature Claude 11/08/2026 The role decoration and the row colour.
+			// GeneralsX: The role decoration and the row colour.
 			//
 			// The relay decided the role from a signed assertion and enforces every actual rule
 			// itself, so this is presentation and nothing else - a patched client can paint itself
@@ -5829,7 +5829,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 			}
 			// Owner decision, 2026-08-11: EVERY line carries the stamp, not just [S].
 			//
-			// GeneralsX @feature Claude 13/08/2026 A player line NEVER folds into the block above,
+			// GeneralsX: A player line NEVER folds into the block above,
 			// and never opens one - hence the empty prefix, with the stamp carried in the body.
 			// Two reasons. Folding it under a [S] header would make somebody else's words look like
 			// this client talking to itself, which is the one confusion the tags exist to prevent.
@@ -5842,7 +5842,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 				GXLobbyRoleTextColor(role, GameSpyColor[GSCOLOR_CHAT_NORMAL]), listboxLobbyChat);
 		}
 
-		// GeneralsX @bugfix Claude 16/08/2026 RE-KEY HERE, because admission is asynchronous.
+		// GeneralsX: RE-KEY HERE, because admission is asynchronous.
 		//
 		// The call in WOLLobbyMenuInit is not enough on its own and this is not belt-and-braces.
 		// enterLobby() leaves presence in STATE_ACQUIRING and the identity arrives later, in GXYOU, on
@@ -5857,7 +5857,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 		// frame whose boundary has not been settled yet.
 		relaySyncSocialSessionToRoom();
 
-		// GeneralsX @feature Claude 08/08/2026 The private channel, drained beside the public one
+		// GeneralsX: The private channel, drained beside the public one
 		// and for the same reason: the listbox is a UI object and the socket is serviced elsewhere.
 		// Both queues are bounded in Transport, so a flood costs a fixed number of lines per frame.
 		relayDrainPeerLines();
@@ -5869,7 +5869,7 @@ void WOLLobbyMenuUpdate( WindowLayout * layout, void *userData)
 	if(isShuttingDown && TheShell->isAnimFinished() && TheTransitionHandler->isFinished())
 		shutdownComplete(layout);
 
-	// GeneralsX @feature Claude 06/08/2026 GX_UI: why are this screen's buttons dead?
+	// GeneralsX: GX_UI: why are this screen's buttons dead?
 	//
 	// Measured with a UI driver: on WOLCustomLobby every synthetic click is a no-op - Refresh, Join and
 	// Back all did nothing across 60+ seconds - while the identical click mechanism works on
@@ -6430,7 +6430,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 	UnicodeString txtInput;
 	static NameKeyType buttonGameListTypeToggleID = NAMEKEY_INVALID;
 
-	// GeneralsX @bugfix Claude 30/07/2026 A screen that is animating out must not act on clicks.
+	// GeneralsX: A screen that is animating out must not act on clicks.
 	//
 	// WOLLobbyMenuShutdown disarms its own guards and then leaves the layout live:
 	//
@@ -6507,7 +6507,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 						// the GXGAME reply is everything the relay knows about a game. Following the
 						// selection with the player list is the whole of it.
 						//
-						// GeneralsX @bugfix Claude 07/08/2026 Enable Join on the row's GAME, not on
+						// GeneralsX: Enable Join on the row's GAME, not on
 						// the row's INDEX.
 						//
 						// Row 0 of this listbox is the column header added by RefreshGameListBox, and
@@ -6523,7 +6523,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 						// test instead of two tests that can disagree.
 						s_relaySelectedID = relaySelectedGameID();
 
-						// GeneralsX @bugfix Claude 07/08/2026 Do not leave a non-game row HIGHLIGHTED.
+						// GeneralsX: Do not leave a non-game row HIGHLIGHTED.
 						//
 						// Gating Join on the row's game (above) stopped the header row from arming a
 						// join, but the listbox still DREW it selected - so the column header sat
@@ -6547,7 +6547,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 
 						PeerRequest req;
 						req.peerRequestType = PeerRequest::PEERREQUEST_GETEXTENDEDSTAGINGROOMINFO;
-					// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+					// GeneralsX: 64-bit safe pointer cast
 					req.stagingRoom.id = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(control, rowSelected, 0)));
 
 						lastID = req.stagingRoom.id;
@@ -6578,7 +6578,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 				if (HandleSortButton((NameKeyType)controlID))
 					break;
 
-				// GeneralsX @bugfix Claude 06/08/2026 ButtonEmote is the SEND button on this screen.
+				// GeneralsX: ButtonEmote is the SEND button on this screen.
 				if (s_relayLobby && controlID == buttonEmoteID)
 				{
 					relaySubmitChat();
@@ -6641,7 +6641,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 						//
 						// No SetLobbyAttemptHostJoin here either - see relayJoinSelectedGame.
 						//
-						// GeneralsX @feature Claude 16/08/2026 ASK FIRST. This used to host
+						// GeneralsX: ASK FIRST. This used to host
 						// immediately, so the only way to protect a game was to notice the
 						// Password box on the NEXT screen and type /password - by which point the
 						// room had already been advertised unprotected.
@@ -6687,7 +6687,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 					GadgetListBoxGetSelected(GetGameListBox(), &selected);
 					if (selected >= 0)
 					{
-						// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+						// GeneralsX: 64-bit safe pointer cast
 						Int selectedID = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(GetGameListBox(), selected)));
 						if (selectedID > 0)
 						{
@@ -6762,16 +6762,16 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 				{
 					// GeneralsX @feature Matchmaking. The buddy list is a GameSpy profile feature and
 					// GameSpyOpenOverlay dereferences the buddy message queue we never created.
-					// GeneralsX @feature Claude 08/08/2026 On the relay path this is the FRIENDS
+					// GeneralsX: On the relay path this is the FRIENDS
 					// button instead. It must still never reach GameSpyToggleOverlay - that null
 					// dereference is the reason the control was dead in the first place.
 					//
-					// GeneralsX @feature Claude 09/08/2026 It now opens a real panel instead of
+					// GeneralsX: It now opens a real panel instead of
 					// printing the list into chat. relayPrintFriends stays exactly where it was and
 					// is still what /friend with no argument runs, so the text form is unchanged for
 					// headless peers and for anyone who prefers typing; this only gives the button
 					// something better to do than narrate.
-					// GeneralsX @feature Claude 11/08/2026 And now it opens the RETAIL overlay -
+					// GeneralsX: And now it opens the RETAIL overlay -
 					// WOLBuddyOverlay.wnd re-pointed at the local store - instead of the CodeGui
 					// panel. Same rule as ever: never through GameSpyToggleOverlay on this path.
 					if (s_relayLobby)
@@ -6816,7 +6816,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 				// GeneralsX @feature Matchmaking. The group-room dropdown does not switch rooms
 				// here: it names the relay we are on, and joinGroupRoom/leaveGroupRoom are both
 				// peerchat requests.
-				// GeneralsX @feature Claude 08/08/2026 It IS the game-list filter now, so the relay
+				// GeneralsX: It IS the game-list filter now, so the relay
 				// path reads the selection instead of ignoring the message outright.
 				if (s_relayLobby)
 				{
@@ -6850,7 +6850,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 					if (rowSelected >= 0)
 					{
 						Int groupID;
-						// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+						// GeneralsX: 64-bit safe pointer cast
 						groupID = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(comboLobbyGroupRooms, rowSelected)));
 						DEBUG_LOG(("ItemData was %d, current Group Room is %d", groupID, TheGameSpyInfo->getCurrentGroupRoom()));
 						if (groupID && groupID != TheGameSpyInfo->getCurrentGroupRoom())
@@ -6900,7 +6900,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 		//---------------------------------------------------------------------------------------------
 		case GLM_RIGHT_CLICKED:
 			{
-				// GeneralsX @feature Claude 11/08/2026 On the relay this is the SENDING HALF of
+				// GeneralsX: On the relay this is the SENDING HALF of
 				// the card exchange - the click-a-name idiom the retail RC menus were built for,
 				// re-pointed at slots instead of GameSpy profiles. The old blanket break said
 				// "every entry is a no-op or a null queue write", which was true until the
@@ -6919,7 +6919,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 					// GeneralsX @build 64-bit safe pointer cast, as elsewhere in this file
 					const Int slot = static_cast<Int>(reinterpret_cast<intptr_t>(
 						GadgetListBoxGetItemData(rControl, rc->pos, 0)));
-					// GeneralsX @feature Claude 18/09/2026 THE PLAYER'S OWN NAME opens EA's "this is
+					// GeneralsX: THE PLAYER'S OWN NAME opens EA's "this is
 					// me" menu - RCLocalPlayerMenu.wnd, the one the GameSpy branch below opens for
 					// the local profile - carrying Sign Out. Only while signed in (there is nothing
 					// to remove otherwise) and not mid host/join (leaving would strand it). The
@@ -7051,7 +7051,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 						break;
 					}
 
-					// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+					// GeneralsX: 64-bit safe pointer cast
 					Int selectedID = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetListBoxGetItemData(control, rc->pos)));
 					if (selectedID > 0)
 					{
@@ -7116,7 +7116,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 				if (txtInput.isEmpty())
 					break;
 
-				// GeneralsX @feature Claude 06/08/2026 Relay lobby chat - see relaySubmitChat().
+				// GeneralsX: Relay lobby chat - see relaySubmitChat().
 				// Deliberately NOT routed through TheGameSpyInfo->sendChat: that writes to the
 				// peerchat message queue, which does not exist on a relay, and its slash commands
 				// query the GameSpy QR2 hosting state.
@@ -7131,7 +7131,7 @@ WindowMsgHandledType WOLLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 				// deleted - see the note where it lived - so the unreachable GameSpy path just
 				// sends, as retail did before the slash commands existed.
 				//
-				// GeneralsX @feature Claude 21/08/2026 Rate limited like every other chat box.
+				// GeneralsX: Rate limited like every other chat box.
 				// No notice on this one: it is the legacy GameSpy path, which this build cannot
 				// reach, and inventing a sink for a dead screen is not worth the code.
 				{

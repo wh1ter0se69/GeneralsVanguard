@@ -114,9 +114,9 @@ namespace {
 		}
 
 	#ifndef _WIN32
-		// GeneralsX @bugfix Claude 22/10/2026 A registry.ini that is a link to nothing (its volume not mounted) is not a
+		// GeneralsX: A registry.ini that is a link to nothing (its volume not mounted) is not a
 		// file to create: the "a" below would make an empty shadow behind the link, the read would then succeed on it,
-		// and the save would replace the link (Codex fwc-r4 P2). Nothing is read or written then.
+		// and the save would replace the link. Nothing is read or written then.
 		struct stat linkInfo;
 		struct stat targetInfo;
 		if (lstat(GetRegistryIniPath().c_str(), &linkInfo) == 0 && stat(GetRegistryIniPath().c_str(), &targetInfo) != 0) {
@@ -246,7 +246,7 @@ namespace {
 			parts.push_back(current);
 		}
 
-		 // GeneralsX @feature GitHubCopilot 29/03/2026
+		 // GeneralsX:
 		 // Apply known product name aliases to improve compatibility with mods
 		 // and variants that write/read multiple product registry paths.
 		 if (!parts.empty()) {
@@ -332,10 +332,10 @@ namespace {
 		return normalized;
 	}
 
-	// GeneralsX @bugfix Claude 22/10/2026 `unreadable`, when asked for, is set when registry.ini exists and could not be
+	// GeneralsX: `unreadable`, when asked for, is set when registry.ini exists and could not be
 	// read: any fopen failure but "not there", or a read error part way. The writers below refuse then - they used to
 	// ignore this function's result, so an unreadable registry.ini loaded as an empty registry and the next write
-	// replaced the file with that one value (the file-wipe class, Codex uow-r1's sweep). What is loaded and returned is
+	// replaced the file with that one value (the file-wipe class, sweep). What is loaded and returned is
 	// unchanged.
 	bool LoadRegistryIni(RegistryIniData &data, bool *unreadable = nullptr)
 	{
@@ -344,7 +344,7 @@ namespace {
 		}
 		if (!EnsureRegistryStorageExists()) {
 			// Nothing was read, so a writer must not go on as if the registry were empty: a one-off failure here
-			// followed by a save that succeeds replaced the file with one value (Codex fwc-r1 P1).
+			// followed by a save that succeeds replaced the file with one value.
 			if (unreadable != nullptr) {
 				*unreadable = true;
 			}
@@ -428,10 +428,10 @@ namespace {
 			return false;
 		}
 
-		// GeneralsX @bugfix Claude 22/10/2026 Written beside the file and swapped in, never truncated in place: a crash or
+		// GeneralsX: Written beside the file and swapped in, never truncated in place: a crash or
 		// a full disk between the fopen("w") and the last line used to leave an empty or half registry.
 		// A fresh temp made exclusively ("x"): a link left at the temp's name is never followed, so nothing else is
-		// truncated through it, and two writers never share one (Codex fwc-r3 P2).
+		// truncated through it, and two writers never share one.
 		const std::string path = GetRegistryIniPath();
 	#ifdef _WIN32
 		const int pid = _getpid();
@@ -494,7 +494,7 @@ namespace RegistryIni {
 		return kLocalMachineRoot;
 	}
 
-	// GeneralsX @feature GitHubCopilot 29/03/2026 Persist non-Windows registry reads and writes in registry.ini.
+	// GeneralsX: Persist non-Windows registry reads and writes in registry.ini.
 	bool ReadString(const char *root, const char *path, const char *key, std::string &value)
 	{
 		RegistryIniData data;

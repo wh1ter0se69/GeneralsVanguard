@@ -1658,7 +1658,7 @@ inline Bool isPosDifferent(const Coord3D* a, const Coord3D* b)
 	// the PartitionManager stuff when the pos/orientation really changes (for efficiency purposes)
 	// so we must put in some cleverness...
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 compared per transform change, i.e. per FRAME of movement: a per-frame distance,
+	// GeneralsX: compared per transform change, i.e. per FRAME of movement: a per-frame distance,
 	// halved, so units moving 0.3-0.6 units/sec still re-dirty their partition cells as in retail.
 	const Real THRESH = 0.005f;
 #else
@@ -1686,7 +1686,7 @@ inline Bool isAngleDifferent(Real a, Real b)
 	// so we must put in some cleverness...
 
 #if GX_LOGIC_60HZ
-	const Real THRESH = 0.005f;	// GeneralsX @fix Claude 23/09/2026 per-frame turn, halved: a unit turning under 34 deg/sec never re-dirtied its footprint
+	const Real THRESH = 0.005f;	// GeneralsX: per-frame turn, halved: a unit turning under 34 deg/sec never re-dirtied its footprint
 #else
 	const Real THRESH = 0.01f;	// in radians, this is approx 1/2 degree.
 #endif
@@ -1980,7 +1980,7 @@ void Object::setDisabledUntil( DisabledType type, UnsignedInt frame, Bool neverM
 
 	//Handle audio events!
  	AudioEventRTS sound;
-	// GeneralsX @feature Claude 27/09/2026 !neverManned here and at the dead-man's trigger below: a vehicle that never
+	// GeneralsX: !neverManned here and at the dead-man's trigger below: a vehicle that never
 	// had a pilot (a cheat spawn's) takes the unmanned state without what a sniped pilot's death does.
 	if( type == DISABLED_UNMANNED && !isKindOf( KINDOF_DRONE ) && !neverManned )
 	{
@@ -2021,7 +2021,7 @@ void Object::setDisabledUntil( DisabledType type, UnsignedInt frame, Bool neverM
 
 		m_disabledTillFrame[ type ] = frame;
 		m_disabledMask.set( type, frame > TheGameLogic->getFrame() );
-		// GeneralsX @performance Claude 23/09/2026 keep GameLogic's disabled-expiry watermark <= this till-frame.
+		// GeneralsX: keep GameLogic's disabled-expiry watermark <= this till-frame.
 		TheGameLogic->noteDisabledUntil( frame );
 
 		if( m_drawable )
@@ -2177,7 +2177,7 @@ Bool Object::clearDisabled( DisabledType type )
 //-------------------------------------------------------------------------------------------------
 //Checks any timers and clears disabled statii that have expired.
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @performance Claude 23/09/2026 Returns the earliest till-frame among the bits still set after the check
+// GeneralsX: Returns the earliest till-frame among the bits still set after the check
 // (0xffffffff if none), for GameLogic's disabled-expiry watermark. The clearing logic is unchanged.
 UnsignedInt Object::checkDisabledStatus()
 {
@@ -3785,7 +3785,7 @@ void Object::xfer( Xfer *xfer )
 
 	// disabled till frame
 	xfer->xferUser( m_disabledTillFrame, sizeof( UnsignedInt ) * DISABLED_COUNT );
-	// GeneralsX @performance Claude 23/09/2026 loaded till-frames bypass setDisabledUntil; force one expiry walk.
+	// GeneralsX: loaded till-frames bypass setDisabledUntil; force one expiry walk.
 	if( xfer->getXferMode() == XFER_LOAD )
 		TheGameLogic->noteDisabledUntil( 0 );
 
@@ -5445,7 +5445,7 @@ Bool Object::canProduceUpgrade( const UpgradeTemplate *upgrade )
 
 	// We need to have the button to make the upgrade.  CommandSets are a weird Logic/Client hybrid.
 	const CommandSet *set = TheControlBar->findCommandSet(getCommandSetString());
-	// GeneralsX @bugfix Claude 06/10/2026 No command set (an empty or unknown CommandSet name) means no upgrade button, so
+	// GeneralsX: No command set (an empty or unknown CommandSet name) means no upgrade button, so
 	// no upgrade. It was dereferenced: AIGroup asks every member of a selection that queues a player upgrade, and
 	// ProductionUpdate::canQueueUpgrade asks too, so one such object in the group - or a modified client's order naming
 	// one - crashed every peer (sweep c013-01).

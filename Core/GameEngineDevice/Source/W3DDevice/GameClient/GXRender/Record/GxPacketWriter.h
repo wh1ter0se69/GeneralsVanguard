@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: GxPacketWriter v1 - ONE recording thread that turns d3d8-semantics draw
+// GeneralsX: WS-F1: GxPacketWriter v1 - ONE recording thread that turns d3d8-semantics draw
 // packets into Vulkan commands over VkCtx v0 (frame ring), GXRES v0 (resources) and the WS-D pipeline set.
 //
 // The pass graph. A pass = a span of draws into one attachment set (colour [+ depth]), labelled by the caller (reflection,
@@ -149,7 +149,7 @@ struct GxRecTestGlobals
 	bool a25SlowP1 = false;           // PREREG_T A25: every RS/TSS change invalidates the translator's pack (pre-A25)
 	bool a25SlowP3 = false;           // PREREG_T A25: the stencil group records each face separately (pre-A25)
 	std::atomic<uint64_t> packCheckMismatches{ 0 };   // every translator's check-mode mismatches (GX_TR_PACK_CHECK=1 only; a device a
-	                                  // test replaces or releases is counted too - Codex a25-code-r1 #5; atomic: translators may record
+	                                  // test replaces or releases is counted too; atomic: translators may record
 	                                  // on other threads - r3. Read it once the arm's recording has completed)
 	std::atomic<uint64_t> packCheckTFactorOnly{ 0 };  // of those, the ones whose ONLY difference is the PS block's TextureFactor word
 	// every streamAlloc copy: the bytes and where they went (the tap digests the uniform bytes and their destination)
@@ -187,7 +187,7 @@ struct GxRecDebug   // TEST-ONLY plants; each has a gx_record_test arm that must
 	bool resolveKeepsRepaintedColour = false; // F-depth+: a later scope writing the held colour's source keeps the bit (fdepth-repaint)
 	bool lookFrameStale = false;     // S7 P2: endFrame never writes set 2's UBO (the receivers read the zeroed slice: no map) - the
 	                                 // fail arm of gx_native_test sm-receive (the UBO is what places the receivers on the map)
-	bool lookNoDivide = false;       // S7 A39 (Codex code-a39-r1): the UBO's light matrices lose their w row (w = 1): the receivers read
+	bool lookNoDivide = false;       // S7 A39: the UBO's light matrices lose their w row (w = 1): the receivers read
 	                                 // a perspective map UNDIVIDED while the replay draws it right - gx_native_test X-sm-persp-divide
 	bool lookNoRebind = false;       // S7 P2 (A36 4a): set 2 is NOT rebound after outsideScope's state reset (a foreign-layout pass
 	                                 // disturbed it): gx_native_test X-sm-rebind's validation must catch the HUD draw after it
@@ -196,7 +196,7 @@ struct GxRecDebug   // TEST-ONLY plants; each has a gx_record_test arm that must
 	                                 // draw does, so the clean arm needs the production re-send on drivers that keep state too
 };
 
-// GeneralsX @feature D · look-fdepth-plus 17/10/2026 F-depth+ (look-director/d2/PLAN_fdepth-plus.md): a multisample RESOLVE the
+// GeneralsX: F-depth+ (look-director/d2/PLAN_fdepth-plus.md): a multisample RESOLVE the
 // world's own scopes carry. While armed and not suspended, every scope that opens with depthAtt as its depth attachment resolves it
 // (VK_RESOLVE_MODE_SAMPLE_ZERO, depth and stencil) into depthTarget at its end, and its multisample colour attachment (AVERAGE) into
 // colourTarget when that matches it in size and format. On a tile GPU the resolve rides the store the scope does anyway: the only
@@ -251,7 +251,7 @@ public:
 	// initialised with `sets` (>= framesInFlight) frame sets; a set is read when it comes round again. Between frames; nullptr = off.
 	// slot = the frame ring slot of the frame measured; ms = the whole frame; PREREG_T A17: passMs / passes = its render-pass
 	// scopes (each from just before vkCmdBeginRendering to just after vkCmdEndRendering), presentMs = its "present" scope
-	// refused = scopes of THIS frame the timer had no room for: its parts are partial, its whole-frame ms is not (Codex A17 P2)
+	// refused = scopes of THIS frame the timer had no room for: its parts are partial, its whole-frame ms is not (A17 P2)
 	// S7 A92 (PREREG A27; the integrator's P4 ruling 03:2xZ 19/10): under GX_GPUTIME the set is reset and `frame` begins at the TOP of the
 	// INIT buffer (opened every frame), so ms spans INIT (front copies, the caster pass) and MAIN. shadowMs = the caster pass's own
 	// diagnostic scope (never summed, never present); shadow = none (no pass this frame) / read / MISSING (expected, scope refused or its
@@ -290,10 +290,10 @@ public:
 	// F-depth+ (GxScopeResolve above): arm with r (copied) or disarm with null. A scope already open keeps what it began with.
 	void setScopeResolve(const GxScopeResolve* r);
 	// F-depth+: attaches no resolve until resumeScopeResolve() - armed or not, so a reader may sample the targets for the rest of
-	// the frame (Codex fdepth-r1 #1: the first tap arms AFTER this call) - and, when armed, ends the open scope (its resolve runs
+	// the frame (the first tap arms AFTER this call) - and, when armed, ends the open scope (its resolve runs
 	// there). Answers what the targets hold NOW: bit 1 = depth, bit 2 = colour - set when the last scope that used depthAtt carried
 	// that resolve, nothing outside a scope wrote its source since, and (colour) that scope's colour attachment is colourNow, the
-	// colour bound at the tap (Codex fdepth-r1 #4/#5). 0 when disarmed, already suspended or no such scope ran since arming.
+	// colour bound at the tap. 0 when disarmed, already suspended or no such scope ran since arming.
 	uint32_t suspendScopeResolve(const Res::GxImage* colourNow);
 	void resumeScopeResolve() { m_resolveSuspended = false; }
 	bool scopeResolveArmed() const { return m_resolve.depthAtt != nullptr; }
@@ -307,7 +307,7 @@ public:
 	GxRecDebug& debug() { return m_debug; }
 	uint64_t retireViolations() const { return m_stats.retireViolations; }
 	// Call before destroying an image the writer used: the tracker and GxOrderCheck drop it, and a current pass on it ends (the
-	// persisted scope must never open on a freed image - CLAUDE-ONLY review r2 P3 #1).
+	// persisted scope must never open on a freed image).
 	void forget(const Res::GxImage* img);
 	// The dynamic states a custom pipeline must declare to be drawn by the writer (the same set GxPipelineCache uses).
 	static const std::vector<VkDynamicState>& customDynamicStates();
@@ -387,7 +387,7 @@ private:
 	const Res::GxImage* m_resolveLastColour = nullptr;   // that scope's colour attachment (the source of a held colour bit)
 	const char* m_passName = "";
 	uint64_t* m_passDraws = nullptr;   // A22: m_stats.passDraws[m_passDrawsKey] (map nodes are stable); re-resolved whenever the
-	std::string m_passDrawsKey;        // borrowed m_passName's bytes differ from the key (Codex a22-r1 P1)
+	std::string m_passDrawsKey;        // borrowed m_passName's bytes differ from the key
 	Vk::VkGpuTimer* m_gpu = nullptr;
 	uint32_t m_gpuSets = 0;
 	uint64_t m_gpuFrames = 0;

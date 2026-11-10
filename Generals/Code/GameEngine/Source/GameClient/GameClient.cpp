@@ -231,7 +231,7 @@ GameClient::~GameClient()
 	delete TheEva;
 	TheEva = nullptr;
 
-	// GeneralsX @feature Claude 11/08/2026 Abandon any login still polling; its worker thread is
+	// GeneralsX: Abandon any login still polling; its worker thread is
 	// detached and would otherwise keep waking up inside statics whose engine has gone.
 	GXLoginFlow::cancel();
 }
@@ -517,7 +517,7 @@ void GameClient::registerDrawable( Drawable *draw )
  */
 DECLARE_PERF_TIMER(GameClient_update)
 DECLARE_PERF_TIMER(GameClient_draw)
-// GeneralsX @test Claude 23/09/2026 GX_SHOT=<frame>[,<frame>...] takes the same PNG screenshot as the screenshot hotkey
+// GeneralsX: GX_SHOT=<frame>[,<frame>...] takes the same PNG screenshot as the screenshot hotkey
 // (TheDisplay->takeScreenShot, the MSG_META_TAKE_SCREENSHOT_PNG path in CommandXlat.cpp) once at each listed logic
 // frame of the process's first match; never in the shell, and never in a later match (28/09/2026: the W3D capture
 // clock counts from the first match, so a later match's frame N would not show a fresh run's phase at frame N). Files go where the hotkey writes
@@ -559,7 +559,7 @@ enum { GXSHOT_MAX = 16 };
 static Int s_count = -1;	// -1: GX_SHOT not read yet; 0: off
 static UnsignedInt s_frames[GXSHOT_MAX];
 
-// GeneralsX @test Claude 28/09/2026 Reads GX_SHOT once; true while it holds an accepted frame list on a peer with a
+// GeneralsX: Reads GX_SHOT once; true while it holds an accepted frame list on a peer with a
 // display. W3DDisplay asks too, before the first capture: it runs the capture clock only then, so an empty or
 // malformed GX_SHOT (screenshots off) leaves the render exactly as a player's.
 Bool gxShotCaptureOn( void )
@@ -592,15 +592,15 @@ Bool gxShotCaptureOn( void )
 	return s_count > 0;
 }
 
-// GeneralsX @test Claude 29/09/2026 The GX_SHOT capture clock for render-side animation. It advances once per client
+// GeneralsX: The GX_SHOT capture clock for render-side animation. It advances once per client
 // update (GameClient::update, before anything draws), by the logic frames the MATCH advanced since the previous one:
 // rebased to frame 0 on entering the first match, still in the shell and while loading. While gxShotCaptureOn() the
 // render sites that stepped by the pacer's fps ratio or the wall clock (tree sway, water, water tracks, shroud fade,
 // camera shake, Drawable and InGameUI effects, the police-car light, the cloud texture on roads) and W3DDisplay's WW3D
 // clock read it instead, so a capture at a logic frame shows one animation phase however the frames fell into draws
-// (Codex gfxp3-shotdiff-r8). Without GX_SHOT each helper returns exactly what the site read before. When capture mode
+// Without GX_SHOT each helper returns exactly what the site read before. When capture mode
 // ends (gxShotCaptureEnd) the wall-clock helpers continue from the capture clock's last value, so no site sees a jump
-// between the two clocks' origins for the rest of the match (Codex gfxp3-shotdiff-r14).
+// between the two clocks' origins for the rest of the match.
 static UnsignedInt s_gxClockFrame = 0;	// the match frame the clock has reached
 static UnsignedInt s_gxClockSteps = 0;	// logic frames it advanced at this client update
 static Bool s_gxClockInMatch = FALSE;
@@ -608,7 +608,7 @@ static Bool s_gxClockRebased = FALSE;
 static Int s_gxDrawRenders = 0;	// scene renders this update's W3DDisplay::draw completed (gxShotDrawRendered)
 static void gxShotCaptureEnd( void );
 
-// GeneralsX @bugfix Claude 03/10/2026 The loop clock: every iteration's time (FramePacer::getUpdateTime, the iteration
+// GeneralsX: The loop clock: every iteration's time (FramePacer::getUpdateTime, the iteration
 // before this one), added once per client update - one per main-loop iteration, drawn or not - before this update draws.
 // W3DView::update steps the camera's once-per-draw easing by its advance since the last draw (GameClient/CameraStepPolicy.h):
 // under fast forward only 1 iteration in k draws. Not FramePacer's: that file is in the simulation digest.
@@ -642,7 +642,7 @@ static void gxShotClockTick( void )
 	// loads). The render-side sites rely on it - some are not compositional (a fade's 1 - (1 - s) * n is not
 	// (1 - (1 - s))^n, the shroud truncates each step) - so a capture whose state would depend on how frames fell into
 	// draws is ended instead of taken; that includes a save loaded at its own frame, which enters with that many
-	// steps at once (Codex gfxp3-shotdiff-r18, -r19).
+	// steps at once.
 	if (s_gxClockSteps > 1)
 	{
 		fprintf(stderr, "[GXSHOT] %u logic frames in one client update at frame %u (a loaded save, or a skipped update) - "
@@ -658,7 +658,7 @@ Real gxRenderTimeScale( void )
 	return gxShotCaptureOn() ? (Real)s_gxClockSteps : TheFramePacer->getActualLogicTimeScaleOverFpsRatio();
 }
 
-// GeneralsX @test Claude 29/09/2026 The camera's own easing (W3DView zoomCameraToDesiredHeight, movePivotToGround) steps by
+// GeneralsX: The camera's own easing (W3DView zoomCameraToDesiredHeight, movePivotToGround) steps by
 // min(speed * BaseFps / render fps, 1) per draw and STOPS once the remainder is under a threshold, so where it comes to
 // rest depended on the render cadence: a constant sub-pixel camera offset for the rest of the match, measured as per-pixel
 // noise over 60-68% of an uncapped A-vs-A pair on uneven ground (Mini 2026-09-29, Red Rock). Under capture it steps by
@@ -708,21 +708,21 @@ static void gxShotCaptureEnd( void )
 	s_count = 0;
 }
 
-// GeneralsX @test Claude 29/09/2026 W3DDisplay::draw calls this after a completed scene render (WW3D::End_Render on its
+// GeneralsX: W3DDisplay::draw calls this after a completed scene render (WW3D::End_Render on its
 // main path), so gxShotDrive knows whether the back buffer it is about to read holds this update's frame.
 void gxShotDrawRendered( void )
 {
 	++s_gxDrawRenders;
 }
 
-// GeneralsX @test Claude 29/09/2026 This update's draw did not render the scene exactly once. Nothing rendered - a
+// GeneralsX: This update's draw did not render the scene exactly once. Nothing rendered - a
 // minimised window, iOS rendering suspended, scripted fast time, a TiVO replay frame skip, a failed Begin_Render - while
 // the simulation ran on: the draw-side animations (trees, water, tracks, shroud, drawables' own draw) miss those logic
 // frames, and a shot due now would read the last rendered back buffer, not its frame. Several renders - W3DDisplay's
 // render loop repeats while a script freezes time with a camera move unfinished: every pass applies this update's clock
 // step again, so the draw-side state runs ahead of the one logic frame. Neither can be carried over, so capture mode
-// ends: the run captures fewer frames than GX_SHOT armed and gx-shotdiff pair refuses it (Codex gfxp3-shotdiff-r15,
-// -r16, -r20). Outside a match (the clock stands still there) it does nothing.
+// ends: the run captures fewer frames than GX_SHOT armed and gx-shotdiff pair refuses it.
+// Outside a match (the clock stands still there) it does nothing.
 static void gxShotDrawSkipped( void )
 {
 	if (!gxShotCaptureOn() || !s_gxClockInMatch)
@@ -738,8 +738,8 @@ static void gxShotDrawSkipped( void )
 	gxShotCaptureEnd();
 }
 
-// GeneralsX @test Claude 10/10/2026 TRUE only while gxShotDrive takes a GX_SHOT screenshot (never the hotkey's): GXCAP
-// (W3DScreenshot.cpp) marks only that readback as the requested reference picture (Codex gxcap-design-r3 #5).
+// GeneralsX: TRUE only while gxShotDrive takes a GX_SHOT screenshot (never the hotkey's): GXCAP
+// (W3DScreenshot.cpp) marks only that readback as the requested reference picture.
 static Bool s_gxShotDriving = FALSE;
 Bool gxShotDriving( void )
 {
@@ -772,7 +772,7 @@ static void gxShotDrive( void )
 	}
 	// The match began during this update (a -loadsave or pending save load enters it after the clock ticked at the top
 	// of GameClient::update): this draw ran on the shell's clock, so no shot until the next update's tick has seen the
-	// match and stepped the clock to its frame (Codex gfxp3-shotdiff-r17).
+	// match and stepped the clock to its frame.
 	if (!s_gxClockInMatch)
 		return;
 	const UnsignedInt frame = TheGameLogic->getFrame();
@@ -798,7 +798,7 @@ static void gxShotDrive( void )
 	fprintf(stderr, "[GXSHOT] n=%d f=%u asked=%u\n", (int)(s_next + 1), (unsigned)frame, (unsigned)s_frames[s_next]);
 	++s_next;
 	// The last requested shot is queued: capture mode ends here, so the rest of the run (the match, the menus, a
-	// hotkey screenshot and its message) behaves as without GX_SHOT (Codex gfxp3-shotdiff-r13); the render clocks carry
+	// hotkey screenshot and its message) behaves as without GX_SHOT; the render clocks carry
 	// on from where the capture clock stopped (gxShotCaptureEnd).
 	if (s_next >= s_count)
 	{
@@ -808,7 +808,7 @@ static void gxShotDrive( void )
 	fflush(stderr);
 }
 
-// GeneralsX @feature Claude 25/09/2026 -loadsave through the save gate. The gate's Yes button calls this
+// GeneralsX: -loadsave through the save gate. The gate's Yes button calls this
 // again (a message box callback takes no arguments, hence the static), and lets the save through once.
 // m_loadSaveGame is what loadQueuedSaveGame reads, and it clears it; it is cleared here too when the gate
 // stops the load, so nothing else ever sees a request that was refused or is waiting on the box.
@@ -847,15 +847,15 @@ static void loadQueuedSaveThroughGate()
 void GameClient::update()
 {
 	USE_PERF_TIMER(GameClient_update)
-	// GeneralsX @feature Claude 28/09/2026 First, so its clock read is as close to the loop's wake as it can be: the
+	// GeneralsX: First, so its clock read is as close to the loop's wake as it can be: the
 	// render interpolation phase every drawable of this frame is drawn at (GXLogicPhase.h). One sample per update, on
 	// purpose: camera tracking, the drawables' client updates, attached emitters and the draw all read this one phase
-	// and so agree with each other; a second sample just before the draw would split them (Codex interp-r21, declined).
+	// and so agree with each other; a second sample just before the draw would split them (declined).
 	// The client work before the draw adds its variable time as latency jitter; measured on the whole path, judder is cv
 	// 0.037-0.038 at ~600 fps uncapped (Windows, 10,800 frames) against 2.9-3.9 without interpolation.
 	TheDisplay->updateLogicPhase();
-	gxShotClockTick();	// GeneralsX @test Claude 29/09/2026 before anything this update animates or draws
-	runPendingSaveLoad();	// GeneralsX @bugfix Claude 25/09/2026 a "load it anyway" Yes from the save gate, now that its box is gone
+	gxShotClockTick();	// GeneralsX: before anything this update animates or draws
+	runPendingSaveLoad();	// GeneralsX: a "load it anyway" Yes from the save gate, now that its box is gone
 	PROFILER_FRAME_MARK;
 	PROFILER_SECTION_COLOR(0x2196F3);
 	// create the FRAME_TICK message
@@ -877,12 +877,12 @@ void GameClient::update()
 
 			if (TheGlobalData->m_loadSaveGame.isNotEmpty())
 			{
-				// GeneralsX @feature Claude 25/09/2026 Through the save gate (SaveLoadFeedback.cpp): a LAN/online
+				// GeneralsX: Through the save gate (SaveLoadFeedback.cpp): a LAN/online
 				// save is refused, a load that would crash is stopped, a save from another build asks first.
 				s_queuedSaveGame = TheGlobalData->m_loadSaveGame;
 				loadQueuedSaveThroughGate();
 			}
-			// GeneralsX @bugfix Claude 21/09/2026 Guarded on TheRecorder, which upstream omits.
+			// GeneralsX: Guarded on TheRecorder, which upstream omits.
 			// ReplayMenu.cpp's own readReplayMapInfo already tests it, so it is reachable as null.
 			else if (TheGlobalData->m_loadReplayGame.isNotEmpty() && TheRecorder != nullptr)
 			{
@@ -926,7 +926,7 @@ void GameClient::update()
 		TheWindowManager->UPDATE();
 	}
 
-	// GeneralsX @feature Claude 11/08/2026 Consume a finished Discord login.
+	// GeneralsX: Consume a finished Discord login.
 	//
 	// WIRED HERE EVEN THOUGH THIS PRODUCT HAS NO ONLINE LOBBY TO START ONE FROM. GXLoginFlow lives
 	// in Core and is compiled into both products, and a module that one product ticks and the
@@ -1035,7 +1035,7 @@ void GameClient::update()
 	// need to draw the first frame, then don't draw again until TheGlobalData->m_noDraw
 	if (TheGlobalData->m_noDraw > TheGameLogic->getFrame() && TheGameLogic->getFrame() > 0)
 	{
-		gxShotDrawSkipped();	// GeneralsX @test Claude 29/09/2026 no draw: ends a GX_SHOT capture (Codex gfxp3-shotdiff-r18)
+		gxShotDrawSkipped();	// GeneralsX: no draw: ends a GX_SHOT capture
 		return;
 	}
 #endif
@@ -1070,7 +1070,7 @@ void GameClient::update()
 		TheDisplay->DRAW();
 	}
 
-	// GeneralsX @test Claude 23/09/2026 GX_SHOT capture, right after this frame was drawn and presented: the image is
+	// GeneralsX: GX_SHOT capture, right after this frame was drawn and presented: the image is
 	// the state at the logged logic frame. It reads the back buffer after Present, exactly when the screenshot hotkey
 	// does (CommandXlat runs in propagateMessages, after this update). D3D leaves a DISCARD back buffer undefined
 	// after Present; under DXVK the last rendered image stays there (the Mini's shots show the scene), and the hotkey
@@ -1106,7 +1106,7 @@ void GameClient::step()
 	TheDisplay->step();
 }
 
-// GeneralsX @feature Claude 28/09/2026 GameLogic::update calls this at the start of every logic update: the tick-start
+// GeneralsX: GameLogic::update calls this at the start of every logic update: the tick-start
 // stamp the render interpolation phase estimates the lockstep grid from (GXLogicPhase.h).
 void GameClient::setFrame( UnsignedInt frame )
 {
@@ -1990,7 +1990,7 @@ void GameClient::xfer( Xfer *xfer )
 	}
 
 
-	// GeneralsX @bugfix skybox-1 12/10/2026 (Codex skybox r10 P2): a map script that switched the sky off keeps it off after a
+	// GeneralsX @bugfix skybox-1 12/10/2026 (skybox r10 P2): a map script that switched the sky off keeps it off after a
 	// load (W3DWater.cpp's latch; the engine reset before the load cleared it). Version 3 saves read as "not switched off".
 	if (version >= 4)
 	{

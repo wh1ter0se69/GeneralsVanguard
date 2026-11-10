@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @test Claude 29/10/2026 Cb-06a: the client animations' motion trace and its test triggers, for a rendered
+// GeneralsX: Cb-06a: the client animations' motion trace and its test triggers, for a rendered
 // A/B at several fps caps. Both are off unless their variable is set, and then only print or trigger client state.
 //
 //   GX_ANIMTRACE=1   [GXANIM] lines: the camera lock's position per draw, the WW3D clocks per draw, the radar glow and
@@ -52,7 +52,7 @@ namespace GXAnimTrace
 
 	// True once, at the first call whose logic frame has reached the frame GX_ANIMTEST gives `what` ("glow@900").
 	// frame 0 never fires: callers pass 0 outside a real match (the shell map's menu game advances frames too, and would
-	// spend a trigger before the match - Codex anim-cb06a-r1 P2).
+	// spend a trigger before the match).
 	inline bool testAt(const char *what, unsigned frame)
 	{
 		enum { MaxItems = 8 };

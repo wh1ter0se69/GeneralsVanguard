@@ -71,7 +71,7 @@ GameSpyGameSlot::GameSpyGameSlot()
 ** Function definitions for the MIB-II entry points.
 */
 
-// GeneralsX @build BenderAI 13/02/2026 SNMP is Windows-only (GameSpy servers dead since 2013)
+// GeneralsX: SNMP is Windows-only (GameSpy servers dead since 2013)
 #ifdef _WIN32
 BOOL (__stdcall *SnmpExtensionInitPtr)(IN DWORD dwUpTimeReference, OUT HANDLE *phSubagentTrapEvent, OUT AsnObjectIdentifier *pFirstSupportedRegion);
 BOOL (__stdcall *SnmpExtensionQueryPtr)(IN BYTE bPduType, IN OUT RFC1157VarBindList *pVarBindList, OUT AsnInteger32 *pErrorStatus, OUT AsnInteger32 *pErrorIndex);
@@ -103,7 +103,7 @@ typedef struct tConnInfoStruct {
  *=============================================================================================*/
 Bool GetLocalChatConnectionAddress(AsciiString serverName, UnsignedShort serverPort, UnsignedInt& localIP)
 {
-// GeneralsX @build BenderAI 13/02/2026 SNMP network diagnostics not needed on Linux (GameSpy online services dead 2013)
+// GeneralsX: SNMP network diagnostics not needed on Linux (GameSpy online services dead 2013)
 #ifndef _WIN32
 	return false;  // Linux: Stub - LAN multiplayer doesn't need SNMP TCP connection tracking
 #else
@@ -290,7 +290,7 @@ Bool GetLocalChatConnectionAddress(AsciiString serverName, UnsignedShort serverP
 	*/
 	conn_entry_type_index = ARRAY_SIZE(mib_ii_name) - 1;
 
-	// GeneralsX @bugfix Claude 31/07/2026 Hand SNMP the heap OID rather than a stack address,
+	// GeneralsX: Hand SNMP the heap OID rather than a stack address,
 	// and free the name the agent last wrote back instead of our stale copy.
 	// TheSuperHackers/GeneralsGameCode#91
 	/*
@@ -513,7 +513,7 @@ GameSpyStagingRoom::GameSpyStagingRoom()
 	m_ladderIP.clear();
 	m_ladderPort = 0;
 
-	// GeneralsX @bugfix Claude 07/08/2026 Initialised here because the GameSpy path never calls
+	// GeneralsX: Initialised here because the GameSpy path never calls
 	// setPingMs(), so without this getHostPingMs() would read an indeterminate value on a
 	// stack-constructed room and the tooltip could print a breakdown nobody measured.
 	m_pingInt = 0;
@@ -544,7 +544,7 @@ void GameSpyStagingRoom::setPingString( AsciiString pingStr )
 	m_pingInt = TheGameSpyInfo->getPingValue(pingStr);
 }
 
-// GeneralsX @feature Claude 07/08/2026 See the note on the declaration: this exists because
+// GeneralsX: See the note on the declaration: this exists because
 // setPingString() runs a measured millisecond value through GameSpy's hex-pair comparison, which
 // answers "worst possible" for anything that is not a GameSpy ping string.
 void GameSpyStagingRoom::setPingMs( Int totalMs, Int hostLegMs )
@@ -930,7 +930,7 @@ void GameSpyStagingRoom::launchGame()
 	GameMessage *msg = TheMessageStream->appendMessage( GameMessage::MSG_NEW_GAME );
 	msg->appendIntegerArgument(GAME_INTERNET);
 
-	// GeneralsX @bugfix Claude 02/08/2026 Do NOT force the render limiter off for the match.
+	// GeneralsX: Do NOT force the render limiter off for the match.
 	// Same defect and same reasoning as the LAN path - see LANAPICallbacks.cpp. Kept in step
 	// deliberately: leaving it here would have left the internet path spinning unbounded while
 	// the LAN path was fixed, which is exactly the kind of split that gets measured on one

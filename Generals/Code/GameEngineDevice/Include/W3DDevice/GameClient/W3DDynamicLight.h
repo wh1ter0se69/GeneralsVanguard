@@ -56,7 +56,7 @@ protected:
 	UnsignedInt m_decayFrameCount;
 	UnsignedInt m_increaseFrameCount;
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate. On_Frame_Update() is driven from the RENDER
+	// GeneralsX: Class-C gate. On_Frame_Update() is driven from the RENDER
 	// path (HeightMap.cpp re-reads this light every rendered frame), but both counters below it are
 	// authored in LOGIC FRAMES - a LightPulseFX with DecreaseTime 500 ms is 30 frames at 60 Hz and
 	// was being burned in ~60 ms at the 8x network floor, so explosion and muzzle light pulses died

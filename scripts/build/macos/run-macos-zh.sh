@@ -1,13 +1,13 @@
 #!/bin/bash
-# GeneralsX @build BenderAI 24/02/2026 Launch script for macOS (MoltenVK + SDL3)
+# GeneralsX: Launch script for macOS (MoltenVK + SDL3)
 
 set -e
 
-# GeneralsX @bugfix BenderAI 09/03/2026 Resolve repository root correctly from scripts/build/macos.
+# GeneralsX: Resolve repository root correctly from scripts/build/macos.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/macos-vulkan"
-# GeneralsX @feature BenderAI 01/04/2026 Prefer GeneralsZH for user-facing Zero Hour runtime path with GeneralsMD fallback.
+# GeneralsX: Prefer GeneralsZH for user-facing Zero Hour runtime path with GeneralsMD fallback.
 PREFERRED_GAME_DIR="${HOME}/GeneralsX/GeneralsZH"
 LEGACY_GAME_DIR="${HOME}/GeneralsX/GeneralsMD"
 GAME_DIR="${PREFERRED_GAME_DIR}"
@@ -37,7 +37,7 @@ if [[ ! -f "${GAME_DIR}/libSDL3.0.dylib" ]]; then
     exit 1
 fi
 
-# GeneralsX @feature Claude 12/08/2026 Community-patch overlay - see scripts/build/lib-overlay.sh.
+# GeneralsX: Community-patch overlay - see scripts/build/lib-overlay.sh.
 #
 # This script launches the binary directly instead of going through the deployed run.sh, so it
 # has to carry the same environment. A launch path that forgets this does not fail visibly: it
@@ -82,7 +82,7 @@ export VK_INSTANCE_LAYERS=""
 # GeneralsX @bugfix fbraz3 20/03/2026 DXVK requires DXVK_WSI_DRIVER on non-Win32; must match game windowing (SDL3)
 export DXVK_WSI_DRIVER="SDL3"
 
-# GeneralsX @bugfix BenderAI 13/03/2026 Explicitly point DXVK to runtime config file.
+# GeneralsX: Explicitly point DXVK to runtime config file.
 # Relying only on CWD can hide config/deploy issues and mislead terrain shader diagnostics.
 if [[ -f "${GAME_DIR}/dxvk.conf" ]]; then
     export DXVK_CONFIG_FILE="${GAME_DIR}/dxvk.conf"
@@ -90,7 +90,7 @@ else
     echo "WARNING: ${GAME_DIR}/dxvk.conf not found; DXVK will use defaults."
 fi
 
-# GeneralsX @bugfix BenderAI 31/03/2026 Ensure bundled Fontconfig is used when launching via this wrapper.
+# GeneralsX: Ensure bundled Fontconfig is used when launching via this wrapper.
 if [[ -f "${GAME_DIR}/fontconfig/fonts.conf" ]]; then
     export FONTCONFIG_FILE="${GAME_DIR}/fontconfig/fonts.conf"
     export FONTCONFIG_PATH="${GAME_DIR}/fontconfig"
@@ -98,7 +98,7 @@ else
     echo "WARNING: ${GAME_DIR}/fontconfig/fonts.conf not found; text rendering may fail."
 fi
 
-# GeneralsX @tweak BenderAI 13/03/2026 Optional shader-cache reset for terrain debugging.
+# GeneralsX: Optional shader-cache reset for terrain debugging.
 # Use GX_CLEAR_DXVK_SHADER_CACHE=1 to force fresh shader compilation.
 if [[ "${GX_CLEAR_DXVK_SHADER_CACHE:-0}" == "1" ]]; then
     DXVK_CACHE_DIR="${XDG_CACHE_HOME:-${HOME}/.cache}/dxvk"

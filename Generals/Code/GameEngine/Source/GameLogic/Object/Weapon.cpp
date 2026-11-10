@@ -385,7 +385,7 @@ void WeaponTemplate::reset()
 	// No matter what we have now, we want to convert it to frames from msec.
 	// ShotDelay used to use parseDurationUnsignedInt, and we are expanding on that.
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 Round UP on the retail 30 Hz grid, then scale, as
+	// GeneralsX: Round UP on the retail 30 Hz grid, then scale, as
 	// INI::parseDurationUnsignedInt does. Rounding on the 60 Hz grid gave 80 of the 330 retail
 	// DelayBetweenShots values (250, 750, 777 ms...) a shorter delay than retail - up to 33% more fire.
 	self->m_minDelayBetweenShots = GX_FRAMES30((Int)ceilf((Real)self->m_minDelayBetweenShots * ((Real)BaseFps / (Real)MSEC_PER_SECOND)));
@@ -494,13 +494,13 @@ Real WeaponTemplate::getUnmodifiedAttackRange() const
 
 //-------------------------------------------------------------------------------------------------
 #if GX_LOGIC_60HZ
-// GeneralsX @bugfix Claude 01/10/2026 The 60 Hz delays are retail 30 Hz frame counts doubled (the INI parse rounds
+// GeneralsX: The 60 Hz delays are retail 30 Hz frame counts doubled (the INI parse rounds
 // on the retail grid, then scales), so halving them is exact. A rate-of-fire bonus divided on the 60 Hz grid rounded
 // differently from retail - veteran, horde, hero and gattling units fired slower (sometimes faster) than retail.
 // Do the bonus arithmetic on the 30 Hz grid, then double (tsh batch2 #319 + #372, the defect Generals Online
 // 85a99f482 / 9cc1f1a1d patch per weapon; this fixes it at the root, so the result is exactly 2x retail).
 // Exact integer ratio both ways (2 at 60 Hz), never multiply-then-divide: a modded duration of tens of millions of
-// frames must not overflow on the way through (Codex tsh-b2-r1; INI::parseDurationUnsignedInt scales the same way).
+// frames must not overflow on the way through (INI::parseDurationUnsignedInt scales the same way).
 static inline Int gxFrames60To30( Int frames60 )
 {
 	return frames60 / (Int)( LOGICFRAMES_PER_SECOND / BaseFps );
@@ -1667,7 +1667,7 @@ void WeaponStore::reset()
 
 	deleteAllDelayedDamage();
 
-	// GeneralsX @bugfix Claude 10/10/2026 The stock weapons' bonus sets a map.ini's WeaponBonus lines wrote through (see
+	// GeneralsX: The stock weapons' bonus sets a map.ini's WeaponBonus lines wrote through (see
 	// parseWeaponTemplateDefinition) get their pristine values back, in place: every holder keeps a valid pointer.
 	for (size_t i = 0; i < m_overrideBonusBackups.size(); ++i)
 	{
@@ -1676,7 +1676,7 @@ void WeaponStore::reset()
 	}
 	m_overrideBonusBackups.clear();
 
-	// GeneralsX @bugfix Claude 10/10/2026 The weapons a map.ini INVENTED leave with the map. They used to stay registered for the
+	// GeneralsX: The weapons a map.ini INVENTED leave with the map. They used to stay registered for the
 	// rest of the process, and a later map.ini naming the same weapon then found it "existing": its block went into newOverride's
 	// copy, which nothing links (a map.ini cannot change a stock weapon - EA's behaviour, kept), so that peer fired the FIRST
 	// map's weapon while a fresh peer fired the second map's - a desync with matching SimIDs and matching map data.
@@ -1745,7 +1745,7 @@ void WeaponStore::postProcessLoad()
 	{
 		if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
 		{
-			// GeneralsX @bugfix Claude 10/10/2026 newOverride's copy is linked from nothing (the store keeps returning the stock
+			// GeneralsX: newOverride's copy is linked from nothing (the store keeps returning the stock
 			// weapon: a map.ini cannot change one, EA's behaviour, kept) - EXCEPT through m_extraBonus, which the copy shares: a
 			// WeaponBonus line parses INTO the stock weapon's bonus set. That edit applies for the match as before; keep the set's
 			// pristine values so reset() can put them back (it outlived the map). Not for a weapon this map invented: that one
@@ -1778,7 +1778,7 @@ void WeaponStore::postProcessLoad()
 		// no item is present, create a new one
 		weapon = TheWeaponStore->newWeaponTemplate(name);
 
-		// GeneralsX @bugfix Claude 10/10/2026 A weapon that only exists because of this map must not survive it (reset()).
+		// GeneralsX: A weapon that only exists because of this map must not survive it (reset()).
 		if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)
 			TheWeaponStore->m_overrideAdded.push_back(weapon);
 	}
@@ -2592,7 +2592,7 @@ Bool Weapon::privateFireWeapon(
 	{
 		// TheSuperHackers @logic-client-separation helmutbuhler 11/04/2025
 		// barrelCount shouln't depend on Drawable, which belongs to client.
-		// GeneralsX @bugfix Claude 02/10/2026 It still comes through the Drawable, but no longer from client state:
+		// GeneralsX: It still comes through the Drawable, but no longer from client state:
 		// W3DModelDraw::getBarrelCount counts the state the logic-set model condition flags select (as
 		// getProjectileLaunchOffset does), not the per-client m_curState that differed between peers.
 		Int barrelCount = sourceObj->getDrawable()->getBarrelCount(m_wslot);
@@ -3361,9 +3361,9 @@ void Weapon::xfer( Xfer *xfer )
 	}
 
 	// slot
-	// GeneralsX @security Claude 06/10/2026 A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
-	// range (Codex net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
-	// kept: a load that throws still runs the post-processing pass, which can read it (Codex weapon-slot-r2).
+	// GeneralsX: A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
+	// range (net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
+	// kept: a load that throws still runs the post-processing pass, which can read it.
 	WeaponSlotType xferSlot = m_wslot;
 	xfer->xferUser( &xferSlot, sizeof( WeaponSlotType ) );
 	if ((Int)xferSlot < 0 || (Int)xferSlot >= WEAPONSLOT_COUNT)
@@ -3371,8 +3371,8 @@ void Weapon::xfer( Xfer *xfer )
 	m_wslot = xferSlot;
 
 	// status
-	// GeneralsX @security Claude 06/10/2026 A status from a save file indexes s_wsfLookup (Object::adjustModelConditionForWeaponStatus) and
-	// more; refuse one out of range, before it is kept (Codex net-hardening weapon-slot-r2). An honest one always is in range.
+	// GeneralsX: A status from a save file indexes s_wsfLookup (Object::adjustModelConditionForWeaponStatus) and
+	// more; refuse one out of range, before it is kept (net-hardening weapon-slot-r2). An honest one always is in range.
 	WeaponStatus xferStatus = m_status;
 	xfer->xferUser( &xferStatus, sizeof( WeaponStatus ) );
 	if ((Int)xferStatus < 0 || (Int)xferStatus >= WEAPON_STATUS_COUNT)

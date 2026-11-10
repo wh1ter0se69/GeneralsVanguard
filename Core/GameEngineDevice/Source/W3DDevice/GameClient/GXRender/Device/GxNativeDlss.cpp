@@ -1,4 +1,4 @@
-// GeneralsX @feature B · dlss-streamline-1 13/10/2026 DLSS Super Resolution behind IGxWorldPass::Upscale (PREREG A36.2,
+// GeneralsX: DLSS Super Resolution behind IGxWorldPass::Upscale (PREREG A36.2,
 // modernize/render-dlss/DESIGN_dlss-streamline.md §3). Without GX_STREAMLINE, or without Streamline loaded (m_host.streamline
 // null: not DLSS, not NVIDIA, no DLLs), every entry point is FALSE / E_NOTIMPL and the seam draws its own bilinear quad.
 //
@@ -87,9 +87,9 @@ void GxNativeLoadStreamline(IDirect3D8* dxvk, GxNativeHost& host, bool wantDlss,
 		reflex = 1;
 	if (!wantDlss && reflex <= 0 && frameGen <= 0 && !forced)
 		return;	// every key off: nothing of Streamline loads (no sl.* module in the process)
-	// Adapter 0: the one DX8Wrapper::Set_Any_Render_Device tries first. ponytail: a device made on another adapter that is not
+	// Adapter 0: the one DX8Wrapper::Set_Any_Render_Device tries first. Trade-off: a device made on another adapter that is not
 	// NVIDIA would meet Streamline's device proxy and fail vkCreateDevice -> native refuses, classic runs (logged, no crash);
-	// gate at CreateDevice(adapter) if multi-adapter selection ever ships (Codex dlss-sl-r1 P2).
+	// gate at CreateDevice(adapter) if multi-adapter selection ever ships.
 	D3DADAPTER_IDENTIFIER8 id = {};
 	if (!dxvk || FAILED(dxvk->GetAdapterIdentifier(D3DADAPTER_DEFAULT, 0, &id)) || id.VendorId != 0x10DE) {
 		// A36.1: on a non-NVIDIA device Streamline's device proxy makes vkCreateDevice fail (VK_NVX_binary_import)
@@ -184,7 +184,7 @@ struct GxNativeDevice::Dlss
 	bool hudLogged = false;
 	std::unique_ptr<Res::GxRenderTarget> hudMS, hud1x;
 	std::unique_ptr<GxNativePresent> hudPresent;
-	SeamSlots hudUse;	// its descriptor slots: one is reused only after the submission that last used it completed (Codex fg-p2-r1 P2)
+	SeamSlots hudUse;	// its descriptor slots: one is reused only after the submission that last used it completed
 	// PREREG A39c v1 (TEST-ONLY GX_FG_UIALPHA=1, with GX_FG_HUDLESS=1): UI alpha = where the final frame differs from the HUD-less one.
 	// final1x = the back buffer (with HUD) resolved by the same shader on slot + N of hudPresent; alpha = GxFgUiAlpha::kAlphaFormat at back-buffer size.
 	bool uiAlphaWanted = false;
@@ -256,7 +256,7 @@ void GxNativeDevice::dlssInit()
 	m_dlss->sl = m_host.streamline;
 	std::string why;
 	const Upscale::StreamlineFeatures& feat = m_dlss->sl->features();
-	m_dlss->sl->resolveFeatures();	// Codex fg-p0-r1 P1: only now does Streamline answer feature-function queries
+	m_dlss->sl->resolveFeatures();	// only now does Streamline answer feature-function queries
 	if (feat.dlss)
 		m_dlss->supported = m_dlss->sl->dlssSupported(m_ctx.physicalDevice(), &why);
 	else
@@ -344,7 +344,7 @@ void GxNativeDevice::fgHudBegin()
 	if (!bb)
 		return;
 	// The seam composites into the BOUND target: under pillarboxing that is an off-screen surface copied to the back buffer only after
-	// the HUD (Pillarbox_End) - the back buffer would hold last frame's picture (Codex fg-p2-r1 P2). Capture only a back-buffer target.
+	// the HUD (Pillarbox_End) - the back buffer would hold last frame's picture. Capture only a back-buffer target.
 	if (!m_rt || m_rt->kind() != GxNativeSurface::Kind::BackBuffer) {
 		if (!d.hudLogged) {
 			d.hudLogged = true;
@@ -374,7 +374,7 @@ void GxNativeDevice::fgHudBegin()
 			return true;
 		if (t) {
 			forgetImage(&t->image());
-			t.reset();	// ponytail: a resize mid-run frees under the GPU only if a frame still uses it - v0 runs at one size
+			t.reset();	// Trade-off: a resize mid-run frees under the GPU only if a frame still uses it - v0 runs at one size
 		}
 		auto n = std::make_unique<Res::GxRenderTarget>();
 		Res::RenderTargetDesc rd;
@@ -397,7 +397,7 @@ void GxNativeDevice::fgHudBegin()
 		return;
 	}
 	if (d.uiAlphaWanted && (!d.alpha.image || d.alpha.width != src.width || d.alpha.height != src.height)) {
-		if (d.alpha.image) {	// ponytail: v0/v1 run at one size; a mid-run resize frees under the GPU only if a frame still uses it
+		if (d.alpha.image) {	// Trade-off: v0/v1 run at one size; a mid-run resize frees under the GPU only if a frame still uses it
 			forgetImage(&d.alpha);
 			if (d.alphaView)
 				vkDestroyImageView(m_ctx.device(), d.alphaView, nullptr);
@@ -435,13 +435,13 @@ void GxNativeDevice::fgHudBegin()
 		} else
 			d.uiAlpha = std::move(a);
 	}
-	if (d.hudUse.lastUse.empty())	// the slot ring for the resolve AND the alpha pass - single-sample alpha needs it too (Codex fg-p2-r3 P2)
+	if (d.hudUse.lastUse.empty())	// the slot ring for the resolve AND the alpha pass - single-sample alpha needs it too
 		d.hudUse.reset(uint32_t(m_presentWaits.size()));
 	if (ms && !d.hudPresent) {
 		auto p = std::make_unique<GxNativePresent>();
 		// 2 x the slots: slot = the HUD-less resolve, slot + N = the final frame's (UI alpha)
 		if (!p->init(m_ctx, 2u * uint32_t(m_presentWaits.size()), &why) || !p->prepare(d.hud1x->image().format->vk, src.samples, &why)) {
-			p->shutdown();	// what init made (Codex fg-p2-r1 P3)
+			p->shutdown();	// what init made
 			logLine("[GXFG] hudless off: resolve pipeline %s", why.c_str());
 			d.hudlessWanted = false;
 			return;
@@ -499,7 +499,7 @@ void GxNativeDevice::fgHudlessTag()
 		if (t)
 			list[count++] = t;
 	bool ok = true, alphaOk = fin != nullptr;
-	bool hudTagged = false, alphaTagged = false;	// set only by a tagging call that ran: outsideScope skips fn when no frame is open (Codex fg-p2-r6 P2)
+	bool hudTagged = false, alphaTagged = false;	// set only by a tagging call that ran: outsideScope skips fn when no frame is open
 	std::string why;
 	m_writer.outsideScope([&](VkCommandBuffer cmd) {
 		if (ms)
@@ -583,7 +583,7 @@ void GxNativeDevice::slBeforeRecreate()
 		return;
 	std::string w;
 	const bool off = d.sl->frameGenSetOptions(false, d.fgGenerated, &w);
-	if (!off) {   // Codex fg3-h3-r1 P2: not off - say so, keep fgOn (the next recreation tries again), never resume
+	if (!off) {   // not off - say so, keep fgOn (the next recreation tries again), never resume
 		d.fgRefused = true;
 		logLine("[GXFG] slDLSSGSetOptions(eOff) before a swapchain recreation FAILED: %s - frame generation state unchanged (tried "
 			"again before the next recreation), no resume this session", w.c_str());
@@ -600,7 +600,7 @@ void GxNativeDevice::slBeforeRecreate()
 void GxNativeDevice::slAfterRecreate()
 {
 	if (m_dlss)
-		m_dlss->fgStableFrom = m_stats.presentsShown;   // shown presents only (Codex fg3-h3-r1 P2: a skipped Present is no stable frame)
+		m_dlss->fgStableFrom = m_stats.presentsShown;   // shown presents only (a skipped Present is no stable frame)
 }
 
 void GxNativeDevice::slFrameEnd()
@@ -620,14 +620,14 @@ void GxNativeDevice::slFrameEnd()
 		d.fgRefused = !d.fgOn;
 		d.fgToggleRecreate = d.fgOn;
 		if (d.fgOn)
-			m_swapchainDirty = true;	// §18: recreated when it turns back on, too - a failed eOn leaves a pending request alone (Codex fg3-h3-r1 P2)
+			m_swapchainDirty = true;	// §18: recreated when it turns back on, too - a failed eOn leaves a pending request alone
 		++d.fgResumes;
 		logLine("[GXFG] resumed after %u presented frames with no recreation: slDLSSGSetOptions(eOn, generated=%u) %s%s%s", kFgStableFrames,
 			d.fgGenerated, d.fgOn ? "accepted" : "FAILED: ", d.fgOn ? "" : w.c_str(), d.fgOn ? " - swapchain recreated for the toggle" :
 			" - frame generation stays off");
 	}
 	if (d.fgWanted && d.fgSupported && d.fgProbe && !d.fgOn && !d.fgRefused && !d.fgSuspended && m_haveSwapchain) {
-		// Codex fg-p0-r1 P2: the system's maximum first (slDLSSGGetState answers before frame generation is on); never ask for more
+		// the system's maximum first (slDLSSGGetState answers before frame generation is on); never ask for more
 		std::string w;
 		Upscale::FrameGenState pre;
 		uint32_t generated = d.fgWanted;
@@ -709,7 +709,7 @@ PFN_vkGetInstanceProcAddr GxNativeDevice::dlssLoaderRoot() const
 void GxNativeDevice::dlssShutdown()
 {
 	// No m_dlss (dlssInit never ran: VkCtx::init or a step after it failed): slShutdown still precedes the device - the loader
-	// root's vkDestroyDevice runs it (Codex dlss-sl-r1 P1, r2 P1).
+	// root's vkDestroyDevice runs it.
 	if (!m_dlss)
 		return;
 	if (m_dlss->out.image) {
@@ -750,7 +750,7 @@ HRESULT GxNativeDevice::dlssUpscale(const GxUpscaleCall& c)
 	if (!dlssSupported())
 		return E_NOTIMPL;
 	// A refusal is for the rest of the session: Supports turns FALSE and the jitter stops, so the seam's bilinear never shows a
-	// jittered world (Codex dlss-sl-r1 P2).
+	// jittered world.
 	auto refuse = [this](int k, const std::string& why) {
 		if (!m_dlss->refused[k])
 			logLine("[GXSL] upscale refused, DLSS off for this session (bilinear instead): %s", why.c_str());

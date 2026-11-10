@@ -148,19 +148,19 @@ public:
 
 	void loadMods();
 
-	// GeneralsX @bugfix Claude 23/09/2026 A single-file -mod naming an archive that is ALREADY
+	// GeneralsX: A single-file -mod naming an archive that is ALREADY
 	/// mounted, under any spelling: move that archive to the front and return TRUE, so loadMods
 	/// does not open and insert a second copy. FALSE when it is not mounted. Pure virtual so
 	/// neither BIG file system twin can silently skip it; the by-file comparison lives in the
 	/// device layer (StdDevice/Common/GXArchiveMount.h).
 	virtual Bool promoteIfAlreadyMounted(const Char *filename) = 0;
 
-	// GeneralsX @bugfix Claude 06/10/2026 Is this mounted archive (its getName()) one the -mod argument supplied?
+	// GeneralsX: Is this mounted archive (its getName()) one the -mod argument supplied?
 	/// Answered by the device layer with canonical paths (GXArchiveMount::isModArchive), so every spelling of the
 	/// argument agrees; INI::loadFileDirectory uses it to decide whose monolithic CommandSet/CommandButton wins.
 	virtual Bool isModArchive(const Char *archiveName) const = 0;
 
-	// GeneralsX @feature Claude 27/07/2026
+	// GeneralsX:
 	/// FNV-1a over the SORTED, lowercased basenames of every mounted archive.
 	/// Tier2 warn-only signal for the SimID join check. No file I/O.
 	UnsignedInt computeMountedArchiveFingerprint() const;

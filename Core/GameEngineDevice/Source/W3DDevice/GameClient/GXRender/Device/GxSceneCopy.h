@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-fdepth-plus 17/10/2026 F-depth+: the world's depth and opaque colour, taken mid-frame for the readers
+// GeneralsX: F-depth+: the world's depth and opaque colour, taken mid-frame for the readers
 // that draw with them (soft particles S10, native water S8b) - look-director/d2/PLAN_fdepth-plus.md, PLAN_look.md §4 item 4.
 //
 // The game calls IGxSceneTap::OpaqueDone (GxSceneTap.h) after the opaque world and before water and every transparent. When a
@@ -86,7 +86,7 @@ public:
 	GxScenePlants& plants() { return m_plants; }
 	// The tap's front half: the targets for the bound pair, (re)created HERE when the format or size moved (A23-B: creation on the
 	// front). Formats are d3d8 (0 = not wanted / nothing bound). A replaced target lands in *old for an exec half to retire.
-	// Everything the exec half reads, by value (A23-B; Codex fdepth-r1 #3: no front state is read on the worker)
+	// Everything the exec half reads, by value (A23-B; no front state is read on the worker)
 	struct Tap
 	{
 		Res::GxRenderTarget* depth = nullptr;

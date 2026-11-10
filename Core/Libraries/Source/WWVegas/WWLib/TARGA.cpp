@@ -64,7 +64,7 @@
 #ifndef TGA_USES_WWLIB_FILE_CLASSES
 #include "WWDebug/wwdebug.h"
 #endif
-// GeneralsX @bugfix BenderAI 24/02/2026 Phase 5 - malloc.h not on macOS
+// GeneralsX: Phase 5 - malloc.h not on macOS
 #ifdef __APPLE__
 #include <stdlib.h>
 #else
@@ -286,7 +286,7 @@ long Targa::Open(const char* name, long mode)
 			break;
 	}
 
-	/* GeneralsX @bugfix Claude 06/10/2026 Refuse a header whose image cannot be real before any caller sizes a buffer
+	/* GeneralsX: Refuse a header whose image cannot be real before any caller sizes a buffer
 	 * from it. Width, Height and PixelDepth come straight from the file (a map's textures and preview reach every lobby
 	 * peer): negative sizes made Width*Height positive and YFlip then looped ~4 billion times over a small buffer, and
 	 * 16384x16385 at a large PixelDepth wrapped the 32-bit size on Windows so the decoder wrote past the allocation.
@@ -560,7 +560,7 @@ long Targa::Load(const char* name, long flags, bool invert_image)
 			if ((mPalette == nullptr) && !(mFlags & TGAF_PAL)) {
 
 				/* Compute the size of the palette from the targa header. */
-				/* GeneralsX @bugfix Claude 06/10/2026 The reader writes the colour map at CMapStart entries in, so the
+				/* GeneralsX: The reader writes the colour map at CMapStart entries in, so the
 				 * buffer must hold CMapStart + CMapLength entries; sizing it by CMapLength alone let a nonzero CMapStart
 				 * write past it. A negative total allocates nothing and the reader then refuses the header. */
 				size = (((long)Header.CMapStart + (long)Header.CMapLength) * (Header.CMapDepth >> 3));

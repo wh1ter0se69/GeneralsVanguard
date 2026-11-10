@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-shadowmaps-4 18/10/2026 S7 PREREG A44 (A23/A31): the ORDER of the early cast-only flush that captures the
+// GeneralsX: S7 PREREG A44 (A23/A31): the ORDER of the early cast-only flush that captures the
 // off-screen shadow casters - pure logic over its operations, host-tested (scripts/test/sm-fit/sm-fit-test.cpp A44-seq-*, with the
 // compile-time mutants sm-fit-test.sh builds), used by the ZH glue (W3DShadowMap.cpp), which supplies the real operations. Render-only.
 //

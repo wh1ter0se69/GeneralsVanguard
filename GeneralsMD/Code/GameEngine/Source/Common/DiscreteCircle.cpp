@@ -95,8 +95,8 @@ void DiscreteCircle::generateEdgePairs(Int xCenter, Int yCenter, Int radius)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 06/10/2026 Each erase shifted the whole rest of the vector, so a large circle cost the square of
-// its edge count: a million-cell reveal radius was about 400,000 erases over 1.4 million edges (batch-0958 Codex r3-full).
+// GeneralsX: Each erase shifted the whole rest of the vector, so a large circle cost the square of
+// its edge count: a million-cell reveal radius was about 400,000 erases over 1.4 million edges.
 // Same result in one pass: an edge is kept when it is the last one or the next edge is on another row (the old loop kept
 // exactly those, compared against the original next edge), in the same order.
 void DiscreteCircle::removeDuplicates()

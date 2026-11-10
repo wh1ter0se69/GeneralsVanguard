@@ -17,7 +17,7 @@
 */
 
 // FILE: UpdateChecker.h //////////////////////////////////////////////////
-// GeneralsX @feature BenderAI 21/04/2026 Non-blocking update checker via
+// GeneralsX: Non-blocking update checker via
 // GitHub Releases API. Only active for tagged release builds with SAGE_USE_SDL3.
 
 #pragma once

@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule OPEN.GLA_WORKERS_AFTER (C·rb-data-10): GLA trains more Workers once its Arms
+# GeneralsX: rule bank DATA rule OPEN.GLA_WORKERS_AFTER (C·rb-data-10): GLA trains more Workers once its Arms
 # Dealer stands and again after its first Tunnel Network. Stock GLA Hard's opening Worker teams ("GLA Worker": 4, or OPEN.START_ORDER's
 # count) come before both. Per GLA general this adds two one-time teams, copied from the general's own stock Worker team: "GX Workers After
 # Dealer <g>" once an own Arms Dealer is complete and, with after_tunnel = 1, "GX Workers After Tunnel <g>" once an own Tunnel Network is
@@ -45,7 +45,7 @@ def apply(scb, scope, p):
             t = {'_e': [list(e) for e in donor['_e']], 'teamName': None}
             _bare(scb, t)
             for k, v in (('teamName', TEAM % (w, g)), ('teamUnitMinCount1', p['worker_n']), ('teamUnitMaxCount1', p['worker_n']),
-                         ('teamMaxInstances', 1), ('teamIsSingleton', False),   # the donor is one: its empty map-load instance would fill the 1 (Codex rbd10-r1 P1)
+                         ('teamMaxInstances', 1), ('teamIsSingleton', False),   # the donor is one: its empty map-load instance would fill the 1
                          ('teamProductionCondition', COND % (w, g)), ('teamOnCreateScript', START % (w, g))):
                 rb.team_set(scb, t, k, v)
             rb.add_new_team(ts, at, t); at += 1

@@ -219,11 +219,11 @@ class ScriptEngine : public SubsystemInterface,
 {
 
 public:
-	// GeneralsX @feature Claude 30/10/2026 rb-core: 1024 counters and flags (retail 256). A clocked GLA rule tier uses ~20 per player, so 256
+	// GeneralsX: rb-core: 1024 counters and flags (retail 256). A clocked GLA rule tier uses ~20 per player, so 256
 	// fit 13 players, not the 14-slot lobby (C · rb-data); 1024 covers 32. Saves write the counters IN USE (m_numCounters), the CRC walks
 	// the ones in use, and only reset()/newMap() touch the whole array - a game using <= 256 saves and CRCs exactly as before. A
-	// RETAIL_COMPATIBLE_XFER_SAVE build keeps retail's 256: its saves must load in retail, whose loader refuses a larger count (Codex
-	// core-r13 P1) - ScriptEngine.cpp static_asserts it.
+	// RETAIL_COMPATIBLE_XFER_SAVE build keeps retail's 256: its saves must load in retail, whose loader refuses a larger count
+	// - ScriptEngine.cpp static_asserts it.
 #if RETAIL_COMPATIBLE_XFER_SAVE
 	enum {MAX_COUNTERS=256, MAX_FLAGS=256, MAX_ATTACK_PRIORITIES=256};
 #else
@@ -504,7 +504,7 @@ protected:
 
 	Bool							m_shownMPLocalDefeatWindow;
 
-	// GeneralsX @feature Claude 02/10/2026 Determinism-1: the CLIENT-LOCAL script state crc() leaves out (see
+	// GeneralsX: Determinism-1: the CLIENT-LOCAL script state crc() leaves out (see
 	// gxClassifyClientLocal). Worked out from the scripts' content on the first crc() after reset/newMap/load; the
 	// vectors are only searched, never iterated into the CRC.
 	void gxClassifyClientLocal();

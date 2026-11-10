@@ -206,7 +206,7 @@ public:
 	void drawName(Int x, Int y, Color color, Color dropColor);
 	void drawTime(Int x, Int y, Color color, Color dropColor);
 	Real getHeight() const;
-	/// GeneralsX @bugfix Claude 03/11/2026 The drawn widths (drawName right-aligns its text to x, drawTime starts at x): the spectator
+	/// GeneralsX: The drawn widths (drawName right-aligns its text to x, drawTime starts at x): the spectator
 	/// HUD's event toasts keep off the countdowns (InGameUI.cpp s_gxSwDrawn).
 	Int gxNameWidth() const { return m_nameDisplayString ? m_nameDisplayString->getWidth() : 0; }
 	Int gxTimeWidth() const { return m_timeDisplayString ? m_timeDisplayString->getWidth() : 0; }
@@ -404,7 +404,7 @@ public:  // ********************************************************************
 	// sites, so those stay one unconditional line each in files the SimID digest covers, and every
 	// policy decision is in client code.
 	virtual void announceGeneralSkill( Player *player, ScienceType science, Bool used );
-	// GeneralsX @feature Claude 19/08/2026 Upgrades announce the same way general's skills do.
+	// GeneralsX: Upgrades announce the same way general's skills do.
 	void announceUpgrade( Player *player, const UpgradeTemplate *upgrade );
 
 	// TheSuperHackers @info One logical activation can reach SpecialPowerModule::triggerSpecialPower
@@ -466,7 +466,7 @@ public:  // ********************************************************************
 	virtual void setScrolling( Bool isScrolling );							///< set right-click scroll mode
 	virtual Bool isScrolling();														///< are we scrolling?
 
-	// GeneralsX @feature Claude 13/08/2026 Hide every HUD readout at once. See m_hudOverlayHidden.
+	// GeneralsX: Hide every HUD readout at once. See m_hudOverlayHidden.
 	void toggleHudOverlay() { m_hudOverlayHidden = !m_hudOverlayHidden; }
 	Bool isHudOverlayHidden() const { return m_hudOverlayHidden; }
 	virtual void setSelecting( Bool isSelecting );							///< set drag select mode
@@ -536,12 +536,12 @@ public:  // ********************************************************************
 	virtual void setQuitMenuVisible( Bool t ) { m_isQuitMenuVisible = t; }
 	virtual Bool isQuitMenuVisible() const { return m_isQuitMenuVisible; }
 
-	/// GeneralsX @feature Claude 05/10/2026 The newest skill/upgrade announcement, live or faded, for the spectator
+	/// GeneralsX: The newest skill/upgrade announcement, live or faded, for the spectator
 	/// HUD's event toast (GXSpectatorHud.inl). FALSE when nothing has been announced this match.
-	/// GeneralsX @feature Claude 03/11/2026 The `nth` newest (0 = the newest) and its ring slot: the toasts are a stack now.
+	/// GeneralsX: The `nth` newest (0 = the newest) and its ring slot: the toasts are a stack now.
 	Bool gxNewestSkillBanner( Int nth, UnicodeString &text, Color &color, UnsignedInt &bornMs, Int &playerIndex, ObjectID &objectID,
 		Int &science, UnsignedInt &frame, UnsignedInt &powerID, Int &ringSlot ) const;
-	/// GeneralsX @feature Claude 12/10/2026 Where a special power was aimed, told by the simulation where it triggers the power
+	/// GeneralsX: Where a special power was aimed, told by the simulation where it triggers the power
 	/// (SpecialPowerModule::triggerSpecialPower): the spectator toast's click jumps there (GXSpectatorHud.inl). Client state only.
 	void gxNoteSpecialPowerTarget( const Object *caster, const SpecialPowerTemplate *power, const Coord3D *target );
 	/// The radius decal the power's caster saw while aiming it (its command button's RadiusCursorType), at `at`: FALSE if none.
@@ -716,7 +716,7 @@ protected:
 
 	struct UIMessage
 	{
-		// GeneralsX @bugfix Claude 24/08/2026 fullText stays the RAW message and never carries the
+		// GeneralsX: fullText stays the RAW message and never carries the
 		// "(xN)" suffix. It is what the next arrival is compared against, so decorating it would
 		// make the second repeat fail to match the first and the coalescing would stop after one.
 		// The suffix goes only into displayString, which is the thing that gets drawn.
@@ -724,7 +724,7 @@ protected:
 		DisplayString *displayString;						///< display string used to render the message
 		UnsignedInt timestamp;									///< logic frame message was created on
 		Color color;														///< color to render this in
-		// GeneralsX @bugfix Claude 24/08/2026 Half of the coalescing identity, alongside the text.
+		// GeneralsX: Half of the coalescing identity, alongside the text.
 		// messageColor() and the coloured messageNoFormat() let one sentence arrive in two
 		// different colours - in-game chat colours a line by the speaker - and folding those
 		// together would silently repaint the second one. 0 means "the caller asked for no colour
@@ -830,11 +830,11 @@ protected:
 
 	// Network Latency Counter
 	//
-	// GeneralsX @feature Claude 04/08/2026 This reads MILLISECONDS now, not run-ahead frames.
+	// GeneralsX: This reads MILLISECONDS now, not run-ahead frames.
 	// m_networkLatencyColor is the configured colour and is now only the fallback: the drawn
 	// colour is banded green/yellow/red off the measured value. Run-ahead is still traced by
 	// [GXPACE], so nothing that was observable stopped being observable.
-	// GeneralsX @feature Claude 13/08/2026 One switch that hides EVERY HUD readout at once.
+	// GeneralsX: One switch that hides EVERY HUD readout at once.
 	//
 	// Each readout is individually controlled by its own font-size preference in Options.ini
 	// (PlayerInfoListFontSize, NetworkLatencyFontSize, RenderFpsFontSize...), which is fine for
@@ -855,14 +855,14 @@ protected:
 	UnsignedInt									m_lastNetworkLatencyMs;
 	UnsignedInt									m_lastNetworkLatencyUpdateMs;
 
-	// GeneralsX @bugfix Claude 13/08/2026 Which peer the displayed latency belongs to, or -1 for
+	// GeneralsX: Which peer the displayed latency belongs to, or -1 for
 	// none. Cached beside the milliseconds because the string has to be rebuilt when the WORST peer
 	// changes even if its round trip happens to match the previous peer's to the millisecond.
 	Int													m_lastNetworkLatencySlot;
 
 	// Network Resend Counter (packet loss)
 	//
-	// GeneralsX @feature Claude 08/08/2026 Deliberately has no font, position, colour or point size
+	// GeneralsX: Deliberately has no font, position, colour or point size
 	// of its own: it reuses every m_networkLatency* resource above, and is therefore gated by the
 	// SAME existing NetworkLatencyFontSize preference, 0 = off. A new OptionPreferences key would
 	// have meant editing Core/GameEngine/{Include,Source}/Common, which is inside the SimID digest -
@@ -899,7 +899,7 @@ protected:
 
 	// Observed Logic Rate (tps)
 	//
-	// GeneralsX @feature Claude 08/08/2026 Twinned with the fps counter above the same way the
+	// GeneralsX: Twinned with the fps counter above the same way the
 	// resend counter is twinned with latency: no resources of its own, gated by the existing
 	// RenderFpsFontSize preference, 0 = off. tps is a rate counter and belongs to the rate
 	// preference - a player who turned the fps counter off does not want a second one appearing.
@@ -992,19 +992,19 @@ protected:
 	AnnouncedSkill								m_announcedSkills[ANNOUNCED_SKILL_HISTORY];
 	Int														m_announcedSkillNext;
 
-	// GeneralsX @bugfix Claude 24/08/2026 The upgrade feed needs a dedupe of its own, and it must
+	// GeneralsX: The upgrade feed needs a dedupe of its own, and it must
 	// NOT be a copy of the ring above. See GXUpgradeLedger.h for why the ring shape is wrong here
 	// (repeats minutes apart, and eviction under twelve players) and for the three call sites that
 	// make an upgrade able to "complete" more than once for one player. Cleared in reset().
 	GXUpgradeLedger::Ledger				m_announcedUpgrades;
 
-	// GeneralsX @bugfix Claude 24/08/2026 Which sciences a "used" banner can name, so a purchase
+	// GeneralsX: Which sciences a "used" banner can name, so a purchase
 	// banner is suppressed only when one is actually coming. Built lazily from TheSpecialPowerStore
 	// on the first announcement of a game and cleared in reset(); see GXSkillAnnouncePolicy.h for
 	// why the store walk is the definition of the question rather than an approximation to it.
 	GXSkillAnnouncePolicy::UseAnnouncingSciences	m_useAnnouncingSciences;
 
-	// GeneralsX @feature Claude 19/08/2026 Skill announcements get their OWN channel.
+	// GeneralsX: Skill announcements get their OWN channel.
 	//
 	// They used to go out through messageNoFormat, which put them in the same list as "Structure
 	// under attack", defeat notices and chat - one position, one lifetime, one look for all of it.
@@ -1107,7 +1107,7 @@ protected:
 	Bool												m_messageBold;
 	Int													m_messageDelayMS;
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate for the UI message fade. InGameUI::update()
+	// GeneralsX: Class-C gate for the UI message fade. InGameUI::update()
 	// is driven from GameClient::update(), i.e. once per MAIN LOOP ITERATION, but the fade
 	// subtracts alpha on every call - so at the 8x network floor a chat message was erased before
 	// it could be read. The operator's report was exact: on iPad you HEAR the incoming-chat chime

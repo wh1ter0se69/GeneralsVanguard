@@ -540,7 +540,7 @@ void W3DRoadBuffer::loadFloatSection(RoadSegment *pRoad, Vector2 loc,
 
 }
 
-// GeneralsX @bugfix Claude 06/10/2026 A road section's length and width come from the map (its points, the object's
+// GeneralsX: A road section's length and width come from the map (its points, the object's
 // scale, the road type's RoadWidth), and converting a huge or NaN count to Int was undefined before the caller's clamps
 // ran. Clamp in Real first: at least 2, as the callers always required, and at most a million (the vertex buffer fills
 // long before). Every count that converted cleanly before comes out the same.
@@ -2941,7 +2941,7 @@ void W3DRoadBuffer::insertCurveSegmentAt(Int ndx1, Int ndx2)
 		direction.Rotate(angle);
 		pt1 = pt2+direction;
 
-		// GeneralsX @bugfix Claude 06/10/2026 Check for room BEFORE the first store, as every other insertion does: a
+		// GeneralsX: Check for room BEFORE the first store, as every other insertion does: a
 		// map whose road points fill MaxRoadSegments wrote this corner's curve one element past m_roads.
 		CHECK_SEGMENTS;
 		m_roads[m_numRoads].m_pt1.loc=pt2;

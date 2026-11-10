@@ -335,7 +335,7 @@ void NeutronMissileUpdate::doAttack()
 {
 	Matrix3D mx;
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 RelativeSpeed is a raw per-frame^2 thrust and ForwardDamping a per-frame drag fraction
+	// GeneralsX: RelativeSpeed is a raw per-frame^2 thrust and ForwardDamping a per-frame drag fraction
 	// (v += s*dir - d*v). Thrust x1/4 and drag x1/2 (both exact) keep the terminal speed s/d and the
 	// approach to it identical in wall-clock terms; unscaled, the nuke flew twice as fast and cut the
 	// evacuation window in half. MaxTurnRate is already parseAngularVelocityReal.
@@ -581,9 +581,9 @@ void NeutronMissileUpdate::xfer( Xfer *xfer )
 	xfer->xferObjectID( &m_launcherID );
 
 	// attach weapon slot
-	// GeneralsX @security Claude 06/10/2026 A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
-	// range (Codex net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
-	// kept: a load that throws still runs the post-processing pass, which can read it (Codex weapon-slot-r2).
+	// GeneralsX: A slot from a save file indexes m_weapons / barrel arrays later; refuse one out of
+	// range (net-hardening weapon-slot-r1, with sweep c099-01). An honest one always is in range. Checked before it is
+	// kept: a load that throws still runs the post-processing pass, which can read it.
 	WeaponSlotType xferAttachSlot = m_attach_wslot;
 	xfer->xferUser( &xferAttachSlot, sizeof( WeaponSlotType ) );
 	if ((Int)xferAttachSlot < 0 || (Int)xferAttachSlot >= WEAPONSLOT_COUNT)

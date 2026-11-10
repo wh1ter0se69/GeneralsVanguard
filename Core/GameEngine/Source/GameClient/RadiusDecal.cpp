@@ -69,7 +69,7 @@ void RadiusDecalTemplate::createRadiusDecal(const Coord3D& pos, Real radius, con
 	if (!m_onlyVisibleToOwningPlayer ||
 			owningPlayer->getPlayerIndex() == ThePlayerList->getLocalPlayer()->getPlayerIndex())
 	{
-		// GeneralsX @bugfix Claude 28/09/2026 A -headless peer has no shadow manager (W3DTerrainVisual only creates it when
+		// GeneralsX: A -headless peer has no shadow manager (W3DTerrainVisual only creates it when
 		// not headless), so this dereferenced null whenever the LOCAL player ordered a power with a delivery decal - a
 		// headless replay simulation of any replay whose recorder fired a superweapon (the local player in playback is the
 		// recorder, Recorder.cpp), or a headless peer given input. Measured: SIGSEGV here at the SCUD Storm order. The
@@ -202,7 +202,7 @@ void RadiusDecal::update()
 	if (m_decal && m_template)
 	{
 		UnsignedInt now = TheGameLogic->getFrame();
-		// GeneralsX @bugfix Claude 01/10/2026 OpacityThrobTime = 0 (mod data) made this an integer modulo by zero (SIGFPE on x86): no throb, full opacity.
+		// GeneralsX: OpacityThrobTime = 0 (mod data) made this an integer modulo by zero (SIGFPE on x86): no throb, full opacity.
 		// Idea from Generals Online 1db5409b2, reimplemented.
 		Real percent = 1.0f;
 		if (m_template->m_opacityThrobTime != 0)

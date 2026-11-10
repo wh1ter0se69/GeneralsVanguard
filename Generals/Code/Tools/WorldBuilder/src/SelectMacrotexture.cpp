@@ -85,7 +85,7 @@ BOOL SelectMacrotexture::OnInitDialog()
 			do {
 				AsciiString filename = *it;
 				int len = filename.getLength();
-				if (len<5) { ++it; continue; }	// GeneralsX @bugfix Claude 01/10/2026 step on: the ++it below is skipped by continue
+				if (len<5) { ++it; continue; }	// GeneralsX: step on: the ++it below is skipped by continue
 				strlcpy(fileBuf, filename.str(), ARRAY_SIZE(fileBuf));
 					::memset(&ins, 0, sizeof(ins));
 					ins.hParent = TVI_ROOT;

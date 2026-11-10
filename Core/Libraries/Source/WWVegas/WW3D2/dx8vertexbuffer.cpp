@@ -422,7 +422,7 @@ DX8VertexBufferClass::~DX8VertexBufferClass()
 
 void DX8VertexBufferClass::Create_Vertex_Buffer(UsageType usage)
 {
-	DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: a known device access (no RAW_ACCESS)
+	DX8Wrapper::GxLogBody gxBody(gxlog::RESOURCE);	// GeneralsX: WS-G Task 5: a known device access (no RAW_ACCESS)
 	DX8_THREAD_ASSERT();
 	WWASSERT(!VertexBuffer);
 
@@ -819,7 +819,7 @@ void DynamicVBAccessClass::Allocate_Sorting_Dynamic_Buffer()
 	WWASSERT(new_vertex_count<65536);
 	if (new_vertex_count>_DynamicSortingVertexArraySize) {
 		REF_PTR_RELEASE(_DynamicSortingVertexArray);
-		// GeneralsX @bugfix Claude 23/09/2026 The size and offset are unsigned short. When this frame's
+		// GeneralsX: The size and offset are unsigned short. When this frame's
 		// cumulative vertices pass 65535 the old code stored the truncated sum and handed out offset 0 of an
 		// array smaller than the request, so the caller wrote past the heap block. Start a fresh array
 		// sized for this request instead; nodes already queued hold refs to the old array.
@@ -841,7 +841,7 @@ static int dx8_lock;
 DynamicVBAccessClass::WriteLockClass::WriteLockClass(DynamicVBAccessClass* dynamic_vb_access_)
 	:
 	DynamicVBAccess(dynamic_vb_access_),
-	Vertices(nullptr),	// GeneralsX @bugfix Claude 17/10/2026 see the Lock below
+	Vertices(nullptr),	// GeneralsX: see the Lock below
 	Staged(false)
 {
 	DX8_THREAD_ASSERT();
@@ -878,7 +878,7 @@ DynamicVBAccessClass::WriteLockClass::WriteLockClass(DynamicVBAccessClass* dynam
 		}
 		DX8Ring::Fallback();
 		// Lock with discard contents if the buffer offset is zero
-		// GeneralsX @bugfix Claude 17/10/2026 A failed Lock hands back null, never stack garbage (Codex batch-0965 r5 P2). Vertices
+		// GeneralsX: A failed Lock hands back null, never stack garbage. Vertices
 		// is a member of this stack object and was left uninitialised, and DX8_ErrorCode only logs (a no-op in release), so a
 		// caller's null check passed on whatever the stack held - the static VertexBufferLockClass got the same fix from
 		// TheSuperHackers (dx8vertexbuffer.h). Callers that check the pointer can now skip their draw; the success path is unchanged.

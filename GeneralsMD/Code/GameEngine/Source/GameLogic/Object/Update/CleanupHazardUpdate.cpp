@@ -216,7 +216,7 @@ void CleanupHazardUpdate::fireWhenReady()
 			{
 				//We were in range last frame, but the target has moved out of firing range, so
 				//re-evaluate by forcing a new scan.
-				m_nextScanFrames = GX_FRAMES30(GameLogicRandomValue( 0, 3 ));	// GeneralsX @fix Claude 23/09/2026 0-3 RETAIL frames, same draw
+				m_nextScanFrames = GX_FRAMES30(GameLogicRandomValue( 0, 3 ));	// GeneralsX: 0-3 RETAIL frames, same draw
 				m_bestTargetID = INVALID_ID;
 				if( !m_nextScanFrames )
 				{

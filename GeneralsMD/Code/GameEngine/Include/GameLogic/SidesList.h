@@ -304,12 +304,12 @@ protected:
 	Int			 m_desiredGatherers;				///< Number of gatherers desired.
 	Int			 m_currentGatherers;				///< Number of gatherers available.
 	Bool		 m_priorityBuild;						///< Is priority build.
-	// GeneralsX @feature Claude 01/10/2026 A skirmish AI supply centre queued on a dock face keeps today's spot here; the
+	// GeneralsX: A skirmish AI supply centre queued on a dock face keeps today's spot here; the
 	// first refusal of the face spot (unsafe, enemy on it, illegal) moves the entry to it at once. See AIPlayer::buildBySupplies.
 	Coord3D	 m_fallbackLocation;
 	Real		 m_fallbackAngle;
 	Bool		 m_hasFallback;
-	// GeneralsX @feature Claude 06/11/2026 base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md, wh1ter0se's option 2): TRUE while the unused fallback above is
+	// GeneralsX: base-layout (gx-handoff ai/base-layout/ADDENDUM_8.md, wh1ter0se's option 2): TRUE while the unused fallback above is
 	// the stock list's spot for this entry (AIData's GXFallbackLocation), never a supply centre's today's spot. Only the parse below sets it, and
 	// AISkirmishPlayer::adjustBuildList keeps it on a GXTurnLayout list only, so no stock list can carry it.
 	Bool		 m_gxLayoutFallback;
@@ -366,7 +366,7 @@ public:
 	void setFallbackSpot(const Coord3D &loc, Real angle) { m_fallbackLocation = loc; m_fallbackAngle = angle; m_hasFallback = true; m_gxLayoutFallback = false; }
 	/// Moves the entry to its fallback spot, once: TRUE if it moved (the caller then tries the new spot), FALSE if there is none.
 	Bool useFallbackSpot() { if (!m_hasFallback) return false; m_location = m_fallbackLocation; m_angle = m_fallbackAngle; m_hasFallback = false; m_gxLayoutFallback = false; return true; }
-	/// GeneralsX @feature Claude 15/10/2026 TRUE while the entry still stands on its pro spot (its today's-spot fallback unused).
+	/// GeneralsX: TRUE while the entry still stands on its pro spot (its today's-spot fallback unused).
 	/// GeneralsX 06/11/2026 base-layout: a supply centre's today's spot only; a layout fallback (hasLayoutFallback) is not one, so the supply readers
 	/// (the two-truck target, the truck ceiling, gxRelocateQueued's protection) see a keyed entry exactly as before.
 	Bool hasFallbackSpot() const { return m_hasFallback && !m_gxLayoutFallback; }
@@ -379,10 +379,10 @@ public:
 	void gxSetLayoutFallback(const Coord3D &loc, Real angle) { m_fallbackLocation = loc; m_fallbackAngle = angle; m_hasFallback = true; m_gxLayoutFallback = true; }
 	/// GeneralsX 06/11/2026 base-layout: forgets a layout fallback (a list without GXTurnLayout); a supply centre's fallback stays.
 	void gxDropLayoutFallback() { if (m_gxLayoutFallback) { m_hasFallback = false; m_gxLayoutFallback = false; } }
-	/// GeneralsX @bugfix Claude 27/10/2026 Today's spot while it is still unused (nullptr after useFallbackSpot or when there is none), so a
+	/// GeneralsX: Today's spot while it is still unused (nullptr after useFallbackSpot or when there is none), so a
 	/// caller can test it BEFORE giving up the face (AISkirmishPlayer::processBaseBuilding, AIPlayer::buildStructureWithDozer).
 	const Coord3D *getFallbackLocation() const { return m_hasFallback ? &m_fallbackLocation : nullptr; }
-	/// GeneralsX @feature Claude 28/10/2026 its angle there, read without using it up (AIPlayer.cpp gxRelocateQueued). Meaningful only
+	/// GeneralsX: its angle there, read without using it up (AIPlayer.cpp gxRelocateQueued). Meaningful only
 	/// while hasFallbackSpot().
 	Real getFallbackAngle() const { return m_fallbackAngle; }
 	Bool isPriorityBuild() {return m_priorityBuild;}

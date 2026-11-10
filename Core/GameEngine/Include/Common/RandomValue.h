@@ -70,7 +70,7 @@ struct ClientRandomValueClass final : RandomValueClass
 	virtual Real GetRandomValueReal( Real lo, Real hi, const char *file, Int line ) const override;
 };
 
-// GeneralsX @feature Claude 06/10/2026 render-split step 2: the simulation's cosmetic stream (RandomValue.cpp), for values
+// GeneralsX: render-split step 2: the simulation's cosmetic stream (RandomValue.cpp), for values
 // that only place or time an effect. Never CRC'd; never drawn by the render side.
 struct LogicCosmeticRandomValueClass final : RandomValueClass
 {

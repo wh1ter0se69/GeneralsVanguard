@@ -45,11 +45,11 @@
 #include "GameLogic/AI.h"
 #include "GameLogic/AIPathfind.h"
 #include "GameLogic/AITNGuard.h"
-#include "GameLogic/AIPlayer.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: gxAirWatchRadius (Codex ke-tunnel-r1 P1)
+#include "GameLogic/AIPlayer.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: gxAirWatchRadius
 #if defined(GX_TEST_INSTRUMENTS)	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: a guard's pop / turn / hide, for the box readers (tools/box/mech.py)
 #include <cstdarg>
 #include "GameLogic/GameLogic.h"	// TheGameLogic, read by the helper below
-// GeneralsX @performance Claude 03/11/2026 t2-cheap: ONE write per [GXTAA] line - the same bytes the old fprintf + fprintf + fputc wrote
+// GeneralsX: t2-cheap: ONE write per [GXTAA] line - the same bytes the old fprintf + fprintf + fputc wrote
 // (three writes on the unbuffered stderr), so the line, its order and every reader see nothing new; a line too long for the buffer
 // takes the old three calls.
 static void gxTaaLogLine(const char *fmt, ...)
@@ -94,7 +94,7 @@ static Bool gxAirByAssignmentOnly(const Object *guard, const Object *target)
 #include "GameLogic/Module/AIUpdate.h"
 #include "GameLogic/Module/BodyModule.h"
 #include "GameLogic/Module/CollideModule.h"
-#include "GameLogic/Module/PhysicsUpdate.h"	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: PhysicsBehavior::getVelocity (Codex ke-tunnel-r10 P1)
+#include "GameLogic/Module/PhysicsUpdate.h"	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: PhysicsBehavior::getVelocity
 #include "GameLogic/GXHookTimer.h"	// GeneralsX 22/10/2026 ai-wh1ter0se-econ: [GXHOOK] CPU timer (test-instruments builds)
 GX_HOOK_STATS_EXTERN(gxTunnelAAHook);	// AISkirmishPlayer.cpp: arm T's one per-tick sum (the watch + these guard-side checks)
 #include "Common/TunnelTracker.h"
@@ -242,7 +242,7 @@ AITNGuardMachine::~AITNGuardMachine()
 }
 
 //--------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7): with the owner's air watch on, an AIRCRAFT
+// GeneralsX: ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7): with the owner's air watch on, an AIRCRAFT
 // network nemesis is taken only by a guard that can attack it - the test the damaged-tunnel path of lookForInnerTarget already makes - so
 // a Scorpion stays in (or keeps going in) for a MiG. Watch off, or any other nemesis: stock (taken).
 // GeneralsX 23/10/2026 ai-wh1ter0se-econ T: is a watched plane ENGAGEABLE by this guard - within its weapon range + 50, or within 250 more and
@@ -253,7 +253,7 @@ Bool gxAirEngageable(const Object *guard, const Object *plane)	// GeneralsX 27/1
 {
 	const Real reach = guard->getLargestWeaponRange() + 50.0f;
 	// a guard INSIDE the network deploys through the exit nearest the plane (AITNGuardIdleState picks it after lookForInnerTarget), so its
-	// distance and closing are measured from that tunnel, not its stored position (Codex ke-tunnel-r10 P2); ties to the earlier tunnel
+	// distance and closing are measured from that tunnel, not its stored position; ties to the earlier tunnel
 	Coord3D from = *guard->getPosition();
 	if (guard->getContainedBy())
 	{
@@ -289,7 +289,7 @@ Bool gxAirEngageable(const Object *guard, const Object *plane)	// GeneralsX 27/1
 	return v != nullptr && (v->x * dx + v->y * dy) > 0.0f;
 }
 
-// GeneralsX @feature Claude 27/10/2026 ai-pro-rules-2 T2 (wh1ter0se 27/10: "they need to target them manually"): with the owner's ACTING air
+// GeneralsX: ai-pro-rules-2 T2 (wh1ter0se 27/10: "they need to target them manually"): with the owner's ACTING air
 // watch on, a guard never takes an aircraft as its nemesis by itself - every shot at an aircraft from the tunnels is an assignment of
 // the watch (AISkirmishPlayer::gxTunnelAirWatch: an explicit attack order on one plane, back in once it is gone). T's own rule (an
 // aircraft taken only by a guard that can engage it) is what this replaces. Watch off or T0, or any other nemesis: stock (taken).
@@ -353,7 +353,7 @@ Bool AITNGuardMachine::lookForInnerTarget()
 			// Check for attacking.
 			if (currentTunnel->getAI()) {
 				Object *victim = currentTunnel->getAI()->getGoalObject();
-				if (owner->getRelationship(victim) == ENEMIES && !gxAirByAssignmentOnly(owner, victim)) {	// GeneralsX 27/10/2026 T2 (Codex t2-engine-r1 #2)
+				if (owner->getRelationship(victim) == ENEMIES && !gxAirByAssignmentOnly(owner, victim)) {	// GeneralsX 27/10/2026 T2
 					setNemesisID(victim->getID());
 					return true;
 				}
@@ -518,7 +518,7 @@ StateReturnType AITNGuardInnerState::update()
 	}
 
 	Object* owner = getMachineOwner();
-	// GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ T (DESIGN.md 7, "hide back instantly"): with the owner's air watch on, a guard
+	// GeneralsX: ai-wh1ter0se-econ T (DESIGN.md 7, "hide back instantly"): with the owner's air watch on, a guard
 	// whose nemesis is an aircraft it cannot engage (gxAirEngageable - the rule the return state turns back by) gives up at once - a
 	// stateless test each update (nothing to save) - and the Return state takes it back into the nearest tunnel.
 	if (nemesis && nemesis->isKindOf(KINDOF_AIRCRAFT) && gxAirWatchOn(ownerPlayer))
@@ -672,9 +672,9 @@ StateReturnType AITNGuardOuterState::onEnter()
 		DEBUG_LOG(("Unexpected null nemesis in AITNGuardOuterState."));
 		return STATE_SUCCESS;
 	}
-	// GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ T (DESIGN.md 7, "hide back instantly"): with the owner's air watch on, an
+	// GeneralsX: ai-wh1ter0se-econ T (DESIGN.md 7, "hide back instantly"): with the owner's air watch on, an
 	// aircraft is never chased outside - the inner state gave it up because it left weapon range, and both of the inner state's exits
-	// lead here (Codex ke-tunnel-r2 P2: this pursued it again with a fresh chase timer). On to the crate check and the Return state.
+	// lead here (this pursued it again with a fresh chase timer). On to the crate check and the Return state.
 	if (nemesis->isKindOf(KINDOF_AIRCRAFT) && getMachineOwner()->getControllingPlayer()
 		&& getMachineOwner()->getControllingPlayer()->getAIPlayer()
 		&& getMachineOwner()->getControllingPlayer()->getAIPlayer()->gxAirWatchRadius() > 0)
@@ -706,7 +706,7 @@ StateReturnType AITNGuardOuterState::update()
 			DEBUG_LOG(("AITNGuardOuterState::update has no attack state and no nemesis."));
 			return STATE_SUCCESS;
 		}
-		// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: the onEnter rule above (Codex ke-tunnel-r2 P2)
+		// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: the onEnter rule above
 		if (nemesis->isKindOf(KINDOF_AIRCRAFT) && owner->getControllingPlayer() && owner->getControllingPlayer()->getAIPlayer()
 			&& owner->getControllingPlayer()->getAIPlayer()->gxAirWatchRadius() > 0)
 			return STATE_SUCCESS;
@@ -738,7 +738,7 @@ StateReturnType AITNGuardOuterState::update()
 			&& owner->getTeam()->getPrototype()->getTemplateInfo()->m_attackCommonTarget)
 		{
 			teamVictim = owner->getTeam()->getTeamTargetObject();
-			if (teamVictim && !gxAirByAssignmentOnly(owner, teamVictim))	// GeneralsX 27/10/2026 T2 (Codex t2-engine-r1 #2)
+			if (teamVictim && !gxAirByAssignmentOnly(owner, teamVictim))	// GeneralsX 27/10/2026 T2
 			{
 				goalObj = teamVictim;
 			}
@@ -820,7 +820,7 @@ StateReturnType AITNGuardReturnState::onEnter()
 	// Find tunnel network to enter.
 	// Scan my tunnels.
 	Object *bestTunnel = findBestTunnel(getMachineOwner()->getControllingPlayer(), getMachineOwner()->getPosition());
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2 (Codex t2-engine-r4 #10): an AA guard coming back from its aircraft never fails into the
+	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard coming back from its aircraft never fails into the
 	// inner (attack) state - a failed entry goes to the idle state, whose next scan sends it back here
 	const Bool gxBack = gxAirReturningGuard(getMachineOwner());
 	if (bestTunnel==nullptr) return gxBack ? STATE_SUCCESS : STATE_FAILURE;
@@ -852,7 +852,7 @@ StateReturnType AITNGuardReturnState::update()
 
 	if (tunnels && !gxBack) {
 		Object *nemesis = tunnels->getCurNemesis();
-		// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: a guard that cannot attack the watch's aircraft keeps going in (Codex ke-tunnel-r3 P2: a
+		// GeneralsX 22/10/2026 ai-wh1ter0se-econ T: a guard that cannot attack the watch's aircraft keeps going in (a
 		// Scorpion on its way back was turned round again and again while a plane passed)
 		if (nemesis && gxGuardTakesNemesis(getMachineOwner(), ownerPlayer, nemesis)) {
 			if (nemesis->isKindOf(KINDOF_AIRCRAFT) && gxAirWatchOn(ownerPlayer))
@@ -867,7 +867,7 @@ StateReturnType AITNGuardReturnState::update()
 		}
 	}
 
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2 (Codex t2-engine-r3 #10): an AA guard coming back from its aircraft whose destination tunnel
+	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard coming back from its aircraft whose destination tunnel
 	// was captured or lost picks the best own tunnel again, instead of AIEnterState's attack on a hostile container
 	if (gxBack)
 	{
@@ -949,7 +949,7 @@ StateReturnType AITNGuardIdleState::update()
 #endif
 	Object *owner = getMachineOwner();
 	AIUpdateInterface *ai = owner->getAIUpdateInterface();
-	// GeneralsX 27/10/2026 ai-pro-rules-2 T2 (Codex t2-engine-r2 #10): an AA guard the air watch is bringing back in, left outside by a
+	// GeneralsX 27/10/2026 ai-pro-rules-2 T2: an AA guard the air watch is bringing back in, left outside by a
 	// failed entry (its tunnel gone or full), goes back to the Return state at once - no target scan, no crate detour
 	if (gxAirReturningGuard(owner) && !owner->getContainedBy() && findBestTunnel(owner->getControllingPlayer(), owner->getPosition()))
 		return STATE_FAILURE;	// go to AITNGuardReturnState, & enter a tunnel.
@@ -974,9 +974,9 @@ StateReturnType AITNGuardIdleState::update()
 #if RETAIL_COMPATIBLE_CRC
 			ExitInterface* goalExitInterface = bestTunnel->getContain() ? bestTunnel->getContain()->getContainExitInterface() : nullptr;
 #else
-			// GeneralsX @bugfix Claude 09/10/2026 "Contained by something" is not "inside this tunnel network": a guard
+			// GeneralsX: "Contained by something" is not "inside this tunnel network": a guard
 			// riding in a transport was thrown out through a tunnel, which cleared its containment and left it on the
-			// transport's list; and with no tunnel left bestTunnel is null (Codex tsh-port-1008-sec-r1 P2). Only a
+			// transport's list; and with no tunnel left bestTunnel is null. Only a
 			// passenger of the network leaves through one of its tunnels.
 			ContainModuleInterface *bestContain = bestTunnel != nullptr ? bestTunnel->getContain() : nullptr;
 			if (bestContain == nullptr || !bestContain->isContained(getMachineOwner()))
@@ -1099,7 +1099,7 @@ StateReturnType AITNGuardAttackAggressorState::onEnter()
 //-------------------------------------------------------------------------------------------------
 StateReturnType AITNGuardAttackAggressorState::update()
 {
-	// GeneralsX @bugfix Claude 06/10/2026 loadPostProcess() calls onEnter() and drops its result, and onEnter()
+	// GeneralsX: loadPostProcess() calls onEnter() and drops its result, and onEnter()
 	// builds no m_attackState when the aggressor no longer resolves - so a save taken while a tunnel guard attacked a
 	// unit that had just died left this state resident with null, dereferenced below on the first tick. Report what
 	// onEnter() reported (SUCCESS: no one to attack), which moves the machine on as a normal entry would. The Inner and
@@ -1119,7 +1119,7 @@ StateReturnType AITNGuardAttackAggressorState::update()
 		if (tunnels) tunnels->updateNemesis(nemesis);
 	}
 	// GeneralsX 23/10/2026 ai-wh1ter0se-econ T: the inner state's air give-up here too - a guard hit by a strafing plane retaliates through this
-	// state, which chased it for the full guardChaseUnitFrames after the watch had cleared it (Codex ke-tunnel-r7 P2). Stateless, per update.
+	// state, which chased it for the full guardChaseUnitFrames after the watch had cleared it. Stateless, per update.
 	{
 		Object *owner = getMachineOwner();
 		Object *target = m_attackState->getMachineGoalObject();

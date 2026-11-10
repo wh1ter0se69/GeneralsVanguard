@@ -104,7 +104,7 @@ class ParticleBufferClass : public RenderObjClass
 
 		virtual int Get_Num_Polys() const override;
 		int			Get_Particle_Count() const;
-		// GeneralsX @feature D · look-shadowmaps-4 18/10/2026 S7 PREREG A53 (read-only): particles emitted but still queued for the next
+		// GeneralsX: S7 PREREG A53 (read-only): particles emitted but still queued for the next
 		// kinematic update (not in Get_Particle_Count) - the shadow map's TEST-ONLY [GXEMIT] probe counts them too
 		int			Gx_Pending_New_Count() const { return NewParticleQueueCount; }
 		// A55/A56 (read-only): per ring - [0] live, [1] queued - how many entries, how many are unexpired at `now` (the age predicate of

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 27/09/2026 ONE max-FPS setting, and it is exactly what it says (wh1ter0se, 27/09:
+// GeneralsX: ONE max-FPS setting, and it is exactly what it says (wh1ter0se, 27/09:
 // "the max FPS should not be dynamic; rather that's like the max fps limits that is set, [0] for
 // unlimited, and default should be the screen's refresh rate unless changed in the launcher").
 //

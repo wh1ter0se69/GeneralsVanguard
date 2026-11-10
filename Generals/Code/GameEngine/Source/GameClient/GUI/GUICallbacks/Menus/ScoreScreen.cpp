@@ -1198,7 +1198,7 @@ void populatePlayerInfo( Player *player, Int pos)
 	winName.format("ScoreScreen.wnd:StaticTextPlayer%d", pos);
 	win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
 	DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
-	// GeneralsX @bugfix Claude 12/08/2026 rows 8+ have no .wnd control; assert compiles out in release
+	// GeneralsX: rows 8+ have no .wnd control; assert compiles out in release
 	if (win)
 	{
 		if(overidePlayerDisplayName)
@@ -1792,10 +1792,10 @@ winName.format("ScoreScreen.wnd:StaticTextScore%d", pos);
 //-------------------------------------------------------------------------------------------------
 void grabMultiPlayerInfo()
 {
-	// GeneralsX @feature Claude 25/09/2026 Score -> SLOT, not score -> Player: every observer slot maps onto the one
+	// GeneralsX: Score -> SLOT, not score -> Player: every observer slot maps onto the one
 	// ReplayObserver (PlayerList::assignSlotIndices), so two observers are one Player and only their slots can tell
 	// their rows apart - by the name each slot carries. A player slot reads exactly as before.
-	// GeneralsX @bugfix Claude 01/10/2026 multimap: a score that collided used to be bumped by `adder`, which could collide again and overwrite a player's row
+	// GeneralsX: multimap: a score that collided used to be bumped by `adder`, which could collide again and overwrite a player's row
 	// (score screen dropped a player). Idea from Generals Online 52a9e6f8a, reimplemented.
 	typedef std::multimap<Int, Int> ScoreMap;
 	typedef ScoreMap::iterator ScoreMapIt;
@@ -1809,7 +1809,7 @@ void grabMultiPlayerInfo()
 	if (localPlayer)
 	{
 		const Image *image = TheMappedImageCollection->findImageByName("MutiPlayer_ScoreScreen");
-		if(image && parent)	// GeneralsX @bugfix Claude 01/10/2026 null guard (idea from Generals Online bb025d378)
+		if(image && parent)	// GeneralsX: null guard (idea from Generals Online bb025d378)
 		{
 			parent->winSetEnabledImage(0, image);
 			parent->winSetStatus(parent->winGetStatus() | WIN_STATUS_IMAGE );
@@ -2001,7 +2001,7 @@ void hideWindows( Int pos )
 		winName.format("ScoreScreen.wnd:StaticTextPlayer%d", i);
 		win =  TheWindowManager->winGetWindowFromId( parent, TheNameKeyGenerator->nameToKey( winName ) );
 		DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
-		// GeneralsX @bugfix Claude 12/08/2026 rows 8+ have no .wnd control; assert compiles out in release
+		// GeneralsX: rows 8+ have no .wnd control; assert compiles out in release
 		if (win) win->winHide(TRUE);
 
 		// set the player name
@@ -2092,7 +2092,7 @@ void setObserverWindows( Player *player, const UnicodeString &name, Int i )
 	DEBUG_ASSERTCRASH(win,("Could not find window %s on the score screen", winName.str()));
 
 	GadgetStaticTextSetText(win, name);
-	// GeneralsX @bugfix Claude 12/08/2026 rows 8+ have no .wnd control; assert compiles out in release
+	// GeneralsX: rows 8+ have no .wnd control; assert compiles out in release
 	if (win)
 	{
 		win->winHide(FALSE);
@@ -2216,7 +2216,7 @@ winName.format("ScoreScreen.wnd:StaticTextScore%d", i);
 //-------------------------------------------------------------------------------------------------
 void populateSideInfo( UnicodeString side,ScoreGather *sg, Int pos, Color color)
 {
-	// GeneralsX @bugfix Claude 12/08/2026 was > MAX_SLOTS, letting pos==MAX_SLOTS through to a row that never exists; rows 8+ have no .wnd control and the assert compiles out in release
+	// GeneralsX: was > MAX_SLOTS, letting pos==MAX_SLOTS through to a row that never exists; rows 8+ have no .wnd control and the assert compiles out in release
 	if(pos < 0 || pos >= MAX_SLOTS)
 		return;
 

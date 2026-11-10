@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 02/11/2026 rule bank DATA rule COUNTER.GLA_VS_GLA (C·rb-data-18): the Toxin and Stealth generals meet each other
+# GeneralsX: rule bank DATA rule COUNTER.GLA_VS_GLA (C·rb-data-18): the Toxin and Stealth generals meet each other
 # (rows 328, 1168, 1762-1763, 2052: "Vs Stealth, Toxin has the stronger early army ... get into the enemy base early with a lot of Scorpions";
 # rows 306, 308: "Vs Toxin ... Rocket Buggies pick off Toxin units well ... mass Buggies and survive the early game"; Dominator: "Toxin vs
 # Stealth: push early with double-Dealer Scorpions. Stealth vs Toxin: defend into Buggies/Mobs"). This, per general:
@@ -113,7 +113,7 @@ def apply(scb, scope, p):
 
 
 RUSH_READ_S, BUGGY_READ_S, BUGGY_MIN, RUSH_FIRED = 240, 600, 3, 8
-# a rush reads 240 s at every rush_t (built_by counts a team still forming; Codex rbd18-r1 P2: a read that moves with rush_t 300 reaches 360 s, where stock's
+# a rush reads 240 s at every rush_t (built_by counts a team still forming; a read that moves with rush_t 300 reaches 360 s, where stock's
 # waves 2-3 hold 8 Scorpions too). Stock Toxin holds 3-6 by 240 s (17 OFF games,
 # smoke13-15); stock Stealth's Rocket Buggies come from its wave 5 teams (two artillery teams, the tunnel guards)
 CONTRAST = {'what': 'own Toxin Scorpions built by 240 s, or own Stealth Rocket Buggies built by 600 s (by the general the player plays)', 'direction': 1,

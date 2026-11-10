@@ -143,7 +143,7 @@ int main() {
 	CHECK(GxFFSpecHash(a) != GxFFSpecHash(c), "hash separates two different keys");
 
 	// bump matrix: an asymmetric one (BumpEnvTextureMapperClass's rotation is (c,-s,s,c)) must land as DXVK lays it out,
-	// U row = (00, 10), V row = (01, 11) (Codex rw2-D-r1 #1: 01/10 were swapped, invisible to the identity gate)
+	// U row = (00, 10), V row = (01, 11) (01/10 were swapped, invisible to the identity gate)
 	s = base;
 	const float m00 = 0.5f, m01 = -0.25f, m10 = 0.125f, m11 = 0.75f;
 	std::memcpy(&s.tss[0][TSS_BUMPENVMAT00], &m00, 4); std::memcpy(&s.tss[0][TSS_BUMPENVMAT01], &m01, 4);
@@ -277,7 +277,7 @@ int main() {
 		for (uint32_t t : detail::kPackFFTSS)
 			maskOk += GxPackFFReadsTSS(t);
 		// listed = the DISTINCT indices the masks answer true for (counted above over 0..255 / 0..31): equal to the list sizes, so a
-		// duplicate entry (one index listed twice, another lost) fails here too (Codex a25-code-r2)
+		// duplicate entry (one index listed twice, another lost) fails here too
 		CHECK(maskOk == 33 + 17 && sizeof(detail::kPackFFRS) / 4 == 33 && sizeof(detail::kPackFFTSS) / 4 == 17 &&
 			listed % 100 == int(sizeof(detail::kPackFFRS) / 4) && listed / 100 == int(sizeof(detail::kPackFFTSS) / 4) &&
 			!GxPackFFReadsRS(256) && !GxPackFFReadsRS(~0u) && !GxPackFFReadsTSS(32) && !GxPackFFReadsTSS(~0u),

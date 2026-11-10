@@ -1,4 +1,4 @@
-// GeneralsX @tweak Claude 03/10/2026 Occupancy pips at 7x16 / 10x24 above 1080p, hand-drawn, never stretched (owner,
+// GeneralsX: Occupancy pips at 7x16 / 10x24 above 1080p, hand-drawn, never stretched (owner,
 // 03/10/2026: "C" at 1440p with the black rim from "E", "D" at 4K; "make sure everything graphics wise works outside
 // 1440p on all displays").
 //

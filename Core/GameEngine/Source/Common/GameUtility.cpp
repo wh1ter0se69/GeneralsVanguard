@@ -126,7 +126,7 @@ void changeObservedPlayer(Player* player)
 		Player *becomePlayer = player;
 		if (becomePlayer == nullptr)
 			becomePlayer = ThePlayerList->findPlayerWithNameKey(TheNameKeyGenerator->nameToKey("ReplayObserver"));
-		// GeneralsX @bugfix Claude 23/09/2026 The ReplayObserver can be missing when the side table
+		// GeneralsX: The ReplayObserver can be missing when the side table
 		// had no room for it (SidesList::addSide drops it last). Fall back to the local player, which
 		// is what the control bar now reports, so the particle/shroud/ghost/radar state follows it.
 		if (becomePlayer == nullptr)

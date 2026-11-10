@@ -181,7 +181,7 @@ void OCLSpecialPower::doSpecialPowerAtLocation( const Coord3D *loc, Real angle, 
 	if (m_availableOnFrame == 0xFFFFFFFF)
 		return;
 #else
-	// GeneralsX @bugfix Claude 04/10/2026 See SpecialPowerModule::initiateIntentToDoSpecialPower: a scaffold fires nothing.
+	// GeneralsX: See SpecialPowerModule::initiateIntentToDoSpecialPower: a scaffold fires nothing.
 	if (getObject()->testStatus(OBJECT_STATUS_UNDER_CONSTRUCTION))
 		return;
 #endif

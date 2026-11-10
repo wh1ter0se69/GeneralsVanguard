@@ -18,7 +18,7 @@
 
 // GameMath - bit-identical trigonometry for lockstep simulation.
 //
-// GeneralsX @feature Claude 28/07/2026
+// GeneralsX:
 //
 // WHY THIS EXISTS - measured, not theorised.
 //

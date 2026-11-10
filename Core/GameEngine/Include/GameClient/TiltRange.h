@@ -14,7 +14,7 @@ static const float GX_TILT_PLAYER_MAX = 1.04719755f;	// 60 deg
 static const float GX_TILT_ADMIN_MIN = 0.0017453293f;	// 0.1 deg
 static const float GX_TILT_ADMIN_MAX = 1.5690510f;		// 89.9 deg
 
-// WHEN the admin range applies (lead ruling 07/10, after Codex r11 on 0b23f28f8):
+// WHEN the admin range applies (lead ruling 07/10, after):
 //  * the assertion must be unexpired NOW (the loader checks expiry once; a running session must not keep it), and
 //  * the local player must not be a combatant in a live multiplayer match. A copied GXLogin.txt proves no ownership
 //    of the account and the client has no revocation list (moderation lives at the relay), so the fairness edge is

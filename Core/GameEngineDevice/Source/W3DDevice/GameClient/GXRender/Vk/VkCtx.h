@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0: the native renderer's Vulkan device layer.
+// GeneralsX: WS-B VkCtx v0: the native renderer's Vulkan device layer.
 //
 // Owns: the Vulkan library handle (the SAME one the process already uses - see VkCtxDesc::getInstanceProcAddr), the
 // instance (+ core and synchronization validation when asked), the physical/logical device, one graphics queue and an
@@ -100,7 +100,7 @@ public:
 	// Waits until completed() >= value. Returns false on timeout or device loss. A value never submitted is refused
 	// (returns false at once) instead of hanging forever. A wait (or counter read) that sees a device error latches it on the
 	// owning VkCtx (noteResult: VK_ERROR_DEVICE_LOST -> deviceLost(), which Present answers as DEVICELOST); once lost, a wait
-	// only reads the counter (Codex rw3-T-cut2-r1 P1 #1). Under the submit thread it first waits for the op to have executed,
+	// only reads the counter. Under the submit thread it first waits for the op to have executed,
 	// and a value refused or skipped behind a refusal returns false at once. A value already reached returns without
 	// vkWaitSemaphores (MoltenVK builds an MTLSharedEventListener per call: render-perf-audit, ~0.036 ms of main per frame).
 	bool wait(uint64_t value, uint64_t timeoutNs = UINT64_MAX) const;
@@ -151,7 +151,7 @@ struct SubmitRefusal
 // that calls it - the caller with the submit thread off (no lock held there, rw3-T-7 correction (a)), gx-vk-submit with it on (under
 // hostLock and the queue mutex). Only a present that reaches the driver calls it: a latched, stopped, skipped or TEST-injected present
 // calls neither. end gets the driver's answer. Neither may call into this VkCtx (submit / present / waitOp / waitIdle / quiesce) or take
-// its locks - nor block on ANYTHING a thread waiting for the submit thread may hold (Codex fg3-h2-r1 P2: a caller that holds lock L and
+// its locks - nor block on ANYTHING a thread waiting for the submit thread may hold (a caller that holds lock L and
 // then waits in waitOp / waitIdle / quiesce / takePresentStatus deadlocks a hook that takes L). Copied BY VALUE into the op: ctx must stay
 // valid until the present ran (waitOp). Streamline's PCL ePresentStart / ePresentEnd go here (H3), so they bracket vkQueuePresentKHR
 // alone, on the presenting thread, with the presented frame's token.
@@ -309,7 +309,7 @@ public:
 	// TEST-ONLY (FG P0 H2 arm): whether some thread holds the queue mutex NOW, probed by a helper thread's try_lock (a try_lock by the
 	// holder itself would be undefined). Never blocks; safe inside a present hook.
 	bool testQueueMutexHeld();
-	// TEST-ONLY (FG P0 H2 arm, Codex fg3-h2-r2 P2): gx-vk-submit's id (a default id without the thread) - the hook arms compare the
+	// TEST-ONLY (FG P0 H2 arm): gx-vk-submit's id (a default id without the thread) - the hook arms compare the
 	// thread their callbacks ran on with it, not with each other
 	std::thread::id testSubmitThreadId() const { return m_thread.get_id(); }
 	// TEST-ONLY boundaries (rw3V-code-r2 P2-5): threads now inside a blocking driver wait (Timeline::wait's vkWaitSemaphores,

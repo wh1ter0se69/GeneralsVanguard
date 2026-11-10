@@ -18,7 +18,7 @@
 
 // FILE: GXPickProbe.h ///////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @diagnostic Claude 25/09/2026 [GXPICK] - "the item spawns not aligned with the preview
+// GeneralsX: [GXPICK] - "the item spawns not aligned with the preview
 // of the drone/scan". A targeted special power has two picks of the same mouse: the PREVIEW (the
 // radius-cursor decal, InGameUI::handleRadiusCursor, every rendered frame from the mouse status
 // position, radar first then terrain) and the SEND (CommandXlat's click handler, from the click

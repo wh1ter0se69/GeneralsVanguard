@@ -1,4 +1,4 @@
-// GeneralsX @bugfix Claude 18/09/2026 - the lobby presence socket's copy of the sign-in, as a PURE
+// GeneralsX: the lobby presence socket's copy of the sign-in, as a PURE
 // class. GXLobbyPresence owns exactly one, and is the only thing that puts its contents on the wire.
 //
 // PURE ON PURPOSE, the same way GXSignOutFiles.h is: no engine, no AsciiString, no socket, so
@@ -81,7 +81,7 @@ public:
 
 	bool isEmpty( void ) const { return m_text[0] == '\0'; }
 
-	/// GeneralsX @bugfix Claude 19/09/2026 The held assertion names the same ACCOUNT - its `sub`, the second
+	/// GeneralsX: The held assertion names the same ACCOUNT - its `sub`, the second
 	/// '~' field - as this one. How GXLobbyPresence tells an account SWITCH from the lobby re-declaring, or
 	/// /login renewing, the account it already holds: a renewal differs in times and signature, not in sub.
 	bool sameAccount( const char *assertion ) const

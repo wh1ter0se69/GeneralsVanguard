@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 30/10/2026 rule bank DATA rule OPEN.CHINA_2ND_SUPPLY (C·rb-data): the pros' China opening, a second (and
+# GeneralsX: rule bank DATA rule OPEN.CHINA_2ND_SUPPLY (C·rb-data): the pros' China opening, a second (and
 # optionally third) Supply Center early - PP > Barracks > Supply > Supply > War Factory. Stock Hard China gets its second centre only
 # from the escalation-gated, gift-carrying Base Expansion Check (~250 s), which stays frozen; this adds Hard-only one-shot scripts:
 #   2nd centre: once the first stands and _GX_CLOCK >= supply2_early_esc (0 = no clock gate);

@@ -1,4 +1,4 @@
-// GeneralsX @feature B · dlss-streamline-1 13/10/2026 NVIDIA Streamline (DLSS Super Resolution) for the native renderer.
+// GeneralsX: NVIDIA Streamline (DLSS Super Resolution) for the native renderer.
 // Windows x64 only, behind GX_STREAMLINE (default OFF); PREREG A36 (render-seam/rw3-T/PREREG_T.md).
 //
 // Licence (render-dlss research R8, binding): nothing of NVIDIA's is in this tree or in our zip. The Streamline headers (MIT) are
@@ -35,11 +35,11 @@ struct DlssImage
 	uint32_t width = 0, height = 0;	// the whole image
 	VkImageUsageFlags usage = 0;	// as created (Streamline cannot query it)
 	// The view's aspect. DEPTH for a depth-stencil image: tagged with an explicit sl::SubresourceRange, else the DLSS plugin
-	// assumes COLOR (dlssEntry.cpp cacheState) and NGX barriers a D24S8 image with the wrong aspect (Codex motion-design-r1 #18).
+	// assumes COLOR (dlssEntry.cpp cacheState) and NGX barriers a D24S8 image with the wrong aspect.
 	VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
 };
 
-// GeneralsX @feature B · dlss-fg-1 14/10/2026 (PREREG A39, modernize/render-dlss/DESIGN_dlss-fg-P0.md H1): which Streamline features
+// GeneralsX: which Streamline features
 // this session loads. PCL (the latency markers) loads with every Streamline. NVIDIA's frame-generation DLLs (sl.dlss_g.dll,
 // nvngx_dlssg.dll) stay OPTIONAL like every other: absent = that feature unavailable, logged, the rest unchanged (wh1ter0se 14/10 via
 // the lead: the game builds, runs and ships without them; no link-time dependency).
@@ -113,8 +113,8 @@ public:
 	// The interposer's own vkGetInstanceProcAddr (S8 attributes it to module()); null until load() succeeded.
 	PFN_vkGetInstanceProcAddr getInstanceProcAddr() const { return m_gipa; }
 	// The loader root for VkCtxDesc::getInstanceProcAddr: the interposer's, except that vkDestroyDevice and vkDestroyInstance run
-	// shutdown() first - so slShutdown precedes the device on every path, VkCtx::init's own failure cleanup included (Codex
-	// dlss-sl-r2 P1). Null until load() succeeded.
+	// shutdown() first - so slShutdown precedes the device on every path, VkCtx::init's own failure cleanup included.
+	// Null until load() succeeded.
 	PFN_vkGetInstanceProcAddr loaderRoot() const;
 
 	// After VkCtx::init on that loader root: can DLSS run on this physical device? why = Streamline's answer when not.

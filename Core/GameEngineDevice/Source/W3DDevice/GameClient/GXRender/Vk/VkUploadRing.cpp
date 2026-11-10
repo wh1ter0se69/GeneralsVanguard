@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0 - see VkUploadRing.h.
+// GeneralsX: WS-B VkCtx v0 - see VkUploadRing.h.
 #include "VkUploadRing.h"
 
 #include "vk_mem_alloc.h"
@@ -29,7 +29,7 @@ bool VkUploadRing::init(VkCtx& ctx, VkDeviceSize capacity, QueueKind consumer)
 	shutdown();
 	if (capacity == 0)
 		return false;
-	// Rounded to the non-coherent atom so the last range never shares an atom with the first after a wrap (Codex r1).
+	// Rounded to the non-coherent atom so the last range never shares an atom with the first after a wrap.
 	capacity = alignUp(capacity, ctx.limits().nonCoherentAtomSize);
 	VkBufferCreateInfo info = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	info.size = capacity;
@@ -67,7 +67,7 @@ void VkUploadRing::shutdown()
 		if (m_maxTag)
 			m_ctx->queue(m_consumer).timeline.wait(std::min(m_maxTag, m_ctx->queue(m_consumer).timeline.lastSubmitted()));
 	} else {
-		m_ctx->waitIdle();   // the buffer goes only after a PROVEN idle (Codex rw3V-design-r2 P1-1)
+		m_ctx->waitIdle();   // the buffer goes only after a PROVEN idle
 	}
 	vmaDestroyBuffer(m_ctx->allocator(), m_buffer, m_allocation);
 	m_buffer = VK_NULL_HANDLE;
@@ -123,7 +123,7 @@ bool VkUploadRing::alloc(VkDeviceSize size, VkDeviceSize alignment, Alloc* out, 
 	m_stats.bytes += size;
 
 	// On non-coherent memory a flush or invalidate touches whole nonCoherentAtomSize atoms, so two live ranges must never
-	// share one (Codex r1): every range starts on an atom and reserves whole atoms. On coherent memory m_atom is 1.
+	// share one: every range starts on an atom and reserves whole atoms. On coherent memory m_atom is 1.
 	const VkDeviceSize atom = g_testMutants.uploadIgnoreAtom ? 1 : m_atom;
 	alignment = combineAlignment(alignment, atom);
 	const VkDeviceSize reserve = alignUp(size, atom);

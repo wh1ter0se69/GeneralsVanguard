@@ -272,7 +272,7 @@ void PlayerTemplateStore::init()
 {
 	m_playerTemplates.clear();
 
-	// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#1972 follow-up
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#1972 follow-up
 	// The override bookkeeping is indices INTO the vector just cleared, so it has to go with it.
 	// Leaving it would be worse than a leak: if init() ever ran after an override load, reset()
 	// would copy pristine backups onto whatever templates now occupy those indices. The bounds
@@ -291,7 +291,7 @@ void PlayerTemplateStore::reset()
 // don't reset this list here; we want to retain this info.
 //	m_playerTemplates.clear();
 
-	// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#1972
+	// GeneralsX: TheSuperHackers/GeneralsGameCode#1972
 	// Retaining the STARTUP templates is correct; retaining a map.ini's edits to them is not.
 	// Put back only what an override load touched.
 	//
@@ -440,7 +440,7 @@ void PlayerTemplateStore::getAllSideStrings(AsciiStringList *outStringList)
 	PlayerTemplate* pt = const_cast<PlayerTemplate*>(ThePlayerTemplateStore->findPlayerTemplate(namekey));
 	if (pt)
 	{
-		// GeneralsX @bugfix Claude 01/08/2026 TheSuperHackers/GeneralsGameCode#1972
+		// GeneralsX: TheSuperHackers/GeneralsGameCode#1972
 		// Keep a pristine copy before a map.ini overwrites this template, so reset() can put it
 		// back. At most once per template per match: a map that overrides the same name twice
 		// must not have its first override recorded as the "pristine" state.

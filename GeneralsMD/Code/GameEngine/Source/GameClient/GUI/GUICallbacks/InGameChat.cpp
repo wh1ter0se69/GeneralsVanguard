@@ -57,7 +57,7 @@ static GameWindow *chatTypeStaticText = nullptr;
 static UnicodeString s_savedChat;
 static InGameChatType inGameChatType;
 
-// GeneralsX @bugfix Claude 21/08/2026 THE KEYSTROKE THAT OPENS THE CHAT ALSO SUBMITTED IT.
+// GeneralsX: THE KEYSTROKE THAT OPENS THE CHAT ALSO SUBMITTED IT.
 //
 // Measured on the owner's Windows machine with the temporary key-path probe added in af881e0bd
 // and removed again for release. ONE press of Enter produced TWO calls to ToggleInGameChat:
@@ -213,9 +213,9 @@ Bool handleInGameSlashCommands(UnicodeString uText)
 		return TRUE; // was a slash command
 	}
 
-	// GeneralsX @feature Claude 06/10/2026 IN-MATCH VOTE KICK from the chat box, in both UI modes: "/kick <player name>".
+	// GeneralsX: IN-MATCH VOTE KICK from the chat box, in both UI modes: "/kick <player name>".
 	// The name as typed, else the one name equal to it ignoring case, else the one name it starts (ignoring case): LAN names
-	// are unique only case-sensitively, so "Alice" must never reach "ALICE" (Codex vote-kick-r2 P2). The GeneralsX Tab board's
+	// are unique only case-sensitively, so "Alice" must never reach "ALICE". The GeneralsX Tab board's
 	// KICK button calls the same gxVoteKickStart; this is the way in that needs no UI. Never sent as chat. Every line below
 	// that carries a name goes out through messageNoFormat: a nickname may hold a printf directive (r2 P1).
 	if (token == "kick" || token == "votekick")
@@ -228,7 +228,7 @@ Bool handleInGameSlashCommands(UnicodeString uText)
 		const UnicodeString want(rest);
 		// Resolve the NAMED player among every human in the match first, eligible or not, and only then ask whether a vote
 		// on that player may start: a filter applied first would turn "/kick Alice" (defeated) into a vote on ALICE, or a
-		// prefix into its one eligible match (Codex vote-kick-r3 P2).
+		// prefix into its one eligible match.
 		Int exact = -1, folded = -1, foldedCount = 0, prefix = -1, prefixes = 0;
 		UnicodeString kickable;
 		for (Int i = 0; ThePlayerList != nullptr && i < ThePlayerList->getPlayerCount(); ++i)
@@ -300,7 +300,7 @@ Bool handleInGameSlashCommands(UnicodeString uText)
 	return FALSE; // not a slash command
 }
 
-// GeneralsX @feature Claude 02/10/2026 The writer's own copy of a line typed in a skirmish, drawn the way
+// GeneralsX: The writer's own copy of a line typed in a skirmish, drawn the way
 // ConnectionManager::sendChat -> processChat draws a sender's own line in a network match: sanitised, "[name]:
 // text" in the player's colour, with the incoming-chat sound. The name is the in-game display name, since a
 // skirmish has no LAN user.
@@ -344,7 +344,7 @@ void ToggleInGameChat( Bool immediate )
 	if (TheGameLogic->isInReplayGame())
 		return;
 
-	// GeneralsX @feature Claude 02/10/2026 CHAT OPENS IN A SOLO GAME TOO (owner: "allow that to happen - they chat
+	// GeneralsX: CHAT OPENS IN A SOLO GAME TOO (owner: "allow that to happen - they chat
 	// fine in solo"). EA refused here unless a SECOND human was in the match (`!isMultiPlayer() && m_netMinPlayers`,
 	// and m_netMinPlayers is 1 by default), so a LAN/Online host alone with AIs pressed Enter and got nothing; a
 	// skirmish was also refused one step earlier, in CommandXlat's MSG_META_CHAT_* cases. Only a game with no
@@ -375,7 +375,7 @@ void ToggleInGameChat( Bool immediate )
 				msg.trim();
 				if (!msg.isEmpty() && !handleInGameSlashCommands(msg))
 				{
-				// GeneralsX @feature Claude 21/08/2026 One chat line every ChatRate::MIN_INTERVAL_MS,
+				// GeneralsX: One chat line every ChatRate::MIN_INTERVAL_MS,
 				// shared with every other chat box in the game - see GameClient/ChatRateLimit.h.
 				// Checked AFTER the slash-command interception, so a command costs no allowance,
 				// and the refused line is put BACK in the box rather than dropped: a rate limit
@@ -393,9 +393,9 @@ void ToggleInGameChat( Bool immediate )
 					}
 
 					const Player *localPlayer = ThePlayerList->getLocalPlayer();
-					// GeneralsX @feature Claude 06/11/2026 scale32: the audience mask is RelayMaskType (64 bit), slots go to 33.
+					// GeneralsX: scale32: the audience mask is RelayMaskType (64 bit), slots go to 33.
 					RelayMaskType playerMask = 0;
-					// GeneralsX @bugfix Claude 25/09/2026 WHO "I" AM IS A SLOT, not a Player (Codex r2). Every observer slot
+					// GeneralsX: WHO "I" AM IS A SLOT, not a Player. Every observer slot
 					// maps onto the one ReplayObserver, so on an observer's peer another observer's slot yields the very
 					// Player that is local here - and "player == localPlayer" put that other observer into a Players or
 					// Allies line the sender meant for itself. A slot that shares the local Player without being the
@@ -428,7 +428,7 @@ void ToggleInGameChat( Bool immediate )
 						}
 					}
 					TheLanguageFilter->filterLine(msg);
-					// GeneralsX @feature Claude 02/10/2026 A skirmish has no TheNetwork (GameLogic.cpp picks
+					// GeneralsX: A skirmish has no TheNetwork (GameLogic.cpp picks
 					// TheSkirmishGameInfo exactly when it is null): nobody to send to and nothing to send with,
 					// so the line is only shown to its writer - no packet and no GameMessage, so the replay
 					// never sees it, and gxMatchSendRecord below refuses without TheNetwork. A solo LAN/Online
@@ -439,7 +439,7 @@ void ToggleInGameChat( Bool immediate )
 					else
 						showSoloChatLine(msg);
 
-					// GeneralsX @feature Claude 09/09/2026 A RECORD-ONLY copy for the operator
+					// GeneralsX: A RECORD-ONLY copy for the operator
 					// transcript. Feature 7 of the admin panel spec.
 					//
 					// AFTER the native send and AFTER the language filter, so what lands in the

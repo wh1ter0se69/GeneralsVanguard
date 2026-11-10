@@ -89,7 +89,7 @@ W3DShroud::W3DShroud()
 	m_dstTextureHeight=m_numMaxVisibleCellsY=0;
 	m_boderShroudLevel = (W3DShroudLevel)TheGlobalData->m_shroudAlpha;	//assume border is black
 	m_clearDstTexture = TRUE;	//force clearing of destination texture;
-	// GeneralsX @performance Claude 23/09/2026 Nothing copied yet.
+	// GeneralsX: Nothing copied yet.
 	m_srcDirty = TRUE;
 	memset(&m_lastCopiedRect, 0, sizeof(m_lastCopiedRect));
 
@@ -159,7 +159,7 @@ void W3DShroud::init(WorldHeightMap *pMap, Real worldCellSizeX, Real worldCellSi
 	srcHeight=m_numCellsY;
 	srcHeight += 1;
 
-	// GeneralsX @feature Claude 13/10/2026 FOG INTERPOLATION IS A CLIENT OPTION, ON BY DEFAULT (wh1ter0se 13/10).
+	// GeneralsX: FOG INTERPOLATION IS A CLIENT OPTION, ON BY DEFAULT (wh1ter0se 13/10).
 	// Retail compiled it out (DO_FOG_INTERPOLATION): each shroud cell's DRAWN level fades toward its logical level at
 	// FOG_INTERPOLATION_RATE (black to lit in ~1 s of render time) instead of snapping. Render-only: the logical shroud is
 	// PartitionManager's, and this file is outside the SimID digest (resources/gitinfo/simdigest_exclusions.txt). The cost:
@@ -168,14 +168,14 @@ void W3DShroud::init(WorldHeightMap *pMap, Real worldCellSizeX, Real worldCellSi
 	m_fogInterpolation = OptionPreferences().getBool("GXFogInterpolation", TRUE);
 	if (const char *fogEnv = getenv("GX_FOG_INTERP"))
 		m_fogInterpolation = (fogEnv[0] != '0');
-	// GeneralsX @feature Claude 13/10/2026 The fade steps the LEVEL; setShroudLevel turns a level below 255 into level x ShroudColor
+	// GeneralsX: The fade steps the LEVEL; setShroudLevel turns a level below 255 into level x ShroudColor
 	// and 255 into white, so only a white ShroudColor (the shipped value, GameData.ini) fades smoothly. With any other palette a
-	// fade would hold the old colour and then jump, so a map or mod that tints the shroud keeps the retail snap (Codex look-fog-r3 P2).
+	// fade would hold the old colour and then jump, so a map or mod that tints the shroud keeps the retail snap.
 	if ((TheGlobalData->m_shroudColor.getAsInt() & 0x00FFFFFF) != 0x00FFFFFF)
 		m_fogInterpolation = FALSE;
 	m_fogFading = FALSE;
 	m_fogCarry = 0.0f;
-	m_fogClockSet = FALSE;	// the first render of this map sets the baseline (Codex look-fog-r1 P3)
+	m_fogClockSet = FALSE;	// the first render of this map sets the baseline
 	delete [] m_finalFogData;
 	m_finalFogData = nullptr;
 	delete [] m_currentFogData;
@@ -212,7 +212,7 @@ void W3DShroud::init(WorldHeightMap *pMap, Real worldCellSizeX, Real worldCellSi
 
 	//clear entire texture to black
 	memset(m_srcTextureData,0,m_srcTexturePitch*srcHeight);
-	// GeneralsX @performance Claude 23/09/2026 New sysmem shroud: must be copied.
+	// GeneralsX: New sysmem shroud: must be copied.
 	m_srcDirty = TRUE;
 
 #if defined(RTS_DEBUG)
@@ -230,9 +230,9 @@ void W3DShroud::init(WorldHeightMap *pMap, Real worldCellSizeX, Real worldCellSi
 	}
 
 	//Force a refresh of shroud data since we just created a new source texture.
-	// GeneralsX @feature Claude 13/10/2026 ... and with fog interpolation that refresh snaps the drawn levels to the logical
+	// GeneralsX: ... and with fog interpolation that refresh snaps the drawn levels to the logical
 	// ones: init() also runs when the terrain is rebuilt on the same map (setTerrainDrawSize: draw distance, camera height),
-	// and fading every visible cell in from black again would blank the view for a second (Codex look-fog-r3 P2).
+	// and fading every visible cell in from black again would blank the view for a second.
 	m_fogSnap = TRUE;
 	if (ThePartitionManager)
 		ThePartitionManager->refreshShroudForLocalPlayer();
@@ -304,7 +304,7 @@ Bool W3DShroud::ReAcquireResources()
 W3DShroudLevel W3DShroud::getShroudLevel(Int x, Int y)
 {
 	DEBUG_ASSERTCRASH( m_pSrcTexture != nullptr, ("Reading empty shroud"));
-	// GeneralsX @bugfix Copilot 23/04/2026 Prevent invalid shroud sampling during campaign water rendering.
+	// GeneralsX: Prevent invalid shroud sampling during campaign water rendering.
 	if (!m_pSrcTexture || !m_srcTextureData || x < 0 || y < 0)
 		return 0;
 
@@ -334,13 +334,13 @@ void W3DShroud::setShroudLevel(Int x, Int y, W3DShroudLevel level, Bool textureO
 
 	if (x < m_numCellsX && y < m_numCellsY)
 	{
-		// GeneralsX @performance Claude 23/09/2026 The texel below is rewritten; re-upload next render.
+		// GeneralsX: The texel below is rewritten; re-upload next render.
 		m_srcDirty = TRUE;
 
 		if (level < TheGlobalData->m_shroudAlpha)
 			level = TheGlobalData->m_shroudAlpha;
 
-		// GeneralsX @feature Claude 13/10/2026 With fog interpolation a logical change only sets the target; the texel keeps
+		// GeneralsX: With fog interpolation a logical change only sets the target; the texel keeps
 		// the cell's current drawn level and interpolateFogLevels() walks it there (retail wrote the target texel at once and
 		// relied on the next render to overwrite it, which a render with no elapsed time skipped: a one-frame pop).
 		if (m_fogInterpolation && !textureOnly)
@@ -450,7 +450,7 @@ void W3DShroud::fillShroudData(W3DShroudLevel level)
 		pixel=( ((bluepixel&0xf8) >> 3) | ((greenpixel&0xfc)<<3) | ((redpixel&0xf8)<<8));
 	}
 
-	// GeneralsX @feature Claude 13/10/2026 With fog interpolation the fill sets only the target; the texels keep their current
+	// GeneralsX: With fog interpolation the fill sets only the target; the texels keep their current
 	// drawn levels and interpolateFogLevels() walks them there. (Retail's compiled-out loop here advanced the texture
 	// pointer instead of the target one, so it set only the first row of the target.)
 	if (m_fogInterpolation)
@@ -466,7 +466,7 @@ void W3DShroud::fillShroudData(W3DShroudLevel level)
 
 	UnsignedShort *ptr=(UnsignedShort *)m_srcTextureData;
 	Int pitch = m_srcTexturePitch >> 1;	//2 bytes per pointer increment
-	// GeneralsX @performance Claude 23/09/2026 Whole sysmem shroud rewritten; re-upload next render.
+	// GeneralsX: Whole sysmem shroud rewritten; re-upload next render.
 	m_srcDirty = TRUE;
 	for (y=0; y<m_numCellsY; y++)
 	{
@@ -759,12 +759,12 @@ void W3DShroud::render(CameraClass *cam)
 	srcRect.right=visEndX;
 	srcRect.bottom=visEndY;
 
-	// GeneralsX @feature Claude 13/10/2026 Step the fade (see init). It writes texels - and so sets m_srcDirty - only for cells
+	// GeneralsX: Step the fade (see init). It writes texels - and so sets m_srcDirty - only for cells
 	// whose drawn level moved, which keeps the 23/09 skip below for every frame with nothing fading.
 	if (m_fogInterpolation)
 		interpolateFogLevels(&srcRect);
 
-	// GeneralsX @performance Claude 23/09/2026 Skip the full-rect sysmem->vidmem copy when nothing it
+	// GeneralsX: Skip the full-rect sysmem->vidmem copy when nothing it
 	// reads or writes has changed: the sysmem shroud is only written by setShroudLevel/fillShroudData/init
 	// (which set m_srcDirty), and a new/cleared destination texture sets m_clearDstTexture.
 	const Bool copyNeeded = m_srcDirty || m_clearDstTexture || memcmp(&srcRect, &m_lastCopiedRect, sizeof(RECT)) != 0;
@@ -797,10 +797,10 @@ void W3DShroud::render(CameraClass *cam)
 //-----------------------------------------------------------------------------
 void W3DShroud::interpolateFogLevels(RECT *rect)
 {
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
-	// GeneralsX @feature Claude 13/10/2026 The clock advances on every render, fading or not, so a fade never starts with
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
+	// GeneralsX: The clock advances on every render, fading or not, so a fade never starts with
 	// idle time banked, and it is per map: init() clears m_fogClockSet, so the first render after a load is the baseline -
-	// a function-static clock carried the load screen into the new map's first step (Codex look-fog-r1 P3). With nothing
+	// a function-static clock carried the load screen into the new map's first step. With nothing
 	// fading this returns before touching a cell (see init).
 	const UnsignedInt now = gxRenderNowMs();
 	const UnsignedInt timeDiff = m_fogClockSet ? now - m_fogPrevTime : 0;
@@ -812,7 +812,7 @@ void W3DShroud::interpolateFogLevels(RECT *rect)
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 13/10/2026 Retail truncated rate * ms to whole steps every frame: at 3 ms or less a frame (~333+ fps)
+	// GeneralsX: Retail truncated rate * ms to whole steps every frame: at 3 ms or less a frame (~333+ fps)
 	// the step was always 0 and the fog never moved, and at 4-7 ms it crawled. The fraction now carries to the next frame.
 	m_fogCarry += FOG_INTERPOLATION_RATE * (Real)timeDiff;	//amount of fog change allowed so far
 	if (m_fogCarry > 255.0f)
@@ -826,7 +826,7 @@ void W3DShroud::interpolateFogLevels(RECT *rect)
 	W3DShroudLevel *startLevel=m_currentFogData;
 	W3DShroudLevel *finalLevel=m_finalFogData;
 
-	// ponytail: walks every cell of the map while any cell fades; bound it by a dirty rect if a profile shows the walk.
+	// Trade-off: walks every cell of the map while any cell fades; bound it by a dirty rect if a profile shows the walk.
 	for (Int j=0; j<m_numCellsY; j++)
 	{
 		for (Int i=0; i<m_numCellsX; i++,startLevel++,finalLevel++)
@@ -846,17 +846,17 @@ void W3DShroud::interpolateFogLevels(RECT *rect)
 		}
 	}
 	m_fogFading = fading;
-	// GeneralsX @feature Claude 17/10/2026 The last cell reached its level: the next fade starts from a whole step, whether or not an
+	// GeneralsX: The last cell reached its level: the next fade starts from a whole step, whether or not an
 	// idle render (which clears the carry too) comes first - a GX_SHOT capture with one more draw between two ticks would otherwise
-	// step the next fade differently from a run without it (Codex ls1017-r3 P2).
+	// step the next fade differently from a run without it.
 	if (!fading)
 		m_fogCarry = 0.0f;
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @feature Claude 13/10/2026 Fog interpolation: the scene and the prop buffer skip the shroud pass for a logically
+// GeneralsX: Fog interpolation: the scene and the prop buffer skip the shroud pass for a logically
 // CLEAR object, but with a fade running the DRAWN fog under it may still be dark, and the object would pop fully lit over
-// still-dark ground (Codex look-fog-r1 P2). TRUE while any cell the object's shroud pass samples (its bounding sphere plus
+// still-dark ground. TRUE while any cell the object's shroud pass samples (its bounding sphere plus
 // half a cell: the texture is filtered bilinearly) is still fading. Cells map from world x/y as getRiverVertexDiffuse does.
 Bool W3DShroud::isFadingUnder(const SphereClass &sphere) const
 {
@@ -876,7 +876,7 @@ Bool W3DShroud::isFadingUnder(const SphereClass &sphere) const
 	if (x0 > x1 || y0 > y1)
 		return FALSE;
 
-	// ponytail: an object wider than this many cells keeps the pass while anything fades (rare, and only during a fade)
+	// Trade-off: an object wider than this many cells keeps the pass while anything fades (rare, and only during a fade)
 	enum { MAX_FADE_CELLS = 16 };
 	if (x1 - x0 > MAX_FADE_CELLS || y1 - y0 > MAX_FADE_CELLS)
 		return TRUE;

@@ -1,6 +1,6 @@
 #version 450
 
-// gx_fdepth_probe.frag - GeneralsX @feature D · look-fdepth-plus 17/10/2026: F-depth+'s TEST-ONLY dummy reader (GX_FDEPTH_PROBE).
+// gx_fdepth_probe.frag - GeneralsX: F-depth+'s TEST-ONLY dummy reader (GX_FDEPTH_PROBE).
 // One fragment (a 1x1 target): one texelFetch of each scene copy at pc.texel, written out as (depth, colour.rgb). It is what a real
 // reader adds per frame at the least - the cost run's "samples once" - and the unit arms read it back to check what a shader sees.
 

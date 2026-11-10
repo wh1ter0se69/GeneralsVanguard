@@ -129,7 +129,7 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 		return CBC_COMMAND_NOT_USED;
 	}
 
-	// GeneralsX @probe Claude 25/09/2026 GX_KEYTRACE (HotKey.h): the button a key or click actually fired.
+	// GeneralsX: GX_KEYTRACE (HotKey.h): the button a key or click actually fired.
 	if( GXKeyTraceEnabled() )
 	{
 		fprintf( stderr, "[GXKEY] button: %s type=%d needTarget=%d context=%d selected=%d\n", commandButton->getName().str(),
@@ -451,7 +451,7 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 			}
 
 			// create a message to build this thing
-			// GeneralsX @bugfix Claude 06/10/2026 No production ID is requested here any more: that advanced the logic
+			// GeneralsX: No production ID is requested here any more: that advanced the logic
 			// counter on this machine only (desync). GameLogic::onQueueUnitCreate allocates it on every peer; the second
 			// argument keeps the message's shape and is not read (sweep c066-04).
 			GameMessage *msg = TheMessageStream->appendMessage( GameMessage::MSG_QUEUE_UNIT_CREATE );
@@ -843,7 +843,7 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 		case GUI_COMMAND_SPECIAL_POWER_FROM_SHORTCUT:
 		{
 			const SpecialPowerTemplate *spTemplate = commandButton->getSpecialPowerTemplate();
-			// GeneralsX @bugfix Claude 01/10/2026 A CommandButton naming an unknown SpecialPower has a null template; no message is sent, so this cannot change the simulation.
+			// GeneralsX: A CommandButton naming an unknown SpecialPower has a null template; no message is sent, so this cannot change the simulation.
 			// Idea from Generals Online 4fe60fdec, reimplemented.
 			if( !spTemplate )
 				break;
@@ -864,7 +864,7 @@ CBCommandStatus ControlBar::processCommandUI( GameWindow *control,
 
 		case GUI_COMMAND_SPECIAL_POWER:
 		{
-			// GeneralsX @bugfix Claude 01/10/2026 A CommandButton naming an unknown SpecialPower has a null template; no message is sent, so this cannot change the simulation.
+			// GeneralsX: A CommandButton naming an unknown SpecialPower has a null template; no message is sent, so this cannot change the simulation.
 			// Idea from Generals Online 4fe60fdec, reimplemented.
 			if( !commandButton->getSpecialPowerTemplate() )
 				break;

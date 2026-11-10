@@ -570,7 +570,7 @@ void LocomotorStore::reset()
 		Overridable *locoTemp = it->second->deleteOverrides();
 		if (!locoTemp)
 		{
-			// GeneralsX @bugfix Claude 23/09/2026 Take the iterator erase() returns; the old code advanced the erased (freed) node.
+			// GeneralsX: Take the iterator erase() returns; the old code advanced the erased (freed) node.
 			it = m_locomotorTemplates.erase(it);
 		}
 		else
@@ -935,9 +935,9 @@ void Locomotor::setPhysicsOptions(Object* obj)
 
 	// crank up the friction in ultra-accurate mode to increase movement precision.
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 a per-frame friction fraction added on top of the (halved)
+	// GeneralsX: a per-frame friction fraction added on top of the (halved)
 	// template friction: halved with it, as PhysicsUpdate's friction constants are.
-	// GeneralsX @feature Claude 04/10/2026 except aircraft, which keep the per-30-Hz-frame 0.5 as
+	// GeneralsX: except aircraft, which keep the per-30-Hz-frame 0.5 as
 	// Generals Online does: see gxGripScale in PhysicsUpdate.cpp (owner, 04/10: "use go's ... for jets").
 	const Real EXTRA_FRIC = obj->isKindOf(KINDOF_AIRCRAFT) ? 0.5f : 0.25f;
 #else
@@ -1026,7 +1026,7 @@ void Locomotor::locoUpdate_moveTowardsPosition(Object* obj, const Coord3D& goalP
 		heightAboveSurface -= obj->getCarrierDeckHeight();
 	}
 
-	// GeneralsX @fix Claude 23/09/2026 "high enough to stay up for 3 frames" = 9 frames^2 of the
+	// GeneralsX: "high enough to stay up for 3 frames" = 9 frames^2 of the
 	// per-frame^2 gravity: 3 RETAIL frames is GX_FRAMES30(3), or the height shrinks to a quarter.
 	if (heightAboveSurface > -(GX_FRAMES30(3)*GX_FRAMES30(3))*TheGlobalData->m_gravity)
 	{
@@ -1215,7 +1215,7 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 
 	if (sqr(dx)+sqr(dy)<sqr(2*PATHFIND_CELL_SIZE_F) && angleCoeff > 0.05) {
 #if GX_LOGIC_60HZ
-		goalSpeed = actualSpeed*0.774596669f;	// GeneralsX @fix Claude 23/09/2026 per-frame decay: sqrt(0.6), so two frames == 0.6
+		goalSpeed = actualSpeed*0.774596669f;	// GeneralsX: per-frame decay: sqrt(0.6), so two frames == 0.6
 #else
 		goalSpeed = actualSpeed*0.6f;
 #endif
@@ -1360,7 +1360,7 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 
 
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 "+1 frame" of margin and "+ one frame of travel" are 30 Hz frames.
+	// GeneralsX: "+1 frame" of margin and "+ one frame of travel" are 30 Hz frames.
 	Real slowDownTime = actualSpeed / getBraking() + (Real)GX_FRAMES30(1);
 	Real slowDownDist = (actualSpeed/1.5f) * slowDownTime + actualSpeed * (Real)GX_FRAMES30(1);
 #else
@@ -1565,7 +1565,7 @@ Bool Locomotor::fixInvalidPosition(Object* obj, PhysicsBehavior *physics)
 
 		Coord3D correction;
 #if GX_LOGIC_60HZ
-		// GeneralsX @fix Claude 23/09/2026 applied every frame while the position is invalid, so these
+		// GeneralsX: applied every frame while the position is invalid, so these
 		// are per-frame^2 pushes (x1/4), the dot test below compares a per-frame speed (x1/2), and the
 		// sqrt(-dot) "velocity kill" is scaled so it yields a quarter of the retail value for the same
 		// wall-clock speed: sqrt(-2*dot60)/4 == sqrt(-dot60/8).
@@ -2072,7 +2072,7 @@ Real Locomotor::getSurfaceHtAtPt(Real x, Real y)
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 17/10/2026 wh1ter0se 17/10: "just need the planes ... not to go that low over a gorge". A jet held
+// GeneralsX: wh1ter0se 17/10: "just need the planes ... not to go that low over a gorge". A jet held
 // its cruise height above the ground straight under it and nothing else, and its lift barely beats gravity (a Raptor:
 // Lift 120 vs Gravity 64), so it started down only once the ground had fallen away and could not climb back in time:
 // crossing Twilight Flame's 99-deep gorge it sank 82 units into it and cleared the far rim by 18 (his 17/10 replay,
@@ -2104,7 +2104,7 @@ Real Locomotor::gxCruiseSurfaceHt(Object* obj, const Coord3D& pos, Real surfaceH
 		const Real d = reach * (Real)k / (Real)GX_CRUISE_STEPS;
 		// the logic heightmap only: getSurfaceHtAtPt also reads the animated water GRID, which exists only on a rendered
 		// client (TerrainLogic::getWaterHandle asks TheTerrainVisual), so a sample over it would put a rendered and a headless
-		// peer at different heights (Codex pg2-jet-adv-r1 P1). The jet's own spot keeps reading water as before.
+		// peer at different heights. The jet's own spot keeps reading water as before.
 		const Real ht = TheTerrainLogic->getGroundHeight(pos.x + dir->x * d, pos.y + dir->y * d);
 		if (ht > best)
 			best = ht;
@@ -2137,7 +2137,7 @@ Real Locomotor::calcLiftToUseAtPt(Object* obj, PhysicsBehavior *physics, Real cu
 	// see how far we need to slow to dead stop, given max braking
 	Real desiredAccel;
 #if GX_LOGIC_60HZ
-	const Real TINY_ACCEL = 0.00025f;	// GeneralsX @fix Claude 23/09/2026 a per-frame^2 acceleration: x1/4
+	const Real TINY_ACCEL = 0.00025f;	// GeneralsX: a per-frame^2 acceleration: x1/4
 #else
 	const Real TINY_ACCEL = 0.001f;
 #endif
@@ -2230,7 +2230,7 @@ PhysicsTurningType Locomotor::rotateObjAroundLocoPivot(Object* obj, const Coord3
 		Real dx =goalPos.x - turnPos.x;
 		Real dy = goalPos.y - turnPos.y;
 		// If we are very close to the goal, we twitch due to rounding error.  So just return. jba.
-		// GeneralsX @bugfix Claude 06/10/2026 This return skipped the *relAngle write every other path makes, and
+		// GeneralsX: This return skipped the *relAngle write every other path makes, and
 		// moveTowardsPositionTreads turns that angle into speed from an uninitialised local: a Sentry Drone (TREADS,
 		// TurnPivotOffset -0.33) reaching such a point drove on stack garbage = desync. At the goal there is nothing
 		// to turn, so the angle is 0 (sweep c004-01).
@@ -2401,7 +2401,7 @@ Bool Locomotor::handleBehaviorZ(Object* obj, PhysicsBehavior *physics, const Coo
 
 					Bool surfaceRel = (m_template->m_behaviorZ == Z_SURFACE_RELATIVE_HEIGHT);
 					Real surfaceHt = surfaceRel ? getSurfaceHtAtPt(pos.x, pos.y) : 0.0f;
-					// GeneralsX @bugfix Claude 17/10/2026 a jet cruising (not landing or taking off: those fly PRECISE_Z_POS)
+					// GeneralsX: a jet cruising (not landing or taking off: those fly PRECISE_Z_POS)
 					// holds its height above the highest ground along its track - see gxCruiseSurfaceHt.
 					if (surfaceRel && m_template->m_appearance == LOCO_WINGS && m_preferredHeight > 0.0f && !getFlag(PRECISE_Z_POS))
 						surfaceHt = gxCruiseSurfaceHt(obj, pos, surfaceHt);

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 23/09/2026 CAN THIS CACHED START DATA HAVE COME FROM THE MAP AT ALL?
+// GeneralsX: CAN THIS CACHED START DATA HAVE COME FROM THE MAP AT ALL?
 //
 // MapCache::addMap trusts a user-map entry when its size, CRC and timestamp match the file, and
 // never looks inside it again. On Windows, MapCache.ini lives in the retail user-data folder, which

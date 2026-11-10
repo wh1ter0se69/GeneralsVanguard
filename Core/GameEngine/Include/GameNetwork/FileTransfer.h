@@ -45,7 +45,7 @@ AsciiString GetAssetUsageFromMap( AsciiString path );
 AsciiString GetReadmeFromMap( AsciiString path );
 
 // The meat of file (map) transfers
-// GeneralsX @bugfix Claude 10/08/2026 keepShellUp: run the transfer as an OVERLAY over the live
+// GeneralsX: keepShellUp: run the transfer as an OVERLAY over the live
 // room screen instead of shutting the shell down around it. Shell::hideShell runs the top
 // screen's SHUTDOWN and the matching showShell re-runs its INIT - and the room screen's init is
 // written for entering a fresh room: on the host it rebuilds the game from preferences, which

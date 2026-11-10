@@ -1,10 +1,10 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule EXPAND.SUPPLY_BOOM (C·rb-data-10): an early supply-centre boom on the own clock.
+# GeneralsX: rule bank DATA rule EXPAND.SUPPLY_BOOM (C·rb-data-10): an early supply-centre boom on the own clock.
 # Stock Hard expands through the gift-carrying "Base Expansion Check" (an ENGINE hook: EXPAND.TIMING_COND); this rule leaves it alone and
 # adds, per general, one ONE-SHOT script per centre number n, "GX Supply Boom <n> - H", that orders one more supply centre / stash the way
 # the stock expansion does (AI_PLAYER_BUILD_SUPPLY_CENTER on a pile of 5000+ - ENGINE_READS, listed in the manifest) while the player owns
 # fewer than n: from _GX_CLOCK 30 (300 s) for n <= supply_count_t300, else from 48 (480 s) for n <= supply_count_t480; the 4th also from
 # ceil(supply4_t / 10) while the player owns at most oil_max oil derricks (no oils: the 4th comes fast). One order per number, so an
-# unfinished centre (the count does not see it) is never ordered twice (Codex rbd10-r1 P2: a repeating order did).
+# unfinished centre (the count does not see it) is never ordered twice (a repeating order did).
 # Own counts and the own clock only (NO_ENEMY_OBJECTS).
 RULE_ID = 'EXPAND.SUPPLY_BOOM'
 PARAMS = ('supply_count_t300', 'supply_count_t480', 'supply4_t', 'oil_max')

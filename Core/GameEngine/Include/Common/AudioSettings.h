@@ -37,7 +37,7 @@ struct AudioSettings
 	AudioSettings()
 		: m_use3DSoundRangeVolumeFade(true) // Enabled by default because it prevents audio cut off at the max range of 3D sounds
 		, m_3DSoundRangeVolumeFadeExponent(4.0f) // Exponent of 4 gives a nice balance between loud sounds and graceful fade
-		// GeneralsX @bugfix Claude 16/08/2026 THE MASTER VOLUME WAS SEEDED FROM UNINITIALISED MEMORY.
+		// GeneralsX: THE MASTER VOLUME WAS SEEDED FROM UNINITIALISED MEMORY.
 		//
 		// Every volume below used to be left indeterminate by this constructor, and
 		// AudioManager::init() copies the m_preferred* four straight into m_system*Volume and

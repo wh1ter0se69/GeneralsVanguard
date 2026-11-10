@@ -622,7 +622,7 @@ unsigned ProfileFuncLevel::Id::GetLine() const
   return func->funcLine;
 }
 
-// GeneralsX @refactor BenderAI 10/02/2026
+// GeneralsX:
 // Changed from unsigned _int64 to u64 (platform typedef)
 u64 ProfileFuncLevel::Id::GetCalls(unsigned frame) const
 {

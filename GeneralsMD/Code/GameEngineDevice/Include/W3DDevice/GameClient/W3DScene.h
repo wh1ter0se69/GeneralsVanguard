@@ -91,7 +91,7 @@ public:
 	W3DDynamicLight *getADynamicLight();
 	void setGlobalLight(LightClass *pLight,Int lightIndex=0);
 	LightEnvironmentClass &getDefaultLightEnv() {return m_defaultLightEnv;}
-	// GeneralsX @performance Claude 23/09/2026 Replaces createLightsIterator()/destroyLightsIterator(): callers
+	// GeneralsX: Replaces createLightsIterator()/destroyLightsIterator(): callers
 	// build a RefRenderObjListIterator on the stack over this list.
 	// Upstream reference: Mauller, PR #2646
 	// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2646
@@ -105,12 +105,12 @@ public:
 
 protected:
 	void renderOneObject(RenderInfoClass &rinfo, RenderObjClass *robj, Int localPlayerIndex);
-	// GeneralsX @performance Claude 08/10/2026 R-CPU 1f: the objects flushOccludedObjectsIntoStencil renders, collected on
+	// GeneralsX: R-CPU 1f: the objects flushOccludedObjectsIntoStencil renders, collected on
 	// the GXParallel workers first and replayed here in order (W3DScene.cpp, GX_COLLECTPAR).
 	void gxCollectRun(RenderInfoClass &rinfo, Int localPlayerIndex);
 	void gxRenderCollected(RenderInfoClass &rinfo, RenderObjClass *robj, Int localPlayerIndex);
 public:
-	// GeneralsX @performance Claude 08/10/2026 R-CPU 1f parallel object collection: renderOneObject's two halves.
+	// GeneralsX: R-CPU 1f parallel object collection: renderOneObject's two halves.
 	// prepareOneObject (main thread, in render order) reads the drawable and asks the object's shroud status - a query
 	// that writes simulation caches - and returns FALSE where renderOneObject returned before lighting anything;
 	// renderPreparedObject lights and renders from what it captured, never touching the drawable, so it can run on a
@@ -224,6 +224,6 @@ public:
 	virtual void Customized_Render( RenderInfoClass &rinfo ) override;
 };
 
-// GeneralsX @diagnostic Claude 16/10/2026 [GXDRAWCHECK] (W3DScene.cpp): a new match, a loaded save or the menu is
+// GeneralsX: [GXDRAWCHECK] (W3DScene.cpp): a new match, a loaded save or the menu is
 // coming - the detector starts its next match clean. Called from W3DDisplay::reset (GameClient::reset).
 void gxDrawCheckReset();

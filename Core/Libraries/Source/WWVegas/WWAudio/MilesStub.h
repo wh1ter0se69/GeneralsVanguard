@@ -70,7 +70,7 @@ typedef void*          HANDLE;
 
 #else // _WIN32
 
-// GeneralsX @bugfix Claude 21/08/2026 WINDOWS NEEDS A HEADER HERE TOO, and until now it got one
+// GeneralsX: WINDOWS NEEDS A HEADER HERE TOO, and until now it got one
 // only by accident. This whole file is the OpenAL branch of Utils.h's include - the arm taken when
 // mss.h is NOT included. On Windows mss.h was what dragged in <windows.h>, so dropping Miles also
 // dropped CRITICAL_SECTION, InitializeCriticalSection and DeleteCriticalSection - the exact three
@@ -93,7 +93,7 @@ typedef void*          HANDLE;
 
 #endif // !_WIN32
 
-// GeneralsX @bugfix Claude 06/08/2026 The Miles scalar typedefs must NOT be inside the !_WIN32
+// GeneralsX: The Miles scalar typedefs must NOT be inside the !_WIN32
 // guard above.
 //
 // Everything after this point uses them unconditionally - S32 in DIG_DRIVER just below is the

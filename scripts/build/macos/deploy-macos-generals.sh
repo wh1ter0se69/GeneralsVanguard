@@ -1,10 +1,10 @@
 #!/bin/bash
-# GeneralsX @build BenderAI 15/03/2026 Deploy macOS base-game build to runtime directory
+# GeneralsX: Deploy macOS base-game build to runtime directory
 # Copies GeneralsX binary and required dylibs to ~/GeneralsX/Generals
 
 set -e
 
-# GeneralsX @build BenderAI 15/03/2026 Resolve repository root for macOS base deploy script.
+# GeneralsX: Resolve repository root for macOS base deploy script.
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build/macos-vulkan"
@@ -110,7 +110,7 @@ fi
 echo "  Writing run.sh wrapper..."
 cat > "${RUNTIME_DIR}/run.sh" << 'WRAPPER'
 #!/bin/bash
-# GeneralsX @build BenderAI 15/03/2026 - macOS wrapper for base-game runtime directory
+# GeneralsX: macOS wrapper for base-game runtime directory
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 export DYLD_LIBRARY_PATH="${SCRIPT_DIR}:${DYLD_LIBRARY_PATH:-}"
@@ -141,7 +141,7 @@ echo "   VK ICD:     ${RUNTIME_DIR}/MoltenVK_icd.json"
 echo "   DXVK conf:  ${RUNTIME_DIR}/dxvk.conf"
 echo "   Wrapper:    ${RUNTIME_DIR}/run.sh"
 echo ""
-# GeneralsX @tweak BenderAI 28/04/2026 Print post-deploy run instructions for base game like Zero Hour deploy flow.
+# GeneralsX: Print post-deploy run instructions for base game like Zero Hour deploy flow.
 echo "Run with:"
 echo "  cd ~/GeneralsX/Generals && ./run.sh -win"
 echo "  or: ${RUNTIME_DIR}/run.sh -win"

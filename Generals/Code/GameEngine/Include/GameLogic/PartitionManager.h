@@ -515,7 +515,7 @@ public:
 	void invalidateShroudedStatusForAllPlayers();
 
 	ObjectShroudStatus getShroudedStatus(Int playerIndex);
-	// GeneralsX @bugfix Claude 02/10/2026 Is the object in the SHROUD for the player - off the map, or every cell it
+	// GeneralsX: Is the object in the SHROUD for the player - off the map, or every cell it
 	// covers never explored? The cells alone, a pure read: unlike getShroudedStatus it has no ghost-object, seen-before
 	// or relationship refinement, so every peer answers alike. For logic that must not depend on the lazy cache.
 	Bool isFullyShroudedForPlayer( Int playerIndex ) const;

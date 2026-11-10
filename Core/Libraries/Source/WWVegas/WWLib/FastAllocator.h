@@ -40,7 +40,7 @@
 #include "WWDebug/wwdebug.h"
 #include "mutex.h"
 
-// GeneralsX @bugfix BenderAI 24/02/2026 Phase 5 - macOS malloc.h compatibility
+// GeneralsX: Phase 5 - macOS malloc.h compatibility
 // malloc.h exists on Windows AND Linux natively; macOS is the only exception
 #ifdef __APPLE__
 #include <stdlib.h>  // macOS: malloc functions are in stdlib.h

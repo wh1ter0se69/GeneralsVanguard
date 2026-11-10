@@ -138,7 +138,7 @@ enum GameWindowMessage CPP_11(: Int)
 
 };
 
-// GeneralsX @feature Claude 25/09/2026 GWM_IME_CHAR's mData2 says how the character came: the Win32 WM_CHAR
+// GeneralsX: GWM_IME_CHAR's mData2 says how the character came: the Win32 WM_CHAR
 // lParam for one a key typed - its repeat count (bits 0-15, never 0) and, in bit 30, whether the key was
 // already down (an auto-repeat) - or 0 for text an IME or a composition (a dead key's accented letter)
 // committed. IMEManager forwards WM_CHAR's lParam as it is, and 0 after a WM_DEADCHAR;

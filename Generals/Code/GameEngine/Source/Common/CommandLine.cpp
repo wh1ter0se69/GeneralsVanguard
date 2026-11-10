@@ -100,7 +100,7 @@ static void ConvertShortMapPathToLongMapPath(AsciiString &mapName)
 	if (!token.endsWithNoCase(".map"))
 	{
 		DEBUG_CRASH(("Invalid map name %s", mapName.str()));
-		return; // GeneralsX @bugfix Claude 01/10/2026 TheSuperHackers #3374 (tsh batch2 #53)
+		return; // GeneralsX: TheSuperHackers #3374 (tsh batch2 #53)
 	}
 	// remove the .map from the end.
 	token.truncateBy(4);
@@ -428,7 +428,7 @@ Int parseHeadless(char *args[], int num)
 	extern bool DX8Wrapper_IsWindowed;
 	DX8Wrapper_IsWindowed = false;
 
-	// GeneralsX @bugfix Claude 25/09/2026 Same reason, for ReleaseCrash()'s dialog (Debug.h).
+	// GeneralsX: Same reason, for ReleaseCrash()'s dialog (Debug.h).
 	TheReleaseCrashHeadless = true;
 
 	return 1;
@@ -514,7 +514,7 @@ Int parseYRes(char *args[], int num)
 
 //=============================================================================
 //=============================================================================
-// GeneralsX @feature Claude 27/09/2026 THE max-FPS setting: the launcher composes -fps N from its one
+// GeneralsX: THE max-FPS setting: the launcher composes -fps N from its one
 // field, and 0 means unlimited (Common/FpsLimitPolicy.h). A non-negative whole number or nothing: atoi()
 // turned "fast" or "-60" into 0, which is now a real value - unlimited - so a typo must not select it.
 // Lifted out of the RTS_DEBUG block below, as Zero Hour's was on 05/08/2026: a shipping base-game build
@@ -1092,7 +1092,7 @@ Int parseIgnoreStackTrace(char *args[], int num)
 }
 #endif
 
-// GeneralsX @feature Claude 27/09/2026 The same setting as -fps 0: unlimited. It used to switch the
+// GeneralsX: The same setting as -fps 0: unlimited. It used to switch the
 // limiter off, a second setting beside the number. The launcher spells its "0 = Unlimited" this way,
 // because an engine from before this change caps -fps 0 at the tick rate but uncaps -noFPSLimit.
 Int parseNoFPSLimit(char *args[], int num)
@@ -1333,7 +1333,7 @@ static CommandLineParam paramsForEngineInit[] =
 	{ "-ReplayCRCInterval", parseReplayCRCInterval },
 #endif
 
-	// GeneralsX @feature Claude 27/09/2026 The launcher's max-FPS setting, in shipping builds too (were RTS_DEBUG only).
+	// GeneralsX: The launcher's max-FPS setting, in shipping builds too (were RTS_DEBUG only).
 	{ "-fps", parseFPSLimit },
 	{ "-noFPSLimit", parseNoFPSLimit },
 
@@ -1483,7 +1483,7 @@ static void parseCommandLine(const CommandLineParam* params, int numParams, Bool
 		token = nextParam(nullptr, "\" ");
 	}
 #else
-	// GeneralsX @bugfix BenderAI 19/02/2026 - Include argv[0] (program name) to match the Windows
+	// GeneralsX: Include argv[0] (program name) to match the Windows
 	// GetCommandLineA() behavior where the exe path appears at argv[0]. The parsing loop starts at
 	// arg=1, so without argv[0] as a placeholder all real flags end up at argv[0] and are skipped.
 	extern char **__argv;
@@ -1533,7 +1533,7 @@ static void parseCommandLine(const CommandLineParam* params, int numParams, Bool
 
 		// Look at arg #i
 		Bool found = false;
-		// GeneralsX @bugfix Copilot 17/05/2026 Accept GNU-style "--flag" aliases for existing "-flag" command line options.
+		// GeneralsX: Accept GNU-style "--flag" aliases for existing "-flag" command line options.
 		const char *normalizedArg = argv[arg];
 		if (normalizedArg != nullptr && normalizedArg[0] == '-' && normalizedArg[1] == '-')
 		{
@@ -1593,7 +1593,7 @@ void CommandLine::parseCommandLineForStartup()
 	parseCommandLine(paramsForStartup, ARRAY_SIZE(paramsForStartup),
 		TheWritableGlobalData->m_commandLineData.m_parsedArguments);
 
-	// GeneralsX @build Claude 21/09/2026 Windows only, deliberately diverging from upstream.
+	// GeneralsX: Windows only, deliberately diverging from upstream.
 	//
 	// Upstream falls back to the executable's own directory when no -setCwd/-useCwd was given,
 	// which is right on Windows, where the exe sits in the data root. It is wrong everywhere else

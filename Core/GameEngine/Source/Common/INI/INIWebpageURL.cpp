@@ -107,7 +107,7 @@ void INI::parseWebpageURLDefinition( INI* ini )
 //	DEBUG_ASSERTCRASH( track, ("parseMusicTrackDefinition: Unable to allocate track '%s'",
 //										 name.str()) );
 
-	// GeneralsX @bugfix Claude 10/10/2026 No browser (its init is commented out in GameEngine::init), no URL: this used to parse into
+	// GeneralsX: No browser (its init is commented out in GameEngine::init), no URL: this used to parse into
 	// an uninitialised pointer. Only a map.ini could get here without one, and INI::load refuses that block there now.
 	if( url == nullptr )
 		throw INI_INVALID_DATA;

@@ -57,7 +57,7 @@
 #include "W3DDevice/GameClient/Module/W3DModelDraw.h"
 #include "W3DDevice/GameClient/W3DShadow.h"
 
-// GeneralsX @test Claude 08/10/2026 [GXCENSUS] lk_*: this file's shadow-ring locks, counted by flag (GX_DRAWCENSUS=1).
+// GeneralsX: [GXCENSUS] lk_*: this file's shadow-ring locks, counted by flag (GX_DRAWCENSUS=1).
 static inline DWORD gxCenLock(DWORD flags) { DX8Wrapper::Census_Lock(flags); return flags; }
 
 
@@ -111,7 +111,7 @@ int	nShadowDecalVertsInBatch=0;
 int SHADOW_DECAL_VERTEX_SIZE=32768;
 int SHADOW_DECAL_INDEX_SIZE=65536;
 
-// GeneralsX @performance Claude 08/10/2026 GX_DECALHOLD (E · rcpu-census, R-CPU step 2): one lock per decal ring per
+// GeneralsX: GX_DECALHOLD (E · rcpu-census, R-CPU step 2): one lock per decal ring per
 // flush, not two per decal. The [GXCENSUS] census of the G0 whole-map replay counted ~3,800 NOOVERWRITE locks a frame in
 // the trees span alone (every visible tree queues a ground-shadow decal: W3DTreeBuffer::drawTrees) and ~1,100 more for
 // unit shadow decals, for a handful of draws: queueDecal locked the shared decal VB and IB once EACH per decal and
@@ -408,7 +408,7 @@ void W3DProjectedShadowManager::updateRenderTargetTextures()
 	for( shadow = m_shadowList; shadow; shadow = shadow->m_next )
 	{	//decals don't need any updates on a per-frame basis since
 		//the image never changes.
-		// GeneralsX @bugfix BenderAI 21/03/2026 ShadowType is bitmask; only projection-type shadows require texture updates.
+		// GeneralsX: ShadowType is bitmask; only projection-type shadows require texture updates.
 		if (shadow->m_type & (SHADOW_PROJECTION | SHADOW_DYNAMIC_PROJECTION))
 			shadow->update();
 	}
@@ -453,7 +453,7 @@ Int W3DProjectedShadowManager::renderProjectedTerrainShadow(W3DProjectedShadow *
 		Int	startY=REAL_TO_INT_FLOOR(((cy - dy)*mapScaleInv));
 		Int endY=REAL_TO_INT_CEIL(((cy + dy)*mapScaleInv));
 
-		// GeneralsX @bugfix BenderAI 13/02/2026 Use MAX/MIN macros (cross-platform, defined in BaseTypeCore.h)
+		// GeneralsX: Use MAX/MIN macros (cross-platform, defined in BaseTypeCore.h)
 		//clip bounds to extents of heightmap
 		startX = MAX(startX,0);
 		endX = MIN(endX,hmap->getXExtent()-1);
@@ -971,7 +971,7 @@ void W3DProjectedShadowManager::queueDecal(W3DProjectedShadow *shadow)
 		max_x=min_x=boxCorners[0].X;
 		max_y=min_y=boxCorners[0].Y;
 
-		// GeneralsX @bugfix BenderAI 13/02/2026 Use MAX/MIN macros (cross-platform)
+		// GeneralsX: Use MAX/MIN macros (cross-platform)
 		for (Int bi=1; bi<4; bi++)
 		{	max_x = MAX(max_x,boxCorners[bi].X);
 			min_x = MIN(min_x,boxCorners[bi].X);
@@ -1038,7 +1038,7 @@ void W3DProjectedShadowManager::queueDecal(W3DProjectedShadow *shadow)
 		Int	startY=REAL_TO_INT_FLOOR(((objPos.Y+min_y)*mapScaleInv)) + borderSize;
 		Int endY=REAL_TO_INT_CEIL(((objPos.Y+max_y)*mapScaleInv)) + borderSize;
 
-		// GeneralsX @bugfix BenderAI 13/02/2026 Use MAX/MIN macros (cross-platform)
+		// GeneralsX: Use MAX/MIN macros (cross-platform)
 		startX = MAX(startX,m_drawStartX);
 		startX = MIN(startX,m_drawEdgeX);
 		startY = MAX(startY,m_drawStartY);
@@ -1122,7 +1122,7 @@ void W3DProjectedShadowManager::queueDecal(W3DProjectedShadow *shadow)
 					for (i=startX; i <= endX; i++)
 					{
 						hmapVertex.X=(float)(i-borderSize)*MAP_XY_FACTOR;
-						// GeneralsX @bugfix BenderAI 13/02/2026 Use MAX macro (cross-platform)
+						// GeneralsX: Use MAX macro (cross-platform)
 						hmapVertex.Z=MAX((float)hmap->getHeight(i,j)*MAP_HEIGHT_SCALE,layerHeight);
 						pvVertices->x=hmapVertex.X;
 						pvVertices->y=hmapVertex.Y;
@@ -1521,7 +1521,7 @@ Int W3DProjectedShadowManager::renderShadows(RenderInfoClass & rinfo)
 		}
 
 		flushDecals(lastShadowDecalTexture,lastShadowType);	//make sure there are not any unrendered decals left over.
-		GxFlushSiteNext = GXFS_PROJ_SHADOW;	// GeneralsX @feature Claude 10/10/2026 WS-G (dx8renderer.h GxFlushSite)
+		GxFlushSiteNext = GXFS_PROJ_SHADOW;	// GeneralsX: WS-G (dx8renderer.h GxFlushSite)
 		TheDX8MeshRenderer.Flush();	//draw all the shadow receiving objects
 	}
 	if (m_decalList)
@@ -1807,7 +1807,7 @@ W3DProjectedShadow* W3DProjectedShadowManager::addShadow(RenderObjClass *robj, S
 	if (shadowInfo)
 	{
 		//determine what kind of shadow is needed
-		// GeneralsX @bugfix BenderAI 21/03/2026 Accept combined decal flags (directional/dynamic) using bitmask checks.
+		// GeneralsX: Accept combined decal flags (directional/dynamic) using bitmask checks.
 		if (shadowInfo->m_type & SHADOW_DECAL)
 		{		//simple decal using the premade texture specified.
 				//can be always perpendicular to model's z-axis or projected
@@ -1947,7 +1947,7 @@ W3DProjectedShadow* W3DProjectedShadowManager::addShadow(RenderObjClass *robj, S
 	shadow->m_flags	= allowSunDirection;
 	if ((shadowType & SHADOW_DYNAMIC_PROJECTION) || (shadowInfo && shadowInfo->allowUpdates))
 	{
-		// GeneralsX @bugfix BenderAI 21/03/2026 Keep projected shadow texture in sync for animated casters without root translation.
+		// GeneralsX: Keep projected shadow texture in sync for animated casters without root translation.
 		shadow->m_flags |= SHADOW_DYNAMIC_PROJECTION;
 	}
 
@@ -2302,7 +2302,7 @@ void W3DProjectedShadow::update()
 	}
 	else if (m_flags & SHADOW_DYNAMIC_PROJECTION)
 	{
-		// GeneralsX @bugfix BenderAI 21/03/2026 Animated sub-mesh shadows need per-frame texture refresh even without object translation.
+		// GeneralsX: Animated sub-mesh shadows need per-frame texture refresh even without object translation.
 		updateTexture(TheW3DShadowManager->getLightPosWorld(0));
 	}
 	if (m_lastObjPosition != m_robj->Get_Position())

@@ -46,7 +46,7 @@
 
 
 // PRIVATE DATA ///////////////////////////////////////////////////////////////////////////////////
-// GeneralsX @feature Claude 12/08/2026 The shipped .wnd layouts carry exactly this many slot
+// GeneralsX: The shipped .wnd layouts carry exactly this many slot
 // rows. MAX_SLOTS is now larger; lookups for rows past this legitimately return null until the
 // dynamic-row lobby rebuild lands, so the per-row assert below tolerates them.
 enum { LEGACY_WND_SLOT_ROWS = 8 };
@@ -162,7 +162,7 @@ void LanMapSelectMenuInit( WindowLayout *layout, void *userData )
 		tmpString.format("LanMapSelectMenu.wnd:ButtonMapStartPosition%d", i);
 		buttonMapStartPositionID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		buttonMapStartPosition[i] = TheWindowManager->winGetWindowFromId( winMapPreview, buttonMapStartPositionID[i] );
-		// GeneralsX @bugfix Claude 12/08/2026 SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
+		// GeneralsX: SLOTS 8+ HAVE NO .WND CONTROL, AND THIS CRASHED.
 		//
 		// The shipped layouts author ButtonMapStartPosition0..7 - read out of WindowZH.big, all
 		// three map screens, exactly 8 rows. MAX_SLOTS became 12, so winGetWindowFromId returns

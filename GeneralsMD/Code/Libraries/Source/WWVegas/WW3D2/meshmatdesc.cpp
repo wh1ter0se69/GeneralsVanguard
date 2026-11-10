@@ -642,7 +642,7 @@ void MeshMatDescClass::Install_UV_Array(int pass,int stage,Vector2 * uvs,int cou
 
 // TheSuperHackers @bugfix Cryo 10/09/2026 Skip null materials to prevent crashes and
 // use each vertex's material colors to avoid incorrect ambient/emissive vertex colors.
-// GeneralsX @bugfix Claude 14/09/2026 Hand-ported from upstream PR #3246 (5e2fec767).
+// GeneralsX: Hand-ported from upstream PR #3246 (5e2fec767).
 // Peek_Material() can return null for a vertex, and the old code dereferenced it; it also
 // left mtl_ambient/mtl_emissive at function scope, so the DCG pre-multiply loop below read
 // the last material analysed here instead of the current vertex's own material colors.

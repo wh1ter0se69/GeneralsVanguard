@@ -1,4 +1,4 @@
-// GeneralsX @test D · render-motion-units-1 13/10/2026 gx_motion_history_test: the rules of GxMotionHistory.h
+// GeneralsX: gx_motion_history_test: the rules of GxMotionHistory.h
 // (render-dlss/DESIGN_motion-units.md §2.2, §2.3, §9). Plain c++, no engine:
 //   c++ -std=c++17 -I<repo>/Core/GameEngineDevice/Include/W3DDevice/GameClient/GXRender/Scene gx_motion_history_test.cpp -o /tmp/t && /tmp/t                 -> PASS, exit 0
 //   c++ -std=c++17 -I<same> -DGX_HIST_MUTANT=<1..9> gx_motion_history_test.cpp -o /tmp/t && /tmp/t   -> each plant FAILS, exit 1

@@ -188,7 +188,7 @@ Bool TransitionWindow::init()
 
 void TransitionWindow::update( Int frame )
 {
-	// GeneralsX @bugfix Claude 14/08/2026 The null test has to come FIRST. m_transition is only
+	// GeneralsX: The null test has to come FIRST. m_transition is only
 	// created by init(), so a TransitionWindow that has been added to a group but whose group has
 	// not started yet has none - and the window-range test on the line below dereferences it. That
 	// was unreachable while every entry came from the INI parser (parse, then init, then update,
@@ -205,11 +205,11 @@ void TransitionWindow::update( Int frame )
 
 Bool TransitionWindow::isFinished()
 {
-	// GeneralsX @bugfix Claude 06/10/2026 A transition whose window was destroyed mid-transition has nothing left to
+	// GeneralsX: A transition whose window was destroyed mid-transition has nothing left to
 	// animate, so it is finished. Its own m_isFinished is only set on frames that touch the window, so it never came,
-	// and the group waited forever: the pending group (the next menu) never started (sweep c080-01, Codex r1). Only a
+	// and the group waited forever: the pending group (the next menu) never started (sweep c080-01). Only a
 	// window that went away counts: FadeWholeScreen and ControlBarArrow have no window by design and finish on their
-	// own (Codex r2).
+	// own.
 	if(m_windowGone)
 		return TRUE;
 	if(m_transition)
@@ -626,7 +626,7 @@ void GameWindowTransitionsHandler::remove( AsciiString groupName,  Bool skipPend
 {
 	TransitionGroup* g = findGroup(groupName);
 
-	// GeneralsX @bugfix Claude 23/09/2026 Unknown group: return before the nullptr == nullptr tests below call skip() on nullptr.
+	// GeneralsX: Unknown group: return before the nullptr == nullptr tests below call skip() on nullptr.
 	// Upstream reference: CryoTheRenegade, PR #3329
 	// https://github.com/TheSuperHackers/GeneralsGameCode/pull/3329
 	if (!g)

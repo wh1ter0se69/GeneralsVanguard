@@ -209,7 +209,7 @@ int HTreeClass::Load_W3D(ChunkLoadClass & cload)
 	*/
 	memcpy(Name,header.Name,W3D_NAME_LEN);
 	NumPivots = header.NumPivots;
-	// GeneralsX @bugfix Claude 14/09/2026 - a hierarchy whose header declares zero pivots (or a
+	// GeneralsX: a hierarchy whose header declares zero pivots (or a
 	// uint32 count that wraps negative when stored in the int NumPivots) used to leave Pivot NULL
 	// and still return OK, so every later NumPivots-indexed walk dereferenced a null array.
 	// Reject the file instead. Upstream TheSuperHackers PR #3195, sha 3d7b15feb.
@@ -617,7 +617,7 @@ void HTreeClass::Anim_Update_Without_Interpolation(const Matrix3D & root,HRawAni
 		// TheSuperHackers @tweak Keep the animation frame step in sync with the ww3d frame step if they can align.
 		// @todo This needs improving if the WWSyncPerSecond is changed or the animation frame rates can be larger.
 		//
-		// GeneralsX @info Claude 05/08/2026 Relaxed for GX_LOGIC_60HZ, and this is safe rather than
+		// GeneralsX: Relaxed for GX_LOGIC_60HZ, and this is safe rather than
 		// merely permitted. The guard above only takes this early-out when the ANIMATION's own frame
 		// rate equals the sync rate. W3D animations are authored at 30, so at WWSyncPerSecond = 60
 		// the condition simply stops matching and control falls through to the full interpolation

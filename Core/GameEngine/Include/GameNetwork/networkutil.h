@@ -36,7 +36,7 @@ Bool CommandRequiresDirectSend(NetCommandMsg *msg);
 Bool IsCommandSynchronized(NetCommandType type);
 const char* GetNetCommandTypeAsString(NetCommandType type);
 
-// GeneralsX @security Claude 17/08/2026 In-game chat is attacker-controlled text.
+// GeneralsX: In-game chat is attacker-controlled text.
 //
 // The only thing standing between another player's keyboard and TheInGameUI's message list is this
 // function. It is applied TWICE on purpose: once in ConnectionManager::sendChat, so the local echo
@@ -68,7 +68,7 @@ const Int GX_NET_CHAT_MAX_CHARS = 127;
 /// Returns TRUE when anything survived; a line that sanitises away to nothing is not worth drawing.
 Bool GXSanitizeChatText(UnicodeString &text);
 
-// GeneralsX @feature Claude 06/08/2026 [GXNET] counters.
+// GeneralsX: [GXNET] counters.
 //
 // Free-running totals for the four events that decide whether a lockstep stall is packet loss or
 // something else. They exist because every DEBUG_LOG on every one of those paths compiles to
@@ -88,7 +88,7 @@ extern UnsignedInt TheGxNetSendFails;  ///< Transport::doSend, socket write retu
 extern UnsignedInt TheGxNetSendDrops;  ///< of those, the ones discarded as permanently undeliverable
 extern UnsignedInt TheGxNetRecvDrops;  ///< datagrams read off the socket with no free in-buffer slot
 
-// GeneralsX @bugfix Claude 10/08/2026 A file-transfer progress value meaning "this peer could not
+// GeneralsX: A file-transfer progress value meaning "this peer could not
 // write the file". The progress field is a signed Int on the wire (NetCommandMsg.h:597-604), so a
 // negative value costs no protocol change and cannot collide with a real 0..100 percentage.
 //

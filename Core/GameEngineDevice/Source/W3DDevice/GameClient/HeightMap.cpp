@@ -174,7 +174,7 @@ VERTEX_FORMAT *HeightMapRenderObjClass::getVertexBufferBackup(Int x, Int y)
 }
 
 //=============================================================================
-// GeneralsX @performance Claude 24/09/2026 True if the VB tile's world bounds are outside the camera. The
+// GeneralsX: True if the VB tile's world bounds are outside the camera. The
 // bounds come from the tile's backup vertices (what the VB holds; updateVBForLight only changes colours), so a
 // tile that wraps around the sliding origin gets a box as wide as the draw window and is simply kept.
 // A mirrored reflection camera is never trusted with a cull.
@@ -185,9 +185,9 @@ Bool HeightMapRenderObjClass::isVBTileCulled(Int x, Int y, CameraClass *camera)
 	VBTileBounds &b = m_vbTileBounds[y*m_numVBTilesX+x];
 	if (b.dirty)
 	{
-		// GeneralsX @bugfix Claude 28/09/2026 Only the cells updateBlock writes: the last VB column/row is
+		// GeneralsX: Only the cells updateBlock writes: the last VB column/row is
 		// partly filled when the draw width is not 1 + 32k (135 at scale), and the rest of its backup was
-		// never written, so reading it let garbage widen the box (Codex gfxb2-tilecull-r1).
+		// never written, so reading it let garbage widen the box.
 		constexpr Int vertsPerRow = VERTEX_BUFFER_TILE_LENGTH*4;
 		const Int cols = (x == m_numVBTilesX-1 && m_numBlockColumnsInLastVB) ? m_numBlockColumnsInLastVB : VERTEX_BUFFER_TILE_LENGTH;
 		const Int rows = (y == m_numVBTilesY-1 && m_numBlockRowsInLastVB) ? m_numBlockRowsInLastVB : VERTEX_BUFFER_TILE_LENGTH;
@@ -608,7 +608,7 @@ Int HeightMapRenderObjClass::updateVBForLight(DX8VertexBufferClass	*pVB, VERTEX_
 		assert(x0 >= originX && y0 >= originY && x1>x0 && y1>y0 && x1<=originX+VERTEX_BUFFER_TILE_LENGTH && y1<=originY+VERTEX_BUFFER_TILE_LENGTH);
 #endif
 
-		// GeneralsX @performance Claude 23/09/2026 Lock only the rows a light touches. A size-0 lock marks the
+		// GeneralsX: Lock only the rows a light touches. A size-0 lock marks the
 		// whole 4096-vertex (128 KB) MANAGED tile buffer dirty, so DXVK re-uploaded all of it per lit tile per
 		// frame. The row test is shared by the range pre-pass and the loop so they cannot disagree.
 		auto rowTouchesLight = [&](Int yCoord) -> Bool {
@@ -645,7 +645,7 @@ Int HeightMapRenderObjClass::updateVBForLight(DX8VertexBufferClass	*pVB, VERTEX_
 		{
 			const Int mapY = getYWithOrigin(j);
 			const Int yCoord = mapY+m_map->getDrawOrgY()-m_map->getBorderSizeInline();
-			// GeneralsX @performance Claude 29/09/2026 The per-cell test below looped over EVERY enabled light for
+			// GeneralsX: The per-cell test below looped over EVERY enabled light for
 			// every cell of a lit tile (the hottest lines of the terrain relight in the Mini profile). Its Y halves
 			// depend on the row alone, so the lights whose current or previous rect covers this row are collected
 			// here once, and a cell tests only their X halves: the same predicate, with 1-3 lights instead of all.
@@ -960,7 +960,7 @@ static Int ringSpans(Int lo, Int hi, Int origin, Int period, Int out[2][2])
 	return 1;
 }
 
-// GeneralsX @performance Claude 08/10/2026 Terrain row 1g (gx-handoff render-split/PLAN_gpu-terrain-light.md). The
+// GeneralsX: Terrain row 1g (gx-handoff render-split/PLAN_gpu-terrain-light.md). The
 // extra blend pass relit every visible tile from scratch every frame - getStaticDiffuse on 4 corners: a normal from the
 // heights, then every scene and global light - 3.5% of the Mac Mini's main thread in a whole-map 6v6 view. Its inputs
 // (heights, the time-of-day terrain lights, the map's point lights) change only where the base pass relights too: a
@@ -1009,10 +1009,10 @@ void HeightMapRenderObjClass::doPartialUpdate(const IRegion2D &partialRange, Wor
 	}
 	else
 	{
-		// GeneralsX @performance Claude 28/09/2026 Map the range into the vertex buffer's ring on BOTH axes. updateCenter
+		// GeneralsX: Map the range into the vertex buffer's ring on BOTH axes. updateCenter
 		// scrolls columns by m_originX and rows by m_originY, each wrapping at m_x-1 / m_y-1 (getXWithOrigin and
 		// getYWithOrigin undo it). This mapped Y only and rebuilt every column, so once the camera had scrolled a small
-		// flattened patch became a full-width strip (Codex gfxa-relight-r2).
+		// flattened patch became a full-width strip.
 		Int xs[2][2], ys[2][2];
 		const Int nx = ringSpans(minX, maxX, m_originX, m_x-1, xs);
 		const Int ny = ringSpans(minY, maxY, m_originY, m_y-1, ys);
@@ -1041,7 +1041,7 @@ void HeightMapRenderObjClass::doPartialUpdate(const IRegion2D &partialRange, Wor
 		if (x >= partialRange.lo.x && x < partialRange.hi.x &&
 			y >= partialRange.lo.y && y < partialRange.hi.y)
 		{	//this tile is inside region being updated so remove it by shifting tile array
-			// GeneralsX @bugfix Claude 23/09/2026 Overlapping ranges need memmove, not memcpy.
+			// GeneralsX: Overlapping ranges need memmove, not memcpy.
 			memmove(m_extraBlendTilePositions+j,m_extraBlendTilePositions+j+1,(m_numExtraBlendTiles-1-j)*sizeof(Int));
 			m_numExtraBlendTiles--;
 			j--;	//need to look at index j again because this tile was removed
@@ -1324,7 +1324,7 @@ void HeightMapRenderObjClass::setTerrainDrawSize(Int width, Int height)
 	//delete m_shroud;
 	//m_shroud = nullptr;
 
-	// GeneralsX @performance Claude 26/09/2026 One full vertex rewrite per resize, not two.
+	// GeneralsX: One full vertex rewrite per resize, not two.
 	// initHeightData used to rewrite every vertex here, at the draw origin before recentring and with
 	// no lights, and scheduleFullUpdate then made the next updateCenter rewrite every vertex again at
 	// the recentred origin with the scene's lights - so the first pass was always thrown away. Nothing
@@ -1680,7 +1680,7 @@ void HeightMapRenderObjClass::On_Frame_Update()
 void HeightMapRenderObjClass::staticLightingChanged()
 {
 	BaseHeightMapRenderObjClass::staticLightingChanged();
-	// GeneralsX @feature Claude 17/10/2026 THE REMASTERED GROUND (TerrainTex.cpp, Options.ini GXGround) bakes its shade atlas
+	// GeneralsX: THE REMASTERED GROUND (TerrainTex.cpp, Options.ini GXGround) bakes its shade atlas
 	// here: at map load, where W3DTerrainLogic::loadMap's setTimeOfDay arrives once the map's lights are final (the atlas was
 	// built just before, in TerrainVisual::load), and again when a time-of-day change relights the terrain - not in the first
 	// drawn frame. It re-bakes only if the lights moved. A no-op while the ground is off. Render-only (simdigest_exclusions.txt).
@@ -2175,7 +2175,7 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
  				DX8Wrapper::Set_Texture(0,nullptr);
    			} else {
  				W3DShaderManager::setShader(st, pass);
-				// GeneralsX @feature Claude 17/10/2026 (from C · look-ground-2's prototype, 14/10): the REMASTERED ground replaces a
+				// GeneralsX: the REMASTERED ground replaces a
 				// one-pass pixel-shader base pass (TerrainTex.cpp); never a reflection pass, never the multi-pass fallback. Off = no-op.
 				if (devicePasses == 1 && !ShaderClass::Is_Backface_Culling_Inverted())
 					GXGround_Base(m_stageZeroTexture);
@@ -2215,7 +2215,7 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 		if (pass)	//shader was applied at least once?
  			W3DShaderManager::resetShader(st);
 
-		// GeneralsX @feature Claude 17/10/2026 (from C · look-ground-2's prototype, 14/10): the REMASTERED ground's second pass -
+		// GeneralsX: the REMASTERED ground's second pass -
 		// the cloud, the macro noise, the detail grain and the macro variation over the same VB tiles (TerrainTex.cpp; governor
 		// step 1 drops the last two). Only after a base pass GXGround_Base replaced (it left cloud and noise out), so never while
 		// the ground is off and never on a reflection pass.
@@ -2275,7 +2275,7 @@ void HeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 		if (TheTerrainTracksRenderObjClassSystem)
 			TheTerrainTracksRenderObjClassSystem->flush();
 
-		// GeneralsX @feature Claude 24/10/2026 RA3 water's tint: the shore tiles once more, now that 3-way blends, roads, scorch
+		// GeneralsX: RA3 water's tint: the shore tiles once more, now that 3-way blends, roads, scorch
 		// marks, props, bridges and tracks are down and before the shroud pass multiplies everything (GXWaterRA3Glue.inl).
 		if (gxWaterRA3TintBegin())
 		{
@@ -2369,7 +2369,7 @@ void HeightMapRenderObjClass::renderExtraBlendTiles()
 	if (maxBlendTiles > 10000)	//we can only fit about 10000 tiles into a single VB.
 		maxBlendTiles = 10000;
 
-	// GeneralsX @performance Claude 08/10/2026 Each tile's corner lighting is kept until an input changes (blendLightMode).
+	// GeneralsX: Each tile's corner lighting is kept until an input changes (blendLightMode).
 	const Int lightMode = blendLightMode();
 	static UnsignedInt s_calls = 0, s_chk = 0, s_bad = 0, s_fills = 0;
 	if (lightMode != 0)

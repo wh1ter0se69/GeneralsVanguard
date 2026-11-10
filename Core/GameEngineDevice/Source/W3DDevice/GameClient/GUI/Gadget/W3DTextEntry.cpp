@@ -198,7 +198,7 @@ static void drawTextEntryText( GameWindow *window, WinInstanceData *instData,
 	if(parent && !BitIsSet(parent->winGetStyle(), GWS_COMBO_BOX))
 		parent = nullptr;
 
-	// GeneralsX @bugfix Claude 08/08/2026 Blink the caret on the WALL CLOCK, not on rendered frames.
+	// GeneralsX: Blink the caret on the WALL CLOCK, not on rendered frames.
 	//
 	// This was `(drawCnt++ >> 3) & 0x1` over a `static Byte drawCnt` - a period of 16 RENDERED
 	// frames. That is 533 ms at the 30 fps this game shipped at, and the constant was chosen for

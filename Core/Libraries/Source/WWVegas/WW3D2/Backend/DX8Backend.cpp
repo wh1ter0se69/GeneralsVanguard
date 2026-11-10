@@ -114,7 +114,7 @@ void Renderer::Set_Light_Environment(LightEnvironmentClass * light_env)
     DX8Wrapper::Set_Light_Environment(light_env);
 }
 
-// GeneralsX @refactor Claude 10/10/2026 see Renderer.h.
+// GeneralsX: see Renderer.h.
 void Renderer::Set_Transform_Dirty()
 {
     DX8Wrapper::Set_Transform_Dirty();

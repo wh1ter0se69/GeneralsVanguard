@@ -48,12 +48,12 @@ public:
 
 	Int getPercentComplete();
 
-	// GeneralsX @tweak Claude 11/08/2026 Duplicate-chunk counter for the [GXXFER] probes: a chunk
+	// GeneralsX: Duplicate-chunk counter for the [GXXFER] probes: a chunk
 	// arriving for a slot already present is a retransmit whose ack was lost or late. Costs one
 	// increment; read at completion so a log shows how much of the wire traffic was waste.
 	UnsignedInt getDupChunks() const { return m_dupChunks; }
 
-	// GeneralsX @security Claude 06/10/2026 Whose node this is: the slot the chunks arrived from, the slot they name as their
+	// GeneralsX: Whose node this is: the slot the chunks arrived from, the slot they name as their
 	// sender, and the wrapped command ID. The list keys a node by (source, wrapSeq); every chunk of it must also agree on
 	// sender, wrapped ID, chunk count and total length, as every chunk of one honest serialization does.
 	Bool matches(const NetWrapperCommandMsg *msg) const
@@ -83,7 +83,7 @@ protected:
 
 };
 
-// GeneralsX @security Claude 06/10/2026 What processWrapper decided about one chunk (DESIGN_wrapper-memory-cap v16 section 4).
+// GeneralsX: What processWrapper decided about one chunk (DESIGN_wrapper-memory-cap v16 section 4).
 // ACK: admitted (or a stale duplicate / a copy) - the caller sends its WRAPPERACK. REFUSE: outside the sender's window, malformed
 // stamp, or a new serialization from a source over its relay soft cap - never acked, the sender retries it. DROP: no connected source.
 enum GXWrapVerdict CPP_11(: Int) { GXWRAP_ACK, GXWRAP_REFUSE, GXWRAP_DROP };

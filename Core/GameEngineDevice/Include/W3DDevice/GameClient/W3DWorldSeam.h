@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-hud-seam-1 13/10/2026 THE WORLD/HUD SEAM (modernize/render-dlss/DESIGN_hud-seam.md).
+// GeneralsX: THE WORLD/HUD SEAM (modernize/render-dlss/DESIGN_hud-seam.md).
 //
 // W3DView::draw brackets its world pass with push/pop. While GXUpscaler is off (the default) both are one branch and the frame
 // issues exactly today's device calls. Otherwise push redirects the world into a private target at GXRenderScale of the current
@@ -27,7 +27,7 @@ namespace W3DWorldSeam
 	/// The native device's IGxWorldPass while a world pass is redirected; null otherwise (classic, seam off, outside the pass).
 	/// Not AddRef'd: valid until pop().
 	IGxWorldPass *worldPass();
-	/// GeneralsX @feature D · look-fdepth-plus 17/10/2026 F-depth+ (GxSceneTap.h): RTS3DScene::Flush calls this once the opaque world
+	/// GeneralsX: F-depth+ (GxSceneTap.h): RTS3DScene::Flush calls this once the opaque world
 	/// is drawn (terrain, objects, trees, shadows) and before water and every transparent. Inside the tactical view's push/pop only,
 	/// once per frame, never on a view-filter frame; a no-op unless the native device has a reader on (classic: always a no-op).
 	void opaqueDone();

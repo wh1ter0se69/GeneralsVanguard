@@ -1,5 +1,5 @@
 # Stage the Windows x64 build into its OWN run folder and launch it.
-# GeneralsX @build Claude 27/07/2026
+# GeneralsX:
 #
 # WHY A SEPARATE FOLDER: Generals Online runs EAC (Easy Anti-Cheat) against its signed
 # exe inside the Steam directory. Dropping our unsigned DXVK d3d8.dll/d3d9.dll beside it
@@ -25,7 +25,7 @@ param(
     # Overridable only so the staging can be dry-run against a scratch tree; the defaults are the box.
     [string]$run   = "C:\dev\GeneralsX-run",
     [string]$build = "C:\dev\GeneralsX\build\win64",
-    # GeneralsX @feature Claude 03/10/2026 WHICH DXVK PAIR (dxvk\dxvk-pair.ps1, pinned in dxvk\dxvk-win64.pins):
+    # GeneralsX: WHICH DXVK PAIR (dxvk\dxvk-pair.ps1, pinned in dxvk\dxvk-win64.pins):
     # gx = ours, upstream 2.6 + the fixed-function constant fix, built by dxvk\build-dxvk-win64.ps1 - the default, what
     # ships from 0.9.54; official = the DXVK 2.6 release pair every earlier version shipped. That is the way back:
     # restage with -DxvkPair official and package, and the runtime tier returns to the official bytes.
@@ -36,7 +36,7 @@ param(
     [string]$steam = "C:\Program Files (x86)\Steam\steamapps\common\Command & Conquer Generals - Zero Hour\"
 )
 
-# GeneralsX @bugfix Claude 25/09/2026 RelWithDebInfo, the config that ships - never Release.
+# GeneralsX: RelWithDebInfo, the config that ships - never Release.
 #
 # This read GeneralsMD\Release from 27/07/2026, when that was the build config. The shipping config
 # became RelWithDebInfo on 24/08/2026 (scripts/build/verify-4platform.sh records why), and nothing
@@ -53,7 +53,7 @@ $zh    = "$build\GeneralsMD\RelWithDebInfo"
 # completely silent, extremely misleading failure mode.
 # ($steam is a parameter above; its default carries the backslash.)
 
-# GeneralsX @bugfix Claude 24/09/2026 STAGE THE TAURI LAUNCHER, NOT THE C# LOADER.
+# GeneralsX: STAGE THE TAURI LAUNCHER, NOT THE C# LOADER.
 #
 # This used to `dotnet publish` scripts/build/windows/loader and stage that as GeneralsXLauncher.exe
 # (the 17/08 fix: never ship a stale launcher). The published win32 tier has carried the Tauri
@@ -134,7 +134,7 @@ Copy-Item "$dxvk\d3d9.dll" $run -Force
 # than the whole process. $build\_deps\miles-build and $build\_deps\bink-build are both gone with
 # cmake/miles.cmake and cmake/bink.cmake, so copying from either would fail the script outright.
 
-# GeneralsX @feature Claude 06/08/2026 Stage OpenAL32.dll when the build has the OpenAL backend.
+# GeneralsX: Stage OpenAL32.dll when the build has the OpenAL backend.
 #
 # cmake/openal.cmake FetchContents openal-soft 1.24.2 and never sets LIBTYPE, so openal-soft's
 # SHARED default applies and the artifact is a DLL rather than a static lib - confirmed in our own
@@ -147,7 +147,7 @@ Copy-Item "$dxvk\d3d9.dll" $run -Force
 # broken build rather than a missing file, which is why it is worth staging unconditionally-if-
 # present rather than leaving it to whoever wires the backend up.
 #
-# GeneralsX @bugfix Claude 25/09/2026 REQUIRED now, and from the exe's own config. The win64 preset
+# GeneralsX: REQUIRED now, and from the exe's own config. The win64 preset
 # sets SAGE_USE_OPENAL (25/09/2026), so every build it makes imports OpenAL32.dll, and "stage it if it
 # happens to be there" skipped it without a word whenever it was not at the path looked in - leaving
 # an exe that dies at 0xC0000135. It is checked
@@ -158,7 +158,7 @@ Copy-Item "$dxvk\d3d9.dll" $run -Force
 Copy-Item $openal $run -Force
 Write-Host "  staged OpenAL32.dll"
 
-# GeneralsX @bugfix Claude 28/07/2026 Stage Data\Scripts. WITHOUT THIS, ANY MATCH CONTAINING AN AI
+# GeneralsX: Stage Data\Scripts. WITHOUT THIS, ANY MATCH CONTAINING AN AI
 # PLAYER DESYNCS AT FRAME 0 AGAINST A NON-WINDOWS PEER.
 #
 # SidesList::prepareForMP_or_Skirmish (SidesList.cpp:520) loads "Data\Scripts\SkirmishScripts.scb"
@@ -197,7 +197,7 @@ if (Test-Path $scriptsSrc) {
     Write-Warning "[setup] $scriptsSrc NOT FOUND - matches with AI players will desync against other platforms"
 }
 
-# GeneralsX @bugfix Claude 28/07/2026 Stage MapsZH.big. THIRD instance of the same defect as
+# GeneralsX: Stage MapsZH.big. THIRD instance of the same defect as
 # Data\Scripts above and Data\Cursors: the map cache is scanned relative to the WORKING
 # DIRECTORY, so with the run folder holding no .big files it indexed only the user maps under
 # Documents and found zero built-in "maps\..." entries. The Mac game folder is self-contained
@@ -218,8 +218,8 @@ if (Test-Path $mapsSrc) {
     Write-Warning "[setup] $mapsSrc NOT FOUND - built-in maps will be missing and cross-platform joins will fail on map availability"
 }
 
-# GeneralsX @feature Claude 25/09/2026 Data\INI\Weapon.ini, the Toxin Tractor balance change, in the RUN
-# folder (Codex P2 on feat/next-batch-defaults). go.bat launches from $run, and Win32LocalFileSystem opens
+# GeneralsX: Data\INI\Weapon.ini, the Toxin Tractor balance change, in the RUN
+# folder (on feat/next-batch-defaults). go.bat launches from $run, and Win32LocalFileSystem opens
 # a relative loose file in the working directory first, so a peer launched here without it computes a
 # dataID every packaged peer refuses (DATA_DIFFERS). Cut from the CoreINI this peer mounts by
 # scripts\tooling\make-weapon-ini.py --root, which follows the engine's mount order: the asset root, then
@@ -250,7 +250,7 @@ if ($pyExe) {
     Write-Warning "[setup] no working python on PATH - Data\INI\Weapon.ini NOT generated; every peer carrying it will refuse this one (DATA_DIFFERS)"
 }
 
-# GeneralsX @tweak Claude 24/09/2026 PRESENT WITH MAILBOX, NOT FIFO (owner decision 24/09/2026).
+# GeneralsX: PRESENT WITH MAILBOX, NOT FIFO (owner decision 24/09/2026).
 #
 # THIS HEREDOC IS THE SOURCE OF TRUTH FOR EVERY WINDOWS dxvk.conf: package-windows-share.ps1 zips
 # this run folder's copy into the runtime tier, the installer unpacks that zip, and
@@ -269,7 +269,7 @@ if ($pyExe) {
 #                             then asks for MAILBOX only, never IMMEDIATE, so this does not tear.
 #                             A driver without MAILBOX falls back to FIFO, the mode we had.
 #
-# GeneralsX @tweak Claude 28/09/2026 16x ANISOTROPIC FILTERING, the value macOS and iOS already ship
+# GeneralsX: 16x ANISOTROPIC FILTERING, the value macOS and iOS already ship
 # (resources/dxvk/dxvk.conf, ios/config/dxvk.conf). Every terrain shader hard-sets LINEAR min/mag
 # (W3DShaderManager.cpp TerrainShaderPixelShader::set, TerrainShader2Stage::set), never ANISOTROPIC,
 # so the in-game anisotropy option never reaches the ground and Windows terrain was trilinear-only at
@@ -277,7 +277,7 @@ if ($pyExe) {
 # above POINT (d3d9_device.cpp, samplerAnisotropy), once, at device creation - so it is not a knob a
 # later in-match quality governor can turn.
 #
-# GeneralsX @bugfix Claude 05/10/2026 Zero Hour no longer uses the samplerAnisotropy line below:
+# GeneralsX: Zero Hour no longer uses the samplerAnisotropy line below:
 # W3DDisplay::init replaces it per launch through DXVK_CONFIG with the launcher's Texture filtering
 # choice (the level for Anisotropic, -1 otherwise; the unpicked default is Anisotropic 16x). The line
 # is left in the heredoc on purpose - changing the heredoc moves the runtime tier and rewrites every
@@ -294,7 +294,7 @@ dxvk.tearFree = True
 d3d9.samplerAnisotropy = 16
 "@ | Set-Content "$run\dxvk.conf" -Encoding ASCII
 
-# GeneralsX @bugfix Claude 24/09/2026 alsoft.ini beside generalszh.exe, which OpenAL Soft reads from the
+# GeneralsX: alsoft.ini beside generalszh.exe, which OpenAL Soft reads from the
 # executable's folder. A Bluetooth headset whose mic is in use drops to its hands-free profile and WASAPI
 # grants a 16 kHz mono mix; OpenAL Soft's default resampler then aliases the bright UI clicks into an
 # "eerie, high-pitched" sound. bsinc24 is the fix a player confirmed, in menus and in game (24/09/2026).
@@ -325,7 +325,7 @@ if (-not $Launch) { return }
 # session 0, where DXVK enumerates ZERO adapters and W3DDisplay::init() dies at 0xC0000005.
 # A transient scheduled task with /it reaches the logged-on user's session; it is deleted below.
 #
-# GeneralsX @bugfix Claude 27/09/2026 Only the game THIS launch started. Generals Online runs generalszh.exe out
+# GeneralsX: Only the game THIS launch started. Generals Online runs generalszh.exe out
 # of Steam on this box, and `Get-Process generalszh | Stop-Process` below ended it along with ours; the RUNNING
 # line could report its CPU as ours; and a folder alone cannot tell this launch's game from another session's.
 # So the task's command line carries a token, and Ours is a generalszh whose own command line or one of its four

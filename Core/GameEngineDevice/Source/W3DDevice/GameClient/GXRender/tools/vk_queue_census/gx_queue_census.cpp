@@ -1,4 +1,4 @@
-// GeneralsX @feature B · dlss-fg-1 14/10/2026 VK_LAYER_GX_queue_census: a TEST-ONLY Vulkan layer for the DLSS Frame Generation
+// GeneralsX: VK_LAYER_GX_queue_census: a TEST-ONLY Vulkan layer for the DLSS Frame Generation
 // queue contract (PREREG A39a; modernize/render-dlss/DESIGN_dlss-fg-P0.md §6). Never shipped; loaded only when a test names it
 // (VK_ADD_LAYER_PATH + VK_INSTANCE_LAYERS=VK_LAYER_GX_queue_census). Not in the game build, not digested.
 //
@@ -225,7 +225,7 @@ struct QueueState
 {
 	uint32_t family = 0, index = 0;
 	void* deviceKey = nullptr;	// its device's dispatch key (never dereferenced through the queue after the device goes)
-	bool alive = true;	// cleared by vkDestroyDevice under g_plantSerial (Codex fg-p0-r1 P2: the plant must not outlive it)
+	bool alive = true;	// cleared by vkDestroyDevice under g_plantSerial (the plant must not outlive it)
 	std::atomic<int> depth{ 0 };
 	std::atomic<uint64_t> holder{ 0 };
 	std::atomic<uint64_t> ops{ 0 };

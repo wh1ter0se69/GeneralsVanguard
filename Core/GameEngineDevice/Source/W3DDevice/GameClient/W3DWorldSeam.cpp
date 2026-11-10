@@ -1,4 +1,4 @@
-// GeneralsX @feature D · render-hud-seam-1 13/10/2026 THE WORLD/HUD SEAM - see W3DWorldSeam.h and
+// GeneralsX: THE WORLD/HUD SEAM - see W3DWorldSeam.h and
 // modernize/render-dlss/DESIGN_hud-seam.md §2 (mechanics), §3 (what follows the smaller target), §5 (IGxWorldPass), §7 (exactness).
 
 #include "Lib/BaseType.h"
@@ -155,7 +155,7 @@ namespace
 		releaseRef(s.msaa);
 		releaseRef(s.depth);
 		// The shapes Pillarbox_Setup already creates on both renderers (dx8wrapper.cpp:327-393), in the REPLACED target's formats
-		// (a 16-bit or alpha-less back buffer blends differently: Codex hud-seam-design-r1 P2-17): a render-target texture, an MSAA
+		// (a 16-bit or alpha-less back buffer blends differently): a render-target texture, an MSAA
 		// surface when the replaced target is multisampled, and a depth of the replaced depth's format and sample count (stencil
 		// included when that format has it: shadow volumes, stenciled player colour).
 		if (s.wp != nullptr)
@@ -234,7 +234,7 @@ namespace
 	}
 
 	// The device state the composite changes, read back from the device before it and restored after it through the wrapper's
-	// cached setters, so the HUD meets exactly the state today's frame leaves it (Codex hud-seam-design-r1 P1-2: a blanket
+	// cached setters, so the HUD meets exactly the state today's frame leaves it (a blanket
 	// Invalidate_Cached_Render_States leaves ZENABLE off for the 3D cursor) and the wrapper's cache matches the device.
 	const D3DRENDERSTATETYPE kRS[] = { D3DRS_ZENABLE, D3DRS_ZWRITEENABLE, D3DRS_LIGHTING, D3DRS_ALPHABLENDENABLE,
 		D3DRS_ALPHATESTENABLE, D3DRS_CULLMODE, D3DRS_FOGENABLE, D3DRS_STENCILENABLE, D3DRS_COLORWRITEENABLE, D3DRS_CLIPPING };
@@ -249,7 +249,7 @@ namespace
 		DWORD t0[sizeof(kT0) / sizeof(kT0[0])];
 		DWORD t1[sizeof(kT1) / sizeof(kT1[0])];
 		IDirect3DBaseTexture8 *tex0 = nullptr;
-		IDirect3DVertexBuffer8 *vb0 = nullptr;	// DrawPrimitiveUP unbinds stream 0 (Codex hud-seam-code-r1 P1-1)
+		IDirect3DVertexBuffer8 *vb0 = nullptr;	// DrawPrimitiveUP unbinds stream 0
 		UINT stride0 = 0;
 		DWORD ps = 0, vs = 0;
 		D3DVIEWPORT8 vp = {};
@@ -295,9 +295,9 @@ namespace
 	// +0.19..+0.28 px, predicted +0.247; NOTE_hud-seam-halfpixel-offset.md); this one cancels it and is the same mapping at 1:1.
 	// The sample is clamped to the centre of the last texel on a source edge INSIDE the texture (CLAMP_TO_EDGE does it at the
 	// texture's own edge): those pixels form a strip with a constant coordinate, the edge texel replicated, so no texel outside the
-	// camera's viewport bleeds in (Codex r1 P1-4) and the scale stays exact (Codex code-r1 P2-4); nothing samples below the first
+	// camera's viewport bleeds in and the scale stays exact; nothing samples below the first
 	// texel centre. Segments end on PIXEL EDGES: an MSAA target shades a pixel a segment only partly covers at the pixel's centre,
-	// extrapolated past that segment (Codex code-r2 P1). Returns 1-3 segments, output [o0, o1) showing source t0 -> t1.
+	// extrapolated past that segment. Returns 1-3 segments, output [o0, o1) showing source t0 -> t1.
 	struct Seg
 	{
 		int o0, o1;
@@ -305,7 +305,7 @@ namespace
 	};
 	int axisSegments(int o0, int o1, int s0, int s1, int texSize, bool exact, Seg seg[3])
 	{
-		// Exact in integers (Codex code-r3 P3): pixel o0 + m samples s0 + 1/2 + m S/O, so it is at or past s1 - 1/2 iff m S >= (S - 1) O.
+		// Exact in integers: pixel o0 + m samples s0 + 1/2 + m S/O, so it is at or past s1 - 1/2 iff m S >= (S - 1) O.
 		// A pixel ON a threshold joins a constant strip - the upper one, and pixel o0 itself (exactly s0 + 1/2) on a lower edge inside
 		// the texture - so the sloped segment holds only pixels at least 1/O texel inside. push() guarantees S >= 1 and O >= S.
 		if (exact)
@@ -390,7 +390,7 @@ namespace
 		releaseRef(s.savedDS);
 	}
 
-	// Back to the replaced target and drop the saved pair (Codex hud-seam-code-r1 P2-6, code-r2 P2: checked). True only when the
+	// Back to the replaced target and drop the saved pair. True only when the
 	// device's bound colour AND depth are again the ones push() found bound (read back: the wrapper's back-buffer path reports no
 	// result, and a device may switch the colour before refusing the depth). On a refused pillarbox pair the back buffer is bound
 	// first, so the HUD never draws into, or the quad samples, the world target.
@@ -451,7 +451,7 @@ namespace
 void W3DWorldSeam::release()
 {
 #ifdef GX_RENDER_NATIVE
-	if (GxMotionUnits::Key && s.wp != nullptr)   // a native device answered IGxWorldPass: the bridge can own something (codex units-code-r4 #1)
+	if (GxMotionUnits::Key && s.wp != nullptr)   // a native device answered IGxWorldPass: the bridge can own something
 		GxMotionUnits::Release();
 #endif
 	releaseRef(s.texSurf);
@@ -471,7 +471,7 @@ void W3DWorldSeam::release()
 	s.rw = s.rh = 0;
 	s.resetHistory = true;
 	// a bias still set (the hook ran between push and pop) is restored now: the Reset that follows may be skipped or fail before
-	// it clears the state (Codex hud-seam-lodbias-r1 P2); the device can already be gone in Release_Device
+	// it clears the state; the device can already be gone in Release_Device
 	if (s.lodBias != 0.0f && DX8Wrapper::_Get_D3D_Device8() != nullptr)
 		setLodBias(0.0f);
 	s.lodBias = 0.0f;
@@ -498,7 +498,7 @@ void W3DWorldSeam::push(CameraClass *camera, Bool viewFilterActive)
 		return;
 	if (viewFilterActive)
 	{
-		// ponytail: a script view filter (B&W, motion blur, crossfade) draws display-pixel quads into the current target
+		// Trade-off: a script view filter (B&W, motion blur, crossfade) draws display-pixel quads into the current target
 		// (W3DShaderManager.cpp:384-406...), so its frames render full size as today; size-aware filters if one must run scaled.
 		logState("state=bypass (script view filter)");
 		return;
@@ -541,7 +541,7 @@ void W3DWorldSeam::push(CameraClass *camera, Bool viewFilterActive)
 	const bool temporal = GXGraphics::upscalerIsTemporal(up);
 	const D3DMULTISAMPLE_TYPE ms = temporal ? D3DMULTISAMPLE_NONE : dd.MultiSampleType;
 	// the camera's viewport in both targets, checked before any target work: a collapsed one (a 2-pixel view at 33% truncates to 0
-	// texels) has nothing to composite and would divide by zero (Codex code-r3 P2) - that frame renders as without the seam
+	// texels) has nothing to composite and would divide by zero - that frame renders as without the seam
 	Vector2 vmin, vmax;
 	camera->Get_Viewport(vmin, vmax);
 	s.src = viewportRect(vmin, vmax, rw, rh);
@@ -579,7 +579,7 @@ void W3DWorldSeam::push(CameraClass *camera, Bool viewFilterActive)
 		s.lodLeakLogged = true;
 	}
 	// the bias follows the upscaler that will actually run: pop() falls back to bilinear (no bias) when the device has none or its
-	// output targets failed (Codex hud-seam-lodbias-r1 P2); a one-off dispatch failure there costs one biased bilinear frame
+	// output targets failed; a one-off dispatch failure there costs one biased bilinear frame
 	const bool deviceUp = s.wp != nullptr && up > GXGraphics::UPSCALER_BILINEAR && !s.outFailed && !s.upFailed &&
 		s.wp->Supports((uint32_t)(up - 1));
 	const float bias = lodBiasMode() == 'o' || !deviceUp ? 0.0f : worldLodBias(up, s.src.right - s.src.left, s.dst.right - s.dst.left);
@@ -654,7 +654,7 @@ void W3DWorldSeam::pop()
 		}
 	}
 
-	// Codex hud-seam-code-r1 P2-5/P2-6: an unresolved world (stale or unwritten colour) or a target still bound as the world is
+	// /P2-6: an unresolved world (stale or unwritten colour) or a target still bound as the world is
 	// never sampled or drawn on; the seam goes OFF, this frame's world stays Begin_Render's clear
 	const bool restored = restoreTarget(dev);
 	if (FAILED(resolved) || !restored)
@@ -699,7 +699,7 @@ void W3DWorldSeam::pop()
 		}
 	}
 	// a dispatch that failed keeps the next world unbiased until one succeeds again (pop() retries every frame), so a repeating
-	// failure never biases the bilinear fallback for more than the frame that found it (Codex hud-seam-lodbias-r2 P2)
+	// failure never biases the bilinear fallback for more than the frame that found it
 	s.upFailed = tried && !device;
 	if (device)
 	{

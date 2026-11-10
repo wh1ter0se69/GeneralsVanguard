@@ -81,7 +81,7 @@ W3DShroud::W3DShroud()
 	m_dstTextureHeight=m_numMaxVisibleCellsY=0;
 	m_boderShroudLevel = (W3DShroudLevel)TheGlobalData->m_shroudAlpha;	//assume border is black
 	m_clearDstTexture = TRUE;	//force clearing of destination texture;
-	// GeneralsX @performance Claude 23/09/2026 Nothing copied yet.
+	// GeneralsX: Nothing copied yet.
 	m_srcDirty = TRUE;
 	memset(&m_lastCopiedRect, 0, sizeof(m_lastCopiedRect));
 
@@ -177,7 +177,7 @@ void W3DShroud::init(WorldHeightMap *pMap, Real worldCellSizeX, Real worldCellSi
 
 	//clear entire texture to black
 	memset(m_srcTextureData,0,m_srcTexturePitch*srcHeight);
-	// GeneralsX @performance Claude 23/09/2026 New sysmem shroud: must be copied.
+	// GeneralsX: New sysmem shroud: must be copied.
 	m_srcDirty = TRUE;
 
 #if defined(RTS_DEBUG)
@@ -264,7 +264,7 @@ Bool W3DShroud::ReAcquireResources()
 W3DShroudLevel W3DShroud::getShroudLevel(Int x, Int y)
 {
 	DEBUG_ASSERTCRASH( m_pSrcTexture != nullptr, ("Reading empty shroud"));
-	// GeneralsX @bugfix Copilot 23/04/2026 Prevent invalid shroud sampling during campaign water rendering.
+	// GeneralsX: Prevent invalid shroud sampling during campaign water rendering.
 	if (!m_pSrcTexture || !m_srcTextureData || x < 0 || y < 0)
 		return 0;
 
@@ -294,7 +294,7 @@ void W3DShroud::setShroudLevel(Int x, Int y, W3DShroudLevel level, Bool textureO
 
 	if (x < m_numCellsX && y < m_numCellsY)
 	{
-		// GeneralsX @performance Claude 23/09/2026 The texel below is rewritten; re-upload next render.
+		// GeneralsX: The texel below is rewritten; re-upload next render.
 		m_srcDirty = TRUE;
 
 		if (level < TheGlobalData->m_shroudAlpha)
@@ -400,7 +400,7 @@ void W3DShroud::fillShroudData(W3DShroudLevel level)
 
 	UnsignedShort *ptr=(UnsignedShort *)m_srcTextureData;
 	Int pitch = m_srcTexturePitch >> 1;	//2 bytes per pointer increment
-	// GeneralsX @performance Claude 23/09/2026 Whole sysmem shroud rewritten; re-upload next render.
+	// GeneralsX: Whole sysmem shroud rewritten; re-upload next render.
 	m_srcDirty = TRUE;
 	for (y=0; y<m_numCellsY; y++)
 	{
@@ -699,7 +699,7 @@ void W3DShroud::render(CameraClass *cam)
 	m_srcDirty = TRUE;
 #endif
 
-	// GeneralsX @performance Claude 23/09/2026 Skip the full-rect sysmem->vidmem copy when nothing it
+	// GeneralsX: Skip the full-rect sysmem->vidmem copy when nothing it
 	// reads or writes has changed: the sysmem shroud is only written by setShroudLevel/fillShroudData/init
 	// (which set m_srcDirty), and a new/cleared destination texture sets m_clearDstTexture.
 	const Bool copyNeeded = m_srcDirty || m_clearDstTexture || memcmp(&srcRect, &m_lastCopiedRect, sizeof(RECT)) != 0;
@@ -732,7 +732,7 @@ void W3DShroud::render(CameraClass *cam)
 //-----------------------------------------------------------------------------
 void W3DShroud::interpolateFogLevels(RECT *rect)
 {
-	// GeneralsX @test Claude 29/09/2026 GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
+	// GeneralsX: GX_SHOT capture clock (GameClient.cpp): timeGetTime() without GX_SHOT.
 	static UnsignedInt prevTime = gxRenderNowMs();
 
 	UnsignedInt timeDiff=gxRenderNowMs()-prevTime;

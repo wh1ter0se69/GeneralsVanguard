@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 17/10/2026 - the look governor (S14, PLAN_look; wh1ter0se 17/10: "if someone's PC struggles in a big
+// GeneralsX: the look governor (S14, PLAN_look; wh1ter0se 17/10: "if someone's PC struggles in a big
 // fight we lower stuff to compensate, then raise it back").
 //
 // WHAT. A per-peer, render-only controller. Every look feature registers a few quality STEPS (step 0 = full quality). Once
@@ -173,7 +173,7 @@ inline GxGovConfig gxGovDefaultConfig( int targetFps )
 	return c;
 }
 
-// GeneralsX @feature Claude 17/10/2026 wh1ter0se 17/10 ("yes all green" to the look set): the governor is ON by default. Options.ini
+// GeneralsX: wh1ter0se 17/10 ("yes all green" to the look set): the governor is ON by default. Options.ini
 // GXLookGovernor = no turns it off; an absent key reads as this value (W3DDisplay.cpp gxGovInitOnce, its only reader).
 static const bool kGxGovKeyDefault = true;
 
@@ -182,7 +182,7 @@ static const bool kGxGovKeyDefault = true;
 // So: the game's LOGIC tick rate - tickFps = LOGICFRAMES_PER_SECOND (60 under GX_LOGIC_60HZ, 30 otherwise) - or, in a network game, the
 // match's agreed rate when it is lower (netFps = TheNetwork->getFrameRate(), the source FramePacer uses; <= 0 = no network game). Frames
 // above the logic rate show no new game state, and a lockstep match cannot run faster than its agreed rate anyway. Never above what the
-// display presents (refreshHz, 0 = unknown): a target over the refresh reads every vsync wait as overload (Codex look-gov-r3 P2). At least
+// display presents (refreshHz, 0 = unknown): a target over the refresh reads every vsync wait as overload. At least
 // 30. cfg = Options.ini GXLookGovernorFps or GX_GOVERNOR_FPS (0 = this rule; a configured value is used as given).
 inline int gxGovTargetFps( int cfg, int tickFps, int netFps, int refreshHz )
 {
@@ -199,7 +199,7 @@ inline int gxGovTargetFps( int cfg, int tickFps, int netFps, int refreshHz )
 }
 
 // A GX_SHOT capture (the capture clock, gxShotCaptureOn in GameClient.h) compares one logic frame across runs byte for byte, and the
-// governor steps from wall-clock timings: two runs under different machine load could draw that frame at different steps (Codex
+// governor steps from wall-clock timings: two runs under different machine load could draw that frame at different steps (
 // ls1017-r1 P2, now that the governor is on by default). While a capture runs the governor holds full quality, unless GX_GOVERNOR names
 // it (an arm that tests the governor) or GX_GOVERNOR_FORCE pins its steps (the render-only proofs).
 inline bool gxGovHoldsForCapture( bool captureOn, bool envNamesGovernor, bool forced )
@@ -369,7 +369,7 @@ private:
 		w.hitch = m_maxInterval > (int64_t)m_cfg.hitchMs * 1000000;
 		w.over = w.p90BusyNs * 100 > T * m_cfg.overPct && w.p90IntervalNs * 100 > T * m_cfg.overPct;
 		// Headroom. Busy time is the plain reading. But when Present supplies the pacing (vsync on the swapchain), the display wait sits
-		// inside busy and busy never drops under the target however cheap drawing gets (Codex look-gov-r1 P2): so while the target is
+		// inside busy and busy never drops under the target however cheap drawing gets: so while the target is
 		// held, the work outside Present counts too. That cannot tell a vsync wait from a GPU-bound one; the raise is a probe either way,
 		// and a raise that puts the frame back over is undone at once and waits longer next time.
 		w.under = w.p90BusyNs * 100 < T * m_cfg.underPct

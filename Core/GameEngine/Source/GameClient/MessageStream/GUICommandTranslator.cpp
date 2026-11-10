@@ -287,7 +287,7 @@ static CommandStatus doAttackMoveCommand( const CommandButton *command, const IC
 	Coord3D world;
 	if( !TheTacticalView->screenToTerrain( mouse, &world ) )
 	{
-		// GeneralsX @probe Claude 25/09/2026 GX_KEYTRACE (HotKey.h): upstream #2818 made this a silent drop.
+		// GeneralsX: GX_KEYTRACE (HotKey.h): upstream #2818 made this a silent drop.
 		if( GXKeyTraceEnabled() )
 		{
 			fprintf( stderr, "[GXKEY] attack-move: click at (%d,%d) DROPPED - screenToTerrain found no ground\n", mouse->x, mouse->y );

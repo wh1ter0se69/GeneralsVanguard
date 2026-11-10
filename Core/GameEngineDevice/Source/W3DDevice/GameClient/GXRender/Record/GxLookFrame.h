@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-shadowmaps-2 17/10/2026 S7 GPU sun shadow map P2: the look frame UBO (set 2 binding 2).
+// GeneralsX: S7 GPU sun shadow map P2: the look frame UBO (set 2 binding 2).
 //
 // PREREG_look-shadowmaps A10/A14/A20/A36, PLAN "P2 implementation" P2-B. Mirrors gx_ff.frag.glsl's `GxLookFrame` block (std140) byte for
 // byte; the writer fills one per frame slot at endFrame from the frame's FINAL shadow pass (the same fit, rects and step that frame's INIT

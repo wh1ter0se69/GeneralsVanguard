@@ -56,7 +56,7 @@ private:
 
 	SelectCountMap m_selectCountMap;
 
-	// GeneralsX @bugfix Claude 31/07/2026 Predict a hotkey squad that is still being
+	// GeneralsX: Predict a hotkey squad that is still being
 	// assigned, so the selection handlers stop reading its pre-assignment contents.
 	// TheSuperHackers/GeneralsGameCode#102
 	//

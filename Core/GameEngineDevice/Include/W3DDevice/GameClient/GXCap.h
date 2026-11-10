@@ -1,4 +1,4 @@
-// GeneralsX @test Claude 10/10/2026 GXCAP=<frame>[,<frame>...] records the d3d8 device calls of the rendered update that
+// GeneralsX: GXCAP=<frame>[,<frame>...] records the d3d8 device calls of the rendered update that
 // reaches each logic frame (plus GXCAP_SPAN-1 updates after it) for offline replay into a renderer backend (WS-I,
 // gx-handoff modernize/render-seam/DESIGN_gxcap.md; Core/Tools/gxcap-replay). Unset: no proxy device exists and
 // W3DDisplay::draw tests one bool. Render-only; never on a -headless peer (no device). macOS/Linux/iOS only for now.

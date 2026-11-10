@@ -736,7 +736,7 @@ void SpecialAbilityUpdate::startPacking(Bool success)
   m_packingState = STATE_PACKING;
   Real variation = GameLogicRandomValueReal( 1.0f - data->m_packUnpackVariationFactor, 1.0f + data->m_packUnpackVariationFactor );
 #if GX_LOGIC_60HZ
-  // GeneralsX @feature Claude 05/10/2026 GENERALS ONLINE PARITY: GO packs up for the UNPACK time at 60 Hz (its "60hz tweaks for
+  // GeneralsX: GENERALS ONLINE PARITY: GO packs up for the UNPACK time at 60 Hz (its "60hz tweaks for
   // special abilities"), and the unit is busy - cannot acquire or fire - until it finishes.
   m_animFrames = data->m_unpackTime * variation;
 #else
@@ -1224,7 +1224,7 @@ Bool SpecialAbilityUpdate::continuePreparation()
 
           Real denominator = MAX(1, data->m_preparationFrames);
           Real increment = 1.0f - ((Real)m_prepFrames / denominator );
-          // GeneralsX @fix Claude 01/10/2026 A per-frame phase step: half of it per 60 Hz tick keeps the retail flash
+          // GeneralsX: A per-frame phase step: half of it per 60 Hz tick keeps the retail flash
           // rate (cosmetic; the phase is not CRC'd). tsh batch2 #452, the defect Generals Online fixes at f72c95d9f.
 #if GX_LOGIC_60HZ
           m_captureFlashPhase += increment / 6.0f;

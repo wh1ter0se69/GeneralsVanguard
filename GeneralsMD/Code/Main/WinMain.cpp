@@ -65,15 +65,15 @@
 #include "Win32Device/GameClient/Win32Mouse.h"
 #include "Win32Device/Common/Win32GameEngine.h"
 #include "Common/version.h"
-#include "GXStderrLog.h"  // GeneralsX @feature Claude 17/08/2026 desync evidence on disk
-#include "GameLogic/GXHookTimer.h"  // GeneralsX @test Claude 23/10/2026 ai-wh1ter0se-econ: GX_HOOK_FLUSH_ALL before WinMain returns (test-instruments builds)
-#include "GXCpuSets.h"  // GeneralsX @feature Claude 02/10/2026 prefer the V-cache CCD on X3D CPUs
-#include "GXCrashLog.h"   // GeneralsX @feature Claude 25/09/2026 readable crash log beside the minidump
+#include "GXStderrLog.h"  // GeneralsX: desync evidence on disk
+#include "GameLogic/GXHookTimer.h"  // GeneralsX: ai-wh1ter0se-econ: GX_HOOK_FLUSH_ALL before WinMain returns (test-instruments builds)
+#include "GXCpuSets.h"  // GeneralsX: prefer the V-cache CCD on X3D CPUs
+#include "GXCrashLog.h"   // GeneralsX: readable crash log beside the minidump
 #include "GameClient/SaveLoadFeedback.h"  // TheGXCrashLogWriter
 #include "gitinfo.h"
-#include "GXUserDataMigrate.h"  // GeneralsX @feature Claude 23/09/2026 own user-data folder
+#include "GXUserDataMigrate.h"  // GeneralsX: own user-data folder
 #include "GameClient/GXPlayerIdentity.h"  // holdNewIdentity, when the migration could not bring it
-#include "GameClient/GXUserDataDir.h"  // GeneralsX @feature Claude 23/09/2026 GX_USERDATA_DIR skips the migration
+#include "GameClient/GXUserDataDir.h"  // GeneralsX: GX_USERDATA_DIR skips the migration
 #include "BuildVersion.h"
 #include "GeneratedVersion.h"
 #include "resource.h"
@@ -81,8 +81,8 @@
 #ifdef RTS_ENABLE_CRASHDUMP
 #include "Common/MiniDumper.h"
 #endif
-#include "W3DDevice/GameClient/GxNativeInstall.h"	// GeneralsX @feature D · native-windows-1 13/10/2026 FlushFinalStats (Codex nw1-r1: outside the crash-dump block)
-#include "GameClient/GXReplayDiag.h"	// GeneralsX @bugfix B · tel-bg-1 08/11/2026 gxReplayTelAway - latch the replay telemetry's away flag on deactivation
+#include "W3DDevice/GameClient/GxNativeInstall.h"	// GeneralsX: FlushFinalStats (outside the crash-dump block)
+#include "GameClient/GXReplayDiag.h"	// GeneralsX: gxReplayTelAway - latch the replay telemetry's away flag on deactivation
 
 
 // GLOBALS ////////////////////////////////////////////////////////////////////
@@ -98,10 +98,10 @@ const char *gAppPrefix = ""; /// So WB can have a different debug log file name.
 static Bool gInitializing = false;
 static Bool gDoPaint = true;
 static Bool isWinMainActive = false;
-// GeneralsX @bugfix Claude 25/09/2026 A close (X, Alt+F4), or a session that really ended (WM_ENDSESSION),
+// GeneralsX: A close (X, Alt+F4), or a session that really ended (WM_ENDSESSION),
 // before TheGameEngine existed - during the first-run user-data copy, the only time this window is pumped
 // that early (gxMigrateUserDataPumping). The window stays up under the copy; WinMain then skips
-// GameMain() instead of starting the game the player just closed (Codex review).
+// GameMain() instead of starting the game the player just closed.
 static Bool gQuitBeforeEngine = false;
 
 static HBITMAP gLoadScreenBitmap = nullptr;
@@ -398,8 +398,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 						TheGameEngine->setQuitting(TRUE);
 					}
 				}
-				// GeneralsX @bugfix Claude 25/09/2026 Before the engine exists - the user-data copy, which pumps this
-				// window - a sign-out or shutdown is never vetoed: 0 here cancelled it (Codex review). An
+				// GeneralsX: Before the engine exists - the user-data copy, which pumps this
+				// window - a sign-out or shutdown is never vetoed: 0 here cancelled it. An
 				// interrupted copy is safe and resumes next start. WM_ENDSESSION says whether it really ends.
 				if (TheGameEngine == nullptr)
 					return TRUE;
@@ -407,7 +407,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 			}
 
 			case WM_ENDSESSION:
-				// GeneralsX @bugfix Claude 25/09/2026 The session IS ending during the pre-engine copy: do not start
+				// GeneralsX: The session IS ending during the pre-engine copy: do not start
 				// the game after it. A cancelled end (wParam FALSE) changes nothing.
 				if (wParam && TheGameEngine == nullptr)
 					gQuitBeforeEngine = true;
@@ -446,9 +446,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 			case WM_SIZE:
 			{
 				// When W3D initializes, it resizes the window.  So stop repainting.
-				// GeneralsX @bugfix Claude 25/09/2026 Only once the engine exists - W3D's resize happens inside
+				// GeneralsX: Only once the engine exists - W3D's resize happens inside
 				// GameMain. A minimise/restore during the pre-engine user-data copy (gxMigrateUserDataPumping)
-				// turned the loading image off for the rest of the copy (Codex review).
+				// turned the loading image off for the rest of the copy.
 				if (!gInitializing && TheGameEngine != nullptr)
 					gDoPaint = false;
 
@@ -510,9 +510,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 					if (TheGameEngine)
 						TheGameEngine->setIsActive(isWinMainActive);
 
-					// GeneralsX @bugfix B · tel-bg-1 08/11/2026 Latch the replay telemetry's away flag HERE, not only from the level
+					// GeneralsX: Latch the replay telemetry's away flag HERE, not only from the level
 					// Win32GameEngine::update() reads: a deactivate and a reactivate pumped in one serviceWindowsOS() pass would leave the
-					// level true and the open row unflagged (Codex tel-bg-1-r1). update() clears it once the window is back.
+					// level true and the open row unflagged. update() clears it once the window is back.
 					if (!isWinMainActive)
 						gxReplayTelAway(true);
 
@@ -649,7 +649,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 			//-------------------------------------------------------------------------
 			case WM_SETCURSOR:
 			{
-				// GeneralsX @bugfix Claude 25/09/2026 No game cursor exists before the engine, and returning TRUE
+				// GeneralsX: No game cursor exists before the engine, and returning TRUE
 				// below set none, so during the pre-engine copy the pointer kept whatever shape it came in with.
 				// Windows' "working in the background" cursor says the window is alive and busy.
 				if (TheGameEngine == nullptr && LOWORD(lParam) == HTCLIENT)
@@ -664,9 +664,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 
 			case WM_PAINT:
 			{
-				// GeneralsX @bugfix Claude 25/09/2026 Before the engine exists the loading image is repainted in
+				// GeneralsX: Before the engine exists the loading image is repainted in
 				// fullscreen too. The pre-engine copy pumps this window, and gDoPaint - off from creation in
-				// fullscreen - left an exposed or restored window blank until GameMain (Codex review).
+				// fullscreen - left an exposed or restored window blank until GameMain.
 				if (gDoPaint || TheGameEngine == nullptr) {
 					PAINTSTRUCT paint;
 					HDC dc = ::BeginPaint(hWnd, &paint);
@@ -752,7 +752,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 The main window's class, and what a second instance looks for.
+// GeneralsX: The main window's class, and what a second instance looks for.
 //
 // Retail registered "Game Window" but its already-running branch searched FindWindow() for the mutex
 // GUID as the CLASS, which nothing registers, so the branch never fired and a second double-click
@@ -762,7 +762,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message,
 //
 // Only the copy holding the PRIMARY mutex registers GX_GAME_WINDOW_CLASS. A -replay copy skips that
 // mutex (CommandLine.cpp parseReplay), and a copy that loses it must raise the game, not the replay
-// (Codex review). Which mutex this copy holds is known here: the mutex is taken before this window.
+// Which mutex this copy holds is known here: the mutex is taken before this window.
 #define GX_GAME_WINDOW_CLASS TEXT("GeneralsX Game Window")
 #define GX_EXTRA_GAME_WINDOW_CLASS TEXT("GeneralsX Extra Game Window")
 
@@ -848,7 +848,7 @@ static Bool initializeAppWindows( HINSTANCE hInstance, Int nCmdShow, Bool runWin
 
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 The first start after the folder move copied Maps, Replays and
+// GeneralsX: The first start after the folder move copied Maps, Replays and
 // Save on the main thread with the window already shown and nothing pumping it, so Windows marked it
 // Not Responding after 5 s and ghosted it (owner report, 0.9.43). The copy now runs on a worker while
 // this thread keeps dispatching; the caller still waits for it, so GameMain() starts exactly as late.
@@ -899,7 +899,7 @@ static GXMigrateResult gxMigrateUserDataPumping(const char *oldDir, const char *
 		CloseHandle(th);
 	}
 	// The wait reports the finished thread BEFORE queued input, so a close clicked as the copy ended can
-	// still be waiting here. Dispatch it now, while gQuitBeforeEngine can still stop GameMain() (Codex review).
+	// still be waiting here. Dispatch it now, while gQuitBeforeEngine can still stop GameMain().
 	gxDispatchPending();
 	return job.result;
 }
@@ -908,7 +908,7 @@ static GXMigrateResult gxMigrateUserDataPumping(const char *oldDir, const char *
 static CriticalSection critSec1, critSec2, critSec3, critSec4, critSec5;
 
 #if defined(_MSC_VER) && defined(_M_X64)
-// GeneralsX @bugfix Claude 25/09/2026 The crash log's frames come from the FAULTING context, not
+// GeneralsX: The crash log's frames come from the FAULTING context, not
 // from here: CaptureStackBackTrace in the filter records the filter and the exception dispatcher
 // before it reaches the fault. This unwinds e_info->ContextRecord with the x64 unwind tables
 // (kernel32, so nothing is loaded into a dying process). Frame 0 is the faulting instruction, kept
@@ -948,7 +948,7 @@ static int gxCrashFrames(const CONTEXT *fault, void **frames, int max)
 //=============================================================================
 static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info )
 {
-	// GeneralsX @feature Claude 25/09/2026 <userdata>\CrashLogs\crash-*.txt FIRST: the minidump
+	// GeneralsX: <userdata>\CrashLogs\crash-*.txt FIRST: the minidump
 	// below can take seconds, and this is the file the launcher offers to send. The faulting
 	// address is frame 0.
 	{
@@ -999,7 +999,7 @@ static LONG WINAPI UnHandledExceptionFilter( struct _EXCEPTION_POINTERS* e_info 
 	MiniDumper::shutdownMiniDumper();
 #endif
 
-	// GeneralsX @feature Claude 17/08/2026 The stderr mirror is fed through a pipe drained
+	// GeneralsX: The stderr mirror is fed through a pipe drained
 	// by a helper thread, so the last few lines before a fault can still be in flight when
 	// the process is torn down. Give the pump a moment. Costs 150 ms on a path that already
 	// spends seconds writing a minidump, and it deliberately does not touch stderr's FILE
@@ -1043,7 +1043,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 		CommandLine::parseCommandLineForStartup();
 
-		// GeneralsX @feature Claude 17/08/2026 Give the desync report somewhere to land.
+		// GeneralsX: Give the desync report somewhere to land.
 		//
 		// THIS IS THE PLATFORM THE DESYNC HAPPENED ON. GameLogic.cpp:3000 already prints,
 		// in release builds, "[CRC] MISMATCH frame=... " plus one "player=... crc=..." line
@@ -1069,7 +1069,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 				TheGlobalData->getPath_UserData().str());
 		}
 
-		// GeneralsX @feature Claude 25/09/2026 Readable crash logs in <userdata>\CrashLogs\ (GXCrashLog.h).
+		// GeneralsX: Readable crash logs in <userdata>\CrashLogs\ (GXCrashLog.h).
 		if (TheGlobalData != nullptr)
 		{
 			static char crashBuild[96];
@@ -1077,11 +1077,11 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 				GitUncommittedChanges ? "~" : "", sizeof(void *) == 8 ? "x86_64" : "x86");
 			GXCrashLog_Install(TheGlobalData->getPath_UserData().str(), crashBuild);
 		}
-		// GeneralsX @feature Claude 25/09/2026 The save gate writes a crash log for a load it stopped
+		// GeneralsX: The save gate writes a crash log for a load it stopped
 		// because it would have crashed (SaveLoadFeedback.cpp); Core code reaches the writer through this.
 		TheGXCrashLogWriter = GXCrashLog_Write;
 
-		// GeneralsX @feature Claude 02/10/2026 On an X3D CPU, prefer the CCD with the big L3 (GXCpuSets.h). Here: after
+		// GeneralsX: On an X3D CPU, prefer the CCD with the big L3 (GXCpuSets.h). Here: after
 		// the stderr mirror, so its [GXCPU] line lands in generals-stderr.log, and before the engine or DXVK start threads.
 		gxPreferLargestL3();
 
@@ -1130,14 +1130,14 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 #endif
 
 		// TheSuperHackers @refactor The instance mutex now lives in its own class.
-		// GeneralsX @bugfix Claude 25/09/2026 Taken BEFORE the game window exists, not after it. A copy
+		// GeneralsX: Taken BEFORE the game window exists, not after it. A copy
 		// that loses the mutex then never creates one, so the GX_GAME_WINDOW_CLASS window is the primary
 		// holder's. Checked after the window, two copies double-clicked together each created one first
-		// and could raise each other instead of the running game (Codex review).
+		// and could raise each other instead of the running game.
 		if (!rts::ClientInstance::initialize())
 		{
 			// The winner takes the mutex just before it creates its window, so a copy launched in the
-			// same instant can look too early. Poll briefly. ponytail: fixed 2 s cap, because a headless
+			// same instant can look too early. Poll briefly. Trade-off: fixed 2 s cap, because a headless
 			// winner never gets a window; this copy has none either, so the wait shows nothing.
 			HWND ccwindow = FindWindow(GX_GAME_WINDOW_CLASS, nullptr);
 			for (int tries = 0; ccwindow == nullptr && tries < 20; ++tries)
@@ -1178,7 +1178,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 			AsciiString(VERSION_BUILDUSER), AsciiString(VERSION_BUILDLOC),
 			AsciiString(__TIME__), AsciiString(__DATE__));
 
-		// GeneralsX @feature Claude 23/09/2026 Bring the player's data across into GeneralsX's own
+		// GeneralsX: Bring the player's data across into GeneralsX's own
 		// folder, ONCE. See GXUserDataMigrate.h for the list and the rules.
 		//
 		// The user-data folder is now Documents\GeneralsX\GeneralsZH (GlobalData.cpp). It used to be
@@ -1199,7 +1199,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		// IDENTITY_PENDING means the old GXPlayer.ini could not be copied this time. The engine must
 		// not mint a new identity over the gap, or the old one could never arrive.
 		//
-		// GeneralsX @feature Claude 23/09/2026 NEVER under GX_USERDATA_DIR (GameClient/GXUserDataDir.h):
+		// GeneralsX: NEVER under GX_USERDATA_DIR (GameClient/GXUserDataDir.h):
 		// a test profile must never copy the owner's files. Skipped only when the override APPLIES
 		// (review of 1150b9834, P2-1): a `getenv() != nullptr` skip once let a refused value, then on the
 		// owner's folder, mint GXPlayer.ini there unheld, so no later migration brought the old identity
@@ -1207,7 +1207,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 		// stopped the process (GXUserDataDir.h) - so this is unset (migrate) or applies (skip). The
 		// verdict is printed again here: GlobalData printed it before the mirror above existed, and a
 		// Win32 GUI process's stderr went nowhere until then.
-		// ponytail: an override naming the owner's own folder skips it too (GXUserDataDir.h says never
+		// Trade-off: an override naming the owner's own folder skips it too (GXUserDataDir.h says never
 		// do that). Detecting it needs GlobalData's known-folder path without the override; add that
 		// if a harness ever points one there.
 		std::string testDir, verdict;
@@ -1229,9 +1229,9 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 
 		DEBUG_LOG(("CRC message is %d", GameMessage::MSG_LOGIC_CRC));
 
-		// GeneralsX @bugfix Claude 25/09/2026 Freed HERE, after the user-data copy, not right after the
+		// GeneralsX: Freed HERE, after the user-data copy, not right after the
 		// window was made: the copy pumps the window (gxMigrateUserDataPumping), and a WM_PAINT during it
-		// repainted the loading window without its image, black once the background was erased (Codex review).
+		// repainted the loading window without its image, black once the background was erased.
 		if (gLoadScreenBitmap!=nullptr) {
 			::DeleteObject(gLoadScreenBitmap);
 			gLoadScreenBitmap = nullptr;
@@ -1257,7 +1257,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	#endif
 
 	#ifdef GX_RENDER_NATIVE
-		// GeneralsX @feature D · native-windows-1 13/10/2026 the native session's final stats line if its device outlived the
+		// GeneralsX: the native session's final stats line if its device outlived the
 		// engine's teardown (as SDL3Main.cpp does): the line allocates, so before the memory manager goes.
 		GxNative::FlushFinalStats();
 	#endif
@@ -1279,7 +1279,7 @@ Int APIENTRY WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance,
 	TheMemoryPoolCriticalSection = nullptr;
 
 #if defined(GX_TEST_INSTRUMENTS)
-	// GeneralsX @test Claude 23/10/2026 ai-wh1ter0se-econ (Codex ke-timer-*-r1): the [GXHOOK] timers' open frames and the "[GXHOOK] exit"
+	// GeneralsX: ai-wh1ter0se-econ (ke-timer-*-r1): the [GXHOOK] timers' open frames and the "[GXHOOK] exit"
 	// line, then let the stderr pump drain them - WinMain returns into ExitProcess: no static destructors, and the pump threads die
 	GX_HOOK_FLUSH_ALL();
 	GXStderrLog_Settle();

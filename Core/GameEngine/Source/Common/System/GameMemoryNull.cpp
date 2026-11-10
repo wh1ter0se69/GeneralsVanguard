@@ -18,7 +18,7 @@
 
 #include "PreRTS.h"
 
-// GeneralsX @bugfix BenderAI 24/02/2026 Phase 5 - malloc.h not on macOS
+// GeneralsX: Phase 5 - malloc.h not on macOS
 #ifdef __APPLE__
 #include <stdlib.h>
 #else
@@ -49,7 +49,7 @@ DynamicMemoryAllocator *TheDynamicMemoryAllocator = nullptr;
 */
 void *DynamicMemoryAllocator::allocateBytesDoNotZeroImplementation(size_t numBytes)
 {
-	// GeneralsX @bugfix Claude 06/10/2026 size_t, not Int: the size no longer narrows on the way in; refused above INT_MAX
+	// GeneralsX: size_t, not Int: the size no longer narrows on the way in; refused above INT_MAX
 	// like GameMemory.cpp's allocator (sweep c047-01).
 	if (numBytes > (size_t)INT_MAX)
 		throw ERROR_OUT_OF_MEMORY;

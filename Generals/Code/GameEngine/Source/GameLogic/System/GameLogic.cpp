@@ -123,16 +123,16 @@
 #include "GameNetwork/NetworkInterface.h"
 
 struct QuitGameException {};
-// GeneralsX @feature Claude 23/09/2026 A start refused because the lobby does not fit the map.
+// GeneralsX: A start refused because the lobby does not fit the map.
 struct StartRefusedOverCapacityException {};
-// GeneralsX @feature Claude 01/10/2026 TRUE while a networked start refused because this peer's map.ini/solo.ini differ
+// GeneralsX: TRUE while a networked start refused because this peer's map.ini/solo.ini differ
 // from the host's (M1 step 2b) is being unwound - the same lifetime as m_refusedStartCapacity. A file static rather than a
 // member so the fix does not touch GameLogic.h (included by ~260 files); there is one GameLogic.
 static Bool s_refusedStartMapData = FALSE;
-// GeneralsX @bugfix Claude 04/10/2026 TRUE while a start refused because TerrainLogic::loadMap failed on this machine is
+// GeneralsX: TRUE while a start refused because TerrainLogic::loadMap failed on this machine is
 // being unwound - the Zero Hour twin's flag, see its comment.
 static Bool s_refusedStartMapLoad = FALSE;
-// GeneralsX @fix Claude 05/10/2026 TRUE while a start refused because two upgrade or science names of this map's rules share a
+// GeneralsX: TRUE while a start refused because two upgrade or science names of this map's rules share a
 // network id (GXWireId.h) is being unwound - the Zero Hour twin's flag, see its comment.
 static Bool s_refusedStartWireIds = FALSE;
 
@@ -221,7 +221,7 @@ void setFPMode()
 	// anything as long as it is consistent, really, but this
 	// is in the (vain?) hope of any slight speed boost.
 	//
-	// GeneralsX @bugfix BenderAI 14/03/2026 Align non-Windows x86 FPU control with the Windows replay determinism baseline.
+	// GeneralsX: Align non-Windows x86 FPU control with the Windows replay determinism baseline.
 	#ifdef _WIN32
 	_fpreset();
 
@@ -298,7 +298,7 @@ GameLogic::GameLogic()
 	m_startNewGame = FALSE;
 
 	m_frame = 0;
-	m_disabledExpiryWatermark = 0; // GeneralsX @performance Claude 23/09/2026 force one expiry walk
+	m_disabledExpiryWatermark = 0; // GeneralsX: force one expiry walk
 	m_hasUpdated = FALSE;
 	m_frameObjectsChangedTriggerAreas = 0;
 	m_width = 0;
@@ -477,7 +477,7 @@ void GameLogic::reset()
 	pauseGameLogic(FALSE);
 	pauseGameInput(FALSE);
 
-	// GeneralsX @bugfix Claude 23/09/2026 Base Generals never switched the logic time scale on
+	// GeneralsX: Base Generals never switched the logic time scale on
 	// outside a solo start with a cap, so with the limiter off (Options.ini "FPSLimit = no", which
 	// the presets no longer override - see Common/FpsLimitPolicy.h) the startup shell, and every
 	// shell after clearGameData(), ticked the simulation once per RENDERED frame. reset() runs at
@@ -485,11 +485,11 @@ void GameLogic::reset()
 	// before, because a campaign start (3-arg MSG_NEW_GAME) never touches the scale and relies on it
 	// being off - SET_VISUAL_SPEED_MULTIPLIER lifts the render cap and speeds up only a coupled logic.
 	//
-	// GeneralsX @feature Claude 27/09/2026 ...and whenever the cap lets rendering run faster than the tick
+	// GeneralsX: ...and whenever the cap lets rendering run faster than the tick
 	// rate. The max-FPS default is now the display's refresh rate (Common/FpsLimitPolicy.h), so a 120 Hz
 	// screen would otherwise run a coupled campaign at 120 ticks a second. At a cap at or under the tick
 	// rate - a 60 Hz screen - nothing changes. SET_VISUAL_SPEED_MULTIPLIER keeps its speed-up at any cap: it
-	// steps the logic with the loop whatever the scale (FramePacer::isScriptFastForward, Codex W7-r8).
+	// steps the logic with the loop whatever the scale (FramePacer::isScriptFastForward).
 	if (TheFramePacer != nullptr && TheGlobalData != nullptr
 		&& (!TheGlobalData->m_useFpsLimit
 			|| FpsLimitPolicy::needsLogicTimeScale(TheFramePacer->getFramesPerSecondLimit(), LOGICFRAMES_PER_SECOND)))
@@ -539,7 +539,7 @@ void GameLogic::reset()
 	memset( m_gxAdminSeq, 0, sizeof( m_gxAdminSeq ) );
 	m_gxAdminSeed = 0;
 	m_frame = 0;
-	m_disabledExpiryWatermark = 0; // GeneralsX @performance Claude 23/09/2026 force one expiry walk
+	m_disabledExpiryWatermark = 0; // GeneralsX: force one expiry walk
 	m_hasUpdated = FALSE;
 	m_width = DEFAULT_WORLD_WIDTH;
 	m_height = DEFAULT_WORLD_HEIGHT;
@@ -564,9 +564,9 @@ void GameLogic::reset()
 	WaterTransparencySetting *wt = (WaterTransparencySetting*) TheWaterTransparency.getNonOverloadedPointer();
 	TheWaterTransparency = (WaterTransparencySetting*) wt->deleteOverrides();
 
-	// GeneralsX @bugfix Claude 09/10/2026 And the weather overrides, as Zero Hour does: kept, the next map's Weather block hung
+	// GeneralsX: And the weather overrides, as Zero Hour does: kept, the next map's Weather block hung
 	// off this map's (until this fix, copying the master closed a loop there). Generals loads no Weather INI at startup, so
-	// there is none until a map.ini makes one (Codex reskin-loop-r2: GameLogic::init calls this first).
+	// there is none until a map.ini makes one (GameLogic::init calls this first).
 	WeatherSetting *ws = (WeatherSetting*) TheWeatherSetting.getNonOverloadedPointer();
 	if (ws != nullptr)
 		TheWeatherSetting = (WeatherSetting*) ws->deleteOverrides();
@@ -841,12 +841,12 @@ static void populateRandomSideAndColor( GameInfo *game )
 			}
 		}
 
-		// GeneralsX @feature Claude 24/09/2026 An observer seat has no side any more (it shares the
+		// GeneralsX: An observer seat has no side any more (it shares the
 		// ReplayObserver), so a colour here would be one no Player ever wears - and one of the twelve the
 		// players need: with 12 players + 3 observers, observers in the low slots draw first and the last
 		// three players fall into the reuse branch below ([GXCAP]), sharing another player's colour.
 		// Observers keep -1, which the lobby already shows as the observer colour (getApparentColor).
-		// GeneralsX @feature Claude 25/09/2026 ...in the current layout only: a legacy replay or save drew a colour
+		// GeneralsX: ...in the current layout only: a legacy replay or save drew a colour
 		// for every observer, and reproduces that draw (GameInfo::slotSharesReplayObserver).
 		if (game->slotSharesReplayObserver(i))
 			continue;
@@ -855,7 +855,7 @@ static void populateRandomSideAndColor( GameInfo *game )
 		if (colorIdx < 0 || colorIdx >= TheMultiplayerSettings->getNumColors())
 		{
 			DEBUG_ASSERTCRASH(colorIdx == -1, ("Non-random bad color %d in slot %d", colorIdx, i));
-			// GeneralsX @bugfix Claude 12/08/2026 With 12 slots and only 8 retail MultiplayerColor
+			// GeneralsX: With 12 slots and only 8 retail MultiplayerColor
 			// entries this retry loop never terminated once every color was taken - a deterministic
 			// hang on every peer at match start. When a free color exists the retail draw pattern is
 			// preserved exactly (same GameLogicRandomValue consumption, so pre-raise replays keep
@@ -892,7 +892,7 @@ static void populateRandomSideAndColor( GameInfo *game )
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 19/08/2026 START-POSITION ASSIGNMENT MUST NOT TOUCH FLOATING POINT.
+// GeneralsX: START-POSITION ASSIGNMENT MUST NOT TOUCH FLOATING POINT.
 //
 // MEASURED, three peers, one lobby, same map and seed, 2026-08-19. The synchronised RNG pick agreed
 // everywhere; the first DETERMINISTIC distance did not:
@@ -960,7 +960,7 @@ static void populateRandomStartPosition( GameInfo *game )
 		return;
 
 	Int i;
-	// GeneralsX @bugfix Claude 23/09/2026 START POSITIONS COME FROM THE MAP THAT WAS JUST LOADED.
+	// GeneralsX: START POSITIONS COME FROM THE MAP THAT WAS JUST LOADED.
 	//
 	// This read numPlayers and every Player_N_Start from TheMapCache, i.e. MapCache.ini: a
 	// per-machine file that no join check and no SimID hashes. A Windows peer whose cache held
@@ -988,7 +988,7 @@ static void populateRandomStartPosition( GameInfo *game )
 			break;
 	}
 
-	// GeneralsX @bugfix Claude 23/09/2026 VALIDATE THE LOBBY AGAINST THE LOADED MAP BEFORE ASSIGNING.
+	// GeneralsX: VALIDATE THE LOBBY AGAINST THE LOADED MAP BEFORE ASSIGNING.
 	//
 	// The lobby's capacity refusal (LanGameOptionsMenu StartPressed, HeadlessMatch lobbyFitsTheMap)
 	// reads MapCache.ini, which can overstate the map; and a map that failed to load has no start
@@ -1020,7 +1020,7 @@ static void populateRandomStartPosition( GameInfo *game )
 		fflush(stderr);
 	}
 
-	// GeneralsX @bugfix Claude 23/09/2026 A MAP WITH NO START WAYPOINT SEATS NOBODY - STOP HERE.
+	// GeneralsX: A MAP WITH NO START WAYPOINT SEATS NOBODY - STOP HERE.
 	//
 	// This used to fall through a clamp to one fictitious seat (WaypointMap::update()'s "at least 1"):
 	// the first player got position 0 although placeNetworkBuildingsForPlayer() finds no
@@ -1137,7 +1137,7 @@ static void populateRandomStartPosition( GameInfo *game )
 				}
 				DEBUG_ASSERTCRASH(farthestIndex >= 0, ("Couldn't find a farthest spot!"));
 				slot->setStartPos(farthestIndex);
-				// GeneralsX @bugfix Claude 23/09/2026 farthestIndex is -1 once every position is taken
+				// GeneralsX: farthestIndex is -1 once every position is taken
 				// (the over-capacity case above), and DEBUG_ASSERTCRASH is nothing in release, so this
 				// wrote taken[-1] - outside the array. Zero Hour has guarded it since 29/07/2026.
 				// setStartPos(-1) stays outside the guard: -1 is what the engine reads as "no position".
@@ -1257,7 +1257,7 @@ void GameLogic::startNewGame( Bool loadingSaveGame )
 {
 	try
 	{
-		// GeneralsX @bugfix Claude 06/10/2026 A DAMAGED MAP IS REFUSED, NOT A CRASH. The map readers throw
+		// GeneralsX: A DAMAGED MAP IS REFUSED, NOT A CRASH. The map readers throw
 		// ERROR_CORRUPT_FILE_FORMAT (an ErrorCode) when a file's sizes, counts or chunk order do not add up
 		// (WorldHeightMap.cpp, DataChunk.cpp, ...), and nothing in a start caught it: it reached the catch (...) in
 		// GameEngine::execute and RELEASE_CRASH ended the process on every peer that loaded the map. A start that has a
@@ -1288,20 +1288,20 @@ void GameLogic::startNewGame( Bool loadingSaveGame )
 	}
 	catch (StartRefusedOverCapacityException&)
 	{
-		// GeneralsX @feature Claude 23/09/2026 Tear the half-started game down NOW, the way the LAN
+		// GeneralsX: Tear the half-started game down NOW, the way the LAN
 		// start path does (LANAPICallbacks.cpp clearGameData), not by posting MSG_CLEAR_GAME_DATA:
 		// the rest of this GameLogic::update would otherwise tick TerrainLogic/AI on a map whose
 		// pathfinder was never built (measured: EXC_BAD_ACCESS in Pathfinder::classifyMap). update()
 		// returns right after this (m_refusedStartCapacity).
 		deleteLoadScreen();
-		// GeneralsX @bugfix Claude 25/09/2026 NO SCORE SCREEN: nothing was played. The default
+		// GeneralsX: NO SCORE SCREEN: nothing was played. The default
 		// showScoreScreen=TRUE pushed Menus/ScoreScreen.wnd, so dismissing the refusal left the player
 		// on an empty score screen. FALSE alone is not enough: prepareNewGame already hid the shell
 		// (hideShell ran the room's shutdown), so nothing at all would be on screen.
 		clearGameData(FALSE);
-		// GeneralsX @bugfix Claude 04/10/2026 And not "still loading" - the Zero Hour twin's comment.
+		// GeneralsX: And not "still loading" - the Zero Hour twin's comment.
 		setLoadingMap(FALSE);
-		// GeneralsX @bugfix Claude 04/10/2026 A -simReplay run must count this replay as failed - the Zero Hour twin's comment.
+		// GeneralsX: A -simReplay run must count this replay as failed - the Zero Hour twin's comment.
 		if (!TheGlobalData->m_simulateReplays.empty())
 			ReplaySimulation::noteStartRefused();
 		if (!TheGlobalData->m_headless && !TheGlobalData->m_simulateReplays.empty())
@@ -1349,7 +1349,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 
 	// reset the frame counter
 	m_frame = 0;
-	m_disabledExpiryWatermark = 0; // GeneralsX @performance Claude 23/09/2026 force one expiry walk
+	m_disabledExpiryWatermark = 0; // GeneralsX: force one expiry walk
 	m_hasUpdated = FALSE;
 
 #ifdef DEBUG_CRC
@@ -1447,7 +1447,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 		}
 	}
 
-	// GeneralsX @security Claude 25/09/2026 The relay-proven admin slots, from the game's options on a NEW game only
+	// GeneralsX: The relay-proven admin slots, from the game's options on a NEW game only
 	// ("AD=", stamped on MSG_GAME_START, parsed identically by every peer and by a replay) - never on a save load.
 	m_gxAdminSlotMask = ( !loadingSaveGame && TheGameInfo != nullptr ) ? TheGameInfo->getGxAdminMask() : 0;
 	memset( m_gxAdminKeys, 0, sizeof( m_gxAdminKeys ) );
@@ -1493,11 +1493,11 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 		}
 	}
 
-	// GeneralsX @feature Claude 25/09/2026 A game that starts FRESH - not a save being loaded, not a replay being
+	// GeneralsX: A game that starts FRESH - not a save being loaded, not a replay being
 	// played - is always laid out the current way (observers share the ReplayObserver), whatever layout the game
 	// info last held: a restart of a loaded legacy save must record a GENR14 replay that plays back as recorded.
 	// HERE, before the random draws: populateRandomSideAndColor asks the layout whether an observer draws a colour,
-	// and a draw the recording made but its playback skips would move every random number after it (Codex r3).
+	// and a draw the recording made but its playback skips would move every random number after it.
 	if (TheGameInfo && !loadingSaveGame && !(TheRecorder && TheRecorder->isPlaybackMode()))
 		TheGameInfo->setLegacyObserverLayout(FALSE);
 
@@ -1539,7 +1539,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	DEBUG_ASSERTCRASH(m_frame == 0, ("framecounter expected to be 0 here"));
 
 	// before loading the map, load the map.ini file in the same directory.
-	// GeneralsX @bugfix Claude 09/10/2026 A map.ini or solo.ini that does not parse is a damaged map: refused like one (the
+	// GeneralsX: A map.ini or solo.ini that does not parse is a damaged map: refused like one (the
 	// ErrorCode catch in startNewGame), not RELEASE_CRASH in GameEngine on every peer that loaded it. The lobby gives every
 	// peer the host's sidecars, so every peer refuses the same start. A save load, or a start with no GameInfo (a campaign
 	// mission), has no setup screen to go back to: it crashes as before, with the INI's own message. ERROR_BAD_INI, not
@@ -1558,7 +1558,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	}
 	catch (...)
 	{
-		// An unknown block name throws INI.h's bare INI_UNKNOWN_TOKEN, outside INI::load's block wrapper (Codex reskin-loop-adv-r2).
+		// An unknown block name throws INI.h's bare INI_UNKNOWN_TOKEN, outside INI::load's block wrapper.
 		fprintf(stderr, "[GXMAPLOAD] loadMapINI: the map's map.ini / solo.ini did not parse\n");
 		fflush(stderr);
 		if (loadingSaveGame || TheGameInfo == nullptr)
@@ -1566,7 +1566,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 		throw ERROR_BAD_INI;
 	}
 
-	// GeneralsX @feature Claude 01/10/2026 M1 step 2b, post-load half - the Zero Hour twin's check, see its comment.
+	// GeneralsX: M1 step 2b, post-load half - the Zero Hour twin's check, see its comment.
 	if (!loadingSaveGame && TheNetwork != nullptr && TheGameInfo != nullptr)
 	{
 		// What loadMapINI just loaded: GetMapDataHash resolves the map and names the two files exactly as it does (a
@@ -1585,7 +1585,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 		fflush(stderr);
 	}
 
-	// GeneralsX @fix Claude 05/10/2026 The network names an upgrade or a science by its name's id - the Zero Hour twin's
+	// GeneralsX: The network names an upgrade or a science by its name's id - the Zero Hour twin's
 	// tables and refusal, see its comment.
 	{
 		const Bool upgradesUnique = TheUpgradeCenter->rebuildWireIds();
@@ -1600,7 +1600,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	}
 
 	// load a map
-	// GeneralsX @bugfix Claude 04/10/2026 A map that did not open is never simulated - the Zero Hour twin's check, see
+	// GeneralsX: A map that did not open is never simulated - the Zero Hour twin's check, see
 	// its comment for the cases and why a campaign mission and a save load keep the old behaviour.
 	if (!TheTerrainLogic->loadMap( TheGlobalData->m_mapName, false ))
 	{
@@ -1617,7 +1617,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 		}
 	}
 
-	// GeneralsX @bugfix Claude 23/09/2026 Start positions are picked here, from the waypoints just
+	// GeneralsX: Start positions are picked here, from the waypoints just
 	// loaded, instead of before the load screen from MapCache.ini (see populateRandomStartPosition).
 	// Nothing between the old site and this one reads a slot's start position except the load
 	// screen, which drew its map preview before the picks existed - so it is told now.
@@ -1650,7 +1650,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			TheSidesList->prepareForMP_or_Skirmish();
 		}
 
-		// GeneralsX @feature Claude 12/08/2026 Capacity preflight, loud in release. (1) A human in a
+		// GeneralsX: Capacity preflight, loud in release. (1) A human in a
 		// slot the byte-wide relay mask cannot address (>= MAX_HUMAN_SLOTS) forms a lobby and then
 		// never receives a single in-match command - named here. (2) More slots than the map's side
 		// and player tables hold - refused below.
@@ -1665,7 +1665,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 					DEBUG_CRASH(("Human player in non-wire-addressable slot %d", capSlot));
 				}
 			}
-			// GeneralsX @feature Claude 23/09/2026 REFUSE an over-capacity start (owner decision,
+			// GeneralsX: REFUSE an over-capacity start (owner decision,
 			// 23/09/2026: refuse, never drop a civilian side). Counted from the side table as
 			// prepareForMP_or_Skirmish left it and from the slot list - the same map and the same
 			// slots on every peer - so every peer refuses together. The old check counted a kept
@@ -1706,7 +1706,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			if (!slot || !slot->isOccupied())
 				continue;
 
-			// GeneralsX @feature Claude 24/09/2026 An OBSERVER slot takes no side and no Player of its own
+			// GeneralsX: An OBSERVER slot takes no side and no Player of its own
 			// (PlayerCapacity.h slotTakesPlayer): PlayerList::assignSlotIndices maps it onto the
 			// ReplayObserver added below, which is made local here when this peer is that observer.
 			// Without that, no side is local on an observer peer, and PlayerList::newGame's fallback makes
@@ -1753,7 +1753,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			{
 				GameSlot *teamSlot = TheGameInfo->getSlot(j);
 				// for check to see if we're trying to add ourselves
-				// GeneralsX @feature Claude 24/09/2026 ...or naming an observer slot, which has no "player<j>".
+				// GeneralsX: ...or naming an observer slot, which has no "player<j>".
 				if(i == j || !slotTakesPlayer(teamSlot->isOccupied(), TheGameInfo->slotSharesReplayObserver(j)))
 					continue;
 
@@ -1870,7 +1870,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 		d.setInt(TheKey_playerColor, TheMultiplayerSettings->getColor(0)->getColor());
 		d.setInt(TheKey_playerNightColor, TheMultiplayerSettings->getColor(0)->getNightColor());
 		d.setInt(TheKey_multiplayerStartIndex, 0);
-		// GeneralsX @feature Claude 24/09/2026 Local on an observer's own peer: every observer slot is
+		// GeneralsX: Local on an observer's own peer: every observer slot is
 		// this Player now, not a side of its own (see the slot loop above).
 		d.setBool(TheKey_multiplayerIsLocal, localSlotIsObserver);
 
@@ -1890,7 +1890,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	TheTeamFactory->reset();
 	ThePlayerList->newGame();
 
-	// GeneralsX @feature Claude 24/09/2026 Who this peer is, once per start: an observer peer must run
+	// GeneralsX: Who this peer is, once per start: an observer peer must run
 	// as the ReplayObserver, never as a player (the harness asserts on this line).
 	if (TheGameInfo)
 	{
@@ -1941,7 +1941,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 		if (numTeams > 1)
 		{
 			// add in the multiplayer victory/defeat scripts
-			// GeneralsX @bugfix Copilot 22/03/2026 Load shared multiplayer scripts relative to the asset root on Linux.
+			// GeneralsX: Load shared multiplayer scripts relative to the asset root on Linux.
 			AsciiString path = "Data\\Scripts\\MultiplayerScripts.scb";
 			CachedFileInputStream theInputStream;
 			if (theInputStream.open(path))
@@ -1957,7 +1957,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 				Int count = ScriptList::getReadScripts(scripts);
 				if (count)
 				{
-					// GeneralsX @bugfix Claude 24/09/2026 Give side 0 a script list when the map has none, or the
+					// GeneralsX: Give side 0 a script list when the map has none, or the
 					// match can never end. tools/mapwrite.py and tools/map-gen-circle.py write an EMPTY
 					// PlayerScriptsList chunk (no ScriptList per side), so on their maps - GXCauldron12ZHv1,
 					// GXCircle12ZHv1, GXQuarry8ZHv1 - every map side's list is null, side 0 (the side
@@ -2161,7 +2161,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	updateLoadProgress(LOAD_PROGRESS_POST_PATHFINDER_NEW_MAP);
 
 	// reveal the map for the permanent observer
-	// GeneralsX @bugfix Claude 23/09/2026 The observer can be missing. It is always added LAST, so when
+	// GeneralsX: The observer can be missing. It is always added LAST, so when
 	// the side table is already full SidesList::addSide drops it (the [GXCAP] line says so) and this
 	// lookup returns null. Measured: 17 community maps that carry 16 sides of their own segfaulted
 	// here on a single-player start. Nothing is revealed for an observer that does not exist.
@@ -2181,14 +2181,14 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 			if (!slot || !slot->isOccupied())
 				continue;
 
-			// GeneralsX @feature Claude 24/09/2026 An observer slot's Player IS the ReplayObserver now,
+			// GeneralsX: An observer slot's Player IS the ReplayObserver now,
 			// revealed permanently just above - once, rather than once more per observer slot.
 			if (TheGameInfo->slotSharesReplayObserver(i))
 				continue;
 
 			Player *player = ThePlayerList->getPlayerFromSlotIndex(i);
 
-			// GeneralsX @feature Claude 25/09/2026 A LEGACY layout (a GENREP/GENR12 replay, an older save) gave the
+			// GeneralsX: A LEGACY layout (a GENREP/GENR12 replay, an older save) gave the
 			// observer a Player of its own, and that Player is revealed permanently exactly as before.
 			if (slot->getPlayerTemplate() == PLAYERTEMPLATE_OBSERVER)
 			{
@@ -2204,7 +2204,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 		}
 	}
 
-	// GeneralsX @feature Claude 24/09/2026 What this peer's own player sees once the start's reveals are
+	// GeneralsX: What this peer's own player sees once the start's reveals are
 	// done: every cell for an observer (the ReplayObserver's permanent reveal), its own start area at
 	// most for a player. One line per start; the observer harness asserts on it.
 	if (TheGameInfo && ThePlayerList->getLocalPlayer() != nullptr)
@@ -2397,7 +2397,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	// update the loadscreen
 	updateLoadProgress(LOAD_PROGRESS_POST_PRELOAD_ASSETS);
 
-	// GeneralsX @tweak Copilot 23/03/2026 Keep camera defaults aligned after resolution/aspect changes.
+	// GeneralsX: Keep camera defaults aligned after resolution/aspect changes.
 	TheTacticalView->setCameraHeightAboveGroundLimitsToDefault();
 	TheTacticalView->setAngleToDefault();
 	TheTacticalView->setPitchToDefault();
@@ -2546,7 +2546,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 	{
 		if (!TheGlobalData->m_headless)
 		{
-			// GeneralsX @bugfix Claude 25/09/2026 Base Generals never enabled the logic time scale for
+			// GeneralsX: Base Generals never enabled the logic time scale for
 			// the shell game, so with a render cap above the tick rate canUpdateRegularGameLogic() ticked
 			// the menu backdrop once per RENDERED frame (600 ticks over 600 frames at a 120 cap on a
 			// 60 Hz build, against 300 paired - scripts/test/generals-logic-time-scale-test.sh).
@@ -2595,7 +2595,7 @@ void GameLogic::tryStartNewGame( Bool loadingSaveGame )
 		// explicitly set the Control bar to Observer Mode
 		if(m_gameMode == GAME_REPLAY )
 		{
-			// GeneralsX @bugfix Claude 23/09/2026 Defence in depth, the same shape as the reveal
+			// GeneralsX: Defence in depth, the same shape as the reveal
 			// guard above: a replay whose side table had no room for the ReplayObserver switches to
 			// the local player PlayerList::newGame chose, through the SAME full transition (control
 			// bar, particles, shroud, ghosts, radar, selection), instead of dereferencing null.
@@ -2734,7 +2734,7 @@ static void findAndSelectCommandCenter(Object *obj, void* alreadyFound)
 
 
 
-// GeneralsX @feature Claude 01/10/2026 M1 step 2b (Codex m1det2-2b-r3 P2): is a map sidecar there, asked the way
+// GeneralsX: M1 step 2b: is a map sidecar there, asked the way
 // GetMapDataHash and INI::load ask - by opening it - and NOT through FileSystem::doesFileExist, whose existence cache keeps a
 // positive answer after FileTransfer moved a stale sidecar aside; the load would then throw INI_CANT_OPEN_FILE.
 static Bool gxSidecarOpens( const AsciiString& path )
@@ -2766,7 +2766,7 @@ void GameLogic::loadMapINI( AsciiString mapName, Bool refusable )
 		? TheGameState->getSaveGameInfo()->pristineMapName.str()
 		: mapName.str();
 
-	// GeneralsX @bugfix Claude 20/08/2026 The same translation as the Zero Hour twin, for the same
+	// GeneralsX: The same translation as the Zero Hour twin, for the same
 	// reason: W3DTerrainLogic::loadMap resolves the real on-disk path before opening the terrain,
 	// but loadMapINI runs first and derives map.ini, solo.ini and map.str from the LOWERCASED map
 	// identity. On a case-sensitive volume that names nothing, so the map loads without its
@@ -2795,7 +2795,7 @@ void GameLogic::loadMapINI( AsciiString mapName, Bool refusable )
 	*extension = 0;
 
 
-	// GeneralsX @feature Claude 01/10/2026 M1 step 2b: loaded from exactly the paths GetMapDataHash reads (the Zero Hour
+	// GeneralsX: M1 step 2b: loaded from exactly the paths GetMapDataHash reads (the Zero Hour
 	// twin's comment), so its hash is of the bytes applied here.
 	char fullFledgeFilename[_MAX_PATH];
 	const AsciiString mapIniPath = GetINIFromMap( gxRealMapPath );
@@ -2881,7 +2881,7 @@ void GameLogic::processDestroyList()
 		UpdateModulePtr sleepyUpdatesForThisObject[MAX_SUO];
 		Int numSUO = 0;
 
-		// GeneralsX @performance Claude 23/09/2026 Collect from the object's own modules instead of scanning the whole heap
+		// GeneralsX: Collect from the object's own modules instead of scanning the whole heap
 		// (was O(destroyed x all sleepy updates) per frame). Sorted by heap index ascending, this is
 		// exactly the list the old scan produced, so the erase sequence and the resulting heap are
 		// bit-identical. Every heap entry has a valid index, and only registerObject/loadPostProcess
@@ -2954,7 +2954,7 @@ void GameLogic::processCommandList( CommandList *list )
 					++numPlayers;
 			}
 
-			// GeneralsX @bugfix Claude 05/08/2026 A CRC SHORTFALL IS NOT A DESYNC. Twin of the fix in
+			// GeneralsX: A CRC SHORTFALL IS NOT A DESYNC. Twin of the fix in
 			// GeneralsMD/Code/GameEngine/Source/GameLogic/System/GameLogic.cpp - see there for the
 			// measured evidence. Both trees are digested and must not drift.
 			//
@@ -2978,7 +2978,7 @@ void GameLogic::processCommandList( CommandList *list )
 				{
 					// TheSuperHackers @bugfix Caball009 14/06/2026 Check if player is still connected,
 					// to avoid spurious mismatches at low CRC intervals, e.g. every frame.
-					// GeneralsX @feature Claude 24/09/2026 The key IS the network slot now (onLogicCrc), so
+					// GeneralsX: The key IS the network slot now (onLogicCrc), so
 					// three observers sharing the ReplayObserver are three reports, not one.
 					const Int slotIndex = it->first;
 					if (!TheNetwork->isPlayerConnected(slotIndex))
@@ -3040,7 +3040,7 @@ void GameLogic::selectObject(Object *obj, Bool createNewSelection, PlayerMaskTyp
 		return;
 	}
 
-	// GeneralsX @feature Claude 06/11/2026 one AIGroup per Player walked: walk the Players gxPlayerMaskAll counts (GameCommon.h).
+	// GeneralsX: one AIGroup per Player walked: walk the Players gxPlayerMaskAll counts (GameCommon.h).
 	playerMask &= gxPlayerMaskAll();
 	while (playerMask) {
 		Player *player = ThePlayerList->getEachPlayerFromMask(playerMask);
@@ -3090,7 +3090,7 @@ void GameLogic::deselectObject(Object *obj, PlayerMaskType playerMask, Bool affe
 		return;
 	}
 
-	// GeneralsX @feature Claude 06/11/2026 one AIGroup per Player walked: walk the Players gxPlayerMaskAll counts (GameCommon.h).
+	// GeneralsX: one AIGroup per Player walked: walk the Players gxPlayerMaskAll counts (GameCommon.h).
 	playerMask &= gxPlayerMaskAll();
 	while (playerMask) {
 		Player *player = ThePlayerList->getEachPlayerFromMask(playerMask);
@@ -3368,8 +3368,8 @@ UpdateModulePtr GameLogic::peekSleepyUpdate() const
 	USE_PERF_TIMER(SleepyMaintenance)
 
 	UpdateModulePtr u = m_sleepyUpdates.front();
-	// GeneralsX @bugfix Claude 01/10/2026 A null top is the update loop's to drop (it pops it); in a debug build this
-	// assertion dereferenced it first (Codex fab-r4).
+	// GeneralsX: A null top is the update loop's to drop (it pops it); in a debug build this
+	// assertion dereferenced it first.
 	DEBUG_ASSERTCRASH(u == nullptr || u->friend_getIndexInLogic() == 0, ("index mismatch: expected %d, got %d",0,u ? u->friend_getIndexInLogic() : -1));
 	return u;
 }
@@ -3386,7 +3386,7 @@ void GameLogic::popSleepyUpdate()
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 01/10/2026 The update loop pops a null top with this, so it may not dereference one.
+	// GeneralsX: The update loop pops a null top with this, so it may not dereference one.
 	if (m_sleepyUpdates[0])
 		m_sleepyUpdates[0]->friend_setIndexInLogic(-1);
 	if (sz > 1)
@@ -3599,10 +3599,10 @@ static void unitTimings()
 		snprintf(foo, sizeof(foo), "\nTime %f, %d ms for 100 %s , noPart %f, noSpawn %f logic %f \n", timeAll,
 			(Int)(timeAll*1000/TIME_FRAMES), thingName.str(), timeNoPart,
 			timeNoSpawn, timeLogic);
-		DEBUG_LOG(("%s", foo));	// GeneralsX @security Claude 06/10/2026 foo holds a template name (map.ini): data, not a format
+		DEBUG_LOG(("%s", foo));	// GeneralsX: foo holds a template name (map.ini): data, not a format
 		snprintf(foo, sizeof(foo), "\nDrawCalls for 100 %s , all %d, noPart %d, noSpawn %d logic %d \n", thingName.str(),
 			drawCallAll,drawCallNoPart,drawCallNoSpawn, drawCallLogic);
-		DEBUG_LOG(("%s", foo));	// GeneralsX @security Claude 06/10/2026 foo holds a template name (map.ini): data, not a format
+		DEBUG_LOG(("%s", foo));	// GeneralsX: foo holds a template name (map.ini): data, not a format
 
 		if (g_UT_timingLog) {
 			fputs(foo, g_UT_timingLog);
@@ -3821,7 +3821,7 @@ void GameLogic::update()
 
 		startNewGame( FALSE );
 		m_startNewGame = FALSE;
-		// GeneralsX @feature Claude 23/09/2026 A refused start was already torn down inside
+		// GeneralsX: A refused start was already torn down inside
 		// startNewGame; there is no game to tick this frame.
 		if (m_refusedStartCapacity >= 0 || s_refusedStartMapData || s_refusedStartMapLoad || s_refusedStartWireIds)
 		{
@@ -3853,7 +3853,7 @@ void GameLogic::update()
 
 	PROFILER_PLOT("LogicFrame", static_cast<int64_t>(now));
 
-	// GeneralsX @bugfix Claude 08/10/2026 The scripted camera is simulation state (GameLogic/ScriptedCamera.h): a camera-only
+	// GeneralsX: The scripted camera is simulation state (GameLogic/ScriptedCamera.h): a camera-only
 	// freeze from the last update ends before these scripts read CAMERA_MOVEMENT_FINISHED.
 	TheScriptedCamera.beforeScripts();
 
@@ -3883,7 +3883,7 @@ void GameLogic::update()
 	Bool isSoloGameOrReplay = (TheRecorder && !TheRecorder->isMultiplayer() && getGameMode() != GAME_SHELL && getGameMode() != GAME_NONE);
 	Bool generateForMP = (isMPGameOrReplay && (m_frame % TheGameInfo->getCRCInterval()) == 0);
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @bugfix Claude 02/10/2026 Determinism-1: a peer whose game is ENDING sends no logic CRC. The VICTORY and
+	// GeneralsX: Determinism-1: a peer whose game is ENDING sends no logic CRC. The VICTORY and
 	// DEFEAT actions start m_endGameTimer, and from then ScriptEngine::update runs no script at all - it is "just timing
 	// down" to exitGame - so this peer's script state, and anything a script would have moved, stops being the match's.
 	// The shipped MultiplayerScripts.scb ends every peer on the same frame (MULTIPLAYER_ALLIED_VICTORY/DEFEAT are only
@@ -3979,7 +3979,7 @@ void GameLogic::update()
 			if (!u)
 			{
 				DEBUG_CRASH(("Null update. should not happen."));
-				// GeneralsX @bugfix Claude 01/10/2026 Drop it: the bare continue peeked the same null forever.
+				// GeneralsX: Drop it: the bare continue peeked the same null forever.
 				popSleepyUpdate();
 				continue;
 			}
@@ -4057,7 +4057,7 @@ void GameLogic::update()
 
 	{
 		//Handle disabled statii (and re-enable objects once frame matches)
-		// GeneralsX @performance Claude 23/09/2026 Skip the whole-list walk while no disabled bit can expire:
+		// GeneralsX: Skip the whole-list walk while no disabled bit can expire:
 		// every set bit has m_disabledTillFrame >= m_disabledExpiryWatermark > now, so checkDisabledStatus would do nothing.
 		// When it runs, it runs exactly as before (same list order) and recomputes the watermark; setDisabledUntil
 		// calls made during the walk lower it again through noteDisabledUntil.
@@ -4079,7 +4079,7 @@ void GameLogic::update()
 	{
 		m_frame++;
 		m_hasUpdated = TRUE;
-		// GeneralsX @bugfix Claude 08/10/2026 The scripted camera's step for the new logic frame (GameLogic/ScriptedCamera.h),
+		// GeneralsX: The scripted camera's step for the new logic frame (GameLogic/ScriptedCamera.h),
 		// where W3DView stepped it from GameClient::step after this update - on every peer now, -headless and replays included
 		TheScriptedCamera.logicFrame();
 	}
@@ -4375,7 +4375,7 @@ UnsignedInt GameLogic::getCRC( Int mode, AsciiString deepCRCFileName )
 	}
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @feature Claude 01/10/2026 Determinism-1 (ROADMAP_2027 M1 item 1, CA-29): the script engine had no
+	// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 1, CA-29): the script engine had no
 	// section, and its crc body was empty, so counters, flags, timers and enabled scripts were never compared between
 	// peers - only the state that is the same on every peer goes in (ScriptEngine::crc). An all-players change.
 	marker = "MARKER:TheScriptEngine";

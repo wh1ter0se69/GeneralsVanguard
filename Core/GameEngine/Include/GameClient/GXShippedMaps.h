@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 07/11/2026 - the shipped maps, installed by the ENGINE where no launcher runs (iOS).
+// GeneralsX: the shipped maps, installed by the ENGINE where no launcher runs (iOS).
 //
 // The owner, 07/11/2026: "also ship the maps we are making by default". Every payload carries the maps in
 // scripts/build/overlay-maps.txt as loose files in <GeneralsXPatch>/ShippedMaps/<Name>/, and on the desktop the

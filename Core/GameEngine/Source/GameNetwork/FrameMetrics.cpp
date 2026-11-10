@@ -57,7 +57,7 @@ FrameMetrics::FrameMetrics()
 }
 
 FrameMetrics::~FrameMetrics() {
-	// GeneralsX @bugfix Claude 13/08/2026 delete[], not delete. These three are all NEW Real[n] /
+	// GeneralsX: delete[], not delete. These three are all NEW Real[n] /
 	// NEW time_t[n] and two of them were being freed with scalar delete, which is undefined - NEW is
 	// plain `new` (GameMemory.h:886), so the array cookie is real. Harmless in practice for a POD on
 	// this allocator, which is why it survived; still wrong, and I am adding a fourth array here.
@@ -75,7 +75,7 @@ FrameMetrics::~FrameMetrics() {
 }
 
 void FrameMetrics::init() {
-	// GeneralsX @fix Claude 05/08/2026 Both were a raw 30, and this one is not cosmetic: this boxcar
+	// GeneralsX: Both were a raw 30, and this one is not cosmetic: this boxcar
 	// is what feeds ConnectionManager::getMinimumFps(), which clamps the whole lobby to the slowest
 	// peer. Pre-loading it with 30 on a 60 Hz build makes every peer report HALF its true rate until
 	// the ~30-second history window has fully turned over, so the lobby negotiates down at the start
@@ -93,11 +93,11 @@ void FrameMetrics::init() {
 	for (i = 0; i < TheGlobalData->m_networkLatencyHistoryLength; ++i) {
 		m_latencyList[i] = (Real)0.2;
 	}
-	// GeneralsX @bugfix Claude 11/08/2026 Cleared here and set only by processLatencyResponse, so it
+	// GeneralsX: Cleared here and set only by processLatencyResponse, so it
 	// is also cleared by reset() - which calls init() - on the way back to the shell. A stale true
 	// carried into the next match would show the PREVIOUS match's ring as if it were this one's.
 	//
-	// GeneralsX @bugfix Claude 13/08/2026 Now per peer, and the seed matters for the same reason: a
+	// GeneralsX: Now per peer, and the seed matters for the same reason: a
 	// slot that still holds 0.2 is an INIT CONSTANT, and the flag beside it is the only thing that
 	// stops the display presenting it as a measurement.
 	for (i = 0; i < (UnsignedInt)(MAX_SLOTS * TheGlobalData->m_networkLatencyHistoryLength); ++i) {
@@ -153,7 +153,7 @@ void FrameMetrics::processLatencyResponse(UnsignedInt frame, Int fromSlot) {
 	// run-ahead window, which is a pacing change wearing a display change's clothes.
 	m_latencyList[latencyListIndex] = seconds;
 
-	// GeneralsX @bugfix Claude 13/08/2026 The same sample, filed under the peer that produced it.
+	// GeneralsX: The same sample, filed under the peer that produced it.
 	// This is the ONLY place a real round trip enters either ring, so it is the only place that can
 	// honestly say a measurement exists - now per peer. See getWorstPeerLatency.
 	if ((fromSlot >= 0) && (fromSlot < MAX_SLOTS)) {
@@ -215,7 +215,7 @@ Real FrameMetrics::getAverageLatency() {
 // fourth adds a second one - it must also be able to say WHO.
 // ---------------------------------------------------------------------------
 //
-// GeneralsX @bugfix Claude 13/08/2026 FOURTH DEFECT IN THIS ONE READOUT, and the first that was
+// GeneralsX: FOURTH DEFECT IN THIS ONE READOUT, and the first that was
 // wrong about WHICH PEER rather than about what the number meant.
 //
 // Measured live 2026-08-12: a 3-peer match showed 13 ms on the HUD while the relay was forwarding
@@ -283,7 +283,7 @@ Real FrameMetrics::getAverageLatency() {
 //
 // The caller already does the right thing with a negative: Network.cpp's getDisplayLatencyMs maps
 // any non-positive to -1, and InGameUI maps that to NETWORK_LATENCY_NO_SAMPLE and prints "--ms".
-// GeneralsX @feature Claude 13/08/2026 One peer's leg, extracted so the per-player scoreboard and
+// GeneralsX: One peer's leg, extracted so the per-player scoreboard and
 // the single-figure HUD reduce the SAME samples by the SAME rule. getWorstPeerLatency below is now
 // a maximum over this, which is what stops the two readouts from ever disagreeing about a peer.
 Real FrameMetrics::getPeerLatency(Int slot) {
@@ -342,7 +342,7 @@ Real FrameMetrics::getWorstPeerLatency(Int &worstSlotOut) {
 		return -1.0f;	// no peer has a live measurement; say so rather than invent one
 	}
 
-	// GeneralsX @fix Claude 10/08/2026 (cross-model review) Floor at 1 ms. A reply inside one
+	// GeneralsX: (cross-model review) Floor at 1 ms. A reply inside one
 	// timeGetTime() millisecond stores a genuine 0.0 sample - routine on loopback and fast LAN -
 	// and the display accessor maps non-positive to "no measurement", so the FASTEST links would
 	// blank the readout. Sub-millisecond shown as 1 ms is honest; a blank is not.

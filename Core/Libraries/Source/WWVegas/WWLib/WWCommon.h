@@ -64,7 +64,7 @@ template <typename Type, size_t Size> char (*ArraySizeHelper(Type(&)[Size]))[Siz
 #endif
 #endif // ARRAY_SIZE
 
-// GeneralsX @feature Claude 05/08/2026 GX_LOGIC_60HZ - opt-in 60 Hz simulation tick.
+// GeneralsX: GX_LOGIC_60HZ - opt-in 60 Hz simulation tick.
 //
 // DEFAULT IS 30 AND MUST STAY 30. This is the shipped rate, the rate the four-platform determinism
 // corpus in docs/WORKDIR/baseline-2026-08-04/ was captured at, and the rate every .rep recorded so

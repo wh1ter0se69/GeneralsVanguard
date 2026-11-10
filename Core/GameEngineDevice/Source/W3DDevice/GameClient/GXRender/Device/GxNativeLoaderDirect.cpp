@@ -1,4 +1,4 @@
-// GeneralsX @feature C · native-ipad-1 13/10/2026 GxNativeLoaderDirect.h.
+// GeneralsX: GxNativeLoaderDirect.h.
 #include "GxNativeLoaderDirect.h"
 
 #include <set>

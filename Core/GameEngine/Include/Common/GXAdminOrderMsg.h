@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @security Claude 25/09/2026 Common/GXAdminOrder.h over a GameMessage: the payload of an order's LOGICAL
+// GeneralsX: Common/GXAdminOrder.h over a GameMessage: the payload of an order's LOGICAL
 // arguments, and its trailer. The signer (Network::GetCommandsFromCommandList) and the simulation's check
 // (GameLogicDispatch.cpp gxCheatTarget) both build the payload HERE, so they cannot disagree about what was signed.
 

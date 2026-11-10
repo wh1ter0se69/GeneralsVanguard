@@ -1,4 +1,4 @@
-# GeneralsX @feature E · rw1-D 10/10/2026 WS-D: gx_pipeline (PipelineKey + GxPipelineCache) and its gate test.
+# GeneralsX: WS-D: gx_pipeline (PipelineKey + GxPipelineCache) and its gate test.
 #
 # Standalone (minutes):  cmake -S <this dir> -B <build> -G Ninja [-DGX_VKCTX_DIR=<a gx_vkctx source dir>] && cmake --build <build>
 # From the game: Core/GameEngineDevice/CMakeLists.txt adds it next to ../Vk when GX_RENDER_VK=ON. Render-only, outside every

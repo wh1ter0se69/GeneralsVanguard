@@ -62,7 +62,7 @@ void INI::parseTerrainRoadDefinition( INI* ini )
 	if( road == nullptr )
 	{
 		road = TheTerrainRoads->newRoad( name );
-		// GeneralsX @bugfix Claude 10/10/2026 A map.ini's invention ends with the map (TerrainRoadCollection::reset).
+		// GeneralsX: A map.ini's invention ends with the map (TerrainRoadCollection::reset).
 		if( ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES )
 			TheTerrainRoads->noteOverrideAdded( road );
 	}
@@ -72,7 +72,7 @@ void INI::parseTerrainRoadDefinition( INI* ini )
 	// parse the ini definition
 	ini->initFromINI( road, road->getRoadFieldParse() );
 
-	// GeneralsX @bugfix Claude 06/10/2026 A new Road may be defined in a map's map.ini (sent with the map to every lobby
+	// GeneralsX: A new Road may be defined in a map's map.ini (sent with the map to every lobby
 	// peer), and W3DRoadBuffer turns RoadWidth x RoadWidthInTexture into terrain cell indices and tessellation counts in
 	// Int. Clamp both to ranges that keep those in range, strictly positive because the road joins divide by their product;
 	// shipped roads use 8-60 and 0.9-3.

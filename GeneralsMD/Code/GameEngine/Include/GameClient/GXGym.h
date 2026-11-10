@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 02/10/2026 ai-gym: observe a match and play one player from outside. See GXGym.cpp.
+// GeneralsX: ai-gym: observe a match and play one player from outside. See GXGym.cpp.
 
 #pragma once
 

@@ -106,7 +106,7 @@ private:
 	void sendRelayRegistration();					///< Unencrypted hello/keepalive that tells the relay where we are.
 
 public:
-	// GeneralsX @feature Claude 06/08/2026 Lobby chat.
+	// GeneralsX: Lobby chat.
 	//
 	// One chat channel per relay room:
 	//
@@ -119,7 +119,7 @@ public:
 	// Plaintext and unencrypted, like GXRLY and GXADV and for the same reason: the relay has to
 	// read the room to route it, and it must never be able to read game traffic.
 	Bool sendRelayChat( const char *text );			///< Send one lobby chat line. FALSE if not on a relay.
-	// GeneralsX @bugfix Claude 25/09/2026 The in-match chat RECORD (GameClient/GXMatchRecord.h), under its own
+	// GeneralsX: The in-match chat RECORD (GameClient/GXMatchRecord.h), under its own
 	// tag - GXREC <room> <record> - and never under GXCHT, because a relay that does not record it must DROP it
 	// rather than broadcast it. Every relay since 07/08/2026 drops a control tag it does not parse (relay.js
 	// forward(), the /^GX[A-Z]{3,4} / guard; GXREC fits even the narrowest deployed form of it), where GXCHT
@@ -131,7 +131,7 @@ public:
 	Bool takeRelayChat( char *outText, Int outSize, UnsignedInt *outSenderIp );
 	Bool captureRelayChat( const UnsignedByte *msg, Int len );	///< Swallow a GXSAY off the wire.
 
-	// GeneralsX @feature Claude 19/09/2026 In-match kick. See Common/GXKickTicket.h for the ticket.
+	// GeneralsX: In-match kick. See Common/GXKickTicket.h for the ticket.
 	//   GXKICK <base64 ticket>   relay -> the kicked member's lobby socket, resent every second
 	//   GXKNOT <base64 ticket>   relay -> every OTHER member of that room: the copy each peer's red line
 	//                            falls back on when the kicked client does not carry the ticket itself
@@ -140,25 +140,25 @@ public:
 	Bool captureRelayKick( const UnsignedByte *msg, Int len );	///< Swallow a GXKICK / GXKNOT off the wire.
 	Bool takeRelayKick( char *out, Int outSize );			///< The latest GXKICK for us, once. FALSE if none.
 	const char *getRelayKickNotice( Int i ) const;			///< GXKNOT copy i (0..GX_KICK_NOTICES-1), "" if empty.
-	// GeneralsX @bugfix Claude 21/09/2026 ONE PER SLOT, not four. A room holds MAX_SLOTS (12 since the
+	// GeneralsX: ONE PER SLOT, not four. A room holds MAX_SLOTS (12 since the
 	// twelve-humans wire merge), and a moderator clearing house sends overlapping kicks - so at four, the
 	// fifth GXKNOT evicted a notice whose kick was still live, and the peers that had already lost their
 	// copy silently fell back to no attribution: the red line just does not name who kicked whom. Sized to
 	// the room so a notice can only ever be evicted by a kick of a slot that already had one. Raised by a
-	// Codex review of this branch; it also noted the cache is filled before the ticket is verified, which
+	// review of this branch; it also noted the cache is filled before the ticket is verified, which
 	// is deliberate - captureRelayKick stores text and GXKick.cpp verifies at draw time - and safe only
 	// because the relay's own address and port gate the capture (the fromRelay check in doRecv).
 	//
 	// Costs GX_KICK_TEXT_MAX bytes per added slot in Transport, which is a few KB once.
 	static const Int GX_KICK_NOTICES = MAX_SLOTS;
 
-	// GeneralsX @feature Claude 06/08/2026 Room roster - the lobby's online-player list.
+	// GeneralsX: Room roster - the lobby's online-player list.
 	//   GXROOM <room>                 client -> relay
 	//   GXMEMB <room> <ip1> <ip2> ... relay -> client, one packed datagram
 	// Membership is asserted by the RELAY from its registration table, never by a client, so this
 	// cannot be used to invent players. Request and answer are separate calls because the answer
 	// arrives asynchronously on the same socket as everything else.
-	// GeneralsX @feature Claude 07/08/2026 Server-side nickname.
+	// GeneralsX: Server-side nickname.
 	//   GXNICK <room> <name>   client -> relay
 	// The relay keeps it on the member record and hands it back inside the roster as `<id>|<name>`,
 	// so a peer that joins later learns every existing name from its first GXROOM - no re-announce
@@ -168,7 +168,7 @@ public:
 	Bool resendRelayNickname();						///< Re-claim the chosen name in the CURRENT room.
 	const char *getRosterNick( Int i ) const;		///< Name for roster entry i, "" when unnamed.
 
-	// GeneralsX @feature Claude 07/08/2026 Per-player OS tag.
+	// GeneralsX: Per-player OS tag.
 	//   GXPLAT <room> <tag>    client -> relay
 	// Carried the same way a nickname is - the relay holds it on the member record and hands it
 	// back inside the roster, so the token grows from `<id>|<nick>` to `<id>|<nick>|<os>` and a
@@ -190,17 +190,17 @@ public:
 	// and never from its contents, exactly as it does for GXNICK.
 	Bool sendRelayPlatform();						///< Declare our OS to the relay. FALSE if not on a relay.
 	const char *getRosterOS( Int i ) const;			///< OS tag for roster entry i, "" when unknown.
-	// GeneralsX @feature Claude 11/08/2026 The relay's one-letter role code for roster entry i: "m",
+	// GeneralsX: The relay's one-letter role code for roster entry i: "m",
 	// "a" or "". PRESENTATION ONLY - see GXAssertRole. The relay decides it from a signed assertion
 	// and enforces every actual rule itself; this is what the lobby draws.
 	const char *getRosterRole( Int i ) const;
-	// GeneralsX @security Claude 25/09/2026 THE RELAY'S ADMIN KEYS - who may cheat in a match with more than one human,
+	// GeneralsX: THE RELAY'S ADMIN KEYS - who may cheat in a match with more than one human,
 	// and the per-match key each one's orders must be signed under (Common/GXAdminOrder.h).
 	//   GXAKEY <room> <pub43>                 client -> relay: the public half of this client's admin key
 	//   GXAKQ  <room> <nonce8>                client -> relay: which live admins in my room hold which key?
 	//   GXAKR  <room> <nonce8> <id>=<pub43>.. relay -> client: exactly those, and nobody else (relay.js gxLiveAdmin)
 	// The nonce ties an answer to the question, so an answer to an earlier question is never taken for this one
-	// (Codex r2 P2 on the roster version of this). The lobby acts on it only after every peer has checked it against
+	// (on the roster version of this). The lobby acts on it only after every peer has checked it against
 	// its own fresh answer (LANAPI::OnGameStart).
 	Bool sendRelayAdminKey( const char *pub43 );		///< Offer our admin key; resent on every keepalive. "" withdraws.
 	const char *getRelayAdminKey() const { return m_relayAdminKey; }	///< What this transport offers; "" = nothing yet
@@ -214,7 +214,7 @@ public:
 	Bool captureRelayAdminKeys( const UnsignedByte *msg, Int len );	///< Swallow a GXAKR off the wire.
 	static const char *localPlatformTag();			///< This build's OS tag: "W", "M", "L", "iP".
 
-	// GeneralsX @feature Claude 07/08/2026 Lobby-time latency.
+	// GeneralsX: Lobby-time latency.
 	//
 	// There is NO latency measurement anywhere in the engine before a match starts. struct
 	// LANMessage carries no timestamp, sequence or nonce in any arm, and the lobby keepalive
@@ -235,7 +235,7 @@ public:
 	Bool sendRelayPing();							///< Report our relay RTT. FALSE if we have no sample yet.
 	UnsignedInt getRelayRttMs() const { return m_relayRttMs; }	///< Our RTT to the relay, 0 = never measured.
 
-	// GeneralsX @feature Claude 17/08/2026 The lobby's display name, for the BROWSER.
+	// GeneralsX: The lobby's display name, for the BROWSER.
 	//
 	// It rides the member record - "GXLNAM <room> <text>" - and NOT the game advertisement, for the
 	// reason sendRelayPing() spells out above and the relay repeats beside its own PING_TAG: the
@@ -257,7 +257,7 @@ public:
 	Bool setRelayLobbyName( const char *name );		///< Claim (or clear) this room's lobby name.
 	Bool resendRelayLobbyName();					///< Re-claim it in the CURRENT room. Hosts only.
 
-	// GeneralsX @feature Claude 19/09/2026 The lobby's SEATS, for the admin console: "GXSLOT <room> <listing> <spec>",
+	// GeneralsX: The lobby's SEATS, for the admin console: "GXSLOT <room> <listing> <spec>",
 	// <spec> composed by GXRelaySlotsWire.h. Same member-record mechanism and same compare-before-send as the
 	// lobby name above; the 30 s tick re-sends it while we hold an advertisement, i.e. only as a listed host.
 	Bool setRelaySlots( const char *spec );			///< Declare this lobby's seats. Hosts only.
@@ -268,7 +268,7 @@ public:
 	Int  getRelayRoster( UnsignedInt *outIps, Int maxIps ) const;	///< Copy the last roster; returns the count.
 	UnsignedInt getLocalVirtualIP() const { return m_localVirtualIP; }	///< Our relay identity, so the roster can mark us.
 
-	// GeneralsX @feature Claude 08/08/2026 Durable identity, and presence over it.
+	// GeneralsX: Durable identity, and presence over it.
 	//
 	//   GXKEY  <room> <playerId>     client -> relay: this install's durable id
 	//   GXSEEN <id1> ... <idN>       client -> relay: which of these are connected right now?
@@ -295,7 +295,7 @@ public:
 	Bool sendRelayKey( const char *playerId );		///< Declare our durable id. FALSE if malformed or not on a relay.
 	Bool resendRelayKey();							///< Re-declare it in the CURRENT room.
 
-	// GeneralsX @feature Claude 11/08/2026 Hand the relay our SIGNED identity assertion.
+	// GeneralsX: Hand the relay our SIGNED identity assertion.
 	//
 	// This is the only identifier the relay can trust: GXKEY above is a client-minted bearer token
 	// and the relay says so, which is right for presence and useless for a ban - a banned player
@@ -323,7 +323,7 @@ public:
 	/// short one.
 	Bool takeRelayPresence( UnsignedInt *outMask, Int *outCount );
 
-	// GeneralsX @feature Claude 08/08/2026 A short text line to ONE other member of our room.
+	// GeneralsX: A short text line to ONE other member of our room.
 	//
 	// THIS IS NOT A NEW RELAY CONTROL TAG, AND THAT IS THE ENTIRE POINT. It is an ordinary relayed
 	// datagram: the 12-byte GXR1 routing header with a UNICAST destination, and a plaintext line
@@ -385,7 +385,7 @@ public:
 	/// only the second case may skip the re-identify/rebind dance.
 	const char *getRelayRoom() const { return m_relayRoom; }
 
-	/// GeneralsX @bugfix Claude 23/09/2026 The relay has stopped accepting the membership a sign-out was
+	/// GeneralsX: The relay has stopped accepting the membership a sign-out was
 	/// made on: GX_FENCED_UNACKED_MAX of its bare keepalives went a whole interval unanswered. Its secret
 	/// was discarded on purpose (captureRelayAuth's fence), so from a changed public address nothing can
 	/// prove the old id again - the owner of the address must ask for a new one. See the definition.
@@ -400,13 +400,13 @@ public:
 	void clearGameAdvertisement();
 	Bool isAdvertising() const { return m_advertisementLen > 0; }
 	Bool isRelayEnabled() const { return m_relayEnabled; }
-	/// GeneralsX @bugfix Claude 25/09/2026 (Codex r9) The relay this socket is registered with said 'gxm1' on its
+	/// GeneralsX: The relay this socket is registered with said 'gxm1' on its
 	/// GXAUTH for our current (room, id) - it records the in-match GXREC. The lobby presence socket learns the same
 	/// word, but a match can start before that socket hears any GXAUTH, and it is suspended for the whole match;
 	/// this is the socket that carries the record, registered in the match room before the match starts.
 	Bool relayRecordsMatchChat() const { return m_relayRecordsMatch; }
 
-	// GeneralsX @feature Claude 12/08/2026 Say the game is gone, instead of only going quiet about
+	// GeneralsX: Say the game is gone, instead of only going quiet about
 	// it. clearGameAdvertisement() starts the silence and the relay's 15 s expiry ends the listing;
 	// this collapses that to one round trip by sending GXUNAD (tools/relay/relay.js UNADV_TAG).
 	//
@@ -441,7 +441,7 @@ public:
 	/// answers without any clock arithmetic.
 	static UnsignedInt getAdvertWithdrawSerial();
 
-	// GeneralsX @feature Claude 08/08/2026 Direct peer-to-peer, with per-pair relay fallback.
+	// GeneralsX: Direct peer-to-peer, with per-pair relay fallback.
 	//
 	// Measured on this hardware 2026-08-08 (scripts/tooling/p2p-spike.js): a LAN pair paid
 	// 124.96 ms median through the relay in France and 0.95 ms direct - 131x - and the upgrade
@@ -470,7 +470,7 @@ public:
 	Bool isDirectAllowed() const { return m_p2pAllowed; }	///< FALSE when the player set RelayOnly.
 
 	/*
-	 * GeneralsX @bugfix Claude 08/08/2026 PER-PACKET AUTHENTICATION FOR DIRECT PEER TRAFFIC.
+	 * GeneralsX: PER-PACKET AUTHENTICATION FOR DIRECT PEER TRAFFIC.
 	 *
 	 * THE HOLE. doRecv reads the sender's address off the socket and then OVERWRITES it with the
 	 * virtual address out of the GXR1 header, and attributes the packet to a slot by that. While
@@ -543,7 +543,7 @@ public:
 	/// a valid short token, never empty.
 	const char *getRelayRegion() const { return m_relayRegion; }
 
-	/// GeneralsX @feature Claude 17/08/2026 The lobby's own display name, as it travels to a
+	/// GeneralsX: The lobby's own display name, as it travels to a
 	/// BROWSER. Sized to hold MAX_LOBBY_NAME_LEN characters and a NUL with slack, so a conforming
 	/// relay is never truncated and a non-conforming one is cut safely rather than trusted.
 	///
@@ -562,10 +562,10 @@ public:
 		Int slots;
 		char name[96];
 		char map[160];
-		// GeneralsX @feature Claude 07/08/2026 The HOST's round trip to the relay, in milliseconds,
+		// GeneralsX: The HOST's round trip to the relay, in milliseconds,
 		// 0 when the relay did not say. Half of the end-to-end estimate; see getRelayRttMs().
 		Int pingMs;
-		// GeneralsX @feature Claude 17/08/2026 The lobby's display name, "" when this relay did not
+		// GeneralsX: The lobby's display name, "" when this relay did not
 		// send one - which is every relay older than the feature, and every game whose host never
 		// named it. EMPTY IS THE NORMAL CASE, not an error; see the row format in WOLLobbyMenu.
 		//
@@ -634,7 +634,7 @@ public:
 	static Int requestRelayGameList( const char *relayHost, RelayGameListing *out, Int maxOut,
 		UnsignedInt waitMs );
 
-	// GeneralsX @bugfix Claude 07/08/2026 Double-buffered, so the browser is never momentarily empty.
+	// GeneralsX: Double-buffered, so the browser is never momentarily empty.
 	//
 	// requestGameList() used to zero the live list and let the replies refill it. The answer is a
 	// BURST of one datagram per game, so between the request going out and the first reply landing
@@ -676,7 +676,7 @@ private:
 	Bool m_gameListPublished;						///< at least one sweep has completed
 	void publishGameList();							///< pending -> live, if the sweep said anything
 
-	// GeneralsX @bugfix Claude 17/08/2026 The browser's staleness was mostly THIS, not the poll.
+	// GeneralsX: The browser's staleness was mostly THIS, not the poll.
 	//
 	// publishGameList() used to be reachable from exactly one place - requestGameList() - so a sweep's
 	// replies sat in the pending buffer, complete and unread, until the NEXT query went out a full
@@ -741,7 +741,7 @@ private:
 
 	Bool m_relayEnabled;
 	UnsignedInt m_relayAddr;						///< Host order. Stands in for every outbound destination.
-	/// GeneralsX @feature Claude 29/10/2026 S1-3: the relay's REMOTE port for this socket. The relay list (and a
+	/// GeneralsX: S1-3: the relay's REMOTE port for this socket. The relay list (and a
 	/// RelayAddress = host:port pin) names a relay's LOBBY port; its game port is that + 2. m_port stays the LOCAL
 	/// bind - 8086 / 8088, the LAN convention every peer still binds - so the two are no longer the same number.
 	/// Every datagram to the relay is written to it and every "came from the relay" check compares against it.
@@ -753,7 +753,7 @@ private:
 	UnsignedShort relayPortFor( UnsignedShort localPort ) const;
 	UnsignedInt m_localVirtualIP;					///< Host order. Our identity, stamped into every outgoing header.
 	UnsignedInt m_lastRelayRegistration;
-	// GeneralsX @bugfix Claude 08/08/2026 96, not 64. The registration now carries an optional
+	// GeneralsX: 96, not 64. The registration now carries an optional
 	// fourth word - the relay's proof-of-holding secret - and 64 no longer fits the worst case:
 	// "GXRLY " + 31 room + ' ' + 15 address + ' ' + 22 secret + NUL is 77.
 	char m_relayRegistration[96];					///< Prebuilt registration datagram. Never encrypted - see sendRelayRegistration.
@@ -762,7 +762,7 @@ private:
 	char m_relayRoom[32];							///< Kept so the room can be rebuilt into a new registration or advertisement.
 
 	/*
-	 * GeneralsX @bugfix Claude 08/08/2026 The relay's proof that we, and not somebody who typed our
+	 * GeneralsX: The relay's proof that we, and not somebody who typed our
 	 * virtual address into a datagram, hold this identity.
 	 *
 	 * The relay hands it to the member alone and moves an existing member to a new endpoint (a NAT
@@ -797,7 +797,7 @@ private:
 	Int m_fencedUnacked;	///< bare keepalives of the signed-out membership since the relay last answered one
 	Bool m_relayRecordsMatch;	///< 'gxm1' on the latest GXAUTH for this (room, id) - see relayRecordsMatchChat
 
-	// GeneralsX @feature Claude 06/08/2026 Lobby chat receive queue. Small and fixed: a lobby is at
+	// GeneralsX: Lobby chat receive queue. Small and fixed: a lobby is at
 	// most eight people and the UI drains this every frame, so a deeper queue would only let a
 	// flood live longer. Oldest is dropped on overflow rather than newest, so a spammer cannot
 	// wedge the queue and block everyone else's messages.
@@ -808,27 +808,27 @@ private:
 	Int m_chatHead;									///< next slot to write
 	Int m_chatCount;								///< queued lines, 0..GX_CHAT_QUEUE
 
-	// GeneralsX @feature Claude 19/09/2026 In-match kick. One pending GXKICK (a resend of the same ticket
+	// GeneralsX: In-match kick. One pending GXKICK (a resend of the same ticket
 	// overwrites it with itself) and the last GX_KICK_NOTICES distinct GXKNOT copies, oldest overwritten.
 	static const Int GX_KICK_TEXT_MAX = 401;		///< the relay's 400-character ticket, plus the NUL
 	char m_kickTicket[GX_KICK_TEXT_MAX];
 	char m_kickNotice[GX_KICK_NOTICES][GX_KICK_TEXT_MAX];
 	Int m_kickNoticeNext;
 
-	// GeneralsX @feature Claude 06/08/2026 Last roster received. Overwritten wholesale rather than
+	// GeneralsX: Last roster received. Overwritten wholesale rather than
 	// merged, because the relay's answer is the complete truth about the room at the moment it was
 	// asked - merging would keep players who have left.
-	// GeneralsX @feature Claude 12/08/2026 Raised 8 -> 12 with the relay's MEMBERS_PER_ROOM. This
+	// GeneralsX: Raised 8 -> 12 with the relay's MEMBERS_PER_ROOM. This
 	// mirrors the relay and must not drift from it: a roster larger than the relay ever sends is
 	// harmless, but SMALLER silently drops members past the cap out of the lobby list. Grow the
 	// GXMEMB copy buffer in Transport.cpp with it - the arithmetic there is keyed to this value.
-	// GeneralsX @feature Claude 25/09/2026 12 -> 14 with the relay (12 players + 2 observers).
-	// GeneralsX @feature Claude 06/11/2026 scale32: 14 -> MAX_SLOTS (34) with the relay (32 players + 2 observers). Grow the
+	// GeneralsX: 12 -> 14 with the relay (12 players + 2 observers).
+	// GeneralsX: scale32: 14 -> MAX_SLOTS (34) with the relay (32 players + 2 observers). Grow the
 	// GXMEMB / GXAKR copy buffers in Transport.cpp with it.
 	static const Int GX_ROSTER_MAX = MAX_SLOTS;	///< MEMBERS_PER_ROOM on the relay
 	static const Int GX_NICK_MAX = 24;				///< MAX_NICK_LEN on the relay, plus a NUL and slack
 	static const Int GX_OS_MAX = 4;					///< "iP" is the longest tag; the lobby column fits two characters
-	// GeneralsX @feature Claude 11/08/2026 One character and a NUL. Named ROSTER_ROLE rather than
+	// GeneralsX: One character and a NUL. Named ROSTER_ROLE rather than
 	// GX_ROLE_MAX so it cannot be misread as a sibling of GX_ROLE_PLAYER/GX_ROLE_MOD, which are an
 	// enum in a GameClient header this digested one must not include.
 	static const Int GX_ROSTER_ROLE_MAX = 2;
@@ -837,7 +837,7 @@ private:
 	char m_rosterOS[GX_ROSTER_MAX][GX_OS_MAX];
 	char m_rosterRole[GX_ROSTER_MAX][GX_ROSTER_ROLE_MAX];
 	Int m_rosterCount;
-	// GeneralsX @security Claude 25/09/2026 See refreshRelayAdminKeysNow.
+	// GeneralsX: See refreshRelayAdminKeysNow.
 	char m_relayAdminKey[44];						///< our offered admin key, base64url; "" = none
 	UnsignedInt m_akqNonce;							///< the question the table must answer; 0 = none asked
 	Bool m_akrFresh;								///< the answer to m_akqNonce arrived
@@ -845,17 +845,17 @@ private:
 	UnsignedInt m_akrSlot[GX_ROSTER_MAX];			///< last octet of each listed member's virtual address
 	unsigned char m_akrKey[GX_ROSTER_MAX][32];
 
-	// GeneralsX @feature Claude 07/08/2026 Relay round trip. See sendRelayPing() above.
+	// GeneralsX: Relay round trip. See sendRelayPing() above.
 	UnsignedInt m_relayRosterSentMs;				///< timeGetTime() of the outstanding GXROOM, 0 = none
 	UnsignedInt m_relayRttMs;						///< best (minimum) RTT to the relay, 0 = no sample yet
 	UnsignedInt m_lastRelayTagsMs;					///< last GXPLAT/GXPING/GXNICK send, 0 = never
 
-	// GeneralsX @bugfix Claude 07/08/2026 Our own claimed name, kept so it can be RE-claimed.
+	// GeneralsX: Our own claimed name, kept so it can be RE-claimed.
 	// The relay holds a nickname on the member record, and a member record is per ROOM - so
 	// joining a game, which moves us to that game's room, left the name behind in the old one.
 	char m_relayNick[GX_NICK_MAX];
 
-	// GeneralsX @feature Claude 17/08/2026 Our lobby's name, kept for the same reason m_relayNick is:
+	// GeneralsX: Our lobby's name, kept for the same reason m_relayNick is:
 	// the relay holds it on the per-ROOM member record, so a room change or a relay restart forgets
 	// it and it has to be re-declared. Empty means "this room has no lobby name", and that state is
 	// re-declared too - see setRelayLobbyName for why silence would not do.
@@ -865,10 +865,10 @@ private:
 	// needs re-sending: a lobby that was never named cannot have left a stale name behind, while a
 	// name that was cleared must keep saying so in case the single '-' that cleared it was lost.
 	Bool m_relayLobbyNameDeclared;
-	// GeneralsX @feature Claude 19/09/2026 The seats last declared, "" for none. See setRelaySlots.
+	// GeneralsX: The seats last declared, "" for none. See setRelaySlots.
 	char m_relaySlots[GX_RELAY_SEATS_SPEC_MAX + 1];
 
-	// GeneralsX @feature Claude 08/08/2026 Durable identity and presence. See sendRelayKey() above.
+	// GeneralsX: Durable identity and presence. See sendRelayKey() above.
 	//
 	// 26 characters plus a NUL. Fixed, because the relay's PID_RE is a fixed length and a shorter or
 	// longer value is refused rather than truncated - so there is no reason for this to be elastic.
@@ -879,7 +879,7 @@ private:
 	// caller that only meant to display something.
 	char m_relayPlayerId[GX_PLAYER_KEY_MAX];
 
-	// GeneralsX @feature Claude 11/08/2026 The signed assertion, remembered so it can be re-sent on
+	// GeneralsX: The signed assertion, remembered so it can be re-sent on
 	// the tag cadence and after a room change.
 	//
 	// 257 is GX_ASSERTION_MAX + 1, WRITTEN OUT rather than included, and the duplication is
@@ -901,7 +901,7 @@ private:
 	UnsignedInt m_presenceMask;						///< positional bits from the last GXHERE
 	Bool m_presenceFresh;							///< an unread answer is waiting
 
-	// GeneralsX @feature Claude 08/08/2026 Received peer lines. Same shape and the same bound as the
+	// GeneralsX: Received peer lines. Same shape and the same bound as the
 	// chat queue above, and for the same reasons: the UI drains it every frame, so a deeper queue
 	// would only let a flood live longer, and the OLDEST is dropped on overflow so one talkative
 	// peer cannot wedge it and starve everybody else out.
@@ -917,7 +917,7 @@ private:
 	Int m_peerHead;									///< next slot to write
 	Int m_peerCount;								///< queued lines, 0..GX_PEER_QUEUE
 
-	// GeneralsX @bugfix Claude 07/08/2026 A ring of raw round trips, reduced by MINIMUM rather
+	// GeneralsX: A ring of raw round trips, reduced by MINIMUM rather
 	// than averaged. See captureRelayRoster for why the mean is the wrong statistic here.
 	static const Int GX_RTT_SAMPLES = 8;
 	UnsignedInt m_relayRttSamples[GX_RTT_SAMPLES];
@@ -928,7 +928,7 @@ private:
 	Int m_advertisementLen;
 	UnsignedInt m_advertGame;						///< This listing's per-game id, drawn when one starts. See setGameAdvertisement.
 
-	// GeneralsX @feature Claude 12/08/2026 The withdrawal in flight. See withdrawGameAdvertisement().
+	// GeneralsX: The withdrawal in flight. See withdrawGameAdvertisement().
 	//
 	// Prebuilt and kept, rather than formatted at each send, because the room it names is the room
 	// the LISTING was created under - which is not necessarily the room we are in by the time the
@@ -947,7 +947,7 @@ private:
 
 	char m_relayRegion[8];							///< Region token of our relay. See getRelayRegion().
 
-	// GeneralsX @feature Claude 08/08/2026 Direct peer-to-peer. See the public accessors above.
+	// GeneralsX: Direct peer-to-peer. See the public accessors above.
 	//
 	// One real endpoint. Host order address, host order port, exactly like everything else in this
 	// class, so nothing here ever has to remember which side of ntohl it is on.
@@ -957,7 +957,7 @@ private:
 		UnsignedShort port;
 	};
 
-	// GeneralsX @feature Claude 12/08/2026 Derived, so it followed MAX_SLOTS to twelve on its own;
+	// GeneralsX: Derived, so it followed MAX_SLOTS to twelve on its own;
 	// the stale "a room is eight" is corrected rather than the value. A room and a game are both
 	// MAX_SLOTS now, and the peer-table bitmask in the announcement path is checked against it.
 	static const Int GX_P2P_MAX_PEERS = MAX_SLOTS;	///< A room and a game are both MAX_SLOTS.
@@ -968,7 +968,7 @@ private:
 	static const Int GX_AUTH_KEY_BYTES = 16;		///< 128-bit pair key, as the relay derives it.
 	static const Int GX_AUTH_TAG_BYTES = 8;			///< Truncated HMAC. See the length argument above.
 
-	// GeneralsX @bugfix Claude 14/08/2026 The GXPKEY parse buffer, DERIVED, because a fixed 512 here
+	// GeneralsX: The GXPKEY parse buffer, DERIVED, because a fixed 512 here
 	// and a fixed PKEY_MAX_WIRE on the relay are two halves of one contract that nothing tied
 	// together. See the PKEY_MAX_WIRE note in tools/relay/relay.js for the matching arithmetic.
 	//
@@ -1002,20 +1002,20 @@ private:
 	/// the old worst case would refuse EVERY announcement and put the whole room back on the relay -
 	/// strictly worse than the clip this replaces. So the client accepts more than the relay will
 	/// ever send, and the refusal exists only as a wall against a datagram no relay should produce.
-	/// GeneralsX @feature Claude 06/11/2026 scale32: 768 -> 1536 with MAX_SLOTS 34. GX_PKEY_MAX_WIRE is 6+1+31+1+15 + 33*39 =
+	/// GeneralsX: scale32: 768 -> 1536 with MAX_SLOTS 34. GX_PKEY_MAX_WIRE is 6+1+31+1+15 + 33*39 =
 	/// 1341 at 34 (the relay sends up to 1341 B); 1536 keeps the same "accept more than the relay sends" margin.
 	static const Int GX_PKEY_BUF = 1536;
 	static const Int GX_AUTH_TRAILER_SIZE = 1 + 4 + GX_AUTH_TAG_BYTES;	///< keyId, seq, tag = 13.
 #if !RETAIL_COMPATIBLE_NETWORKING
 	static_assert(GX_AUTH_TRAILER_SIZE == GX_AUTH_TRAILER_RESERVE, "NetworkDefs.h reserves the trailer out of MAX_PACKET_SIZE");
-	// GeneralsX @feature Claude 06/11/2026 the largest packet (transport header + body) the auth MAC covers: one transport slot, which
-	// since 34 slots also holds a whole LAN lobby message (MAX_LANAPI_PACKET_SIZE > MAX_PACKET_SIZE). Codex scale32-r1 P2.
+	// GeneralsX: the largest packet (transport header + body) the auth MAC covers: one transport slot, which
+	// since 34 slots also holds a whole LAN lobby message (MAX_LANAPI_PACKET_SIZE > MAX_PACKET_SIZE).
 	static const Int GX_AUTH_MAX_PACKET = (Int)sizeof(TransportMessageHeader) + (Int)sizeof(((TransportMessage *)nullptr)->data);
 	static_assert(GX_RELAY_HEADER_SIZE + (Int)sizeof(TransportMessageHeader) + MAX_PACKET_SIZE + GX_AUTH_TRAILER_SIZE
 		<= MAX_UDP_PAYLOAD_SIZE, "the fullest direct datagram must fit the raw receive and the fragmentation budget");
 #endif
 
-	// GeneralsX @feature Claude 10/08/2026 Probe padding. A PROBE is padded so its wire size
+	// GeneralsX: Probe padding. A PROBE is padded so its wire size
 	// equals the largest real datagram - TransportMessageHeader + MAX_PACKET_SIZE of payload,
 	// with the relay header and auth trailer riding on top exactly as they do for game traffic.
 	// A successful PROBE/PROBEOK round trip therefore proves the path carries what the game will
@@ -1093,7 +1093,7 @@ private:
 		P2PEndpoint probeTo;
 		P2PEndpoint probeToPrev;
 		UnsignedInt firstSeenMs;					///< when this peer entered the table; diagnostic only
-		// GeneralsX @bugfix Claude 12/08/2026 When the current probe burst was armed. This used to be
+		// GeneralsX: When the current probe burst was armed. This used to be
 		// firstSeenMs, and that is the whole bug: the burst is the mechanism that WINS a direct route
 		// (~40 probes over ten seconds; the design note by the constants records a LAN pair upgrading
 		// in 102 ms), and keying it to first sight means it can only ever be spent once. A pair
@@ -1112,7 +1112,7 @@ private:
 		// pair which never converged in the first place. That last one is a different failure from
 		// the rest of this comment: nothing was demoted, because nothing was ever established.
 		UnsignedInt burstStartedMs;
-		// GeneralsX @bugfix Claude 13/08/2026 How many bounded re-bursts this peer may still be
+		// GeneralsX: How many bounded re-bursts this peer may still be
 		// granted while it has no route. See GX_P2P_REBURST_MS for why a later window can succeed
 		// where the first one could not, and for the cost when it cannot. Counted DOWN and never
 		// refilled except by a demotion or by the relay's capability returning, so a pair that
@@ -1122,7 +1122,7 @@ private:
 		UnsignedInt lastProbeMs;
 		UnsignedInt lastCandSentMs;
 		UnsignedInt lastDirectRecvMs;				///< last datagram that did NOT come from the relay
-		// GeneralsX @feature Claude 10/08/2026 Last PROBEOK that answered one of OUR probes. Probes
+		// GeneralsX: Last PROBEOK that answered one of OUR probes. Probes
 		// are padded to full game-datagram size, so this timestamp is proof the path carries the
 		// LARGEST datagram we will ever ask it to - lastDirectRecvMs cannot prove that, because it
 		// is refreshed by any small inbound packet while a size-selective path eats every big one.
@@ -1132,12 +1132,12 @@ private:
 		// (cross-model review: without this, the peer's next keepalive reinstalled the black hole
 		// and re-granted it a full grace period, forever). Cleared by that proof.
 		Bool bigDemoted;
-		// GeneralsX @bugfix Claude 23/09/2026 When a no-key marker CAND last demoted this peer's
+		// GeneralsX: When a no-key marker CAND last demoted this peer's
 		// route; 0 = never. The marker is honoured once per GX_P2P_DEAD_MS so a peer that lies with
 		// it cannot pace our release-visible log. See the CAND arm of p2pHandleControl.
 		UnsignedInt lastNoKeyDemoteMs;
 
-		// GeneralsX @bugfix Claude 08/08/2026 The pair keys.
+		// GeneralsX: The pair keys.
 		//
 		// TWO SLOTS, current and previous, and the previous one EXPIRES. The relay tells each side
 		// of a pair about a rotation on ITS OWN registration keepalive, so the two sides adopt a new
@@ -1171,7 +1171,7 @@ private:
 	UnsignedInt m_p2pRandState;						///< probe nonces. NOT rand() - see p2pNextNonce.
 
 	/*
-	 * GeneralsX @bugfix Claude 08/08/2026 Which ROOM a control datagram belongs to, on the wire.
+	 * GeneralsX: Which ROOM a control datagram belongs to, on the wire.
 	 *
 	 * p2pForgetPeers() already wiped the table on a room change, and that was not enough, because
 	 * nothing on the wire said which room a datagram was for. A CAND still in flight when we changed
@@ -1207,7 +1207,7 @@ private:
 	P2PPeer *p2pFind( UnsignedInt vip );
 	P2PPeer *p2pFindOrAdd( UnsignedInt vip, UnsignedInt now );
 	void p2pAddCandidate( P2PPeer *peer, UnsignedInt addr, UnsignedShort port );
-	/// GeneralsX @bugfix Claude 08/08/2026 ADDRESS AND PORT, where this used to match on the address
+	/// GeneralsX: ADDRESS AND PORT, where this used to match on the address
 	/// alone (p2pHasCandidateAddress) and take the port as observed. Matching half an endpoint is
 	/// not matching an endpoint: a peer's real candidate 203.0.113.9:40000 authorised anything at
 	/// 203.0.113.9, so a hostile machine sharing that public address - a second subscriber behind
@@ -1218,7 +1218,7 @@ private:
 	/// A published candidate, or the endpoint a route is already installed at. Used to decide which
 	/// outstanding probes a replacement candidate list has invalidated.
 	Bool p2pEndpointStillOffered( const P2PPeer *peer, const P2PEndpoint &ep ) const;
-	/// GeneralsX @bugfix Claude 08/08/2026 Forget the probes a new candidate list has invalidated.
+	/// GeneralsX: Forget the probes a new candidate list has invalidated.
 	/// A CAND replaces the candidate set wholesale, and the nonce/endpoint pairs that were sent to
 	/// the OLD set used to survive it - so a PROBEOK still in flight could install an endpoint the
 	/// peer had just withdrawn. Pairs whose endpoint is still offered are deliberately kept, so a

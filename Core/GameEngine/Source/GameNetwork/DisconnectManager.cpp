@@ -35,7 +35,7 @@
 #include "GameNetwork/GameSpy/PingThread.h"
 #include "GameNetwork/GameSpy/GSConfig.h"
 
-// GeneralsX @bugfix Claude 01/10/2026 A VANISHED PEER IS DROPPED AFTER s_silenceMs OF SILENCE, NOT THE ~65 s STOCK HOLD.
+// GeneralsX: A VANISHED PEER IS DROPPED AFTER s_silenceMs OF SILENCE, NOT THE ~65 s STOCK HOLD.
 //
 // A peer that dies without a PLAYERLEAVE (crash, pulled cable, killed process) used to freeze every survivor on the
 // disconnect screen for NetworkDisconnectTime (5 s) plus the whole NetworkPlayerTimeoutTime (60 s), because
@@ -161,7 +161,7 @@ void DisconnectManager::update(ConnectionManager *conMgr) {
 	// the last one we had the commands ready for.
 	if (TheGameLogic->getFrame() == m_lastFrame) {
 		time_t curTime = timeGetTime();
-		// GeneralsX @bugfix Claude 01/10/2026 A frame that stops again right after a catch-up (allCommandsReady) is the
+		// GeneralsX: A frame that stops again right after a catch-up (allCommandsReady) is the
 		// SAME stall: the screen comes back at once instead of after another NetworkDisconnectTime, so the frame
 		// notice that follows - and the next catch-up, when the survivors leapfrog - costs no extra 5 s each time.
 		const Bool reStalled = (m_catchUpUntil != 0) && ((curTime - m_catchUpUntil) < 0)
@@ -177,7 +177,7 @@ void DisconnectManager::update(ConnectionManager *conMgr) {
 	}
 
 	if (m_disconnectState != DISCONNECTSTATETYPE_SCREENOFF) {
-		// GeneralsX @security Claude 18/09/2026 A DISCONNECTPLAYER held by processDisconnectPlayer
+		// GeneralsX: A DISCONNECTPLAYER held by processDisconnectPlayer
 		// applies once its sender is this peer's next router - here, when this peer's own timeout or
 		// the votes it has seen take out whoever stood ahead of it.
 		for (Int v = 0; v < MAX_SLOTS; ++v) {
@@ -315,7 +315,7 @@ void DisconnectManager::updateDisconnectStatus(ConnectionManager *conMgr) {
 						if (isLocalPlayerNextPacketRouter(conMgr) == TRUE) {
 							DEBUG_LOG(("DisconnectManager::updateDisconnectStatus - local player is next packet router"));
 							DEBUG_LOG(("DisconnectManager::updateDisconnectStatus - about to do the disconnect procedure for player %d", i));
-							// GeneralsX @bugfix Claude 04/08/2026 Queue the kill BEFORE tearing the mesh down.
+							// GeneralsX: Queue the kill BEFORE tearing the mesh down.
 							//
 							// "kick = defeat": a voted-out player must lose their base, not stand
 							// there AWOL earning money. The kill order already exists and is correct -
@@ -417,23 +417,23 @@ void DisconnectManager::processDisconnectKeepAlive(NetCommandMsg *msg, Connectio
 	if (slot != -1) {
 		resetPlayerTimeout(slot);
 		m_keepAliveTimes[slot] = timeGetTime();
-		// GeneralsX @bugfix Claude 01/10/2026 ANSWER IT while this peer's own frame still moves. A keep-alive means
+		// GeneralsX: ANSWER IT while this peer's own frame still moves. A keep-alive means
 		// somebody has stood still for NetworkDisconnectTime; if that is waiting on THIS peer - slow, not gone - its
 		// frames are the only other sign of life, and a frame that lands inside a catch-up window does not count
 		// (nextFrame). So a peer that is only slow says so: once per 500 ms (sendKeepAlive), only while asked, and a
 		// stalled peer already sends its own. A peer whose loop has stopped cannot answer - which is the point.
-		// Codex vpd-r3 P1. Only while this peer's own frame has stood still for ANSWER_STILL_MS: a peer waiting on
+		// Only while this peer's own frame has stood still for ANSWER_STILL_MS: a peer waiting on
 		// nobody (its frames moving) has no reason to, and two of them answering each other's answers would keep a
-		// broadcast going after the stall was over (Codex vpd-r7 P2). A peer that others wait on cannot keep its own
-		// frame moving for long (Codex vpd-r8): lockstep lets it run only as far as the input the stalled peers sent
+		// broadcast going after the stall was over. A peer that others wait on cannot keep its own
+		// frame moving for long: lockstep lets it run only as far as the input the stalled peers sent
 		// before they stopped - at most MAX_FRAMES_AHEAD frames, all that FRAME_DATA_LENGTH can hold - and after that
 		// its frame stands still too and it answers. That is ~4 s at full speed but not for a SLOW peer: at 1.5 fps,
-		// 60 buffered frames take 40 s (Codex vpd-r14). Hence ANSWER_STILL_MS = 100: a peer whose frame moves faster
+		// 60 buffered frames take 40 s. Hence ANSWER_STILL_MS = 100: a peer whose frame moves faster
 		// than one per 100 ms runs out of those frames within MAX_FRAMES_AHEAD x 100 ms (25.6 s at 60 Hz, 12.8 s at
 		// 30 Hz), under s_silenceMs, and one any slower has a frame standing still that long between two of its frames
 		// and answers there. A match running at full speed still never answers - its frames move every 17-33 ms.
 		//
-		// Whatever the PHASE (Codex vpd-r16): a peer at a few frames per second whose frame happened to advance just
+		// Whatever the PHASE: a peer at a few frames per second whose frame happened to advance just
 		// before every keep-alive would see each one inside the 100 ms and never answer. So a frame that itself took
 		// ANSWER_STILL_MS or more (nextFrame) keeps this peer answering for ANSWER_SLOW_MS: keep-alives come every
 		// 500 ms, so one lands in that window, and a peer that still never answers has run every frame in under
@@ -451,7 +451,7 @@ void DisconnectManager::processDisconnectPlayer(NetCommandMsg *msg, ConnectionMa
 	DEBUG_LOG(("DisconnectManager::processDisconnectPlayer - Got disconnect player command from player %d.  Disconnecting player %d on frame %d", msg->getPlayerID(), cmdMsg->getDisconnectSlot(), cmdMsg->getDisconnectFrame()));
 	DEBUG_ASSERTCRASH(TheGameLogic->getFrame() == cmdMsg->getDisconnectFrame(), ("disconnecting player on the wrong frame!!!"));
 
-	// GeneralsX @security Claude 18/09/2026 Only this peer's next router may disconnect somebody else.
+	// GeneralsX: Only this peer's next router may disconnect somebody else.
 	//
 	// This order drops its victim from this peer's mesh - frame data, connection, router plan - and
 	// nothing checked who sent it: measured, slot 1 sending it about slot 2 took slot 2 out of the
@@ -470,11 +470,11 @@ void DisconnectManager::processDisconnectPlayer(NetCommandMsg *msg, ConnectionMa
 	// until update() sees the sender become this peer's next router. A frame completing does NOT
 	// forget it - see allCommandsReady for the measured strand that used to cause.
 	//
-	// GeneralsX @bugfix Claude 01/10/2026 Held WHATEVER the screen state; it used to be held only while the screen
+	// GeneralsX: Held WHATEVER the screen state; it used to be held only while the screen
 	// was on and refused otherwise. A peer that has just completed a frame - its screen off, playing the frames it
 	// already holds - can receive the successor's one order after the silence verdict has lapsed with the screen
 	// (silenceLeft), elect the vanished router again, and refuse; when those frames run out it stalls waiting for an
-	// order nobody sends twice (Codex vpd-r13 P1). Holding grants nobody anything: a held order applies only once its
+	// order nobody sends twice. Holding grants nobody anything: a held order applies only once its
 	// sender is this peer's elected router (update(), screen on), who could send it again then anyway, and a sender
 	// that withholds its own input could already put a stall around any order it wanted held.
 	//
@@ -490,7 +490,7 @@ void DisconnectManager::processDisconnectPlayer(NetCommandMsg *msg, ConnectionMa
 	}
 	const UnsignedInt elected = nextPacketRouter(conMgr);
 	if ((sender != victim) && (sender != elected)) {
-		// GeneralsX @security Claude 19/09/2026 A SET of senders, not one. This used to be one Int per
+		// GeneralsX: A SET of senders, not one. This used to be one Int per
 		// victim, overwritten unconditionally, so any peer could erase the genuine successor's held
 		// order just by sending its own for the same victim, during the whole stalled window the hold
 		// exists for. The receiver would then never apply the real order (nobody
@@ -500,7 +500,7 @@ void DisconnectManager::processDisconnectPlayer(NetCommandMsg *msg, ConnectionMa
 		if (hold) {
 			m_heldDisconnectMask[victim] |= (gxSlotBit(sender));
 		}
-		static Int s_refusals = 0;	// ponytail: capped so a flood of forgeries cannot turn into a flood of fflush
+		static Int s_refusals = 0;	// Trade-off: capped so a flood of forgeries cannot turn into a flood of fflush
 		if (s_refusals < 32) {
 			++s_refusals;
 			fprintf(stderr, "[GXGATE] DISCONNECTPLAYER from slot %u naming slot %u %s: this peer's next router is %u (frame %u)\n",
@@ -519,18 +519,18 @@ void DisconnectManager::processDisconnectPlayer(NetCommandMsg *msg, ConnectionMa
 		}
 	}
 
-	// GeneralsX @security Claude 19/09/2026 A hard quit - the disconnect screen's Quit,
+	// GeneralsX: A hard quit - the disconnect screen's Quit,
 	// Network::quitGame - sends ONLY this direct order: the quitter drops every connection before its
 	// own MSG_SELF_DESTRUCT could leave it. So nothing synchronised ever took it out of the match. It
 	// stood on every survivor as a ghost, and it stayed in the succession DESTROYPLAYER is judged by
 	// (ConnectionManager::lockstepRouter): a router that hard-quit made every later kill refused
-	// (Codex, 19/09/2026). The peer that routes without the quitter turns the quit into the kill the
+	// The peer that routes without the quitter turns the quit into the kill the
 	// quitter asked for, exactly as updateDisconnectStatus does for a drop - the synchronised order
 	// first, the teardown after - and every peer then executes it on one frame. What it asked for is
 	// Network::quitGame's MSG_SELF_DESTRUCT(TRUE): assets to a living ally, which a drop's
-	// DESTROYPLAYER does not do under RETAIL_COMPATIBLE_CRC - hence the flag (Codex round 2). Only where
+	// DESTROYPLAYER does not do under RETAIL_COMPATIBLE_CRC - hence the flag. Only where
 	// quitGame asks for it: base Generals under RETAIL_COMPATIBLE_CRC compiles that message out, so its
-	// hard quit keeps the plain destroy it always had (Codex, 19/09/2026).
+	// hard quit keeps the plain destroy it always had.
 #if !RTS_GENERALS || !RETAIL_COMPATIBLE_CRC
 	const UnsignedInt quitterAsked = DESTROYPLAYER_TRANSFER_ASSETS;
 #else
@@ -665,7 +665,7 @@ void DisconnectManager::processDisconnectScreenOff(NetCommandMsg *msg, Connectio
 }
 
 void DisconnectManager::applyDisconnectVote(Int slot, UnsignedInt frame, Int fromSlot, ConnectionManager *conMgr) {
-	// GeneralsX @security Claude 19/09/2026 Both indices are bounds-checked HERE, where every caller
+	// GeneralsX: Both indices are bounds-checked HERE, where every caller
 	// routes through, rather than at the one call site that happens to be reachable from the wire.
 	// processDisconnectVote passes cmdMsg->getSlot() straight in; that is an UnsignedByte read off the
 	// packet (NetPacket::readDisconnectVoteMessage) with no bound anywhere between, and this line
@@ -674,7 +674,7 @@ void DisconnectManager::applyDisconnectVote(Int slot, UnsignedInt frame, Int fro
 	// already bounds its own read, so this write was the whole of the hole. Pre-existing at 5600ce15b.
 	// Measured: net-kill-gates.sh forge-vote.
 	if ((slot < 0) || (slot >= MAX_SLOTS) || (fromSlot < 0) || (fromSlot >= MAX_SLOTS)) {
-		static Int s_refusals = 0;	// ponytail: capped so a flood of forgeries cannot turn into a flood of fflush
+		static Int s_refusals = 0;	// Trade-off: capped so a flood of forgeries cannot turn into a flood of fflush
 		if (s_refusals < 32) {
 			++s_refusals;
 			fprintf(stderr, "[GXGATE] DISCONNECTVOTE refused: slot %d from slot %d is out of range (frame %u)\n",
@@ -700,10 +700,10 @@ void DisconnectManager::nextFrame(UnsignedInt frame, ConnectionManager *conMgr) 
 	if ((m_lastFrameTime - frameStart) >= ANSWER_STILL_MS) {
 		m_slowFrameTime = m_lastFrameTime;	// GeneralsX: see processDisconnectKeepAlive
 	}
-	// GeneralsX @bugfix Claude 01/10/2026 The silence clock's floor moves only with PLAIN play: a frame that moves
+	// GeneralsX: The silence clock's floor moves only with PLAIN play: a frame that moves
 	// while the disconnect screen is on, or within NetworkDisconnectTime of it going off, may be running on input the
 	// vanished peer sent before it died - a survivor's catch-up resend (processDisconnectFrame, at any time during the
-	// stall), or the run of frames this peer already held behind it - and must not restart its silence (Codex vpd-r1,
+	// stall), or the run of frames this peer already held behind it - and must not restart its silence (
 	// vpd-r5; measured on the stock path, survivors two frames apart leapfrogged each other's resends for 130 s,
 	// net-kill-gates.sh legit-destroy VICTIM=0). Frames are not what keeps a live peer from being found silent during
 	// a stall: its keep-alives are - its own once its frame stands still, its answers while it moves
@@ -711,14 +711,14 @@ void DisconnectManager::nextFrame(UnsignedInt frame, ConnectionManager *conMgr) 
 	//
 	// THE TRADE, chosen on purpose. A catch-up that takes longer than NetworkDisconnectTime to play through (a match
 	// below a few frames per second) can still refresh this floor from old input and add up to one more s_silenceMs
-	// to a drop (Codex vpd-r9). Freezing the floor by frames instead (through MAX_FRAMES_AHEAD) was tried in 270da7109
+	// to a drop. Freezing the floor by frames instead (through MAX_FRAMES_AHEAD) was tried in 270da7109
 	// and is worse: at that frame rate it stays frozen past s_silenceMs while fresh play goes on, and a live peer that
-	// then pauses briefly is dropped the moment the screen opens (Codex vpd-r10). A late drop is the safe side.
+	// then pauses briefly is dropped the moment the screen opens. A late drop is the safe side.
 	//
 	// Only a release that followed this peer's frame notice starts that window (allCommandsReady): a catch-up resend
 	// answers a notice (processDisconnectFrame), so a stall that ended on its own, before any notice, was ended by
 	// input that really arrived, and its frames are plain play. Freezing the floor after it too would leave the clock
-	// at that stall's start, and a peer that went quiet just after it would get less than s_silenceMs (Codex vpd-r15).
+	// at that stall's start, and a peer that went quiet just after it would get less than s_silenceMs.
 	// The cost is the safe side again: a peer that vanished DURING such a stall (a second fault) can have the frames it
 	// sent before it died restart its clock once - up to that stall's length later, never sooner.
 	if ((m_screenOffTime == 0) || ((m_lastFrameTime - m_screenOffTime) >= TheGlobalData->m_networkDisconnectTime)) {
@@ -743,7 +743,7 @@ void DisconnectManager::allCommandsReady(UnsignedInt frame, ConnectionManager *c
 			for (Int i = 0; i < MAX_SLOTS; ++i) {
 				m_playerVotes[i][conMgr->getLocalPlayerID()].vote = FALSE;
 			}
-			// GeneralsX @bugfix Claude 19/09/2026 Held DISCONNECTPLAYERs (processDisconnectPlayer) are
+			// GeneralsX: Held DISCONNECTPLAYERs (processDisconnectPlayer) are
 			// NOT cleared here, though they used to be, on the theory that a frame completing proved
 			// the victim alive. It proves only that its input for THAT frame arrived - late, or by
 			// another peer's frame resend - from a victim that died a few frames later. Measured
@@ -976,7 +976,7 @@ Bool DisconnectManager::isLocalPlayerNextPacketRouter(ConnectionManager *conMgr)
 	return nextPacketRouter(conMgr) == conMgr->getLocalPlayerID();
 }
 
-// GeneralsX @security Claude 18/09/2026 The walk isLocalPlayerNextPacketRouter always did, returning
+// GeneralsX: The walk isLocalPlayerNextPacketRouter always did, returning
 // the slot it lands on, so processDisconnectPlayer can ask who that is for a sender other than us.
 UnsignedInt DisconnectManager::nextPacketRouter(ConnectionManager *conMgr) {
 	UnsignedInt localSlot = conMgr->getLocalPlayerID();
@@ -1011,7 +1011,7 @@ Bool DisconnectManager::hasPlayerTimedOut(Int slot, ConnectionManager *conMgr) {
 	return FALSE;
 }
 
-// GeneralsX @bugfix Claude 01/10/2026 The silence clock - see s_silenceMs at the top of this file. @p slot is a
+// GeneralsX: The silence clock - see s_silenceMs at the top of this file. @p slot is a
 // translated slot. Outside a disconnect screen, or while this peer hears no other player's keep-alive, there is no
 // silence verdict and the stock timeout is returned, which the callers' min() leaves in charge.
 time_t DisconnectManager::silenceLeft(Int slot, ConnectionManager *conMgr) {
@@ -1019,7 +1019,7 @@ time_t DisconnectManager::silenceLeft(Int slot, ConnectionManager *conMgr) {
 	// The verdict outlives a catch-up release (m_catchUpUntil): the successor may send its one DISCONNECTPLAYER just as
 	// this peer completes a buffered frame and its screen goes off for a moment, and refusing that order then - the
 	// silent router elected again - would leave this peer waiting on a router that will never send it twice
-	// (Codex vpd-r11).
+	//
 	const Bool inCatchUp = (m_catchUpUntil != 0) && ((now - m_catchUpUntil) < 0);
 	if ((slot < 0) || (slot >= MAX_SLOTS - 1) || ((m_disconnectState == DISCONNECTSTATETYPE_SCREENOFF) && !inCatchUp)) {
 		return TheGlobalData->m_networkPlayerTimeoutTime;
@@ -1027,13 +1027,13 @@ time_t DisconnectManager::silenceLeft(Int slot, ConnectionManager *conMgr) {
 	Bool hearOthers = FALSE;
 	for (Int j = 0; j < MAX_SLOTS - 1; ++j) {
 		// Still connected: a peer that just quit leaves a fresh keep-alive behind, and counting it would hand the last
-		// two players the fast verdict a 1v1 must not have (Codex vpd-r5).
+		// two players the fast verdict a 1v1 must not have.
 		if ((j != slot) && (m_keepAliveTimes[j] != 0) && ((now - m_keepAliveTimes[j]) < SILENCE_HEARD_MS)
 			&& conMgr->isPlayerConnected(untranslatedSlotPosition(j, conMgr->getLocalPlayerID()))) {
 			hearOthers = TRUE;
 		}
 	}
-	// A gap here only DELAYS a verdict, it never strands one (Codex vpd-r15). The case: this peer holds the successor's
+	// A gap here only DELAYS a verdict, it never strands one. The case: this peer holds the successor's
 	// order, the successor plays on without the vanished player and stops sending keep-alives, and with two survivors
 	// there is nobody else to hear. But the successor can play only the input this peer sent before it stalled - its run-ahead,
 	// at most MAX_FRAMES_AHEAD / 2 frames, ~2 s at full speed and 0.2-0.5 s at the usual latencies - and then its frame

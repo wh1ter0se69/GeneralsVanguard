@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @feature Claude 27/09/2026 - which General's Points button a purchase key fires.
+**	GeneralsX: which General's Points button a purchase key fires.
 **
 **	Pure on purpose, like GXSkillAnnouncePolicy.h next door: the choice is testable without an engine.
 **	scripts/test/audit/bench/purchase_panel_hotkeys.cpp compiles this header with plain c++.

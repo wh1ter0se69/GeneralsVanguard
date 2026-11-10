@@ -286,13 +286,13 @@ TerrainRoadCollection::~TerrainRoadCollection()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/10/2026 The roads and bridges a map.ini INVENTED leave with the map. They used to stay listed for the
+// GeneralsX: The roads and bridges a map.ini INVENTED leave with the map. They used to stay listed for the
 // rest of the process, so a later map.ini defining the same name threw INI_INVALID_DATA ("already exists") on THIS peer alone -
 // since reskin-loop that is the damaged-map refusal, on one peer of a lobby whose others start - and a bridge a later map placed
 // by that name was built from the first map's definition. They were prepended (newRoad / newBridge), so unlinking them restores
 // each list's order, and they were the last ids handed out, so the counter goes back by their number. Unlinked, not freed:
 // bridge and road-buffer code holds TerrainRoadType pointers.
-// ponytail: retired entries are freed only in the destructor - a few per custom map, per process.
+// Trade-off: retired entries are freed only in the destructor - a few per custom map, per process.
 void TerrainRoadCollection::reset()
 {
 	for( size_t i = 0; i < m_overrideAdded.size(); ++i )

@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: the D3D8 numbers the resource API speaks.
+// GeneralsX: WS-C GXRES v0: the D3D8 numbers the resource API speaks.
 //
 // The L1 device layer, rw1-I's gxcap replayer and the tests drive GXRES with the values the game passes to d3d8 (formats,
 // pools, usage and lock flags), so the library needs no D3D8 header. gx_res_test's "d3d-values" arm static_asserts every

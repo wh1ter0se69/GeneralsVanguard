@@ -57,7 +57,7 @@ public:
 	CameraShakeSystemClass();
 	~CameraShakeSystemClass();
 
-	// GeneralsX @bugfix Claude 01/10/2026 Frees every active shaker now, not at static-destructor time when their pool may already be gone. Idea from Generals Online fac016cd2, reimplemented.
+	// GeneralsX: Frees every active shaker now, not at static-destructor time when their pool may already be gone. Idea from Generals Online fac016cd2, reimplemented.
 	void		Reset();
 
 	enum

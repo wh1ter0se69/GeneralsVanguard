@@ -44,7 +44,7 @@
 #include "gxtextsmooth.h"
 #include <cstdlib>
 
-// GeneralsX @probe Claude 02/10/2026 GX_TEXT_CONTRAST=<k> (prototype for the owner's look call, default OFF = the
+// GeneralsX: GX_TEXT_CONTRAST=<k> (prototype for the owner's look call, default OFF = the
 // rasteriser's coverage unchanged): gxtextcontrast.h's curve applied to the glyph coverage before it becomes the atlas
 // alpha. Applied at atlas-bake time, so it costs nothing per frame. Read once (glyphs are baked on the main thread).
 static uint8 Gx_Text_Coverage (uint8 coverage)
@@ -381,7 +381,7 @@ Render2DSentenceClass::Build_Textures ()
 		TextureClass *new_texture = W3DNEW TextureClass (desc.Width, desc.Width, WW3D_FORMAT_A8R8G8B8, MIP_LEVELS_1);
 		SurfaceClass *texture_surface = new_texture->Get_Surface_Level ();
 
-		// GeneralsX @bugfix Claude 01/10/2026 Texture creation can fail (out of VRAM, lost device, MoltenVK/DXVK allocation failure), leaving the texture
+		// GeneralsX: Texture creation can fail (out of VRAM, lost device, MoltenVK/DXVK allocation failure), leaving the texture
 		// without a D3D surface. Skip this batch instead of dereferencing null; the text simply does not draw. Idea from Generals Online
 		// c3c30f33f / 7de4aabaf, reimplemented.
 		if (texture_surface == nullptr || curr_surface->Peek_D3D_Surface () == nullptr || texture_surface->Peek_D3D_Surface () == nullptr) {
@@ -670,7 +670,7 @@ Render2DSentenceClass::Allocate_New_Surface (const WCHAR *text, bool justCalcExt
 	//	is no use here, because fonts such as Arial report one several times wider than their text.
 	//	Fonts that fit search 64 to 256 px, which bounds the texture that every display string
 	//	allocates for itself. Larger fonts use the smallest texture that fits.
-	//	GeneralsX @bugfix Claude 25/09/2026 Ported by hand from upstream PR #3288 (f7f77dd87, open at
+	//	GeneralsX: Ported by hand from upstream PR #3288 (f7f77dd87, open at
 	//	the time). FontLibrary::getFont accepts up to 512 pt since the #3051 port, and from about 170 pt
 	//	(Arial) the character height reaches 256, which no 64-256 px texture holds.
 	//
@@ -747,7 +747,7 @@ Render2DSentenceClass::Allocate_New_Surface (const WCHAR *text, bool justCalcExt
 		//
 		//	Create the new surface
 		//
-// GeneralsX @bugfix Claude 19/08/2026 The glyph atlas is now 8-BIT alpha, not 4-bit.
+// GeneralsX: The glyph atlas is now 8-BIT alpha, not 4-bit.
 //
 // FreeType and GDI both rasterise 8-bit grayscale coverage, and this file threw 4 of those bits away
 // (alpha = pixel >> 4) into an A4R4G4B4 atlas - 16 levels. At 48px that is invisible, because almost
@@ -1341,7 +1341,7 @@ FontCharsClass::~FontCharsClass ()
 const FontCharsClassCharDataStruct *
 FontCharsClass::Get_Char_Data (WCHAR ch)
 {
-	// GeneralsX @bugfix BenderAI/felipebraz 14/03/2026 Normalize to 16-bit code units to match legacy font array indexing on non-Windows wchar_t
+	// GeneralsX:/felipebraz 14/03/2026 Normalize to 16-bit code units to match legacy font array indexing on non-Windows wchar_t
 	const uint16 normalized_char = static_cast<uint16>(ch);
 	const WCHAR glyph = static_cast<WCHAR>(normalized_char);
 
@@ -1373,7 +1373,7 @@ FontCharsClass::Get_Char_Data (WCHAR ch)
 #endif
 	}
 
-	// GeneralsX @bugfix Claude 14/09/2026 Store_*_Char can legitimately fail (a FreeType render error,
+	// GeneralsX: Store_*_Char can legitimately fail (a FreeType render error,
 	// or a degenerate glyph cell), so guard the assert - it dereferences retval, and
 	// a DEBUG_CRASHING build would have crashed here on the null.
 	WWASSERT( retval == nullptr || retval->Value == glyph );
@@ -1391,7 +1391,7 @@ FontCharsClass::Get_Char_Font (WCHAR ch) const
 {
 	//
 	//	Characters outside the first 256 come from the alternate Unicode font, if there is one
-	//	GeneralsX @bugfix Claude 26/10/2026 Tested on the same 16-bit code unit Get_Char_Data indexes by, and
+	//	GeneralsX: Tested on the same 16-bit code unit Get_Char_Data indexes by, and
 	//	followed down the alternate's own alternate as Get_Char_Data's recursion is (upstream stops at one
 	//	level), so this always names the font that stored the glyph Get_Char_Data returns.
 	//
@@ -1456,7 +1456,7 @@ FontCharsClass::Blit_Char (WCHAR ch, uint32 *dest_ptr, int dest_stride, int x, i
 		int dest_inc		= (dest_stride >> 2);	// stride is BYTES; 32bpp now, so /4 not /2
 		uint32 *src_ptr	= data->Buffer;
 
-// GeneralsX @bugfix Claude 14/09/2026 Clip the glyph to the atlas instead of trusting a compiled-out assert.
+// GeneralsX: Clip the glyph to the atlas instead of trusting a compiled-out assert.
 //
 // This loop used to write CharHeight rows of data->Width pixels with no bound in either axis. The only
 // fit check was the WWASSERT in Build_Sentence_Not_Centered / Build_Sentence_Centered, and WWASSERT is
@@ -1471,11 +1471,11 @@ FontCharsClass::Blit_Char (WCHAR ch, uint32 *dest_ptr, int dest_stride, int x, i
 //    glyph fits none of them (rows_per_texture = size / (char_height + 1) is 0), it silently leaves
 //    CurrTextureSize at 256 and allocates a 256x256 A8R8G8B8 surface anyway. CharHeight is the face's
 //    tmHeight (:1586) or CharAscent + descent (:1880) and so grows with the point size, so a large
-//    enough font writes whole rows past the end of the locked surface. GeneralsX @bugfix Claude
+//    enough font writes whole rows past the end of the locked surface. GeneralsX:
 //    24/09/2026: this is REACHABLE since the #3051 port - FontLibrary::getFont (GameFont.cpp) now clamps
 //    to 512 instead of refusing above 100, as upstream does, and CharHeight passes 255 from about
 //    171 pt. The clip below is what keeps that on the surface; upstream has the same loop unclipped.
-//    GeneralsX @bugfix Claude 25/09/2026: Allocate_New_Surface now grows the texture past 256 for such
+//    GeneralsX: Allocate_New_Surface now grows the texture past 256 for such
 //    a font (upstream PR #3288, ported), and the callers skip a glyph that still does not fit, so this
 //    clip is the backstop rather than the only bound.
 //
@@ -1520,7 +1520,7 @@ FontCharsClass::Blit_Char (WCHAR ch, uint32 *dest_ptr, int dest_stride, int x, i
 		//	alternate Unicode font for characters outside the first 256. That font can be shorter than
 		//	this one, for example SimSun is 16 px where Arial is 18 px at 12 point. Read only the rows
 		//	the glyph has and clear the remaining rows, instead of reading past the glyph.
-		//	GeneralsX @bugfix Claude 26/10/2026 Hand port of upstream #3549 (516471dc3) onto the clipped
+		//	GeneralsX: Hand port of upstream #3549 (516471dc3) onto the clipped
 		//	32-bit copy above: the glyph's own rows bound the read inside max_rows. The rows it lacks are
 		//	written as an empty source row would be - the PixelOverlap columns keep the previous glyph's
 		//	edge, as the copy loop's OR keeps them - where upstream clears the whole cell width.
@@ -1607,7 +1607,7 @@ FontCharsClass::Store_GDI_Char (WCHAR ch)
 	//	Copy the BMP contents to the buffer
 	//
 	int stride = (((width * 3) + 3) & ~3);
-	// GeneralsX @bugfix Claude 01/10/2026 The glyph's measured extent can exceed the DIB (and the cell Update_Current_Buffer sized): read only
+	// GeneralsX: The glyph's measured extent can exceed the DIB (and the cell Update_Current_Buffer sized): read only
 	// rows/columns that exist in the DIB and pad the rest with transparent, so the read stays in bounds and the cell layout is unchanged.
 	// Idea from Generals Online c79df3c74, reimplemented.
 	int copy_rows = char_size.cy;
@@ -1735,7 +1735,7 @@ FontCharsClass::Create_GDI_Font (const char *font_name)
 	//
 	//	Create the Windows font
 	//
-	// GeneralsX @bugfix Claude 06/10/2026 CLEARTYPE_QUALITY, not ANTIALIASED_QUALITY: ALL Windows game text was drawn
+	// GeneralsX: CLEARTYPE_QUALITY, not ANTIALIASED_QUALITY: ALL Windows game text was drawn
 	// without anti-aliasing at the sizes the game uses (owner 06/10: "why are they still pixelated ... texts in that game is
 	// so bad"). ANTIALIASED_QUALITY obeys the font's own 'gasp' table, and Arial's says 9-17 ppem = GRIDFIT only, no gray
 	// (arialbd.ttf: 9-10 ppem), so GDI drew those sizes bilevel. Measured with the engine's own glyph path run standalone
@@ -1855,9 +1855,9 @@ FontCharsClass::Free_GDI_Font ()
 //
 // GeneralsX @build fbraz 11/02/2026 - Used by both Windows GDI and Linux FreeType
 ////////////////////////////////////////////////////////////////////////////////////
-// GeneralsX @bugfix Claude 14/09/2026 Report a degenerate cell instead of storing it.
+// GeneralsX: Report a degenerate cell instead of storing it.
 //
-// GeneralsX @bugfix Claude 24/09/2026 Ported by hand from upstream PR #3268 (b57adac01). The buffer used
+// GeneralsX: Ported by hand from upstream PR #3268 (b57adac01). The buffer used
 // to be a fixed CHAR_BUFFER_LEN (32768) array, and this function only asked "does the cell fit in what
 // is LEFT of the current buffer", answering a no with a fresh buffer that was still only 32768 cells.
 // A single glyph cell with char_width * CharHeight > CHAR_BUFFER_LEN therefore overran the new buffer.
@@ -1896,7 +1896,7 @@ FontCharsClass::Update_Current_Buffer (int char_width)
 	if (needs_new_buffer)
 	{
 		// TheSuperHackers @fix arcticdolphin 07/09/2026 Length may exceed CHAR_BUFFER_LEN to fit this glyph.
-		// GeneralsX @bugfix Claude 24/09/2026 Zero-initialised, where upstream's array is not. The pooled
+		// GeneralsX: Zero-initialised, where upstream's array is not. The pooled
 		// FontCharsBuffer this replaces came from MemoryPool::allocateBlock, which memsets the block, and
 		// Store_Freetype_Char writes only the glyph bitmap's pixels into its cell: every other pixel of the
 		// cell relies on starting as 0 (transparent). Upstream's GDI-only path writes the whole cell.
@@ -1972,7 +1972,7 @@ FontCharsClass::Locate_Font_FontConfig (const char *font_name)
 	//
 	//	Initialize Fontconfig library
 	//
-	// GeneralsX @performance Claude 23/09/2026 Load the Fontconfig configuration once per process.
+	// GeneralsX: Load the Fontconfig configuration once per process.
 	// FcInitLoadConfigAndFonts parses fonts.conf/conf.d and loads every font cache (6-36 ms warm,
 	// over a second on a cache revalidation) and ran for every new font (~50 per launch, 4 inside
 	// match load). The inputs (config files, FONTCONFIG_* env set before launch, font dirs) do not
@@ -2028,7 +2028,7 @@ FontCharsClass::Locate_Font_FontConfig (const char *font_name)
 //
 //	Create_Freetype_Font
 //
-// GeneralsX @build fbraz 11/02/2026 BenderAI -  Initialize FreeType font (fighter19 pattern)
+// GeneralsX @build fbraz 11/02/2026 -  Initialize FreeType font (fighter19 pattern)
 ////////////////////////////////////////////////////////////////////////////////////
 bool
 FontCharsClass::Create_Freetype_Font (const char *font_name)
@@ -2041,7 +2041,7 @@ FontCharsClass::Create_Freetype_Font (const char *font_name)
 		return false;
 	}
 
-	// GeneralsX @bugfix Claude 27/07/2026 Select the v35 TrueType interpreter.
+	// GeneralsX: Select the v35 TrueType interpreter.
 	//
 	// FreeType defaults to interpreter v40 ("minimal" hinting), which deliberately does NOT
 	// grid-fit horizontal stems - it only hints vertically and leaves horizontal positioning to
@@ -2170,7 +2170,7 @@ FontCharsClass::Create_Freetype_Font (const char *font_name)
 //
 //	Store_Freetype_Char
 //
-// GeneralsX @build fbraz 11/02/2026 BenderAI - FreeType character rendering (fighter19 pattern)
+// GeneralsX @build fbraz 11/02/2026 - FreeType character rendering (fighter19 pattern)
 ////////////////////////////////////////////////////////////////////////////////////
 const FontCharsClassCharDataStruct *
 FontCharsClass::Store_Freetype_Char (WCHAR ch)
@@ -2188,7 +2188,7 @@ FontCharsClass::Store_Freetype_Char (WCHAR ch)
 		return nullptr;
 	}
 
-	// GeneralsX @bugfix Claude 19/08/2026 BOLD WAS REQUESTED AND SILENTLY IGNORED.
+	// GeneralsX: BOLD WAS REQUESTED AND SILENTLY IGNORED.
 	//
 	// Locate_Font_FontConfig() is handed the font NAME and nothing else, so the weight never
 	// reaches face selection: every bold=1 request resolved to the regular face. Measured on macOS
@@ -2341,7 +2341,7 @@ FontCharsClass::Store_Freetype_Char (WCHAR ch)
 //
 //	Free_Freetype_Font
 //
-// GeneralsX @build fbraz 11/02/2026 BenderAI - Cleanup FreeType resources
+// GeneralsX @build fbraz 11/02/2026 - Cleanup FreeType resources
 ////////////////////////////////////////////////////////////////////////////////////
 void
 FontCharsClass::Free_Freetype_Font (void)

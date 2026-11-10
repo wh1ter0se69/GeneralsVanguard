@@ -70,7 +70,7 @@ public:
 	static BOOL WINAPI symCleanup(
 		HANDLE hProcess);
 
-	// GeneralsX @bugfix Claude 27/07/2026 Address parameters must be pointer-width, not DWORD.
+	// GeneralsX: Address parameters must be pointer-width, not DWORD.
 	//
 	// dbghelp.h remaps every one of these to its ...64 form under _WIN64 - SymGetModuleBase becomes
 	// SymGetModuleBase64, PIMAGEHLP_SYMBOL becomes PIMAGEHLP_SYMBOL64, STACKFRAME becomes STACKFRAME64

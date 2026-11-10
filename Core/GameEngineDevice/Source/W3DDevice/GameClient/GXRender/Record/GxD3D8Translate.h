@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: GxD3D8Translate - D3D8 device calls -> GxPacketWriter packets (the L1
+// GeneralsX: WS-F1: GxD3D8Translate - D3D8 device calls -> GxPacketWriter packets (the L1
 // d3d8 -> key / state builder, first used by the capture replay).
 //
 // It holds the D3D8 device state a fixed-function draw reads (render states, stage states, transforms, lights, material,
@@ -90,14 +90,14 @@ struct GxTranslateDebug
 	bool fvfSpecularFirst = false;    // FVF specular placed before diffuse
 	bool upKeepsStream = false;       // an UP draw leaves stream 0 bound
 	bool allowZeroPrims = false;      // a zero-primitive draw is not refused
-	bool depthClearFollowsDrop = false; // a depth clear on a sample-mismatched pair is dropped with the depth (Codex rw3L-code-r8 #3)
+	bool depthClearFollowsDrop = false; // a depth clear on a sample-mismatched pair is dropped with the depth
 	bool skipStrideCheck = false;     // a stride below the attribute extent reaches Vulkan
 	bool multiplyReversed = false;    // MultiplyTransform computes current * m in row-major storage
 	bool deleteErasesBound = false;   // deleting a bound shader drops its data at once
 	bool zeroDefaultLight = false;    // LightEnable on an unset index enables a zero light
 	bool lightsSorted = false;        // enabled lights packed in index order, the first 8
 	bool vsZeroClears = false;        // SetVertexShader(0) binds FVF 0
-	bool vsZeroKeepsProgram = false;  // SetVertexShader(0) leaves a live programmable shader bound (Codex rw3L-code-r4 #2)
+	bool vsZeroKeepsProgram = false;  // SetVertexShader(0) leaves a live programmable shader bound
 	bool drawClassWrongBit = false;   // the draw class's blend bit read from depthWrite (stats().drawClasses identity case)
 	bool packKeepsOnMaterial = false; // SetMaterial does not invalidate the cached pack (cut 3b: a setter that misses an input)
 	bool packWorldStale = false;      // a world-matrix change leaves the cached WorldView / NormalMatrix as they were (cut 3b)
@@ -210,7 +210,7 @@ public:
 	void indices(Res::GxBuffer* buffer, uint32_t baseVertex);
 	void texture(uint32_t stage, Res::GxTexture* t);
 	// bindViewport = a d3d8 SetRenderTarget with a colour surface: the viewport resets to the whole target, depth [0, 1] (DXVK,
-	// even for the same surface - Codex rw3L-translate-r2 #1). false = the same binding under new storage (a Present rotation).
+	// even for the same surface). false = the same binding under new storage (a Present rotation).
 	void renderTarget(const GxD3D8Target& color, const GxD3D8Target& depth, bool bindViewport = false);
 	// D3DRECTs (x1, y1, x2, y2), clipped to the viewport as D3D8 does; flags = D3DCLEAR_TARGET 1 | ZBUFFER 2 | STENCIL 4
 	void clear(uint32_t count, const int32_t* rects, uint32_t flags, uint32_t color, float z, uint32_t stencil);
@@ -237,7 +237,7 @@ public:
 	void setBuildCustomOnMiss(bool on);
 	const GxD3D8Target& colorTarget() const { return m_color; }
 	// An attachment of the writer's current pass (the last one begun here). A whole-target clear waits in that pass as its load op
-	// and GxPacketWriter::forget resets the pass: the device runs the clear before destroying such an image (Codex rw3L-code-r8 #2).
+	// and GxPacketWriter::forget resets the pass: the device runs the clear before destroying such an image.
 	// Compared, never dereferenced (it may be stale).
 	bool inWriterPass(const Res::GxImage* img) const { return img && (img == m_passColor || img == m_passDepth); }
 
@@ -314,7 +314,7 @@ private:
 	bool m_packCheck = false;
 	struct StaleSnap { uint32_t rs[256]; uint32_t tss[8][32]; };
 	std::unique_ptr<StaleSnap> m_staleSnap;   // TEST-ONLY (m_debug.nonInputStale): rs / tss as the last repack saw them; allocated
-	                                          // only when the plant is on (Codex a25-code-r3: no product storage)
+	                                          // only when the plant is on (no product storage)
 	void (*m_observe)(const GxDrawPacket&, void*) = nullptr;
 	void* m_observeUser = nullptr;
 };

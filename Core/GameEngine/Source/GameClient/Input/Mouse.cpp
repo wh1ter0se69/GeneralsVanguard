@@ -182,7 +182,7 @@ void Mouse::updateMouseData()
 	}
 
 	if( index > 0 ) {
-		// GeneralsX @bugfix BenderAI 17/02/2026 Debug mouse events
+		// GeneralsX: Debug mouse events
 		//fprintf(stderr, "[MOUSE] updateMouseData: %d events this frame\n", index - 1);
 		m_eventsThisFrame = index - 1;
 	} else
@@ -598,7 +598,7 @@ void Mouse::init()
 	onResolutionChanged();
 	m_tooltipString.clear();	// redundant
 	m_displayTooltip = FALSE;
-	// GeneralsX @feature Claude 07/08/2026 Drop the hover target too. It holds a GameWindow address
+	// GeneralsX: Drop the hover target too. It holds a GameWindow address
 	// and the window system is being (re)built around this call, so this is the one place where
 	// clearing the comparison token is worth more than it costs.
 	m_tooltipTargetOwner = nullptr;
@@ -750,7 +750,7 @@ void Mouse::createStreamMessages()
 	{
 		processMouseEvent(i);
 
-		// GeneralsX @feature Claude 07/08/2026 Tooltip persistence.
+		// GeneralsX: Tooltip persistence.
 		//
 		// Stock restarted the hover wait on ANY movement, in both directions: you had to hold the
 		// cursor perfectly still to make a tooltip appear, and one pixel of drift then took it away

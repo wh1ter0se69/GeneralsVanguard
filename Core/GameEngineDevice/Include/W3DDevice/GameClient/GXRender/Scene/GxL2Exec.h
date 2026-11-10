@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G: the DRAW-TIME half of CONTRACT_L2.md §2 (E2, E4) and the effective-state id of §1.4,
+// GeneralsX: WS-G: the DRAW-TIME half of CONTRACT_L2.md §2 (E2, E4) and the effective-state id of §1.4,
 // judged from a draw's device-truth snapshot (DX8Wrapper::GxTruth*, captured at the task's own draw by GxScene.cpp). Engine-free so
 // scripts/test/l2-exec-test.cpp can plant a defect in each rule (GX_L2X_MUTANT=n) and see it caught. The D3D8 numbers are the
 // d3d8types.h ABI; GxScene.cpp static_asserts them against the real enums.
@@ -102,7 +102,7 @@ inline gxl2::ShaderDesc e4Decode(const unsigned rs[256], uint32_t shaderBits)
 
 // §1.4 effectiveState: one id per distinct value set of the slots e2Known requires (FNV-1a, 64 bit) - minus D3DRS_AMBIENT, which
 // Set_Light_Environment writes per task from its light environment: per-instance data like the lights, never part of the key.
-// ponytail: a hash, not an interning table - two states colliding in 64 bits would share a key; intern if a census ever shows it.
+// Trade-off: a hash, not an interning table - two states colliding in 64 bits would share a key; intern if a census ever shows it.
 inline uint64_t effectiveId(const unsigned rs[256], const unsigned tss[][32], const bool tssKnown[][32], const SlotList &s)
 {
 	uint64_t h = 1469598103934665603ull;
@@ -148,7 +148,7 @@ inline void ndcRect(const float vp[16], const gxl2::Aabb &b, float guard, float 
 
 // §3.3 delta: the depth buffer's step (2^-bits of [0,1]) converted to world distance at the far plane, x4 safety - the largest step
 // anywhere in the frustum (perspective depth precision is worst at the far plane). depthBits from the ACTIVE format (Find_Z_Mode can
-// fall back to D16 / D15S1 - Codex rw1-G-r18); unknown format or clip planes: infinite (every pair tie-capable, nothing reorders).
+// fall back to D16 / D15S1); unknown format or clip planes: infinite (every pair tie-capable, nothing reorders).
 inline float tieEps(float znear, float zfar, int depthBits)
 {
 	if (!(znear > 0.0f) || !(zfar > znear) || depthBits <= 0) return FLT_MAX;

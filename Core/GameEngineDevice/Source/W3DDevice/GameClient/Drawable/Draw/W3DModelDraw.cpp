@@ -560,7 +560,7 @@ void ModelConditionInfo::preloadAssets( TimeOfDay timeOfDay, Real scale )
 	{
 		TheDisplay->preloadModelAssets( m_modelName );
 
-		// GeneralsX @perf Claude 29/09/2026 And the files the model's first use would still read inside a logic tick: making
+		// GeneralsX: And the files the model's first use would still read inside a logic tick: making
 		// it loads its hierarchy (often a separate _SKL file), and each animation lives in a file of its own. By name only,
 		// through the asset manager: no Drawable, nothing cached in this module data (validateStuff stays on first use, with
 		// the first real drawable's scale), no draw from either random stream.
@@ -1346,7 +1346,7 @@ void W3DModelDrawModuleData::preloadAssets( TimeOfDay timeOfDay, Real scale ) co
 
 	}
 
-	// GeneralsX @perf Claude 29/09/2026 the transition states too: their animations load on first use like the rest
+	// GeneralsX: the transition states too: their animations load on first use like the rest
 	for( TransitionMap::iterator t = m_transitionMap.begin(); t != m_transitionMap.end(); ++t )
 		t->second.preloadAssets( timeOfDay, scale );
 
@@ -1457,7 +1457,7 @@ enum AnimParseType CPP_11(: Int)
 //-------------------------------------------------------------------------------------------------
 static void parseAnimation(INI* ini, void *instance, void * /*store*/, const void* userData)
 {
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use uintptr_t for pointer cast (fighter19 64-bit pattern)
+	// GeneralsX: Use uintptr_t for pointer cast (fighter19 64-bit pattern)
 	AnimParseType animType = (AnimParseType)(uintptr_t)userData;
 
 	AsciiString animName = ini->getNextAsciiString();
@@ -1688,7 +1688,7 @@ void W3DModelDrawModuleData::parseConditionState(INI* ini, void *instance, void 
 
 	ModelConditionInfo info;
 	W3DModelDrawModuleData* self = (W3DModelDrawModuleData*)instance;
-	// GeneralsX @bugfix BenderAI 13/02/2026 Use uintptr_t for pointer cast (fighter19 64-bit pattern)
+	// GeneralsX: Use uintptr_t for pointer cast (fighter19 64-bit pattern)
 	ParseCondStateType cst = (ParseCondStateType)(uintptr_t)userData;
 	switch (cst)
 	{
@@ -2291,7 +2291,7 @@ void W3DModelDraw::adjustTransformMtx(Matrix3D& mtx) const
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @performance Claude 23/09/2026 True when doDrawModule's per-frame Set_Transform would be
+// GeneralsX: True when doDrawModule's per-frame Set_Transform would be
 // a no-op: an HLOD whose transform is already bit-identical and whose pose is not advanced by time.
 // HLodClass::Set_Transform stores the matrix, invalidates the cached bounds and dirties the hierarchy
 // and every sub-object transform (hlod.cpp, animobj.cpp, rendobj.cpp Set_Transform), which makes the
@@ -2302,7 +2302,7 @@ void W3DModelDraw::adjustTransformMtx(Matrix3D& mtx) const
 // under Transform and ObjectScale, so animation never moves them and they stay correct too.
 // SINGLE_ANIM that is not ANIM_MODE_MANUAL follows the clock, and the per-frame invalidation is what keeps a
 // Get_Bone_Transform between two renders (updateBonesForClientParticleSystems) on the current frame instead of
-// the previous one. GeneralsX @performance Claude 07/10/2026 R-CPU pose cache: so such a model is skipped only
+// the previous one. GeneralsX: R-CPU pose cache: so such a model is skipped only
 // when its built pose is already the one the clock gives now (Animatable3DObjClass::Is_Clock_Pose_Current: the
 // same frame and direction, nothing invalidated since). The WW3D clock steps once per draw, in W3DDisplay::draw
 // before the views draw, so it does not move between this check and the readers of this draw; such a Get_Bone_
@@ -2754,7 +2754,7 @@ void W3DModelDraw::stopClientParticleSystems()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @performance Claude 23/09/2026 Capture_Bone + Control_Bone, skipped when the bone is
+// GeneralsX: Capture_Bone + Control_Bone, skipped when the bone is
 // already captured with a bit-identical control matrix. Control_Bone only stores the matrix and
 // invalidates the hierarchy (animobj.cpp Control_Bone, htree.cpp Control_Bone), so re-storing the
 // same bits changes nothing but forcing HTree Base_Update and every sub-object Set_Transform on the
@@ -2812,7 +2812,7 @@ void W3DModelDraw::handleClientTurretPositioning() const
 				if (ai)
 				{
 					ai->getTurretRotAndPitch((WhichTurretType)tslot, &turretAngle, &turretPitch);
-					// GeneralsX @feature Claude 29/09/2026 On the hull as it is drawn this frame (render interpolation).
+					// GeneralsX: On the hull as it is drawn this frame (render interpolation).
 					getDrawable()->getDrawnTurretRotAndPitch((WhichTurretType)tslot, &turretAngle, &turretPitch);
 				}
 			}
@@ -2880,7 +2880,7 @@ void W3DModelDraw::handleClientRecoil()
 
 	const W3DModelDrawModuleData* d = getW3DModelDrawModuleData();
 
-	// GeneralsX @bugfix Claude 06/08/2026 Class-C gate - see m_lastRecoilLogicFrame in the header.
+	// GeneralsX: Class-C gate - see m_lastRecoilLogicFrame in the header.
 	// One stamp for every slot and barrel, taken after the early-out so a model with no barrels
 	// never stamps. Only the recoil STATE MACHINE below is gated; the muzzle-flash hide/show, the
 	// gunXfrm application to the control bone and the m_recoilBone==0 reset all stay unconditional,
@@ -3070,8 +3070,8 @@ Bool W3DModelDraw::updateBonesForClientParticleSystems()
 	const Drawable* drawable = getDrawable();
 	if (drawable != nullptr && m_curState != nullptr && m_renderObject != nullptr )
 	{
-		// GeneralsX @feature Claude 29/09/2026 Render interpolation: AnimatedParticleSysBoneClientUpdate calls this before
-		// this frame's draw, when the bones still hold the last draw's pose: carry them to this frame's (Codex interp-r13),
+		// GeneralsX: Render interpolation: AnimatedParticleSysBoneClientUpdate calls this before
+		// this frame's draw, when the bones still hold the last draw's pose: carry them to this frame's,
 		// turret first as in getCurrentWorldspaceClientBonePositions. Both are no-ops pinned to 1 and inside the draw.
 		if (gxNeedsPoseCarry())
 			handleClientTurretPositioning();
@@ -3240,7 +3240,7 @@ void W3DModelDraw::hideAllHeadlights(Bool hide)
 		for (Int subObj = 0; subObj < m_renderObject->Get_Num_Sub_Objects(); subObj++)
 		{
 			RenderObjClass* test = m_renderObject->Get_Sub_Object(subObj);
-			// GeneralsX @bugfix Claude 01/10/2026 Get_Name() is nullable (mesh without a name); idea from Generals Online 5f1d7f163, reimplemented.
+			// GeneralsX: Get_Name() is nullable (mesh without a name); idea from Generals Online 5f1d7f163, reimplemented.
 			const char* subName = test->Get_Name();
 			if (subName && strstr(subName,"HEADLIGHT"))
 			{
@@ -4007,9 +4007,9 @@ Bool W3DModelDraw::getCurrentWorldspaceClientBonePositions(const char* boneName,
 	if (boneIndex == 0)
 		return false;
 
-	// GeneralsX @feature Claude 29/09/2026 Render interpolation: a query can come before this model is drawn this frame (a
+	// GeneralsX: Render interpolation: a query can come before this model is drawn this frame (a
 	// laser anchored to its turret and drawn first), while the turret bones still hold the last draw's angle, which moves
-	// every frame as it interpolates (Codex interp-r10 P2). Put the turret at this frame's drawn angle first, as
+	// every frame as it interpolates. Put the turret at this frame's drawn angle first, as
 	// doDrawModule will. Only while interpolating: pinned to 1 the query reads what it always read.
 	if (gxNeedsPoseCarry())
 		handleClientTurretPositioning();
@@ -4021,9 +4021,9 @@ Bool W3DModelDraw::getCurrentWorldspaceClientBonePositions(const char* boneName,
 	return true;
 }
 
-// GeneralsX @feature Claude 29/09/2026 Render interpolation: bone, read from m_renderObject where it sits now, as it is once
+// GeneralsX: Render interpolation: bone, read from m_renderObject where it sits now, as it is once
 // m_renderObject is placed from pose the way doDrawModule places it - the instance scale, then adjustTransformMtx, which a
-// module riding on a container's bone replaces outright with that bone (W3DDependencyModelDraw; Codex interp-r19). From
+// module riding on a container's bone replaces outright with that bone (W3DDependencyModelDraw). From
 // the render object's own transform, so every way it was placed (a draw, a logic move, a recreated model) is covered.
 void W3DModelDraw::gxCarryBone(const Matrix3D& pose, Matrix3D& bone) const
 {
@@ -4035,7 +4035,7 @@ void W3DModelDraw::gxCarryBone(const Matrix3D& pose, Matrix3D& bone) const
 	if (memcmp(&target, &placed, sizeof(Matrix3D)) == 0)
 		return;
 	// General inverse, since the placement may carry the instance scale. A singular one (a mod scaling a model to zero,
-	// EMPUpdate's data-driven scale) leaves the bone where it is, as it always was (Codex interp-r20).
+	// EMPUpdate's data-driven scale) leaves the bone where it is, as it always was.
 	Matrix3D inverse, carry, carried;
 	if (Matrix3D::Get_Inverse(&inverse, nullptr, &placed) == nullptr)
 		return;
@@ -4044,7 +4044,7 @@ void W3DModelDraw::gxCarryBone(const Matrix3D& pose, Matrix3D& bone) const
 	bone = carried;
 }
 
-// GeneralsX @feature Claude 29/09/2026 Render interpolation: TRUE while interpolation is active or m_renderObject still holds
+// GeneralsX: Render interpolation: TRUE while interpolation is active or m_renderObject still holds
 // a pose from between two logic frames, so a bone read from it may not be at this frame's pose.
 Bool W3DModelDraw::gxNeedsPoseCarry() const
 {
@@ -4151,8 +4151,8 @@ void W3DModelDraw::reactToTransformChange( const Matrix3D* oldMtx,
 	{
 		Object *obj = getDrawable()->getObject();
 		const Coord3D* pos = getDrawable()->getPosition();
-		// GeneralsX @feature Claude 29/09/2026 Render interpolation: the body is drawn between the previous logic position and
-		// this one, so a track extended to this one would lead it by up to a tick (Codex interp-r21). While interpolating it
+		// GeneralsX: Render interpolation: the body is drawn between the previous logic position and
+		// this one, so a track extended to this one would lead it by up to a tick. While interpolating it
 		// is extended to the previous position, which the drawn body has always reached; the mark ends under the hull.
 		if (oldPos != nullptr && TheDisplay != nullptr && TheDisplay->isInterpolationActive())
 			pos = oldPos;
@@ -4184,7 +4184,7 @@ const ModelConditionInfo* W3DModelDraw::findBestInfo(const ModelConditionFlags& 
 // GX-SIMID-BEGIN the simulation reads this - resources/gitinfo/simsourcedigest_watcher.cmake
 Int W3DModelDraw::getBarrelCount(WeaponSlotType wslot) const
 {
-	// GeneralsX @bugfix Claude 02/10/2026 Count the barrels of the state LOGIC believes current, never m_curState.
+	// GeneralsX: Count the barrels of the state LOGIC believes current, never m_curState.
 	// Weapon::privateFireWeapon turns this count into the CRC'd m_curBarrel / m_numShotsForCurBarrel, but m_curState is
 	// per-client: a transition or allow-to-finish state is retired only in doDrawModule, which runs only for drawables this
 	// client draws (in view, not hidden or shrouded) and never on a -headless peer, and the DIRTY_CONDITION_FLAGS flush
@@ -4218,7 +4218,7 @@ Bool W3DModelDraw::handleWeaponFireFX(WeaponSlotType wslot, Int specificBarrelTo
 
 	Bool handled = false;
 
-	// GeneralsX @bugfix Claude 01/10/2026 Off by one: index == size read past the end of wbvec. Idea from Generals Online 626c566f0, reimplemented.
+	// GeneralsX: Off by one: index == size read past the end of wbvec. Idea from Generals Online 626c566f0, reimplemented.
 	if (specificBarrelToUse < 0 || specificBarrelToUse >= wbvec.size())
 		specificBarrelToUse = 0;
 
@@ -4269,7 +4269,7 @@ Bool W3DModelDraw::handleWeaponFireFX(WeaponSlotType wslot, Int specificBarrelTo
 	if (info.m_recoilBone || info.m_muzzleFlashBone)
 	{
 		//DEBUG_LOG(("START muzzleflash %08lx for Draw %08lx state %s at frame %d",info.m_muzzleFlashBone,this,m_curState->m_description.str(),TheGameLogic->getFrame()));
-		// GeneralsX @bugfix Claude 03/10/2026 Codex shroud-barrel P2: rebuildWeaponRecoilInfo sized this instance's recoils
+		// GeneralsX: review shroud-barrel P2: rebuildWeaponRecoilInfo sized this instance's recoils
 		// when m_curState was entered, but BARRELS_VALID lives in shared module data and getBarrelCount can validate the
 		// state afterwards (a state entered at render time, where validation is skipped), so wbvec can be longer than the
 		// recoils here. Resynchronise before indexing; specificBarrelToUse < wbvec.size() was enforced above.

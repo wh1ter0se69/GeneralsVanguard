@@ -528,8 +528,8 @@ Bool ScriptConditions::evaluatePlayerHasUnitKindInArea(Condition *pCondition, Pa
 	PolygonTrigger *pTrig = TheScriptEngine->getQualifiedTriggerAreaByName(pTriggerParm->getString());
 	if (pTrig == nullptr) return false;
 
-	// GeneralsX @bugfix Claude 06/10/2026 As in ScriptEngine::setPriorityKind: a kind-of bit outside the mask, which a
-	// parameter the file tags as anything but KIND_OF_PARAM can carry, threw out_of_range from isKindOf (Codex mlv-r6 #2).
+	// GeneralsX: As in ScriptEngine::setPriorityKind: a kind-of bit outside the mask, which a
+	// parameter the file tags as anything but KIND_OF_PARAM can carry, threw out_of_range from isKindOf.
 	if (pKindParm->getInt() < 0 || pKindParm->getInt() >= KINDOF_COUNT) {
 		return false;
 	}
@@ -907,12 +907,12 @@ Bool ScriptConditions::evaluateUnitHealth(Parameter *pUnitParm, Parameter* pComp
 
 	Real curHealth = theObj->getBodyModule()->getHealth();
 	Real initialHealth = theObj->getBodyModule()->getInitialHealth();
-	// GeneralsX @bugfix Claude 06/10/2026 NO 0/0 HERE: a cross-platform desync. A named object with no real health (an
+	// GeneralsX: NO 0/0 HERE: a cross-platform desync. A named object with no real health (an
 	// InactiveBody answers 0 for both) made this NaN, and the Int conversion is target-defined for NaN: x64 gives INT_MIN,
 	// arm64 0, so a script testing its health branched differently on Windows and on a Mac or iPad. No health is 0 %, as
 	// arm64 computed and SlowDeathBehavior::getProbabilityModifier decides for max health 0; gx_real_to_int pins the rest
 	// of the range the same way on every target (sweep c019-05). A NEGATIVE initial health (INI accepts one) divides as
-	// before (Codex r1).
+	// before.
 	Int curPercent = initialHealth != 0.0f ? gx_real_to_int((curHealth*100 + initialHealth/2)/initialHealth) : 0;
 
 	switch (pComparisonParm->getInt())
@@ -2466,7 +2466,7 @@ Bool ScriptConditions::evaluateSkirmishSupplySourceSafe(Condition *pCondition, P
 {
 	// Trigger every 32 frames on the 31st frame. jba.
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 every 32 RETAIL frames, on the last one (ZH replaced this with a 2 s custom-frame gate).
+	// GeneralsX: every 32 RETAIL frames, on the last one (ZH replaced this with a 2 s custom-frame gate).
 	Bool anyChanges = (TheGameLogic->getFrame() % GX_FRAMES30(32)) == (UnsignedInt)(GX_FRAMES30(32) - 1);
 #else
 	Bool anyChanges = (TheGameLogic->getFrame() & 0x1F) == 0x1F;
@@ -2650,7 +2650,7 @@ Bool ScriptConditions::evaluateCondition( Condition *pCondition )
 		case Condition::TEAM_HAS_UNITS:
 			return evaluateHasUnits(pCondition->getParameter(0));
 		case Condition::CAMERA_MOVEMENT_FINISHED:
-			// GeneralsX @bugfix Claude 08/10/2026 The simulation's scripted camera (GameLogic/ScriptedCamera.h), not the view's:
+			// GeneralsX: The simulation's scripted camera (GameLogic/ScriptedCamera.h), not the view's:
 			// a -headless peer's ViewDummy answered TRUE mid-move, a rendered one's could follow the player's own camera keys
 			return TheScriptedCamera.isCameraMovementFinished();
 		case Condition::TEAM_STATE_IS:

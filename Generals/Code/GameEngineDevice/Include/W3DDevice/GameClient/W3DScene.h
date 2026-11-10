@@ -89,7 +89,7 @@ public:
 	W3DDynamicLight *getADynamicLight();
 	void setGlobalLight(LightClass *pLight,Int lightIndex=0);
 	LightEnvironmentClass &getDefaultLightEnv() {return m_defaultLightEnv;}
-	// GeneralsX @performance Claude 23/09/2026 Replaces createLightsIterator()/destroyLightsIterator(): callers
+	// GeneralsX: Replaces createLightsIterator()/destroyLightsIterator(): callers
 	// build a RefRenderObjListIterator on the stack over this list.
 	// Upstream reference: Mauller, PR #2646
 	// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2646

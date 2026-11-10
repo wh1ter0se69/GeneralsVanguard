@@ -45,7 +45,7 @@ struct W3DVolumetricShadowRenderTask : public W3DBufferManager::W3DRenderTask
 	W3DVolumetricShadow	*m_parentShadow;		///<main casting object to which this volume belongs.
 	UnsignedByte		m_meshIndex;		///<mesh index of volume within parent to render.
 	UnsignedByte		m_lightIndex;		///<light index of volume within parent to render.
-	// GeneralsX @performance Claude 23/09/2026 Where a dynamic volume's first-pass upload landed in the dynamic
+	// GeneralsX: Where a dynamic volume's first-pass upload landed in the dynamic
 	// VB/IB, so the second (DECR) pass can draw it again without re-uploading. Valid only while m_uploadEpoch
 	// equals the manager's upload epoch (0 = not uploaded).
 	UnsignedInt		m_uploadEpoch;
@@ -78,7 +78,7 @@ public:
 
 	// rendering
 	void renderShadows( Bool forceStencilFill );
-	// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 (PREREG_look-shadowmaps A4/A7/A8/A28, A39/A41): the shadow map's caster walk -
+	// GeneralsX: S7 (PREREG_look-shadowmaps A4/A7/A8/A28, A39/A41): the shadow map's caster walk -
 	// every caster today's volumes would draw (enabled, not invisible), as its ROOT render object (sorted, for the mesh tag's lookup),
 	// with its OWN LIGHT when its elevation clamp binds (GXShadowMapFit.h ownLight: the instance's live m_shadowLengthScale - template
 	// or raised at runtime by updateOptimalExtrusionPadding, which the walk runs exactly where Update() would: A41 P2-2), and the
@@ -90,7 +90,7 @@ public:
 		std::vector<uint8_t> cand;					///< parallel to roots: A47 - one of its shadows passes 2003's own Update pre-cull (1)
 		std::vector<uint8_t> posed;					///< parallel to roots: A48 - classic's pose trigger found a visible geometry mesh (1)
 		Real nearDist = 0.0f;						///< the nearest caster bound's axis distance from L
-		Real topZ = 0.0f;							///< the highest world Z any caster reaches (the fit raises its slab to it: Codex code-fit3-r1 #1)
+		Real topZ = 0.0f;							///< the highest world Z any caster reaches (the fit raises its slab to it)
 		Real minZ0 = 0.0f;							///< the lowest own-light plane (the fit lowers its slab to it: A41 P2-4)
 		Bool any = FALSE, anyOwn = FALSE;
 		UnsignedInt clampedTemplate = 0, clampedRuntime = 0;	///< roots with a binding clamp: the template's / raised at runtime (M5)
@@ -101,7 +101,7 @@ public:
 	// pulled root's sphere enters nearDist pulled (pulledNear), and the census counts the pull class
 	void gxShadowMapWalk(GxShadowMapWalkOut &out, const Vector3 &L, const Vector3 &axis, const AABoxClass &visibleBox, Real pullEps = 0.0f,
 		Real pullMuMax = 0.0f);
-	// GeneralsX @test D · look-shadowmaps-5 18/10/2026 S7 PREREG A60/A60a (TEST-ONLY, the D60 diagnostic): TRUE when the spec names this
+	// GeneralsX: S7 PREREG A60/A60a (TEST-ONLY, the D60 diagnostic): TRUE when the spec names this
 	// mesh - <CONTAINERPREFIX>.<MESH>, case-insensitive (its name after the last '.' is MESH, the part before starts with CONTAINERPREFIX).
 	// map = FALSE: GX_SHADOW_DROP_MESH, 2003's volume geometry skips it (key OFF arms only). map = TRUE: GX_SHADOWMAP_DROP_CAST, S7's
 	// meshBegin strips CAST from its draws (nothing else changes). Unset: FALSE. A73 (E · look-shadowmaps-6): a comma list of up to 8
@@ -115,7 +115,7 @@ protected:
 		// to render the stencil buffer polygon to the screen
 		void renderStencilShadows();
 
-		// GeneralsX @performance Claude 23/09/2026 A contiguous array replaces the m_next chain. Each caster is a
+		// GeneralsX: A contiguous array replaces the m_next chain. Each caster is a
 		// ~23 KB object, so walking the chain cost one dependent cache miss per caster on every rendered frame - most
 		// of it on casters the enable check then skips (fogged, stealthed). An array lets the walk prefetch ahead.
 		// Stored oldest first; every walk runs it BACKWARDS, which is exactly the old newest-first chain order.

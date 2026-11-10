@@ -1215,7 +1215,7 @@ ParticleEmitterDefClass::Save_User_Data (ChunkSaveClass &chunk_save)
 	// Begin a chunk that contains user information
 	if (chunk_save.Begin_Chunk (W3D_CHUNK_EMITTER_USER_DATA) == TRUE) {
 
-		// GeneralsX @build BenderAI 10/02/2026 - Remove :: prefix so osdep.h macro applies
+		// GeneralsX: Remove :: prefix so osdep.h macro applies
 		DWORD string_len = m_pUserString ? (lstrlen (m_pUserString) + 1) : 0;
 
 		// Fill the header structure

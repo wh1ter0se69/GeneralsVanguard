@@ -245,7 +245,7 @@ Bool Keyboard::checkKeyRepeat()
 					m_keyRepeatTimeMsec[ index ] = now + Keyboard::KEY_REPEAT_DELAY_MSEC;
 				}
 
-				// GeneralsX @bugfix Claude 07/08/2026 The repeat rate was the CALL RATE, not the interval.
+				// GeneralsX: The repeat rate was the CALL RATE, not the interval.
 				// The old back-dated timestamp scheme repeated on every poll. Upstream #3591 replaced it
 				// with a "next repeat time"; the next repeat is exactly one interval away, whatever the
 				// frame or poll rate.

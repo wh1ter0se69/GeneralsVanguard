@@ -34,7 +34,7 @@ public:
 	static UnsignedInt getCurrentReplayIndex() { return s_replayIndex; }
 	static UnsignedInt getReplayCount() { return s_replayCount; }
 
-	// GeneralsX @bugfix Claude 04/10/2026 GameLogic::startNewGame calls this when it refuses to start the replay's game
+	// GeneralsX: GameLogic::startNewGame calls this when it refuses to start the replay's game
 	// (its map did not open, other map-data, over capacity...). The refusal's clearGameData resets the recorder, so the
 	// loops saw neither a failed playbackFile nor a CRC mismatch and counted a replay that never ran as a pass.
 	static void noteStartRefused() { s_startRefused = true; }

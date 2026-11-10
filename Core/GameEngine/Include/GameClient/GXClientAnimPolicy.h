@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @bugfix Claude 29/10/2026 Cb-06a: client animations that ran at the render rate (wh1ter0se's 2027 endpoint: smooth at
+// GeneralsX: Cb-06a: client animations that ran at the render rate (wh1ter0se's 2027 endpoint: smooth at
 // 120-240 Hz). Each stepped "so much per drawn frame": the camera lock's follow easing, the radar-attack glow (150 frames),
 // the command-button flash, the shell's 30 Hz update gate. At 240 fps they ran 4x as fast as at 60; at 600 fps the radar
 // glow lasted a quarter of a second.

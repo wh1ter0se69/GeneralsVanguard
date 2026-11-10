@@ -63,7 +63,7 @@
 #include "GameLogic/ScriptEngine.h"
 #include "GameLogic/Weapon.h"
 
-// GeneralsX @bugfix Claude 24/09/2026 One parser on every platform (was sscanf on Apple): see INIScanNumber.h.
+// GeneralsX: One parser on every platform (was sscanf on Apple): see INIScanNumber.h.
 #include "Common/INIScanNumber.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -186,7 +186,7 @@ INI::INI()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 06/10/2026 Mods that ship a whole Data\INI\CommandSet.ini / CommandButton.ini.
+// GeneralsX: Mods that ship a whole Data\INI\CommandSet.ini / CommandButton.ini.
 // The Community Patch blanks those two monolithic files (0 bytes) and ships the same definitions as
 // Data\INI\CommandSet\*.ini / Data\INI\CommandButton\*.ini, and loadFileDirectory loads the file AND
 // the directory. A retail-style mod's non-empty monolith therefore defined every set twice and the game
@@ -220,7 +220,7 @@ static Bool modProvidesMonolithicIni(const AsciiString &iniFile)
 //-------------------------------------------------------------------------------------------------
 UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadType, Xfer *pXfer, Bool subdirs )
 {
-	// GeneralsX @feature BenderAI 20/02/2026 Debug hang investigation
+	// GeneralsX: Debug hang investigation
 	fprintf(stderr, "[INI] loadFileDirectory('%s') START\n", fileDirName.str());
 	fflush(stderr);
 	
@@ -290,7 +290,7 @@ UnsignedInt INI::loadFileDirectory( AsciiString fileDirName, INILoadType loadTyp
 //-------------------------------------------------------------------------------------------------
 UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer *pXfer, Bool subdirs )
 {
-	// GeneralsX @feature BenderAI 20/02/2026 Debug hang investigation
+	// GeneralsX: Debug hang investigation
 	fprintf(stderr, "[INI] loadDirectory('%s') START\n", dirName.str());
 	fflush(stderr);
 	
@@ -308,7 +308,7 @@ UnsignedInt INI::loadDirectory( AsciiString dirName, INILoadType loadType, Xfer 
 	dirName.concat('\\');
 	TheFileSystem->getFileListInDirectory(dirName, "*.ini", rawList, subdirs);
 
-	// GeneralsX @bugfix Claude 27/07/2026 Canonicalise separators before the CRC sees this list.
+	// GeneralsX: Canonicalise separators before the CRC sees this list.
 	//
 	// FileSystem::getFileListInDirectory merges two producers into one set: the local filesystem
 	// and the archives. On Apple the local side emits '/' while archives emit '\', and the set is
@@ -389,7 +389,7 @@ void INI::prepFile( AsciiString filename, INILoadType loadType )
 	}
 
 	// open the file
-	// GeneralsX @build Claude 27/07/2026 WINDOWS HOOK for the SimID data identity.
+	// GeneralsX: WINDOWS HOOK for the SimID data identity.
 	// PROVABLY A NO-OP ON APPLE: File::BINARY is 0x40 (file.h) and LocalFile::open
 	// selects fopen mode "rb" instead of "r" (LocalFile.cpp, `mode = binary ? "rb" : "r"`),
 	// and on POSIX those are the same call - so the existing macOS/iOS m_iniCRC, and
@@ -488,7 +488,7 @@ static INIFieldParseProc findFieldParse(const FieldParse* parseTable, const char
 //-------------------------------------------------------------------------------------------------
 UnsignedInt INI::load( AsciiString filename, INILoadType loadType, Xfer *pXfer )
 {
-	// GeneralsX @feature BenderAI 20/02/2026 Debug hang investigation
+	// GeneralsX: Debug hang investigation
 	fprintf(stderr, "[INI] load('%s') START\n", filename.str());
 	fflush(stderr);
 	
@@ -526,17 +526,17 @@ UnsignedInt INI::load( AsciiString filename, INILoadType loadType, Xfer *pXfer )
 			{
 				const BlockParse *block = findBlockParse(token);
 				INIBlockParse parse = block != nullptr ? block->parse : nullptr;
-				// GeneralsX @bugfix Claude 10/10/2026 A MAP'S RULES MAY ONLY CONTAIN WHAT THE NEXT GAME CAN UNDO. A map.ini / solo.ini
+				// GeneralsX: A MAP'S RULES MAY ONLY CONTAIN WHAT THE NEXT GAME CAN UNDO. A map.ini / solo.ini
 				// (the only INI_LOAD_CREATE_OVERRIDES load, GameLogic::loadMapINI) can name any block in this table, and every block
 				// writes a store that outlives the match; a store that is not put back at reset leaves this process playing the
-				// next game by different rules than a fresh peer (Codex batch-0962 r35 + mapini-rollback-adv-r1). mapRules marks the
+				// next game by different rules than a fresh peer. mapRules marks the
 				// blocks whose store is put back (snapshot / Overridable / retire - each store's reset()), or whose leftover is only
 				// how captions, images and water LOOK (InGameUI, Language, MappedImage: used by real maps). The rest - none of them in
 				// any of the 431 retail and community map.ini / solo.ini files scanned 10/10 - is refused here, so the start takes
 				// the damaged-map refusal on every peer (all of them loaded the same sidecars), instead of changing later games.
 				// Only where a start CAN be refused (setMapRulesOnly, GameLogic::loadMapINI): a shell map or a campaign mission has no
-				// setup screen to go back to - the refusal path rethrows there - and loads such a block as before (Codex
-				// mapini-rollback-adv-r2 P2).
+				// setup screen to go back to - the refusal path rethrows there - and loads such a block as before.
+				//
 				if (block != nullptr && !block->mapRules && m_mapRulesOnly && getLoadType() == INI_LOAD_CREATE_OVERRIDES)
 				{
 					char buff[1024];
@@ -806,7 +806,7 @@ void INI::parseBool( INI* ini, void * /*instance*/, void *store, const void* /*u
 void INI::parseBitInInt32( INI *ini, void *instance, void *store, const void* userData )
 {
 	UnsignedInt* s = (UnsignedInt*)store;
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	UnsignedInt mask = static_cast<UnsignedInt>(reinterpret_cast<uintptr_t>(userData));
 
 	if (INI::scanBool(ini->getNextToken()))
@@ -1897,7 +1897,7 @@ void INI::parseDurationUnsignedInt( INI *ini, void * /*instance*/, void *store, 
 {
 	UnsignedInt val = scanUnsignedInt(ini->getNextToken());
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 Round UP on the RETAIL 30 Hz grid, then scale. Rounding on the
+	// GeneralsX: Round UP on the RETAIL 30 Hz grid, then scale. Rounding on the
 	// 60 Hz grid made every value that is not a multiple of 33.3 ms shorter than retail: 250 ms is
 	// 8 retail frames (266.7 ms) but was 15 frames (250 ms) here. BaseFps/MSEC_PER_SECOND is the same
 	// float 0.03f retail multiplies by. Scaled unsigned rather than through GX_FRAMES30 (Int): retail
@@ -1912,7 +1912,7 @@ void INI::parseDurationUnsignedInt( INI *ini, void * /*instance*/, void *store, 
 
 #if GX_LOGIC_60HZ
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 05/10/2026 GENERALS ONLINE PARITY (owner 05/10: "Look through everything GO does and do
+// GeneralsX: GENERALS ONLINE PARITY (owner 05/10: "Look through everything GO does and do
 // it"). GO converts every duration with the plain rounding at its tick rate, ceil(ms * 60 / 1000): 250 ms is 15
 // frames, where parseDurationUnsignedInt above gives retail's 8 x 2 = 16. The timers that decide WHEN A SHOT HAPPENS
 // (weapon, turret, fire-weapon and point-defence-laser timers, the idle auto-acquire waits MoodAttackCheckRate and
@@ -1931,7 +1931,7 @@ void INI::parseDurationUnsignedShort( INI *ini, void * /*instance*/, void *store
 {
 	UnsignedInt val = scanUnsignedInt(ini->getNextToken());
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 Retail 30 Hz rounding grid, then scale - see parseDurationUnsignedInt.
+	// GeneralsX: Retail 30 Hz rounding grid, then scale - see parseDurationUnsignedInt.
 	const UnsignedInt frames30 = (UnsignedInt)ceilf((Real)val * ((Real)BaseFps / (Real)MSEC_PER_SECOND));
 	*(UnsignedShort *)store = (UnsignedShort)(frames30 * (UnsignedInt)(LOGICFRAMES_PER_SECOND / BaseFps));
 #else
@@ -2028,7 +2028,7 @@ void INI::parseDamageTypeFlags(INI* ini, void* /*instance*/, void* store, const 
 		}
 		if (token[0] == '+')
 		{
-			// GeneralsX @bugfix Claude 24/09/2026 An unknown DamageType name now fails the INI parse (INI_INVALID_DATA) instead of indexing with -1.
+			// GeneralsX: An unknown DamageType name now fails the INI parse (INI_INVALID_DATA) instead of indexing with -1.
 			// Upstream reference: xezon, PR #3344
 			// https://github.com/TheSuperHackers/GeneralsGameCode/pull/3344
 			DamageType dt = (DamageType)scanIndexList(token+1, DamageTypeFlags::getBitNames());
@@ -2037,7 +2037,7 @@ void INI::parseDamageTypeFlags(INI* ini, void* /*instance*/, void* store, const 
 		}
 		if (token[0] == '-')
 		{
-			// GeneralsX @bugfix Claude 24/09/2026 An unknown DamageType name now fails the INI parse (INI_INVALID_DATA) instead of indexing with -1.
+			// GeneralsX: An unknown DamageType name now fails the INI parse (INI_INVALID_DATA) instead of indexing with -1.
 			// Upstream reference: xezon, PR #3344
 			// https://github.com/TheSuperHackers/GeneralsGameCode/pull/3344
 			DamageType dt = (DamageType)scanIndexList(token+1, DamageTypeFlags::getBitNames());

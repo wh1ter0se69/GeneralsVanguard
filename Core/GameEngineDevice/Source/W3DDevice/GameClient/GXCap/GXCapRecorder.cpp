@@ -1,4 +1,4 @@
-// GeneralsX @test Claude 10/10/2026 GXCAP recorder core (WS-I, gx-handoff modernize/render-seam/DESIGN_gxcap.md).
+// GeneralsX: GXCAP recorder core (WS-I, gx-handoff modernize/render-seam/DESIGN_gxcap.md).
 // A recording IDirect3DDevice8 proxy installed on DX8Wrapper::D3DDevice right after CreateDevice (DX8Wrapper::
 // Device_Wrap_Hook, set by GXCap.cpp), plus wrappers for the textures, surfaces and buffers it hands out. Everything that
 // reaches DXVK goes through that one pointer - the raw _Get_D3D_Device8() holders, DX8CALL users, the DX8Wrapper statics,
@@ -69,7 +69,7 @@ struct State
 	// d3d9 binding stays, which a snapshot (handle 0) cannot restore - a draw before the next set is UNSUPPORTED (branch-r6 #2)
 	uint32_t setVS = 0, setPS = 0;
 	bool delVS = false, delPS = false, staleVS = false, stalePS = false;
-	// setter shadows: values the application SET (the getters are lossy, e.g. d3d8 ZBIAS, Codex gxcap-design-r1 #5)
+	// setter shadows: values the application SET (the getters are lossy, e.g. d3d8 ZBIAS)
 	uint32_t rs[256] = {};
 	uint8_t rsSet[256] = {};
 	uint32_t tss[8][32] = {};
@@ -154,7 +154,7 @@ struct Rec
 };
 
 // A call belongs to the open screenshot only when it comes from the thread that opened the bracket: the mutex is released
-// between calls, so another thread's copy can land inside the bracket (Codex gxcap-design-r11 #1)
+// between calls, so another thread's copy can land inside the bracket
 bool In_Shot()
 {
 	return g.inShot && std::this_thread::get_id() == g.shotThread;
@@ -192,13 +192,13 @@ struct CapObj
 	uint32_t level = 0, face = 0;
 	uint32_t width = 0, height = 0, levels = 0, usage = 0, format = 0, pool = 0, msaa = 0, length = 0, fvf = 0, lockable = 0;
 	// Public refcount reached 0 = !alive. The object can still live privately (bound to the device) and come back through
-	// a getter, so the wrapper and its id stay until a new object reuses the address (Codex gxcap-design-r1 #2).
+	// a getter, so the wrapper and its id stay until a new object reuses the address.
 	bool alive = true, zombie = false;
 	bool dirtyAny = true;	// SYSTEMMEM textures: DXVK starts every texture fully dirty (d3d9_common_texture.cpp:30)
 	// (root) a CPU-pool object the GPU wrote inside the open window (CopyRects from a DEFAULT surface, or from a CPU-pool
 	// object already marked - any number of CPU hops): its content is the replay's own to reproduce, so it is never
-	// refreshed - a refresh would paste the game's pixels over it and hide a rendering difference upstream (Codex
-	// gxcap-design-r7 #1, r8 #1). Cleared when a window opens.
+	// refreshed - a refresh would paste the game's pixels over it and hide a rendering difference upstream.
+	// Cleared when a window opens.
 	bool gpuWritten = false;
 	RECT dirty = {};
 	std::vector<CapObj *> children;
@@ -638,7 +638,7 @@ HRESULT CapSurface::GetContainer(REFIID riid, void **pp)
 }
 
 // A CPU-pool copy source is re-read right before the copy consumes it: the shroud writes its SYSTEMMEM surface through a
-// pointer kept after UnlockRect (W3DShroud.cpp:174-183, 356) and uploads it with CopyRects (Codex gxcap-design-r1 #1).
+// pointer kept after UnlockRect (W3DShroud.cpp:174-183, 356) and uploads it with CopyRects.
 void Refresh_Source(CapObj *o);
 
 // ---- the device ----
@@ -671,7 +671,7 @@ size_t Decl_Len(const DWORD *d)
 
 // Length in DWORDs of a shader function (through the 0x0000FFFF end token, skipping comments and def constants).
 // Shader model 1.x: an instruction token has bit 31 clear and is followed by its parameter tokens (bit 31 set); only
-// instruction tokens are interpreted (an operand like c81 = 0xA0E40051 must not read as def, Codex gxcap-design-r2 #10).
+// instruction tokens are interpreted (an operand like c81 = 0xA0E40051 must not read as def).
 size_t Func_Len(const DWORD *f)
 {
 	size_t i = 1;	// version token
@@ -718,7 +718,7 @@ struct CapDevice final : IDirect3DDevice8
 	{
 		// A reset-created implicit surface can reuse the address of a released custom surface (a pillarbox texture level
 		// freed at Reset): that dead wrapper is not this surface - resurrecting it would mark its freed parent alive for the
-		// snapshot to read (Codex rw1-I-branch-r3 #1). Evict it, then classify as implicit.
+		// snapshot to read. Evict it, then classify as implicit.
 		if (CapObj *known = Find_Real(s))
 			if ((s == implicitBB && known->origin != O_BACKBUFFER) || (s == implicitDS && known->origin != O_AUTODEPTH))
 				if (!Root(known)->alive)
@@ -818,7 +818,7 @@ struct CapDevice final : IDirect3DDevice8
 		if (SUCCEEDED(hr)) {
 			if (p != nullptr)
 				pp = *p;
-			// DXVK Reset: every state back to its default, lights gone, implicit back buffers/depth recreated (Codex r2 #9)
+			// DXVK Reset: every state back to its default, lights gone, implicit back buffers/depth recreated
 			memset(g.rsSet, 0, sizeof(g.rsSet));
 			memset(g.tssSet, 0, sizeof(g.tssSet));
 			memset(g.stride, 0, sizeof(g.stride));
@@ -1880,7 +1880,7 @@ void Mark_Zombie(void *real, std::vector<CapObj *> &zombies)
 void Snapshot()
 {
 	IDirect3DDevice8 *d = g.dev->r;
-	// Publicly released objects still bound to the device (Codex gxcap-design-r1 #2): they must exist in the replay.
+	// Publicly released objects still bound to the device: they must exist in the replay.
 	std::vector<CapObj *> zombies;
 	IDirect3DSurface8 *s = nullptr;
 	if (SUCCEEDED(d->GetRenderTarget(&s)) && s) { Mark_Zombie(s, zombies); s->Release(); }
@@ -2088,7 +2088,7 @@ void Rec_Shot_Begin(uint32_t logicFrame, bool requested, const char *name)
 	Guard k(g.mx);
 	if (!g.open)
 		return;
-	if (g.inShot && !g.testAllowNested) {	// overlapping brackets: the inner end closes the outer (Codex gxcap-design-r13 #1)
+	if (g.inShot && !g.testAllowNested) {	// overlapping brackets: the inner end closes the outer
 		Warn("overlapping screenshot brackets: window UNSUPPORTED");
 		g.flags |= FH_UNSUPPORTED;
 	}
@@ -2103,7 +2103,7 @@ void Rec_Shot_Begin(uint32_t logicFrame, bool requested, const char *name)
 }
 
 // Only a completed readback that GX_SHOT asked for counts as the window's shot (a hotkey screenshot, or one that
-// returned early, does not close the window - Codex gxcap-design-r2 #3).
+// returned early, does not close the window).
 void Rec_Shot_End(bool completed)
 {
 	Guard k(g.mx);

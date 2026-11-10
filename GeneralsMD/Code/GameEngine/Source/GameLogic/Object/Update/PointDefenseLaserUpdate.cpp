@@ -179,7 +179,7 @@ void PointDefenseLaserUpdate::fireWhenReady()
 			{
 				//We were in range last frame, but the target has moved out of firing range, so
 				//re-evaluate by forcing a new scan.
-				m_nextScanFrames = GameLogicRandomValue( 0, 3 );	// GeneralsX @feature Claude 05/10/2026 0-3 frames at either rate, as Generals Online (was 0-3 retail frames)
+				m_nextScanFrames = GameLogicRandomValue( 0, 3 );	// GeneralsX: 0-3 frames at either rate, as Generals Online (was 0-3 retail frames)
 				m_bestTargetID = INVALID_ID;
 				if( !m_nextScanFrames )
 				{
@@ -224,7 +224,7 @@ void PointDefenseLaserUpdate::fireWhenReady()
 
 			if( target->isEffectivelyDead() )
 			{
-				m_nextScanFrames = GameLogicRandomValue( 0, 3 );	// GeneralsX @feature Claude 05/10/2026 0-3 frames at either rate, as Generals Online (was 0-3 retail frames)
+				m_nextScanFrames = GameLogicRandomValue( 0, 3 );	// GeneralsX: 0-3 frames at either rate, as Generals Online (was 0-3 retail frames)
 				m_bestTargetID = INVALID_ID;
 				if( !m_nextScanFrames )
 				{
@@ -313,13 +313,13 @@ Object* PointDefenseLaserUpdate::scanClosestTarget()
 				if( physics )
 				{
 					pos.set( *physics->getVelocity() );
-					// GeneralsX @bugfix Claude 05/10/2026 PredictTargetVelocityFactor is a count of 30 Hz frames and the velocity is
+					// GeneralsX: PredictTargetVelocityFactor is a count of 30 Hz frames and the velocity is
 					// per logic frame, so at 60 Hz the lead doubles back to the 2003 game-time lead (x2.0 is exact in float).
 					pos.scale( data->m_velocityFactor * (Real)GX_FRAMES30( 1 ) );
 					pos.add( *other->getPosition() );
 
 					//Recalculate the distance.
-					// GeneralsX @bugfix Claude 05/10/2026 ...to the PREDICTED position just computed. EA measured `other` again, so
+					// GeneralsX: ...to the PREDICTED position just computed. EA measured `other` again, so
 					// pos was thrown away and PredictTargetVelocityFactor did nothing: out-of-range missiles were ranked by where
 					// they are, not where they will be. As Zero Hour Reforged (Olcay Seygan, GPL-3.0-or-later).
 					fDist = sqrt( ThePartitionManager->getDistanceSquared( me, &pos, FROM_CENTER_2D ) );

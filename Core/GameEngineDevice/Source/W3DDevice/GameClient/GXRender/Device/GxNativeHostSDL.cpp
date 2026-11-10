@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw3-K 11/10/2026 see GxNativeHostSDL.h. Built only with GX_RENDER_NATIVE=ON.
+// GeneralsX: see GxNativeHostSDL.h. Built only with GX_RENDER_NATIVE=ON.
 #include "GxNativeHostSDL.h"
 
 #include <cstdlib>
@@ -41,7 +41,7 @@ bool FillSdlHost(GXRender::Dev::GxNativeHost &host, const char **why)
 	return true;
 }
 #else
-// Codex rw3K-code-r1 #2: a build without SDL3 (win64 today) keeps the classic path instead of failing to compile.
+// a build without SDL3 (win64 today) keeps the classic path instead of failing to compile.
 bool FillSdlHost(GXRender::Dev::GxNativeHost &, const char **why)
 {
 	if (why != nullptr)

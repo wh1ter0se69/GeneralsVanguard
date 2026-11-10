@@ -59,7 +59,7 @@
 
 // PRIVATE DATA ///////////////////////////////////////////////////////////////
 
-// GeneralsX @tweak Claude 21/08/2026 SLIDER STEPS SCALE FROM 1280x720, NOT 800x600.
+// GeneralsX: SLIDER STEPS SCALE FROM 1280x720, NOT 800x600.
 //
 // A step box is sized `imageWidth * (displayWidth / base)` while the gap between boxes stays a flat
 // 2 pixels. The box therefore grows with the screen at the same rate the track does, and the number

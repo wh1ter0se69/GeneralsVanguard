@@ -1,4 +1,4 @@
-// GeneralsX @bugfix D · dlss-shadow-jitter 13/10/2026 (R-DL6): the projection the GPU shadow-volume VS gets (gxShadowGpuFlush).
+// GeneralsX: (R-DL6): the projection the GPU shadow-volume VS gets (gxShadowGpuFlush).
 // The volumes are drawn inside the jittered world pass, where the device answers GetTransform(PROJECTION) with the CLEAN matrix, so
 // the VS must add the pass's jitter itself, as the trees (W3DTreeBuffer) and water (W3DWater) do. Header-only so gx_native_test can
 // check the constants; GX_TEST_NO_SHADOW_JITTER (tests only) removes the call = the X- arm.

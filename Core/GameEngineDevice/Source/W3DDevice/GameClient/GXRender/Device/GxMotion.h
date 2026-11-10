@@ -1,4 +1,4 @@
-// GeneralsX @feature E · render-motion-1 13/10/2026 depth, camera motion vectors and jitter for the temporal upscalers
+// GeneralsX: depth, camera motion vectors and jitter for the temporal upscalers
 // (modernize/render-dlss/DESIGN_motion.md rev 2).
 //
 // Between IGxWorldPass::Begin and End (the world pass of a frame) the device:
@@ -45,7 +45,7 @@ struct GxMotionPush
 	float flags[4];         // x = 1: binding 1 holds this pass's object vectors
 };
 
-// End's resolve as ONE command with owned arguments (A23-B, Codex motion-code-r1 #6): everything it reads, captured by value on
+// End's resolve as ONE command with owned arguments (A23-B): everything it reads, captured by value on
 // the front side at End. record() reads only this and its own pipelines/pools.
 struct GxMotionResolve
 {
@@ -107,7 +107,7 @@ public:
 	// After the recording: publish this pass's frame (ok), or drop it and restart history (failure).
 	void published(bool ok);
 	// An open world pass is abandoned (a Reset, or a Begin without its End): nothing recorded, history restarts. Returns the clean
-	// projection to re-send when that pass had installed a jittered one (Codex motion-code-r2 #2), else null.
+	// projection to re-send when that pass had installed a jittered one, else null.
 	const float* abandon();
 
 	// ---- recording (inside the writer's outsideScope): the resolve, then the debug view over colour
@@ -121,7 +121,7 @@ public:
 	GxMotionPlants& plants() { return m_plants; }
 	uint32_t jitterPhaseCount() const { return m_phaseCount; }
 	void setMinJitterPhases(uint32_t n) { m_minPhases = n; }   // DLSS asks for >= 16
-	// A temporal backend that WILL consume this session's jitter says so (Codex motion-design-r1 #20): without one, a GXWP_TEMPORAL
+	// A temporal backend that WILL consume this session's jitter says so: without one, a GXWP_TEMPORAL
 	// pass is not jittered (a bilinear fallback must not show a jittered world). GX_MOTION_JITTER=1 forces it (tests).
 	void setJitterConsumer(bool on) { m_consumer = on; }
 

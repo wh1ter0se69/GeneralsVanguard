@@ -197,7 +197,7 @@ DECLARE_PERF_TIMER(MemoryPoolInitFilling)
 static Bool thePreMainInitFlag = false;
 static Bool theMainInitFlag = false;
 
-// GeneralsX @perf Claude 02/10/2026 A5: the owner word of a FOREIGN block (see "FOREIGN BLOCKS" above
+// GeneralsX: A5: the owner word of a FOREIGN block (see "FOREIGN BLOCKS" above
 // DynamicMemoryAllocator::allocateBytesDoNotZeroImplementation). Its address is never a real MemoryPoolBlob.
 static char theForeignBlobTag;
 
@@ -448,7 +448,7 @@ public:
 	static MemoryPoolSingleBlock *recoverBlockFromUserData(void* pUserData);
 	MemoryPoolBlob *getOwningBlob();
 
-	// GeneralsX @perf Claude 02/10/2026 A5: foreign blocks (system memory, no lock; see "FOREIGN BLOCKS")
+	// GeneralsX: A5: foreign blocks (system memory, no lock; see "FOREIGN BLOCKS")
 	static MemoryPoolSingleBlock *recoverBlockFromUserDataNoDbg(void* pUserData);
 	void initForeignBlock(Int logicalSize DECLARE_LITERALSTRING_ARG2);
 	static MemoryPoolBlob *foreignBlob() { return reinterpret_cast<MemoryPoolBlob *>(&theForeignBlobTag); }
@@ -953,7 +953,7 @@ void MemoryPoolSingleBlock::initBlock(Int logicalSize, MemoryPoolBlob *owningBlo
 
 //-----------------------------------------------------------------------------
 /**
-	GeneralsX @perf Claude 02/10/2026 A5: recoverBlockFromUserData without the debug verification, which follows the
+	GeneralsX: A5: recoverBlockFromUserData without the debug verification, which follows the
 	block's list links - links that other threads rewrite under the locks. Only the block's own header is read.
 */
 /* static */ MemoryPoolSingleBlock *MemoryPoolSingleBlock::recoverBlockFromUserDataNoDbg(void* pUserData)
@@ -968,7 +968,7 @@ void MemoryPoolSingleBlock::initBlock(Int logicalSize, MemoryPoolBlob *owningBlo
 
 //-----------------------------------------------------------------------------
 /**
-	GeneralsX @perf Claude 02/10/2026 A5: fill in the header of a foreign block. Like initBlock, but it touches no
+	GeneralsX: A5: fill in the header of a foreign block. Like initBlock, but it touches no
 	shared state (initBlock's bounding-wall counter is a plain global), so any thread may call it unlocked.
 */
 void MemoryPoolSingleBlock::initForeignBlock(Int logicalSize DECLARE_LITERALSTRING_ARG2)
@@ -2243,7 +2243,7 @@ void DynamicMemoryAllocator::debugIgnoreLeaksForThisBlock(void* pBlockPtr)
 #endif
 
 //-----------------------------------------------------------------------------
-// FOREIGN BLOCKS - GeneralsX @perf Claude 02/10/2026 A5 (ROADMAP_2027 M2, PROMPT_smooth-alloc-lock).
+// FOREIGN BLOCKS - GeneralsX: A5 (ROADMAP_2027 M2, PROMPT_smooth-alloc-lock).
 // The replaced global operator new/delete send EVERY thread in the process through this allocator and its one
 // TheDmaCriticalSection: the graphics driver's shader-compile threads (DXVK, MoltenVK, SPIRV-Cross) too, which queue
 // on it during compile bursts (HANDBACK_s0-hitch-attribution finding 2), and so would helper threads and a render
@@ -2280,7 +2280,7 @@ static inline Bool isForeignThread()
 */
 void *DynamicMemoryAllocator::allocateBytesDoNotZeroImplementation(size_t requestedBytes DECLARE_LITERALSTRING_ARG2)
 {
-	// GeneralsX @bugfix Claude 06/10/2026 This took an Int, so operator new / new[] / STLSpecialAlloc narrowed their size_t
+	// GeneralsX: This took an Int, so operator new / new[] / STLSpecialAlloc narrowed their size_t
 	// on the way in: a request in [2^31, 2^32) arrived negative (smallest pool, then a memset off the heap) and 2^32 + n
 	// arrived as n - a block far smaller than asked for. The pools hold at most INT_MAX bytes; refuse anything larger the
 	// way this allocator refuses everything (sweep c047-01).
@@ -3590,7 +3590,7 @@ void operator delete[](void * p, const char *, int)
 #include <new>
 #include <cstdlib>
 
-// GeneralsX @bugfix Claude 02/10/2026 posix_memalign refuses (EINVAL) an alignment below sizeof(void*), but the C++
+// GeneralsX: posix_memalign refuses (EINVAL) an alignment below sizeof(void*), but the C++
 // contract is any power of two: LLVM's allocate_buffer asks for alignof(T), as small as 1, through the nothrow form
 // (whose library default calls this one), so lavapipe/llvmpipe running inside the game got null and died with
 // "LLVM ERROR: out of memory ... Buffer allocation failed" (PERF_RENDER_WEAK_PEER_2026-08-18.md). Round the alignment
@@ -3733,7 +3733,7 @@ Bool isMemoryManagerOfficiallyInited()
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @perf Claude 02/10/2026 A5: make the calling thread the one that allocates from the pools. Call it before
+// GeneralsX: A5: make the calling thread the one that allocates from the pools. Call it before
 // the previous simulation thread allocates again (a re-key while both allocate only moves blocks between the two
 // kinds; either kind frees correctly on any thread). No effect while foreign blocks are off.
 void setMemoryManagerSimulationThread()
@@ -3743,7 +3743,7 @@ void setMemoryManagerSimulationThread()
 }
 
 //-----------------------------------------------------------------------------
-// GeneralsX @perf Claude 02/10/2026 A5: true if p (from operator new / the DMA) is a foreign block.
+// GeneralsX: A5: true if p (from operator new / the DMA) is a foreign block.
 Bool isMemoryManagerForeignBlock(void *p)
 {
 	return p && MemoryPoolSingleBlock::recoverBlockFromUserDataNoDbg(p)->isForeign();

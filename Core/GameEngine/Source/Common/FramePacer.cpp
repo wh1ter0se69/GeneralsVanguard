@@ -35,7 +35,7 @@ Bool FramePacer::s_headlessMaxSpeed = FALSE;
 
 FramePacer::FramePacer()
 {
-	// GeneralsX @bugfix BenderAI 11/05/2026 Protect Windows-specific timer API calls
+	// GeneralsX: Protect Windows-specific timer API calls
 #ifdef _WIN32
 	// Set the time slice size to 1 ms.
 	timeBeginPeriod(1);
@@ -68,7 +68,7 @@ FramePacer::FramePacer()
 
 FramePacer::~FramePacer()
 {
-	// GeneralsX @bugfix BenderAI 11/05/2026 Protect Windows-specific timer API calls
+	// GeneralsX: Protect Windows-specific timer API calls
 #ifdef _WIN32
 	// Restore the previous time slice for Windows.
 	timeEndPeriod(1);
@@ -77,7 +77,7 @@ FramePacer::~FramePacer()
 
 void FramePacer::update()
 {
-	// GeneralsX @feature Claude 07/10/2026 a loop iteration without the regular gate (isRegularCatchUpEligible)
+	// GeneralsX: a loop iteration without the regular gate (isRegularCatchUpEligible)
 	if (m_updatesSinceRegularGate < 2)
 		++m_updatesSinceRegularGate;
 	// TheSuperHackers @bugfix xezon 05/08/2025 Re-implements the frame rate limiter
@@ -88,10 +88,10 @@ void FramePacer::update()
 
 void FramePacer::update(Bool (*betweenDraws)())
 {
-	// GeneralsX @feature Claude 07/10/2026 a loop iteration without the regular gate (isRegularCatchUpEligible)
+	// GeneralsX: a loop iteration without the regular gate (isRegularCatchUpEligible)
 	if (m_updatesSinceRegularGate < 2)
 		++m_updatesSinceRegularGate;
-	// GeneralsX @feature Claude 02/10/2026 Tick catch-up: a logic-only pass drew nothing, and the cap is a cap on DRAWS, so
+	// GeneralsX: Tick catch-up: a logic-only pass drew nothing, and the cap is a cap on DRAWS, so
 	// it is not held. The uncapped wait holds nothing and re-seeds the grid, so the next draw is paced from here. Held to
 	// the cap instead, a pass at a 60 cap would last a whole tick period and could never repay the draw it skipped.
 	// ...and only if it ticked: a pass whose frame did not come (rare since framesOwed) moved no game time (review r2 P3).
@@ -120,7 +120,7 @@ void FramePacer::reset()
 void FramePacer::setFramesPerSecondLimit( Int fps )
 {
 	DEBUG_LOG(("FramePacer::setFramesPerSecondLimit() - setting max fps to %d (TheGlobalData->m_useFpsLimit == %d)", fps, TheGlobalData->m_useFpsLimit));
-	// GeneralsX @feature Claude 27/09/2026 0 is "unlimited" (Common/FpsLimitPolicy.h), stored as the
+	// GeneralsX: 0 is "unlimited" (Common/FpsLimitPolicy.h), stored as the
 	// ladder's own Uncapped entry so every reader that already knows that value - the max-FPS hotkeys,
 	// the Debug screen, changeLogicTimeScale - keeps working without learning a second spelling.
 	m_maxFPS = (fps <= 0 || fps > (Int)RenderFpsPreset::UncappedFpsValue) ? (Int)RenderFpsPreset::UncappedFpsValue : fps;
@@ -162,10 +162,10 @@ Bool FramePacer::isActualFramesPerSecondLimitEnabled() const
 	return allowFpsLimit;
 }
 
-// GeneralsX @bugfix Claude 27/09/2026 One definition for the two readers: the cap above, lifted, and
+// GeneralsX: One definition for the two readers: the cap above, lifted, and
 // GameEngine::canUpdateRegularGameLogic, which then steps the logic with the loop as retail's coupled logic
 // did. With the logic time scale on it held the logic at the tick rate, so a campaign's scripted fast-forward
-// did nothing - in every Zero Hour game, and in base Generals whenever the cap exceeds the tick rate (Codex W7-r8).
+// did nothing - in every Zero Hour game, and in base Generals whenever the cap exceeds the tick rate.
 Bool FramePacer::isScriptFastForward() const
 {
 	return (TheTacticalView != nullptr && TheTacticalView->getTimeMultiplier() > 1)
@@ -187,7 +187,7 @@ Int FramePacer::getActualFramesPerSecondLimit() const
 	if (limit >= (Int)RenderFpsPreset::UncappedFpsValue)
 		return RenderFpsPreset::UncappedFpsValue;
 
-	// GeneralsX @feature Claude 27/09/2026 THE CAP IS THE CAP (Common/FpsLimitPolicy.h). The one floor
+	// GeneralsX: THE CAP IS THE CAP (Common/FpsLimitPolicy.h). The one floor
 	// left is the tick rate, and it is a floor on the main loop rather than a rewrite of the setting: the
 	// engine advances at most one logic frame per main-loop iteration (canUpdateRegularGameLogic steps
 	// once per iteration when the scale is at or above the render cap, and canUpdateNetworkGameLogic
@@ -308,7 +308,7 @@ Real FramePacer::getActualLogicTimeScaleOverFpsRatio(LogicTimeQueryFlags flags) 
 	// TheSuperHackers @info Clamps ratio to min 1, because the logic
 	// frame rate is currently capped by the render frame rate.
 	const Real ratio = min(1.0f, (Real)getActualLogicTimeScaleFps(flags) / getUpdateFps());
-	// GeneralsX @feature Claude 02/10/2026 Tick catch-up: the last iteration was a logic-only pass, which ticked one whole logic
+	// GeneralsX: Tick catch-up: the last iteration was a logic-only pass, which ticked one whole logic
 	// frame in a few ms of wall time. Scaled by its wall time, every render-side clock (WW3D animations, sway, fades, water
 	// offsets) would advance ~1/3 of a frame for it, so under catch-up units would animate at ~80% of the speed they move.
 	return (m_lastIterationCatchUpPass && ratio > 0.0f) ? 1.0f : ratio;
@@ -325,12 +325,12 @@ Real FramePacer::getLogicTimeStepMilliseconds(LogicTimeQueryFlags flags) const
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 30/09/2026 FAST FORWARD - the whole match at k times its normal tick rate, for a match whose
+// GeneralsX: FAST FORWARD - the whole match at k times its normal tick rate, for a match whose
 // only human is this player (wh1ter0se, 30/09: "sandboxed with 1 player as viewer and rest AIs ... 2x 3x 4x x5 10x").
 //
 // IT IS PACING, NOT SIMULATION. The engine's invariant stays exactly as it is: at most one logic tick per main-loop
 // iteration, i.e. per GameClient::update - which refreshes shroud state the logic reads back (GameEngine::
-// updateBetweenDraws, Codex W7-r4), so a second tick per client update would change the simulation. Fast forward only
+// updateBetweenDraws), so a second tick per client update would change the simulation. Fast forward only
 // makes the loop iterate k times as often and stops most of those iterations from drawing. The tick sequence is the
 // 1x one by construction, which is why a replay of a 10x match plays back at 1x with the same CRCs and why nothing here
 // needs to be recorded, broadcast or CRC'd.
@@ -361,12 +361,12 @@ Int FramePacer::getFastForward() const
 Bool FramePacer::isFastForwardActive() const
 {
 	// Not while a scripted freeze holds the simulation: the loop would run at k x the tick rate and, with the draw thinning
-	// off during a freeze, render every iteration for nothing (Codex ffwd-r12). NOT on m_isGameHalted: in a network game
+	// off during a freeze, render every iteration for nothing. NOT on m_isGameHalted: in a network game
 	// that is "the network is stalling" (GameEngine::isGameHalted), which a solo match sees for a moment whenever a frame's
 	// commands are not ready yet - dropping the speed then re-anchors the network pacer at 1x on every such wait
-	// (Codex ffwd-r13 P1). A paused game is caught by isGamePaused. A scripted fast forward (SET_VISUAL_SPEED_MULTIPLIER, the
+	// A paused game is caught by isGamePaused. A scripted fast forward (SET_VISUAL_SPEED_MULTIPLIER, the
 	// debug fast-forward) keeps the authored behaviour - uncapped, logic with the loop - rather than being held to the manual
-	// speed (Codex ffwd-r21 P2). The requested speed stays through all of them.
+	// speed. The requested speed stays through all of them.
 	return m_fastForward > 1 && TheGameLogic != nullptr && !TheGameLogic->isGamePaused() && !m_isTimeFrozen
 		&& !isScriptFastForward();
 }
@@ -375,7 +375,7 @@ Int FramePacer::getFastForwardTickFps() const
 {
 	// The normal rate: a solo game's own game speed (the skirmish slider, a replay's recorded speed) when its scale is
 	// on, else the tick rate - a network game's included, whatever rate it last negotiated for its draws. Deliberately not
-	// the negotiated rate (Codex ffwd-r10 asked): in a one-human match that rate falls below the tick rate only when this
+	// the negotiated rate (asked): in a one-human match that rate falls below the tick rate only when this
 	// machine's own draws cannot keep 1x, so k x it would be k x a failure; k x game time is what "10x" means, and the
 	// on-screen reading (getFastForwardAchieved) says what the machine really reaches.
 	const Int base = (TheNetwork == nullptr && isLogicTimeScaleEnabled()) ? getLogicTimeScaleFps() : (Int)LOGICFRAMES_PER_SECOND;
@@ -388,13 +388,13 @@ Bool FramePacer::isFastForwardDrawDue()
 		return TRUE;
 	// Once every k iterations at speed k - FastForwardDrawFps a second at the target rate, fewer when the machine cannot keep
 	// it - so every draw is followed by logic-only passes. A time grid alone draws on EVERY iteration once a draw itself takes
-	// a period, and fast forward collapses to ~1x on a slow renderer (Codex ffwd-r10 P1). Plus a floor of 10 draws a second
+	// a period, and fast forward collapses to ~1x on a slow renderer. Plus a floor of 10 draws a second
 	// for a machine far below the target, never two draws in a row.
 	const Int64 now = gxSteadyNs();
 	++m_ffItersSinceDraw;
 	// Every iteration earns FastForwardDrawFps of credit and a draw costs the tick rate, so draws come FastForwardDrawFps
 	// a second at ANY tick rate - a rate that is no multiple of 60 (a 30 Hz build at 3x, a 45 Hz game speed at 2x) draws on
-	// alternate 1- and 2-iteration gaps instead of every iteration (Codex ffwd-r14 P2; the real tick rate as in r11).
+	// alternate 1- and 2-iteration gaps instead of every iteration (the real tick rate as in r11).
 	const Int tickFps = max(1, getFastForwardTickFps());
 	m_ffDrawCredit += (Int)FastForwardDrawFps;
 	const Bool due = m_ffDrawCredit >= tickFps
@@ -440,10 +440,10 @@ void FramePacer::sampleFastForward()
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 02/10/2026 TICK CATCH-UP (Common/CatchUpPolicy.h has the why and the bounds). Called once per
+// GeneralsX: TICK CATCH-UP (Common/CatchUpPolicy.h has the why and the bounds). Called once per
 // draw by Zero Hour's W3DDisplay::draw, where fast forward decides its logic-only passes. Only in a running match that is
 // not stalled, paused, frozen or fast-forwarded. A network match reads the network pacer (Network::getPacerFramesDue); a
-// solo game, skirmish or replay reads the regular gate's debt (GeneralsX @feature Claude 07/10/2026,
+// solo game, skirmish or replay reads the regular gate's debt (GeneralsX:
 // isRegularCatchUpEligible). A stalled match (waiting on a peer's commands, isGameHalted) never skips: the frame it waits
 // for is not this machine's to catch up.
 // ------------------------------------------------------------------------------------------------
@@ -483,7 +483,7 @@ Bool FramePacer::isCatchUpDrawSkip()
 	return m_catchUpPass;
 }
 
-// GeneralsX @feature Claude 07/10/2026 Tick catch-up without a network (single player, skirmish, replays): the regular gate
+// GeneralsX: Tick catch-up without a network (single player, skirmish, replays): the regular gate
 // keeps debt, and owed draws become logic-only passes, only while nothing else owns the pace - the network branch's
 // conditions above, plus the replay fast mode (the gate bypasses itself there). GameEngine::canUpdateRegularGameLogic asks
 // this too, so the gate keeps debt exactly when a draw may be skipped to repay it. The freeze/halt flags are the ones the

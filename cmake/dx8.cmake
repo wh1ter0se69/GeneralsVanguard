@@ -1,5 +1,5 @@
 # DirectX 8 headers and rendering backend selection
-# GeneralsX @build BenderAI 10/02/2026 - Session 18
+# GeneralsX: Session 18
 # Fighter19's approach: Fetch ONE OR THE OTHER, never both
 #
 # On Windows: Use min-dx8-sdk (minimal Windows DirectX headers + libs)
@@ -18,7 +18,7 @@
 
 set(DXVK_VERSION "v2.6")
 
-# GeneralsX @bugfix Claude 27/07/2026 Give SAGE_USE_DX8 an actual default on Windows.
+# GeneralsX: Give SAGE_USE_DX8 an actual default on Windows.
 #
 # Nothing in the tree ever declared this variable - no option(), no set(). The only places that
 # mention it are the linux64-deploy / macos-vulkan / ios-vulkan presets, and all three set it OFF.
@@ -55,7 +55,7 @@ if(SAGE_USE_DX8)
   # min-dx8-sdk carries its own CMakeLists that creates the d3d8lib INTERFACE target and points its
   # include/link dirs at the SDK root. Nothing else here needs to configure d3d8lib on Windows.
 
-  # GeneralsX @bugfix Claude 27/07/2026 Pin d3dx8.lib by absolute path under MSVC.
+  # GeneralsX: Pin d3dx8.lib by absolute path under MSVC.
   #
   # min-dx8-sdk requests it as the bare name "d3dx8". GeneralsMD/Code/CompatLib/CMakeLists.txt
   # creates an EMPTY INTERFACE target literally named d3dx8 on 32-bit Windows - its real d3dx8
@@ -65,12 +65,12 @@ if(SAGE_USE_DX8)
   # / D3DXLoadSurfaceFromSurface / D3DXGetFVFVertexSize unresolved. An absolute path can never be
   # mistaken for a target name. Remove this once CompatLib stops creating the stub on Windows.
   #
-  # GeneralsX @bugfix Claude 27/07/2026 32-bit only - see the x64 block below for why.
+  # GeneralsX: 32-bit only - see the x64 block below for why.
   if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 4 AND EXISTS "${dx8_SOURCE_DIR}/d3dx8.lib")
     target_link_libraries(d3d8lib INTERFACE "${dx8_SOURCE_DIR}/d3dx8.lib")
   endif()
 
-  # GeneralsX @bugfix Claude 27/07/2026 Keep min-dx8-sdk's x86 import libraries off the x64 link.
+  # GeneralsX: Keep min-dx8-sdk's x86 import libraries off the x64 link.
   #
   # All four archives min-dx8-sdk bundles - d3d8.lib, d3dx8.lib, dinput8.lib, dxguid.lib - report
   # "14C machine (x86)" under dumpbin. DirectX 8 predates x64 and no 64-bit build of these was ever
@@ -106,7 +106,7 @@ if(SAGE_USE_DX8)
 
 elseif(APPLE AND SAGE_USE_MOLTENVK)
   # macOS: Build DXVK 2.6 from source using Meson + MoltenVK
-  # GeneralsX @build BenderAI 24/02/2026 - Phase 5 macOS port (Session 61)
+  # GeneralsX: Phase 5 macOS port (Session 61)
   find_program(MESON_EXECUTABLE meson HINTS /usr/local/bin /opt/homebrew/bin)
   find_program(NINJA_EXECUTABLE ninja HINTS /usr/local/bin /opt/homebrew/bin)
 
@@ -136,7 +136,7 @@ elseif(APPLE AND SAGE_USE_MOLTENVK)
   message(STATUS "Building DXVK ${DXVK_VERSION} for macOS/${DXVK_HOST_ARCH} with Meson (${MESON_EXECUTABLE})")
 
   include(ExternalProject)
-  # GeneralsX @build BenderAI 13/03/2026 Add explicit source mode to keep remote branch updates deterministic by default.
+  # GeneralsX: Add explicit source mode to keep remote branch updates deterministic by default.
   set(DXVK_LOCAL_FORK_DIR "${CMAKE_SOURCE_DIR}/references/fbraz3-dxvk")
   option(SAGE_DXVK_USE_LOCAL_FORK "Build DXVK from local references/fbraz3-dxvk checkout" OFF)
 
@@ -147,7 +147,7 @@ elseif(APPLE AND SAGE_USE_MOLTENVK)
     # list — apply it idempotently: skip when the working tree already carries it (reverse-check
     # passes), fail the configure otherwise so an unpatched DXVK can never ship silently.
     #
-    # GeneralsX @bugfix Claude 19/08/2026 IT IS NOT AN iOS PATCH. The name says iOS, this gate said
+    # GeneralsX: IT IS NOT AN iOS PATCH. The name says iOS, this gate said
     # iOS, and the one fix in it that matters is needed by EVERY Retina Apple display.
     #
     # wsi_window_sdl3.cpp's getWindowSize feeds BOTH the present destination rect and the requested
@@ -210,7 +210,7 @@ elseif(APPLE AND SAGE_USE_MOLTENVK)
   # Detect Vulkan SDK location for Meson configuration.
   # VULKAN_SDK must point to the platform subdir (e.g. ~/VulkanSDK/1.4.x/macOS)
   # where lib/libvulkan.dylib and lib/libMoltenVK.dylib live.
-  # GeneralsX @build BenderAI 03/03/2026: Normalize env path to macOS platform subdir
+  # GeneralsX: Normalize env path to macOS platform subdir
   set(VULKAN_SDK_ENV "$ENV{VULKAN_SDK}")
 
   # If VULKAN_SDK points to the version root (has macOS/ subdir), normalize it
@@ -244,7 +244,7 @@ elseif(APPLE AND SAGE_USE_MOLTENVK)
 
   if(VULKAN_SDK_ENV AND EXISTS "${VULKAN_SDK_ENV}/lib/libMoltenVK.dylib")
     message(STATUS "DXVK macOS build: Using Vulkan SDK at ${VULKAN_SDK_ENV}")
-    # GeneralsX @build Claude 29/07/2026 Put the SDK's bin on PATH for the meson sub-build too.
+    # GeneralsX: Put the SDK's bin on PATH for the meson sub-build too.
     #
     # DXVK's meson.build requires glslangValidator to compile its shaders. The Vulkan SDK ships it
     # in ${VULKAN_SDK}/bin, but that directory is not normally on PATH, so meson fails with
@@ -275,7 +275,7 @@ elseif(APPLE AND SAGE_USE_MOLTENVK)
                    ${CMAKE_BINARY_DIR}/meson-arm64-ios-cross.ini @ONLY)
     set(DXVK_MESON_MACHINE_ARGS --cross-file ${CMAKE_BINARY_DIR}/meson-arm64-ios-cross.ini)
   else()
-    # GeneralsX @build Claude 18/09/2026 THE SDK AND THE DEPLOYMENT TARGET GO ON MESON'S COMMAND LINE.
+    # GeneralsX: THE SDK AND THE DEPLOYMENT TARGET GO ON MESON'S COMMAND LINE.
     # Without -isysroot the DXVK sub-build takes the compiler's default SDK - on a host whose OS is
     # newer than its Xcode, the Command Line Tools' SDK for the NEWER OS, which the older Xcode linker
     # cannot read. Measured 18/09/2026 on macOS 27.0 + Xcode 26.6: meson setup died on "Compiler clang
@@ -333,7 +333,7 @@ Cflags: -I\${includedir}
 
   if(SAGE_DXVK_USE_LOCAL_FORK AND EXISTS "${DXVK_LOCAL_FORK_DIR}/.git")
     ExternalProject_Add(dxvk_macos_build
-      # GeneralsX @build BenderAI 13/03/2026 Build from local fbraz3 fork to avoid stale remote hash pins.
+      # GeneralsX: Build from local fbraz3 fork to avoid stale remote hash pins.
       SOURCE_DIR        ${DXVK_SOURCE_DIR}
       BINARY_DIR        ${DXVK_BUILD_DIR}
       DOWNLOAD_COMMAND  ""
@@ -345,13 +345,13 @@ Cflags: -I\${includedir}
       UPDATE_DISCONNECTED TRUE
     )
   else()
-    # GeneralsX @build copilot 01/04/2026 Pin remote DXVK to immutable commit produced by fix/macos-size_t-cstddef.
+    # GeneralsX: Pin remote DXVK to immutable commit produced by fix/macos-size_t-cstddef.
     set(DXVK_REMOTE_REF 46a3bc018bcae408d49d3c500e4e536a11f6789a)
     ExternalProject_Add(dxvk_macos_build
-      # GeneralsX @build BenderAI 08/04/2026 Consume pre-patched source from pinned fork commit.
+      # GeneralsX: Consume pre-patched source from pinned fork commit.
       GIT_REPOSITORY    https://github.com/fbraz3/dxvk.git
       GIT_TAG           ${DXVK_REMOTE_REF}
-      # GeneralsX @build copilot 01/04/2026 Keep pinned commit fetch reliable across clean CI builds.
+      # GeneralsX: Keep pinned commit fetch reliable across clean CI builds.
       GIT_SHALLOW       FALSE
       SOURCE_DIR        ${DXVK_SOURCE_DIR}
       BINARY_DIR        ${DXVK_BUILD_DIR}
@@ -393,7 +393,7 @@ Cflags: -I\${includedir}
   message(STATUS "DXVK d3d8 library:     ${DXVK_D3D8_LIB}")
 
 elseif(WIN32)
-  # GeneralsX @bugfix Claude 27/07/2026 Fail loudly instead of falling through to the Linux arm.
+  # GeneralsX: Fail loudly instead of falling through to the Linux arm.
   # Reaching here means someone forced -DSAGE_USE_DX8=OFF on a Windows target. The arm below would
   # then put DXVK's Linux <windows.h>/<windows_base.h> on the include path of every translation
   # unit and shadow the real Windows SDK. That silent fallthrough is what this file used to do by

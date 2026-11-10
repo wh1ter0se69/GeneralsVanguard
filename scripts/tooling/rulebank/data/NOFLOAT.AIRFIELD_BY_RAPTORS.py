@@ -1,8 +1,8 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule NOFLOAT.AIRFIELD_BY_RAPTORS (C·rb-data-11): Air Force builds its next Air Field
+# GeneralsX: rule bank DATA rule NOFLOAT.AIRFIELD_BY_RAPTORS (C·rb-data-11): Air Force builds its next Air Field
 # only once its Raptors fill the ones it has. Stock Air Force Hard builds four fast ("USA Air Field - H" at the first supply centre, then
 # "Build Second / Third / Fourth Air Field - H" at 1000 cash and one Air Field fewer each; smoke8: Air Fields 2 and 3 at 98 and 139 s,
 # the 4th Raptor at 218-231 s). Here Air Field k (k = 2..4) also waits for raptors_per_airfield * (k - 1) own Raptors - or, at the latest,
-# _GX_CLOCK FALLBACK[k] (Codex rbd11-r1 P2: a field parks 4 jets and Stealth Fighters, from 125-194 s in smoke8, share them, so the Raptors
+# _GX_CLOCK FALLBACK[k] (a field parks 4 jets and Stealth Fighters, from 125-194 s in smoke8, share them, so the Raptors
 # alone may never reach the count; the box ends at 4 for the same reason). Own state and clock only; the three scripts are clean. Left stock: "USA Air Field RICH1-4" (cash >= 15000 and _ESCALATION: enemy-gated, so not editable) still
 # add Air Fields in a rich game. Claims the same scripts as NOFLOAT.EXTRA_FACTORIES: never both on for one player (the compiler refuses).
 RULE_ID = 'NOFLOAT.AIRFIELD_BY_RAPTORS'

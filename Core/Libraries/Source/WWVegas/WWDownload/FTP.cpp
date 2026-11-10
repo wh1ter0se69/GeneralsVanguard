@@ -38,7 +38,7 @@
 #include <io.h>
 #include "winsock.h"
 #include <direct.h>
-// GeneralsX @bugfix Claude 27/07/2026
+// GeneralsX:
 // These two are only reached on the POSIX arm below (<sys/stat.h> explicitly, <time.h> via
 // windows_compat.h), yet Prepare_Directories()/FindFile() call _chmod with _S_IREAD/_S_IWRITE
 // and time() on every platform. Include them here so the Windows arm declares them too.
@@ -1035,11 +1035,11 @@ unsigned long MyIPAddress( int sockfd )
 
 	if( sockfd != -1 )
 	{
-		// GeneralsX @TheSuperHackers @build BenderAI 11/02/2026 Use socklen_t for getsockname (POSIX compatibility)
+		// GeneralsX: Use socklen_t for getsockname (POSIX compatibility)
 		socklen_t addrlen = sizeof( sin );
 		getsockname( sockfd, (struct sockaddr *)&sin, &addrlen );
 
-		// GeneralsX @TheSuperHackers @build BenderAI 11/02/2026 POSIX in_addr uses s_addr directly (not S_un.S_addr)
+		// GeneralsX: POSIX in_addr uses s_addr directly (not S_un.S_addr)
 #ifdef _WIN32
 		ip = sin.sin_addr.S_un.S_addr;
 #else
@@ -1158,7 +1158,7 @@ int Cftp::SendNewPort()
 		}
 
 
-		// GeneralsX @TheSuperHackers @build BenderAI 11/02/2026 Use socklen_t for getsockname (POSIX compatibility)
+		// GeneralsX: Use socklen_t for getsockname (POSIX compatibility)
 		socklen_t addrlen = sizeof( m_DataSockAddr);
 
 		getsockname( m_iDataSocket, (struct sockaddr *)&m_DataSockAddr, &addrlen );

@@ -91,7 +91,7 @@ ParticleUplinkCannonUpdateModuleData::ParticleUplinkCannonUpdateModuleData()
 	m_revealRange										= 0.0f;
   m_manualDrivingSpeed						= 0.0f;
   m_manualFastDrivingSpeed				= 0.0f;
-  m_doubleClickToFastDriveDelay		= GX_FRAMES30(500);	// GeneralsX @fix Claude 23/09/2026 raw-frame default when the INI omits it
+  m_doubleClickToFastDriveDelay		= GX_FRAMES30(500);	// GeneralsX: raw-frame default when the INI omits it
 	m_swathOfDeathAmplitude					= 0.0f;
 	m_swathOfDeathDistance					=	0.0f;
 }
@@ -339,7 +339,7 @@ Bool ParticleUplinkCannonUpdate::initiateIntentToDoSpecialPower(const SpecialPow
 		{
 			pos.set( *targetObj->getPosition() );
 		}
-		// GeneralsX @bugfix Claude 01/10/2026 Hand-ported from TheSuperHackers #3355 (18068d0e1): with no target at
+		// GeneralsX: Hand-ported from TheSuperHackers #3355 (18068d0e1): with no target at
 		// all (a script firing the cannon's command button) pos was left uninitialised; give up instead.
 #if !(RTS_ZEROHOUR && RETAIL_COMPATIBLE_CRC)
 		else

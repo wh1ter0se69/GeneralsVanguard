@@ -1,6 +1,6 @@
 # simsourcedigest_watcher.cmake
 #
-# GeneralsX @feature Claude 27/07/2026
+# GeneralsX:
 # Build-time 32-bit digest of the simulation-relevant source tree, used by the
 # join-time SimID compatibility check (Common/Diagnostic/SimulationId.h).
 #
@@ -77,7 +77,7 @@ set(SIMDIGEST_PATHS_CODE_SHARED
     # live: Lib/BaseType.h REAL_TO_INT and the Lib/trig.h Sqrt gateway.
     Core/Libraries/Include
     Core/Libraries/Source/WWVegas/WWMath
-    # GeneralsX @bugfix Claude 03/10/2026 Codex P2 det-codex-fixes: device and client files whose code the SIMULATION
+    # GeneralsX: device and client files whose code the SIMULATION
     # reads, digested whole because they are small or rarely edited - every -headless peer runs them too, through
     # W3DGameLogic. Hot render files with only a few such functions are on the SIMDIGEST_PATHS_REGION_* lists below.
     # Terrain: the map parse - heights, cliff bits, boundaries, the MapObject list, time of day, terrain types for
@@ -108,7 +108,7 @@ set(SIMDIGEST_PATHS_CODE_SHARED
     Core/Libraries/Source/WWVegas/WW3D2/rendobj.h
     Core/Libraries/Source/WWVegas/WW3D2/proto.cpp
     Core/Libraries/Source/WWVegas/WW3D2/proto.h
-    # det-codex r8: every render-object class a model can contain - the prototype loaders WW3DAssetManager registers,
+    # every render-object class a model can contain - the prototype loaders WW3DAssetManager registers,
     # and what aggregates attach. RenderObjClass::Get_Sub_Object_By_Name, which the bone fallback reaches, calls their
     # virtual Get_Name, and collections and distance LODs answer the sub-object and bone queries themselves.
     Core/Libraries/Source/WWVegas/WW3D2/composite.cpp
@@ -125,13 +125,13 @@ set(SIMDIGEST_PATHS_CODE_SHARED
     Core/Libraries/Source/WWVegas/WW3D2/sphereobj.h
     Core/Libraries/Source/WWVegas/WW3D2/soundrobj.cpp
     Core/Libraries/Source/WWVegas/WW3D2/soundrobj.h
-    # det-codex-5: constants-only headers the digested WW3D2 loaders compile against - collision types, the chunk ids of
+    # constants-only headers the digested WW3D2 loaders compile against - collision types, the chunk ids of
     # obsolete model formats, error codes, persistence ids - simid-closure.py's constants pass
     Core/Libraries/Source/WWVegas/WW3D2/coltype.h
     Core/Libraries/Source/WWVegas/WW3D2/w3d_obsolete.h
     Core/Libraries/Source/WWVegas/WW3D2/w3derr.h
     Core/Libraries/Source/WWVegas/WW3D2/ww3dids.h
-    # det-codex r6/r7: the libraries under the digested code, whole. WWLib holds the chunk loader, the name lookups that
+    # the libraries under the digested code, whole. WWLib holds the chunk loader, the name lookups that
     # decide WHICH tree and animation the pose code finds, the strings, vectors, pools and file factory, and the stringex
     # and STLUtils helpers Common calls. WWSaveLoad registers the digested WWMath curves. Compression unpacks map chunks.
     # Dependencies/Utility and the string_compat files are the shims every digested file compiles against: stricmp,
@@ -143,12 +143,12 @@ set(SIMDIGEST_PATHS_CODE_SHARED
     Core/Libraries/Source/Compression
     Dependencies/Utility
     Generals/Code/CompatLib/Include/string_compat.h
-    # det-codex-5: the rest of the language shims every digested file compiles against - TRUE, FALSE, ARRAY_SIZE, _isnan,
+    # the rest of the language shims every digested file compiles against - TRUE, FALSE, ARRAY_SIZE, _isnan,
     # the tchar and wide-string aliases - simid-closure.py's constants pass
     Generals/Code/CompatLib/Include/types_compat.h
     Generals/Code/CompatLib/Include/tchar_compat.h
     Generals/Code/CompatLib/Include/wchar_compat.h
-    # det-codex-5 Codex r28: __max / __min and the other Win32 shims digested code computes with
+    # __max / __min and the other Win32 shims digested code computes with
     Generals/Code/CompatLib/Include/windows_compat.h
     GeneralsMD/Code/CompatLib/Include/windows_compat.h
     GeneralsMD/Code/CompatLib/Include/string_compat.h
@@ -161,23 +161,23 @@ set(SIMDIGEST_PATHS_CODE_SHARED
     Core/GameEngine/Include/GameClient/GXEd25519.h
     Core/GameEngine/Source/GameClient/GXSha512.cpp
     Core/GameEngine/Include/GameClient/GXSha512.h
-    # det-codex r7: client-folder math the simulation calls - ClipLine2D, PointInsideArea2D and friends from AIPathfind,
+    # client-folder math the simulation calls - ClipLine2D, PointInsideArea2D and friends from AIPathfind,
     # AIGroup, BridgeBehavior and PartitionManager, and NormalizeToRange/MuLaw from RailroadGuideAIUpdate.
     Core/GameEngine/Source/GameClient/Line2D.cpp
     Core/GameEngine/Include/GameClient/Line2D.h
     Core/GameEngine/Source/GameClient/Statistics.cpp
     Core/GameEngine/Include/GameClient/Statistics.h
-    # det-codex-4: the client's last message translator decides which local messages reach the command list - network
+    # the client's last message translator decides which local messages reach the command list - network
     # orders, and the new-game / clear-data / frame-tick messages each peer makes for itself. The simulation reads them.
     Core/GameEngine/Source/GameClient/GameClientDispatch.cpp
-    # det-codex simid-closure: small headers the closure tool found digested code inlining - the shroud-drawn switch
+    # small headers the closure tool found digested code inlining - the shroud-drawn switch
     # the ghost objects read, the client random-value macros ScriptEngine expands, the drawable's info block.
     Core/GameEngine/Include/GameClient/GXNoShroud.h
     Core/GameEngine/Include/GameClient/ClientRandomValue.h
     GeneralsMD/Code/GameEngine/Include/GameClient/DrawableInfo.h
     Generals/Code/GameEngine/Include/GameClient/DrawableInfo.h
-    # det-codex r10: the BIG and local file systems - mount order, archive precedence, the BIG reader and the case-blind
-    # local lookup decide WHICH W3D model bytes load, and W3D art is in no identity hash. Codex r10 refuted the old
+    # the BIG and local file systems - mount order, archive precedence, the BIG reader and the case-blind
+    # local lookup decide WHICH W3D model bytes load, and W3D art is in no identity hash. refuted the old
     # ceiling with that path, and the history agrees: mount-precedence commits shipped as client-only.
     Core/GameEngineDevice/Include/StdDevice/Common/GXArchiveMount.h
     Core/GameEngineDevice/Include/StdDevice/Common/StdAssetMarker.h
@@ -197,7 +197,7 @@ set(SIMDIGEST_PATHS_CODE_SHARED
     Core/GameEngineDevice/Source/Win32Device/Common/Win32BIGFileSystem.cpp
     Core/GameEngineDevice/Source/Win32Device/Common/Win32LocalFile.cpp
     Core/GameEngineDevice/Source/Win32Device/Common/Win32LocalFileSystem.cpp
-    # det-codex r9: the W3DModelDraw subclasses. Bone validation can run on the DRAWN render object, and the regioned
+    # the W3DModelDraw subclasses. Bone validation can run on the DRAWN render object, and the regioned
     # setModelState calls their virtual onRenderObjRecreated - so their hooks shape the pose the simulation reads.
     Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DTankDraw.h
     Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DTankDraw.cpp
@@ -219,7 +219,7 @@ set(SIMDIGEST_PATHS_CODE_SHARED
     Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DPoliceCarDraw.cpp
     Core/GameEngineDevice/Include/W3DDevice/GameClient/Module/W3DScienceModelDraw.h
     Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DScienceModelDraw.cpp
-    # det-codex-3 Codex r16: the region HEADERS whole - their class declarations, every member the regioned code and
+    # the region HEADERS whole - their class declarations, every member the regioned code and
     # its whole-function constructors read; a member type changed outside the old regions moved no digest.
     Core/GameEngineDevice/Include/W3DDevice/GameClient/BaseHeightMap.h
     Core/GameEngine/Include/GameClient/ControlBar.h
@@ -234,7 +234,7 @@ set(SIMDIGEST_PATHS_BUILD
     CMakePresets.json
     vcpkg.json
     vcpkg-lock.json
-    # GeneralsX @bugfix Claude 01/10/2026 The CMakeLists.txt on every path to the digested sources, Cd-31. They choose
+    # GeneralsX: The CMakeLists.txt on every path to the digested sources, Cd-31. They choose
     # WHICH files compile - Core/GameEngine/CMakeLists.txt comments out the Core copies the games replace - and set
     # definitions, so a source-list edit changed the simulation without moving the digest. A file pathspec matches that
     # file alone, and both digests take every entry: a Generals list edit moves ZH too, the safe direction.
@@ -250,7 +250,7 @@ set(SIMDIGEST_PATHS_BUILD
     Generals/CMakeLists.txt
     Generals/Code/CMakeLists.txt
     Generals/Code/GameEngine/CMakeLists.txt
-    # GeneralsX det-codex r2: the recipes of the WW3D2 and WWLib targets whose pose and loader code is digested.
+    # GeneralsX: the recipes of the WW3D2 and WWLib targets whose pose and loader code is digested.
     Core/Libraries/Source/WWVegas/WW3D2/CMakeLists.txt
     Core/Libraries/Source/WWVegas/WWLib/CMakeLists.txt
     GeneralsMD/Code/Libraries/CMakeLists.txt
@@ -259,7 +259,7 @@ set(SIMDIGEST_PATHS_BUILD
     Generals/Code/Libraries/CMakeLists.txt
     Generals/Code/Libraries/Source/WWVegas/CMakeLists.txt
     Generals/Code/Libraries/Source/WWVegas/WW3D2/CMakeLists.txt
-    # det-codex r6/r7: the recipes of the libraries digested whole above - CompatLib compiles string_compat.cpp.
+    # the recipes of the libraries digested whole above - CompatLib compiles string_compat.cpp.
     GeneralsMD/Code/CompatLib/CMakeLists.txt
     Core/Libraries/Source/WWVegas/WWSaveLoad/CMakeLists.txt
     Core/Libraries/Source/Compression/CMakeLists.txt
@@ -273,7 +273,7 @@ set(SIMDIGEST_PATHS_CODE_ZH
     GeneralsMD/Code/GameEngine/Source/Common
     GeneralsMD/Code/GameEngine/Source/GameLogic
     GeneralsMD/Code/GameEngine/Source/GameNetwork
-    # GeneralsX @bugfix Claude 03/10/2026 Codex P2 det-codex-fixes: this game's sim-facing device files, see SHARED.
+    # GeneralsX: this game's sim-facing device files, see SHARED.
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DTerrainLogic.cpp
     GeneralsMD/Code/GameEngineDevice/Include/W3DDevice/GameLogic/W3DTerrainLogic.h
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DGameLogic.cpp
@@ -308,11 +308,11 @@ set(SIMDIGEST_PATHS_CODE_ZH
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/meshgeometry.h
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/hmorphanim.cpp
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/hmorphanim.h
-    # det-codex r7: the mesh model meshmdlio fills and mesh.cpp makes unique - the vertices bridges are built from -
+    # the mesh model meshmdlio fills and mesh.cpp makes unique - the vertices bridges are built from -
     # and the WW3D sync clock HTreeClass::Anim_Update_Without_Interpolation branches on.
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/meshmdl.cpp
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/ww3d.h
-    # det-codex r9: the device implementations of logic interfaces the simulation calls - the lexicon whose names are
+    # the device implementations of logic interfaces the simulation calls - the lexicon whose names are
     # interned before UpgradeCenter - item 4c - the ghost objects canTransferSuppliesAt reads, the thing factory.
     GeneralsMD/Code/GameEngineDevice/Include/W3DDevice/Common/W3DFunctionLexicon.h
     GeneralsMD/Code/GameEngineDevice/Include/W3DDevice/Common/W3DThingFactory.h
@@ -320,12 +320,12 @@ set(SIMDIGEST_PATHS_CODE_ZH
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/Common/System/W3DFunctionLexicon.cpp
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/Common/Thing/W3DThingFactory.cpp
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DGhostObject.cpp
-    # det-codex-3: the device GameClient whole - its factories pick the terrain visual, the in-game UI that owns the
+    # the device GameClient whole - its factories pick the terrain visual, the in-game UI that owns the
     # command dictionaries and the display that owns the asset manager, and its init, reset, update and time of
     # day forward to the regioned GameClient. Two commits since 07/2026, both files.
     GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DGameClient.cpp
     GeneralsMD/Code/GameEngineDevice/Include/W3DDevice/GameClient/W3DGameClient.h
-    # det-codex r8: this game's copies of the model-content render-object classes, see SHARED.
+    # this game's copies of the model-content render-object classes, see SHARED.
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/nullrobj.cpp
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/nullrobj.h
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/boxrobj.cpp
@@ -336,11 +336,11 @@ set(SIMDIGEST_PATHS_CODE_ZH
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/part_emt.h
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/part_ldr.cpp
     GeneralsMD/Code/Libraries/Source/WWVegas/WW3D2/part_ldr.h
-    # det-codex-3 Codex r16: the region HEADERS whole - their class declarations, every member the regioned code and
+    # the region HEADERS whole - their class declarations, every member the regioned code and
     # its whole-function constructors read; a member type changed outside the old regions moved no digest.
     GeneralsMD/Code/GameEngine/Include/GameClient/Drawable.h
     GeneralsMD/Code/GameEngine/Include/GameClient/GameClient.h
-    # det-codex-5: the precompiled header every digested GameEngine file starts with, and the shell-hook ids Scripts.cpp
+    # the precompiled header every digested GameEngine file starts with, and the shell-hook ids Scripts.cpp
     # names in order - simid-closure.py's constants pass
     GeneralsMD/Code/GameEngine/Include/Precompiled/PreRTS.h
     GeneralsMD/Code/GameEngine/Include/GameClient/ShellHooks.h
@@ -354,7 +354,7 @@ set(SIMDIGEST_PATHS_CODE_G
     Generals/Code/GameEngine/Source/Common
     Generals/Code/GameEngine/Source/GameLogic
     Generals/Code/GameEngine/Source/GameNetwork
-    # GeneralsX @bugfix Claude 03/10/2026 Codex P2 det-codex-fixes: this game's sim-facing device files, see SHARED.
+    # GeneralsX: this game's sim-facing device files, see SHARED.
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DTerrainLogic.cpp
     Generals/Code/GameEngineDevice/Include/W3DDevice/GameLogic/W3DTerrainLogic.h
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DGameLogic.cpp
@@ -389,11 +389,11 @@ set(SIMDIGEST_PATHS_CODE_G
     Generals/Code/Libraries/Source/WWVegas/WW3D2/meshgeometry.h
     Generals/Code/Libraries/Source/WWVegas/WW3D2/hmorphanim.cpp
     Generals/Code/Libraries/Source/WWVegas/WW3D2/hmorphanim.h
-    # det-codex r7: the mesh model meshmdlio fills and mesh.cpp makes unique - the vertices bridges are built from -
+    # the mesh model meshmdlio fills and mesh.cpp makes unique - the vertices bridges are built from -
     # and the WW3D sync clock HTreeClass::Anim_Update_Without_Interpolation branches on.
     Generals/Code/Libraries/Source/WWVegas/WW3D2/meshmdl.cpp
     Generals/Code/Libraries/Source/WWVegas/WW3D2/ww3d.h
-    # det-codex r9: the device implementations of logic interfaces the simulation calls - the lexicon whose names are
+    # the device implementations of logic interfaces the simulation calls - the lexicon whose names are
     # interned before UpgradeCenter - item 4c - the ghost objects canTransferSuppliesAt reads, the thing factory.
     Generals/Code/GameEngineDevice/Include/W3DDevice/Common/W3DFunctionLexicon.h
     Generals/Code/GameEngineDevice/Include/W3DDevice/Common/W3DThingFactory.h
@@ -401,12 +401,12 @@ set(SIMDIGEST_PATHS_CODE_G
     Generals/Code/GameEngineDevice/Source/W3DDevice/Common/System/W3DFunctionLexicon.cpp
     Generals/Code/GameEngineDevice/Source/W3DDevice/Common/Thing/W3DThingFactory.cpp
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameLogic/W3DGhostObject.cpp
-    # det-codex-3: the device GameClient whole - its factories pick the terrain visual, the in-game UI that owns the
+    # the device GameClient whole - its factories pick the terrain visual, the in-game UI that owns the
     # command dictionaries and the display that owns the asset manager, and its init, reset, update and time of
     # day forward to the regioned GameClient. Two commits since 07/2026, both files.
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DGameClient.cpp
     Generals/Code/GameEngineDevice/Include/W3DDevice/GameClient/W3DGameClient.h
-    # det-codex r8: this game's copies of the model-content render-object classes, see SHARED.
+    # this game's copies of the model-content render-object classes, see SHARED.
     Generals/Code/Libraries/Source/WWVegas/WW3D2/nullrobj.cpp
     Generals/Code/Libraries/Source/WWVegas/WW3D2/nullrobj.h
     Generals/Code/Libraries/Source/WWVegas/WW3D2/boxrobj.cpp
@@ -417,18 +417,18 @@ set(SIMDIGEST_PATHS_CODE_G
     Generals/Code/Libraries/Source/WWVegas/WW3D2/part_emt.h
     Generals/Code/Libraries/Source/WWVegas/WW3D2/part_ldr.cpp
     Generals/Code/Libraries/Source/WWVegas/WW3D2/part_ldr.h
-    # det-codex-3 Codex r16: the region HEADERS whole - their class declarations, every member the regioned code and
+    # the region HEADERS whole - their class declarations, every member the regioned code and
     # its whole-function constructors read; a member type changed outside the old regions moved no digest.
     Generals/Code/GameEngine/Include/GameClient/Drawable.h
     Generals/Code/GameEngine/Include/GameClient/GameClient.h
-    # det-codex-5: the precompiled header every digested GameEngine file starts with, and the shell-hook ids Scripts.cpp
+    # the precompiled header every digested GameEngine file starts with, and the shell-hook ids Scripts.cpp
     # names in order - simid-closure.py's constants pass
     Generals/Code/GameEngine/Include/Precompiled/PreRTS.h
     Generals/Code/GameEngine/Include/GameClient/ShellHooks.h
     Generals/Code/GameEngineDevice/Include/Win32Device/Common/Win32GameEngine.h
 )
 
-# GeneralsX @bugfix Claude 03/10/2026 Codex P2 det-codex-fixes. HOT render files with a few functions the simulation
+# GeneralsX: HOT render files with a few functions the simulation
 # reads. Only the text from a line containing GX-SIMID-BEGIN up to the next line containing GX-SIMID-END is hashed, so a
 # rendering edit elsewhere in the file stays client-only (whole, these files would have turned 189 client-only commits
 # of 07-10/2026 into four-platform ships). A region is a comment pair around whole functions - mark every function the
@@ -437,7 +437,7 @@ set(SIMDIGEST_PATHS_CODE_G
 # Not digested on purpose: audio length and music-finished - only the SPEECH/AUDIO/MUSIC script conditions read them,
 # and Determinism-1 classifies those client-local; and the GameEngineDevice CMakeLists.txt, which add render files
 # weekly and set no codegen flag - a swap of WHICH copy of a listed file compiles there needs a list edit here anyway.
-# THE BOUNDARY IS A CHECKED RULE (det-codex, lead C11 03/10/2026): the digested code must be CLOSED - everything it
+# THE BOUNDARY IS A CHECKED RULE (lead C11 03/10/2026): the digested code must be CLOSED - everything it
 # reaches (inlined code, calls and globals, pointers in its tables, overrides of its virtuals) is digested here, or
 # named in resources/gitinfo/simdigest_exclusions.txt with the reason the simulation does not read it. Check it with
 #   scripts/build/simid-closure.py <a -g build dir>
@@ -474,12 +474,12 @@ set(SIMDIGEST_PATHS_REGION_G
     Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DInGameUI.cpp
 )
 
-# GeneralsX @bugfix Claude 03/10/2026 Codex P2 det-codex-fixes, the guard lead C11 asked for: what each region file's
+# GeneralsX: the guard lead C11 asked for: what each region file's
 # markers MUST hold - the simulation-facing definitions found by the 02-03/10 call-graph search. "<file>|<Class::fn>" is a
 # definition, every overload; "<file>|=<text>" a literal, no semicolon - CMake would split the entry there. Checked by
 # SimDigestCheckRegionFunctions on every build.
 set(SIMDIGEST_REGION_FUNCTIONS
-    # det-codex-5 Codex r22: the constants region code uses (#1), the control bar's lifecycle in the in-game UI and the
+    # the constants region code uses (#1), the control bar's lifecycle in the in-game UI and the
     # forwarders that reach it (#2), the map-path resolver, the scan's hand-off of the path and the two statements that record
     # it (#3); and the in-game UI's and the map cache's globals, as r17's rule asks
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DModelDraw.cpp|=enum INIReadFlagsType"
@@ -503,13 +503,13 @@ set(SIMDIGEST_REGION_FUNCTIONS
     "Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DInGameUI.cpp|W3DInGameUI::reset"
     "Core/GameEngine/Source/GameClient/MapUtil.cpp|MapCache::getPathOnDisk"
     "Core/GameEngine/Source/GameClient/MapUtil.cpp|=m_filePathOnDisk = fname"
-    # det-codex-5 Codex r23: a cache miss publishes the entry that carries the path
+    # a cache miss publishes the entry that carries the path
     "Core/GameEngine/Source/GameClient/MapUtil.cpp|=(*this)[lowerFname] = md"
     "Core/GameEngine/Source/GameClient/MapUtil.cpp|=addMap(mapDir, *filepathIt, filepathLower, fileInfo, isOfficial)"
     "Core/GameEngine/Source/GameClient/MapUtil.cpp|=MapCache *TheMapCache = nullptr"
     "GeneralsMD/Code/GameEngine/Source/GameClient/InGameUI.cpp|=InGameUI *TheInGameUI = nullptr"
     "Generals/Code/GameEngine/Source/GameClient/InGameUI.cpp|=InGameUI *TheInGameUI = nullptr"
-    # det-codex-3 Codex r17: the definitions of the globals and static members region code reads
+    # the definitions of the globals and static members region code reads
     "Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp|=ControlBar *TheControlBar = nullptr"
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/BaseHeightMap.cpp|=BaseHeightMapRenderObjClass *TheTerrainRenderObject=nullptr"
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/HeightMap.cpp|=HeightMapRenderObjClass *TheHeightMap = nullptr"
@@ -526,7 +526,7 @@ set(SIMDIGEST_REGION_FUNCTIONS
     "Generals/Code/GameEngine/Source/GameClient/Drawable.cpp|=Drawable::s_anyModelDirty = TRUE"
     "Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DDisplay.cpp|=W3DAssetManager *W3DDisplay::m_assetManager = nullptr"
     "Generals/Code/Libraries/Source/WWVegas/WW3D2/ww3d.cpp|=WW3D::MungeSortOnLoad = false"
-    # det-codex-3 (r15 open list): the client lifecycle that creates, resets and steps what the simulation reads - the
+    # (r15 open list): the client lifecycle that creates, resets and steps what the simulation reads - the
     # display (asset manager), in-game UI (command dictionaries), challenge filter and terrain visual; the drawable
     # teardown and list root; the ghost-object and shroud-status refresh; the terrain visual update (water grid); time
     # of day (the NIGHT model condition); the map binding, reset and LOD swap of the terrain render object; the bridge
@@ -543,7 +543,7 @@ set(SIMDIGEST_REGION_FUNCTIONS
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/HeightMap.cpp|HeightMapRenderObjClass::adjustTerrainLOD"
     "Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp|=Overridable *stillValid = set->deleteOverrides()"
     "Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp|=Overridable *stillValid = button->deleteOverrides()"
-    # det-codex-4 Codex r21: the constructor's command-dictionary roots, which CommandSet/CommandButton linking and the
+    # the constructor's command-dictionary roots, which CommandSet/CommandButton linking and the
     # findCommandSet walk (AIPlayer's upgrade decisions) start from
     "Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp|=m_commandButtons = nullptr"
     "Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp|=m_commandSets = nullptr"
@@ -568,7 +568,7 @@ set(SIMDIGEST_REGION_FUNCTIONS
     "Generals/Code/GameEngine/Source/GameClient/GameClient.cpp|=draw->setFullyObscuredByShroud(ss >= OBJECTSHROUD_FOGGED)"
     "Generals/Code/GameEngine/Source/GameClient/GameClient.cpp|=TheTerrainVisual->UPDATE()"
     "Generals/Code/GameEngineDevice/Source/SDL3GameEngine.cpp|SDL3GameEngine::createGameClient"
-    # det-codex r12: same-file helpers the regioned code calls, found once the tool checked calls within an object.
+    # same-file helpers the regioned code calls, found once the tool checked calls within an object.
     "Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp|CommandSet::friend_addToList"
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/Drawable/Draw/W3DModelDraw.cpp|turretNamesDiffer"
     "GeneralsMD/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DBridgeBuffer.cpp|W3DBridge::W3DBridge"
@@ -577,7 +577,7 @@ set(SIMDIGEST_REGION_FUNCTIONS
     "Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DBridgeBuffer.cpp|W3DBridge::W3DBridge"
     "Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DBridgeBuffer.cpp|W3DBridge::~W3DBridge"
     "Generals/Code/GameEngineDevice/Source/W3DDevice/GameClient/W3DBridgeBuffer.cpp|W3DBridge::clearBridge"
-    # det-codex r13: the drawable's binding to its object and its list links - getDrawableGeometryInfo reads the object,
+    # the drawable's binding to its object and its list links - getDrawableGeometryInfo reads the object,
     # the dirty-state flush walks the list.
     "GeneralsMD/Code/GameEngine/Source/GameClient/Drawable.cpp|Drawable::friend_bindToObject"
     "GeneralsMD/Code/GameEngine/Source/GameClient/Drawable.cpp|Drawable::prependToList"
@@ -585,7 +585,7 @@ set(SIMDIGEST_REGION_FUNCTIONS
     "Generals/Code/GameEngine/Source/GameClient/Drawable.cpp|Drawable::prependToList"
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/HeightMap.cpp|HeightMapRenderObjClass::HeightMapRenderObjClass"
     "Core/GameEngineDevice/Source/W3DDevice/GameClient/Water/W3DWater.cpp|WaterRenderObjClass::init"
-    # det-codex r14: destroyDrawable (lookup table and binding), Drawable's Thing downcast (Module::m_drawable feeds
+    # destroyDrawable (lookup table and binding), Drawable's Thing downcast (Module::m_drawable feeds
     # the barrel count), the drawable list roots.
     "GeneralsMD/Code/GameEngine/Source/GameClient/GameClient.cpp|GameClient::destroyDrawable"
     "GeneralsMD/Code/GameEngine/Source/GameClient/Drawable.cpp|Drawable::removeFromList"
@@ -731,7 +731,7 @@ set(SIMDIGEST_REGION_FUNCTIONS
     "Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp|ControlBar::findCommandSet"
     "Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp|ControlBar::newCommandSet"
     "Core/GameEngine/Source/GameClient/GUI/ControlBar/ControlBar.cpp|ControlBar::newCommandSetOverride"
-    # det-codex r9: ParticleUplinkCannonUpdate finds its beam's LaserUpdate through GameClient::findDrawableByID and
+    # ParticleUplinkCannonUpdate finds its beam's LaserUpdate through GameClient::findDrawableByID and
     # Drawable::findClientUpdateModule and takes the damage radius from it - the lookup, its table and its accessors.
     "GeneralsMD/Code/GameEngine/Source/GameClient/GameClient.cpp|GameClient::addDrawableToLookupTable"
     "GeneralsMD/Code/GameEngine/Source/GameClient/GameClient.cpp|GameClient::removeDrawableFromLookupTable"
@@ -744,7 +744,7 @@ set(SIMDIGEST_REGION_FUNCTIONS
     "Generals/Code/GameEngine/Source/GameClient/GameClient.cpp|=m_drawableHash.reserve(DRAWABLE_HASH_SIZE)"
     "GeneralsMD/Code/GameEngine/Source/GameClient/Drawable.cpp|Drawable::findClientUpdateModule"
     "Generals/Code/GameEngine/Source/GameClient/Drawable.cpp|Drawable::findClientUpdateModule"
-    # det-codex r10: how the beam drawable gets the ID the cannon stores and looks up - registration and the counter.
+    # how the beam drawable gets the ID the cannon stores and looks up - registration and the counter.
     "GeneralsMD/Code/GameEngine/Source/GameClient/GameClient.cpp|GameClient::registerDrawable"
     "GeneralsMD/Code/GameEngine/Source/GameClient/GameClient.cpp|GameClient::allocDrawableID"
     "GeneralsMD/Code/GameEngine/Source/GameClient/GameClient.cpp|=m_nextDrawableID = (DrawableID)1"
@@ -948,7 +948,7 @@ function(SimDigestRegionText _out _outside _err _path _src)
             set(${_err} "${_path}: an empty GX-SIMID region" PARENT_SCOPE)
             return()
         endif()
-        # Braces of code only (Codex det-codex-r27: a '}' in a comment or a string literal refused valid code).
+        # Braces of code only (a '}' in a comment or a string literal refused valid code).
         SimDigestCodeOnly(_code "${_region}")
         string(LENGTH "${_code}" _l0)
         string(REPLACE "{" "" _nob "${_code}")
@@ -961,7 +961,7 @@ function(SimDigestRegionText _out _outside _err _path _src)
             set(${_err} "${_path}: a GX-SIMID region with ${_ob} '{' but ${_cb} '}' - a marker sits inside a definition" PARENT_SCOPE)
             return()
         endif()
-        # ...and they must PAIR, not just count equal (Codex det-codex-r29): a region from the middle of one function to
+        # ...and they must PAIR, not just count equal: a region from the middle of one function to
         # the opening brace of the next reads '} ... {', balanced, while the second body stays outside it.
         string(REGEX REPLACE "[^{}]" "" _br "${_code}")
         set(_was "")
@@ -1013,9 +1013,9 @@ function(SimDigestCheckRegionFunctions _path _inside _outside)
             set(_def "\n(/[*][^\n]*[*]/[ \t]*)?([A-Za-z_][^\n]*[^A-Za-z0-9_:])?${_rx}[ \t\n]*[(]")
             string(REGEX MATCH "${_def}" _out "\n${_outside}")
             # Every inside definition must reach its opening brace before the next region starts: an END marker moved
-            # between a signature and its body keeps the region balanced and would leave the body unhashed (Codex r2).
+            # between a signature and its body keeps the region balanced and would leave the body unhashed.
             # One REGEX MATCH at a time on a shrinking string, never a MATCHALL list: a '[' inside a hit made CMake merge
-            # list elements, and a search that then failed read as offset -1 (Codex r3).
+            # list elements, and a search that then failed read as offset -1.
             set(_scan "\n${_inside}")
             set(_in -1)
             while(1)
@@ -1030,10 +1030,10 @@ function(SimDigestCheckRegionFunctions _path _inside _outside)
                 string(LENGTH "${_h}" _hl)
                 math(EXPR _at "${_at} + ${_hl}")
                 string(SUBSTRING "${_scan}" ${_at} -1 _scan)
-                # The body's '{' is searched in the rest of this definition's OWN region, as code (Codex det-codex-r29: a
+                # The body's '{' is searched in the rest of this definition's OWN region, as code (a
                 # '{' in a comment before a moved END passed for it), past the parameter list and every other (...)
                 # group, so a brace in a default argument cannot pass either. Regions pair their braces (above), so the
-                # body's '}' is in the region too. ponytail: a brace-initialised member in a constructor's init list
+                # body's '}' is in the region too. Trade-off: a brace-initialised member in a constructor's init list
                 # (': m{0}') still reads as the body; none of the guarded constructors has one - parse it if one does.
                 string(FIND "${_scan}" "GX-SIMID-BEGIN" _nb)
                 if(_nb EQUAL -1)
@@ -1203,9 +1203,9 @@ function(Main)
         ComputeSimSourceDigest(SIM_SOURCE_DIGEST_ZEROHOUR _zh_code _zh_regions)
         ComputeSimSourceDigest(SIM_SOURCE_DIGEST_GENERALS _g_code _g_regions)
         message(STATUS "SimID source digest: ZH=0x${SIM_SOURCE_DIGEST_ZEROHOUR} G=0x${SIM_SOURCE_DIGEST_GENERALS}")
-        # GeneralsX @bugfix Claude 02/10/2026 How many dirty files each digest folded in (the overlay above), so
+        # GeneralsX: How many dirty files each digest folded in (the overlay above), so
         # scripts/build/simid-digest.sh reports dirt from the watcher's own path lists instead of a copy of them that
-        # drifts (Codex m1det-4c-r1 P2: the CMakeLists.txt added to SIMDIGEST_PATHS_BUILD were missing from the copy).
+        # drifts (the CMakeLists.txt added to SIMDIGEST_PATHS_BUILD were missing from the copy).
         message(STATUS "SimID dirty overlay: ZH=${SIM_SOURCE_DIGEST_ZEROHOUR_DIRTY} G=${SIM_SOURCE_DIGEST_GENERALS_DIRTY}")
         configure_file("${SIMDIGEST_PRE_CONFIGURE_FILE}" "${SIMDIGEST_POST_CONFIGURE_FILE}" @ONLY)
     else()

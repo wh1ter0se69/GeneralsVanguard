@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 18/09/2026 - removing a saved sign-in from disk, as a PURE function.
+// GeneralsX: removing a saved sign-in from disk, as a PURE function.
 //
 // PURE ON PURPOSE, the same way GXOnlineGate.h is: no engine, no AsciiString, no TheGlobalData, so
 // scripts/test/signout-files-test.cpp can drive it against real files in a scratch directory. The

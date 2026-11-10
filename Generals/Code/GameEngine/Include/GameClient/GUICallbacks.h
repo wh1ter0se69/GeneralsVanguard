@@ -312,7 +312,7 @@ extern WindowMsgHandledType LeftHUDInput( GameWindow *window, UnsignedInt msg, W
 extern void ToggleControlBar( Bool immediate = TRUE );
 extern void HideControlBar( Bool immediate = TRUE );
 extern void ShowControlBar( Bool immediate = TRUE );
-// GeneralsX @feature Claude 13/08/2026 TOGGLE_GAME_HUD. Declared in BOTH games' GUICallbacks.h
+// GeneralsX: TOGGLE_GAME_HUD. Declared in BOTH games' GUICallbacks.h
 // because it is defined in Core/ControlBarCallback.cpp, which compiles into both.
 extern void ToggleGameHud();
 

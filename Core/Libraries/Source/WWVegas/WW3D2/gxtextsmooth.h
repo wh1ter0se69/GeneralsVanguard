@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 06/10/2026 SMOOTH HUD TEXT. The GeneralsX panels (GXSpectatorHud) ask for the font name
+// GeneralsX: SMOOTH HUD TEXT. The GeneralsX panels (GXSpectatorHud) ask for the font name
 // "GXHUD:Arial"; on FreeType (macOS, iPadOS) those get LIGHT hinting instead of the v35 grid-fit (owner 06/10: "I dont like
 // the pixelated text font"). On Windows the marker is only a name: every GDI font is ClearType (gxClearTypeCoverage).
 // Pure so scripts/test/text-smooth-test.cpp can check it.

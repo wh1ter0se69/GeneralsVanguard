@@ -191,7 +191,7 @@ static void doSetRallyPoint( Object *obj, const Coord3D& pos )
 		UnicodeString info;
 		info.format( TheGameText->fetchGameOnly( "GUI:RallyPointSet" ),
 								 obj->getTemplate()->getDisplayName().str() );
-		// GeneralsX @bugfix Claude 06/10/2026 The display name can be map text (a map.ini DisplayName); message() would
+		// GeneralsX: The display name can be map text (a map.ini DisplayName); message() would
 		// run the finished line through printf a second time.
 		TheInGameUI->messageNoFormat( info );
 
@@ -240,14 +240,14 @@ static Player *getMessagePlayer(GameMessage *msg)
 // doRadarForceEnable. Both arrays are written ONLY from the synchronised handlers below, so they are
 // identical on every peer; neither is in any crc().
 //
-// GeneralsX @bugfix Claude 25/09/2026 BOTH ARE SAVED, because what they describe is (Codex batch-r2). A save keeps
+// GeneralsX: BOTH ARE SAVED, because what they describe is. A save keeps
 // what a reveal did to the world - PartitionCell::xfer the permanent looker on every cell, Radar::xfer the forced
 // minimap - so a save that dropped these loaded a revealed map whose toggle said "shrouded": Re-shroud was skipped,
 // and Reveal + Re-shroud stacked a second permanent looker that nothing ever removes. They travel in a block of
 // their own, CHUNK_GXCheatReveal (GameState::init, both games), after every stock block: retail and older
 // GeneralsX builds skip a block they do not know by its size, so the save stays loadable there; a save without it
 // loads with both arrays cleared by GameLogic::reset() on the way in.
-// ponytail: a save made by a build before this one with a reveal active still loads as "not revealed" - nothing in
+// Trade-off: a save made by a build before this one with a reveal active still loads as "not revealed" - nothing in
 // it says who added the permanent lookers (a map script's doRevealMapEntirePermanently adds the same one).
 // ------------------------------------------------------------------------------------------------
 static Bool s_gxRevealed[ MAX_PLAYER_COUNT ] = { FALSE };
@@ -330,7 +330,7 @@ void GameLogic::clearGameData( Bool showScoreScreen )
 	setClearingGameData( TRUE );
 
 	/*
-	 * GeneralsX @feature Claude 22/09/2026 THE END-OF-MATCH RESULT, while the match still exists.
+	 * GeneralsX: THE END-OF-MATCH RESULT, while the match still exists.
 	 *
 	 * HERE, and not two lines higher, and not after the score screen. Three constraints pin it:
 	 *
@@ -351,7 +351,7 @@ void GameLogic::clearGameData( Bool showScoreScreen )
 	 */
 	gxStatMatchEnd();
 
-	// GeneralsX @bugfix Claude 29/07/2026 Give the frame limit back when a game ends.
+	// GeneralsX: Give the frame limit back when a game ends.
 	//
 	// Starting a network game used to turn it OFF - LANAPICallbacks.cpp, StagingRoomGameInfo.cpp
 	// and GameSpyGameInfo.cpp all set m_useFpsLimit = false as they posted MSG_NEW_GAME - on the
@@ -360,13 +360,13 @@ void GameLogic::clearGameData( Bool showScoreScreen )
 	// pacer stopped limiting anything, for the rest of the process: the victory banner ran at
 	// roughly 10x speed and the shell menus stayed that way afterwards, on every peer.
 	//
-	// GeneralsX @bugfix Claude 02/08/2026 Those three assignments are GONE - they were also making
+	// GeneralsX: Those three assignments are GONE - they were also making
 	// the render loop spin unbounded for the whole match (~540 iterations/second against a 30 Hz
 	// logic rate). This restore is therefore no longer load-bearing for the network case, and is
 	// kept because one path still legitimately turns the limit off: the g_UT_startTiming
 	// unit-timing harness in GameLogic.cpp.
 	//
-	// GeneralsX @feature Claude 27/09/2026 Back ON, not back to Options.ini "FPSLimit": that key is
+	// GeneralsX: Back ON, not back to Options.ini "FPSLimit": that key is
 	// no longer a setting - the max-FPS cap is, and 0 in it already means unlimited, which is also
 	// all -noFPSLimit sets now (Common/FpsLimitPolicy.h).
 	//
@@ -394,7 +394,7 @@ void GameLogic::clearGameData( Bool showScoreScreen )
 	{
 		shellGame = TRUE;
 #ifdef ALLOW_DEBUG_UTILS
-		// GeneralsX @bugfix Copilot 22/03/2026 Emit runtime diagnostics when ScoreScreen is pushed after game end.
+		// GeneralsX: Emit runtime diagnostics when ScoreScreen is pushed after game end.
 		fprintf(stderr, "[SKIRMISH_DIAG] clearGameData showScoreScreen=%d isInShellGame=%d isInGame=%d headless=%d -> pushing ScoreScreen\n",
 			showScoreScreen ? 1 : 0,
 			isInShellGame() ? 1 : 0,
@@ -723,7 +723,7 @@ void GameLogic::logicMessageDispatcher( GameMessage *msg, void *userData )
 		// handlers were conditional, a peer built without cheats would receive the message, match no
 		// case (this switch has no default:), silently no-op, and then mismatch at the next
 		// NET_CRC_INTERVAL. That is the single most dangerous mistake available here.
-		// GeneralsX @security Claude 25/09/2026 Each handler says whether it applied; gxCheatNotice turns an applied
+		// GeneralsX: Each handler says whether it applied; gxCheatNotice turns an applied
 		// ADMIN cheat (a match with more than one human) into a line every peer draws on the same frame.
 		case GameMessage::MSG_GX_CHEAT_GIVE_MONEY:
 		{
@@ -1071,7 +1071,7 @@ bool GameLogic::onNewGame(MAYBE_UNUSED GameMessage *msg)
 
 	if ( msg->getArgumentCount() >= 4 )
 	{
-		// GeneralsX @feature Claude 27/09/2026 The fourth argument is the GAME SPEED - the skirmish
+		// GeneralsX: The fourth argument is the GAME SPEED - the skirmish
 		// slider, a replay's recorded speed, a restart's - and no longer the render cap. It used to be
 		// both: retail's logic followed the render rate, so the slider capped rendering, and here that
 		// meant a launcher cap of 144 became 1000 at the slider's "--" end, or 45 halfway down. The cap
@@ -1549,7 +1549,7 @@ bool GameLogic::onAddWaypoint(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &current
 {
 	Coord3D dest = msg->getArgument( 0 )->location;
 #if defined(GX_TEST_INSTRUMENTS)
-	// GeneralsX @test Claude 26/09/2026 WAYPOINT ENTER arms: a fallback click is proved SENT and executed on every peer.
+	// GeneralsX: WAYPOINT ENTER arms: a fallback click is proved SENT and executed on every peer.
 	fprintf( stderr, "[GXENTERQ] addwaypoint f=%u from=%d\n", (unsigned)getFrame(), msg->getPlayerIndex() );
 	fflush( stderr );
 #endif
@@ -1723,13 +1723,13 @@ bool GameLogic::onDebugKillObject(MAYBE_UNUSED GameMessage *msg)
 // ------------------------------------------------------------------------------------------------
 static Bool gxCheatArgsOk( const GameMessage *msg, Int needed )
 {
-	// GeneralsX @security Claude 25/09/2026 The LOGICAL count: an admin order's signature trailer (Common/GXAdminOrder.h)
+	// GeneralsX: The LOGICAL count: an admin order's signature trailer (Common/GXAdminOrder.h)
 	// is not arguments, and must never be read as SPAWN_UNIT's optional count and veterancy.
 	return msg != nullptr && gxAdminLogicalArgCount( msg ) >= needed;
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @security Claude 18/09/2026 May MSG_GX_CHEAT_* run in THIS match at all?
+/** GeneralsX: May MSG_GX_CHEAT_* run in THIS match at all?
 	*
 	* Only in a sandbox: a match with at most one human in it - single player, skirmish, and the
 	* one-human headless harness runs (-lanhost with -lanai). GX_STRESS no longer comes through here -
@@ -1760,7 +1760,7 @@ Bool GameLogic::gxCheatsAllowed()
 		if( p != nullptr && p->getPlayerType() == PLAYER_HUMAN && p->getPlayerNameKey() != replayObserver )
 			++humans;
 	}
-	// GeneralsX @security Claude 25/09/2026 (observer seats) ...and every OBSERVER SLOT that shares the ReplayObserver
+	// GeneralsX: (observer seats) ...and every OBSERVER SLOT that shares the ReplayObserver
 	// (PlayerList::assignSlotIndices) is a person too. In that layout an observer has no Player of its own, so the loop
 	// above cannot see one, and one player watched by two observers read as a sandbox any of the three could cheat in.
 	// The slot map is fixed at the start from the same slot list on every peer and in a replay (its header's).
@@ -1789,7 +1789,7 @@ static Int gxSlotOfPlayer( const Player *p )
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @security Claude 25/09/2026 May THIS sender's cheat order run?
+/** GeneralsX: May THIS sender's cheat order run?
 	*
 	* The sandbox rule first, unchanged: at most one human, anybody may. Otherwise only a slot the RELAY proved an
 	* admin for this match. The mask is simulation state - startNewGame copied it from the game options on a new
@@ -1797,7 +1797,7 @@ static Int gxSlotOfPlayer( const Player *p )
 	* confirmed every bit (LANAPI::OnGameStart) - so every peer, and a replay, give the same answer for the same
 	* order. The sender is the Player the network layer built the message for, never anything the order says. */
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @security Claude 25/09/2026 (observer seats) A slot "is" a sender when the start's slot map sends it to
+// GeneralsX: (observer seats) A slot "is" a sender when the start's slot map sends it to
 // that Player (PlayerList::assignSlotIndices): a player's own "player<slot>", or - every observer slot sharing it - the
 // ReplayObserver. Fixed at the start from the same slot list on every peer and in a replay.
 static Bool gxSlotIsSender( Int slot, const Player *sender )
@@ -1820,11 +1820,11 @@ Bool GameLogic::gxCheatAllowedFor( const Player *sender ) const
 static Int s_gxAdminOrderSlot = -1;
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @security Claude 25/09/2026 See GameLogic.h. The sender's SLOT only picks which stamped key to check
+/** GeneralsX: See GameLogic.h. The sender's SLOT only picks which stamped key to check
 	* against; it is never evidence by itself, because the network does not bind an order's sender field to the peer it
 	* came from (Common/GXAdminOrder.h). The signature is the evidence. */
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @security Claude 25/09/2026 (observer seats, Codex batch-r6 P2) Every admin slot the sender can be is tried:
+// GeneralsX: Every admin slot the sender can be is tried:
 // its own, or each observer slot sharing the ReplayObserver - an admin seated as an observer signs as its NETWORK slot
 // (Network.cpp gxSealAdminOrder), which no Player names. The payload binds the slot and each slot has its own key, so
 // at most one verifies, and which one is decided from the order's own arguments and simulation state alone - the same
@@ -1852,7 +1852,7 @@ Bool GameLogic::gxAdminOrderAccepted( const GameMessage *msg, const Player *send
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 27/09/2026 WHO OWNS A CHEAT SPAWN (wh1ter0se, 27/09): a spawn ordered BY a defeated player or an
+/** GeneralsX: WHO OWNS A CHEAT SPAWN (wh1ter0se, 27/09): a spawn ordered BY a defeated player or an
 	* observer, or aimed AT one, makes "civilian" units - the Neutral player's, which nobody commands - so a player who is
 	* out of the game can still stock the map for the living, but never field units of their own or hand them to a live
 	* player. Neutral, not the map's PlyrCivilian: every slot player is set NEUTRAL to it (PlayerList::newGame), where
@@ -1863,7 +1863,7 @@ Bool GameLogic::gxAdminOrderAccepted( const GameMessage *msg, const Player *send
 	* fixed at the start), so every peer and a replay choose the same owner. The Debug menu asks the same question to say
 	* so before the click.
 	*
-	* GeneralsX @bugfix Claude 05/10/2026 ...AIMED AT one only: the ORDERER's state no longer decides the owner. wh1ter0se 05/10:
+	* GeneralsX: ...AIMED AT one only: the ORDERER's state no longer decides the owner. wh1ter0se 05/10:
 	* "as an admin I need to be able to select a player from the cheats tab and then go to spawn and spawning a unit would
 	* assign in that player" - an admin watching as an observer, or one already defeated, got Neutral units instead.
 	* Whether an orderer may cheat at all is gxCheatTarget's gate (the sandbox, or a signed relay-proven admin), and no
@@ -1890,7 +1890,7 @@ static Player *gxCheatTarget( const GameMessage *msg )
 	const Player *sender = ThePlayerList->getNthPlayer( msg->getPlayerIndex() );
 	if( GameLogic::gxCheatsAllowed() == FALSE && TheGameLogic->gxAdminOrderAccepted( msg, sender ) == FALSE )
 	{
-		static Int s_refusals = 0;	// ponytail: capped so a flood of cheats cannot turn into a flood of fflush
+		static Int s_refusals = 0;	// Trade-off: capped so a flood of cheats cannot turn into a flood of fflush
 		if( s_refusals < 32 )
 		{
 			++s_refusals;
@@ -1914,7 +1914,7 @@ static Player *gxCheatTarget( const GameMessage *msg )
 
 	Player *target = ThePlayerList->getNthPlayer( idx );
 
-	// GeneralsX @feature Claude 27/09/2026 ...EXCEPT A SPAWN, which is not refused but made NEUTRAL: aimed at a defeated
+	// GeneralsX: ...EXCEPT A SPAWN, which is not refused but made NEUTRAL: aimed at a defeated
 	// or observing player, its units go to the Neutral player (gxSpawnGoesNeutral, wh1ter0se 27/09; not by the orderer's state
 	// since 05/10). Checked before the refusal below, which every other order still meets unchanged.
 	if( msg->getType() == GameMessage::MSG_GX_CHEAT_SPAWN_UNIT && GameLogic::gxSpawnGoesNeutral( target ) )
@@ -1924,7 +1924,7 @@ static Player *gxCheatTarget( const GameMessage *msg )
 		return ThePlayerList->getNeutralPlayer();
 	}
 
-	// GeneralsX @bugfix Claude 25/09/2026 A DEFEATED OR OBSERVING TARGET TAKES NO ORDER BUT REVEAL -
+	// GeneralsX: A DEFEATED OR OBSERVING TARGET TAKES NO ORDER BUT REVEAL -
 	// enforced where the order EXECUTES. The Debug menu refuses one at click time (DebugMenu.cpp
 	// beginCheatOrder), but the order lands a run-ahead later, and the target can be defeated in
 	// between: "Give cash" then paid a player who can never spend it. isPlayerActive() is simulation
@@ -1941,7 +1941,7 @@ static Player *gxCheatTarget( const GameMessage *msg )
 }
 
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @security Claude 25/09/2026 EVERY PLAYER SEES AN ADMIN CHEAT.
+/** GeneralsX: EVERY PLAYER SEES AN ADMIN CHEAT.
 	*
 	* Called for every MSG_GX_CHEAT_* with whether its handler applied it. Only an applied cheat in a match with
 	* more than one human is announced - that is the admin path; a sandbox (one human) says nothing to nobody. It
@@ -2154,7 +2154,7 @@ bool GameLogic::onGxCheatRevealMap(MAYBE_UNUSED GameMessage *msg)
 	}
 	else
 	{
-		// GeneralsX @bugfix Claude 07/10/2026 Re-shroud = lift the reveal, nothing more (wh1ter0se 07/10, 0.9.59: "turns it into
+		// GeneralsX: Re-shroud = lift the reveal, nothing more (wh1ter0se 07/10, 0.9.59: "turns it into
 		// darkness instead of the good original fog"). This used to copy MSG_META_DEMO_ENSHROUD (LookAtXlat.cpp:653) and
 		// follow the undo with shroudMapForPlayer, which pulses addShrouder/removeShrouder on every cell and so turns
 		// every cell nobody is looking at from FOGGED (m_currentShroud 0) to SHROUDED (1): black, "never seen".
@@ -2497,14 +2497,14 @@ bool GameLogic::onGxCheatSpawnUnit(MAYBE_UNUSED GameMessage *msg)
 	std::vector<ObjectID> spawnedIds;
 	const Int spawned = gxSpawnUnitsAround( target, tmpl, msg->getArgument( 2 )->location, count, vet, &spawnedIds );
 
-	// GeneralsX @feature Claude 27/09/2026 NEUTRAL VEHICLES COME UNMANNED, so a living player can take them - wh1ter0se 27/09:
+	// GeneralsX: NEUTRAL VEHICLES COME UNMANNED, so a living player can take them - wh1ter0se 27/09:
 	// spawned "as civilians, ready to enter / capture". A transport takes only its owner's units and hijacking needs an
 	// enemy (TransportContain::isValidContainerFor, ActionManager::canHijackVehicle), so a manned Neutral vehicle would be
 	// of no use to anyone. Unmanned is the engine's own "any infantry may crew it" state (ActionManager::canEnterObject;
 	// the takeover is PhysicsUpdate's collide), and the engine always pairs it with the Neutral player: a sniped vehicle,
 	// a Neutron blast, a script's "set unmanned". Their exclusions too: no drone, and no rider-change bike (a bike without
 	// its rider scuttles). neverManned: these never had a pilot, so none of a sniped pilot's death - no splatter sound, no
-	// car bomb's dead-man's trigger killing a convertible vehicle, no reset of the veterancy set above (Codex r2).
+	// car bomb's dead-man's trigger killing a convertible vehicle, no reset of the veterancy set above.
 	if( target == ThePlayerList->getNeutralPlayer() )
 	{
 		for( size_t i = 0; i < spawnedIds.size(); ++i )
@@ -2671,7 +2671,7 @@ bool GameLogic::onEnter(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &currentlySele
 }
 
 #if RTS_ZEROHOUR
-// GeneralsX @feature Claude 26/09/2026 WAYPOINT ENTER (MSG_GX_QUEUE_ENTER). One argument, the container. Anything else is
+// GeneralsX: WAYPOINT ENTER (MSG_GX_QUEUE_ENTER). One argument, the container. Anything else is
 // not a message this build sends, and every peer drops it alike because every peer received the same bytes. Each
 // selected unit decides for itself, in m_memberList order, from simulation state only (AIUpdateInterface::gxQueueEnter).
 bool GameLogic::onGxQueueEnter(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &currentlySelectedGroup)
@@ -2691,7 +2691,7 @@ bool GameLogic::onGxQueueEnter(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &curren
 
 #if RTS_ZEROHOUR
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @feature Claude 06/10/2026 IN-MATCH VOTE KICK - the simulation's half. Every rule is Common/GXVoteKick.h; this
+/** GeneralsX: IN-MATCH VOTE KICK - the simulation's half. Every rule is Common/GXVoteKick.h; this
 	* only feeds it the synchronised orders, the frame and the living humans, and carries out a PASSED vote.
 	*
 	* WHO: the sender is getMessagePlayer(msg) - the Player NetGameCommandMsg::constructGameMessage built the order for from the
@@ -2770,7 +2770,7 @@ void GameLogic::gxVoteKickResolved( GXVoteKickVerdict verdict, Int actor, GXVote
 		return;
 	const Bool running = m_gxVoteKick.target >= 0;
 	const Bool refused = verdict >= GXVK_REFUSED_BUSY;
-	static Int s_refusals = 0;	// ponytail: capped so a flood of refused orders cannot turn into a flood of fflush
+	static Int s_refusals = 0;	// Trade-off: capped so a flood of refused orders cannot turn into a flood of fflush
 	if( !refused || s_refusals++ < 64 )
 	{
 		fprintf( stderr, "[GXVOTE] f=%u id=%u %s actor=%d starter=%d target=%d yes=0x%X living=0x%X\n",
@@ -2791,7 +2791,7 @@ void GameLogic::gxVoteKickResolved( GXVoteKickVerdict verdict, Int actor, GXVote
 
 #if RTS_ZEROHOUR && defined(GX_TEST_INSTRUMENTS)
 // ------------------------------------------------------------------------------------------------
-/** GeneralsX @test Claude 26/09/2026 WAYPOINT ENTER - the simulation side of the test driver. NEVER in a shipping
+/** GeneralsX: WAYPOINT ENTER - the simulation side of the test driver. NEVER in a shipping
 	* build (GX_TEST_INSTRUMENTS). It is simulation code reading the environment, so a harness must give every peer the
 	* same GX_TEST_ENTERQ_SIM - except for `corrupt`, whose whole point is one peer.
 	*
@@ -3042,10 +3042,10 @@ bool GameLogic::onExit(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &currentlySelec
 		return false;
 
 #if !RETAIL_COMPATIBLE_CRC
-	// GeneralsX @bugfix Claude 09/10/2026 Refuse here, before anything touches the unit. privateExit refuses an exit
+	// GeneralsX: Refuse here, before anything touches the unit. privateExit refuses an exit
 	// from a container the unit is not in (TheSuperHackers #3089/#3136), but the weapon lock below was already released
 	// and a Chinook named as the exiter had already started landing in ChinookAIUpdate::aiDoCommand by the time it got
-	// there (Codex tsh-port-1008-sec-r1 P3). Same predicate, at the network entry.
+	// there. Same predicate, at the network entry.
 	const ContainModuleInterface *exiterContain = objectContainingExiter->getContain();
 	if( exiterContain == nullptr || !exiterContain->isContained( objectWantingToExit ) )
 		return false;
@@ -3312,7 +3312,7 @@ bool GameLogic::onDoForceAttackGround(MAYBE_UNUSED GameMessage *msg, AIGroupPtr 
 
 bool GameLogic::onQueueUpgrade(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &currentlySelectedGroup)
 {
-	// GeneralsX @fix Claude 05/10/2026 the upgrade's name id, not its NameKey: a NameKey differs between peers (GXWireId.h)
+	// GeneralsX: the upgrade's name id, not its NameKey: a NameKey differs between peers (GXWireId.h)
 	const UpgradeTemplate *upgradeT = TheUpgradeCenter->findUpgradeByWireId( (UnsignedInt)(msg->getArgument( 1 )->integer) );
 	if (!upgradeT)	// sanity
 		return false;
@@ -3332,7 +3332,7 @@ bool GameLogic::onCancelUpgrade(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &curre
 #else
 	Object *producer = getSingleObjectFromSelection(currentlySelectedGroup.Peek());
 #endif
-	// GeneralsX @fix Claude 05/10/2026 the upgrade's name id, not its NameKey: a NameKey differs between peers (GXWireId.h)
+	// GeneralsX: the upgrade's name id, not its NameKey: a NameKey differs between peers (GXWireId.h)
 	const UpgradeTemplate *upgradeT = TheUpgradeCenter->findUpgradeByWireId( (UnsignedInt)(msg->getArgument( 0 )->integer) );
 
 	// sanity
@@ -3380,7 +3380,7 @@ bool GameLogic::onQueueUnitCreate(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &cur
 		return false;
 	}
 
-	// GeneralsX @bugfix Claude 06/10/2026 The ID used to come from the message: the sender's ControlBar took it from
+	// GeneralsX: The ID used to come from the message: the sender's ControlBar took it from
 	// this factory's counter on the SENDER's machine only, so every other peer's counter fell behind, the next
 	// logic-side queue (a script, a flight deck, the AI) got different IDs on different machines, and a cancel by ID
 	// could remove different entries = desync. Every peer allocates it here instead; the message's second argument is
@@ -3657,7 +3657,7 @@ bool GameLogic::onPlaceBeacon(MAYBE_UNUSED GameMessage *msg)
 			// tell the user
 			UnicodeString s;
 			s.format(TheGameText->fetchGameOnly("GUI:BeaconPlaced"), msgPlayer->getPlayerDisplayName().str());
-			// GeneralsX @security Claude 06/10/2026 s holds the placing player's lobby name - peer-controlled text. message() takes
+			// GeneralsX: s holds the placing player's lobby name - peer-controlled text. message() takes
 			// a printf format, so a name like "%s%n" read and wrote through missing arguments on every ally's machine.
 			TheInGameUI->messageNoFormat( s );
 
@@ -3813,14 +3813,14 @@ bool GameLogic::onSetBeaconText(MAYBE_UNUSED GameMessage *msg, AIGroupPtr &curre
 bool GameLogic::onSelfDestruct(MAYBE_UNUSED GameMessage *msg)
 {
 	Player *msgPlayer = getMessagePlayer(msg);
-	// GeneralsX @bugfix Claude 25/09/2026 An observer quitting (GameLogic::quit, the Surrender button) sends
+	// GeneralsX: An observer quitting (GameLogic::quit, the Surrender button) sends
 	// this from its slot, which resolves to the ReplayObserver every observer slot shares. It is dead from its
 	// creation, so the kill takes nothing out - but on every OTHER observer's peer it is the local Player, and
 	// killPlayer resets that caster's control bar to the observer list. Same start-time slot map as
 	// Network::processDestroyPlayerCommand's guard, so every peer, and a replay, skips it alike.
 	if (ThePlayerList->isSharedBySlots(msgPlayer->getPlayerIndex()))
 		return true;
-	// GeneralsX @feature Claude 19/09/2026 In-match kick. Simulation state, identical on every peer, read
+	// GeneralsX: In-match kick. Simulation state, identical on every peer, read
 	// before the kill so that only a self-destruct that takes a LIVING player out can draw the line - once.
 	const Bool wasAlive = !msgPlayer->isPlayerDead();
 
@@ -3860,7 +3860,7 @@ bool GameLogic::onSelfDestruct(MAYBE_UNUSED GameMessage *msg)
 	// There is no reason to do any notification here, it now takes place in the victory conditions.
 	// bonehead.
 
-	// GeneralsX @feature Claude 19/09/2026 In-match kick: "<name> was kicked by <label>" in red.
+	// GeneralsX: In-match kick: "<name> was kicked by <label>" in red.
 	//
 	// DISPLAY ONLY, AND THAT IS THE WHOLE ARGUMENT FOR IT BEING SAFE HERE. The purity rule above the cheat
 	// handlers ("FORBIDDEN in here: ... TheInGameUI") exists because those handlers must not branch the
@@ -3922,9 +3922,9 @@ bool GameLogic::onSetReplayCamera(MAYBE_UNUSED GameMessage *msg)
 
 			if (!TheLookAtTranslator->hasMouseMovedRecently())
 			{
-				// GeneralsX @security Claude 06/10/2026 The cursor is the order's integer, and setCursor (and every
+				// GeneralsX: The cursor is the order's integer, and setCursor (and every
 				// device's override) indexes its cursor tables with it; any peer's order is recorded in everyone's
-				// replay (Codex net-hardening weapon-slot-r1). An honest recording holds a real cursor.
+				// replay (net-hardening weapon-slot-r1). An honest recording holds a real cursor.
 				if ((Int)mouseCursor >= 0 && (Int)mouseCursor < Mouse::NUM_MOUSE_CURSORS)
 					TheMouse->setCursor( mouseCursor );
 				TheMouse->setPosition( mousePos.x, mousePos.y );
@@ -3965,7 +3965,7 @@ bool GameLogic::onLogicCrc(MAYBE_UNUSED GameMessage *msg)
 	Player *msgPlayer = getMessagePlayer(msg);
 	if (TheNetwork)
 	{
-		// GeneralsX @bugfix Claude 18/08/2026 Resolve the slot by INDEX, not by matching display names.
+		// GeneralsX: Resolve the slot by INDEX, not by matching display names.
 		// Upstream reference: TheSuperHackers, PR #3033
 		// https://github.com/TheSuperHackers/GeneralsGameCode/pull/3033
 		//
@@ -3989,7 +3989,7 @@ bool GameLogic::onLogicCrc(MAYBE_UNUSED GameMessage *msg)
 			return false;
 		}
 
-		// GeneralsX @feature Claude 24/09/2026 The SENDER'S SLOT, carried by the message itself
+		// GeneralsX: The SENDER'S SLOT, carried by the message itself
 		// (NetGameCommandMsg::constructGameMessage). Observer slots all map onto the one ReplayObserver,
 		// so its Player index cannot tell three observers' reports apart and has no single slot to look
 		// up. For a player slot the two agree (one Player per slot), so nothing changes there; the
@@ -4034,7 +4034,7 @@ bool GameLogic::onLogicCrc(MAYBE_UNUSED GameMessage *msg)
 bool GameLogic::onPurchaseScience(MAYBE_UNUSED GameMessage *msg)
 {
 	Player *msgPlayer = getMessagePlayer(msg);
-	// GeneralsX @fix Claude 05/10/2026 the science's name id, not its NameKey: a NameKey differs between peers (GXWireId.h)
+	// GeneralsX: the science's name id, not its NameKey: a NameKey differs between peers (GXWireId.h)
 	ScienceType science = TheScienceStore->getScienceFromWireId( (UnsignedInt)msg->getArgument( 0 )->integer );
 
 	// sanity

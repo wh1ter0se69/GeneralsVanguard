@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule OPEN.CHINA_PP_FIRST (C·rb-data-8): every China general builds its Power Plant before
+# GeneralsX: rule bank DATA rule OPEN.CHINA_PP_FIRST (C·rb-data-8): every China general builds its Power Plant before
 # its Barracks (the OPEN.USA_PP_FIRST pattern). Stock Hard: "China Barracks - H" is CONDITION_TRUE (the Barracks is the first order),
 # "China 1st Power Plant - H" waits for the second Dozer. Here the Barracks waits until an own Power Plant stands (any build state), or
 # _GX_CLOCK >= 12 (120 s, the floor so the Barracks always comes). Own state only, no enemy term, no gift.

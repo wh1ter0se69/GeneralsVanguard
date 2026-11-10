@@ -72,7 +72,7 @@
 
 #include "GameClient/InGameUI.h"
 
-// GeneralsX @feature BenderAI 21/04/2026 In-game update checker
+// GeneralsX: In-game update checker
 #ifdef SAGE_UPDATE_CHECK
 #include "Common/UpdateChecker.h"
 #include "GameClient/GadgetPushButton.h"
@@ -154,7 +154,7 @@ static GameWindow *buttonWorldBuilder = nullptr;
 static GameWindow *mainMenuMovie = nullptr;
 static GameWindow *getUpdate = nullptr;
 #ifdef SAGE_UPDATE_CHECK
-static GameWindow *updateNotifyButton = nullptr;  // GeneralsX @feature BenderAI 21/04/2026 Dynamically created update notification button
+static GameWindow *updateNotifyButton = nullptr;  // GeneralsX: Dynamically created update notification button
 static AsciiString s_updateLatestTag;             // Tag of available update
 #endif
 static GameWindow *buttonTRAINING = nullptr;
@@ -181,7 +181,7 @@ static Bool buttonPushed = FALSE;
 static Bool isShuttingDown = FALSE;
 static Bool startGame = FALSE;
 static Int	initialGadgetDelay = 210;
-// GeneralsX @bugfix BenderAI 31/03/2026 Keep fallback credit label tied to main menu lifecycle so it does not leak into gameplay.
+// GeneralsX: Keep fallback credit label tied to main menu lifecycle so it does not leak into gameplay.
 static GameWindow *fallbackCreditLabel = nullptr;
 enum
 {
@@ -388,7 +388,7 @@ GameWindow *win = nullptr;
 
 }
 
-// GeneralsX @tweak BenderAI 31/03/2026 Print fixed project watermark in optional main-menu LabelVersion widget.
+// GeneralsX: Print fixed project watermark in optional main-menu LabelVersion widget.
 static void initLabelVersion()
 {
 	NameKeyType versionID = TheNameKeyGenerator->nameToKey( "MainMenu.wnd:LabelVersion" );
@@ -420,7 +420,7 @@ static void initLabelVersion()
 			const Int x = 8;
 			const Int y = TheDisplay->getHeight() - height - 8;
 
-			// GeneralsX @feature BenderAI 31/03/2026 Fallback credit label when MainMenu.wnd lacks LabelVersion.
+			// GeneralsX: Fallback credit label when MainMenu.wnd lacks LabelVersion.
 			fallbackCreditLabel = TheWindowManager->gogoGadgetStaticText(parentMainMenu,
 				WIN_STATUS_ENABLED,
 				x, y,
@@ -432,7 +432,7 @@ static void initLabelVersion()
 
 			if (fallbackCreditLabel)
 			{
-				// GeneralsX @tweak BenderAI 31/03/2026 Keep fallback watermark subtle and aligned to bottom-left target placement.
+				// GeneralsX: Keep fallback watermark subtle and aligned to bottom-left target placement.
 				fallbackCreditLabel->winSetFont(TheWindowManager->winFindFont("Arial", 12, FALSE));
 				fallbackCreditLabel->winSetEnabledTextColors(GameMakeColor(255, 220, 60, 255), GameMakeColor(0, 0, 0, 0));
 				GadgetStaticTextSetText(fallbackCreditLabel, creditText);
@@ -540,7 +540,7 @@ void MainMenuInit( WindowLayout *layout, void *userData )
 
 	initialHide();
 
-// GeneralsX @feature BenderAI 21/04/2026 Start background update check
+// GeneralsX: Start background update check
 #ifdef SAGE_UPDATE_CHECK
 	UpdateChecker::start();
 #endif
@@ -672,7 +672,7 @@ void MainMenuShutdown( WindowLayout *layout, void *userData )
 	}
 
 #ifdef SAGE_UPDATE_CHECK
-	// GeneralsX @bugfix BenderAI 21/04/2026 Destroy the update notification button on
+	// GeneralsX: Destroy the update notification button on
 	// shutdown so the pointer cannot dangle if the main menu is reopened in the same session.
 	if (updateNotifyButton)
 	{
@@ -742,7 +742,7 @@ void DeclineResolution()
 		dispChanged = FALSE;
 		newDispSettings = oldDispSettings;
 
-		// GeneralsX @bugfix Claude 14/09/2026 Read the EFFECTIVE size back, same as
+		// GeneralsX: Read the EFFECTIVE size back, same as
 		// OptionsMenu::saveOptions. setDisplayMode publishes what it actually set into these two
 		// globals and can reduce a request no attached display can present, so the value restored
 		// by a decline is not guaranteed to be the value asked for. Writing the requested one back
@@ -827,7 +827,7 @@ void ResolutionDialogUpdate()
 void DownloadMenuUpdate( WindowLayout *layout, void *userData );
 void MainMenuUpdate( WindowLayout *layout, void *userData )
 {
-// GeneralsX @feature BenderAI 21/04/2026 Poll background update check; create dynamic button when update found
+// GeneralsX: Poll background update check; create dynamic button when update found
 #ifdef SAGE_UPDATE_CHECK
 	if (updateNotifyButton == nullptr)
 	{
@@ -1454,7 +1454,7 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 			}
 			else if( controlID == onlineID )
 			{
-				// GeneralsX @refactor Claude 11/08/2026 The patch chain is not started any more.
+				// GeneralsX: The patch chain is not started any more.
 				//
 				// StartPatchCheck() resolved servserv.generals.ea.com and walked the GameSpy login
 				// chain from there; those servers shut down in 2014, so every press of this button
@@ -1515,7 +1515,7 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 #ifdef SAGE_UPDATE_CHECK
 			else if( updateNotifyButton != nullptr && control == updateNotifyButton )
 			{
-				// GeneralsX @feature BenderAI 21/04/2026 Dynamic update button click -> open releases page
+				// GeneralsX: Dynamic update button click -> open releases page
 				SDL_OpenURL("https://github.com/fbraz3/GeneralsX/releases");
 			}
 #endif

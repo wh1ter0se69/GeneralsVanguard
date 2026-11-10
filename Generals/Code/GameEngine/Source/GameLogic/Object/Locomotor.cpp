@@ -558,7 +558,7 @@ void LocomotorStore::reset()
 		Overridable *locoTemp = it->second->deleteOverrides();
 		if (!locoTemp)
 		{
-			// GeneralsX @bugfix Claude 23/09/2026 Take the iterator erase() returns; the old code advanced the erased (freed) node.
+			// GeneralsX: Take the iterator erase() returns; the old code advanced the erased (freed) node.
 			it = m_locomotorTemplates.erase(it);
 		}
 		else
@@ -917,9 +917,9 @@ void Locomotor::setPhysicsOptions(Object* obj)
 
 	// crank up the friction in ultra-accurate mode to increase movement precision.
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 a per-frame friction fraction added on top of the (halved)
+	// GeneralsX: a per-frame friction fraction added on top of the (halved)
 	// template friction: halved with it, as PhysicsUpdate's friction constants are.
-	// GeneralsX @feature Claude 04/10/2026 except aircraft, which keep the per-30-Hz-frame 0.5 as
+	// GeneralsX: except aircraft, which keep the per-30-Hz-frame 0.5 as
 	// Generals Online does: see gxGripScale in PhysicsUpdate.cpp (owner, 04/10: "use go's ... for jets").
 	const Real EXTRA_FRIC = obj->isKindOf(KINDOF_AIRCRAFT) ? 0.5f : 0.25f;
 #else
@@ -997,7 +997,7 @@ void Locomotor::locoUpdate_moveTowardsPosition(Object* obj, const Coord3D& goalP
 	Coord3D pos = *obj->getPosition();
 	Real heightAboveSurface = pos.z - TheTerrainLogic->getLayerHeight(pos.x, pos.y, obj->getLayer());
 
-	// GeneralsX @fix Claude 23/09/2026 "high enough to stay up for 3 frames" = 9 frames^2 of the
+	// GeneralsX: "high enough to stay up for 3 frames" = 9 frames^2 of the
 	// per-frame^2 gravity: 3 RETAIL frames is GX_FRAMES30(3), or the height shrinks to a quarter.
 	if (heightAboveSurface > -(GX_FRAMES30(3)*GX_FRAMES30(3))*TheGlobalData->m_gravity)
 	{
@@ -1185,7 +1185,7 @@ void Locomotor::moveTowardsPositionTreads(Object* obj, PhysicsBehavior *physics,
 
 	if (sqr(dx)+sqr(dy)<sqr(2*PATHFIND_CELL_SIZE_F) && angleCoeff > 0.05) {
 #if GX_LOGIC_60HZ
-		goalSpeed = actualSpeed*0.774596669f;	// GeneralsX @fix Claude 23/09/2026 per-frame decay: sqrt(0.6), so two frames == 0.6
+		goalSpeed = actualSpeed*0.774596669f;	// GeneralsX: per-frame decay: sqrt(0.6), so two frames == 0.6
 #else
 		goalSpeed = actualSpeed*0.6f;
 #endif
@@ -1330,7 +1330,7 @@ void Locomotor::moveTowardsPositionWheels(Object* obj, PhysicsBehavior *physics,
 
 
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 "+1 frame" of margin and "+ one frame of travel" are 30 Hz frames.
+	// GeneralsX: "+1 frame" of margin and "+ one frame of travel" are 30 Hz frames.
 	Real slowDownTime = actualSpeed / getBraking() + (Real)GX_FRAMES30(1);
 	Real slowDownDist = (actualSpeed/1.5f) * slowDownTime + actualSpeed * (Real)GX_FRAMES30(1);
 #else
@@ -1535,7 +1535,7 @@ Bool Locomotor::fixInvalidPosition(Object* obj, PhysicsBehavior *physics)
 
 		Coord3D correction;
 #if GX_LOGIC_60HZ
-		// GeneralsX @fix Claude 23/09/2026 applied every frame while the position is invalid, so these
+		// GeneralsX: applied every frame while the position is invalid, so these
 		// are per-frame^2 pushes (x1/4), the dot test below compares a per-frame speed (x1/2), and the
 		// sqrt(-dot) "velocity kill" is scaled so it yields a quarter of the retail value for the same
 		// wall-clock speed: sqrt(-2*dot60)/4 == sqrt(-dot60/8).
@@ -2066,7 +2066,7 @@ Real Locomotor::calcLiftToUseAtPt(Object* obj, PhysicsBehavior *physics, Real cu
 	// see how far we need to slow to dead stop, given max braking
 	Real desiredAccel;
 #if GX_LOGIC_60HZ
-	const Real TINY_ACCEL = 0.00025f;	// GeneralsX @fix Claude 23/09/2026 a per-frame^2 acceleration: x1/4
+	const Real TINY_ACCEL = 0.00025f;	// GeneralsX: a per-frame^2 acceleration: x1/4
 #else
 	const Real TINY_ACCEL = 0.001f;
 #endif
@@ -2159,7 +2159,7 @@ PhysicsTurningType Locomotor::rotateObjAroundLocoPivot(Object* obj, const Coord3
 		Real dx =goalPos.x - turnPos.x;
 		Real dy = goalPos.y - turnPos.y;
 		// If we are very close to the goal, we twitch due to rounding error.  So just return. jba.
-		// GeneralsX @bugfix Claude 06/10/2026 This return skipped the *relAngle write every other path makes, and
+		// GeneralsX: This return skipped the *relAngle write every other path makes, and
 		// moveTowardsPositionTreads turns that angle into speed from an uninitialised local: a Sentry Drone (TREADS,
 		// TurnPivotOffset -0.33) reaching such a point drove on stack garbage = desync. At the goal there is nothing
 		// to turn, so the angle is 0 (sweep c004-01).

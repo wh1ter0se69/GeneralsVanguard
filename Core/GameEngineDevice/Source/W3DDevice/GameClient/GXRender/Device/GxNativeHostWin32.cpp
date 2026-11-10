@@ -1,4 +1,4 @@
-// GeneralsX @feature D · native-windows-1 13/10/2026 see GxNativeHostWin32.h. Built only with GX_RENDER_NATIVE=ON on Windows.
+// GeneralsX: see GxNativeHostWin32.h. Built only with GX_RENDER_NATIVE=ON on Windows.
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -49,7 +49,7 @@ void DrawableSize(void *window, uint32_t *width, uint32_t *height)
 bool FillWin32Host(GXRender::Dev::GxNativeHost &host, const char **why)
 {
 	// The loader by the DXVK fork's Windows list (VkCtx.cpp platformLoaderNames: winevulkan.dll, vulkan-1.dll), resolved HERE so S8
-	// attributes the entry point through the same wide-path census as every other module (Codex nw1-r1: VkCtx's own ANSI loader
+	// attributes the entry point through the same wide-path census as every other module (VkCtx's own ANSI loader
 	// path could differ from the census's UTF-8 one). It is the module DXVK's d3d9.dll already holds; kept loaded for the process.
 	static const PFN_vkGetInstanceProcAddr s_gipa = [] {
 		for (const wchar_t *name : { L"winevulkan.dll", L"vulkan-1.dll" }) {

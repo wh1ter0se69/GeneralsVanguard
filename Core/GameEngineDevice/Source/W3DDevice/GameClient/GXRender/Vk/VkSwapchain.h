@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B WSI: the swapchain and the final present of the native renderer.
+// GeneralsX: WS-B WSI: the swapchain and the final present of the native renderer.
 //
 // Platform-agnostic: the caller owns the VkSurfaceKHR (VkWsi.h makes one from an SDL3 window or a Win32 HWND).
 // Present mode follows what the game does under DXVK today (BULLETIN "display-off-truth", MEASURED 10/10): a windowed run
@@ -100,7 +100,7 @@ public:
 	uint32_t imageCount() const { return static_cast<uint32_t>(m_images.size()); }
 	bool fullscreen() const { return m_desc.fullscreen; }
 	bool canReadBack() const { return m_canReadBack; }
-	// TEST-ONLY (FG P0 H2 arm, Codex fg3-h2-r1): whether some thread holds the host-access lock NOW (a helper thread's try_lock)
+	// TEST-ONLY (FG P0 H2 arm): whether some thread holds the host-access lock NOW (a helper thread's try_lock)
 	bool testHostLockHeld();
 	// FG P0 H3: the images were created with every bit of `bits`, and that is known (not interposed: see SwapchainDesc::interposed)
 	bool hasUsage(uint32_t bits) const { return !m_desc.interposed && (m_usage & bits) == bits; }

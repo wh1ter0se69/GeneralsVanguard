@@ -88,7 +88,7 @@ public:
 
 	/// Which slot is the packet router, or -1 when that is not known yet.
 	///
-	/// GeneralsX @feature Claude 19/08/2026 isPacketRouter() answers "am I it", which is enough to
+	/// GeneralsX: isPacketRouter() answers "am I it", which is enough to
 	/// render your OWN row and nothing else. A reader that needs to say anything about the router's
 	/// row - and the latency column does - has to be able to name it, because the one figure the
 	/// router never has is its own: publishLatencyReport leaves the router's slot at 0, and 0 is the
@@ -119,7 +119,7 @@ public:
 	virtual Int getAverageFPS() = 0;
 	virtual Int getSlotAverageFPS(Int slot) = 0;
 
-	/// GeneralsX @feature Claude 04/08/2026 The latency to put in front of a human, in MILLISECONDS.
+	/// GeneralsX: The latency to put in front of a human, in MILLISECONDS.
 	///
 	/// Converted to milliseconds here rather than at the call site so every consumer agrees on the
 	/// unit - the seconds/milliseconds confusion is the obvious way to get a readout that is wrong
@@ -127,12 +127,12 @@ public:
 	///
 	/// Negative means "no measurement", which a caller MUST render differently from a low ping.
 	///
-	/// GeneralsX @fix Claude 10/08/2026 Repointed from the mean at the MINIMUM reduction: every
+	/// GeneralsX: Repointed from the mean at the MINIMUM reduction: every
 	/// sample is true round trip plus a slice of one poll interval, so the mean shows each peer its
 	/// own frame time as ping (scope 2e - a 25 fps box inflates by ~20 ms). The run-ahead arithmetic
 	/// keeps the mean untouched; this accessor exists for humans.
 	///
-	/// GeneralsX @bugfix Claude 13/08/2026 Now reports the WORST peer and NAMES it, because under
+	/// GeneralsX: Now reports the WORST peer and NAMES it, because under
 	/// lockstep the worst peer is the only one that can be hurting the match - the previous reduction
 	/// ran over a ring that mixes all peers together on the packet router and so returned the
 	/// FASTEST. @param fromSlot receives the slot of the peer being reported, or -1 when the return
@@ -145,7 +145,7 @@ public:
 	/// number so the reading is never mistaken for a lobby-wide claim it cannot support.
 	virtual Real getDisplayLatencyMs(Int &fromSlot) = 0;
 
-	/// GeneralsX @feature Claude 13/08/2026 Round trip to @p slot in MILLISECONDS for the in-game
+	/// GeneralsX: Round trip to @p slot in MILLISECONDS for the in-game
 	/// player list, or -1 for "no live figure".
 	///
 	/// -1 is ORDINARY, not exceptional, and a caller that renders it as 0 has a bug: the slot may
@@ -164,7 +164,7 @@ public:
 
 	/// Report a confirmed desync, and name the peers it happened to.
 	///
-	/// GeneralsX @feature Claude 17/08/2026 TAKES THE CRC TABLE, rather than being a bare
+	/// GeneralsX: TAKES THE CRC TABLE, rather than being a bare
 	/// "something went wrong" flag. Retail pops Menus/CRCMismatch.wnd, which names nobody, and
 	/// then ends the game - so the one question every player asks ("who desynced?") had no answer
 	/// anywhere the player could see it. The evidence exists at the call site and was being

@@ -1,5 +1,5 @@
 /*
- * GeneralsX @bugfix Claude 27/07/2026 <dirent.h> shim for Windows.
+ * GeneralsX: <dirent.h> shim for Windows.
  *
  * GeneralsMD/Code/GameEngine/Source/Common/GameEngine.cpp walks the save directory with the POSIX
  * opendir/readdir/closedir trio (the -autoload probe). Those do not exist in the MSVC CRT, so the

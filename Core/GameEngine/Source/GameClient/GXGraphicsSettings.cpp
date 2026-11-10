@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 28/09/2026 THE CLASSIC/REMASTERED SWITCH (graphics P3-3). See GXGraphicsSettings.h.
+// GeneralsX: THE CLASSIC/REMASTERED SWITCH (graphics P3-3). See GXGraphicsSettings.h.
 
 #include "PreRTS.h"
 
@@ -227,7 +227,7 @@ Bool GXGraphics::upscalerIsTemporal(Int u)
 	return u == UPSCALER_FSR3 || u == UPSCALER_DLSS || u == UPSCALER_METALFX_TEMPORAL || u == UPSCALER_XESS;
 }
 
-// GeneralsX @feature D · render-line-0967 21/10/2026 THE RENDERER SWITCH (GXRendererKey.h). Once per process, so SDL3Main (the loader
+// GeneralsX: THE RENDERER SWITCH (GXRendererKey.h). Once per process, so SDL3Main (the loader
 // choice, before SDL loads Vulkan), GxNative::Install (the device hook) and the REMASTERED ground's veto (TerrainTex.cpp) can never
 // disagree. Options.ini needs the user-data path, which CommandLine::parseCommandLineForStartup sets up with TheGlobalData: a call
 // before that answers from GX_RENDERER alone and decides nothing (no reader asks that early today).

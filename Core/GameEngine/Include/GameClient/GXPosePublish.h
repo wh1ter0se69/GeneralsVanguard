@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 08/10/2026 render-split step 4 (gx-handoff modernize/render-split/DESIGN.md S7): the render
+// GeneralsX: render-split step 4 (gx-handoff modernize/render-split/DESIGN.md S7): the render
 // interpolation snapshot is published in the sync phase (R1) instead of being refreshed by the draw.
 //
 // A drawable's snapshot (Drawable::m_interpPrev/Cur, the turret angles, m_interpFrame) is the pose at the last two logic

@@ -210,7 +210,7 @@ class AsciiString;
 DEBUG_EXTERN_C void ReleaseCrash(const char* reason);
 DEBUG_EXTERN_C void ReleaseCrashLocalized(const AsciiString& p, const AsciiString& m);
 
-// GeneralsX @bugfix Claude 25/09/2026 Set by -headless (parseHeadless) and never cleared. Unlike
+// GeneralsX: Set by -headless (parseHeadless) and never cleared. Unlike
 // TheGlobalData->m_headless it outlives global-data teardown, so ReleaseCrash() still knows not
 // to put up a modal dialog nobody is there to dismiss.
 extern bool TheReleaseCrashHeadless;

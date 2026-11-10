@@ -280,7 +280,7 @@ float smContact(uint c, vec3 k) {
 
 // One cascade: 1 = lit. `edge` = how far out in the cascade's usable square the receiver is (0 centre .. 1 its edge); `valid` = inside
 // that square AND the cascade's depth range. An invalid receiver reads LIT here (A14: outside coverage is lit, never a clamped-edge
-// shadow) - the caller falls back to the other cascade first (Codex code-p2-r1: the cascades' depth ranges are fitted independently).
+// shadow) - the caller falls back to the other cascade first (the cascades' depth ranges are fitted independently).
 float smCascade(uint c, vec3 w, out float edge, out bool valid) {
     const vec4 p = gxLook.lightVP[c] * vec4(w, 1.0);
     const vec3 n = p.xyz / p.w;
@@ -668,7 +668,7 @@ float alphaCoverage(float alpha) {
     bool upperEdge = alphaTest.compareOp == VK_COMPARE_OP_GREATER || alphaTest.compareOp == VK_COMPARE_OP_LESS_OR_EQUAL;
     float edge = float(alphaRefInt) + (upperEdge ? 0.5 : -0.5);
     float width = max(fwidth(a), 1.0e-4 * alphaFactor);   // uniform control flow: the branch above it reads a push / spec constant
-    // B · a2c-2 (Codex a2c-code-r9 #6; SCOPE_a2c.md "keep a discard only for alpha that is fully transparent"): the endpoint the hard
+    // B · a2c-2 (SCOPE_a2c.md "keep a discard only for alpha that is fully transparent"): the endpoint the hard
     // test can never pass - alpha 0 for GE / G, full alpha for LE / L - covers nothing, however steep the ramp next to it (a 0 | 255
     // step inside one quad gives fwidth 255: at GE 0x60 the ramp alone would cover 12.5 % of a fully transparent texel). After the
     // derivative, so fwidth stays in uniform control flow.

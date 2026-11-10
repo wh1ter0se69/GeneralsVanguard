@@ -44,7 +44,7 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
-#include <cstdio>	// GeneralsX @feature Claude 12/08/2026 fprintf for the [GXCAP] capacity trace below
+#include <cstdio>	// GeneralsX: fprintf for the [GXCAP] capacity trace below
 
 #include "Common/Errors.h"
 #include "Common/DataChunk.h"
@@ -90,7 +90,7 @@ PlayerList::~PlayerList()
 
 //-----------------------------------------------------------------------------
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 06/11/2026 the CRC's player width (GameCommon.h). The Player count is identical on every
+// GeneralsX: the CRC's player width (GameCommon.h). The Player count is identical on every
 // peer of a match (the lobby fixes it before frame 0), so both answers are deterministic.
 Bool gxCrcLegacyPlayerWidth()
 {
@@ -175,7 +175,7 @@ void PlayerList::newGame()
 		if (pname.isEmpty())
 			continue;	// it's neutral, which we've already done, so skip it.
 
-		// GeneralsX @bugfix Claude 12/08/2026 This increment had NO bound: a map whose sides
+		// GeneralsX: This increment had NO bound: a map whose sides
 		// (slots + neutral + civilians + observer) exceed MAX_PLAYER_COUNT walked straight past
 		// m_players[15] and corrupted the heap during load. SidesList::addSide silently drops the
 		// overflow in release, so the corruption arrived with no message at all. Refuse loudly
@@ -236,7 +236,7 @@ void PlayerList::newGame()
 	{
 		Dict *d = TheSidesList->getSideInfo(i)->getDict();
 		Player* p = findPlayerWithNameKey(NAMEKEY(d->getAsciiString(TheKey_playerName)));
-		// GeneralsX @bugfix Claude 01/10/2026 The [GXCAP] guard above drops sides past MAX_PLAYER_COUNT, so a dropped
+		// GeneralsX: The [GXCAP] guard above drops sides past MAX_PLAYER_COUNT, so a dropped
 		// side has no player here; skip it instead of dereferencing null (tsh batch2 #403, idea of Generals Online
 		// c3cc2c92b, reimplemented).
 		if (p == nullptr)
@@ -617,7 +617,7 @@ void PlayerList::assignSlotIndices(const GameInfo& gameInfo)
 		if (!slot || !slot->isOccupied())
 			continue;
 
-		// GeneralsX @feature Claude 24/09/2026 Every observer slot maps onto the ONE ReplayObserver
+		// GeneralsX: Every observer slot maps onto the ONE ReplayObserver
 		// (GameLogic::startNewGame gives it no side of its own), so each observer's orders - its CRC
 		// reports above all - resolve to a Player (NetGameCommandMsg::constructGameMessage needs one).
 		// Forward only, written directly: setSlotIndex keeps one slot per Player and would unmap the
@@ -625,7 +625,7 @@ void PlayerList::assignSlotIndices(const GameInfo& gameInfo)
 		// answer - so it keeps no stats row, and CRC reports carry their slot instead (GameMessage).
 		// The capacity rule guarantees the ReplayObserver exists here (PlayerCapacity.h); the log is the
 		// tripwire if that ever stops holding, because an unmapped slot is a null Player at its first order.
-		// GeneralsX @feature Claude 25/09/2026 ...in the current layout: a legacy replay or save (GENREP/GENR12, an
+		// GeneralsX: ...in the current layout: a legacy replay or save (GENREP/GENR12, an
 		// older SkirmishGameInfo) gave the observer its own Player, found by name below like any other slot.
 		if (gameInfo.slotSharesReplayObserver(i))
 		{

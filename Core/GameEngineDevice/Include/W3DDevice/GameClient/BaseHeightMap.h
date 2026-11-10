@@ -245,7 +245,7 @@ protected:
 	Int	m_y;	///< dimensions of heightmap
 
 #ifdef DO_SCORCH
-	// GeneralsX @bugfix Claude 14/09/2026 - Raise the scorch buffers to the 16-bit ceiling, porting
+	// GeneralsX: Raise the scorch buffers to the 16-bit ceiling, porting
 	// TheSuperHackers PR #3186 (upstream 6be60dfd3, which lands in Core/.../W3DScorch.h - a file this
 	// fork has not adopted, so the limits live here in BaseHeightMap). 8194 vertices / 49164 indices
 	// ran out on scorch-heavy maps and silently dropped marks. MAX_SCORCH_VERTEX stays below 65536 so
@@ -260,7 +260,7 @@ protected:
 	TextureClass *m_scorchTexture;	///<Scorch mark texture
 	Int			m_curNumScorchVertices;	 ///<number of vertices used in m_vertexScorch.
 	Int			m_curNumScorchIndices;	 ///<number of indices used in m_indexScorch.
-	// GeneralsX @bugfix Claude 24/09/2026 Upstream PR #3114 (66804e109) keeps map-placed scorches in a list of
+	// GeneralsX: Upstream PR #3114 (66804e109) keeps map-placed scorches in a list of
 	// their own so gameplay scorches cannot evict them. This fork has no W3DScorch class to instantiate twice,
 	// so the one array holds both: m_scorches[0, m_numStaticScorches) are the static ones, the rest are
 	// gameplay ("volatile") ones, and each part is capped at MAX_SCORCH_MARKS like upstream's two lists.

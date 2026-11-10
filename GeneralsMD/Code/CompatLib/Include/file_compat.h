@@ -6,7 +6,7 @@
 #define _access access
 #define _stat stat
 
-// GeneralsX @build BenderAI 10/02/2026 - Win32 file API → POSIX
+// GeneralsX: Win32 file API → POSIX
 #ifndef _WIN32
 
 #include <unistd.h>
@@ -17,7 +17,7 @@
 #include <dirent.h>
 #include <fnmatch.h>
 
-// GeneralsX @TheSuperHackers @build BenderAI 11/02/2026 Windows _mkdir → POSIX mkdir (with default perms)
+// GeneralsX: Windows _mkdir → POSIX mkdir (with default perms)
 inline int _mkdir(const char* path)  {
     return mkdir(path, 0755); // rwxr-xr-x
 }
@@ -39,7 +39,7 @@ inline uint32_t GetCurrentDirectory(uint32_t buflen, char* buf) {
   return 0;
 }
 
-// GeneralsX @TheSuperHackers @build BenderAI 11/02/2026 Win32 file system APIs → std::filesystem (C++17)
+// GeneralsX: Win32 file system APIs → std::filesystem (C++17)
 // SetCurrentDirectory - change working directory
 inline int SetCurrentDirectory(const char* path) {
   try {
@@ -61,7 +61,7 @@ inline int DeleteFile(const char* path) {
   }
 }
 
-// GeneralsX @build BenderAI 12/02/2026 CopyFile stub for Linux
+// GeneralsX: CopyFile stub for Linux
 // Replay save system needs this to duplicate .rep files
 inline int CopyFile(const char* existingFile, const char* newFile, int failIfExists) {
   try {
@@ -75,7 +75,7 @@ inline int CopyFile(const char* existingFile, const char* newFile, int failIfExi
   }
 }
 
-// GeneralsX @build BenderAI 12/02/2026 FormatMessageW stub for Linux
+// GeneralsX: FormatMessageW stub for Linux
 // Used to format error messages from GetLastError() - always returns generic error
 #define FORMAT_MESSAGE_FROM_SYSTEM 0x00001000
 inline int FormatMessageW(unsigned long flags, const void* source, unsigned long messageId, 
@@ -94,7 +94,7 @@ inline int FormatMessageW(unsigned long flags, const void* source, unsigned long
   return 0;
 }
 
-// GeneralsX @build BenderAI 12/02/2026 FormatMessage stub (ASCII version)
+// GeneralsX: FormatMessage stub (ASCII version)
 // Used by ReplayMenu.cpp for error message formatting
 inline int FormatMessage(unsigned long flags, const void* source, unsigned long messageId, 
                          unsigned long languageId, char* buffer, unsigned long size, void* args) {
@@ -111,7 +111,7 @@ inline int FormatMessage(unsigned long flags, const void* source, unsigned long 
   return 0;
 }
 
-// GeneralsX @build BenderAI 12/02/2026 Windows Shell API stubs
+// GeneralsX: Windows Shell API stubs
 // Used by ReplayMenu.cpp to get desktop folder path - stubbed for Linux
 typedef void* LPITEMIDLIST;  // Pointer to item ID list (shell folder identifier)
 #define CSIDL_DESKTOPDIRECTORY 0x0010  // Desktop folder constant
@@ -141,7 +141,7 @@ struct WIN32_FIND_DATA {
 
 // FindFirstFile / FindNextFile  / FindClose - directory iteration
 // Simple wrapper using readdir (POSIX)
-// GeneralsX @bugfix Claude 01/10/2026 std::string, not char[MAX_PATH]: a directory deeper than 259 bytes
+// GeneralsX: std::string, not char[MAX_PATH]: a directory deeper than 259 bytes
 // (a long GX_USERDATA_DIR or XDG path) was truncated and the search silently found nothing.
 struct FIND_HANDLE_DATA {
   DIR* dir;
@@ -150,7 +150,7 @@ struct FIND_HANDLE_DATA {
   std::string dirpath;
 };
 
-// GeneralsX @bugfix BenderAI 30/03/2026 - POSIX FindFirstFile: honor directory and wildcard pattern
+// GeneralsX: POSIX FindFirstFile: honor directory and wildcard pattern
 inline void* FindFirstFile(const char* pattern, WIN32_FIND_DATA* findData) {
   if (!pattern || !findData) return (void*)-1;
 
@@ -200,7 +200,7 @@ inline void* FindFirstFile(const char* pattern, WIN32_FIND_DATA* findData) {
   }
 }
 
-// GeneralsX @bugfix BenderAI 30/03/2026 - POSIX FindNextFile: continue applying wildcard filter
+// GeneralsX: POSIX FindNextFile: continue applying wildcard filter
 inline int FindNextFile(void* hFindFile, WIN32_FIND_DATA* findData) {
   if (!hFindFile || hFindFile == (void*)-1 || !findData) {
     return 0; // FALSE
@@ -238,7 +238,7 @@ inline int FindClose(void* hFindFile) {
   return 1; // TRUE
 }
 
-// GeneralsX @build BenderAI 12/02/2026 GetDateFormat stub for age verification
+// GeneralsX: GetDateFormat stub for age verification
 // Note: LOCALE_SYSTEM_DEFAULT already defined in windows_compat.h (0x0800)
 // Note: SYSTEMTIME already defined in time_compat.h
 inline int GetDateFormat(unsigned long locale, unsigned long flags, const SYSTEMTIME* lpDate,

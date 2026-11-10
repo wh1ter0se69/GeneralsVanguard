@@ -399,11 +399,11 @@ static void doLoadGame()
 		// get selected game info
 		AvailableGameInfo *selectedGameInfo = getSelectedSaveFileInfo( listboxGames );
 		DEBUG_ASSERTCRASH( selectedGameInfo, ("doLoadGame: No selected game info found") );
-		// GeneralsX @bugfix Copilot 02/04/2026 Avoid null dereference on inconsistent list selection states.
+		// GeneralsX: Avoid null dereference on inconsistent list selection states.
 		if( selectedGameInfo == nullptr )
 			return;
 
-		// GeneralsX @bugfix Claude 25/09/2026 before anything is torn down; see SaveLoadFeedback.cpp. The menu
+		// GeneralsX: before anything is torn down; see SaveLoadFeedback.cpp. The menu
 		// closes only once the gate lets the load through: a refusal, a stopped crash or a No leaves the
 		// player on the menu they were on, not on a hidden one.
 		if( gateSaveLoad( selectedGameInfo->filename, doLoadGame ) )

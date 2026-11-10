@@ -40,7 +40,7 @@
 #include "Common/WellKnownKeys.h"
 #include "Common/QuotedPrintable.h"
 
-// GeneralsX @bugfix Copilot 27/04/2026 Support both POSIX and Windows separators when deriving map display names.
+// GeneralsX: Support both POSIX and Windows separators when deriving map display names.
 static const char *findLastPathSeparator(const AsciiString& path)
 {
 	const char *backslash = path.reverseFind('\\');
@@ -127,13 +127,13 @@ const FieldParse MapMetaDataReader::m_mapFieldParseTable[] =
 	{ "Player_6_Start",					INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 5 },
 	{ "Player_7_Start",					INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 6 },
 	{ "Player_8_Start",					INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 7 },
-	// GeneralsX @feature Claude 12/08/2026 MAX_SLOTS is 12; this table must cover every slot or
+	// GeneralsX: MAX_SLOTS is 12; this table must cover every slot or
 	// a cached 9..12-start map silently loses its upper start positions on reload.
 	{ "Player_9_Start",					INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 8 },
 	{ "Player_10_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 9 },
 	{ "Player_11_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 10 },
 	{ "Player_12_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 11 },
-	// GeneralsX @feature Claude 06/11/2026 MAX_SLOTS 34: every slot's start, or a 13..34-start map loses them on reload
+	// GeneralsX: MAX_SLOTS 34: every slot's start, or a 13..34-start map loses them on reload
 	// (and 13/14 never had them: the table stopped at 12 when MAX_SLOTS went to 14).
 	{ "Player_13_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 12 },
 	{ "Player_14_Start",				INI::parseCoord3D,	nullptr,	offsetof( MapMetaDataReader, m_waypoints ) + sizeof(Coord3D) * 13 },
@@ -164,7 +164,7 @@ const FieldParse MapMetaDataReader::m_mapFieldParseTable[] =
 
 };
 
-// GeneralsX @probe Claude 19/08/2026 GX_SKIRMISH - shared gate shape with SidesList.cpp.
+// GeneralsX: GX_SKIRMISH - shared gate shape with SidesList.cpp.
 static Bool gxMapDiag(void)
 {
 	static Int s_on = -1;
@@ -281,7 +281,7 @@ void INI::parseMapCacheDefinition( INI* ini )
 		lowerName.toLower();
 		md.m_fileName = lowerName;
 
-		// GeneralsX @bugfix Claude 19/08/2026 DROP CACHE ENTRIES WHOSE FILE IS NO LONGER THERE.
+		// GeneralsX: DROP CACHE ENTRIES WHOSE FILE IS NO LONGER THERE.
 		//
 		// MapCache.ini keys a user map by its ABSOLUTE path, and on iOS that path contains the app's
 		// data-container UUID - which iOS reassigns on every reinstall. Measured 2026-08-19 on the
@@ -297,7 +297,7 @@ void INI::parseMapCacheDefinition( INI* ini )
 		// larger fix: this key is also the multiplayer map identity (GameInfo::setMap ->
 		// percentEncodeMapName), so changing its shape changes what peers compare and is an
 		// all-peers-at-once contract change, not a local repair.
-		// GeneralsX @bugfix Claude 20/08/2026 THIS PRUNE CANNOT BE DONE HERE, AND DOES NOT NEED TO BE.
+		// GeneralsX: THIS PRUNE CANNOT BE DONE HERE, AND DOES NOT NEED TO BE.
 		//
 		// It used to call doesFileExist(lowerName) and drop the entry when that failed. On iOS
 		// lowerName is exactly the path this file's own note establishes cannot be resolved - the

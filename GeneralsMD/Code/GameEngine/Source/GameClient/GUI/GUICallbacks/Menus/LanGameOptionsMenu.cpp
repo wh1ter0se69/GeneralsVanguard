@@ -79,7 +79,7 @@ static bool s_isIniting = FALSE;
 // window ids ------------------------------------------------------------------------------
 static NameKeyType parentLanGameOptionsID = NAMEKEY_INVALID;
 
-// GeneralsX @feature Claude 12/08/2026 The shipped .wnd layouts carry exactly this many slot
+// GeneralsX: The shipped .wnd layouts carry exactly this many slot
 // rows. MAX_SLOTS is now larger; lookups for rows past this legitimately return null until the
 // dynamic-row lobby rebuild lands, so the per-row asserts below tolerate them.
 enum { LEGACY_WND_SLOT_ROWS = 8 };
@@ -144,7 +144,7 @@ static GameWindow *buttonEmote = nullptr;
 static GameWindow *textEntryChat = nullptr;
 static GameWindow *textEntryMapDisplay = nullptr;
 static GameWindow *checkboxLimitSuperweapons = nullptr;
-// GeneralsX @feature Claude 25/09/2026 Limit Armies ("O=Y"): built beside Limit Superweapons in
+// GeneralsX: Limit Armies ("O=Y"): built beside Limit Superweapons in
 // InitLanGameGadgets - the retail layout has no such control. Matched by pointer, not id.
 static GameWindow *checkboxLimitArmies = nullptr;
 static GameWindow *comboBoxStartingCash = nullptr;
@@ -168,7 +168,7 @@ GameWindow *listboxChatWindowLanGame = nullptr;
 NameKeyType listboxChatWindowLanGameID = NAMEKEY_INVALID;
 WindowLayout *mapSelectLayout = nullptr;
 
-// GeneralsX @feature Claude 09/08/2026 A host-only password row, built in code above the chat list.
+// GeneralsX: A host-only password row, built in code above the chat list.
 //
 // WHY THIS EXISTS AT ALL. LANAPI.h:527-533 states, as a constraint rather than a preference, that
 // "the host and join screens are .wnd layouts inside WindowZH.big, editing one moves dataID ...
@@ -216,7 +216,7 @@ static void lanPasswordRowReset( void )
 /// Drop one of the row's windows in behind the chat listbox's siblings, keeping it just in FRONT of
 /// the listbox itself.
 ///
-/// GeneralsX @bugfix Claude 13/08/2026 The child list is front to back, HEAD FIRST:
+/// GeneralsX: The child list is front to back, HEAD FIRST:
 /// GameWindowManager::drawWindow walks to the tail and paints back through m_prev, so the head is
 /// painted last, and GameWindow::winPointInChild walks from the head and returns the FIRST hit, so
 /// the head also wins the click. Every CodeGui factory goes through winCreate, which PREPENDS - so
@@ -421,7 +421,7 @@ static Bool lanPasswordRowHandle( UnsignedInt msg, GameWindow *control )
 	return FALSE;
 }
 
-// GeneralsX @feature Claude 08/08/2026 Ready-gated start, forced start, and a host-only cancel.
+// GeneralsX: Ready-gated start, forced start, and a host-only cancel.
 //
 // The rule the operator asked for: the host cannot start until every other human has accepted,
 // and starting then runs a visible countdown; alternatively the host may force a start, which
@@ -497,7 +497,7 @@ static void playerTooltip(GameWindow *window,
 	Int i=0;
 	for (; i<MAX_SLOTS; ++i)
 	{
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (window && comboBoxPlayer[i] && window == GadgetComboBoxGetEditBox(comboBoxPlayer[i]))
 		{
 			idx = i;
@@ -527,7 +527,7 @@ static void playerTooltip(GameWindow *window,
 	setLANPlayerTooltip(player);
 }
 
-// GeneralsX @feature Claude 08/08/2026 -----------------------------------------------------------
+// GeneralsX: -----------------------------------------------------------
 // Host-side start policy. See the note on s_lanStart above for why none of it is on the wire.
 
 /// TRUE when every human in the lobby except the host has accepted.
@@ -755,7 +755,7 @@ static void gxCancelStart( const UnicodeString &why )
 	gxUpdateStartControl();
 }
 
-// GeneralsX @feature Claude 10/08/2026 The first start only delivered the map; LANAPI has kept
+// GeneralsX: The first start only delivered the map; LANAPI has kept
 // the room screen alive (never shut down) and needs the menu's start machinery reset so the
 // room is startable again. Accepts are reset by LANAPI's post-transfer options rebroadcast -
 // the room comes back as a normal lobby, everyone re-readies. Start-closed slots stay closed:
@@ -880,7 +880,7 @@ void StartPressed()
 		return;
 	}
 
-	// GeneralsX @feature Claude 23/09/2026 The map must also have room for every slot next to the
+	// GeneralsX: The map must also have room for every slot next to the
 	// civilian sides it keeps (Common/PlayerCapacity.h). Refused here, never trimmed: owner decision.
 	const Int slotCapacity = TheMapCache->getPlayerSlotCapacity( myGame->getMap() );
 	if (slotCapacity >= 0 && myGame->countSlotsTakingPlayers() > slotCapacity)
@@ -894,7 +894,7 @@ void StartPressed()
 		return;
 	}
 
-	// GeneralsX @feature Claude 27/09/2026 THE START RULE is GameInfo::getStartVerdict, one function for every
+	// GeneralsX: THE START RULE is GameInfo::getStartVerdict, one function for every
 	// setup screen and inside the SimID digest. An all-AI lobby (humans only as observers) may start: retail
 	// refused it here with GUI:NeedHumanPlayers. It starts as a sandbox, counted in nobody's stats (owner,
 	// 27/09/2026), and is announced below.
@@ -959,7 +959,7 @@ void StartPressed()
 	}
 	else
 	{
-		// GeneralsX @bugfix Claude 10/08/2026 The map's NAME, never its path (owner report).
+		// GeneralsX: The map's NAME, never its path (owner report).
 		mapDisplayName.format(L"%hs", TheGameState->getMapLeafName(myGame->getMap()).str());
 		willTransfer = WouldMapTransfer(myGame->getMap());
 	}
@@ -968,7 +968,7 @@ void StartPressed()
 		LANGameSlot *slot = myGame->getLANSlot(i);
 		if( slot->isHuman() && !slot->isAccepted())
 			isReady = false;
-		// GeneralsX @bugfix Claude 02/10/2026 EVERY human, accepted or not (Codex m1det2-2b-r5 P1). Accepting never checks
+		// GeneralsX: EVERY human, accepted or not. Accepting never checks
 		// the map, so an accepted slot without an official map passed here and the start ran into a transfer that cannot
 		// happen (DoAnyMapTransfers refuses it). Since M1 2b that includes a slot whose map.ini/solo.ini differ from ours.
 		if( slot->isHuman() && !willTransfer && !slot->hasMap())
@@ -982,7 +982,7 @@ void StartPressed()
 			playerCount++;
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 Two ways out of here now, and both of them start a
+	// GeneralsX: Two ways out of here now, and both of them start a
 	// match eventually. Retail's "not ready" branch only nudged - it printed NotifiedStartIntent
 	// and accepted on the host's behalf, and the host then had to come back and press again. The
 	// operator wants that press to mean something: it arms a bounded window and starts at the end
@@ -1003,7 +1003,7 @@ void StartPressed()
 
 }
 
-// GeneralsX @bugfix Claude 28/07/2026 Null-guard the widgets. These are only assigned by
+// GeneralsX: Null-guard the widgets. These are only assigned by
 // LanGameOptionsMenuInit, but the caller is LANGameInfo::resetAccepted() - a STATE operation on
 // the slot list that LANAPI::OnPlayerJoin performs for every join. Any path that resets accepts
 // without the lobby screen being up therefore dereferenced a null window: a headless host
@@ -1015,7 +1015,7 @@ void LANEnableStartButton(Bool enabled)
 	if (buttonSelectMap != nullptr)
 		buttonSelectMap->winEnable(enabled);
 
-	// GeneralsX @feature Claude 08/08/2026 The host's Start control has a policy of its own now,
+	// GeneralsX: The host's Start control has a policy of its own now,
 	// so re-apply it rather than letting the caller's blanket verdict stand. The caller that
 	// matters is LANGameInfo::resetAccepted(), which is inside the engine and passes TRUE: after
 	// it runs nobody has accepted, and an unconditionally enabled Start would be exactly the gate
@@ -1024,7 +1024,7 @@ void LANEnableStartButton(Bool enabled)
 	gxUpdateStartControl();
 }
 
-// GeneralsX @feature Claude 25/09/2026 After a LETTER KEY sets a slot (GadgetComboBoxKeyPick), open
+// GeneralsX: After a LETTER KEY sets a slot (GadgetComboBoxKeyPick), open
 // the next slot's drop-down so a lobby can be filled by typing - E, E, H, M - without the mouse.
 // Only ever reached from inside the host-only slot branch, so a joiner cannot get here. Skips slots
 // whose drop-down is disabled or hidden, and HUMAN slots: on one of those the next letter would
@@ -1052,7 +1052,7 @@ static void handleColorSelection(int index)
 	GameWindow *combo = comboBoxColor[index];
 	Int color, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
-	// GeneralsX @bugfix BenderAI 12/02/2026 - Cast via intptr_t for 64-bit compatibility
+	// GeneralsX: Cast via intptr_t for 64-bit compatibility
 	color = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 
 	LANGameInfo *myGame = TheLAN->GetMyGame();
@@ -1111,7 +1111,7 @@ static void handlePlayerTemplateSelection(int index)
 	GameWindow *combo = comboBoxPlayerTemplate[index];
 	Int playerTemplate, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
-	// GeneralsX @bugfix BenderAI 12/02/2026 - Cast via intptr_t for 64-bit compatibility
+	// GeneralsX: Cast via intptr_t for 64-bit compatibility
 	playerTemplate = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 	LANGameInfo *myGame = TheLAN->GetMyGame();
 
@@ -1120,7 +1120,7 @@ static void handlePlayerTemplateSelection(int index)
 		LANGameSlot * slot = myGame->getLANSlot(index);
 		if (playerTemplate == slot->getPlayerTemplate())
 			return;
-		// GeneralsX @bugfix Claude 25/09/2026 Only the host changes another player's slot. A joiner's
+		// GeneralsX: Only the host changes another player's slot. A joiner's
 		// combos for other slots are disabled, so this only ever came from a programmatic selection,
 		// and "PlayerTemplate=N" is applied by the host to the SENDER's own slot, not to `index`.
 		if (!myGame->amIHost() && index != myGame->getLocalSlotNum())
@@ -1229,7 +1229,7 @@ static void handleTeamSelection(int index)
 	GameWindow *combo = comboBoxTeam[index];
 	Int team, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
-	// GeneralsX @bugfix BenderAI 12/02/2026 - Cast via intptr_t for 64-bit compatibility
+	// GeneralsX: Cast via intptr_t for 64-bit compatibility
 	team = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 	LANGameInfo *myGame = TheLAN->GetMyGame();
 
@@ -1275,7 +1275,7 @@ static void handleStartingCashSelection()
     GadgetComboBoxGetSelectedPos(comboBoxStartingCash, &selIndex);
 
     Money startingCash;
-    // GeneralsX @bugfix BenderAI 12/02/2026 - Cast via uintptr_t for 64-bit compatibility
+    // GeneralsX: Cast via uintptr_t for 64-bit compatibility
     startingCash.deposit( static_cast<UnsignedInt>(reinterpret_cast<uintptr_t>(GadgetComboBoxGetItemData( comboBoxStartingCash, selIndex ))), FALSE, FALSE );
     myGame->setStartingCash( startingCash );
     myGame->resetAccepted();
@@ -1364,7 +1364,7 @@ static void handleLimitArmiesClick()
 	}
 }
 
-// GeneralsX @feature Claude 05/11/2026 THE LAN HOST'S ARMIES SURVIVE A MATCH, A RE-HOST AND A RESTART (a tester, via wh1ter0se: "if i
+// GeneralsX: THE LAN HOST'S ARMIES SURVIVE A MATCH, A RE-HOST AND A RESTART (a tester, via wh1ter0se: "if i
 // put 11 hard armies, i want them to remain not reset"). All three lost them the same way. There is no room to go back to:
 // LanGameOptionsMenuInit pops to the lobby after a match, LanLobbyMenuInit's TheLAN->reset() drops the game, and Host Game has
 // LANAPI::RequestGameCreate build a new LANGameInfo whose slots are all GameSlot::reset's SLOT_CLOSED until adjustSlotsForMap
@@ -1526,7 +1526,7 @@ void lanUpdateSlotList()
 
 	updateMapStartSpots(TheLAN->GetMyGame(), buttonMapStartPosition);
 
-	// GeneralsX @feature Claude 08/08/2026 This is the one function every accept, join, leave and
+	// GeneralsX: This is the one function every accept, join, leave and
 	// option change funnels through, so it is where the host's Start gate is kept honest. It is a
 	// pure refresh: gxUpdateStartControl only reads the slot list and never starts anything.
 	gxUpdateStartControl();
@@ -1575,7 +1575,7 @@ void InitLanGameGadgets()
   DEBUG_ASSERTCRASH(comboBoxStartingCash, ("Could not find the comboBoxStartingCash"));
 	PopulateStartingCashComboBox(comboBoxStartingCash, TheLAN->GetMyGame());
 
-	// GeneralsX @feature Claude 25/09/2026 Limit Armies, to the RIGHT of Limit Superweapons: on the
+	// GeneralsX: Limit Armies, to the RIGHT of Limit Superweapons: on the
 	// retail 800x600 layout that strip (x 612..754, y 331..355) is empty - Select Map ends at y 317 and
 	// the chat list starts at y 364. Wearing the retail checkbox's own art (CodeGuiCheckboxLike), and
 	// labelled from the retail string table: GUI:LimitArmies / TOOLTIP:LimitArmies ship in every
@@ -1611,7 +1611,7 @@ void InitLanGameGadgets()
 	//Tooltip function is being set for techBuildings, and supplyDocks
 	windowMap->winSetTooltipFunc(MapSelectorTooltip);
 
-	// GeneralsX @bugfix Claude 12/08/2026 The .wnd authors eight of every per-slot control; the loop
+	// GeneralsX: The .wnd authors eight of every per-slot control; the loop
 	// below binds MAX_SLOTS of them, and a row the layout does not contain is not a short list - it
 	// is a null dereference on the very next line, because GadgetComboBoxGetEditBox() and
 	// winSetTooltipFunc() are called on the result without a check. Build whatever the layout is
@@ -1623,7 +1623,7 @@ void InitLanGameGadgets()
 	// badly, though - positionStartSpotControls walks the array to the marker it is placing with no
 	// null check of its own.
 	//
-	// GeneralsX @feature Claude 08/11/2026 The seat columns SCROLL instead (owner 08/11: 12-14 rows with a scroll bar
+	// GeneralsX: The seat columns SCROLL instead (owner 08/11: 12-14 rows with a scroll bar
 	// like the map list, 10 on iPad). The chat stays (owner 08/11, msg f656: "add back the lobby chat"): the rows take
 	// ONE row from the top of the chat history - nine rows at the authored size - as long as the history keeps the
 	// host's Private / password row, which lanPasswordRowCreate (below) builds on its top with the same arithmetic, plus
@@ -1655,7 +1655,7 @@ void InitLanGameGadgets()
 		tmpString.format("LanGameOptionsMenu.wnd:ComboBoxPlayer%d", i);
 		comboBoxPlayerID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		comboBoxPlayer[i] = TheWindowManager->winGetWindowFromId( parentLanGameOptions, comboBoxPlayerID[i] );
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxPlayer[i])
 		{
 			GadgetComboBoxReset(comboBoxPlayer[i]);
@@ -1682,7 +1682,7 @@ void InitLanGameGadgets()
 		comboBoxColorID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		comboBoxColor[i] = TheWindowManager->winGetWindowFromId( parentLanGameOptions, comboBoxColorID[i] );
 		DEBUG_ASSERTCRASH(comboBoxColor[i] || i >= LEGACY_WND_SLOT_ROWS, ("Could not find the comboBoxColor[%d]",i ));
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxColor[i])
 		{
 			PopulateColorComboBox(i, comboBoxColor, TheLAN->GetMyGame());
@@ -1696,7 +1696,7 @@ void InitLanGameGadgets()
 		PopulatePlayerTemplateComboBox(i, comboBoxPlayerTemplate, TheLAN->GetMyGame(), TRUE);
 
 		// add tooltips to the player template combobox and listbox
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxPlayerTemplate[i])
 		{
 			comboBoxPlayerTemplate[i]->winSetTooltipFunc(playerTemplateComboBoxTooltip);
@@ -1714,7 +1714,7 @@ void InitLanGameGadgets()
 		buttonAcceptID[i] = TheNameKeyGenerator->nameToKey( tmpString );
 		buttonAccept[i] = TheWindowManager->winGetWindowFromId( parentLanGameOptions, buttonAcceptID[i] );
 		DEBUG_ASSERTCRASH(buttonAccept[i] || i >= LEGACY_WND_SLOT_ROWS, ("Could not find the buttonAccept[%d]",i ));
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (buttonAccept[i])
 			buttonAccept[i]->winSetTooltipFunc(gameAcceptTooltip);
 //
@@ -1734,7 +1734,7 @@ void InitLanGameGadgets()
 	if( buttonAccept[0] )
 		GadgetButtonSetEnabledColor(buttonAccept[0], acceptTrueColor );
 
-	// GeneralsX @feature Claude 09/08/2026 Built last, because it measures the chat listbox and then
+	// GeneralsX: Built last, because it measures the chat listbox and then
 	// resizes it - anything that repositions the list after this would leave the row floating.
 	lanPasswordRowCreate();
 }
@@ -1797,7 +1797,7 @@ void LanGameOptionsMenuInit( WindowLayout *layout, void *userData )
 	LANbuttonPushed = false;
 	LANisShuttingDown = false;
 
-	// GeneralsX @feature Claude 08/08/2026 A fresh lobby is never mid-start. These are file
+	// GeneralsX: A fresh lobby is never mid-start. These are file
 	// statics that outlive the screen, so without this a lobby left during a countdown would
 	// reopen showing CANCEL - and worse, a start is never implied by entering a screen.
 	LanStart::reset( s_lanStart );
@@ -1875,7 +1875,7 @@ void LanGameOptionsMenuInit( WindowLayout *layout, void *userData )
 	}
 	for (Int i = start; i < MAX_SLOTS; ++i)
 	{
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		//I'm a client, disable the controls I can't touch.
 		if (!TheLAN->AmIHost() && comboBoxPlayer[i])
 			comboBoxPlayer[i]->winEnable(FALSE);
@@ -1943,7 +1943,7 @@ void updateGameOptions()
 		}
 		else
 		{
-			// GeneralsX @bugfix Claude 10/08/2026 The old leaf hack only knew backslashes, so on a
+			// GeneralsX: The old leaf hack only knew backslashes, so on a
 			// POSIX joiner - whose map path is forward-slashed - the label under the map preview
 			// showed the FULL PATH of a map the player does not even have yet (owner report).
 			// getMapLeafName handles both separators.
@@ -1966,7 +1966,7 @@ void updateGameOptions()
     Int index = 0;
     for ( ; index < itemCount; index++ )
     {
-      // GeneralsX @bugfix BenderAI 12/02/2026 - Cast via intptr_t for 64-bit compatibility
+      // GeneralsX: Cast via intptr_t for 64-bit compatibility
       Int value  = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(comboBoxStartingCash, index)));
       if ( value == theGame->getStartingCash().countMoney() )
       {
@@ -2038,7 +2038,7 @@ void LanGameOptionsMenuShutdown( WindowLayout *layout, void *userData )
 	EnableSlotListUpdates(FALSE);
 	LANisShuttingDown = true;
 
-	// GeneralsX @bugfix Claude 23/09/2026 THE MAP SELECTOR IS A TOP-LEVEL LAYOUT AND THE SHELL DOES
+	// GeneralsX: THE MAP SELECTOR IS A TOP-LEVEL LAYOUT AND THE SHELL DOES
 	// NOT OWN IT, so leaving this screen with it open leaked the whole window tree.
 	//
 	// mapSelectLayout (:164) is created by the Select Map button (:2175) with no null check of the
@@ -2072,7 +2072,7 @@ void LanGameOptionsMenuShutdown( WindowLayout *layout, void *userData )
 		mapSelectLayout = nullptr;
 	}
 
-	// GeneralsX @feature Claude 08/08/2026 Above the popImmediate early return on purpose - that
+	// GeneralsX: Above the popImmediate early return on purpose - that
 	// is the branch taken when the match actually starts, and it is the one that most needs the
 	// phase cleared before the screen comes back after the game.
 	LanStart::reset( s_lanStart );
@@ -2111,7 +2111,7 @@ void LanGameOptionsMenuShutdown( WindowLayout *layout, void *userData )
 /// <summary>
 /// Put the LOBBY'S NAME over the slot list, instead of the word "GAME OPTIONS".
 ///
-/// GeneralsX @feature Claude 16/08/2026 The host types a name when creating the lobby
+/// GeneralsX: The host types a name when creating the lobby
 /// (PopupHostGame), and until now that name was visible only in the browser - the moment you were
 /// inside, every lobby looked identical. The heading is the one piece of chrome nobody was reading,
 /// because it said the same thing on every screen; it is now the one that tells you which game you
@@ -2142,7 +2142,7 @@ static void gxRefreshLobbyTitle( void )
 	LANGameInfo *myGame = (TheLAN != nullptr) ? TheLAN->GetMyGame() : nullptr;
 	if (myGame != nullptr)
 	{
-		// GeneralsX @feature Claude 25/09/2026 AN UNNAMED ROOM IS CALLED BY ITS HOST, as the browser
+		// GeneralsX: AN UNNAMED ROOM IS CALLED BY ITS HOST, as the browser
 		// row calls it ("[eu] host", WOLLobbyMenu.cpp) and as PopupJoinGame's label does. Most rooms
 		// are unnamed - every host who never typed one - and those kept the words GAME OPTIONS,
 		// which is what was reported. Slot 0 is the host in a LAN/relay game.
@@ -2202,7 +2202,7 @@ void LanGameOptionsMenuUpdate( WindowLayout * layout, void *userData)
 	gxRefreshLobbyTitle();
 	//TheLAN->update(); // this is handled in the lobby
 
-	// GeneralsX @feature Claude 25/09/2026 (owner) THE OPERATOR'S VOICE IN THE GAME-SETUP ROOM. The admin
+	// GeneralsX: THE OPERATOR'S VOICE IN THE GAME-SETUP ROOM. The admin
 	// panel's Say addresses a game's room, and a relay game sits HERE between "joined" and "started" - but
 	// this screen had no drain, so the line was queued and shown only later, stale, at the start of the
 	// match. "@Admin text" / "<@Mod> text" in the role colour, the relay's own notices grey, player lines
@@ -2213,7 +2213,7 @@ void LanGameOptionsMenuUpdate( WindowLayout * layout, void *userData)
 	if (!layout->isHidden())
 		gxLobbyDrainRelayNotices(lanGameSay, chatSystemColor);
 
-	// GeneralsX @feature Claude 08/08/2026 The forced-start deadline and the countdown watchdog.
+	// GeneralsX: The forced-start deadline and the countdown watchdog.
 	//
 	// This is a UI update, not a network pump - the LANAPI pump lives in the engine loop and must
 	// stay there (eebae98ea). All this does is read timeGetTime() and the slot list. Shell::update
@@ -2262,7 +2262,7 @@ WindowMsgHandledType LanGameOptionsMenuInput( GameWindow *window, UnsignedInt ms
 }
 
 
-// GeneralsX @feature Claude 07/08/2026 /nickname works on THIS screen too, not just the lobby.
+// GeneralsX: /nickname works on THIS screen too, not just the lobby.
 //
 // The name shown in the slot list is the LAN name, which is a different identity from the
 // relay-held nickname the lobby browser uses - so a name set out in the lobby vanished the moment
@@ -2272,7 +2272,7 @@ WindowMsgHandledType LanGameOptionsMenuInput( GameWindow *window, UnsignedInt ms
 //
 // Returns TRUE when the line was a slash command and has been dealt with.
 //
-// GeneralsX @feature Claude 11/08/2026 This is now also the seam into the shared lobby command
+// GeneralsX: This is now also the seam into the shared lobby command
 // table, and the order of the three tests is load-bearing:
 //
 //   1. GXLobbyChatCommand FIRST, because the verbs it retires (/pass, /nopassword, /lobbyhelp) are
@@ -2317,7 +2317,7 @@ static Bool gxHandleLobbySlashCommand( UnicodeString &txtInput )
 		rest.nextToken(&verb);
 		verb.toLower();
 
-		// GeneralsX @refactor Claude 11/08/2026 The name comes off the WIDE line - see
+		// GeneralsX: The name comes off the WIDE line - see
 		// GXLobbyTakeNickRest. The ascii tokens above still dispatch everything else.
 		{
 			UnicodeString nickRest;
@@ -2383,7 +2383,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 		//-------------------------------------------------------------------------------------------------
 		case GCM_SELECTED:
 			{
-				// GeneralsX @bugfix Claude 23/09/2026 Idea of upstream PR #2676: at match start hideShell()
+				// GeneralsX: Idea of upstream PR #2676: at match start hideShell()
 				// runs DeinitLanGameGadgets(), which nulls every gadget pointer, but the layout is only
 				// hidden - a mouse-down held across the start still delivers its mouse-up to the grab
 				// window (hiding does not clear m_grabWindow), and ESC sends GBM_SELECTED with the
@@ -2464,7 +2464,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 //-------------------------------------------------------------------------------------------------
 		case GBM_SELECTED:
 			{
-				// GeneralsX @bugfix Claude 23/09/2026 Same guard as GCM_SELECTED above.
+				// GeneralsX: Same guard as GCM_SELECTED above.
 				// Upstream reference: Caball009, PR #2676
 				// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2676
 				if (LANbuttonPushed || !parentLanGameOptions)
@@ -2472,7 +2472,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 				GameWindow *control = (GameWindow *)mData1;
 				Int controlID = control->winGetWindowId();
 
-				// GeneralsX @feature Claude 09/08/2026 The code-built password row. Matched on the
+				// GeneralsX: The code-built password row. Matched on the
 				// window POINTER rather than on a control id, so it cannot collide with a stock id
 				// from the layout, and tested before the id chain below for the same reason.
 				if( lanPasswordRowHandle( msg, control ) )
@@ -2501,7 +2501,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 					// Echo the user's input to the chat window
 					if (!txtInput.isEmpty() && !gxHandleLobbySlashCommand(txtInput))
 					{
-					// GeneralsX @feature Claude 21/08/2026 One chat line every ChatRate::MIN_INTERVAL_MS,
+					// GeneralsX: One chat line every ChatRate::MIN_INTERVAL_MS,
 					// shared with every other chat box in the game - see GameClient/ChatRateLimit.h.
 					// Checked AFTER the slash-command interception so a command costs no allowance,
 					// and the refused line goes BACK in the box rather than being dropped.
@@ -2533,7 +2533,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 				{
 					if (TheLAN->AmIHost())
 					{
-						// GeneralsX @feature Claude 08/08/2026 One control, two meanings: it reads
+						// GeneralsX: One control, two meanings: it reads
 						// PLAY GAME in an idle lobby and CANCEL while a start is running. Only the
 						// host ever gets the second one - this whole branch is behind AmIHost(),
 						// and the joiner branch below is the unchanged ACCEPT path.
@@ -2547,7 +2547,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 					}
 					else
 					{
-						// GeneralsX @feature Claude 08/08/2026 A joiner's press is ACCEPT and only
+						// GeneralsX: A joiner's press is ACCEPT and only
 						// ever ACCEPT. There is no branch here that cancels, and there could not
 						// usefully be one: LANAPI::ResetGameStartTimer would clear a timer this
 						// process never armed while the host went on broadcasting MSG_GAME_START_TIMER
@@ -2618,7 +2618,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 		//-------------------------------------------------------------------------------------------------
 		case GBM_SELECTED_RIGHT:
 		{
-			// GeneralsX @bugfix Claude 23/09/2026 Same guard as GCM_SELECTED above.
+			// GeneralsX: Same guard as GCM_SELECTED above.
 			// Upstream reference: Caball009, PR #2676
 			// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2676
 			if (LANbuttonPushed || !parentLanGameOptions)
@@ -2657,7 +2657,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 		//-------------------------------------------------------------------------------------------------
 		case GEM_EDIT_DONE:
 			{
-				// GeneralsX @bugfix Claude 23/09/2026 Same guard as GCM_SELECTED above.
+				// GeneralsX: Same guard as GCM_SELECTED above.
 				// Upstream reference: Caball009, PR #2676
 				// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2676
 				if (LANbuttonPushed || !parentLanGameOptions)
@@ -2665,7 +2665,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 				GameWindow *control = (GameWindow *)mData1;
 				Int controlID = control->winGetWindowId();
 
-				// GeneralsX @feature Claude 09/08/2026 Return in the password box commits it, the same
+				// GeneralsX: Return in the password box commits it, the same
 				// way Return in the chat box sends. See the note on the row.
 				if( lanPasswordRowHandle( msg, control ) )
 					break;
@@ -2685,7 +2685,7 @@ WindowMsgHandledType LanGameOptionsMenuSystem( GameWindow *window, UnsignedInt m
 					if (!txtInput.isEmpty())
 						if (!gxHandleLobbySlashCommand(txtInput))
 						{
-					// GeneralsX @feature Claude 21/08/2026 One chat line every ChatRate::MIN_INTERVAL_MS,
+					// GeneralsX: One chat line every ChatRate::MIN_INTERVAL_MS,
 					// shared with every other chat box in the game - see GameClient/ChatRateLimit.h.
 					// Checked AFTER the slash-command interception so a command costs no allowance,
 					// and the refused line goes BACK in the box rather than being dropped.

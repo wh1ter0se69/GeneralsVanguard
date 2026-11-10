@@ -77,7 +77,7 @@ SkirmishGameInfo *TheSkirmishGameInfo = nullptr;
 // window ids ------------------------------------------------------------------------------
 static NameKeyType parentSkirmishGameOptionsID = NAMEKEY_INVALID;
 static NameKeyType textEntryPlayerNameID = NAMEKEY_INVALID;
-// GeneralsX @feature Claude 12/08/2026 The shipped .wnd layouts carry exactly this many slot
+// GeneralsX: The shipped .wnd layouts carry exactly this many slot
 // rows. MAX_SLOTS is now larger; lookups for rows past this legitimately return null until the
 // dynamic-row lobby rebuild lands, so the per-row asserts below tolerate them.
 enum { LEGACY_WND_SLOT_ROWS = 8 };
@@ -134,7 +134,7 @@ static GameWindow *buttonReset = nullptr;
 static GameWindow *windowMap = nullptr;
 static GameWindow *textEntryPlayerName = nullptr;
 static GameWindow *checkBoxLimitSuperweapons = nullptr;
-// GeneralsX @feature Claude 25/09/2026 Limit Armies ("O=Y"), built above Limit Superweapons in
+// GeneralsX: Limit Armies ("O=Y"), built above Limit Superweapons in
 // InitSkirmishGameGadgets - the retail layout has no such control. Matched by pointer, not id.
 static GameWindow *checkBoxLimitArmies = nullptr;
 static GameWindow *comboBoxStartingCash = nullptr;
@@ -478,7 +478,7 @@ static void startPressed()
 {
 
 	BOOL isReady = FALSE;
-	// GeneralsX @feature Claude 27/09/2026 Slot 0 may observe (an all-AI sandbox), so count the seats that
+	// GeneralsX: Slot 0 may observe (an all-AI sandbox), so count the seats that
 	// PLAY: an observer takes no start position. Whether the lobby may start at all is the start rule,
 	// GameInfo::getStartVerdict, which every setup screen shares.
 	Int playerCount = TheSkirmishGameInfo->getNumNonObserverPlayers();
@@ -489,7 +489,7 @@ static void startPressed()
 	{
 		buttonPushed = FALSE;
 		MessageBoxOk(TheGameText->fetch("GUI:ErrorStartingGame"), TheGameText->fetch("GUI:CantFindMap"), nullptr);
-		// GeneralsX @bugfix Claude 01/10/2026 Stop the start: falling through read it->second of end() (idea from Generals Online 2979d5b8f, reimplemented).
+		// GeneralsX: Stop the start: falling through read it->second of end() (idea from Generals Online 2979d5b8f, reimplemented).
 		return;
 	}
 	MapMetaData mmd = it->second;
@@ -505,7 +505,7 @@ static void startPressed()
 		msg.format(TheGameText->fetchGameOnly("GUI:TooManyPlayers"), mmd.m_numPlayers);
 		MessageBoxOk(TheGameText->fetch("GUI:ErrorStartingGame"), msg, nullptr);
 	}
-	// GeneralsX @feature Claude 23/09/2026 The map must also have room for every slot next to the
+	// GeneralsX: The map must also have room for every slot next to the
 	// civilian sides it keeps (Common/PlayerCapacity.h). Refused here, never trimmed: owner decision.
 	else if (TheMapCache->getPlayerSlotCapacity(lowerMap) >= 0
 		&& TheSkirmishGameInfo->countSlotsTakingPlayers() > TheMapCache->getPlayerSlotCapacity(lowerMap))
@@ -617,7 +617,7 @@ void positionStartSpotControls( GameWindow *win, GameWindow *mapWindow, Coord3D 
 	{
 		if(buttonMapStartPositions[i] == win)
 			break;
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if(buttonMapStartPositions[i] == nullptr)
 			continue;
 		ICoord2D tempPos;
@@ -706,11 +706,11 @@ void positionAdditionalImages( MapMetaData *mmd, GameWindow *mapWindow, Bool for
 	//TheSupplyAndTechImageLocations
 }
 
-// GeneralsX @bugfix Claude 26/09/2026 The retail string table holds NUMBER:0..NUMBER:9 (the control-group
+// GeneralsX: The retail string table holds NUMBER:0..NUMBER:9 (the control-group
 // numerals), so a start spot held by player 10, 11 or 12 drew "MISSING: 'NUMBER:12'" (wh1ter0se's screenshot, 12-player
 // lobby). The localized numeral where the table has one, plain digits past it. Not FETCH_OR_SUBSTITUTE: that is a
 // placeholder for a missing label and compiles out with ENABLE_GAMETEXT_SUBSTITUTES=0, which would bring MISSING back;
-// digits past NUMBER:9 are the label itself, in every build (Codex start-numbers-r1).
+// digits past NUMBER:9 are the label itself, in every build.
 static UnicodeString gxStartSpotNumberText(Int number)
 {
 	AsciiString label;
@@ -834,7 +834,7 @@ void positionStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[]
 	positionStartSpots(localMapFname, buttonMapStartPositions, mapWindow);
 }
 
-// GeneralsX @feature Claude 17/08/2026 -------------------------------------------------------
+// GeneralsX: -------------------------------------------------------
 // Colour each map-preview start marker by the colour of whoever occupies that slot.
 //
 // The retail marker is a PUSHBUTTON whose art (MappedImage "PlayerStart" and its hilite / pushed /
@@ -867,7 +867,7 @@ void positionStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[]
 // joins, leaves and colour changes on the existing cadence with no new timer.
 static const Color GX_START_SPOT_UNOWNED = GameMakeColor( 0, 0, 0, 0 );
 
-// GeneralsX @feature Claude 19/08/2026 The custom marker draw that used to live here is gone.
+// GeneralsX: The custom marker draw that used to live here is gone.
 // It painted the retail art, then a tint in the owner's colour, then the number - i.e. a fill behind
 // the number, which the operator corrected: the NUMBER carries the colour, nothing is drawn behind
 // it. With it removed the markers go back to the stock gadget draw and gxSetStartSpotNumberColor
@@ -877,7 +877,7 @@ static const Color GX_START_SPOT_UNOWNED = GameMakeColor( 0, 0, 0, 0 );
 //-------------------------------------------------------------------------------------------------
 /** Colour a start-position marker's NUMBER, leaving the retail art alone.
 	*
-	* GeneralsX @feature Claude 19/08/2026 CORRECTED per the operator: the number glyph itself carries
+	* GeneralsX: CORRECTED per the operator: the number glyph itself carries
 	* the colour. The previous version installed a custom draw that tinted the marker - a fill behind
 	* the number - which is explicitly not what was asked for. Setting the window's enabled text
 	* colour means the stock gadget draw paints the number in that colour, so the marker keeps the
@@ -911,7 +911,7 @@ static Color gxStartSpotNumberColor( const GameSlot *gs, Bool onLoadScreen )
 	if( gs->getPlayerTemplate() <= PLAYERTEMPLATE_MIN )
 		return GX_START_SPOT_UNOWNED;
 
-	// GeneralsX @feature Claude 19/08/2026 TEAM FIRST, then the player's own colour.
+	// GeneralsX: TEAM FIRST, then the player's own colour.
 	//
 	// The operator's rule: the number tells you which TEAM someone is on, and only falls back to
 	// identifying the individual when they are not on one. Teams are 0-based here and -1 means no
@@ -974,7 +974,7 @@ void updateMapStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[
     if ( buttonMapStartPositions[i] != nullptr )
     {
 		  GadgetButtonSetText(buttonMapStartPositions[i], UnicodeString::TheEmptyString);
-		  // GeneralsX @feature Claude 19/08/2026 Nothing to clear here now that the colour lives on the
+		  // GeneralsX: Nothing to clear here now that the colour lives on the
 		  // number rather than on a fill: the line above blanks the text, so an unoccupied marker draws
 		  // no number at all and its stale colour cannot be seen. The pass below re-colours every
 		  // position that is still held, so a player who leaves, changes colour or changes team is
@@ -995,12 +995,12 @@ void updateMapStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[
 		{
 			if(gs->getApparentStartPos() >=0 && gs->getApparentStartPos() < mmd.m_numPlayers && gs->getPlayerTemplate() > PLAYERTEMPLATE_MIN )
 			{
-				// GeneralsX @bugfix Claude 12/08/2026 start positions 8+ have no .wnd control until the lobby rebuild lands
+				// GeneralsX: start positions 8+ have no .wnd control until the lobby rebuild lands
 				GameWindow *posBtn = buttonMapStartPositions[gs->getApparentStartPos()];
 				if (posBtn)
 				{
 					GadgetButtonSetText(posBtn, gxStartSpotNumberText(i + 1));
-					// GeneralsX @feature Claude 17/08/2026 colour the marker by who holds the position.
+					// GeneralsX: colour the marker by who holds the position.
 					// Inside the null guard deliberately: a 12-player map has start positions with no
 					// .wnd control at all, and that is exactly the case this feature is for.
 					gxSetStartSpotNumberColor(posBtn, gxStartSpotNumberColor(gs, TRUE));
@@ -1011,7 +1011,7 @@ void updateMapStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[
 		{
 			if(gs->getStartPos() >=0 && gs->getStartPos() < mmd.m_numPlayers && gs->getPlayerTemplate() > PLAYERTEMPLATE_MIN )
 			{
-				// GeneralsX @bugfix Claude 12/08/2026 start positions 8+ have no .wnd control until the lobby rebuild lands
+				// GeneralsX: start positions 8+ have no .wnd control until the lobby rebuild lands
 				GameWindow *posBtn = buttonMapStartPositions[gs->getStartPos()];
 				if (posBtn)
 				{
@@ -1021,7 +1021,7 @@ void updateMapStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[
 					UnicodeString temp;
 					temp.format(TheGameText->fetchGameOnly("TOOLTIP:StartPositionN"), i + 1);
 					posBtn->winSetTooltip(temp);
-					// GeneralsX @feature Claude 17/08/2026 colour the marker by who holds the position.
+					// GeneralsX: colour the marker by who holds the position.
 					// Inside the null guard deliberately: a 12-player map has start positions with no
 					// .wnd control at all, and that is exactly the case this feature is for.
 					gxSetStartSpotNumberColor(posBtn, gxStartSpotNumberColor(gs, FALSE));
@@ -1031,7 +1031,7 @@ void updateMapStartSpots( GameInfo *myGame, GameWindow *buttonMapStartPositions[
 	}
 }
 
-// GeneralsX @feature Claude 25/09/2026 After a LETTER KEY sets a slot (GadgetComboBoxKeyPick), open
+// GeneralsX: After a LETTER KEY sets a slot (GadgetComboBoxKeyPick), open
 // the next slot's drop-down so a lobby can be filled by typing - E, E, H, M - without the mouse.
 // Only ever reached from inside the host-only slot branch, so a joiner cannot get here. Skips slots
 // whose drop-down is disabled or hidden, and HUMAN slots: on one of those the next letter would
@@ -1063,7 +1063,7 @@ static void handlePlayerSelection(int index)
 	Int playerType, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
   UnicodeString title = GadgetComboBoxGetText(combo);
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	playerType = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 	GameInfo *myGame = TheSkirmishGameInfo;
 
@@ -1083,7 +1083,7 @@ static void handleColorSelection(int index)
 	GameWindow *combo = comboBoxColor[index];
 	Int color, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	color = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 
 	GameInfo *myGame = TheSkirmishGameInfo;
@@ -1124,7 +1124,7 @@ static void handlePlayerTemplateSelection(int index)
 	GameWindow *combo = comboBoxPlayerTemplate[index];
 	Int playerTemplate, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	playerTemplate = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 	GameInfo *myGame = TheSkirmishGameInfo;
 
@@ -1137,7 +1137,7 @@ static void handlePlayerTemplateSelection(int index)
 			return;
 
 		slot->setPlayerTemplate(playerTemplate);
-		// GeneralsX @feature Claude 27/09/2026 An observer holds no colour, team or start position
+		// GeneralsX: An observer holds no colour, team or start position
 		// (setPlayerTemplate clears the start), as in the LAN lobby.
 		if (playerTemplate == PLAYERTEMPLATE_OBSERVER)
 		{
@@ -1187,7 +1187,7 @@ static void handleTeamSelection(int index)
 	GameWindow *combo = comboBoxTeam[index];
 	Int team, selIndex;
 	GadgetComboBoxGetSelectedPos(combo, &selIndex);
-	// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+	// GeneralsX: 64-bit safe pointer cast
 	team = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(combo, selIndex)));
 	GameInfo *myGame = TheSkirmishGameInfo;
 
@@ -1214,7 +1214,7 @@ static void handleStartingCashSelection()
     GadgetComboBoxGetSelectedPos(comboBoxStartingCash, &selIndex);
 
     Money startingCash;
-    // GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+    // GeneralsX: 64-bit safe pointer cast
     startingCash.deposit( static_cast<UnsignedInt>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData( comboBoxStartingCash, selIndex ))), FALSE, FALSE );
     myGame->setStartingCash( startingCash );
   }
@@ -1278,7 +1278,7 @@ void InitSkirmishGameGadgets()
   DEBUG_ASSERTCRASH(comboBoxStartingCash, ("Could not find the comboBoxStartingCash"));
   PopulateStartingCashComboBox(comboBoxStartingCash, TheSkirmishGameInfo );
 
-	// GeneralsX @feature Claude 25/09/2026 Limit Armies, directly ABOVE Limit Superweapons: there is no
+	// GeneralsX: Limit Armies, directly ABOVE Limit Superweapons: there is no
 	// room to its right on this screen (it ends at x 745 of 760), and the band above it (y 305..336,
 	// under Select Map) is empty on the retail 800x600 layout. Same art as its neighbour
 	// (CodeGuiCheckboxLike); labelled from the retail string table (GUI:LimitArmies, TOOLTIP:LimitArmies
@@ -1310,7 +1310,7 @@ void InitSkirmishGameGadgets()
 
 	windowMap->winSetTooltipFunc(MapSelectorTooltip);
 
-	// GeneralsX @bugfix Claude 12/08/2026 The .wnd authors eight of every per-slot control; the loop
+	// GeneralsX: The .wnd authors eight of every per-slot control; the loop
 	// below binds MAX_SLOTS of them and dereferences each one immediately, so a row the layout does
 	// not contain is a null crash at init rather than a short list. Build whatever the layout is
 	// short of BEFORE anything looks a row up. At the shipped MAX_SLOTS every one of these calls
@@ -1322,13 +1322,13 @@ void InitSkirmishGameGadgets()
 	//
 	// ButtonMapStartPosition is NOT a column: those markers are children of MapWindow and are placed
 	// over the preview from the map's own start waypoints, so they only need to exist.
-	// GeneralsX @bugfix Claude 20/08/2026 Row 0 of the Players column is TextEntryPlayerName, not a
+	// GeneralsX: Row 0 of the Players column is TextEntryPlayerName, not a
 	// combo box, so it has to be handed to the band explicitly or the compression that fits rows
 	// 1..N-1 into the authored band passes it by. Measured at 1920x1080 with GX_FONT=2/GX_ROWFIT=1:
 	// every ComboBoxPlayer went 43 px/Arial 23 -> 25 px/Arial 13, TextEntryPlayerName stayed
 	// 43 px/Arial 23 and overhung the row below it.
 	//
-	// GeneralsX @feature Claude 08/11/2026 The seat columns SCROLL instead (owner 08/11: rows at a readable size with a
+	// GeneralsX: The seat columns SCROLL instead (owner 08/11: rows at a readable size with a
 	// scroll bar like the map list). Skirmish has no chat to give up, so its band stays the authored eight rows and
 	// the rest scroll; the scroll bar wears ListboxInfo's art. See CodeGui.h.
 	static const char * const skirmishSeatColumns[] =
@@ -1393,7 +1393,7 @@ void InitSkirmishGameGadgets()
 		DEBUG_ASSERTCRASH(comboBoxPlayerTemplate[i] || i >= LEGACY_WND_SLOT_ROWS, ("Could not find the comboBoxPlayerTemplate[%d]",i ));
 
 		// add tooltips to the player template combobox and listbox
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxPlayerTemplate[i])
 		{
 			comboBoxPlayerTemplate[i]->winSetTooltipFunc(playerTemplateComboBoxTooltip);
@@ -1419,13 +1419,13 @@ void InitSkirmishGameGadgets()
 
 	for (i = 0; i < MAX_SLOTS; ++i)
 	{
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxColor[i])
 		{
 			PopulateColorComboBox(i, comboBoxColor, TheSkirmishGameInfo );
 			GadgetComboBoxSetSelectedPos(comboBoxColor[i], 0);
 		}
-		// GeneralsX @feature Claude 27/09/2026 Slot 0, the local human, may observe an all-AI match.
+		// GeneralsX: Slot 0, the local human, may observe an all-AI match.
 		PopulatePlayerTemplateComboBox(i, comboBoxPlayerTemplate, TheSkirmishGameInfo, i == 0 );
 		PopulateTeamComboBox(i, comboBoxTeam, TheSkirmishGameInfo );
 
@@ -1552,7 +1552,7 @@ void updateSkirmishGameOptions()
   Int index = 0;
   for ( ; index < itemCount; index++ )
   {
-    // GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+    // GeneralsX: 64-bit safe pointer cast
     Int value  = static_cast<Int>(reinterpret_cast<intptr_t>(GadgetComboBoxGetItemData(comboBoxStartingCash, index)));
     if ( value == TheSkirmishGameInfo->getStartingCash().countMoney() )
     {
@@ -1633,7 +1633,7 @@ void SkirmishGameOptionsMenuInit( WindowLayout *layout, void *userData )
 
   TheSkirmishGameInfo->setStartingCash( prefs.getStartingCash() );
   TheSkirmishGameInfo->setSuperweaponRestriction( prefs.getSuperweaponRestricted() ? 1 : 0 );
-  // GeneralsX @feature Claude 25/09/2026 Remembered like Limit Superweapons. The faction lists were
+  // GeneralsX: Remembered like Limit Superweapons. The faction lists were
   // filled in InitSkirmishGameGadgets before this was known, so they are rebuilt here, and any slot
   // the saved slot list put on a general goes back to Random.
   TheSkirmishGameInfo->setOldFactionsOnly( prefs.getBool( "LimitArmies", FALSE ) );
@@ -1673,7 +1673,7 @@ void SkirmishGameOptionsMenuInit( WindowLayout *layout, void *userData )
 	// set up the game speed slider
 //	NameKeyType sliderGameSpeedID = TheNameKeyGenerator->nameToKey( "SkirmishGameOptionsMenu.wnd:SliderGameSpeed" );
 	GameWindow *sliderGameSpeed = TheWindowManager->winGetWindowFromId( parentSkirmishGameOptions, sliderGameSpeedID );
-	// GeneralsX @feature Claude 27/09/2026 The slider is a GAME SPEED (GameLogic::onNewGame) and no longer
+	// GeneralsX: The slider is a GAME SPEED (GameLogic::onNewGame) and no longer
 	// shares a value with the render cap, so its default is normal speed, the tick rate - not the max-FPS
 	// cap, which is now the display's refresh rate or unlimited and would open the slider at its "--" end.
 	Int sliderPos = max(15,min(61,prefs.getInt("FPS", (Int)LOGICFRAMES_PER_SECOND)));
@@ -1687,7 +1687,7 @@ void SkirmishGameOptionsMenuInit( WindowLayout *layout, void *userData )
 
 	for (Int i = 0; i < MAX_SLOTS; ++i)
 	{
-		// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+		// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 		if (comboBoxColor[i])
 			comboBoxColor[i]->winEnable(TRUE);
 		if (comboBoxPlayerTemplate[i])

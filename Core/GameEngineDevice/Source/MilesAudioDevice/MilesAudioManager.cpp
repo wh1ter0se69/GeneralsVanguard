@@ -38,7 +38,7 @@
 /*		7/18/2002 : Initial creation                                           */
 /*---------------------------------------------------------------------------*/
 
-// GeneralsX @build BenderAI 13/02/2026 Wrap DirectSound header (fighter19 pattern)
+// GeneralsX: Wrap DirectSound header (fighter19 pattern)
 #ifdef _WIN32
 #include <dsound.h>
 #endif
@@ -2221,7 +2221,7 @@ void MilesAudioManager::processPlayingList()
 			}
 			else
 			{
-				// GeneralsX @feature Claude 10/09/2026 Ask for the volume WITHOUT the shell map
+				// GeneralsX: Ask for the volume WITHOUT the shell map
 				// attenuation. This comparison decides whether the sound is RELEASED entirely rather
 				// than played quietly, so it must not see the scale: a 50% ShellMapSoundVolumeScale
 				// would then not quieten the shell map's ambients, it would delete whichever of them
@@ -2567,7 +2567,7 @@ Bool MilesAudioManager::isOnScreen( const Coord3D *pos ) const
 //-------------------------------------------------------------------------------------------------
 Real MilesAudioManager::getEffectiveVolume(AudioEventRTS *event, Bool applyShellMapScale) const
 {
-	// GeneralsX @feature Claude 10/09/2026 Shell map world SFX attenuation. Every gain write for
+	// GeneralsX: Shell map world SFX attenuation. Every gain write for
 	// managed audio is computed here, so a single multiply covers the backend - including
 	// processFadingList(), so fading shell map SFX keep their attenuation for free. One path does
 	// bypass this function: the forced mission-briefing play calls AIL_quick_set_volume() directly

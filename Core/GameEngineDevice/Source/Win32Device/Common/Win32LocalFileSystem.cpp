@@ -34,7 +34,7 @@
 #include "Win32Device/Common/Win32LocalFile.h"
 #include <io.h>
 
-// GeneralsX @bugfix Claude 28/07/2026 Asset-root fallback for loose data files on Windows.
+// GeneralsX: Asset-root fallback for loose data files on Windows.
 //
 // StdLocalFileSystem has had this since 23/03/2026, guarded by a comment reading "On Windows cwd
 // == install dir so this is never needed". That assumption is false whenever the game is launched
@@ -113,7 +113,7 @@ File * Win32LocalFileSystem::openFile(const Char *filename, Int access, size_t b
 		AsciiString dirName;
 		string.nextToken(&token, "\\/");
 		dirName = token;
-		// GeneralsX @bugfix Claude 01/10/2026 TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
+		// GeneralsX: TheSuperHackers #3374 (3f3ed9fc8): walk directories until the path is used up;
 		// the dot-guessing condition misfiled dotless file names as directories (tsh batch2 #53).
 		while (!string.isEmpty()) {
 			createDirectory(dirName);
@@ -130,7 +130,7 @@ File * Win32LocalFileSystem::openFile(const Char *filename, Int access, size_t b
 		deleteInstance(file);
 		file = nullptr;
 
-		// GeneralsX @bugfix Claude 28/07/2026 Retry from the asset root. Reads only - a WRITE that
+		// GeneralsX: Retry from the asset root. Reads only - a WRITE that
 		// failed must NOT be silently redirected into the install directory, which on a Steam
 		// install is both read-only by policy and the wrong place for user data.
 		if (!(access & File::WRITE))
@@ -193,7 +193,7 @@ Bool Win32LocalFileSystem::doesFileExist(const Char *filename) const
 		return TRUE;
 	}
 
-	// GeneralsX @bugfix Claude 28/07/2026 Same asset-root fallback as openFile. This must agree
+	// GeneralsX: Same asset-root fallback as openFile. This must agree
 	// with openFile or callers that probe before opening (the map cache is one) conclude a file
 	// is absent that openFile would happily return.
 	const AsciiString fallback = buildAssetRootPath(filename);

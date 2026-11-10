@@ -73,7 +73,7 @@ void FlightDeckBehaviorModuleData::parseRunwayStrip( INI* ini, void *instance, v
 	const char *token = ini->getNextTokenOrNull();
 	if( token )
 	{
-		// GeneralsX @bugfix Claude 06/10/2026 set, not format: the bone names come from INI (a map's map.ini included),
+		// GeneralsX: set, not format: the bone names come from INI (a map's map.ini included),
 		// and format() used them as printf formats.
 		runwayNames[ RUNWAY_START_BONE ].set( token );
 		token = ini->getNextTokenOrNull();

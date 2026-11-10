@@ -498,7 +498,7 @@ void ButtonFlashTransition::reverse()
 
 void ButtonFlashTransition::draw()
 {
-	// GeneralsX @bugfix Claude 01/10/2026 m_win is nulled by unlinkGameWindow when the window dies mid-transition; idea from Generals Online d11ae6b5a, reimplemented.
+	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition; idea from Generals Online d11ae6b5a, reimplemented.
 	if(!m_win)
 		return;
 	switch (m_drawState)
@@ -667,7 +667,7 @@ void FadeTransition::update( Int frame )
 	case FADETRANSITION_FADE_IN_7:
 	case FADETRANSITION_FADE_IN_8:
 	case FADETRANSITION_FADE_IN_9:
-		// GeneralsX @bugfix Claude 06/10/2026 m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
+		// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
 		if(m_win)
 			m_win->winHide(TRUE);
 
@@ -1209,7 +1209,7 @@ void MainMenuMediumScaleUpTransition::reverse()
 {
 	m_isFinished = FALSE;
 	m_isForward = FALSE;
-	// GeneralsX @bugfix Claude 06/10/2026 Same null window as the update() guards (sweep c080-01).
+	// GeneralsX: Same null window as the update() guards (sweep c080-01).
 	if(m_win)
 		m_win->winHide(TRUE);
 	if(m_growWin)
@@ -1411,7 +1411,7 @@ void TextTypeTransition::update( Int frame )
 			m_isFinished = TRUE;
 		}
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
+	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
 	if(frame >= m_frameLength && m_win)
 	{
 		m_win->winHide(FALSE);
@@ -1449,7 +1449,7 @@ void TextTypeTransition::reverse()
 
 void TextTypeTransition::draw()
 {
-	// GeneralsX @bugfix Claude 01/10/2026 m_win is nulled by unlinkGameWindow when the window dies mid-transition; idea from Generals Online d11ae6b5a, reimplemented.
+	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition; idea from Generals Online d11ae6b5a, reimplemented.
 	if(!m_win)
 		return;
 	if(m_drawState > TEXTTYPETRANSITION_START && m_drawState < m_frameLength)
@@ -1560,7 +1560,7 @@ void CountUpTransition::update( Int frame )
 			m_isFinished = TRUE;
 		}
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
+	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
 	if(frame >= m_frameLength && m_win)
 	{
 		m_win->winHide(FALSE);
@@ -1594,7 +1594,7 @@ void CountUpTransition::update( Int frame )
 
 void CountUpTransition::reverse()
 {
-	// GeneralsX @bugfix Claude 06/10/2026 A dead window (null, sweep c080-01) is treated as hidden: nothing to count back down on, finish now.
+	// GeneralsX: A dead window (null, sweep c080-01) is treated as hidden: nothing to count back down on, finish now.
 	if( !m_win || m_win->winIsHidden() )
 	{
 		m_isForward = FALSE;
@@ -1866,7 +1866,7 @@ void FullFadeTransition::update( Int frame )
 
 		}
 	}
-	// GeneralsX @bugfix Claude 06/10/2026 m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
+	// GeneralsX: m_win is nulled by unlinkGameWindow when the window dies mid-transition (and stays null when init found no window); the 01/10 fix guarded draw() only (sweep c080-01).
 	if(frame == FULLFADETRANSITION_END/2 && m_win)
 	{
 		if(m_isForward)
@@ -1974,7 +1974,7 @@ void TextOnFrameTransition::reverse()
 {
 	m_isFinished = FALSE;
 	m_isForward = FALSE;
-	// GeneralsX @bugfix Claude 06/10/2026 A dead window (null, sweep c080-01) is treated as hidden: finish now.
+	// GeneralsX: A dead window (null, sweep c080-01) is treated as hidden: finish now.
 	if(!m_win || m_win->winIsHidden())
 	{
 		m_isFinished = TRUE;

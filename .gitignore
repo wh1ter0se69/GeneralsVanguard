@@ -51,7 +51,7 @@ thumbs.db
 
 ## AI assistant config (user-specific), EXCEPT the skills
 #
-# GeneralsX @bugfix Claude 12/08/2026 The skills are tracked, for the same reason /CLAUDE.md is:
+# GeneralsX: The skills are tracked, for the same reason /CLAUDE.md is:
 # they are not user-specific, they hold the working protocol the sessions depend on, and sessions
 # run on Mac, Linux and Windows machines. Ignored, a clone elsewhere has none of it.
 #
@@ -60,14 +60,14 @@ thumbs.db
 #     rule, not the `/.claude/` one, that was actually hiding these. Re-include the directory
 #     first or nothing beneath it is reachable.
 #   * Git NEVER DESCENDS into an excluded directory, so a `!` re-include under one can never
-#     fire. The contents must be excluded (`/.claude/*`), not the directory.
+#     fire. The contents must be excluded (`/. /*`), not the directory.
 # Written either of the wrong ways, the exception is silently dead: `git add` reports "paths are
 # ignored", adds nothing, and a commit still lands carrying only this file.
 !/.claude/
 /.claude/*
 !/.claude/skills/
 !/.claude/skills/**
-# GeneralsX @bugfix Claude 12/08/2026 The SKILLS are not user-specific and are tracked, for the
+# GeneralsX: The SKILLS are not user-specific and are tracked, for the
 # same reason /CLAUDE.md below is: they hold the working protocol - which resource a session may
 # claim, why a claim is proven both directions, how a handback is typed - and sessions run on
 # Mac, Linux and Windows machines. Ignored, a clone elsewhere has none of it.
@@ -79,7 +79,7 @@ thumbs.db
 # no amount of checking will see it.
 !/.claude/skills/
 !/.claude/skills/**
-# GeneralsX @bugfix Claude 30/07/2026 /CLAUDE.md is deliberately NOT ignored any more.
+# GeneralsX: /CLAUDE.md is deliberately NOT ignored any more.
 # It was listed here as "user-specific", but this project's copy holds engineering rules the
 # work depends on - lockstep limits, atomic four-peer rebuilds, digest path lists, shell traps -
 # and sessions run on Mac, Linux and Windows machines. Leaving it untracked means a
@@ -117,7 +117,7 @@ GeneralsX-macos-*.zip
 GeneralsXZH-macos-*.zip
 GeneralsX-linux-*.tar.gz
 GeneralsXZH-linux-*.tar.gz
-# GeneralsX @build Claude 27/07/2026 iOS packages are build output, not source - the signed
+# GeneralsX: iOS packages are build output, not source - the signed
 # GeneralsXZH-ios.ipa carries the full game assets and runs to 2 GB.
 *.ipa
 
@@ -138,8 +138,8 @@ ios/GeneralsXZH.xcodeproj/
 # exact match and showed up as untracked, one `git add -A` away from publishing the identity.
 ios/signing.local.env*
 
-# GeneralsX @bugfix Claude 29/07/2026 Operator-specific hosts, never committed.
-# GeneralsX @bugfix Claude 16/08/2026 Glob, for the same reason spelled out for the signing
+# GeneralsX: Operator-specific hosts, never committed.
+# GeneralsX: Glob, for the same reason spelled out for the signing
 # identity twelve lines up - and this file had already grown the exact copy that comment predicts.
 # a backup copy of scripts/test/local.env held host addresses, was untracked but
 # NOT ignored, and this repository is intended to go public. A bare name only covers the file
@@ -159,7 +159,7 @@ dist/launcher/
 # away from the index - the same failure mode the local.env note twenty lines up describes.
 scripts/launcher-rs/target/
 
-# GeneralsX @tooling Claude 20/09/2026 The admin panel's map previews. scripts/tooling/map-previews.py
+# GeneralsX @tooling /09/2026 The admin panel's map previews. scripts/tooling/map-previews.py
 # extracts these from a local game install as a DEPLOY step (see tools/admin/panel/README.md); they
 # are EA's artwork and this repository is intended to go public, so they are never committed. A fresh
 # clone has none, and the panel draws its letter tile instead - which is also what a custom map does.
@@ -178,6 +178,6 @@ GeneralsZH/Data/INI/ParticleSystem.ini
 GeneralsZH/Data/INI/Object/Shared/Weapon/SupW_AuroraFuelAirBomb.ini
 GeneralsZH/Data/INI/Object/Shared/Weapon/SupW_AuroraFuelAirGas.ini
 
-# GeneralsX @tooling Claude 03/10/2026 The admin panel's IPv4 -> country table. scripts/tooling/geoip-country.py builds it
+# GeneralsX @tooling /10/2026 The admin panel's IPv4 -> country table. scripts/tooling/geoip-country.py builds it
 # at DEPLOY time from DB-IP's monthly file, pinned by URL and sha256; regenerated, never committed.
 tools/admin/panel/public/geo/

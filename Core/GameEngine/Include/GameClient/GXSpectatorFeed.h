@@ -1,5 +1,5 @@
 /*
-**	GeneralsX @feature Claude 02/10/2026 - WHO may see the opponent feed: the general's-skill and upgrade banners and
+**	GeneralsX: WHO may see the opponent feed: the general's-skill and upgrade banners and
 **	the observer table's intel columns (SP, K/D, Cash/m).
 **
 **	WHY A HEADER OF ITS OWN, AND PURE. Same reason as GXSkillAnnouncePolicy.h and GXUpgradeLedger.h next door: the
@@ -59,7 +59,7 @@ inline bool viewerMaySeeFeed( bool isPlayback, bool hasLocalPlayer, bool localPl
 }
 
 /*
- * The engine glue, here rather than in InGameUI.cpp so the test drives it too (CLAUDE-ONLY review P2, 02/10/2026): it
+ * The engine glue, here rather than in InGameUI.cpp so the test drives it too: it
  * is the one place a dropped or doubled `!` would turn the gate inside out while the predicate above stayed green.
  * PlayerT is the engine's Player in InGameUI.cpp and a stand-in in the test; all it needs is isPlayerActive().
  */

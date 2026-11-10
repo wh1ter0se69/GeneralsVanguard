@@ -193,11 +193,11 @@ public:
 	/// Simulation state only, so every peer and every replay agrees. Defined in GameLogicDispatch.cpp.
 	static Bool gxCheatsAllowed();
 
-	/// GeneralsX @security Claude 25/09/2026 May THIS player's MSG_GX_CHEAT_* run? gxCheatsAllowed() (the sandbox),
+	/// GeneralsX: May THIS player's MSG_GX_CHEAT_* run? gxCheatsAllowed() (the sandbox),
 	/// or the player's slot is one the relay proved an admin for this match (GameInfo::getGxAdminMask, snapshotted
 	/// by startNewGame). Simulation state only, like gxCheatsAllowed. Defined in GameLogicDispatch.cpp.
 	Bool gxCheatAllowedFor( const Player *sender ) const;
-	/// GeneralsX @feature Claude 06/10/2026 IN-MATCH VOTE KICK (Common/GXVoteKick.h). The running vote and the latest outcome,
+	/// GeneralsX: IN-MATCH VOTE KICK (Common/GXVoteKick.h). The running vote and the latest outcome,
 	/// for the client's banner and lines (GameClient/GXVoteKick.h) - READ ONLY there: it changes only through the synchronised
 	/// MSG_GX_VOTEKICK_* orders and update(). Not saved: a network game cannot be saved.
 	const GXVoteKickState &getGxVoteKick() const { return m_gxVoteKick; }
@@ -210,11 +210,11 @@ public:
 	UnsignedInt64 getGxAdminSlotMask() const { return m_gxAdminSlotMask; }	// GeneralsX 06/11/2026 64-bit: 34 slots
 	/// The seed this match's admin orders are signed over (Common/GXAdminOrder.h), for the signer.
 	UnsignedInt getGxAdminSeed() const { return m_gxAdminSeed; }
-	/// GeneralsX @security Claude 25/09/2026 THE admin-path decision for one cheat order from `sender`'s slot: a valid
+	/// GeneralsX: THE admin-path decision for one cheat order from `sender`'s slot: a valid
 	/// signature under that slot's stamped key, over this match's seed, with a sequence number above the last one
 	/// accepted from that slot - which it then records. Simulation state only. Defined in GameLogicDispatch.cpp.
 	Bool gxAdminOrderAccepted( const GameMessage *msg, const Player *sender );
-	/// GeneralsX @feature Claude 27/09/2026 Does a MSG_GX_CHEAT_SPAWN_UNIT at `target` make NEUTRAL units ("civilians":
+	/// GeneralsX: Does a MSG_GX_CHEAT_SPAWN_UNIT at `target` make NEUTRAL units ("civilians":
 	/// nobody commands them, their vehicles come unmanned)? Yes when it is defeated or observing (wh1ter0se 27/09); the
 	/// orderer's state has no say (wh1ter0se 05/10). Simulation state only. Defined in GameLogicDispatch.cpp.
 	static Bool gxSpawnGoesNeutral( const Player *target );
@@ -249,7 +249,7 @@ public:
 
 	Bool isIntroMoviePlaying();
 
-	// GeneralsX @performance Claude 23/09/2026 Called wherever an Object disabled bit gets (or may get) a till-frame; keeps
+	// GeneralsX: Called wherever an Object disabled bit gets (or may get) a till-frame; keeps
 	// m_disabledExpiryWatermark <= every set bit's m_disabledTillFrame so the end-of-frame expiry walk can be skipped.
 	void noteDisabledUntil(UnsignedInt frame) { if (frame < m_disabledExpiryWatermark) m_disabledExpiryWatermark = frame; }
 
@@ -445,7 +445,7 @@ private:
 	ControlBarOverrideMap m_controlBarOverrides;
 
 	Real m_width, m_height;																	///< Dimensions of the world
-	// GeneralsX @performance Claude 23/09/2026 Lower bound of every set disabled bit's till-frame over all objects.
+	// GeneralsX: Lower bound of every set disabled bit's till-frame over all objects.
 	// Runtime-only (not xfer'd or CRC'd): 0 forces one walk, which recomputes it.
 	UnsignedInt m_disabledExpiryWatermark;
 	UnsignedInt m_frame;																		///< Simulation frame number
@@ -461,10 +461,10 @@ private:
 	Bool m_loadingSave;
 	Bool m_clearingGameData;
 	Bool m_quitToDesktopAfterMatch;
-	// GeneralsX @feature Claude 23/09/2026 >= 0 while a start refused as over capacity is being
+	// GeneralsX: >= 0 while a start refused as over capacity is being
 	// unwound: the capacity the refusal message names (startNewGame's catch). -1 otherwise.
 	Int m_refusedStartCapacity;
-	// GeneralsX @feature Claude 25/09/2026 TRUE while a start refused by Limit Armies (a slot on a
+	// GeneralsX: TRUE while a start refused by Limit Armies (a slot on a
 	// general's sub-faction) is being unwound. Same lifetime as m_refusedStartCapacity.
 	Bool m_refusedStartArmies;
 
@@ -492,7 +492,7 @@ private:
 	// (for an excellent discussion of priority queues, please see:
 	// http://dogma.net/markn/articles/pq_stl/priority.htm)
 	std::vector<UpdateModulePtr> m_sleepyUpdates;
-	// GeneralsX @perf Claude 24/09/2026 m_sleepyKeys[i] == m_sleepyUpdates[i]->friend_getPriority(), always.
+	// GeneralsX: m_sleepyKeys[i] == m_sleepyUpdates[i]->friend_getPriority(), always.
 	// The heap compares these instead of loading two scattered UpdateModules per level. Every write of a
 	// queued module's priority, and every move in m_sleepyUpdates, updates it in step.
 	std::vector<UnsignedInt> m_sleepyKeys;
@@ -520,14 +520,14 @@ private:
 	Int m_rankLevelLimit;
   UnsignedShort m_superweaponRestriction;
 
-	// GeneralsX @feature Claude 23/09/2026 The lobby-agreed stress battlefield (GameLogic/GXStress.h).
+	// GeneralsX: The lobby-agreed stress battlefield (GameLogic/GXStress.h).
 	// Copied from TheGameInfo by startNewGame on a NEW game only and applied from update(). Not saved:
 	// a loaded game has no stress. Defined in GameLogic.cpp.
 	void gxStressUpdate();
 	void gxStressSpawn();
 	void gxStressOrders();
 #if defined(GX_TEST_INSTRUMENTS)
-	// GeneralsX @test Claude 26/09/2026 WAYPOINT ENTER test hooks (GX_TEST_ENTERQ_SIM), defined in GameLogicDispatch.cpp.
+	// GeneralsX: WAYPOINT ENTER test hooks (GX_TEST_ENTERQ_SIM), defined in GameLogicDispatch.cpp.
 	// Never in a shipping build.
 public:
 	void gxTestEnterQueueExecuted( const GameMessage *msg, Object *container, Int took );
@@ -538,13 +538,13 @@ private:
 	GXStressOption m_gxStress;
 	std::vector<ObjectID> m_gxStressUnits;		///< every stress unit, in creation order; dead ones pruned
 
-	// GeneralsX @feature Claude 06/10/2026 IN-MATCH VOTE KICK. Cleared on construction, reset() and every game start (a loaded
+	// GeneralsX: IN-MATCH VOTE KICK. Cleared on construction, reset() and every game start (a loaded
 	// game included); never saved. gxVoteKickUpdate runs from update() after the frame's orders. GameLogicDispatch.cpp.
 	void gxVoteKickUpdate();
 	void gxVoteKickResolved( GXVoteKickVerdict verdict, Int actor, GXVoteKickMask living );
 	GXVoteKickState m_gxVoteKick;
 
-	// GeneralsX @security Claude 25/09/2026 The relay-proven admin slots (GameInfo::getGxAdminMask), copied by
+	// GeneralsX: The relay-proven admin slots (GameInfo::getGxAdminMask), copied by
 	// startNewGame on a NEW game only - the rule ST= follows - and never saved: a loaded game has no admin.
 	UnsignedInt64 m_gxAdminSlotMask;
 	unsigned char m_gxAdminKeys[MAX_SLOTS][32];	///< each admin slot's stamped per-match key (Common/GXAdminOrder.h)
@@ -631,7 +631,7 @@ inline Object* GameLogic::findObjectByID( ObjectID id )
 
 // the singleton
 extern GameLogic *TheGameLogic;
-// GeneralsX @bugfix Claude 25/09/2026 The Reveal Map cheat's per-player bookkeeping (GameLogicDispatch.cpp): its save
+// GeneralsX: The Reveal Map cheat's per-player bookkeeping (GameLogicDispatch.cpp): its save
 // block, registered by GameState::init as CHUNK_GXCheatReveal, and the reset GameLogic::reset() runs on every teardown.
 extern Snapshot *TheGXCheatRevealState;
 void gxCheatResetRevealState( void );

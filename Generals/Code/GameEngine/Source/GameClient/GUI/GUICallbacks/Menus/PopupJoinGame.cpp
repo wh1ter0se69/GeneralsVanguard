@@ -93,7 +93,7 @@ void PopupJoinGameInit( WindowLayout *layout, void *userData )
 	textEntryGamePassword = TheWindowManager->winGetWindowFromId(parentPopup, textEntryGamePasswordID);
 	GadgetTextEntrySetText(textEntryGamePassword, UnicodeString::TheEmptyString);
 
-	// GeneralsX @feature Claude 17/08/2026 Asterisks, not the password. Ported from the Zero Hour
+	// GeneralsX: Asterisks, not the password. Ported from the Zero Hour
 	// twin of this file, where the same box had the same problem: the .wnd authors it as ordinary
 	// text, so it rendered a typed password in the clear on a screen people stream. secretText is
 	// display-only - GadgetTextEntryGetText still returns the real string, so joinGame below is
@@ -274,7 +274,7 @@ static void joinGame( AsciiString password )
 	req.stagingRoom.id = ourRoom->getID();
 	req.password = password.str();
 	TheGameSpyPeerMessageQueue->addRequest(req);
-	// GeneralsX @bugfix Claude 17/08/2026 This used to print the password itself, exactly as the
+	// GeneralsX: This used to print the password itself, exactly as the
 	// Zero Hour twin did. A lobby password is a credential people reuse, and DEBUG_LOG lands in a
 	// file that gets attached to bug reports - so the one fact worth recording is whether a
 	// password was supplied, never which.

@@ -45,7 +45,7 @@
 #include "GameLogic/Module/PhysicsUpdate.h"
 
 
-// GeneralsX @fix Claude 23/09/2026 30 Hz frame counts; every use goes through GX_FRAMES30. The toss
+// GeneralsX: 30 Hz frame counts; every use goes through GX_FRAMES30. The toss
 // itself (ThrowForce) is scaled inside PhysicsBehavior::applyShock.
 enum
 {

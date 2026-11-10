@@ -1,6 +1,6 @@
 /* Discord Rich Presence for GeneralsX.
  *
- * GeneralsX @feature Claude 09/08/2026
+ * GeneralsX:
  *
  * WHY IT LIVES UNDER GameClient. `resources/gitinfo/simsourcedigest_watcher.cmake` digests only
  * `{Include,Source}/{Common,GameLogic,GameNetwork}` plus WWMath and the build config. `GameClient`

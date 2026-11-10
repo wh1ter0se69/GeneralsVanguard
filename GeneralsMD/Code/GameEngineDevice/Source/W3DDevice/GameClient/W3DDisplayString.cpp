@@ -166,7 +166,7 @@ void W3DDisplayString::draw( Int x, Int y, Color color, Color dropColor )
 		return;  // nothing to draw (and no font factor to ask for)
 	draw( x, y, color, dropColor, 1, 1 );
 }
-// GeneralsX @probe Claude 19/08/2026 GX_FONT - is the layout text UPSCALED, or just requested small?
+// GeneralsX: GX_FONT - is the layout text UPSCALED, or just requested small?
 //
 // The operator asked why list and combo-box rows look pixelated at 1920x1080 while headers and
 // buttons are crisp. What is VERIFIED so far is only an asymmetry in the code: GlobalLanguage::
@@ -222,7 +222,7 @@ void W3DDisplayString::draw( Int x, Int y, Color color, Color dropColor, Int xDr
 		}
 	}
 
-	// GeneralsX @performance Claude 23/09/2026 Static text used to be rebuilt from scratch every frame, which also re-created
+	// GeneralsX: Static text used to be rebuilt from scratch every frame, which also re-created
 	// the Render2D renderers and so picked up a new Render2D screen resolution. Now that it is cached like every other
 	// string, rebuild when that resolution has changed since the renderers were made (their coordinate range is fixed then).
 	if( Render2DClass::Get_Screen_Resolution() != m_builtScreenResolution )
@@ -235,7 +235,7 @@ void W3DDisplayString::draw( Int x, Int y, Color color, Color dropColor, Int xDr
 	// if our font or text has changed we need to build a new sentence
 	if( m_fontChanged || m_textChanged )
 	{
-		// GeneralsX @performance Claude 23/09/2026 The previous build may have cleared m_useHotKey (text had no hotkey);
+		// GeneralsX: The previous build may have cleared m_useHotKey (text had no hotkey);
 		// setUseHotkey no longer restores it every frame, so restore the requested value before rebuilding.
 		m_useHotKey = m_hotKeyRequested;
 		m_builtScreenResolution = Render2DClass::Get_Screen_Resolution();
@@ -264,7 +264,7 @@ void W3DDisplayString::draw( Int x, Int y, Color color, Color dropColor, Int xDr
 	// if our position has changed, or our colors have changed, or our
 	// text data has changed, we need to redo the texture quads
 	//
-	// GeneralsX @performance Claude 23/09/2026 m_clipChanged: clipping is applied when the quads are built, so a new clip
+	// GeneralsX: m_clipChanged: clipping is applied when the quads are built, so a new clip
 	// region needs new quads (the per-frame rebuild of static text used to hide that).
 	if( needNewPolys ||
 			m_clipChanged ||
@@ -289,7 +289,7 @@ void W3DDisplayString::draw( Int x, Int y, Color color, Color dropColor, Int xDr
 		// reset the quads
 		m_textRenderer.Reset_Polys();
 
-		// GeneralsX @tweak Claude 04/10/2026 No drop shadow on any text (owner): the shadow pass is gone, dropColor/xDrop/yDrop are ignored.
+		// GeneralsX: No drop shadow on any text (owner): the shadow pass is gone, dropColor/xDrop/yDrop are ignored.
 		// draw the text
 		m_textRenderer.Set_Location( Vector2( m_textPos.x, m_textPos.y ) );
 		m_textRenderer.Draw_Sentence( m_currTextColor );
@@ -435,7 +435,7 @@ void W3DDisplayString::computeExtents()
 {
 	UnsignedInt len = getTextLength();
 
-	// GeneralsX @performance Claude 23/09/2026 Measure with the requested hotkey parsing ('&' takes no width when parsed).
+	// GeneralsX: Measure with the requested hotkey parsing ('&' takes no width when parsed).
 	// Before, setUseHotkey re-measured with it every frame; now extents must already be right when it early-outs.
 	m_textRenderer.Set_Hot_Key_Parse( m_hotKeyRequested );
 
@@ -470,7 +470,7 @@ void W3DDisplayString::setWordWrap( Int wordWrap )
 
 void W3DDisplayString::setUseHotkey( Bool useHotkey, Color hotKeyColor )
 {
-	// GeneralsX @performance Claude 23/09/2026 drawStaticTextText calls this every frame for every visible static text,
+	// GeneralsX: drawStaticTextText calls this every frame for every visible static text,
 	// and notifyTextChanged re-measures, drops both renderers' surfaces and forces a full glyph-texture rebuild. Like
 	// setWordWrap and setWordWrapCentered beside it, only do that when the request actually changes.
 	if( useHotkey == m_hotKeyRequested && hotKeyColor == m_hotKeyColor )

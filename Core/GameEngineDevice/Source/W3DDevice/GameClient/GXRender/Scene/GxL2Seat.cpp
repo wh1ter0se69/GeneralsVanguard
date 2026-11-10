@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/10/2026 WS-G: the S1 DrawRun seat's engine-free logic (GxL2Seat.h; rw1-G/PLAN_seat.md D1, D4, D5).
+// GeneralsX: WS-G: the S1 DrawRun seat's engine-free logic (GxL2Seat.h; rw1-G/PLAN_seat.md D1, D4, D5).
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Seat.h"
 

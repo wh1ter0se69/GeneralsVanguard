@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule OPEN.USAF_COMANCHE (C·rb-data-7): the Air Force General opens with Comanches. Stock
+# GeneralsX: rule bank DATA rule OPEN.USAF_COMANCHE (C·rb-data-7): the Air Force General opens with Comanches. Stock
 # Hard (owners.txt, 14d03e02): the first Air Field comes after the first Supply Center; the 1st-wave teams are jets (Stealth Rush, Raptor
 # Supply Hunters, priority 100) and the first Comanche team, "USA H 2W Comanche Guards. 1" (2 Comanches, priority 110, so it already outranks
 # the jets), waits for the 2nd attack wave (_USA_2ND_WAVE_H). Here that team is produced the moment the first Air Field is built: a new

@@ -135,7 +135,7 @@ Bool g_debugSlots = FALSE;
 
 std::list<PeerResponse> TheLobbyQueuedUTMs;
 
-// GeneralsX @refactor Claude 11/08/2026 handleLobbySlashCommands is DELETED, not preserved.
+// GeneralsX: handleLobbySlashCommands is DELETED, not preserved.
 //
 // It was the GameSpy lobby's /host /me /refresh (/fakecrc /slots in debug) interceptor. This
 // screen is reachable in the Generals build only through the servserv.generals.ea.com patch

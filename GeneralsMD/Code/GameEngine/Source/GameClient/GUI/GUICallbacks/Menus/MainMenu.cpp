@@ -79,7 +79,7 @@
 
 #include "GameClient/InGameUI.h"
 
-// GeneralsX @feature BenderAI 21/04/2026 In-game update checker for tagged release builds
+// GeneralsX: In-game update checker for tagged release builds
 #ifdef SAGE_UPDATE_CHECK
 #include "Common/UpdateChecker.h"
 #include "GameClient/GadgetPushButton.h"
@@ -163,7 +163,7 @@ static GameWindow *buttonWorldBuilder = nullptr;
 static GameWindow *mainMenuMovie = nullptr;
 static GameWindow *getUpdate = nullptr;
 #ifdef SAGE_UPDATE_CHECK
-static GameWindow *updateNotifyButton = nullptr;  // GeneralsX @feature BenderAI 21/04/2026 Dynamically created update notification button
+static GameWindow *updateNotifyButton = nullptr;  // GeneralsX: Dynamically created update notification button
 static AsciiString s_updateLatestTag;             // Tag of available update
 #endif
 static GameWindow *buttonTRAINING = nullptr;
@@ -191,7 +191,7 @@ static Bool buttonPushed = FALSE;
 static Bool isShuttingDown = FALSE;
 static Bool startGame = FALSE;
 static Int	initialGadgetDelay = 210;
-// GeneralsX @bugfix BenderAI 31/03/2026 Keep fallback credit label tied to main menu lifecycle so it does not leak into gameplay.
+// GeneralsX: Keep fallback credit label tied to main menu lifecycle so it does not leak into gameplay.
 static GameWindow *fallbackCreditLabel = nullptr;
 
 enum
@@ -255,7 +255,7 @@ static void showSelectiveButtons( Int show )
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 11/08/2026 Sign-in prompt on Online.
+// GeneralsX: Sign-in prompt on Online.
 //
 // The owner's requirement, verbatim: "when a player clicks online, if he isn't signed in it will
 // prompt him to sign in and open the browser with the oAuth directly on discord where he accepts;
@@ -264,7 +264,7 @@ static void showSelectiveButtons( Int show )
 // SAYING NO DOES NOT OPEN THE LOBBY. See "ONLINE IS SIGN-IN ONLY" further down this file, which is
 // the paragraph that governs.
 //
-// GeneralsX @bugfix Claude 20/09/2026 This block used to say the opposite - "SAYING NO STILL OPENS
+// GeneralsX: This block used to say the opposite - "SAYING NO STILL OPENS
 // THE LOBBY. That is deliberate..." - and it had been false since 11/08/2026, when gxSignInNoCallback
 // was changed to call gxSignInRefused() instead of gxEnterOnlineLobby(). It sat 1600 lines above the
 // code that contradicts it, read as a design invariant, and cost a planning round on 20/09/2026: a
@@ -290,14 +290,14 @@ static_assert((int)GXOnlineGate::LOGIN_CANCELLED == (int)GX_LOGIN_CANCELLED, "GX
 
 static Bool s_openLobbyAfterLogin = FALSE;
 
-// GeneralsX @bugfix Claude 20/08/2026 The refusal box, deferred by one frame. See gxShowSignInRefusal.
+// GeneralsX: The refusal box, deferred by one frame. See gxShowSignInRefusal.
 static Bool          s_showRefusalPending = FALSE;
 static UnicodeString s_pendingRefusalBody;
-// GeneralsX @feature Claude 20/09/2026 The deferral now carries more than one kind of refusal, so
+// GeneralsX: The deferral now carries more than one kind of refusal, so
 // the title travels with the body instead of being hardcoded at the drain.
 static UnicodeString s_pendingRefusalTitle;
 
-// GeneralsX @bugfix Claude 11/08/2026 A refusal has to be recorded somewhere, or it is not a
+// GeneralsX: A refusal has to be recorded somewhere, or it is not a
 // refusal - it is a delay until the next button press.
 //
 // The gate in MainMenuSystem re-evaluates hasVerifiedIdentity() every time Online is pressed, so
@@ -345,13 +345,13 @@ static void gxEnterOnlineLobby()
 	TheShell->push( "Menus/WOLCustomLobby.wnd" );
 }
 
-// GeneralsX @feature Claude 11/08/2026 ONLINE IS SIGN-IN ONLY.
+// GeneralsX: ONLINE IS SIGN-IN ONLY.
 //
 // Both roads that used to end in the lobby without an identity end here instead. Online is the
 // screen where other players see your name, add you as a friend and swap codes with you; every one
 // of those is meaningless for somebody nobody can identify, and the card exchange has nothing to
 // bind to. NETWORK is deliberately untouched - a LAN game needs no account and never will.
-// GeneralsX @bugfix Claude 11/08/2026 SHOW THE SPECIFIC REASON, AND ALWAYS DRAIN THE QUEUE.
+// GeneralsX: SHOW THE SPECIFIC REASON, AND ALWAYS DRAIN THE QUEUE.
 //
 // GXLoginFlow queues the actionable text - "the account could not be saved" and friends - and its
 // ONLY consumer in the tree is the lobby (WOLLobbyMenu.cpp:4539, unbounded grep). While a failed
@@ -382,7 +382,7 @@ static void gxShowSignInRefusal( const UnicodeString &fallbackBody )
 		body = fallbackBody;
 	}
 
-	// GeneralsX @bugfix Claude 20/08/2026 QUEUE IT - DO NOT OPEN A MESSAGE BOX FROM INSIDE ONE.
+	// GeneralsX: QUEUE IT - DO NOT OPEN A MESSAGE BOX FROM INSIDE ONE.
 	//
 	// Reported by the operator: answer No to "Sign in?" and every main-menu button stops working.
 	// Reproduced here by driving the UI - after No -> OK, ONLINE, NETWORK and BACK all do nothing.
@@ -402,7 +402,7 @@ static void gxShowSignInRefusal( const UnicodeString &fallbackBody )
 	s_showRefusalPending = TRUE;
 }
 
-// GeneralsX @bugfix Claude 20/09/2026 NO NETWORK GAME WITHOUT THE BASE GENERALS ARCHIVES.
+// GeneralsX: NO NETWORK GAME WITHOUT THE BASE GENERALS ARCHIVES.
 //
 // Zero Hour is an expansion and its maps reference base-game art. An install that cannot reach
 // Textures.big/W3D.big/Terrain.big is missing the bridge models, and a peer that cannot load a
@@ -663,7 +663,7 @@ GameWindow *win = nullptr;
 
 }
 
-// GeneralsX @tweak BenderAI 31/03/2026 Print fixed project watermark in optional main-menu LabelVersion widget.
+// GeneralsX: Print fixed project watermark in optional main-menu LabelVersion widget.
 static void initLabelVersion()
 {
 	NameKeyType versionID = TheNameKeyGenerator->nameToKey( "MainMenu.wnd:LabelVersion" );
@@ -695,7 +695,7 @@ static void initLabelVersion()
 			const Int x = 8;
 			const Int y = TheDisplay->getHeight() - height - 8;
 
-			// GeneralsX @feature BenderAI 31/03/2026 Fallback credit label when MainMenu.wnd lacks LabelVersion.
+			// GeneralsX: Fallback credit label when MainMenu.wnd lacks LabelVersion.
 			fallbackCreditLabel = TheWindowManager->gogoGadgetStaticText(parentMainMenu,
 				WIN_STATUS_ENABLED,
 				x, y,
@@ -707,7 +707,7 @@ static void initLabelVersion()
 
 			if (fallbackCreditLabel)
 			{
-				// GeneralsX @tweak BenderAI 31/03/2026 Keep fallback watermark subtle and aligned to bottom-left target placement.
+				// GeneralsX: Keep fallback watermark subtle and aligned to bottom-left target placement.
 				fallbackCreditLabel->winSetFont(TheWindowManager->winFindFont("Arial", 12, FALSE));
 				fallbackCreditLabel->winSetEnabledTextColors(GameMakeColor(255, 220, 60, 255), GameMakeColor(0, 0, 0, 0));
 				GadgetStaticTextSetText(fallbackCreditLabel, creditText);
@@ -901,7 +901,7 @@ void MainMenuInit( WindowLayout *layout, void *userData )
 	}
 	/**/
 
-	// GeneralsX @feature BenderAI 21/04/2026 Start background GitHub release check for tagged builds
+	// GeneralsX: Start background GitHub release check for tagged builds
 #ifdef SAGE_UPDATE_CHECK
 	UpdateChecker::start();
 #endif
@@ -972,7 +972,7 @@ void MainMenuShutdown( WindowLayout *layout, void *userData )
 	}
 
 #ifdef SAGE_UPDATE_CHECK
-	// GeneralsX @bugfix BenderAI 21/04/2026 Destroy the update notification button on
+	// GeneralsX: Destroy the update notification button on
 	// shutdown so the pointer cannot dangle if the main menu is reopened in the same session.
 	if (updateNotifyButton)
 	{
@@ -1042,7 +1042,7 @@ void DeclineResolution()
 		dispChanged = FALSE;
 		newDispSettings = oldDispSettings;
 
-		// GeneralsX @bugfix Claude 14/09/2026 Read the EFFECTIVE size back, same as
+		// GeneralsX: Read the EFFECTIVE size back, same as
 		// OptionsMenu::saveOptions. setDisplayMode publishes what it actually set into these two
 		// globals and can reduce a request no attached display can present, so the value restored
 		// by a decline is not guaranteed to be the value asked for. Writing the requested one back
@@ -1125,7 +1125,7 @@ void ResolutionDialogUpdate()
 void DownloadMenuUpdate( WindowLayout *layout, void *userData );
 void MainMenuUpdate( WindowLayout *layout, void *userData )
 {
-	// GeneralsX @bugfix Claude 20/08/2026 Drain the deferred sign-in refusal here, one frame after
+	// GeneralsX: Drain the deferred sign-in refusal here, one frame after
 	// the Yes/No box asked for it, so that box is gone before this one is created. See
 	// gxShowSignInRefusal for what opening it inline did to the modal stack.
 	if( s_showRefusalPending )
@@ -1138,7 +1138,7 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 
 	if( TheGameLogic->isInGame() && !TheGameLogic->isInShellGame() )
 	{
-		// GeneralsX @bugfix Claude 11/08/2026 A pending "open the lobby once the login lands" is
+		// GeneralsX: A pending "open the lobby once the login lands" is
 		// scoped to the menu the player asked from. If they started a match while the browser was
 		// still open, that intent is stale, and honouring it when the match ends would drop them
 		// on a screen they did not ask for minutes earlier. The login itself still completes and
@@ -1147,7 +1147,7 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 		return;
 	}
 
-	// GeneralsX @feature Claude 11/08/2026 The player said yes, went to their browser, and came
+	// GeneralsX: The player said yes, went to their browser, and came
 	// back. Carry them into the lobby the moment the login lands.
 	//
 	// Watched here rather than signalled from GXLoginFlow because the flow lives below the GUI and
@@ -1156,7 +1156,7 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 	// effect. GXLoginFlow::update() is ticked from GameClient::update, so the state is already
 	// current by the time this runs.
 	//
-	// GeneralsX @bugfix Claude 11/08/2026 This sits BELOW the in-game guard above, and must stay
+	// GeneralsX: This sits BELOW the in-game guard above, and must stay
 	// there. Shell::update() calls runUpdate() on every layout still on the stack - there is no
 	// hidden check and no top-of-stack check (Shell.cpp) - and GameClient::update() ticks the
 	// shell every frame, so this function keeps running throughout a live match. Above the guard,
@@ -1164,7 +1164,7 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 	// has no duplicate or in-game check that would have caught it.
 	if (s_openLobbyAfterLogin)
 	{
-		// GeneralsX @bugfix Claude 11/08/2026 A FAILED LOGIN NO LONGER OPENS THE LOBBY.
+		// GeneralsX: A FAILED LOGIN NO LONGER OPENS THE LOBBY.
 		//
 		// This branch used to read "failed, timed out or cancelled -> into the lobby anyway,
 		// unauthenticated", which was true of the old design and became a BYPASS the moment Online
@@ -1198,7 +1198,7 @@ void MainMenuUpdate( WindowLayout *layout, void *userData )
 	if(DontShowMainMenu && justEntered)
 		justEntered = FALSE;
 
-	// GeneralsX @feature BenderAI 21/04/2026 Poll background update check; create dynamic button when update found
+	// GeneralsX: Poll background update check; create dynamic button when update found
 #ifdef SAGE_UPDATE_CHECK
 	if (updateNotifyButton == nullptr)
 	{
@@ -1875,7 +1875,7 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 					break;
 				}
 
-				// GeneralsX @bugfix Claude 12/08/2026 DECIDE BEFORE TOUCHING ANY TRANSITION STATE.
+				// GeneralsX: DECIDE BEFORE TOUCHING ANY TRANSITION STATE.
 				//
 				// Reported by an external tester: begin the sign-in, close the browser without
 				// finishing, and the game becomes a shell map with no UI that has to be force-quit.
@@ -1906,11 +1906,11 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 				// Answering Yes still navigates: MainMenuUpdate pushes the lobby when the login lands,
 				// over a menu that is intact rather than latched.
 				//
-				// GeneralsX @feature Claude 11/08/2026 Ask about signing in first, once, if there is no
+				// GeneralsX: Ask about signing in first, once, if there is no
 				// verified identity. hasVerifiedIdentity() is compiled on all four platforms (unlike the
 				// flow itself used to be), and it is the same predicate /login uses.
 				//
-				// GeneralsX @bugfix Claude 11/08/2026 The gate is the identity ALONE. It deliberately
+				// GeneralsX: The gate is the identity ALONE. It deliberately
 				// does not consult gxSignInDeclined(): a previous refusal must not become a bypass,
 				// which is what it would be the moment declining still let you through.
 				const GXOnlineGate::Decision gate = GXOnlineGate::onOnlinePressed(
@@ -1931,7 +1931,7 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 					}
 					else
 					{
-						// GeneralsX @bugfix Claude 11/08/2026 THIS COPY MUST FIT THE STOCK PANEL.
+						// GeneralsX: THIS COPY MUST FIT THE STOCK PANEL.
 						// MessageBoxYesNo passes -1,-1,-1,-1 to gogoMessageBox (MessageBox.cpp:61)
 						// and the retail box does not grow, so the previous five-line body was
 						// drawn with its first line under the title and its last line - the one
@@ -1976,7 +1976,7 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 				// lobby, and it is the browser that has actually carried real matches. It stays
 				// until this one has too.
 
-				// GeneralsX @bugfix Claude 11/08/2026 Drop any pending post-login navigation before
+				// GeneralsX: Drop any pending post-login navigation before
 				// entering, or the lobby opens twice. Falling through here with a login still in
 				// flight is the GX_LOGIN_WAITING arm of the gate above - the player pressed Online
 				// again while their browser was open - and s_openLobbyAfterLogin is still set from
@@ -2040,7 +2040,7 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 			else if( controlID == getUpdateID )
 			{
 #ifdef SAGE_UPDATE_CHECK
-				// GeneralsX @feature BenderAI 21/04/2026 Open GitHub releases page instead of legacy GameSpy patch download
+				// GeneralsX: Open GitHub releases page instead of legacy GameSpy patch download
 				SDL_OpenURL("https://github.com/fbraz3/GeneralsX/releases");
 #else
 				StartDownloadingPatches();
@@ -2049,7 +2049,7 @@ WindowMsgHandledType MainMenuSystem( GameWindow *window, UnsignedInt msg,
 #ifdef SAGE_UPDATE_CHECK
 			else if( updateNotifyButton != nullptr && control == updateNotifyButton )
 			{
-				// GeneralsX @feature BenderAI 21/04/2026 Dynamic update button click -> open releases page
+				// GeneralsX: Dynamic update button click -> open releases page
 				SDL_OpenURL("https://github.com/fbraz3/GeneralsX/releases");
 			}
 #endif

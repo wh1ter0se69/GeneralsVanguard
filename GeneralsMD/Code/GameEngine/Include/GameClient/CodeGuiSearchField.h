@@ -27,7 +27,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /*
-** GeneralsX @feature Claude 27/07/2026 Reusable search field, extracted from SkirmishMapSelectMenu.
+** GeneralsX: Reusable search field, extracted from SkirmishMapSelectMenu.
 **
 ** Four map screens want the same row: a bold "Search" caption, a bold text entry, a one-tap clear
 ** button, and a listbox that shrinks to make room. The original implementation was four file
@@ -134,7 +134,7 @@ public:
 	/**
 		* Seed the field with text, as if the user had typed it.
 		*
-		* GeneralsX @feature Claude 08/08/2026 Exists so a screen can RESTORE a search it was showing
+		* GeneralsX: Exists so a screen can RESTORE a search it was showing
 		* before it was torn down. Writing the entry text directly is not enough and is the trap this
 		* replaces: m_filter is private and is only refreshed from GEM_EDIT_DONE, so a caller that set
 		* the gadget text by hand would leave the visible box and the live filter disagreeing - the

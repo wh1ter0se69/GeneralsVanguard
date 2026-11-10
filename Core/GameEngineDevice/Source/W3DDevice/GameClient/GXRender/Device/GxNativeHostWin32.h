@@ -1,4 +1,4 @@
-// GeneralsX @feature D · native-windows-1 13/10/2026 the GxNativeHost for the game's Win32 window (the Windows game has no SDL3:
+// GeneralsX: the GxNativeHost for the game's Win32 window (the Windows game has no SDL3:
 // WinMain.cpp creates the HWND that DX8Wrapper hands to CreateDevice, so the device's `void* window` IS that HWND).
 #pragma once
 

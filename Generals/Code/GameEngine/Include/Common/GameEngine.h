@@ -75,13 +75,13 @@ public:
 	virtual Bool isActive() {return m_isActive;}	///< returns whether app has OS focus.
 	virtual void setIsActive(Bool isActive) { m_isActive = isActive; };
 
-	/// GeneralsX @feature Claude 27/09/2026 The refresh rate, in Hz, of the display the game window is on;
+	/// GeneralsX: The refresh rate, in Hz, of the display the game window is on;
 	/// 0 when the device layer cannot tell (headless, a tool). The default max-FPS cap when the launcher
 	/// sets none - see Common/FpsLimitPolicy.h. Answered by SDL3GameEngine and Win32GameEngine.
 	virtual Int getDisplayRefreshRate() { return 0; }
 	virtual void checkAbnormalQuitting();	///< check if user is quitting at an unusual time - as in cheating!
 
-	/// GeneralsX @bugfix Claude 27/09/2026 One network + logic pass, no client, no draw - FramePacer::update's
+	/// GeneralsX: One network + logic pass, no client, no draw - FramePacer::update's
 	/// between-draws poll in a network game. FALSE when there is no network game to poll.
 	static Bool updateBetweenDraws();
 

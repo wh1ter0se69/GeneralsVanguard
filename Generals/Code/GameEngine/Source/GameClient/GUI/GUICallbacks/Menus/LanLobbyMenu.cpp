@@ -31,7 +31,7 @@
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
-// GeneralsX @bugfix Claude 27/07/2026 getDefaultPlayerName() has to tell iOS apart from macOS and
+// GeneralsX: getDefaultPlayerName() has to tell iOS apart from macOS and
 // read the device model; TARGET_OS_IPHONE is only defined once TargetConditionals.h is included.
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -101,7 +101,7 @@ Bool LANPreferences::loadFromIniFile()
 	return load("Network.ini");
 }
 
-// GeneralsX @bugfix Claude 27/07/2026 A player name carrying ',' ':' or ';' is refused by the host
+// GeneralsX: A player name carrying ',' ':' or ';' is refused by the host
 // with RET_DUPLICATE_NAME, which reaches the joiner as a misleading "name taken", so a name that
 // the game picks on the user's behalf must never contain them.
 static AsciiString sanitizeDefaultPlayerName(const AsciiString &name)
@@ -118,7 +118,7 @@ static AsciiString sanitizeDefaultPlayerName(const AsciiString &name)
 }
 
 #if defined(__APPLE__)
-// GeneralsX @bugfix Claude 27/07/2026 Returns the device family, "iPad" or "Mac" for example.
+// GeneralsX: Returns the device family, "iPad" or "Mac" for example.
 // UIDevice is not reachable from C++ and since iOS 16 only reports the model name anyway, so the
 // sysctl model string is as close to a device name as this platform gets. The key differs per
 // platform: hw.machine is the device on iOS ("iPad14,3") but the cpu on macOS ("arm64"), while
@@ -153,7 +153,7 @@ static AsciiString getAppleDeviceFamily()
 }
 #endif
 
-// GeneralsX @bugfix Claude 27/07/2026 iOS has no user facing host name - gethostname() answers
+// GeneralsX: iOS has no user facing host name - gethostname() answers
 // "localhost" on every device - so the machine name cannot serve as the default player name there.
 // Fall back to the device family plus a per device number, because a fixed literal would make the
 // second iOS device on the network look like a name clash to the host.
@@ -453,7 +453,7 @@ static void playerTooltip(GameWindow *window,
 	}
 
 	UnsignedInt playerIP = (UnsignedInt)(uintptr_t)GadgetListBoxGetItemData( window, row, col );
-	// GeneralsX @bugfix Claude 01/10/2026 The Back button deletes TheLAN while the window can still show tooltips; idea from Generals Online 2df73eca6, reimplemented.
+	// GeneralsX: The Back button deletes TheLAN while the window can still show tooltips; idea from Generals Online 2df73eca6, reimplemented.
 	if (!TheLAN)
 		return;
 	LANPlayer *player = TheLAN->LookupPlayer(playerIP);
@@ -558,7 +558,7 @@ void LanLobbyMenuInit( WindowLayout *layout, void *userData )
 	GadgetListBoxAddEntryText(listboxChatWindow, str, chatSystemColor, -1, 0);
 #endif
 
-	// GeneralsX @bugfix Claude 26/09/2026 (backlog #48, Codex) THE ADDRESS FIRST, THEN init(). init() binds the
+	// GeneralsX: THE ADDRESS FIRST, THEN init(). init() binds the
 	// address TheLAN holds, and that is 0 here - a fresh TheLAN has none, and reset() forgets the last one so that
 	// ONLINE's relay address cannot leak in - so it bound the wildcard before SetLocalIP chose. A multi-instance client
 	// binds the address it is given, and 0.0.0.0:8086 collides with every other instance's 127.x:8086: EADDRINUSE,
@@ -797,7 +797,7 @@ WindowMsgHandledType LanLobbyMenuInput( GameWindow *window, UnsignedInt msg,
 /** Lan Lobby menu window system callback */
 //-------------------------------------------------------------------------------------------------
 
-// GeneralsX @feature Claude 11/08/2026 This screen's seam into the shared lobby command table.
+// GeneralsX: This screen's seam into the shared lobby command table.
 //
 // Two passes, and the order matters. GXLobbyChatCommand runs FIRST because the verbs it retires
 // (/pass, /nopassword, /lobbyhelp) are still recognised DOWNSTREAM by LANAPI::applyLobbyCommand,
@@ -1019,7 +1019,7 @@ WindowMsgHandledType LanLobbyMenuSystem( GameWindow *window, UnsignedInt msg,
 
 					txtInput.truncateTo(g_lanPlayerNameLength);
 
-					// GeneralsX @feature Claude 11/08/2026 '@' is reserved for the role decoration - a
+					// GeneralsX: '@' is reserved for the role decoration - a
 					// moderator renders as <@Name> and an admin as @Name - so it must not survive into any
 					// name. STRIPPED here rather than refused, which is the opposite of GXApplyNickname and
 					// is deliberate: this runs on EVERY KEYSTROKE, and a refusal here would pop a message

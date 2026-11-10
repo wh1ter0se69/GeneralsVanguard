@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 25/09/2026 WHERE THE FRIENDS KEY BELONGS TO FRIENDS.
+// GeneralsX: WHERE THE FRIENDS KEY BELONGS TO FRIENDS.
 //
 // Owner decision, 25/09/2026, verbatim: "F5 = Friends ONLINE only; offline (skirmish/campaign) keeps camera
 // view 5." So the Friends key (MetaEvent.cpp, F5 unless the launcher chose another) is caught only while a
@@ -44,7 +44,7 @@ inline bool GXFriendsKeyOnline(bool shellActive, bool relayLobby, bool relaying,
 	return multiplayerMode && networkUp && relaying;
 }
 
-// GeneralsX @bugfix Claude 25/09/2026 PRESENCE HAS A SHELF LIFE (codex-B P2 on 7a6121659).
+// GeneralsX: PRESENCE HAS A SHELF LIFE (-B P2 on 7a6121659).
 //
 // Once F5 opens the Friends overlay in a game room or a match, a presence answer the lobby cached can be
 // shown long after the lobby stopped renewing it - a friend who signed off 20 minutes ago read "Online".

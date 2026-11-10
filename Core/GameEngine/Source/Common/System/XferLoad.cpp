@@ -159,7 +159,7 @@ void XferLoad::skip( Int dataSize )
 	DEBUG_ASSERTCRASH( m_fileFP != nullptr, ("XferLoad::skip - file pointer for '%s' is null",
 										 m_identifier.str()) );
 
-	// GeneralsX @bugfix Claude 25/09/2026 A negative size is never a skip: the assert below is compiled out
+	// GeneralsX: A negative size is never a skip: the assert below is compiled out
 	// of release, and fseek then went BACKWARDS. GameState::xferSaveData skips an unknown block by its stored
 	// size, so a size of minus that block's own token and size re-read the same block for ever (a hang,
 	// scripts/test/save-compat-test.sh autoload-negunknown); GameLogic::xfer skips an object of an unknown
@@ -267,7 +267,7 @@ void XferLoad::xferImplementation( void *data, Int dataSize )
 	{
 
 		DEBUG_CRASH(( "XferLoad - Error reading from file '%s'", m_identifier.str() ));
-		// GeneralsX @bugfix Claude 06/10/2026 say where: a retail save fails here and nothing else said so
+		// GeneralsX: say where: a retail save fails here and nothing else said so
 		fprintf( stderr, "[SAVELOAD] read error in '%s': wanted %d bytes at offset %ld\n", m_identifier.str(), (int)dataSize, ftell( m_fileFP ) );
 		throw XFER_READ_ERROR;
 

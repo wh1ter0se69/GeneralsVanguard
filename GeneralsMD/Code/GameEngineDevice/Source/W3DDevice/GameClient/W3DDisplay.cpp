@@ -43,7 +43,7 @@ static void drawFramerateBar();
 #include <TargetConditionals.h>
 #endif
 #include <windows.h>
-// GeneralsX @bugfix BenderAI 13/02/2026 - io.h is Windows-specific, use unistd.h on Linux
+// GeneralsX: io.h is Windows-specific, use unistd.h on Linux
 #ifdef _WIN32
 #include <io.h>
 #else
@@ -84,7 +84,7 @@ static void drawFramerateBar();
 #include "GameClient/GXAnimTrace.h"
 #include "GameClient/GXGfxProbe.h"
 #include "GameClient/GXLookGovernor.h"
-#include "GameClient/GXGroundSteps.h"	// GeneralsX @feature Claude 17/10/2026 the REMASTERED ground's step (GXK_GROUND), written below
+#include "GameClient/GXGroundSteps.h"	// GeneralsX: the REMASTERED ground's step (GXK_GROUND), written below
 #include "GameClient/Water.h"
 
 #include "GameNetwork/NetworkInterface.h"
@@ -134,10 +134,10 @@ static void drawFramerateBar();
 #include "GameLogic/ScriptEngine.h"		// For TheScriptEngine - jkmcd
 #include "GameLogic/GameLogic.h"
 #include "GameClient/GXReplayStrip.h"	// GeneralsX: passRenders, the replay fast mode's draws
-#include "GameClient/GXRenderSplit.h"	// GeneralsX @feature Claude 08/10/2026 render-split step 6: light pulses from the tick
-#include "W3DDevice/GameClient/GXCap.h"	// GeneralsX @test Claude 10/10/2026 GXCAP capture hook
+#include "GameClient/GXRenderSplit.h"	// GeneralsX: render-split step 6: light pulses from the tick
+#include "W3DDevice/GameClient/GXCap.h"	// GeneralsX: GXCAP capture hook
 extern void skyBoxMapReset();	// W3DWater.cpp
-#include "W3DDevice/GameClient/GxNativeInstall.h"	// GeneralsX @feature E · rw3-K 11/10/2026 GX_RENDERER=native session switch
+#include "W3DDevice/GameClient/GxNativeInstall.h"	// GeneralsX: GX_RENDERER=native session switch
 extern Bool gxReplayRaceActive();	// GXReplayStrip.inl: the strip is racing to a frame
 #ifdef DUMP_PERF_STATS
 #include "GameLogic/PartitionManager.h"
@@ -400,7 +400,7 @@ W3DAssetManager *W3DDisplay::m_assetManager = nullptr;
 //=============================================================================
 	// note, can't use the ones from PerfTimer.h 'cuz they are currently
 	// only valid when "-vtune" is used... (srj)
-// GeneralsX @build BenderAI 13/02/2026 Add platform-specific performance counter wrappers
+// GeneralsX: Add platform-specific performance counter wrappers
 inline Int64 getPerformanceCounter()
 {
 	Int64 tmp;
@@ -437,7 +437,7 @@ W3DDisplay::W3DDisplay()
 	m_3DScene = nullptr;
 	m_2DScene = nullptr;
 	m_3DInterfaceScene = nullptr;
-	// GeneralsX @feature Claude 27/09/2026 A seed only, replaced by the first updateAverageFPS(). The cap
+	// GeneralsX: A seed only, replaced by the first updateAverageFPS(). The cap
 	// can be 0 now (unlimited, -fps 0 / -noFPSLimit), and a 0 fps seed would read as a stalled peer.
 	m_averageFPS = (TheGlobalData->m_framesPerSecondLimit > 0) ? TheGlobalData->m_framesPerSecondLimit : LOGICFRAMES_PER_SECOND;
 #if defined(RTS_DEBUG)
@@ -542,7 +542,7 @@ inline Bool isResolutionSupported(const ResolutionDescClass &res)
 	return res.Width >= DEFAULT_DISPLAY_WIDTH && res.BitDepth >= minBitDepth;
 }
 
-// GeneralsX @feature Claude 25/09/2026 BORDERLESS FULLSCREEN IS THE DEFAULT DISPLAY MODE. Owner, after
+// GeneralsX: BORDERLESS FULLSCREEN IS THE DEFAULT DISPLAY MODE. Owner, after
 // the 0.9.43 update on Windows: "WANTS DEFAULT = windowed FULLSCREEN (borderless), not windowed".
 //
 // The mode is decided from the command line, which is where the launcher puts it
@@ -579,11 +579,11 @@ static bool commandLineHas(const char *flag)	// flag in lower case, with its sin
 }
 
 #if defined(__APPLE__) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-// GeneralsX @bugfix Claude 30/09/2026 macOS presents with vsync for any max-FPS cap - see W3DDisplay::init -
+// GeneralsX: macOS presents with vsync for any max-FPS cap - see W3DDisplay::init -
 // on a panel faster than the tick rate. RenderFpsPreset::UncappedFpsValue is the cap's "unlimited" spelling
 // (FramePacer stores 0 as it, and -fps 1000000 is clamped to it), so it counts as no cap.
 //
-// THE PANEL MUST BEAT THE TICK RATE (Codex r4). FIFO holds the main loop to the refresh, and the engine
+// THE PANEL MUST BEAT THE TICK RATE. FIFO holds the main loop to the refresh, and the engine
 // advances at most one logic frame per iteration, so a 30 Hz panel would run the simulation at half speed
 // and a 60 Hz one (59.94 reads 60) would leave it no headroom to catch up after a hitch - in a lockstep
 // match, a lobby dragged by that peer. Those panels keep the immediate present, tearing included; a refresh
@@ -664,7 +664,7 @@ static bool SDL3_GetWindowSizeInPixels(int& outW, int& outH, float& outDensity)
 	return true;
 }
 
-// GeneralsX @bugfix GitHub Copilot 28/04/2026 Ensure SDL3 fullscreen transition actually lands in native fullscreen and foreground.
+// GeneralsX: Ensure SDL3 fullscreen transition actually lands in native fullscreen and foreground.
 static void SDL3_EnsureNativeFullscreen(SDL_Window* window)
 {
 	if (!window) return;
@@ -683,7 +683,7 @@ static void SDL3_EnsureNativeFullscreen(SDL_Window* window)
 	SDL_RaiseWindow(window);
 }
 
-// GeneralsX @bugfix Claude 19/08/2026 ONE density, ONE direction, ONE definition of the
+// GeneralsX: ONE density, ONE direction, ONE definition of the
 // points <-> render-pixels conversion. Ported from the Generals twin (227af0cc0), which repaired
 // the unit handling this twin's original Retina change (d5afaed6f) left half-expressed - see
 // SDL3_ScaleRenderResolutionToPixels below and W3DDisplay::setDisplayMode.
@@ -710,7 +710,7 @@ static Real SDL3_GetRenderPixelDensity()
 	return 1.0f;
 }
 
-// GeneralsX @bugfix Claude 19/08/2026 Convert a POINT resolution to the RENDER PIXEL resolution,
+// GeneralsX: Convert a POINT resolution to the RENDER PIXEL resolution,
 // in place. Every place that turns a player-chosen resolution into a render resolution must call
 // this and nothing else, so the scaling cannot exist on one path and be missing on another - which
 // is exactly the defect this twin had: it scaled in init() only, so an options-screen resolution
@@ -739,7 +739,7 @@ static void SDL3_ScaleRenderResolutionToPixels(Int& xres, Int& yres)
 	yres = pxH;
 }
 
-// GeneralsX @bugfix Claude 14/09/2026 DOES ANY ATTACHED DISPLAY ACCEPT A FRAMEBUFFER THIS BIG?
+// GeneralsX: DOES ANY ATTACHED DISPLAY ACCEPT A FRAMEBUFFER THIS BIG?
 //
 // WHAT THIS REPLACES. SDL3_ClampRenderResolutionToDisplay, added earlier the same day and blocked
 // by a cross-model review for measuring the wrong thing. Its ceiling was
@@ -882,8 +882,8 @@ static bool SDL3_RequestExceedsDisplayCapability(Int ptW, Int ptH,
 	return !presentable && sawAnyMode && everyDisplayAnswered;
 }
 
-// GeneralsX @bugfix GitHub Copilot 27/04/2026 Apply SDL3 window sizing/fullscreen only after the final render resolution is known.
-// GeneralsX @info Claude 19/08/2026 renderWidth/renderHeight are PIXELS. See SDL3_GetRenderPixelDensity for the units.
+// GeneralsX: Apply SDL3 window sizing/fullscreen only after the final render resolution is known.
+// GeneralsX: renderWidth/renderHeight are PIXELS. See SDL3_GetRenderPixelDensity for the units.
 static void SDL3_ApplyWindowModeForRenderConfig(Bool windowed, Int renderWidth, Int renderHeight)
 {
 	extern SDL_Window* TheSDL3Window;
@@ -906,7 +906,7 @@ static void SDL3_ApplyWindowModeForRenderConfig(Bool windowed, Int renderWidth, 
 		}
 	}
 	else {
-		// GeneralsX @bugfix Claude 19/08/2026 SDL_SetWindowSize takes POINTS; renderWidth/Height are
+		// GeneralsX: SDL_SetWindowSize takes POINTS; renderWidth/Height are
 		// PIXELS. The two are the same number only at density 1.0, which is why this was invisible
 		// until a Retina Mac ran it: with SDL_WINDOW_HIGH_PIXEL_DENSITY now set on macOS, asking for
 		// a 2880-point window on a 2x display would demand 5760 physical pixels and throw most of
@@ -933,7 +933,7 @@ static void SDL3_ApplyWindowModeForRenderConfig(Bool windowed, Int renderWidth, 
 			fprintf(stderr, "WARNING: SDL_SetWindowSize(%d,%d) failed: %s\n", winPtW, winPtH, SDL_GetError());
 		}
 
-		// GeneralsX @bugfix Claude 11/08/2026 RE-CENTRE AFTER THE RESIZE, or the window hangs off
+		// GeneralsX: RE-CENTRE AFTER THE RESIZE, or the window hangs off
 		// the right of the display.
 		//
 		// SDL3Main creates the window at a placeholder 1024x768 and SDL centres it for THAT size,
@@ -972,7 +972,7 @@ static void SDL3_ApplyWindowModeForRenderConfig(Bool windowed, Int renderWidth, 
 struct FilteredRes { Int w, h, bits; };
 static std::vector<FilteredRes> s_filteredResolutions;
 
-// GeneralsX @bugfix Claude 11/08/2026 The list used to be built exactly once and never
+// GeneralsX: The list used to be built exactly once and never
 // invalidated - nothing ever set the old s_filteredDirty back to true. That was harmless only
 // while the list was independent of the display and of the windowed flag. It stopped being
 // harmless the moment the aspect filter below made it depend on both, so the cache now carries
@@ -984,7 +984,7 @@ static Bool s_filteredWindowed = FALSE;
 static Int  s_filteredNativeW  = 0;
 static Int  s_filteredNativeH  = 0;
 
-// GeneralsX @bugfix Claude 11/08/2026 True only when the fullscreen path cannot mode-set and is
+// GeneralsX: True only when the fullscreen path cannot mode-set and is
 // therefore pinned to the display's aspect. Both the list filter and the startup migration must
 // answer this the same way - they used to be gated separately, and the migration's version was
 // missing, which rewrote legitimate custom windowed sizes like "-win -xres 1000 -yres 700".
@@ -993,7 +993,7 @@ static bool fullscreenAspectIsLocked(Bool windowed)
 #ifdef _WIN32
 	// Windows exclusive fullscreen performs a real mode set, so any aspect genuinely fills the screen.
 	//
-	// GeneralsX @bugfix Claude 25/09/2026 BORDERLESS IS NOT PINNED EITHER, although it presents into
+	// GeneralsX: BORDERLESS IS NOT PINNED EITHER, although it presents into
 	// the desktop mode like SDL3 fullscreen. Pinning it made the startup migration below rewrite a
 	// resolution the player had CHOSEN under exclusive fullscreen - "Resolution = 1024 768" on a 16:9
 	// monitor silently became 1366x768 on the first borderless launch, and dropped out of the options
@@ -1014,7 +1014,7 @@ static bool fullscreenAspectIsLocked(Bool windowed)
 #endif
 }
 
-// GeneralsX @bugfix Claude 13/08/2026 A request that ALREADY has the display's aspect must not be
+// GeneralsX: A request that ALREADY has the display's aspect must not be
 // migrated. The startup migration exists to avoid pillarbox BARS, and bars require an aspect
 // MISMATCH - Pillarbox_Setup fits the game rect inside the backbuffer preserving aspect, so equal
 // aspects give an exact fit with no bars at ANY scale. Migrating such a request therefore buys
@@ -1055,7 +1055,7 @@ static bool requestAspectMatchesDisplay(Int xres, Int yres)
 	return fabsf(reqAspect - nativeAspect) <= 0.01f;	// same tolerance as the offer filter
 }
 
-// GeneralsX @tooling Claude 14/09/2026 The "closest offered mode" search, lifted out of
+// GeneralsX @tooling /09/2026 The "closest offered mode" search, lifted out of
 // W3DDisplay::init's startup migration so that migration and the runtime resolution-change path
 // share ONE implementation instead of two copies that can drift. The selection rule is unchanged
 // from the migration it came from: prefer the SMALLEST offered height that still reaches the
@@ -1070,7 +1070,7 @@ static bool requestAspectMatchesDisplay(Int xres, Int yres)
 //
 // POINTS in, POINTS out: the offered list is in points. See SDL3_GetRenderPixelDensity.
 //
-// GeneralsX @bugfix Claude 14/09/2026 A candidate is rejected if IT is unpresentable too, which a
+// GeneralsX: A candidate is rejected if IT is unpresentable too, which a
 // cross-model review caught this function doing on its first day.
 //
 // The selection is in POINTS and the caller then multiplies by the render density, so "an offered
@@ -1161,7 +1161,7 @@ static void buildFilteredResolutions(Bool windowed)
 	float density = 1.0f;
 	DX8Wrapper::GetNativeDisplaySize(nativeW, nativeH, density);
 
-	// GeneralsX @bugfix Claude 19/08/2026 nativeH is PIXELS; the mode list is POINTS.
+	// GeneralsX: nativeH is PIXELS; the mode list is POINTS.
 	//
 	// SDL3_GetNativeDisplaySize multiplies SDL_DisplayMode.w/h by pixel_density, while DXVK's SDL3
 	// WSI copies the same SDL_DisplayMode.w/h verbatim into the adapter mode list (convertMode,
@@ -1209,7 +1209,7 @@ static void buildFilteredResolutions(Bool windowed)
 	const Int nativeHPoints = nativeH;
 #endif
 
-	// GeneralsX @tweak Claude 11/08/2026 Dumps the mode list the options combo box is built from:
+	// GeneralsX: Dumps the mode list the options combo box is built from:
 	// the raw adapter modes, what each one becomes, and why anything was dropped. Written for the
 	// macOS pillarbox investigation and KEPT deliberately - it is env-gated, costs nothing when
 	// off, sits outside the SimID digest, and it is the only way to see this list without driving
@@ -1221,7 +1221,7 @@ static void buildFilteredResolutions(Bool windowed)
 			nativeW, nativeH, density, resolutions.Count(), (int)windowed);
 	}
 
-	// GeneralsX @bugfix Claude 11/08/2026 On platforms that cannot mode-set, a fullscreen game
+	// GeneralsX: On platforms that cannot mode-set, a fullscreen game
 	// resolution whose aspect differs from the display is pillarboxed BY CONSTRUCTION, so
 	// offering such a mode is offering black bars. dx8wrapper.cpp forces
 	// _PresentParameters.Windowed = TRUE on !_WIN32, and SDL3_ApplyWindowModeForRenderConfig
@@ -1245,7 +1245,7 @@ static void buildFilteredResolutions(Bool windowed)
 		fprintf(stderr, "[GXPBOX] aspect filter ON, target=%.4f\n", nativeAspect);
 	}
 
-	// GeneralsX @bugfix Claude 11/08/2026 The width clamp used to FABRICATE resolutions. It moved
+	// GeneralsX: The width clamp used to FABRICATE resolutions. It moved
 	// w into [h*4/3, h*16/9], so a real 1280x1024 adapter mode was offered to the user as
 	// 1365x1024 - a size the adapter never advertised (measured with GX_PBOX). That is not
 	// cosmetic: Find_Color_Mode (dx8wrapper.cpp) walks the RAW EnumAdapterModes list and requires
@@ -1281,7 +1281,7 @@ static void buildFilteredResolutions(Bool windowed)
 			Int h = resolutions[i].Height;
 			Int bits = resolutions[i].BitDepth;
 			if (strict) {
-				// GeneralsX @bugfix Claude 19/08/2026 Strict-only, like every other filter in this
+				// GeneralsX: Strict-only, like every other filter in this
 				// loop. The permissive retry exists so the offered list can never come back empty
 				// (see the note above: an empty resolution list is a worse bug than the one being
 				// fixed here). While this drop was arithmetically dead at density > 1.0 it did not
@@ -1373,9 +1373,9 @@ void W3DDisplay::setGamma(Real gamma, Real bright, Real contrast, Bool calibrate
 	if (m_windowed)
 		return;	//we don't allow gamma to change in window because it would affect desktop.
 
-	// GeneralsX @bugfix Claude 25/09/2026 Nor in Windows borderless: m_windowed is false there, but the
+	// GeneralsX: Nor in Windows borderless: m_windowed is false there, but the
 	// device presents as a window (DX8Wrapper::Set_Borderless), so a device without gamma support took
-	// Set_Gamma's GDI fallback and changed the DESKTOP's gamma (Codex review). Only Windows sets it.
+	// Set_Gamma's GDI fallback and changed the DESKTOP's gamma. Only Windows sets it.
 	if (DX8Wrapper::Is_Borderless())
 		return;
 
@@ -1391,7 +1391,7 @@ Bool W3DDisplay::setDisplayMode( UnsignedInt xres, UnsignedInt yres, UnsignedInt
 	const UnsignedInt oldBitDepth = getBitDepth();
 	const Bool oldWindowed = getWindowed();
 
-	// GeneralsX @bugfix Claude 19/08/2026 xres/yres arrive in POINTS and everything below this line
+	// GeneralsX: xres/yres arrive in POINTS and everything below this line
 	// wants PIXELS. Without this the Retina scaling that W3DDisplay::init() applies exists on the
 	// startup path only, and the first options-screen resolution change on a 2x Mac undoes it:
 	//
@@ -1404,7 +1404,7 @@ Bool W3DDisplay::setDisplayMode( UnsignedInt xres, UnsignedInt yres, UnsignedInt
 	//
 	// Only the render side becomes pixels, exactly as in init(). A no-op at density 1.0.
 	//
-	// GeneralsX @bugfix Claude 14/09/2026 The EFFECTIVE POINT size is published here, not assumed
+	// GeneralsX: The EFFECTIVE POINT size is published here, not assumed
 	// by the caller.
 	//
 	// This used to read "the player's chosen POINT values are what the caller stores in
@@ -1470,7 +1470,7 @@ Bool W3DDisplay::setDisplayMode( UnsignedInt xres, UnsignedInt yres, UnsignedInt
 	}
 
 	//set back to the original mode.
-	// GeneralsX @info Claude 19/08/2026 oldWidth/oldHeight come from getWidth()/getHeight(), which
+	// GeneralsX: oldWidth/oldHeight come from getWidth()/getHeight(), which
 	// are already PIXELS. Do NOT scale them - they have been through
 	// SDL3_ScaleRenderResolutionToPixels once already.
 	WW3D::Set_Device_Resolution(oldWidth, oldHeight, oldBitDepth, oldWindowed, true);
@@ -1484,7 +1484,7 @@ Bool W3DDisplay::getViewportRect( Int& x, Int& y, Int& width, Int& height ) cons
 	return DX8Wrapper::Pillarbox_Get_Rect(x, y, width, height) ? TRUE : FALSE;
 }
 
-// GeneralsX @refactor Claude 25/09/2026 The game window's size in logical points and in pixels, for
+// GeneralsX: The game window's size in logical points and in pixels, for
 // game code that must not call SDL itself (the [GXPICK] probe in CommandXlat.cpp).
 Bool W3DDisplay::getWindowSize( Int& width, Int& height, Int& pixelWidth, Int& pixelHeight ) const
 {
@@ -1691,7 +1691,7 @@ void W3DDisplay::init()
 
 	if (!TheGlobalData->m_headless)
 	{
-		// GeneralsX @feature Claude 02/10/2026 Tick catch-up (Common/CatchUpPolicy.h) needs a client that draws, so it is
+		// GeneralsX: Tick catch-up (Common/CatchUpPolicy.h) needs a client that draws, so it is
 		// switched on here and never on a -headless peer (which keeps the retail pacer exactly). GX_CATCHUP=0 turns it off
 		// for an A/B arm on the same binary.
 		{
@@ -1769,7 +1769,7 @@ void W3DDisplay::init()
 		DX8Wrapper::Set_Display_Size_Provider(SDL3_GetNativeDisplaySize, SDL3_GetWindowSizeInPixels);
 #endif
 
-		// GeneralsX @feature Claude 25/09/2026 The display mode - see commandLineHas above. On SDL3
+		// GeneralsX: The display mode - see commandLineHas above. On SDL3
 		// platforms the fullscreen path already presents as a window at the desktop mode, so there
 		// borderless changes only the unchosen-resolution default below. On Windows it also switches
 		// the present model (DX8Wrapper::Set_Borderless) and needs the providers the SDL3 path has.
@@ -1781,7 +1781,7 @@ void W3DDisplay::init()
 			DX8Wrapper::Set_Display_Size_Provider(Win32_GetMonitorSizeInPixels, Win32_GetClientSizeInPixels);
 #endif
 
-		// GeneralsX @bugfix Claude 30/09/2026 MACOS PRESENTS WITH VSYNC WHEN THE PLAYER HAS A MAX-FPS CAP.
+		// GeneralsX: MACOS PRESENTS WITH VSYNC WHEN THE PLAYER HAS A MAX-FPS CAP.
 		// wh1ter0se, 29/09/2026, MacBook Pro 120 Hz, fullscreen: "i feel screen tears when i move around too fast".
 		// Every SDL3 present is windowed to D3D8, so DXVK presented IMMEDIATE and MoltenVK turned the Metal
 		// layer's display sync off (DX8Wrapper::Set_Windowed_VSync). Now FIFO for any cap - the launcher's
@@ -1813,7 +1813,7 @@ void W3DDisplay::init()
 		}
 #endif
 
-		// GeneralsX @bugfix Claude 05/10/2026 THE TEXTURE FILTERING ROW DOES WHAT IT SAYS - the default and why
+		// GeneralsX: THE TEXTURE FILTERING ROW DOES WHAT IT SAYS - the default and why
 		// at TextureFilterClass::Resolve_Launch_Choice. DXVK reads DXVK_CONFIG after dxvk.conf (config.cpp
 		// getUserConfig), once, when WW3D::Init below creates the D3D8 interface, so this replaces the shipped
 		// file's samplerAnisotropy = 16 for this launch. Anisotropic N forces N onto every mipped sampler above
@@ -1848,8 +1848,8 @@ void W3DDisplay::init()
 			fflush(stderr);
 		}
 
-		GxCap::Install(GitSHA1);	// GeneralsX @test Claude 10/10/2026 GXCAP: before WW3D::Init creates the device (GXCap.h)
-		GxNative::Install();	// GeneralsX @feature E · rw3-K 11/10/2026: GX_RENDERER=native, before WW3D::Init creates the device (GxNativeInstall.h)
+		GxCap::Install(GitSHA1);	// GeneralsX: GXCAP: before WW3D::Init creates the device (GXCap.h)
+		GxNative::Install();	// GeneralsX: GX_RENDERER=native, before WW3D::Init creates the device (GxNativeInstall.h)
 
 		// GeneralsX @bugfix felipebraz 16/02/2026 Add detailed WW3D init logging
 		fprintf(stderr, "DEBUG: About to call WW3D::Init() with ApplicationHWnd=%p\n", ApplicationHWnd);
@@ -1905,7 +1905,7 @@ void W3DDisplay::init()
 				Int xres = TheGlobalData->m_xResolution;
 				Int yres = TheGlobalData->m_yResolution;
 
-				// GeneralsX @feature Claude 25/09/2026 BORDERLESS WITH NO CHOSEN RESOLUTION RENDERS AT
+				// GeneralsX: BORDERLESS WITH NO CHOSEN RESOLUTION RENDERS AT
 				// THE DISPLAY'S NATIVE SIZE, instead of the engine's 800x600 (GameDefines.h) that the
 				// migration below then snapped to some small mode and upscaled. What the launcher's
 				// Resolution row already promised: "Matches your desktop unless you change it". A chosen
@@ -1938,7 +1938,7 @@ void W3DDisplay::init()
 					}
 				}
 
-				// GeneralsX @bugfix Claude 11/08/2026 A resolution stored before the fullscreen
+				// GeneralsX: A resolution stored before the fullscreen
 				// aspect filter existed can now be absent from the offered list - the shipped
 				// 1680x1050 is exactly that case on a 1920x1080 panel. Left alone it would render
 				// 16:10 into a 16:9 backbuffer (measured: 96 px of black each side) AND leave the
@@ -1955,10 +1955,10 @@ void W3DDisplay::init()
 				// never enumerated - "-win -xres 1000 -yres 700" is a valid request, and the
 				// options screen preserves such custom resolutions. Migrating unconditionally
 				// would silently rewrite them before device creation.
-				// GeneralsX @bugfix Claude 13/08/2026 ...and NOT when the request already has the
+				// GeneralsX: ...and NOT when the request already has the
 				// display's own aspect. See requestAspectMatchesDisplay: migrating one of those is
 				// how the iPad silently loses half its render resolution.
-				// GeneralsX @bugfix Claude 14/09/2026 ...and ALSO when no attached display can
+				// GeneralsX: ...and ALSO when no attached display can
 				// present the request at all. Wrong SHAPE and wrong SIZE are different faults and
 				// only the first one was handled here.
 				//
@@ -2040,7 +2040,7 @@ void W3DDisplay::init()
 				}
 
 #ifdef SAGE_USE_SDL3
-				// GeneralsX @bugfix Claude 19/08/2026 Render at NATIVE pixels on a Retina Mac.
+				// GeneralsX: Render at NATIVE pixels on a Retina Mac.
 				//
 				// Options.ini stores a resolution in POINTS - it is the size of the window the player
 				// wants - but with SDL_WINDOW_HIGH_PIXEL_DENSITY the drawable underneath that window
@@ -2054,7 +2054,7 @@ void W3DDisplay::init()
 				// has to run in point units or every comparison is a unit error. Only the final
 				// render resolution becomes pixels.
 				//
-				// GeneralsX @info Claude 14/09/2026 The globals stay in POINTS - that has not
+				// GeneralsX: The globals stay in POINTS - that has not
 				// changed and is what Options.ini holds and what the options combo box offers. What
 				// this comment used to say, that m_x/yResolution is "deliberately NOT written back",
 				// was never true of the block above it: the migration has written the corrected
@@ -2107,7 +2107,7 @@ void W3DDisplay::init()
 				TheWritableGlobalData->m_xResolution = xres;
 				TheWritableGlobalData->m_yResolution = yres;
 #ifdef SAGE_USE_SDL3
-				// GeneralsX @bugfix Claude 19/08/2026 This fallback picks from the offered mode list,
+				// GeneralsX: This fallback picks from the offered mode list,
 				// which is in POINTS, so it needs the same points -> pixels conversion case 0 does.
 				// Without it a Retina Mac that fell back here would build a point-sized backbuffer
 				// and then have SDL3_ApplyWindowModeForRenderConfig divide it by the density again,
@@ -2118,7 +2118,7 @@ void W3DDisplay::init()
 				// copy that Options.ini and the options combo box speak, and only getWidth()/
 				// getHeight() carry pixels.
 				//
-				// GeneralsX @info Claude 14/09/2026 NO capability correction here, deliberately,
+				// GeneralsX: NO capability correction here, deliberately,
 				// and this is the one path that does not get one. Unlike case 0 this does not take
 				// a value off disk - it walks the offered mode list and stops at the first entry
 				// big enough to be usable, so the result is a mode the adapter enumerated and the
@@ -2142,7 +2142,7 @@ void W3DDisplay::init()
 			WW3D::Set_MSAA_Mode((WW3D::MultiSampleModeEnum)TheWritableGlobalData->m_antiAliasLevel);
 
 #ifdef SAGE_USE_SDL3
-			// GeneralsX @bugfix D · asm-0968 24/10/2026 A WINDOWED NATIVE LAUNCH QUALIFIES AGAINST THE WINDOW AS IT IS NOW.
+			// GeneralsX: A WINDOWED NATIVE LAUNCH QUALIFIES AGAINST THE WINDOW AS IT IS NOW.
 			// The native renderer's S9 row (GxNativeD3D8.cpp, "extent, before the device is built") compares the window's
 			// drawable with the back buffer INSIDE Set_Render_Device. SDL3Main creates the window at a placeholder 1024x768
 			// points and SDL3_ApplyWindowModeForRenderConfig below sizes it only after the device exists, so a windowed
@@ -2166,7 +2166,7 @@ void W3DDisplay::init()
 			// TheSuperHackers @info Update the MSAA mode that was set as some GPU's may not support certain levels
 			// Texture filtering must also be updated after render device initialization
 			if (renderDeviceError == WW3D_ERROR_OK) {
-				// GeneralsX @diag Claude 05/10/2026 What the GPU granted, beside what was asked - the launcher row's proof.
+				// GeneralsX @diag /10/2026 What the GPU granted, beside what was asked - the launcher row's proof.
 				fprintf(stderr, "[GXIMAGE] MSAA asked %u, got %d\n", TheWritableGlobalData->m_antiAliasLevel, (Int)WW3D::Get_MSAA_Mode());
 				fflush(stderr);
 				TheWritableGlobalData->m_antiAliasLevel = (UnsignedInt)WW3D::Get_MSAA_Mode();
@@ -2194,7 +2194,7 @@ void W3DDisplay::init()
 		SDL3_ApplyWindowModeForRenderConfig(getWindowed(), getWidth(), getHeight());
 		#endif
 
-		// GeneralsX @diag Claude 25/09/2026 One line that says which mode this launch is in and why its
+		// GeneralsX @diag /09/2026 One line that says which mode this launch is in and why its
 		// resolution is what it is - generals-stderr.log on Windows, the run log elsewhere.
 		fprintf(stderr, "[GXDISPLAY] mode=%s resolution=%dx%d points, render %dx%d%s\n",
 			getWindowed() ? "windowed" : (borderless ? "borderless" : "fullscreen"),
@@ -2205,7 +2205,7 @@ void W3DDisplay::init()
 		//Check if level was never set and default to setting most suitable for system.
 		if (TheGameLODManager->getStaticLODLevel() == STATIC_GAME_LOD_UNKNOWN)
 		{
-			// GeneralsX @bugfix Claude 28/09/2026 Provenance for the launcher's one-time graphics question
+			// GeneralsX: Provenance for the launcher's one-time graphics question
 			// (gxio options.rs, KEY_GX_LOD_DETECTOR): engines before 0.9.50 could not classify most modern
 			// CPUs and recommended Low for them all. A recommendation computed HERE came from the fixed
 			// detector (W3DShaderManager::testMinimumRequirements), so its Low is the hardware's and the
@@ -2229,7 +2229,7 @@ void W3DDisplay::init()
 		if (TheGlobalData->m_displayGamma != 1.0f)
 			setGamma(TheGlobalData->m_displayGamma,0.0f,1.0f,FALSE);
 
-		// GeneralsX @tweak Claude 11/08/2026 TEMPORARY. The resolution list is built lazily
+		// GeneralsX: TEMPORARY. The resolution list is built lazily
 		// when the options screen opens, so a headless startup never exercises it. Force it
 		// here under GX_PBOX so the offered modes can be captured without driving the GUI.
 		// These are the exact two calls the options combo box makes (OptionsMenu.cpp:1221-1227).
@@ -2387,7 +2387,7 @@ void W3DDisplay::updateAverageFPS()
 	// Averaging the frame TIMES and inverting gives the true mean rate over the window, which is
 	// what every consumer already assumes it is getting. Guard the divide: an all-zero history on
 	// the first frames would otherwise produce inf.
-	// GeneralsX @bugfix Claude 18/08/2026 SKIP THE FIRST CALL - IT HAS NO INTERVAL TO MEASURE.
+	// GeneralsX: SKIP THE FIRST CALL - IT HAS NO INTERVAL TO MEASURE.
 	// lastUpdateTime64 starts at 0, so on the very first draw timeDiff is the performance
 	// counter's ABSOLUTE value - the machine's uptime, not a frame time. Storing reciprocals hid
 	// that: 1/uptime is ~0 and barely moved a sum of real rates. Storing the interval does not:
@@ -2536,7 +2536,7 @@ void W3DDisplay::gatherDebugStats()
 		}
 #endif
 
-		// GeneralsX @feature Claude 30/07/2026 Stamp the build identity next to the FPS.
+		// GeneralsX: Stamp the build identity next to the FPS.
 		//
 		// Four machines get rebuilt and redeployed together and there is no way to look at a
 		// running game and tell which binary it is. A whole debugging round was spent last night
@@ -2548,7 +2548,7 @@ void W3DDisplay::gatherDebugStats()
 		// peer on and the same one printed in the [SIMID] line, so a mismatched lobby can be
 		// spotted by reading two screens instead of by joining and waiting for the refusal.
 		//
-		// GeneralsX @bugfix Claude 01/08/2026 The first field was `rev %d` = GitRevision, which
+		// GeneralsX: The first field was `rev %d` = GitRevision, which
 		// cannot order two builds (SimulationId.h). Its wire slot now carries a build timestamp,
 		// but a ten-digit unix time on the HUD is no more readable than a commit count was. The
 		// short SHA answers the actual question - "is that one fixed yet" - it is unique per
@@ -2998,7 +2998,7 @@ void W3DDisplay::gatherDebugStats()
 // W3DDisplay::drawDebugStats =================================================
 /** Draw debug statistics */
 //=============================================================================
-// GeneralsX @bugfix Claude 07/08/2026 Render-suspend flag. See the use in W3DDisplay::draw().
+// GeneralsX: Render-suspend flag. See the use in W3DDisplay::draw().
 // Deliberately a plain Bool touched only from the main loop: it is set and cleared by the engine
 // update on the same thread that calls draw(), so there is nothing to synchronise.
 static Bool s_gxRenderSuspended = FALSE;
@@ -3191,7 +3191,7 @@ static void gxW3DPresentProbe(bool after)
 	gxGfxPresentMark(after, after ? DX8Wrapper::Get_Draw_Calls_Total() : 0);
 }
 
-// GeneralsX @test Claude 07/10/2026 [GXPOSE] (GX_POSESTATS=1): the R-CPU pose cache (animobj.cpp
+// GeneralsX: [GXPOSE] (GX_POSESTATS=1): the R-CPU pose cache (animobj.cpp
 // Keep_Current_Pose) per drawn frame, over about 1 s of wall time. keep = clock-driven poses Render/Special_Render
 // kept, sbld = clock-driven poses they rebuilt, obld = other poses they rebuilt (invalid or dirty), tskip =
 // doDrawModule Set_Transforms skipped on a current clock pose; chk/bad = GX_POSECACHE=2 checks and mismatches,
@@ -3229,7 +3229,7 @@ static void gxPoseStatsLine()
 	s_draws = 0;
 }
 
-// GeneralsX @feature Claude 17/10/2026 The look governor (GameClient/GXLookGovernor.h, S14; wh1ter0se 17/10: lower look steps in a
+// GeneralsX: The look governor (GameClient/GXLookGovernor.h, S14; wh1ter0se 17/10: lower look steps in a
 // big fight when this PC cannot hold its frame rate, raise them back after). Render-only: it reads this frame's timings and
 // publishes steps the render-side read sites honour (g_gxGovEff); it never writes TheGlobalData, so the player's saved options
 // stay his. It is ON by default (wh1ter0se 17/10, "yes all green": kGxGovKeyDefault); Options.ini GXLookGovernor = no turns it off;
@@ -3298,7 +3298,7 @@ static void gxGovInitOnce()
 }
 
 // A display reset (a new map, a restart, a loaded save): the next governed frame starts a fresh match at full quality. Loading-screen
-// draws never complete a frame gxGovFrame sees, so the reset cannot be left to a non-match draw (Codex look-govfx-r4 P2).
+// draws never complete a frame gxGovFrame sees, so the reset cannot be left to a non-match draw.
 static void gxGovReset()
 {
 	s_gxGovLastCommitNs = 0;
@@ -3368,7 +3368,7 @@ static void gxGovFrame()
 	}
 	// A paused or fast-forwarded frame's time says nothing about what drawing costs - nor does the replay fast mode (a seek race of
 	// the replay strip or the retail replay hotkey), which skips draws on purpose (GXReplayStrip::passRenders) with fast forward held at
-	// 1x (Codex look-gov-r2 P2) - nor a script's SET_VISUAL_SPEED_MULTIPLIER, which skips draws too (Codex look-gov-r3 P2).
+	// 1x - nor a script's SET_VISUAL_SPEED_MULTIPLIER, which skips draws too.
 	if (TheGameLogic->isGamePaused() || (TheFramePacer && (TheFramePacer->isFastForwardActive() || TheFramePacer->isScriptFastForward()))
 		|| TheGlobalData->m_TiVOFastMode)
 	{
@@ -3431,7 +3431,7 @@ static void gxGovFrame()
 	}
 }
 
-// GeneralsX @feature E · look-shadowmaps-9 19/10/2026 S7 A92 TEST-ONLY: the logic frame, by value in Device_Call's context word
+// GeneralsX: S7 A92 TEST-ONLY: the logic frame, by value in Device_Call's context word
 static void gxLogicFrameCall(IDirect3DDevice8 *dev, void *ctx)
 {
 	GxNative::TestSetLogicFrame(dev, unsigned(reinterpret_cast<uintptr_t>(ctx)));
@@ -3441,7 +3441,7 @@ void W3DDisplay::draw()
 {
 	//USE_PERF_TIMER(W3DDisplay_draw)
 
-	// GeneralsX @feature E · look-shadowmaps-9 19/10/2026 S7 A92 TEST-ONLY (GX_GPUTIME_DUMP, read once - no call at all when unset; the
+	// GeneralsX: S7 A92 TEST-ONLY (GX_GPUTIME_DUMP, read once - no call at all when unset; the
 	// integrator's P4 ruling (4)): the native device learns the logic frame this draw shows, through Device_Call (the cs stream), so each
 	// per-frame GPU sample of the dump names its game frame - P4's R1 is exactly logic frames [36000, 37800). Render-only: it reads the
 	// frame number and writes nothing the simulation reads.
@@ -3449,17 +3449,17 @@ void W3DDisplay::draw()
 		DX8Wrapper::Device_Call(&gxLogicFrameCall, reinterpret_cast<void *>(uintptr_t(TheGameLogic->getFrame())));
 
 	// GeneralsX @feature xxorza 15/04/2026 Process deferred window resize for pillarbox
-	// GeneralsX @bugfix C · native-ipad-1 13/10/2026 ...but not while rendering is suspended (iOS backgrounded in a network
+	// GeneralsX: ...but not while rendering is suspended (iOS backgrounded in a network
 	// match, see the GX_IsRenderSuspended return below): a resize is a device Reset - submissions, a wait, a new swapchain - and
 	// iOS refuses GPU work from a background app. The resize stays pending and runs on the first draw after the resume.
 	if (!GX_IsRenderSuspended())
 		DX8Wrapper::Pillarbox_Process_Resize();
 
 #if defined(__APPLE__) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-	// GeneralsX @bugfix Claude 30/09/2026 ...and follow the cap when the player changes it in a match: the
+	// GeneralsX: ...and follow the cap when the player changes it in a match: the
 	// max-FPS keys and the Debug screen (changeMaxRenderFps) move it, uncapped included. The first draw
 	// comes after GameEngine::init has resolved the cap (nothing between TheGameClient's creation and that
-	// resolve draws), and it applies the choice too (Codex r6): the refresh W3DDisplay::init read can predate
+	// resolve draws), and it applies the choice too: the refresh W3DDisplay::init read can predate
 	// the fullscreen transition. Set_Windowed_VSync resets only when the swap effect actually moves, so an
 	// unchanged choice costs nothing. A reset is a device reset, as a resolution change is.
 	//
@@ -3469,10 +3469,10 @@ void W3DDisplay::draw()
 	// FIFO costs it nothing and a reset at every toggle would.
 	if (TheFramePacer != nullptr && TheGameEngine != nullptr)
 	{
-		// The refresh too (Codex r5): the window can move to a slower display, or the panel's mode change,
+		// The refresh too: the window can move to a slower display, or the panel's mode change,
 		// with the cap untouched. Two SDL getters a frame (SDL3GameEngine::getDisplayRefreshRate).
 		static Int s_vsyncCap = -1, s_vsyncHz = -1;	// -1: none seen yet, so the first draw applies it too
-		// The limiter's own switches count as no cap too (Codex r7): nothing to be tear-free for if the loop is
+		// The limiter's own switches count as no cap too: nothing to be tear-free for if the loop is
 		// meant to run free. FramePacer::isActualFramesPerSecondLimitEnabled minus the replay fast mode.
 		const Bool limiterOn = TheGlobalData->m_useFpsLimit && TheFramePacer->isFramesPerSecondLimitEnabled()
 			&& !TheFramePacer->isScriptFastForward();
@@ -3489,7 +3489,7 @@ void W3DDisplay::draw()
 	}
 #endif
 
-	// GeneralsX @bugfix Claude 06/08/2026 Sample the frame rate BEFORE the two early returns.
+	// GeneralsX: Sample the frame rate BEFORE the two early returns.
 	//
 	// m_averageFPS is not a cosmetic counter. It is the sole input to the lobby-wide rate
 	// negotiation: FrameMetrics samples TheDisplay->getAverageFPS(), ConnectionManager::getMinimumFps
@@ -3520,7 +3520,7 @@ void W3DDisplay::draw()
 
 	extern HWND ApplicationHWnd;
 	if (ApplicationHWnd && ::IsIconic(ApplicationHWnd)) {
-		// GeneralsX @bugfix Claude 23/09/2026 Idea of upstream efe3d03e6: in Zero Hour this function
+		// GeneralsX: Idea of upstream efe3d03e6: in Zero Hour this function
 		// owns the only per-frame particle update, and a network match keeps simulating while
 		// minimised, so every particle system created meanwhile was never updated or retired and
 		// all of it landed at once on return. Same call as the device-lost branch below; the
@@ -3533,7 +3533,7 @@ void W3DDisplay::draw()
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 07/08/2026 Suspend the GPU without suspending the SIMULATION.
+	// GeneralsX: Suspend the GPU without suspending the SIMULATION.
 	//
 	// iOS must not touch Metal while backgrounded or merely inactive: acquiring a drawable then
 	// fights iOS for the layer and, over repeated suspend/switcher cycles, drives MoltenVK into an
@@ -3552,7 +3552,7 @@ void W3DDisplay::draw()
 	// platform and SDL3GameEngine is not; defining it there would leave Windows with an
 	// unresolved symbol.
 	if (GX_IsRenderSuspended()) {
-		// GeneralsX @bugfix Claude 23/09/2026 Render-suspended return (iOS): same particle update as the IsIconic return.
+		// GeneralsX: Render-suspended return (iOS): same particle update as the IsIconic return.
 		// Upstream reference: xezon, PR #2709
 		// https://github.com/TheSuperHackers/GeneralsGameCode/pull/2709
 		TheParticleSystemManager->update(); // same reason as the IsIconic return above
@@ -3564,14 +3564,14 @@ void W3DDisplay::draw()
 	if (TheGlobalData->m_headless)
 		return;
 
-	// GeneralsX @feature Claude 28/09/2026 [GXGFX] frame marks (GameClient/GXGfxProbe.h). Deliberately AFTER the
+	// GeneralsX: [GXGFX] frame marks (GameClient/GXGfxProbe.h). Deliberately AFTER the
 	// headless return: a -headless peer runs none of them. With GX_GFX and GX_HITCH unset each mark is one branch
 	// on a static and reads no clock. The Present hook is installed the first time a frame is marked.
 	gxGovInitOnce();	// before the probe check below: a governor that is on needs the Present hook too
 	if (gxGfxOn() && DX8Wrapper::Present_Probe == nullptr)
 	{
 		DX8Wrapper::Present_Probe = &gxW3DPresentProbe;
-		// GeneralsX @test Claude 08/10/2026 [GXCENSUS] (GX_DRAWCENSUS=1 with GX_GFX=1): turn WW3D2's census counters on
+		// GeneralsX: [GXCENSUS] (GX_DRAWCENSUS=1 with GX_GFX=1): turn WW3D2's census counters on
 		// and hand them to GXGfxProbe.h, which attributes them to the [GXGFXF] sub-spans.
 #if defined(GX_TEST_INSTRUMENTS) || defined(GX_RENDER_CENSUS)
 		if (gxCensusWanted() && !gxCensusOn())
@@ -3586,9 +3586,9 @@ void W3DDisplay::draw()
 	// TheSuperHackers @feature bobtista 10/07/2026 Show messages for screenshots finished by the screenshot thread.
 	W3D_UpdateScreenshotMessages();
 
-	// GeneralsX @test Claude 17/10/2026 A GX_SHOT capture compares one logic frame across runs byte for byte, and the dynamic LOD
+	// GeneralsX: A GX_SHOT capture compares one logic frame across runs byte for byte, and the dynamic LOD
 	// below follows the measured frame rate: two runs on either side of a level's MinimumFPS would create different particles
-	// (Codex ls1017-r2 P2). While the capture clock runs, the level is the one "dynamic LOD off" gives. The two fields the
+	// While the capture clock runs, the level is the one "dynamic LOD off" gives. The two fields the
 	// simulation reads are pinned neutral in every multiplayer game whatever the level (GameLOD.h), so a replay or LAN gate
 	// plays the same either way.
 	static Bool s_gxShotLodLogged = FALSE;
@@ -3600,7 +3600,7 @@ void W3DDisplay::draw()
 	}
 	if (TheGlobalData->m_enableDynamicLOD && TheGameLogic->getShowDynamicLOD() && !gxShotLodHeld)
 	{
-		// GeneralsX @feature Claude 02/10/2026 On frames DRAWN: m_averageFPS counts tick catch-up's logic-only passes too
+		// GeneralsX: On frames DRAWN: m_averageFPS counts tick catch-up's logic-only passes too
 		// (it feeds the network rate), and dynamic LOD exists to cut detail when drawing is slow.
 		DynamicGameLODLevel lod=TheGameLODManager->findDynamicLODLevel(m_averageFPS * (1.0f - TheFramePacer->getCatchUpPassFraction()));
 		TheGameLODManager->setDynamicLODLevel(lod);
@@ -3688,18 +3688,18 @@ AGAIN:
 
 	Debug_Statistics::Begin_Statistics();	//reset all counters (polygons, vertices, etc) before drawing
 
-	// GeneralsX @feature Claude 30/09/2026 Fast forward: is this iteration a draw or a logic-only pass? Decided here, once,
-	// so the render-only shroud surface update below is skipped on the passes that will not draw (Codex ffwd-r14 P2: at 10x
+	// GeneralsX: Fast forward: is this iteration a draw or a logic-only pass? Decided here, once,
+	// so the render-only shroud surface update below is skipped on the passes that will not draw (at 10x
 	// it ran up to 600 times a second). Never while a SCRIPTED freeze holds time - the freeze loop below shows its camera moves. A network stall (isGameHalted)
-	// is not one: fast forward stays on through it, so its idle passes stay logic-only too (Codex ffwd-r16 P2).
+	// is not one: fast forward stays on through it, so its idle passes stay logic-only too.
 	//
-	// GeneralsX @feature Claude 02/10/2026 ...and tick catch-up takes the same pass (FramePacer::isCatchUpDrawSkip, Common/
+	// GeneralsX: ...and tick catch-up takes the same pass (FramePacer::isCatchUpDrawSkip, Common/
 	// CatchUpPolicy.h): a network match whose pacer already has a second frame due skips this draw, so the frame it owes
 	// ticks after a client update without a render rather than after a slow one. Same pass, same rules: the whole client
 	// update ran, the scripted camera steps below, one tick follows. Asked only when fast forward did not already skip.
 	// Never while GX_SHOT captures: a capture needs every draw (gxShotDrawSkipped ends it), and its clock is per logic frame.
 	//
-	// GeneralsX @bugfix Claude 07/10/2026 ...but never while the replay fast mode runs (m_TiVOFastMode: a seek race of the
+	// GeneralsX: ...but never while the replay fast mode runs (m_TiVOFastMode: a seek race of the
 	// replay strip, or the retail replay hotkey): that mode draws by its own rule (GXReplayStrip::passRenders), and asking
 	// fast forward too multiplied the two to ZERO draws - its every-k-th pass and the fast mode's frame 30n+1 never met
 	// with one tick per pass, so a 4x seek showed nothing until it landed (wh1ter0se 07/10: "it froze"). A seek race now skips
@@ -3720,13 +3720,13 @@ AGAIN:
 	if (seekRace && fastModeRenders)
 		s_lastRaceDrawMs = max( 1u, raceNowMs );
 
-	// GeneralsX @test Claude 10/10/2026 GXCAP (GXCap.h): a capture window opens and closes at a draw that will render - after
+	// GeneralsX: GXCAP (GXCap.h): a capture window opens and closes at a draw that will render - after
 	// the minimised / render-suspended (iOS backgrounded: no GPU work) / headless returns, after the vsync device reset
-	// above, and (11/10/2026, Codex rw1-I-branch-r14 #1) after the script fast-time return and the fast-forward / seek-race /
+	// above, and after the script fast-time return and the fast-forward / seek-race /
 	// catch-up skip decision (ffLogicOnly): a logic-only pass presents nothing and must not spend the window's span. Placed
 	// before the first device work of the pass (terrain tracks, shroud) so that work stays inside the window. The match
 	// predicate is the one gxShotDrive uses (GameClient.cpp). Unset GXCAP: one bool.
-	// ...and (Codex gxcap-design-r19 #2, P3) after the passes that RENDER nothing either: the replay fast mode's own rule
+	// ...and after the passes that RENDER nothing either: the replay fast mode's own rule
 	// (fastModeRenders: retail's frame 30n+1 under the hotkey) and the script time multiplier's skip further down. That
 	// skip's counter is function-static and mutated there; this only reads what it will decide.
 	static Int timeMultiplierCounter = 1;
@@ -3759,7 +3759,7 @@ AGAIN:
 		}
 	}
 
-	// GeneralsX @test Claude 28/09/2026 GX_SHOT capture clock. WW3D's animation clock (SyncTime: UV mappers, texture and
+	// GeneralsX: GX_SHOT capture clock. WW3D's animation clock (SyncTime: UV mappers, texture and
 	// mesh animation) and the terrain clouds (W3DShaderManager TerrainShader2Stage::updateCloud) advance by
 	// getLogicTimeStepMilliseconds() per draw: one logic step scaled by min(1, tick rate / measured render rate). At a
 	// render cap equal to the tick rate the pacer's late frames are clipped to one step while its early ones count short,
@@ -3769,7 +3769,7 @@ AGAIN:
 	// counted from the match's frame 0 and still in the shell and while loading), the same clock the other render-side
 	// animations read, so the phase is a function of the match's logic frame (scripts/test/gx-shotdiff). The step is the
 	// difference of two whole-ms readings of the ABSOLUTE frame, never a sum of per-draw float slices: WW3D::Sync
-	// truncates, and three single steps would sum to 49 ms where one triple step gives 50 (Codex gfxp3-shotdiff-r6). A
+	// truncates, and three single steps would sum to 49 ms where one triple step gives 50. A
 	// draw with no new logic frame reads the same value and steps nothing. Capture runs only: the shell's own animations
 	// stand still until the last shot, where capture mode ends (gxShotDrive). gx-shotdiff keys its noise floors to the
 	// text of the "capture clock on" line below: change that text whenever the capture clock's behaviour changes.
@@ -3795,7 +3795,7 @@ AGAIN:
 		// TheSuperHackers @info This binds the WW3D update to the logic update.
 		WW3D::Sync(TheGameLogic->hasUpdated());
 	}
-	if (GXAnimTrace::on())	// GeneralsX @test Claude 29/10/2026 Cb-06a: the WW3D clocks each draw (GameClient/GXAnimTrace.h)
+	if (GXAnimTrace::on())	// GeneralsX: Cb-06a: the WW3D clocks each draw (GameClient/GXAnimTrace.h)
 		fprintf(stderr, "[GXANIM] clk wall=%.3f f=%u sync=%u logic=%u step=%.4f\n", GXAnimTrace::wallMs(),
 			TheGameLogic ? (unsigned)TheGameLogic->getFrame() : 0u, WW3D::Get_Sync_Time(), WW3D::Get_Logic_Time_Milliseconds(),
 			(double)WW3D::Get_Logic_Frame_Time_Milliseconds());
@@ -3805,9 +3805,9 @@ AGAIN:
 	static Int now;
 	now=timeGetTime();
 
-	// GeneralsX @bugfix Claude 08/10/2026 ...but never in frozen time, where no logic frame passes: the simulation ends a
+	// GeneralsX: ...but never in frozen time, where no logic frame passes: the simulation ends a
 	// camera-only freeze's move before its next update (GameLogic/ScriptedCamera.h), so the draw after the freeze is the one
-	// whose freeze loop shows it (a skipped one lost it: Codex camera-sim-B r1 P2)
+	// whose freeze loop shows it (a skipped one lost it: camera-sim-B r1 P2)
 	if (TheTacticalView->getTimeMultiplier()>1 && !freezeTime)
 	{
 		timeMultiplierCounter--;
@@ -3820,28 +3820,28 @@ AGAIN:
 		// limit the framerate, because while fast time is on, the game logic is running as fast as it can.
 	}
 
-	// GeneralsX @feature Claude 30/09/2026 Fast forward (FramePacer::setFastForward): the loop iterates at k x the tick rate
+	// GeneralsX: Fast forward (FramePacer::setFastForward): the loop iterates at k x the tick rate
 	// and only FastForwardDrawFps of those iterations draw - the script multiplier's skip just above, after the WW3D sync so
 	// the render side's clock still steps every tick. Nothing a draw does reaches the simulation - a -headless peer never
 	// draws and holds lockstep with rendered ones - except the scripted camera, stepped below.
 	//
 	// Particles step with the draws only, as under the script multiplier: a system that emits in world space from a bone
 	// gets that transform from the draw (W3DModelDraw, ParticleSystem m_skipParentXfrm), so stepped here it would emit from
-	// where the unit was last drawn and trail behind it (Codex ffwd-r3). The cost is visual: above about 2x effects play
+	// where the unit was last drawn and trail behind it. The cost is visual: above about 2x effects play
 	// slower than the match, and one-shot effects (explosions) overlap more - bounded by MaxParticleCount, which drops the
 	// oldest (ParticleSystem::createParticle).
 	//
-	// The macOS vsync choice above is left as it is (Codex ffwd-r1 asked for FIFO off). FIFO is only ever chosen on a
+	// The macOS vsync choice above is left as it is (asked for FIFO off). FIFO is only ever chosen on a
 	// panel faster than the tick rate (gxMacVSyncFor: refresh > 60), and these draws come at most FastForwardDrawFps = 60
 	// a second, so a present never waits on a vblank - FIFO blocks only a producer faster than the display - while
 	// switching it would reset the device at every speed change, as the script multiplier's note above says for the
 	// replay fast mode.
-	// Never while time is frozen: a scripted freeze-time camera move is shown by the freeze loop below (Codex ffwd-r7).
+	// Never while time is frozen: a scripted freeze-time camera move is shown by the freeze loop below.
 	if (ffLogicOnly)
 	{
 		// The scripted camera is not stepped here any more: it steps once per logic frame from W3DView::stepView (GameClient::
 		// step, after the tick), so CAMERA_MOVEMENT_FINISHED - a SCRIPT CONDITION - ends a move on the same logic frame
-		// whether this pass draws or not (Codex ffwd-r2 P1, r10, r10b; GeneralsX 08/10/2026). This call only marks the camera
+		// whether this pass draws or not (r10, r10b; GeneralsX 08/10/2026). This call only marks the camera
 		// for the next drawn frame, as the drawn path's own (W3DView::updateView) does: not while a debug freeze holds it.
 		if (!TheScriptEngine->isTimeFrozenDebug())
 			primaryW3DView->updateCameraMovements();
@@ -3853,7 +3853,7 @@ AGAIN:
 		return;
 	}
 
-	// GeneralsX @bugfix Claude 19/08/2026 [GXDRAW] must sample only frames that actually rendered.
+	// GeneralsX: [GXDRAW] must sample only frames that actually rendered.
 	// The render below is conditional three ways - the TiVO fast-replay frame skip, the
 	// m_breakTheMovie / m_disableRender pair, and Begin_Render() succeeding at all (the alt-tab
 	// case). The sampler used to sit after this loop unguarded, so every iteration that drew
@@ -3911,7 +3911,7 @@ AGAIN:
 		gxGfxMark(GXGFX_RTT);
 
 		// start render block
-		// GeneralsX @bugfix Claude 07/10/2026 The fast mode's draw rule, decided once at the top of draw() (fastModeRenders):
+		// GeneralsX: The fast mode's draw rule, decided once at the top of draw() (fastModeRenders):
 		// retail's frame 30n+1 for the hotkey alone, a progress frame per RACE_DRAW_MS for a seek race, every pass otherwise.
 		if (fastModeRenders)
 		{
@@ -3959,7 +3959,7 @@ AGAIN:
 				// display cinematicText over the black
 				if( m_cinematicText != AsciiString::TheEmptyString && m_cinematicTextDeadline != 0 && timeGetTime() < m_cinematicTextDeadline)
 				{
-					// GeneralsX @performance Claude 23/09/2026 One DisplayString for the caption, kept across frames. A new
+					// GeneralsX: One DisplayString for the caption, kept across frames. A new
 					// one was allocated every rendered frame and never freed, so each frame leaked a string and
 					// rebuilt its glyph texture; setText/setFont/setWordWrap are no-ops when unchanged.
 					if( m_cinematicDisplayString == nullptr )
@@ -3987,7 +3987,7 @@ AGAIN:
 						width = ( TheDisplay->getWidth() - displayString->getWidth() ) / 2;
 					displayString->draw( width, height, color, backColor );
 
-					// GeneralsX @bugfix Claude 06/08/2026 The per-render decrement is gone; the deadline
+					// GeneralsX: The per-render decrement is gone; the deadline
 					// in the condition above does the work. See Display::setCinematicTextFrames.
 				}
 
@@ -4028,7 +4028,7 @@ AGAIN:
 				WW3D::End_Render();	// the Present hook marks flush (before Present) and pres (after)
 				gxRenderCompleted = TRUE;	// see the [GXDRAW] note on the declaration
 				gxReplayDiagFrameDrawn();
-				gxShotDrawRendered();	// GeneralsX @test Claude 29/09/2026 GX_SHOT reads only a rendered frame (GameClient.cpp)
+				gxShotDrawRendered();	// GeneralsX: GX_SHOT reads only a rendered frame (GameClient.cpp)
 			}
 			else
 			{
@@ -4045,7 +4045,7 @@ AGAIN:
 			freezeTime = false; // We're frozen for debug or for pause, and need to continue out of the loop.
 		}
 
-	// GeneralsX @bugfix Claude 23/09/2026 Never repeat this loop while the game is HALTED (network stall, or SP pause).
+	// GeneralsX: Never repeat this loop while the game is HALTED (network stall, or SP pause).
 	// Upstream reference: Nagyhoho1234, PR #2939 (closed unmerged) https://github.com/TheSuperHackers/GeneralsGameCode/pull/2939
 	// Nothing inside draw() can end a halt - Network::update and logic run outside it - and the camera
 	// zoom/pitch/rotate counters only advance on a new logic frame (W3DView::updateCameraMovements), so a
@@ -4081,8 +4081,8 @@ AGAIN:
 }
 
 // ---------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 19/08/2026 DO NOT QUOTE THE COUNTERS YET - TWO KNOWN DEFECTS REMAIN (a third is fixed).
-// Found by a Codex review of this commit after it was merged. The probe is env-gated and off by
+// GeneralsX: DO NOT QUOTE THE COUNTERS YET - TWO KNOWN DEFECTS REMAIN (a third is fixed).
+// Found by a review of this commit after it was merged. The probe is env-gated and off by
 // default, so nothing is at risk from its presence; what is at risk is somebody treating its
 // output as measurement. Fix before using, and delete this block when they are fixed.
 //
@@ -4100,7 +4100,7 @@ AGAIN:
 //     snapshot. Water and projected shadows inflate both.
 //
 // ---------------------------------------------------------------------------
-// GeneralsX @feature Claude 18/08/2026 - [GXDRAW], a 1 Hz render-workload probe.
+// GeneralsX: [GXDRAW], a 1 Hz render-workload probe.
 //
 // WHY IT EXISTS. The two peers where a render win is actually worth something - a GTX 1080 through
 // DXVK and an older mobile GPU - are the two we cannot get our hands on, and the survey in
@@ -4280,7 +4280,7 @@ Bool W3DDisplay::isLetterBoxed()
 /** Create a "light pulse" which is a dynamic light that grows, decays
 	* and vanishes over several frames */
 //=============================================================================
-// GeneralsX @feature Claude 17/10/2026 S9 step 1, light pulses on the classic renderer (modernize/look-director/d2/DESIGN_fx-light-classic.md).
+// GeneralsX: S9 step 1, light pulses on the classic renderer (modernize/look-director/d2/DESIGN_fx-light-classic.md).
 // Retail drops every pulse whose reach is under 2 cells + 1 (the jba test in createLightPulse), and 26 of the 65 shipped LightPulse FX -
 // nearly every machine-gun, gatling, tank-gun and flamethrower muzzle flash (Radius 15) - fall under it: they light nothing today.
 // Options.ini GXFxLight = yes (default no; GX_FX_LIGHT=0/1 overrides) gives every pulse 30% more reach, same colour and timing, and lets
@@ -4291,12 +4291,12 @@ static const Real GX_FXLIGHT_REACH_SCALE = 1.3f;
 enum { GX_FXLIGHT_REVIVE_MAX = 8 };
 // The revived pulses' lights, each held with a reference so a slot never dangles. A slot frees when its light has gone dark - not on a
 // frame deadline: a minimised or render-suspended client advances logic frames without fading lights, and a deadline would let more
-// than GX_FXLIGHT_REVIVE_MAX stay lit (Codex look-fxlight-r1 P2). A slot whose light the pool has since reused for another pulse reads
+// than GX_FXLIGHT_REVIVE_MAX stay lit. A slot whose light the pool has since reused for another pulse reads
 // as busy until that pulse ends: the cap errs low, never high. W3DDisplay::reset frees every slot (the next match starts empty).
 static W3DDynamicLight *s_gxFxRevived[ GX_FXLIGHT_REVIVE_MAX ];
 
 // At reset the scene keeps its light pool (a save loaded mid-battle reuses it), so a still-lit revived light is put out first: freeing
-// the slot alone would let the restored battle light eight more beside it (Codex look-fxlight-r2 P2).
+// the slot alone would let the restored battle light eight more beside it.
 static void gxFxReleaseRevived()
 {
 	for (Int i = 0; i < GX_FXLIGHT_REVIVE_MAX; ++i)
@@ -4344,7 +4344,7 @@ void W3DDisplay::createLightPulse( const Coord3D *pos, const RGBColor *color,
 																	 UnsignedInt decayFrameTime//, Bool donut
 																	 )
 {
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6 (GXRenderSplit.h): a light pulse an FX list fires inside the
+	// GeneralsX: render-split step 6 (GXRenderSplit.h): a light pulse an FX list fires inside the
 	// tick takes its scene light at the tick's end, with the arguments it had at the call.
 	GXRenderSplit &split = GXRenderSplit::get();
 	if (split.simSide())
@@ -4360,9 +4360,9 @@ void W3DDisplay::createLightPulse( const Coord3D *pos, const RGBColor *color,
 	}
 	if (m_3DScene == nullptr)
 		return;
-	// GeneralsX @feature Claude 17/10/2026 S9 step 1 (see gxFxLightOn above): more reach, and the small pulses retail rejects below
+	// GeneralsX: S9 step 1 (see gxFxLightOn above): more reach, and the small pulses retail rejects below
 	// Which pulses are "revived" is decided on the AUTHORED reach, before the scale: a pulse retail rejects stays rejected unless it gets
-	// a revived slot, at step 0 only, however far the scale would carry it (Codex look-fxlight-r2 P2).
+	// a revived slot, at step 0 only, however far the scale would carry it.
 	Int gxReviveSlot = -1;
 	const Int gxFxStep = gxFxLightOn() ? gxGovFxLightStep() : 2;
 	if (gxFxStep < 2)
@@ -5086,7 +5086,7 @@ void W3DDisplay::drawImage( const Image *image, Int startX, Int startY,
 				//	Clip the polygons to the specified area
 				//
 
-				// GeneralsX @bugfix BenderAI 13/02/2026 Use MAX/MIN macros (cross-platform, defined in BaseTypeCore.h)
+				// GeneralsX: Use MAX/MIN macros (cross-platform, defined in BaseTypeCore.h)
 				clipped_rect.Left		= MAX (screen_rect.Left, m_clipRegion.lo.x);
 				clipped_rect.Right	= MIN (screen_rect.Right, m_clipRegion.hi.x);
 				clipped_rect.Top		= MAX (screen_rect.Top, m_clipRegion.lo.y);
@@ -5116,7 +5116,7 @@ void W3DDisplay::drawImage( const Image *image, Int startX, Int startY,
 				//	Clip the polygons to the specified area
 				//
 
-				// GeneralsX @bugfix BenderAI 13/02/2026 Use MAX/MIN macros (cross-platform, defined in BaseTypeCore.h)
+				// GeneralsX: Use MAX/MIN macros (cross-platform, defined in BaseTypeCore.h)
 				clipped_rect.Left		= MAX (screen_rect.Left, m_clipRegion.lo.x);
 				clipped_rect.Right	= MIN (screen_rect.Right, m_clipRegion.hi.x);
 				clipped_rect.Top		= MAX (screen_rect.Top, m_clipRegion.lo.y);
@@ -5363,7 +5363,7 @@ void W3DDisplay::toggleMovieCapture()
 
 void W3DDisplay::takeScreenShot(ScreenshotFormat format, Int jpegQuality)
 {
-	GxDepthShot::Capture();	// GeneralsX @test Claude 11/10/2026 WS-X2: GX_DSHOT - C7's depth/stencil half (GxDepthShot.h); unset: nothing
+	GxDepthShot::Capture();	// GeneralsX: WS-X2: GX_DSHOT - C7's depth/stencil half (GxDepthShot.h); unset: nothing
 	W3D_TakeCompressedScreenshot(format, jpegQuality);
 }
 
@@ -5475,7 +5475,7 @@ void W3DDisplay::preloadModelAssets( AsciiString model )
 //-------------------------------------------------------------------------------------------------
 /** Preload using the W3D asset manager the texture referenced by the string parameter */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @perf Claude 01/10/2026 A2: the warm-up lives in the patched Apple DXVK (references/fbraz3-dxvk,
+// GeneralsX: A2: the warm-up lives in the patched Apple DXVK (references/fbraz3-dxvk,
 // D3D9DeviceEx::GxWarmPipelines). MoltenVK has no VK_EXT_graphics_pipeline_library, so every pipeline is compiled
 // whole at its first draw - the mid-match stops in modernize/HANDBACK_s0-hitch-attribution.md. Resolved by dlsym:
 // a DXVK without the export (Linux's prebuilt one) and Windows simply have no warm-up. GX_PIPELINE_WARMUP=0 turns
@@ -5583,9 +5583,9 @@ static void drawFramerateBar()
 {
 	static DWORD prevTime = timeGetTime();
 	DWORD now = timeGetTime();
-	// GeneralsX @bugfix Claude 27/09/2026 0 is the unlimited cap now (Common/FpsLimitPolicy.h) and an unlimited loop
+	// GeneralsX: 0 is the unlimited cap now (Common/FpsLimitPolicy.h) and an unlimited loop
 	// can draw twice in one millisecond, so this divided by zero twice over (NaN width and colour). Measure against the
-	// tick rate when there is no cap, as the average-FPS seed does, and never against a zero interval (Codex W7-r7).
+	// tick rate when there is no cap, as the average-FPS seed does, and never against a zero interval.
 	const Int targetFps = (TheGlobalData->m_framesPerSecondLimit > 0) ? TheGlobalData->m_framesPerSecondLimit : (Int)LOGICFRAMES_PER_SECOND;
 	const DWORD elapsedMs = (now > prevTime) ? (now - prevTime) : 1;
 	Real percTime = (1000.0f / elapsedMs ) / (1000.0f / targetFps);

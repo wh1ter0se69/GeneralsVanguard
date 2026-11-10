@@ -73,7 +73,7 @@
 //-----------------------------------------------------------------------------
 // DEFINES ////////////////////////////////////////////////////////////////////
 //-----------------------------------------------------------------------------
-// GeneralsX @feature Claude 02/10/2026 The list shows EVERY player. ControlBar.wnd has 8 buttons (WND_BUTTONS); a lobby
+// GeneralsX: The list shows EVERY player. ControlBar.wnd has 8 buttons (WND_BUTTONS); a lobby
 // seats MAX_SLOTS (14 today, 32 on the roadmap), and a 6v6 showed 8 of 12. Buttons and labels past the 8 are cloned from
 // ButtonPlayer0 / StaticTextPlayer0 the first time a match needs them and laid out by GameClient/GXObserverGrid.h from
 // the 8 authored rects, so retail and ControlBar Pro each keep their own look. The clones get NO name key: nameToKey on
@@ -552,7 +552,7 @@ void ControlBar::populateObserverList()
 	Int count = 0, groupCount = 0, i;
 	if(TheRecorder->isMultiplayer())
 	{
-		// GeneralsX @feature Claude 02/10/2026 Every non-observer player, ordered by team so each team keeps together in
+		// GeneralsX: Every non-observer player, ordered by team so each team keeps together in
 		// the grid (a lobby puts teams in any slots), slot order within a team; the players with no team come last.
 		Int teams[MAX_BUTTONS];
 		for (i = 0; i < MAX_SLOTS && count < MAX_BUTTONS; ++i)
@@ -617,7 +617,7 @@ void ControlBar::populateObserverInfoWindow ()
 {
 	if(ObserverPlayerInfoWindow->winIsHidden())
 	{
-		refreshObserverListDefeats();	// GeneralsX @feature Claude 02/10/2026 the list is up instead
+		refreshObserverListDefeats();	// GeneralsX: the list is up instead
 		return;
 	}
 

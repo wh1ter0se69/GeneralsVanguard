@@ -66,7 +66,7 @@
 #pragma once
 
 #include "WWLib/always.h"
-// GeneralsX @bugfix Claude 28/07/2026 Deterministic trig - see the note in matrix3d.h. Included
+// GeneralsX: Deterministic trig - see the note in matrix3d.h. Included
 // explicitly rather than relying on wwmath.h below, so the ordering of these two headers cannot
 // leave GameMath undeclared at the point Rotate_* needs it.
 #include "gamemath.h"

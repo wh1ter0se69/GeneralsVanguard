@@ -205,14 +205,14 @@ Bool GameSpyLoginPreferences::write()
 {
 	if (m_filename.isEmpty())
 		return false;
-	// GeneralsX @bugfix Claude 22/10/2026 This write is its own, not UserPreferences::write, so it needs the base's
+	// GeneralsX: This write is its own, not UserPreferences::write, so it needs the base's
 	// guard too: a GameSpyLogin.ini that exists and could not be read is never replaced (UserPreferences.h).
 	if (m_unreadable)
 		return false;
 
-	// GeneralsX @bugfix Claude 22/10/2026 Written to a fresh exclusive temp beside the file and swapped in
+	// GeneralsX: Written to a fresh exclusive temp beside the file and swapped in
 	// (GXReplaceFile.h), never truncated in place: a crash or a failed write between the fopen and the last line left an
-	// empty or half GameSpyLogin.ini, and fclose's result was never checked (Codex fwc-r1, r3).
+	// empty or half GameSpyLogin.ini, and fclose's result was never checked.
 	std::string tmp;
 	FILE *fp = gxCreateTempFor(m_filename.str(), tmp, "wx");
 	if (fp)

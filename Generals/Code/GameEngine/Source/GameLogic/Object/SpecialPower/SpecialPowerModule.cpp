@@ -465,7 +465,7 @@ void SpecialPowerModule::triggerSpecialPower( const Coord3D *location )
 //-------------------------------------------------------------------------------------------------
 void SpecialPowerModule::createViewObject( const Coord3D *location )
 {
-	// GeneralsX @bugfix Claude 01/10/2026 Callers pass null for a location-less trigger ('Null for not creating a
+	// GeneralsX: Callers pass null for a location-less trigger ('Null for not creating a
 	// view object'), but a power with a view-object duration still reached setPosition(nullptr) below. Honour
 	// the callers' contract (tsh batch2 #415 + #414, idea of Generals Online 7c0475669 / 9f1de1a16).
 	if( location == nullptr )

@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule OPEN.GLA_TECH_ORDER (C·rb-data-7): the partial Toxin "save for the Palace" lever
+# GeneralsX: rule bank DATA rule OPEN.GLA_TECH_ORDER (C·rb-data-7): the partial Toxin "save for the Palace" lever
 # (lead ruling rb-data-7 step 3), its own rule so it can be switched off alone. Stock Hard Toxin (owners.txt, 14d03e02) spends on defences
 # the moment its Barracks / Arms Dealer stand: "GLA Build 1st Defense - H" (3 base defences), "GLA Build Tunnel Network 2 - H" and "GLA Supply
 # Defense - H" (a Stinger Site at the supply pile). The Palace ("GLA Palace - H": Arms Dealer built AND _ESCALATION >= 30, a $3,000 gift

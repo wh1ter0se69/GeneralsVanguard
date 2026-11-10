@@ -187,7 +187,7 @@ bool GxPipelineCache::init(Vk::VkCtx& ctx, const GxGenericShaders& shaders, cons
 	}
 	loadRecordedKeys();
 	m_specStop = false;
-	for (unsigned i = 0; i < 2; i++)   // ponytail: 2 background compilers; size from the cold-cache gate if they lag
+	for (unsigned i = 0; i < 2; i++)   // Trade-off: 2 background compilers; size from the cold-cache gate if they lag
 		m_specWorkers.emplace_back(&GxPipelineCache::specWorker, this);
 	std::fprintf(stderr, "[GXPIPE] init cache=%s loaded=%d bytes=%zu (%s) recorded_keys=%zu dynamic_mask=%#x\n",
 	             m_path.empty() ? "-" : m_path.c_str(), (loaded && !refused) ? 1 : 0, size_t(ci.initialDataSize),
@@ -249,7 +249,7 @@ void GxPipelineCache::loadRecordedKeys() {
 		return;
 	}
 	// Whole records only: each is read in ONE call, so a tail of any length (1..191 bytes, incl. a bare 184-byte key with no
-	// checksum) is seen as torn (Codex r4 #1); a clean file ends with a read of zero bytes at EOF.
+	// checksum) is seen as torn; a clean file ends with a read of zero bytes at EOF.
 	char rec[sizeof(GxPipelineKey) + sizeof(uint64_t)];
 	bool clean = true;
 	std::lock_guard<std::mutex> g(m_recordLock);
@@ -277,13 +277,13 @@ void GxPipelineCache::loadRecordedKeys() {
 		m_stats.recordedLoaded = uint32_t(m_recorded.size());
 	}
 	in.close();
-	if (!clean)   // a torn tail would misalign every later append: rewrite the file from the whole records (Codex r3 #2)
+	if (!clean)   // a torn tail would misalign every later append: rewrite the file from the whole records
 		rewriteKeysFile();
 }
 
 bool GxPipelineCache::rewriteKeysFile() {
 	// m_recordLock held by the caller. Header + every known record, through a temp file + atomic replace. Until one succeeds the
-	// file stays dirty: recordMiss() never appends to it (an append after a failed repair lands behind the torn tail, Codex r5 #2).
+	// file stays dirty: recordMiss() never appends to it (an append after a failed repair lands behind the torn tail).
 	m_keysDirty = true;
 	if (g_gxPipeTestMutants.failKeysRewrite) {   // TEST-ONLY: as if the directory refused the temp file
 		std::fprintf(stderr, "[GXPIPE] miss record not rewritten (TEST-ONLY failure): %s\n", m_keysPath.c_str());
@@ -585,7 +585,7 @@ std::vector<GxPipelineKey> GxPipelineCache::retargetedKeys(uint8_t fromSamples, 
 	}
 	{
 		std::lock_guard<std::mutex> g(m_recordLock);
-		for (const GxPipelineKey& k : m_recorded)   // B · a2c-2 (Codex a2c-code-r9 #4): only what this session can build, as at startup
+		for (const GxPipelineKey& k : m_recorded)   // B · a2c-2: only what this session can build, as at startup
 			if (k.s.samples == fromSamples && (recordedBuildable(k) || g_gxPipeTestMutants.retargetNoBuildCheck))
 				known.push_back(k);
 	}
@@ -595,7 +595,7 @@ std::vector<GxPipelineKey> GxPipelineCache::retargetedKeys(uint8_t fromSamples, 
 			if (configs[c].samples != toSamples || (configs[c].depthFormat != 0) != (k.s.depthFormat != 0))
 				continue;
 			GxPipelineKey t = k;
-			// Codex a2c-code-r4 #4: a key normalised at the old count lost the default mask's high bits - a FULL old mask is the default
+			// a key normalised at the old count lost the default mask's high bits - a FULL old mask is the default
 			// (the game never sets D3DRS_MULTISAMPLEMASK: dx8wrapper.cpp:5933), re-expanded so the new count gets its full mask too
 			if (t.s.sampleMask == (fromSamples >= 32 ? 0xffffffffu : (1u << fromSamples) - 1u))
 				t.s.sampleMask = 0xffffffffu;
@@ -629,7 +629,7 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 			VkShaderModule vs = VK_NULL_HANDLE, fs = VK_NULL_HANDLE;
 			std::string why;
 			// a velocity key recorded by a GX_MOTION_UNITS=1 session, now off (no gx:vel module): skipped silently, so key off prints
-			// nothing new (D · render-motion-units-1, PREREG_T A35; codex units-code-r1 #4)
+			// nothing new (D · render-motion-units-1, PREREG_T A35)
 			if (k.shader.kind == GxShaderCustom && (k.shader.reserved[0] == GxCsVsVelRigid || k.shader.reserved[0] == GxCsVsVelSkin ||
 			                                        k.shader.reserved[1] == GxCsPsVelocity) && !m_custom.psVel)
 				continue;
@@ -661,7 +661,7 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 	}
 	const size_t recordedCount = candidates.size() - partCount * configCount;
 	// B · a2c-2 (DLSS_INTEGRATION.md:3857 (1) a): only a twin that is a NEW candidate (not a census or recorded key, not already built or
-	// failed, not a twin of another recorded A2C key) joins the closure; it is COUNTED only when the claim below really queues it (Codex
+	// failed, not a twin of another recorded A2C key) joins the closure; it is COUNTED only when the claim below really queues it (
 	// a2c-code-r8 #4: a caller's get() may be compiling it - in flight, so not queued here)
 	const size_t plainBegin = candidates.size();
 	for (const GxPipelineKey& t : plainTwins) {
@@ -686,7 +686,7 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 				t.s.alphaToCoverage = 1;
 				candidates.push_back(t);
 				++twins;
-			} else if (candidates[i].s.alphaToCoverage) {   // Codex a2c-code-r5 #4: a recorded / retargeted A2C key brings its plain twin too
+			} else if (candidates[i].s.alphaToCoverage) {   // a recorded / retargeted A2C key brings its plain twin too
 				GxPipelineKey t = candidates[i];          // (a state first drawn only alpha-tested: today's ONE shared key covers both)
 				t.s.alphaToCoverage = 0;
 				candidates.push_back(t);
@@ -697,7 +697,7 @@ size_t GxPipelineCache::prebuild(const GxDrawPart* parts, size_t partCount, cons
 	{
 		// Claim under the queue lock: a key built, in flight (another prebuild or a miss compiling) or a duplicate is skipped.
 		std::lock_guard<std::mutex> q(m_queueLock);
-		m_required = candidates;   // the whole closure, incl. keys a caller already built, failed or is compiling (Codex r5 #1)
+		m_required = candidates;   // the whole closure, incl. keys a caller already built, failed or is compiling
 		m_requiredReady.store(false, std::memory_order_release);
 		m_queue.clear();
 		m_queueNext = 0;
@@ -759,7 +759,7 @@ void GxPipelineCache::worker() {
 		insert(key, p);
 		{
 			// The outcome is counted BEFORE the decrement below, so prebuildComplete() can never see 0 remaining with a stale
-			// failure count (Codex r2 #2).
+			// failure count.
 			std::lock_guard<std::mutex> g(m_statsLock);
 			if (p)
 				m_stats.prebuilt++;
@@ -1164,7 +1164,7 @@ void GxPipelineCache::shutdown() {
 	m_ctx->waitIdle();   // no submitted draw may still use a pipeline destroyed below
 	save();
 	{
-		// A failed/short append that was this session's LAST miss would otherwise be dropped as torn at the next load (Codex r6 #1).
+		// A failed/short append that was this session's LAST miss would otherwise be dropped as torn at the next load.
 		std::lock_guard<std::mutex> g(m_recordLock);
 		if (m_keysDirty && !m_keysPath.empty())
 			rewriteKeysFile();

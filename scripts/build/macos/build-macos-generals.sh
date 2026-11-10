@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build GeneralsX (base game) natively on macOS (Apple Silicon / arm64)
-# GeneralsX @build BenderAI 15/03/2026 Add macOS base-game build script
+# GeneralsX: Add macOS base-game build script
 #
 # Usage:
 #   ./scripts/build/macos/build-macos-generals.sh               # configure + build
@@ -36,7 +36,7 @@ check_tool ninja "brew install ninja"
 check_tool meson "brew install meson"
 check_tool python3 "brew install python3"
 
-# GeneralsX @build Copilot 03/05/2026 Auto-detect VCPKG_ROOT for preset toolchain resolution
+# GeneralsX: Auto-detect VCPKG_ROOT for preset toolchain resolution
 resolve_vcpkg_root() {
     local candidate=""
     local -a candidates=()

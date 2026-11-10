@@ -1,4 +1,4 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule TECH.GLA_ARMS_DEALER_CAP (C·rb-data-10): GLA caps its Arms Dealers. Stock GLA
+# GeneralsX: rule bank DATA rule TECH.GLA_ARMS_DEALER_CAP (C·rb-data-10): GLA caps its Arms Dealers. Stock GLA
 # Hard queues three early - "GLA Arms Dealer - H", "2 - H" and "3 - H" wait for an own Supply Stash (Demolition and Stealth: #3 for two
 # own Arms Dealers); the build list holds three, none AutomaticallyBuild. Here the scripts past arms_dealer_max get the condition "fewer than 0 own Arms Dealers", which never
 # holds (the scripts run in one frame, so a real count cap could not tell them apart; CONDITION_FALSE has no stock leaf), so they never queue theirs:
@@ -9,7 +9,7 @@
 # 3 + j, and the one-shot "GX Stock RICH Arms Dealers Off - H" DISABLEs (the one reference allowed to enemy-gated logic) every RICH<j>
 # with 3 + j > arms_dealer_max at the start. "GLA High Money Builds - H" (cash 30000 and exactly one Supply Stash; clean) places a flank
 # Arms Dealer beside a Tunnel, a Stinger Site and a Barracks: past every cap in the box (the three stock scripts fire at the Supply
-# Stash, long before 30000), so its Arms Dealer action goes and the other three stay (Codex rbd11-r1 P2).
+# Stash, long before 30000), so its Arms Dealer action goes and the other three stay.
 RULE_ID = 'TECH.GLA_ARMS_DEALER_CAP'
 SCOPE = ('SkirmishGLA', 'SkirmishGLADemolitionGeneral', 'SkirmishGLAStealthGeneral')
 PRE = {'SkirmishGLA': '', 'SkirmishGLADemolitionGeneral': 'Demo_', 'SkirmishGLAStealthGeneral': 'Slth_'}

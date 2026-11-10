@@ -66,7 +66,7 @@ extern GameWindowManager *TheWindowManager;
 
 namespace {
 
-// GeneralsX @feature Claude 25/09/2026 The last SDL key-down, for forwardTextInputEvent to tell a keystroke's
+// GeneralsX: The last SDL key-down, for forwardTextInputEvent to tell a keystroke's
 // text from an IME's. A text event is a keystroke only when it is the one character that key-down itself
 // names (its layout keycode, case aside), and only the first text straight after it (pollSDL3Events clears it
 // on any event but a key-up in between): an IME's commit follows the key that committed it (Space, Return, a
@@ -174,7 +174,7 @@ void SDL3GameEngine::init(void)
 	fprintf(stderr, "INFO: SDL3GameEngine::init() starting\n");
 
 	if (TheGlobalData && TheGlobalData->m_headless) {
-		// GeneralsX @bugfix Copilot 17/05/2026 Allow headless replay path to initialize engine subsystems without an SDL window.
+		// GeneralsX: Allow headless replay path to initialize engine subsystems without an SDL window.
 		fprintf(stderr, "INFO: SDL3GameEngine::init() headless mode - skipping SDL window binding\n");
 		m_SDLWindow = nullptr;
 		m_IsInitialized = true;
@@ -263,7 +263,7 @@ void SDL3GameEngine::setIsActive(Bool isActive)
 }
 
 /**
- * GeneralsX @feature Claude 27/09/2026 The refresh rate of the display the game window is on, rounded to
+ * GeneralsX: The refresh rate of the display the game window is on, rounded to
  * whole Hz (59.94 -> 60, 119.88 -> 120), or 0 when SDL cannot say: headless (no window), or a mode that
  * reports no rate. The max-FPS cap's default when the launcher sets none (Common/FpsLimitPolicy.h). The
  * same SDL_GetDisplayForWindow + SDL_GetCurrentDisplayMode pair W3DDisplay already sizes the window with.
@@ -300,7 +300,7 @@ void SDL3GameEngine::pollSDL3Events(void)
 
 	SDL_Event event;
 	while (SDL_PollEvent(&event)) {
-		// GeneralsX @feature Claude 25/09/2026 A key-down vouches only for the text that comes straight
+		// GeneralsX: A key-down vouches only for the text that comes straight
 		// after it (s_keyDownChar, ComboVouchSurvives): key-ups may come between, nothing else.
 		if (!ComboVouchSurvives(event.type == SDL_EVENT_KEY_DOWN || event.type == SDL_EVENT_KEY_UP ||
 		                        event.type == SDL_EVENT_TEXT_INPUT)) {
@@ -406,7 +406,7 @@ void SDL3GameEngine::updateTextInputState(void)
 // GeneralsX @bugfix felipebraz 01/04/2026 Forward SDL UTF-8 text input through existing GWM_IME_CHAR path.
 void SDL3GameEngine::forwardTextInputEvent(const char* utf8Text)
 {
-	// GeneralsX @feature Claude 25/09/2026 Taken before any return: one key-down vouches for one text event.
+	// GeneralsX: Taken before any return: one key-down vouches for one text event.
 	const WideChar keyDownChar = s_keyDownChar;
 	s_keyDownChar = 0;
 
@@ -445,7 +445,7 @@ void SDL3GameEngine::forwardTextInputEvent(const char* utf8Text)
 		chars.push_back(static_cast<WideChar>(codepoint));
 	}
 
-	// GeneralsX @feature Claude 25/09/2026 Say how the text came (GWM_IME_CHAR_* in GameWindow.h), as Win32's
+	// GeneralsX: Say how the text came (GWM_IME_CHAR_* in GameWindow.h), as Win32's
 	// WM_CHAR lParam does: the one character the key just pressed names is a keystroke, flagged as an
 	// auto-repeat when that key-down was SDL's repeat (see s_keyDownChar); anything else - IME or dead-key
 	// composition output - is not. The drop-down letter keys pick only with a typed, non-repeated letter
@@ -590,7 +590,7 @@ FunctionLexicon *SDL3GameEngine::createFunctionLexicon(void)
 }
 // GX-SIMID-END
 
-// GeneralsX @bugfix Copilot 15/04/2026 Match upstream GameEngine pure-virtual signature after sync.
+// GeneralsX: Match upstream GameEngine pure-virtual signature after sync.
 Radar *SDL3GameEngine::createRadar(Bool dummy)
 {
 	// GeneralsX @bugfix fbraz 04/05/2026 Respect headless mode and create dummy radar.
@@ -604,7 +604,7 @@ Radar *SDL3GameEngine::createRadar(Bool dummy)
 	return NEW W3DRadar;
 }
 
-// GeneralsX @bugfix Copilot 24/03/2026 Match upstream GameEngine pure-virtual signature after sync.
+// GeneralsX: Match upstream GameEngine pure-virtual signature after sync.
 ParticleSystemManager* SDL3GameEngine::createParticleSystemManager(Bool dummy)
 {
 	// GeneralsX @bugfix fbraz 04/05/2026 Respect headless mode and create dummy particle manager.
@@ -626,8 +626,8 @@ WebBrowser *SDL3GameEngine::createWebBrowser(void)
 
 /**
  * Factory method: AudioManager
- * GeneralsX @feature BenderAI 10/03/2026 - Use OpenAL when available, otherwise silent dummy
- * GeneralsX @bugfix Copilot 15/04/2026 Match upstream GameEngine pure-virtual signature after sync.
+ * GeneralsX: Use OpenAL when available, otherwise silent dummy
+ * GeneralsX: Match upstream GameEngine pure-virtual signature after sync.
  */
 AudioManager *SDL3GameEngine::createAudioManager(Bool dummy)
 {

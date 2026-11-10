@@ -266,7 +266,7 @@ public:
 		WITHIN_ATTACK_RANGE								= 1 << 4,
 		UNFOGGED													= 1 << 5
 	};
-	// GeneralsX @performance Claude 23/09/2026 noCandidates (optional out): set TRUE when no object passed the filters, so an info-less retry with the same filters must also return null.
+	// GeneralsX: noCandidates (optional out): set TRUE when no object passed the filters, so an info-less retry with the same filters must also return null.
 	Object *findClosestEnemy( const Object *me, Real range, UnsignedInt qualifiers,
 		const AttackPriorityInfo *info=nullptr, PartitionFilter *optionalFilter=nullptr, Bool *noCandidates=nullptr);
 
@@ -304,7 +304,7 @@ public:
 protected:
 	Pathfinder *m_pathfinder;							///< the pathfinding system
 	std::list<AIGroup *> m_groupList;			///< the list of AIGroups
-	// GeneralsX @performance Claude 28/09/2026 O(1) lookup for destroyGroup, which did a std::find over m_groupList.
+	// GeneralsX: O(1) lookup for destroyGroup, which did a std::find over m_groupList.
 	// RETAIL_COMPATIBLE_AIGROUP keeps retail's AIGroup leak, so the list grows all match and that search reached ~29%
 	// of late-game logic time. Lookup-only and never iterated: m_groupList keeps its exact contents and order, which
 	// AI::crc hashes and findGroup scans. Every list insert/erase below keeps the two in step.

@@ -125,7 +125,7 @@ void OptionPreferences::setCampaignDifficulty(Int diff)
 	(*this)["CampaignDifficulty"] = prefString;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 IPAddress (LAN) and GameSpyIPAddress as Direct Connect reads it are both
+// GeneralsX: IPAddress (LAN) and GameSpyIPAddress as Direct Connect reads it are both
 // just a remembered pick from the enumeration - the in-game Options menu writes the list head into
 // both on any save - so both follow "Use my VPN for LAN" the same way
 // (IPEnumeration::isSavedAddressUsable): a saved address on the side the switch does not prefer
@@ -167,7 +167,7 @@ static UnsignedInt gxLiveAddress( const AsciiString &selectedIP )
 	return 0;
 }
 
-// GeneralsX @feature Claude 28/09/2026 "Use my VPN for LAN", written by the launcher's Options page.
+// GeneralsX: "Use my VPN for LAN", written by the launcher's Options page.
 // Absent or anything but "yes" is off, so retail and every existing Options.ini keep the default.
 Bool OptionPreferences::getUseVPNForLAN() const
 {
@@ -187,7 +187,7 @@ void OptionPreferences::setLANIPAddress(UnsignedInt IP)
 	(*this)["IPAddress"] = tmp;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 (Codex rel0948-r3) GameSpy chat binds to this (PeerThread), and its
+// GeneralsX: GameSpy chat binds to this (PeerThread), and its
 // fallback was m_defaultIP - which is now the LAN election and follows "Use my VPN for LAN", so the LAN-only
 // switch could bind chat to a tailnet with no internet route. The fallback is 0.9.47's m_defaultIP instead:
 // the saved IPAddress when an interface holds it (retail getLANIPAddress), else m_defaultIP, which in that
@@ -202,7 +202,7 @@ UnsignedInt OptionPreferences::getOnlineIPAddress()
 	return ip != 0 ? ip : TheGlobalData->m_defaultIP;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 (Codex seam0948-r6) What the Options menu's online selector shows, and
+// GeneralsX: What the Options menu's online selector shows, and
 // saves on Accept: getOnlineIPAddress when an interface holds it, else the head the list would have with "Use
 // my VPN for LAN" off - never the VPN-first head, which would persist a tailnet as GameSpyIPAddress. With the
 // switch off that head IS the list head, as before. The menu asks this before its LAN selector rewrites
@@ -227,7 +227,7 @@ UnsignedInt OptionPreferences::getOnlineIPSelection()
 	return best != nullptr ? best->getIP() : 0;
 }
 
-// GeneralsX @bugfix Claude 28/09/2026 The same saved key, read for Direct Connect only: Direct Connect
+// GeneralsX: The same saved key, read for Direct Connect only: Direct Connect
 // is where "Use my VPN for LAN" matters (a game joined by IP over a tailnet), while the GameSpy chat
 // binding (PeerThread) keeps its retail reading through getOnlineIPAddress above.
 UnsignedInt OptionPreferences::getDirectConnectIPAddress()
@@ -286,7 +286,7 @@ static UnsignedInt parseVirtualIP(AsciiString value, UnsignedInt defaultIP)
 	return (octet[0] << 24) | (octet[1] << 16) | (octet[2] << 8) | octet[3];
 }
 
-// GeneralsX @bugfix Claude 15/08/2026 A fresh install had NO relay and therefore no online game.
+// GeneralsX: A fresh install had NO relay and therefore no online game.
 //
 // getRelayAddress() returned empty when the key was absent, and nothing on any platform ever wrote
 // it: the macOS bundle ships no Options.ini at all, the iOS config carries only LOD settings, and
@@ -325,7 +325,7 @@ static Bool gxRelayDisabledByEnv( void )
 	return (v != NULL && *v != '\0' && *v != '0') ? TRUE : FALSE;
 }
 
-// GeneralsX @feature Claude 29/10/2026 S1-3 relay-list-v2: THE SIGNED LIST IS NOW CONSULTED, between the pin and the
+// GeneralsX: S1-3 relay-list-v2: THE SIGNED LIST IS NOW CONSULTED, between the pin and the
 // bootstrap. The order is unchanged at both ends - GENERALSX_NO_RELAY, then a non-blank RelayAddress (with
 // "none" meaning no relay), then the compiled-in name - and the list's HOME slots in only where the bootstrap used to
 // be: an absent or blank key. So every harness that writes "none", every pinned lab relay and every Windows install
@@ -420,7 +420,7 @@ AsciiString OptionPreferences::getRelayRoom() const
 	return it->second;
 }
 
-// GeneralsX @feature Claude 08/08/2026 The FALLBACK region for the browser's row prefix, used only
+// GeneralsX: The FALLBACK region for the browser's row prefix, used only
 // when the relay does not declare one itself (Transport's GXREGION). It exists so that labelling a
 // relay correctly is a data change and never a client release - see the note by RELAY_REGION_TAG in
 // Transport.cpp. Empty means "no opinion", which leaves Transport on its own default.
@@ -433,7 +433,7 @@ AsciiString OptionPreferences::getRelayRegion() const
 	return it->second;
 }
 
-// GeneralsX @feature Claude 08/08/2026 The player's own veto on direct connections.
+// GeneralsX: The player's own veto on direct connections.
 //
 // Absent means "no objection", which is the only default that lets the feature exist at all -
 // but note it is NOT on its own enough to turn direct connections on. Transport also requires the
@@ -476,7 +476,7 @@ UnsignedInt OptionPreferences::getPeerVirtualIP() const
 
 Bool OptionPreferences::getArchiveReplaysEnabled() const
 {
-	// GeneralsX @bugfix Claude 20/09/2026 DEFAULTS ON, because off meant every match was destroyed.
+	// GeneralsX: DEFAULTS ON, because off meant every match was destroyed.
 	// RecorderClass writes one replay per match to a FIXED name - lastReplayFileName is the literal
 	// "00000000" (Recorder.cpp:96) - so each match overwrites the previous one. archiveReplay()
 	// (Recorder.cpp:758, TheSuperHackers @feature Stubbjax 17/10/2025) already copies it to
@@ -968,7 +968,7 @@ Bool OptionPreferences::getDynamicLODEnabled()
 	return FALSE;
 }
 
-// GeneralsX @feature Claude 27/09/2026 LEGACY, read once at startup and only when no -fps / -noFPSLimit was
+// GeneralsX: LEGACY, read once at startup and only when no -fps / -noFPSLimit was
 // given (GameEngine::init). The launcher before the one max-FPS setting spelled "uncapped" as FPSLimit = no;
 // the launcher now reads that key as 0 = unlimited and removes it on its next frame-rate write
 // (gxio::options::fps_cap), and a direct launch (run-macos-zh.sh, run-linux-zh.sh) must agree with it.
@@ -1150,7 +1150,7 @@ Int OptionPreferences::getGameTimeFontSize()
 	return fontSize;
 }
 
-// GeneralsX @feature Claude 13/08/2026 The in-game message list's size, as a USER preference.
+// GeneralsX: The in-game message list's size, as a USER preference.
 //
 // Those messages ("Unit under attack", "Upgrade Complete", "... has been Defeated") are sized by
 // MessagePointSize in the InGameUI INI block, overridden by the language data. Neither is reachable

@@ -1,4 +1,4 @@
-// GeneralsX @feature D · rw3-X-2 13/10/2026 A23-B: the EXEC digest hook - TEST-ONLY (perf-audit/DESIGN_A23_wide-ring.md v8.1 §7.1).
+// GeneralsX: A23-B: the EXEC digest hook - TEST-ONLY (perf-audit/DESIGN_A23_wide-ring.md v8.1 §7.1).
 //
 // Every EXEC half - on gx-native-cs, inline (GX_NATIVE_CS=0) or inside an S body - reports itself at its top, in the order it
 // RUNS: (op, canonical arguments, payload bytes). Both modes run the same halves, so a correct worker gives the same stream; a

@@ -1,4 +1,4 @@
-// GeneralsX @feature Claude 28/09/2026 - [GXGFX], the per-frame render split (graphics P2, item i-01).
+// GeneralsX: [GXGFX], the per-frame render split (graphics P2, item i-01).
 //
 // WHY. No perf claim, governor or upscaler decision can be made until a rendered frame can be split
 // honestly, and the live build had no per-frame render timer at all: [GXDRAW] counts draws (badly, see
@@ -76,7 +76,7 @@ inline int64_t gxGfxBucketHigh( int i )
 	return (int64_t)( 9 + i % 8 ) << ( bw - 4 );
 }
 
-// GeneralsX @feature Claude 28/09/2026 [GXGFXF] (graphics P2 c3-12): where the `scene` span goes, and the per-feature
+// GeneralsX: [GXGFXF] (graphics P2 c3-12): where the `scene` span goes, and the per-feature
 // work the T3 features (lights, water, particles) will grow. Printed with GX_GFX=1, one line per [GXGFX] window.
 // Sub-spans (wall only, one read per boundary) split RTS3DScene::Customized_Render and RTS3DScene::Flush in their
 // own order: vis (visibility check), fupd (every render object's On_Frame_Update: terrain dynamic relight,
@@ -99,7 +99,7 @@ static const char *const kGxGfxSubName[GXSUB_N] = {
 enum GxGfxFeat { GXF_LIGHTS, GXF_RELIT, GXF_SMCOPY, GXF_PON, GXF_PTOT, GXF_HMUPD, GXF_N };
 static const char *const kGxGfxFeatName[GXF_N] = { "lights", "relit", "smcopy", "pon", "ptot", "hmupd" };
 
-// GeneralsX @feature Claude 28/09/2026 [GXSHADOW] (graphics P2 c1-01): where the stencil-shadow CPU goes TODAY.
+// GeneralsX: [GXSHADOW] (graphics P2 c1-01): where the stencil-shadow CPU goes TODAY.
 // Every shadow profile on record predates the 23/09 shadow fixes (TS-06 reuse, the 64K ring, setShadowWorld,
 // world-space upload, the cull-before-height), so the current cost is unknown. GX_SHADOWSTATS=1 (with GX_GFX=1,
 // whose window it shares) counts and times inside W3DVolumetricShadowManager::renderShadows and the player-colour
@@ -167,7 +167,7 @@ struct GxGfxState
 	int64_t  cliStart;
 	int64_t  subLast;					// [GXGFXF] the previous sub-span boundary
 	// this draw's [GXGFXF] and [GXSHADOW] measurements: merged into the window only by a completed draw's commit,
-	// dropped by a skip, so a pass that never presents is never charged to another frame (Codex gfxp2-r2)
+	// dropped by a skip, so a pass that never presents is never charged to another frame
 	int64_t  subDraw[ GXSUB_N ];
 	uint64_t featDraw[ GXF_N ];
 	uint64_t shadowDraw[ GXS_N ];
@@ -181,7 +181,7 @@ struct GxGfxState
 	double   cyclesPerNs;				// Windows only; 0 elsewhere
 	double   readWallNs, readCpuNs;
 #if defined(_WIN32)
-	// Codex gfxp2-r5: the cycles->ns ratio is measured once. Each window re-derives it from the kernel's own thread
+	// the cycles->ns ratio is measured once. Each window re-derives it from the kernel's own thread
 	// accounting (GetThreadTimes, 100 ns units but tick-quantised), printed as cpnw=, so a rate that drifted with
 	// boost or throttling is SEEN rather than trusted. These hold the previous window's readings.
 	ULONG64  winCycles0;
@@ -195,7 +195,7 @@ struct GxGfxState
 
 inline GxGfxState g_gxGfx;
 
-// GeneralsX @test Claude 08/10/2026 [GXCENSUS] (GX_DRAWCENSUS=1 with GX_GFX=1; R-CPU roadmap step 2): the draw/state
+// GeneralsX: [GXCENSUS] (GX_DRAWCENSUS=1 with GX_GFX=1; R-CPU roadmap step 2): the draw/state
 // census per [GXGFXF] sub-span. The counters are WW3D2's never-reset totals (DX8Wrapper::Census, names and meaning
 // in dx8wrapper.h enum DX8CensusCounter); W3DDisplay attaches them here because WW3D2 cannot include this file. Each
 // sub-span mark charges the counters' movement since the previous mark to that sub-span, exactly as it charges the
@@ -252,7 +252,7 @@ inline int gxGfxHitchMs()
 	return s_ms;
 }
 
-// GeneralsX @feature Claude 17/10/2026 The look governor (GXLookGovernor.h, S14) needs this frame's draw CPU and Present wait
+// GeneralsX: The look governor (GXLookGovernor.h, S14) needs this frame's draw CPU and Present wait
 // without the printed lines: W3DDisplay sets this once, before the first frame it governs. The clocks then run as with
 // GX_HITCH alone (frames are marked, nothing accumulates or prints unless GX_GFX is set too).
 inline bool g_gxGfxGovTiming = false;
@@ -557,7 +557,7 @@ inline void gxGfxClientBegin()
 		g_gxGfx.cliStart = gxGfxWallNs();
 }
 
-// GeneralsX @test Claude 02/10/2026 Leave a span out of cli= (H02's orders-before-draw pass, GameClient.cpp): cli - draw stays
+// GeneralsX: Leave a span out of cli= (H02's orders-before-draw pass, GameClient.cpp): cli - draw stays
 // client work outside the renderer, comparable with builds that translated the orders after the client update.
 inline void gxGfxClientExclude( int64_t ns )
 {
@@ -575,7 +575,7 @@ inline void gxGfxClientEnd()
 	g.cliStart = 0;
 }
 
-// GeneralsX @feature Claude 28/09/2026 [GXDRAWP] (graphics P2 f-06): the W8 per-hitch draw split
+// GeneralsX: [GXDRAWP] (graphics P2 f-06): the W8 per-hitch draw split
 // (test/w8-probe9 6064c467e), ported onto the [GXGFX] marks instead of merged. W8 read CLOCK_THREAD_CPUTIME_ID
 // unconditionally on every frame (it does not compile under MSVC, and its reads ran with the print off); here
 // the marks run only when GX_GFX or GX_HITCH is set, Windows gets the calibrated cycle clock, and every span is
@@ -673,7 +673,7 @@ struct GxGfxFeatScope	// times a whole function into a feature counter, across e
 };
 
 #if defined(__APPLE__)
-// GeneralsX @feature Claude 28/09/2026 [GXGFX] therm= lpm= (graphics P2 i-08): the OS's own throttling signals, the
+// GeneralsX: [GXGFX] therm= lpm= (graphics P2 i-08): the OS's own throttling signals, the
 // iPad governor's slow prior. NSProcessInfo.thermalState is 0 nominal, 1 fair, 2 serious, 3 critical (macOS 10.10.3+,
 // iOS 11+; by Apple's header only serious/critical mean performance may be reduced), isLowPowerModeEnabled is 0/1
 // (iOS 9+, macOS 12+). Asked through the Objective-C runtime from plain C++, under PRIVATE asm-label aliases: this

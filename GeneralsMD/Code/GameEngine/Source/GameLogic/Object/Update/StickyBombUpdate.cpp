@@ -273,11 +273,11 @@ void StickyBombUpdate::detonate()
 		}
 	}
 
-	// GeneralsX @bugfix Claude 09/10/2026 Clear on detonation in both arms, not only in RETAIL_COMPATIBLE_CRC as upstream #3060
+	// GeneralsX: Clear on detonation in both arms, not only in RETAIL_COMPATIBLE_CRC as upstream #3060
 	// has it. kill() does not delete the bomb at once (destroyObject runs at the end of the frame, or after a
 	// SlowDeathBehavior delay in a mod), and Object::checkAndDetonateBoobyTrap finds a trap by its producer without
 	// skipping dying ones, so while the status stayed set a second trigger detonated the same trap again
-	// (Codex tsh-port-1008-r3 P2). onDelete below still clears it for a trap that goes away without detonating.
+	// onDelete below still clears it for a trap that goes away without detonating.
 	if( getObject()->isKindOf(KINDOF_BOOBY_TRAP) && boobyTrappedObject )
 	{
 		// This kind of sticky bomb needs to set a status, so the poor victim can trigger us from assorted places
@@ -288,7 +288,7 @@ void StickyBombUpdate::detonate()
 }
 
 #if !RETAIL_COMPATIBLE_CRC
-// GeneralsX @bugfix Claude 09/10/2026 TRUE when a live booby trap other than 'self' sits on 'victim' (not dying, not already
+// GeneralsX: TRUE when a live booby trap other than 'self' sits on 'victim' (not dying, not already
 // destroyed: disarming removes a trap with destroyObject, which leaves it in the list until the end of the frame, sec-r4 P2). A sticky bomb names
 // the thing it is on as its producer (initStickyBomb), which is how Object::checkAndDetonateBoobyTrap finds it too.
 static Bool gxAnotherBoobyTrapOn( const Object *victim, const Object *self )
@@ -309,8 +309,8 @@ void StickyBombUpdate::onDelete()
 		Object* boobyTrappedObject = getTargetObject();
 
 		// This kind of sticky bomb needs to set a status, so the poor victim can trigger us from assorted places
-		// GeneralsX @bugfix Claude 09/10/2026 ...unless a newer trap is on it now: detonate() already cleared the status, and a
-		// trap placed while this one was still dying set it again (Codex tsh-port-1008-r3 P2).
+		// GeneralsX: ...unless a newer trap is on it now: detonate() already cleared the status, and a
+		// trap placed while this one was still dying set it again.
 		if (boobyTrappedObject && !gxAnotherBoobyTrapOn(boobyTrappedObject, getObject()))
 			boobyTrappedObject->clearStatus(MAKE_OBJECT_STATUS_MASK(OBJECT_STATUS_BOOBY_TRAPPED));
 	}

@@ -1,6 +1,6 @@
 // A23-B (D · rw3-X-2 13/10/2026): GX_EXEC_DIGEST=<file> writes each arm's EXEC digest and creation ledger there, one line per
 // arm, for the suite-level equality gate (run the suite with GX_NATIVE_CS=0, again 0, then 1 and compare the files).
-// GeneralsX @test E · rw3-S 11/10/2026 gx_proxy_test: the IDirect3D8 proxy and the session rows S2-S10 (DESIGN_l1-device.md §2),
+// GeneralsX: gx_proxy_test: the IDirect3D8 proxy and the session rows S2-S10 (DESIGN_l1-device.md §2),
 // offscreen, on a stub "DXVK" parent that counts the calls forwarded to it. One case per row; every case has an X- arm that turns
 // on the matching GxNativeSessionDebug plant in the PRODUCT proxy and must make exactly that case fail.
 //
@@ -360,7 +360,7 @@ bool caseS4(GxNativeSessionDebug& p, std::string* d)
 			ok = false;
 		}
 	}
-	// MSAA parity (Codex r1 P2): a sparse sample mask where DXVK's decode grants a count the device cannot
+	// MSAA parity: a sparse sample mask where DXVK's decode grants a count the device cannot
 	CHECK(GxNativeDxvkSampleCount(2, 0xd) == 2 && GxNativeDxvkSampleCount(16, 0xf) == 8 && GxNativeDxvkSampleCount(0, 0x1) == 1 &&
 		GxNativeDxvkSampleCount(4, 0x1) == 1, "GxNativeDxvkSampleCount");
 	{
@@ -391,7 +391,7 @@ bool caseS4(GxNativeSessionDebug& p, std::string* d)
 		const Run r2 = run(pp, p);
 		CHECK(r2.after.BackBufferFormat == D3DFMT_UNKNOWN && r2.after.BackBufferCount == 0, "a call d3d8 refuses converted the caller's struct");
 		clean();
-		D3DPRESENT_PARAMETERS cp = goodPP();   // COPY with two buffers: d3d8 refuses before converting (Codex native-ipad-r3 P3)
+		D3DPRESENT_PARAMETERS cp = goodPP();   // COPY with two buffers: d3d8 refuses before converting
 		cp.BackBufferFormat = D3DFMT_UNKNOWN;
 		cp.BackBufferCount = 2;
 		cp.SwapEffect = D3DSWAPEFFECT_COPY;

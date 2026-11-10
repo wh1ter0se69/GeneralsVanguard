@@ -741,7 +741,7 @@ RenderObjClass * W3DAssetManager::Create_Render_Obj(
 		const char *mesh_name = strchr (name, '.');
 		if (mesh_name != nullptr)
 		{
-			// GeneralsX @bugfix BenderAI 10/02/2026 - Use ptrdiff_t to avoid pointer-to-int truncation on 64-bit
+			// GeneralsX: Use ptrdiff_t to avoid pointer-to-int truncation on 64-bit
 		lstrcpyn(filename, name, (int)(mesh_name - name) + 1);
 			lstrcat(filename, ".w3d");
 		} else {

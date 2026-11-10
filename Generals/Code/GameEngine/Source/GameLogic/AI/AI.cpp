@@ -469,7 +469,7 @@ AIGroupPtr AI::createGroup()
  */
 void AI::destroyGroup( AIGroup *group )
 {
-	// GeneralsX @performance Claude 28/09/2026 was std::find over m_groupList; the index answers the same question in O(1)
+	// GeneralsX: was std::find over m_groupList; the index answers the same question in O(1)
 	std::hash_map<AIGroup *, std::list<AIGroup *>::iterator>::iterator found = m_groupIndex.find( group );
 
 	// make sure group is actually in the list
@@ -598,7 +598,7 @@ static void priorityFunc(Object *obj, void *userData)
 Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifiers,
 														 const AttackPriorityInfo *info, PartitionFilter *optionalFilter, Bool *noCandidates)
 {
-	// GeneralsX @performance Claude 23/09/2026 Report "no object passed the filters" so AIHuntState can skip an identical retry.
+	// GeneralsX: Report "no object passed the filters" so AIHuntState can skip an identical retry.
 	if (noCandidates)
 		*noCandidates = FALSE;
 
@@ -608,7 +608,7 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 			PartitionFilterPossibleToAttack would filter out everything anyway,
 			so just punt here.
 		*/
-		// GeneralsX @performance Claude 23/09/2026 nothing can pass PartitionFilterPossibleToAttack either.
+		// GeneralsX: nothing can pass PartitionFilterPossibleToAttack either.
 		if (noCandidates)
 			*noCandidates = TRUE;
 		return nullptr;
@@ -693,7 +693,7 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 	{
 		// No additional attack info, so just return the closest one.
 		Object* o = ThePartitionManager->getClosestObject( me, range, FROM_BOUNDINGSPHERE_2D, filters );
-		// GeneralsX @performance Claude 23/09/2026 getClosestObject returns null only when no object passed the filters.
+		// GeneralsX: getClosestObject returns null only when no object passed the filters.
 		if (noCandidates)
 			*noCandidates = (o == nullptr);
 		return o;
@@ -704,7 +704,7 @@ Object *AI::findClosestEnemy( const Object *me, Real range, UnsignedInt qualifie
 	Int			actualPriority=0;
 	ObjectIterator *iter = ThePartitionManager->iterateObjectsInRange(me, range, FROM_BOUNDINGSPHERE_2D, filters, ITER_SORTED_NEAR_TO_FAR);
 	MemoryPoolObjectHolder holder(iter);
-	// GeneralsX @performance Claude 23/09/2026 an empty iterator means no object passed the filters.
+	// GeneralsX: an empty iterator means no object passed the filters.
 	if (noCandidates)
 		*noCandidates = (iter->first() == nullptr);
 	for (Object *theEnemy = iter->first(); theEnemy; theEnemy = iter->next())

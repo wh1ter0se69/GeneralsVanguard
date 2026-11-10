@@ -488,12 +488,12 @@ static Bool parseTooltip( const char *token, WinInstanceData *instData,
 
 }
 
-// GeneralsX @feature Claude 20/08/2026 This window's uniform factor, captured in parseScreenRect so
+// GeneralsX: This window's uniform factor, captured in parseScreenRect so
 // its FONT can be sized to match its box. SCREENRECT is parsed before the field loop that reads
 // FONT, so this is always the current window's scale and never a neighbour's.
 static Real s_gxLayoutFontScale = 1.0f;
 
-// GeneralsX @bugfix Claude 25/08/2026 The row/column groups for the layout being parsed.
+// GeneralsX: The row/column groups for the layout being parsed.
 //
 // parseScreenRect maps one window at a time, and parent and sibling links are applied after the
 // mapping, so at map time there is nothing to anchor a ROW on - which is why ExtrasMenu.wnd's
@@ -505,7 +505,7 @@ static Real s_gxLayoutFontScale = 1.0f;
 // the top of every winCreateFromScript so one layout's groups can never leak into the next.
 static LayoutScaleGroupTable s_gxLayoutGroups;
 
-// GeneralsX @bugfix Claude 25/08/2026 Pass one: collect the layout's authored rects and group them,
+// GeneralsX: Pass one: collect the layout's authored rects and group them,
 // before a single window exists.
 //
 // A SECOND OPEN of the same file rather than a rewind of the parse handle. The parse handle has
@@ -541,7 +541,7 @@ static void gxScanLayoutGroups( const char *filepath )
 	delete [] text;
 }
 
-// GeneralsX @feature Claude 20/08/2026 The factor text must share with the box it sits in.
+// GeneralsX: The factor text must share with the box it sits in.
 //
 // In UNIFORM the boxes are scaled by min(xScale,yScale) x the dial. Text that does not move by the
 // SAME factor overflows a box that got narrower.
@@ -596,13 +596,13 @@ static Bool parseScreenRect( const char *token, char *buffer,
 	Real xScale = (Real)TheDisplay->getWidth() / (Real)createRes.x;
 	Real yScale = (Real)TheDisplay->getHeight() / (Real)createRes.y;
 
-	// GeneralsX @feature Claude 20/08/2026 This window's uniform factor, so its FONT can use it too.
+	// GeneralsX: This window's uniform factor, so its FONT can use it too.
 	// Set here, read by gxLayoutTextFactor; SCREENRECT is parsed before the field loop that reads
 	// FONT, so this is always the current window's scale and never a neighbour's.
 	s_gxLayoutFontScale = ( xScale < yScale ) ? xScale : yScale;
 	if( s_gxLayoutFontScale <= 0.0f )
 		s_gxLayoutFontScale = 1.0f;
-	// GeneralsX @feature Claude 20/08/2026 See GameClient/LayoutScale.h. Identical arithmetic in the
+	// GeneralsX: See GameClient/LayoutScale.h. Identical arithmetic in the
 	// default STRETCH mode - the four casts moved out of this function, they did not change.
 	{
 		LayoutScaleContext lsCtx;
@@ -619,7 +619,7 @@ static Bool parseScreenRect( const char *token, char *buffer,
 		authoredRect.hiX = screenRegion.hi.x;
 		authoredRect.hiY = screenRegion.hi.y;
 
-		// GeneralsX @bugfix Claude 25/08/2026 Anchor on the ROW this control belongs to, not on the
+		// GeneralsX: Anchor on the ROW this control belongs to, not on the
 		// control. The group came from the first pass in winCreateFromScript; a miss (a layout that
 		// was not scanned, or one past the table's cap) passes NULL and keeps the previous behaviour.
 		LayoutRect groupRect;
@@ -2541,7 +2541,7 @@ static GameWindow *parseWindow( File *inFile, char *buffer )
 			else if (asciibuf.compare("END") == 0)
 			{
 				// Check to see if we have a header template, if so, set the font equal to that.
-				// GeneralsX @bugfix Claude 20/08/2026 In UNIFORM, rebuild the header template's font at the
+				// GeneralsX: In UNIFORM, rebuild the header template's font at the
 				// layout's own factor instead of taking the one adjustFontSize sized.
 				//
 				// A HEADERTEMPLATE discards the FONT this .wnd asked for - 134 of the 290 controls loaded
@@ -2563,7 +2563,7 @@ static GameWindow *parseWindow( File *inFile, char *buffer )
 						Int pt = REAL_TO_INT_FLOOR( (Real)ht->m_point * gxLayoutTextFactor() );
 						if( pt < 1 )
 							pt = 1;
-						// GeneralsX @bugfix Claude 24/09/2026 FontLibrary::getFont no longer refuses above 100
+						// GeneralsX: FontLibrary::getFont no longer refuses above 100
 						// (upstream #3051, 620a173c6); it clamps at 512. This clamp stays as a fork-local
 						// bound: above about 170 pt a glyph is taller than the 256-pixel glyph atlas and
 						// Blit_Char clips it, so a bigger header would draw cut-off text.
@@ -2865,7 +2865,7 @@ GameWindow *GameWindowManager::winCreateFromScript( AsciiString filenameString,
 	else
 		strlcpy(filepath, filename, ARRAY_SIZE(filepath));
 
-	// GeneralsX @bugfix Claude 25/08/2026 Pass one, before any window is created, so parseScreenRect
+	// GeneralsX: Pass one, before any window is created, so parseScreenRect
 	// has a ROW to anchor on. Resets the table unconditionally - a layout that is not scanned must
 	// not inherit the previous layout's groups. See gxScanLayoutGroups above.
 	gxScanLayoutGroups( filepath );

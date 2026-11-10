@@ -30,7 +30,7 @@
 // INCLUDES ///////////////////////////////////////////////////////////////////////////////////////
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
-// GeneralsX @bugfix Claude 07/25/2026 copyReplay() needs to tell iOS apart from macOS when it
+// GeneralsX: copyReplay() needs to tell iOS apart from macOS when it
 // picks a fallback destination folder; TARGET_OS_IPHONE is only defined once this is included.
 #if defined(__APPLE__)
 #include <TargetConditionals.h>
@@ -280,7 +280,7 @@ void PopulateReplayFileListbox(GameWindow *listbox)
 	for (it = replayFilenames.begin(); it != replayFilenames.end(); ++it)
 	{
 		// just want the filename
-		// GeneralsX @bugfix copilot 12/03/2026 Handle both slash styles and avoid nullptr + 1 when no separator is found.
+		// GeneralsX: Handle both slash styles and avoid nullptr + 1 when no separator is found.
 		const char *filenameNoPath = (*it).reverseFind('\\');
 		if (!filenameNoPath)
 		{
@@ -600,11 +600,11 @@ static void loadReplay(UnicodeString filename)
 	}
 	else if(!TheRecorder->replayMatchesGameVersion(header))
 	{
-		// GeneralsX @feature Claude 01/10/2026 Refuse, never offer OK: a replay of another simulation (SimID) plays
+		// GeneralsX: Refuse, never offer OK: a replay of another simulation (SimID) plays
 		// wrong, and playbackFile would refuse it anyway (Recorder.cpp replayMatchesGameVersion).
 		UnicodeString title = TheGameText->FETCH_OR_SUBSTITUTE("GUI:ReplayIncompatibleTitle", L"REPLAY CANNOT BE PLAYED");
 		UnicodeString body;
-		// GeneralsX @feature Claude 01/10/2026 Promise later launcher playback only where the header names the build.
+		// GeneralsX: Promise later launcher playback only where the header names the build.
 		body.format(header.hasIdentity
 			? TheGameText->FETCH_OR_SUBSTITUTE("GUI:ReplayIncompatible", L"This replay was recorded by %s. This version of the game cannot play it; a future launcher update can play it with the version that recorded it. The file is kept.").str()
 			: TheGameText->FETCH_OR_SUBSTITUTE("GUI:ReplayIncompatibleOld", L"This replay was recorded by %s, an older version that did not record which build made it. It cannot be played by this version of the game. The file is kept.").str(),
@@ -613,7 +613,7 @@ static void loadReplay(UnicodeString filename)
 	}
 	else if(!RecorderClass::replayMapDataMatches(header, info.getMap()))
 	{
-		// GeneralsX @feature Claude 02/10/2026 M1 2b (Codex m1det3-2b-r7 P2): say why, never "could not be opened" - playbackFile
+		// GeneralsX: M1 2b: say why, never "could not be opened" - playbackFile
 		// refuses this replay (MAP_DATA_DIFFERS) and the player can fix it by restoring the map's files.
 		UnicodeString title = TheGameText->FETCH_OR_SUBSTITUTE("GUI:ReplayIncompatibleTitle", L"REPLAY CANNOT BE PLAYED");
 		UnicodeString body = TheGameText->FETCH_OR_SUBSTITUTE("GUI:ReplayMapDataDiffers", L"This replay was recorded with different map.ini/solo.ini files for its map. Restore the map's files as they were when it was recorded to play it. The file is kept.");
@@ -828,7 +828,7 @@ void copyReplay()
 	translate.translate(GetReplayFilenameFromListbox(listboxReplayFiles, selected));
 	filename.concat(translate);
 
-	// GeneralsX @bugfix Claude 07/25/2026 'path' was uninitialized and the results of both shell
+	// GeneralsX: 'path' was uninitialized and the results of both shell
 	// calls were thrown away. Off Windows, SHGetSpecialFolderLocation/SHGetPathFromIDList are
 	// CompatLib stubs that always fail and never write to 'path', so newFilename.set(path) ran
 	// strlen() over indeterminate stack -- undefined behaviour on a button any player can press,
@@ -875,7 +875,7 @@ void copyReplay()
 
 	AsciiString newFilename;
 	newFilename.set(destDir);
-	// GeneralsX @bugfix copilot 12/03/2026 Use POSIX separator on non-Windows to avoid creating literal backslash filenames.
+	// GeneralsX: Use POSIX separator on non-Windows to avoid creating literal backslash filenames.
 #ifdef _WIN32
 	newFilename.concat("\\");
 #else

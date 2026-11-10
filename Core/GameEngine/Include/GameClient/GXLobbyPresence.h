@@ -18,7 +18,7 @@
 
 // FILE: GXLobbyPresence.h ///////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 14/08/2026 Shared Online-lobby presence, on a socket of its own.
+// GeneralsX: Shared Online-lobby presence, on a socket of its own.
 //
 // THE DEFECT THIS EXISTS TO FIX. Everyone browsing the Online screen sits in their OWN relay room:
 // SetUpOnlineLobbyLAN() enters Transport::getLocalHostRoom(), which is the room that client would
@@ -56,7 +56,7 @@
 // Common/, GameLogic/ or GameNetwork/ beyond udp.h. That constraint is the whole reason it can be
 // shipped on its own.
 //
-// GeneralsX @bugfix Claude 18/09/2026 One more, deliberately: GameNetwork/GXSecureClear.h, reached
+// GeneralsX: One more, deliberately: GameNetwork/GXSecureClear.h, reached
 // through GameClient/GXLobbyIdentity.h. It is header-only and dependency-free (one inline function
 // and a template), and including it moves no digest - the constraint above is about coupling to code
 // whose edits WOULD, and this is the one clear the optimiser may not drop, which signing out needs.
@@ -85,8 +85,8 @@ public:
 	// Mirrors the relay's MEMBERS_PER_ROOM. A roster larger than the relay ever sends is harmless;
 	// SMALLER silently drops members off the end of the lobby list, which is the failure mode that
 	// left rows 9-12 blank when the relay went 8 -> 12 and the client did not follow.
-	// GeneralsX @feature Claude 25/09/2026 12 -> 14 with the relay (12 players + 2 observers).
-	// GeneralsX @feature Claude 06/11/2026 scale32: 14 -> 34 with the relay (32 players + 2 observers). Move with Transport.h
+	// GeneralsX: 12 -> 14 with the relay (12 players + 2 observers).
+	// GeneralsX: scale32: 14 -> 34 with the relay (32 players + 2 observers). Move with Transport.h
 	// GX_ROSTER_MAX and WOLLobbyMenu.cpp GX_ROOM_SLOTS.
 	enum { GX_LOBBY_MAX_MEMBERS = 34 };
 	enum { GX_LOBBY_NICK_MAX    = 24 };		///< MAX_NICK_LEN on the relay, plus a NUL and slack
@@ -106,14 +106,14 @@ public:
 	void enterLobby( void );
 
 	/// Close the socket and forget the roster. Called when the Online screens are left for good.
-	/// GeneralsX @bugfix Claude 18/09/2026 And the sign-in copy, every byte - see clearIdentity.
+	/// GeneralsX: And the sign-in copy, every byte - see clearIdentity.
 	void leaveLobby( void );
 
 	/// Stop the keepalive for the duration of a match without tearing anything down; resume()
 	/// reclaims the same id by presenting the kept secret, then asks GXWHO, which a relay answers with
 	/// a member's own id (see resume()).
 	///
-	/// GeneralsX @bugfix Claude 25/09/2026 (owner) suspend() SAYS GOODBYE (GXBYE), and it now HAS a
+	/// GeneralsX: suspend() SAYS GOODBYE (GXBYE), and it now HAS a
 	/// caller - gxMatchPresenceGate (GXMatchChat.h), on the edge into a network match. It had none, so
 	/// a player in a match kept their Online-lobby membership for the whole game: the lobby roster
 	/// and the admin panel both listed them "in the main lobby" and "in a game" at once - "it's not
@@ -123,7 +123,7 @@ public:
 	void resume( void );
 	Bool isSuspended( void ) const { return m_state == STATE_SUSPENDED; }
 
-	/// GeneralsX @feature Claude 25/09/2026 Did the relay this socket is admitted to say it RECORDS the
+	/// GeneralsX: Did the relay this socket is admitted to say it RECORDS the
 	/// GXM1 in-match chat envelope (the 'gxm1' word on GXAUTH, relay.js GXM1_CAP)? Rule L in the table
 	/// below: re-read from every GXAUTH for our (room, id); cleared when that (room, id) is replaced
 	/// (GXYOU) or closed with the socket; KEPT through suspend() - the match is exactly when it is read
@@ -131,7 +131,7 @@ public:
 	/// property: the record goes out as GXREC, which a relay that does not record drops.
 	Bool relayRecordsMatchChat( void ) const { return m_relayRecordsMatch; }
 
-	/// GeneralsX @bugfix Claude 07/11/2026 (STEP 0, lead C79) Did the relay GXPerfReport files to (getRelayAddr/getRelayPort)
+	/// GeneralsX: Did the relay GXPerfReport files to (getRelayAddr/getRelayPort)
 	/// say 'seats34' in the latest GXCAPS this socket heard from it? Only such a relay reads a GXSTAT, GXSEAT or GXEND past the
 	/// 0.9.69 ceilings (1100 / 1100 / 800 B); every other one refuses a longer line WHOLE, so the client composes under them
 	/// (gxRelayWireCeilings). Re-read from EVERY GXCAPS - a heartbeat riding each accepted registration - never latched: a
@@ -171,7 +171,7 @@ public:
 	/// `outFrom` receives the sender's virtual address.
 	Bool takeChat( UnicodeString &outText, UnsignedInt &outFrom );
 
-	/// GeneralsX @bugfix Claude 16/08/2026 A private line addressed in THIS room's slot space.
+	/// GeneralsX: A private line addressed in THIS room's slot space.
 	///
 	/// The unicast peer line already existed on the game socket (Transport::sendRelayPeerLine), and
 	/// every lobby caller was handing it a slot resolved out of the SHARED-room roster. Those are two
@@ -203,7 +203,7 @@ public:
 	/// Publish the name we want shown beside our address. Kept across a re-acquire.
 	void setNickname( const AsciiString &nick );
 
-	/// GeneralsX @bugfix Claude 18/09/2026 Publish the SIGNED identity for this room, so that mute
+	/// GeneralsX: Publish the SIGNED identity for this room, so that mute
 	/// and ban reach lobby chat. NULL or "" means signed out and is the same as clearIdentity(), which
 	/// matches Transport::sendRelayIdentity - so a LAN player, an offline player and anyone without
 	/// an account go on sending nothing at all. Kept across a re-acquire like the nickname.
@@ -225,7 +225,7 @@ public:
 	/// would be freed with the bytes still in it.
 	void setIdentity( const char *assertion );
 
-	/// GeneralsX @bugfix Claude 18/09/2026 SIGN-OUT. Forget the sign-in - every byte, with a clear the
+	/// GeneralsX: SIGN-OUT. Forget the sign-in - every byte, with a clear the
 	/// optimiser may not drop - and tell the relay, now if we are in the room and again with every
 	/// registration keepalive after, so it stops applying that account's role and sanctions to this
 	/// membership even if one datagram is lost.
@@ -234,7 +234,7 @@ public:
 
 	/// The relay's address, host order, as THIS object resolved it - 0 before openSocket has run.
 	///
-	/// GeneralsX @bugfix Claude 20/09/2026 Exposed for GXPerfReport, which needs the same address
+	/// GeneralsX: Exposed for GXPerfReport, which needs the same address
 	/// and must not resolve it again: its ensureSocket is reached from gxPerfSample, which runs in
 	/// GameClient::update(), so a hostname lookup there is a blocking gethostbyname in the FRAME
 	/// LOOP - and under lockstep a stall on one peer is charged to every peer.
@@ -252,8 +252,8 @@ public:
 	/// It SURVIVES the match: suspend() deliberately keeps the socket, and closeSocket() clears
 	/// state, room and credentials but never this - so a report sent mid-match still has it.
 	UnsignedInt getRelayAddr( void ) const { return m_relayAddr; }
-	/// GeneralsX @feature Claude 29/10/2026 S1-3: the relay's LOBBY port, read with the address - what GXPerfReport
-	/// files its reports to (Codex relaylist-v2-r3: it used to send them to a hardcoded 8086, lost on any other relay).
+	/// GeneralsX: S1-3: the relay's LOBBY port, read with the address - what GXPerfReport
+	/// files its reports to (it used to send them to a hardcoded 8086, lost on any other relay).
 	UnsignedShort getRelayPort( void ) const { return m_relayPort; }
 
 	/// Resolve the relay address WITHOUT entering the lobby, for a launch that never opens an
@@ -277,7 +277,7 @@ public:
 private:
 
 	// ============================================================================================
-	// GeneralsX @bugfix Claude 25/09/2026 (Codex r12) THE STATE x EVENT TABLE. Written down whole because twelve review
+	// GeneralsX: THE STATE x EVENT TABLE. Written down whole because twelve review
 	// rounds found holes one transition at a time; scripts/test/lobby-presence-fsm-test.cpp compiles THIS .cpp against a
 	// model of relay.js and checks every row below, plus seeded random walks over all the events, against the rules.
 	//
@@ -393,7 +393,7 @@ private:
 	UnsignedInt   m_myAddress;			///< FULL virtual address in the shared room, host order
 	UnsignedInt   m_mySlot;				///< its last octet - what the UI indexes by
 	AsciiString   m_room;				///< the shard we were admitted to
-	/// GeneralsX @bugfix Claude 19/09/2026 The relay's secret for (m_room, m_myAddress), or "" until
+	/// GeneralsX: The relay's secret for (m_room, m_myAddress), or "" until
 	/// GXAUTH arrives. Presented on every keepalive so a changed public address proves the id instead
 	/// of being refused as a stranger - see GXRelayAuth.h.
 	char          m_relayAuth[GX_RELAY_SECRET_BUF];

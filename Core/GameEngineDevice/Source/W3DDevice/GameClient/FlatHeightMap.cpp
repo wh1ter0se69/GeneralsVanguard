@@ -625,7 +625,7 @@ void FlatHeightMapRenderObjClass::Render(RenderInfoClass & rinfo)
 	if (TheTerrainTracksRenderObjClassSystem)
 		TheTerrainTracksRenderObjClassSystem->flush();
 
-	// GeneralsX @feature Claude 24/10/2026 RA3 water's tint: the shore tiles once more, after everything drawn on the ground
+	// GeneralsX: RA3 water's tint: the shore tiles once more, after everything drawn on the ground
 	// (this terrain already holds its shroud; the tint is a multiplier, so black stays black - GXWaterRA3Glue.inl).
 	if (gxWaterRA3TintBegin())
 	{

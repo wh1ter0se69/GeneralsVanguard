@@ -196,7 +196,7 @@ public:
 
 	static Int getInterfaceMask() { return PhysicsBehavior::getInterfaceMask(); }
 
-	// GeneralsX @perf Claude 24/09/2026 How many RailroadBehavior modules exist right now. A live count, so
+	// GeneralsX: How many RailroadBehavior modules exist right now. A live count, so
 	// it follows each game's own objects and needs no reset: PartitionData::addPossibleCollisions skips far
 	// projectile pairs only while it is 0, because onCollide here shoves a live victim sideways mid-list.
 	static Int getLiveCount() { return s_liveCount; }

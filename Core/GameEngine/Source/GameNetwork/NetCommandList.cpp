@@ -134,7 +134,7 @@ static bool isCommandIdNewer(UnsignedShort newVal, UnsignedShort oldVal)
 #endif
 }
 
-// GeneralsX @refactor Claude 21/09/2026 Hand-ported from upstream; the ordering lives in one
+// GeneralsX: Hand-ported from upstream; the ordering lives in one
 // place so the scan and the cached fast path cannot drift apart again.
 // Upstream reference: CryoTheRenegade, PR #3052
 // https://github.com/TheSuperHackers/GeneralsGameCode/pull/3052
@@ -432,10 +432,10 @@ Bool NetCommandList::isEqualCommandMsg(NetCommandMsg *msg1, NetCommandMsg *msg2)
 	// At this point we know that the commands both do or do not require a command id.
 	// Do or do not, there is no try.
 	if (DoesCommandRequireACommandID(msg1->getNetCommandType())) {
-		// GeneralsX @bugfix Claude 06/10/2026 A wrapper chunk is never the same message as a command of another type, whatever
+		// GeneralsX: A wrapper chunk is never the same message as a command of another type, whatever
 		// their (player, ID). A router re-wraps a relayed command with chunk IDs from its OWN counter, each naming the originator,
 		// so a later small command of that originator can carry one of them; the list sorts by type first and compares across a
-		// type boundary here, so that command was refused as a duplicate of the chunk and never queued (Codex wrapcap-impl-r5 P2,
+		// type boundary here, so that command was refused as a duplicate of the chunk and never queued (
 		// scripts/test/net-wrapcap-list-test.sh). Chunks are acked by WRAPPERACK and Connection::processAck skips them.
 		if ((msg1->getNetCommandType() == NETCOMMANDTYPE_WRAPPER) != (msg2->getNetCommandType() == NETCOMMANDTYPE_WRAPPER)) {
 			return FALSE;

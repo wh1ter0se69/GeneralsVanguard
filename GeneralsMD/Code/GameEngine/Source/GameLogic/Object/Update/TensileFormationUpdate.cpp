@@ -281,7 +281,7 @@ UpdateSleepTime TensileFormationUpdate::update()
 	Coord3D slope = { normal.x, normal.y, 0.0f};
 	Real steepness = 1.0f - normal.z;
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 per-frame physics of the slide: the slope push is per-frame^2 (x1/4, exact), the inertia
+	// GeneralsX: per-frame physics of the slide: the slope push is per-frame^2 (x1/4, exact), the inertia
 	// friction and the tensor lerp below are per-frame decays (square roots, checked in the audit bench).
 	slope.scale( (0.3f + steepness) * 0.25f );
 #else

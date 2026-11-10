@@ -186,9 +186,9 @@ static GameWindow *   checkNoDynamicLod   = nullptr;
 
 static NameKeyType    checkUnlockFpsID = NAMEKEY_INVALID;
 static GameWindow *   checkUnlockFps   = nullptr;
-// GeneralsX @bugfix Claude 27/09/2026 The checkbox shows the cap, which is where "unlimited" lives now: 0 (-fps 0,
+// GeneralsX: The checkbox shows the cap, which is where "unlimited" lives now: 0 (-fps 0,
 // -noFPSLimit, a legacy FPSLimit = no) is stored as the pacer's Uncapped value while m_useFpsLimit stays on
-// (Common/FpsLimitPolicy.h). It is display-only - the write below has been commented out since retail (Codex W7-r9).
+// (Common/FpsLimitPolicy.h). It is display-only - the write below has been commented out since retail.
 static Bool gxFpsUnlocked()
 {
 	return !TheGlobalData->m_useFpsLimit
@@ -827,7 +827,7 @@ static void saveOptions()
 	GadgetComboBoxGetSelectedPos( comboBoxResolution, &index );
 	Int xres, yres, bitDepth;
 
-	// GeneralsX @bugfix Claude 17/08/2026 Save the resolution in POINTS, not render PIXELS.
+	// GeneralsX: Save the resolution in POINTS, not render PIXELS.
 	//
 	// newDispSettings below is filled from getDisplayModeDescription, which is the offered mode list
 	// and is in POINTS. getWidth()/getHeight() are the RENDER resolution, which on a Retina Mac is
@@ -859,7 +859,7 @@ static void saveOptions()
 			{
 				dispChanged = TRUE;
 
-				// GeneralsX @bugfix Claude 14/09/2026 Read the EFFECTIVE size back; do not assume
+				// GeneralsX: Read the EFFECTIVE size back; do not assume
 				// the request survived.
 				//
 				// setDisplayMode can reduce a request that no attached display is able to present -
@@ -895,14 +895,14 @@ static void saveOptions()
 				TheInGameUI->recreateControlBar();
 				TheInGameUI->refreshCustomUiResources();
 
-				// GeneralsX @tweak Copilot 23/03/2026 Update shell camera limits and zoom after display mode changes.
+				// GeneralsX: Update shell camera limits and zoom after display mode changes.
 				TheTacticalView->setCameraHeightAboveGroundLimitsToDefault();
 				TheTacticalView->setZoomToMax();
 			}
 		}
 		else
 		{
-			// GeneralsX @bugfix Claude 11/08/2026 The selection already matches the running mode,
+			// GeneralsX: The selection already matches the running mode,
 			// but the stored preference may not: a startup migration (a no-longer-offered
 			// fullscreen resolution snapped to the nearest offered one) changes only the runtime
 			// globals, never Options.ini. Record the running value on an accepted options screen
@@ -1088,7 +1088,7 @@ void OptionsMenuInit( WindowLayout *layout, void *userData )
 
 	initLabelVersion();
 
-	// GeneralsX @bugfix Claude 28/09/2026 (Codex seam0948-r6) The online pick first, from the prefs as saved: the
+	// GeneralsX: The online pick first, from the prefs as saved: the
 	// LAN block below may rewrite IPAddress with the VPN-first head, and GameSpy must not inherit it.
 	const UnsignedInt onlineSelection = pref->getOnlineIPSelection();
 

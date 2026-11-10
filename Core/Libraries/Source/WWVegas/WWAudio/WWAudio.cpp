@@ -55,7 +55,7 @@
 #include "WWSaveLoad/definitionclassids.h"
 #include "WWDebug/wwmemlog.h"
 #include "WWDebug/wwprofile.h"
-// GeneralsX @build Claude 21/09/2026 Guard the Miles runtime loader the same way WWAudio.h:42
+// GeneralsX: Guard the Miles runtime loader the same way WWAudio.h:42
 // guards mss.h. This file compiles on macOS, Linux and iPadOS - z_wwaudio is in ALL - but
 // milesloader is linked only inside the if(WIN32) gate, so its include directory does not
 // reach those builds and an unguarded include is a hard "file not found".

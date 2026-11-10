@@ -235,7 +235,7 @@ void W3DDebrisDraw::doDrawModule(const Matrix3D* transformMtx)
 			RenderObjClass::ANIM_MODE_ONCE
 		};
 
-		// GeneralsX @bugfix Claude 06/08/2026 Class-C gate - see m_lastLogicFrameUpdated in the
+		// GeneralsX: Class-C gate - see m_lastLogicFrameUpdated in the
 		// header. Taken BEFORE the state test so the test still reads the pre-increment m_frames.
 		//
 		// BOTH branches are gated, not just ++m_frames. For a non-HLOD render object

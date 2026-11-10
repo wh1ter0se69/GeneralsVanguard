@@ -1109,7 +1109,7 @@ int RawFileClass::Raw_Seek(int pos, int dir)
 		Error(EBADF, false, Filename);
 	}
 
-	// GeneralsX @bugfix Claude 01/10/2026 Return the new position, as the Win32 SetFilePointer version did.
+	// GeneralsX: Return the new position, as the Win32 SetFilePointer version did.
 	// fseek returns 0 or -1, so since RawFile went to stdio (on every platform) Seek returned 0: a biased
 	// Read over-read its window and ChunkSaveClass patched every chunk header at offset 0.
 	pos = (fseek(Handle, pos, dir) == 0) ? (int)ftell(Handle) : -1;

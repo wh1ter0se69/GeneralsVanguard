@@ -479,7 +479,7 @@ protected:
 
 	Bool							m_shownMPLocalDefeatWindow;
 
-	// GeneralsX @feature Claude 02/10/2026 Determinism-1: the CLIENT-LOCAL script state crc() leaves out (see
+	// GeneralsX: Determinism-1: the CLIENT-LOCAL script state crc() leaves out (see
 	// gxClassifyClientLocal). Worked out from the scripts' content on the first crc() after reset/newMap/load; the
 	// vectors are only searched, never iterated into the CRC.
 	void gxClassifyClientLocal();

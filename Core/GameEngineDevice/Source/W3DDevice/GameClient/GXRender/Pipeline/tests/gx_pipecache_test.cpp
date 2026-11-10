@@ -365,7 +365,7 @@ int drawAll(Vk::VkCtx& ctx, const GxPipelineCache& cache, const GxGenericShaders
 }
 
 std::map<std::string, int> g_errorIds;   // validation ERROR message ids seen (VkCtx log hook)
-std::mutex g_errorLock;                  // prebuild workers report concurrently (Codex r3 #1)
+std::mutex g_errorLock;                  // prebuild workers report concurrently
 
 void captureLog(Vk::LogLevel, const char* line, void*) {
 	std::fprintf(stderr, "%s\n", line);
@@ -422,7 +422,7 @@ bool damageCacheFile(const std::string& path, const std::string& arm) {
 	} else if (arm == "bad-header-size") {
 		// payload starts after the 24-byte envelope; VkPipelineCacheHeaderVersionOne.headerSize is its first u32. A payload under
 		// 64 bytes (lavapipe's is the bare 32-byte header) is zero-padded to 64 with the envelope length updated, so a loose
-		// "headerSize <= payload size" check would accept it and only the exact-32 rule refuses it (Codex r6 #2).
+		// "headerSize <= payload size" check would accept it and only the exact-32 rule refuses it.
 		const uint32_t bad = 64;
 		if (d.size() < 24 + size_t(bad)) {
 			d.resize(24 + size_t(bad), 0);
@@ -508,7 +508,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	if (arm == "session-16bit" && sessionArg.empty()) {   // the arm proves nothing on the default configuration (Codex r7 #2)
+	if (arm == "session-16bit" && sessionArg.empty()) {   // the arm proves nothing on the default configuration
 		std::fprintf(stderr, "[GXPIPETEST] arm session-16bit needs --session <16-bit D3DFORMAT>:<msaa>\n");
 		return 2;
 	}
@@ -529,7 +529,7 @@ int main(int argc, char** argv) {
 	}
 	std::fprintf(stderr, "[GXPIPETEST] %s\n", ctx.deviceLine().c_str());
 	// --validation means core AND synchronization validation really run: GX_VK_VALIDATION=0 / =core would otherwise switch
-	// either off under a passing verdict (Codex r5 #3).
+	// either off under a passing verdict.
 	if (validation && (!ctx.validationEnabled() || !ctx.syncValidationEnabled())) {
 		const char* env = std::getenv("GX_VK_VALIDATION");
 		std::fprintf(stderr, "[GXPIPETEST] --validation refused: the context runs validation=%d sync=%d (GX_VK_VALIDATION=%s)\n",
@@ -585,13 +585,13 @@ int main(int argc, char** argv) {
 	// key-on session prebuilds the A2C key. a2c-plain-twin-none (--cache-dir): the noA2cPlainTwins plant - the key-off draw misses exactly once.
 	// a2c-recorded-custom (--cache-dir): a recorded CUSTOM A2C key's plain twin passes the custom-module check (skipped without the program,
 	// built with it); -nocheck: the plainTwinNoCustomCheck plant - the unbuildable twin fails the prebuild. a2c-retarget-unbuildable
-	// (--cache-dir; Codex a2c-code-r9 #4): an MSAA Reset never retargets a recorded key the session cannot build; -nocheck: the plant.
+	// (--cache-dir): an MSAA Reset never retargets a recorded key the session cannot build; -nocheck: the plant.
 	// B · a2c-2 (the integrator's conditions after :3876): a2c-modules - every vkCreateGraphicsPipelines call (seen at the Vulkan boundary)
 	// uses an a2c-family fragment module IFF its alphaToCoverageEnable is set (FF smooth + flat, a custom PS, plain and A2C);
 	// a2c-modules-swap: the a2cModuleSwapOne plant (one plain key on the a2c module) - exactly 1 mismatch. a2c-prebuild-again - a prebuild
 	// with a planted failure is not complete (as today), its failure dropped, a second prebuild re-queues exactly that key and IS complete
 	// (prebuildComplete reads the last prebuild); a2c-prebuild-again-cumulative: the plant that reads every prebuild's failures - not complete.
-	// Codex a2c-code-r7 #7 (:3876 (3)): every a2c arm draws what it built (--draw) and ends with the suite's common validation checks;
+	// (:3876 (3)): every a2c arm draws what it built (--draw) and ends with the suite's common validation checks;
 	// a2c-twins-unset is a2c-twins with drawAll's planted missing dynamic state - those checks must FAIL it (VUID-vkCmdDraw-None-07840).
 	// Plant arms (-none, -swap, -cumulative) PASS only when the plant's symptom is seen ("PLANT NOT DETECTED" otherwise).
 	if (arm.compare(0, 4, "a2c-") == 0) {
@@ -626,7 +626,7 @@ int main(int argc, char** argv) {
 		if (!multisampled || twinsWant.empty())
 			bad.push_back("no multisampled config / no eligible part (the arm would prove nothing)");
 		int a2cDraws = 0;
-		auto drawCache = [&](const GxPipelineCache& c) {   // Codex a2c-code-r7 #7: what this session built is drawn (--draw)
+		auto drawCache = [&](const GxPipelineCache& c) {   // what this session built is drawn (--draw)
 			if (!draw)
 				return;
 			TestKit::FFResources res;
@@ -678,7 +678,7 @@ int main(int argc, char** argv) {
 			const GxPipelineKey t = twinsWant.front();
 			uint32_t miss1 = 0, skipped2 = 0, queued2 = 0, has2 = 0, complete2 = 0, twins2 = 0, plain2 = 0, plainMiss2 = 0, runs2 = 0;
 			uint32_t has3 = 0, skipped3 = 0, plain3 = 0, miss3 = 0;
-			GxPipelineKey t0 = t;   // Codex a2c-code-r5 #4: the recorded A2C key's PLAIN twin (no census prebuild here: only the closure makes it)
+			GxPipelineKey t0 = t;   // the recorded A2C key's PLAIN twin (no census prebuild here: only the closure makes it)
 			t0.s.alphaToCoverage = 0;
 			{
 				GxPipelineCache first;   // key on, nothing prebuilt: the A2C draw misses and is recorded
@@ -718,7 +718,7 @@ int main(int argc, char** argv) {
 				third.prebuild(nullptr, 0, nullptr, 0, 1);
 				third.waitPrebuild();
 				skipped3 = third.stats().a2cRecordedSkipped;
-				// Codex a2c-code-r6 #7: CREATED, not merely present (a failed key is published as null): both variants drawn, no compile
+				// CREATED, not merely present (a failed key is published as null): both variants drawn, no compile
 				has3 = third.contains(t) && third.get(t, 0) != VK_NULL_HANDLE;
 				plain3 = third.contains(t0) && third.get(t0, 0) != VK_NULL_HANDLE;
 				miss3 = third.stats().genericMiss + third.stats().failed;
@@ -799,7 +799,7 @@ int main(int argc, char** argv) {
 			if (nocheck && (built1 != 1 || c2 != 0))
 				bad.push_back("a2c-recorded-custom-nocheck: PLANT NOT DETECTED - the prebuild completed (" + std::to_string(c2) + ")");
 		} else if ((arm == "a2c-retarget-unbuildable" || arm == "a2c-retarget-unbuildable-nocheck") && !cacheDir.empty()) {
-			// Codex a2c-code-r9 #4: a recorded CUSTOM key (a session with the program built it at 4x) read by an A2C session WITHOUT that
+			// a recorded CUSTOM key (a session with the program built it at 4x) read by an A2C session WITHOUT that
 			// program: startup skips it (recorded_skipped), and an MSAA Reset's retargetedKeys() must not re-make it either - the Reset prewarm
 			// (prebuild with extra) completes. -nocheck: the retargetNoBuildCheck plant - the unbuildable key is retargeted and fails the closure.
 			const bool nocheck = arm == "a2c-retarget-unbuildable-nocheck";
@@ -887,7 +887,7 @@ int main(int argc, char** argv) {
 					if (c.init(ctx, sa, cacheDir, 0, &why)) {
 						c.setCustomShaders(cs);
 						c.setA2CTwins(true);
-						// ONE prebuild worker (Codex a2c-code-r8 #5): the swap plant is a plain bool consumed by the first plain key -
+						// ONE prebuild worker: the swap plant is a plain bool consumed by the first plain key -
 						// with several workers two could both see it set
 						c.prebuild(kBuiltinSet, sizeof(kBuiltinSet) / sizeof(kBuiltinSet[0]), sc.data(), sc.size(), 1);
 						c.waitPrebuild();
@@ -956,7 +956,7 @@ int main(int argc, char** argv) {
 			const bool complete2 = c.prebuildComplete();
 			const GxPipeStats st = c.stats();
 			g_gxPipeTestMutants.cumulativePrebuildFailed = false;
-			// Codex a2c-code-r8 #5: the retry itself must have SUCCEEDED (no new failure, nothing published null), so the cumulative arm's
+			// the retry itself must have SUCCEEDED (no new failure, nothing published null), so the cumulative arm's
 			// "not complete" can only come from its plant
 			uint32_t nulls2 = 0, published2 = 0;
 			c.visit([&](const GxPipelineKey&, VkPipeline p) { ++published2; nulls2 += p ? 0 : 1; });
@@ -975,7 +975,7 @@ int main(int argc, char** argv) {
 				bad.push_back("a2c-prebuild-again-cumulative: PLANT NOT DETECTED - complete after the second prebuild");
 		} else
 			bad.push_back(arm + ": unknown a2c arm (a2c-recorded / a2c-plain-twin-none / a2c-recorded-custom[-nocheck] / a2c-retarget-unbuildable[-nocheck] need --cache-dir)");
-		// Codex a2c-code-r7 #7 (:3876 (3)): the suite's common checks - no validation error id at all (no a2c arm plants one; the
+		// (:3876 (3)): the suite's common checks - no validation error id at all (no a2c arm plants one; the
 		// a2c-twins-unset plant must therefore FAIL here), the counters before AND after teardown, and draws when --draw was asked
 		const Vk::ValidationCounters v = ctx.validation();
 		shared.destroy();
@@ -1036,7 +1036,7 @@ int main(int argc, char** argv) {
 		if (!GxSessionAttachConfigs(ctx, fmt, uint8_t(msaa), sc, &why)) {
 			std::fprintf(stderr, "[GXPIPETEST] session configs refused: %s\n", why.c_str());
 			// session-16bit: a 16-bit back buffer (R5G6B5 23 / X1R5G5B5 24 / A1R5G5B5 25) MUST be refused for THAT reason, with no
-			// configuration produced - any other refusal is a failure (Codex r6 #3).
+			// configuration produced - any other refusal is a failure.
 			const bool own = (fmt == 23 || fmt == 24 || fmt == 25) && why.find("not 32-bit") != std::string::npos && sc.empty();
 			return arm == "session-16bit" && own ? 0 : 2;
 		}
@@ -1143,7 +1143,7 @@ int main(int argc, char** argv) {
 		finalKeys.erase(finalKeys.begin() + dropKey);
 		std::fprintf(stderr, "[GXPIPETEST] arm drop-key: final key %d of %zu left out\n", dropKey, finalKeys.size() + 1);
 	}
-	// caller-fail-first / caller-in-flight (Codex r5 #1): a key of the set that a caller's get() failed BEFORE the prebuild, or
+	// caller-fail-first / caller-in-flight: a key of the set that a caller's get() failed BEFORE the prebuild, or
 	// is still compiling DURING it, is never queued - prebuildComplete() must answer for it all the same.
 	std::promise<void> claimed, go;
 	std::shared_future<void> goF = go.get_future().share();
@@ -1178,7 +1178,7 @@ int main(int argc, char** argv) {
 		}
 	}
 	// Poll the completion gate WHILE the prebuild runs (fail-last widens the final worker's window): it must never read true
-	// on a failing prebuild. Probabilistic for the old snapshot order (Codex r3 #8); the guarantee is the acquire/release order.
+	// on a failing prebuild. Probabilistic for the old snapshot order; the guarantee is the acquire/release order.
 	uint32_t polls = 0, earlyTrue = 0;
 	while (!cache.prebuildDone()) {
 		earlyTrue += cache.prebuildComplete() ? 1 : 0;
@@ -1250,7 +1250,7 @@ int main(int argc, char** argv) {
 		second.shutdown();
 	}
 	// torn-keys: a record file with one whole record and a 7-byte torn tail must be repaired at load, so a later miss appends
-	// ALIGNED: a third session then loads both records (Codex r3 #2).
+	// ALIGNED: a third session then loads both records.
 	uint32_t tornLoaded = 0;
 	std::string tornBad;
 	if (arm == "torn-keys" && !cacheDir.empty() && !finalKeys.empty())
@@ -1270,7 +1270,7 @@ int main(int argc, char** argv) {
 			out.write(reinterpret_cast<const char*>(&h), sizeof(h));
 			out.write(reinterpret_cast<const char*>(&finalKeys[0]), sizeof(GxPipelineKey));
 			out.write(reinterpret_cast<const char*>(&sum0), sizeof(sum0));
-			const std::vector<char> torn(tail, 'T');   // incl. a bare key with no checksum (sizeof key) - Codex r4 #1
+			const std::vector<char> torn(tail, 'T');   // incl. a bare key with no checksum (sizeof key)
 			out.write(torn.data(), std::streamsize(torn.size()));
 		}
 		{
@@ -1338,7 +1338,7 @@ int main(int argc, char** argv) {
 		if (cs.ps != VK_NULL_HANDLE)
 			vkDestroyShaderModule(ctx.device(), cs.ps, nullptr);
 	}
-	// keys-repair-fail / keys-append-short (Codex r5 #2): once a repair or an append failed, the record file is never appended
+	// keys-repair-fail / keys-append-short: once a repair or an append failed, the record file is never appended
 	// to again until a whole rewrite succeeds. repair-fail: a torn file whose repair fails must stay byte-identical through a
 	// miss (old: the miss was appended behind the torn tail). append-short: a torn append followed by a second miss must leave
 	// a whole file, and a torn LAST append is rewritten at shutdown - the final session loads all 4 records.
@@ -1379,13 +1379,13 @@ int main(int argc, char** argv) {
 			if (arm == "keys-append-short") {
 				second.get(finalKeys[2], 0);                 // ...the second must rewrite the file whole, not append behind it -
 				keysBeforeShutdown = wholeKeyRecords(keysPath, &keysCleanBeforeShutdown);   // checked BEFORE shutdown's retry
-			}                                                // could repair it (Codex r7 #1)
+			}                                                // could repair it
 			second.shutdown();                               // (keys-repair-fail: the shutdown retry fails too - still no append)
 			g_gxPipeTestMutants.failKeysRewrite = false;
 		}
 		keysUnchanged = slurp() == before;
 		if (arm == "keys-append-short") {
-			// ...and a torn append that is the session's LAST miss is rewritten at shutdown (Codex r6 #1): one more session on the
+			// ...and a torn append that is the session's LAST miss is rewritten at shutdown: one more session on the
 			// now-whole file appends a 4th key short, then shuts down at once.
 			GxPipelineCache last;
 			last.init(ctx, sh, cacheDir, 0, &why);

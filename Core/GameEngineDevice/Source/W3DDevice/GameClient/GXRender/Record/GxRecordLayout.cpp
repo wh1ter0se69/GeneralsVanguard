@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw2-F1 11/10/2026 WS-F1: the shared FF pipeline layout (see GxRecordLayout.h).
+// GeneralsX: WS-F1: the shared FF pipeline layout (see GxRecordLayout.h).
 #include "GxRecordLayout.h"
 
 namespace GXRender { namespace Rec {

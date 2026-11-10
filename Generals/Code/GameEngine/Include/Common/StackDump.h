@@ -35,7 +35,7 @@ void StackDump(void (*callback)(const char*));
 
 // Writes a stackdump (provide a callback : gets called per line)
 // If callback is nullptr then will write using OuputDebugString
-// GeneralsX @bugfix Claude 27/07/2026 Pointer-width, not DWORD: at x64 an instruction
+// GeneralsX: Pointer-width, not DWORD: at x64 an instruction
 // pointer does not fit in 32 bits. size_t rather than DWORD_PTR because this header is
 // also parsed by the macOS, iOS and Linux builds, where DWORD_PTR does not exist.
 void StackDumpFromContext(size_t eip,size_t esp,size_t ebp, void (*callback)(const char*));

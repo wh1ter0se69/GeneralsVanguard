@@ -349,7 +349,7 @@ public:
 };
 EMPTY_DTOR(MetaMapRec)
 
-// GeneralsX @feature Claude 26/09/2026 Ctrl+I (MetaEventTranslator::onKeyEvent) asks for SELECT_ALL, infantry only, by
+// GeneralsX: Ctrl+I (MetaEventTranslator::onKeyEvent) asks for SELECT_ALL, infantry only, by
 // appending this as MSG_META_SELECT_ALL's one integer argument; the retail Q record appends none. CommandXlat reads it.
 enum { GX_SELECT_ALL_INFANTRY = 1 };
 

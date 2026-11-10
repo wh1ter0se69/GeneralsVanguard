@@ -49,7 +49,7 @@ if (NOT IS_VS6_BUILD)
         add_compile_options(/MP)
         # Enforce strict __cplusplus version
         add_compile_options(/Zc:__cplusplus)
-        # GeneralsX @build Claude 27/07/2026 SimID WINDOWS HOOK - not exercised by any
+        # GeneralsX: SimID WINDOWS HOOK - not exercised by any
         # current target (every Windows preset in CMakePresets.json is 32-bit Win32 and
         # no x64 preset exists yet). Nothing in the SimID identity measures
         # floating-point behaviour at runtime, so the flags have to be right at build

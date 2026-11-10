@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: vertex and index buffers with D3D8 lock semantics.
+// GeneralsX: WS-C GXRES v0: vertex and index buffers with D3D8 lock semantics.
 //
 // STATIC (MANAGED, or DEFAULT without D3DUSAGE_DYNAMIC): a device-local VkBuffer plus a host shadow of its bytes (DXVK keeps
 // the same copy for these pools). Lock returns the shadow, so a partial write keeps the bytes it did not touch; Unlock

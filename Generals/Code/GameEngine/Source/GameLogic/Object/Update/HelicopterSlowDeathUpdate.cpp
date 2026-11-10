@@ -360,7 +360,7 @@ UpdateSleepTime HelicopterSlowDeathBehavior::update()
 		//
 		Coord3D force;
 #if GX_LOGIC_60HZ
-		// GeneralsX @fix Claude 23/09/2026 m_forwardSpeed (a per-frame speed, already halved by parseVelocityReal) is applied as
+		// GeneralsX: m_forwardSpeed (a per-frame speed, already halved by parseVelocityReal) is applied as
 		// a force EVERY frame, i.e. as a per-frame^2 acceleration: one more x1/2 (exact). The damping
 		// below is a per-frame multiplier: square root.
 		force.x = DOUBLE_TO_REAL( Cos( m_forwardAngle ) ) * (m_forwardSpeed * 0.5f);

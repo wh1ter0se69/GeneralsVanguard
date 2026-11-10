@@ -48,7 +48,7 @@
 #include "PreRTS.h"
 
 #include <fcntl.h>
-// GeneralsX @build BenderAI 12/02/2026 Windows-specific low-level file I/O
+// GeneralsX: Windows-specific low-level file I/O
 #ifdef _WIN32
 #include <io.h>
 #endif
@@ -437,7 +437,7 @@ Int LocalFile::writeFormat( const Char* format, ... )
 
 Int LocalFile::writeFormat( const WideChar* format, ... )
 {
-	// GeneralsX @bugfix copilot 19/04/2026 Route wide formatting through UnicodeString to keep MSVC-compatible %s/%S behavior on POSIX.
+	// GeneralsX: Route wide formatting through UnicodeString to keep MSVC-compatible %s/%S behavior on POSIX.
 	va_list args;
 	va_start(args, format);
 	UnicodeString formatted;
@@ -451,7 +451,7 @@ Int LocalFile::writeFormat( const WideChar* format, ... )
 // LocalFile::writeChar - Ascii
 //=================================================================
 
-// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+// GeneralsX: 64-bit safe pointer cast
 // NOTE: Original code returns pointer value (bizarre!), but needed for compatibility
 Int LocalFile::writeChar( const Char* character )
 {
@@ -466,7 +466,7 @@ Int LocalFile::writeChar( const Char* character )
 // LocalFile::writeChar - Wide character
 //=================================================================
 
-// GeneralsX @build BenderAI 12/02/2026 64-bit safe pointer cast
+// GeneralsX: 64-bit safe pointer cast
 // NOTE: Original code returns pointer value (bizarre!), but needed for compatibility
 Int LocalFile::writeChar( const WideChar* character )
 {
@@ -739,7 +739,7 @@ char* LocalFile::readEntireAndClose()
 	UnsignedInt fileSize = size();
 	char* buffer = NEW char[fileSize];
 
-	// GeneralsX @bugfix Claude 01/10/2026 A short read (an I/O error, or a text-mode open on Windows where size()
+	// GeneralsX: A short read (an I/O error, or a text-mode open on Windows where size()
 	// counts the CRLFs the read collapses) left the tail of the buffer uninitialised, and callers parse all of
 	// fileSize. Zero it, so the result is deterministic; the size callers already hold stays valid (tsh batch2 #247).
 	const Int got = read(buffer, fileSize);

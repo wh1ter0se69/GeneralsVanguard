@@ -162,7 +162,7 @@ static WWINLINE float		Atan2(float y, float x)
 
 // Phase 4: Trig function routing (deterministic vs. platform-native)
 // These wrappers are called from Trig.cpp and BaseType geometry methods
-// GeneralsX @bugfix Claude 28/07/2026 Route simulation trig through GameMath, not libm.
+// GeneralsX: Route simulation trig through GameMath, not libm.
 //
 // These two are the ONLY path Thing::setOrientation takes to build an object's transform:
 //   setOrientation -> Cos()/Sin() (Lib/trig.h) -> Trig.cpp -> CosTrig()/SinTrig() -> here.

@@ -18,7 +18,7 @@
 
 // FILE: GXStderrLog.cpp //////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 17/08/2026 See GXStderrLog.h for why this exists.
+// GeneralsX: See GXStderrLog.h for why this exists.
 //
 // Two platform mechanisms, one shared policy:
 //
@@ -100,8 +100,8 @@ static const char *const kKeepPastCapPrefixes[] = {
 	"ERROR",
 	"FATAL",   // includes Debug.cpp's "FATAL: release crash:" and the crash handlers
 	"[GXRELAY]", // relay mode ON/OFF, once per socket init: the LAST one is the relay state, so a
-	             // re-init late in a long session must not be dropped (Claude 19/09/2026)
-	// GeneralsX @bugfix Claude 23/09/2026 INI.cpp's real errors ("[INI] ERROR: No files read from
+	             // re-init late in a long session must not be dropped
+	// GeneralsX: INI.cpp's real errors ("[INI] ERROR: No files read from
 	// directory ..." - the first-install symptom StdBIGFileSystem.cpp cites) share the dropped
 	// "[INI] " prefix. A line on this list is never dropped, under the cap or past it.
 	"[INI] ERROR",
@@ -182,7 +182,7 @@ void GXStderrLog_Consume(const char *buf, int len)
 		{
 			s_keepPastCap = gxMatchesAny(buf + i, len - i, kKeepPastCapPrefixes,
 				sizeof(kKeepPastCapPrefixes) / sizeof(kKeepPastCapPrefixes[0]));
-			// GeneralsX @bugfix Claude 23/09/2026 A keep-listed line beats a drop prefix ("[INI] ERROR").
+			// GeneralsX: A keep-listed line beats a drop prefix ("[INI] ERROR").
 			s_dropLine = !s_keepPastCap && gxMatchesAny(buf + i, len - i, kDropPrefixes,
 				sizeof(kDropPrefixes) / sizeof(kDropPrefixes[0]));
 			s_atLineStart = false;
@@ -284,7 +284,7 @@ static bool gxOpenLogFile(const char *dir)
 
 #if defined(_WIN32)
 
-// GeneralsX @bugfix D · native-windows-1 13/10/2026 The tee is bounded (render-seam INTEGRATION.md residual R24).
+// GeneralsX: The tee is bounded (render-seam INTEGRATION.md residual R24).
 // The pump used to WriteFile() the tee itself. A tee whose reader never drains - an ssh channel nobody reads, a
 // stalled console, a parent that stopped reading its pipe - blocked the pump in that WriteFile; the 64 KB stderr pipe
 // then filled and every fprintf(stderr) in the process blocked with it: the main thread, DXVK's logger, the native
@@ -334,7 +334,7 @@ static DWORD WINAPI gxStderrTeeThread(LPVOID)
 			if (n == 0)
 				break;
 			// may block: only this thread waits on the reader. A short write (a nonblocking pipe) continues from where it stopped; a
-			// failed or zero write drops the rest and counts it like a full ring (Codex nw1-r2)
+			// failed or zero write drops the rest and counts it like a full ring
 			size_t off = 0;
 			while (off < n)
 			{
@@ -557,7 +557,7 @@ void GXStderrLog_Settle(void)
 	// stream lock, and a crash reporter that can deadlock is worse than one
 	// that loses a line.
 	Sleep(150);
-	// D · native-windows-1 13/10/2026 (Codex nw1-r1 P2): the tee writes from its own thread now. Give it the same kind of bounded
+	// D · native-windows-1 13/10/2026: the tee writes from its own thread now. Give it the same kind of bounded
 	// moment, at most 150 ms more, to empty its ring and finish the write in flight - never blocking: TryEnter only, because the
 	// faulting thread may be the one holding the lock. A reader that does not drain loses the tail, as it would have stalled before.
 	if (s_teeWake != NULL)
@@ -597,7 +597,7 @@ static void gxDeliver(const char *buf, int len)
 	GXStderrLog_Consume(buf, len);
 }
 
-// GeneralsX @perf Claude 02/10/2026 The write(2) calls above used to run on whichever thread
+// GeneralsX: The write(2) calls above used to run on whichever thread
 // printed - in practice the main thread, so a slow disk stalled a frame and, in a match, every peer
 // waiting on it (ROADMAP_2027 M2 A1; HITCHES H21). Now the printer copies its bytes into a ring and
 // one helper thread, the pump, does both writes, as Windows' pipe pump already does. The order of
@@ -626,7 +626,7 @@ static bool s_pumpOn = false;
 static uint64_t s_dropBytes = 0;  // under s_ringLock
 static bool s_stuck = false;       // under s_ringLock: a printer gave up waiting and the pump has not moved since
 
-// GeneralsX @feature Claude 02/10/2026 GX_STDERR_STATS=<s>: every <s> seconds a [GXLOGSTAT] line says what
+// GeneralsX: GX_STDERR_STATS=<s>: every <s> seconds a [GXLOGSTAT] line says what
 // printing cost the thread that printed - calls, bytes, and the main thread's total, worst and
 // slow-call counts - so a real run shows its line rate and its write tail (ROADMAP_2027 M2 A1).
 // The printer-side counters are touched only inside this FILE's write callback, which stdio

@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 GPU sun shadow map: the native device's private shadow-map interface
+// GeneralsX: S7 GPU sun shadow map: the native device's private shadow-map interface
 // (modernize/look-director/d2/PREREG_look-shadowmaps.md; PLAN_look-shadowmaps.md Task 4).
 //
 // Game code asks the device for it once per device with QueryInterface(IID_GxShadowMap). DXVK, the GXCAP proxy, and the native device

@@ -1,6 +1,6 @@
 // FILE: GXReplayDiagFormat.h /////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 03/11/2026 The replay diagnostics block: the bytes, and the arithmetic of a timeline row.
+// GeneralsX: The replay diagnostics block: the bytes, and the arithmetic of a timeline row.
 //
 // wh1ter0se 03/11/2026, after a tester reported "42 fps at times" and we asked for his replay: a replay said nothing about
 // HIS machine. This makes "send me the replay" the whole ask: build, renderer, settings, coarse machine facts and a 10 s
@@ -753,7 +753,7 @@ inline void gxTelPerfStartWindow( GxTelPerf &p, const GXDiagIter &it, bool dropT
 		if( p.takeTicks != NULL )
 			p.takeTicks( a, b );
 		p.prevDrawNs = -1;
-		p.trailNext = p.trailCount = 0;	// and its frames: the load's never reach the play's trailing 3 s (Codex replay-tel-1-r8)
+		p.trailNext = p.trailCount = 0;	// and its frames: the load's never reach the play's trailing 3 s
 	}
 	p.winSimNs = p.winTickMaxNs = 0;
 	p.anchorNs = it.nowNs;
@@ -786,7 +786,7 @@ inline void gxTelPerfSuspend( GxTelPerf &p )
 	p.prevDrawNs = -1;
 }
 
-/// GeneralsX @bugfix B · tel-bg-1 08/11/2026 The player is away (true) or back (false) while the loop KEEPS running: a match that
+/// GeneralsX: The player is away (true) or back (false) while the loop KEEPS running: a match that
 /// goes on unwatched (iOS in the background, a minimised or Alt+Tabbed Windows peer). Every row that overlaps the away span closes
 /// with GX_TEL_F_UNFOCUSED - the one open when it began, every one started during it, and the one open when it ended - so fps 0 at
 /// 60 TPS reads as "nobody was looking", never as a render failure. A flag only: no row closes here and no field moves.
@@ -835,7 +835,7 @@ inline void gxTelPerfCloseRow( GxTelPerf &p, const GXDiagIter &it, int extraFlag
 	r.ftMax = p.hist.n == 0 ? GX_TEL_U16_UNKNOWN : gxTelNarrowU16( p.hist.maxX10 );
 
 	// The trailing 3 s: every frame that COMPLETED less than 3 s before this row ends, newest first - never a whole row because it
-	// ended inside them (a row that a 12 s frame closed holds frames 12 s old; Codex replay-tel-1-r3).
+	// ended inside them (a row that a 12 s frame closed holds frames 12 s old).
 	gxTelHistReset( p.trailSum );
 	for( int k = 0; k < p.trailCount; ++k )
 	{
@@ -909,7 +909,7 @@ inline void gxTelSlowIoDropped( GxTelSlowIo &s, long long wallNs )
 }
 
 /// Whether this window's batch is written. Inside the cooldown it is skipped - except the recording's LAST batch, which carries what
-/// was skipped: without it a match that ends inside the cooldown loses its tail with no trace (Codex replay-tel-1-r6). At most one
+/// was skipped: without it a match that ends inside the cooldown loses its tail with no trace. At most one
 /// more write per recording, at the match end.
 inline bool gxTelSlowIoWrites( const GxTelSlowIo &s, long long nowNs, bool last )
 {
@@ -918,7 +918,7 @@ inline bool gxTelSlowIoWrites( const GxTelSlowIo &s, long long nowNs, bool last 
 
 /// Whether a suspension or the match end closes the open window (a partial row flagged suspended, or the last batch). Every primed
 /// window does, even one that started on this very iteration with no iteration in it yet (a rollover): otherwise no row says
-/// "suspended", the reader shows the gap as unexplained, and a match-end batch with skipped seconds is never written (Codex r6).
+/// "suspended", the reader shows the gap as unexplained, and a match-end batch with skipped seconds is never written.
 inline bool gxTelWindowToClose( const GXDiagWindow &w )
 {
 	return w.primed;

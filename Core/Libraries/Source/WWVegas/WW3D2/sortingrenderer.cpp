@@ -165,7 +165,7 @@ public:
 	unsigned short vertex_count;			// Number of vertices used in vb
 };
 
-// GeneralsX @performance Claude 23/09/2026 The three node lists were std::list, so every translucent node
+// GeneralsX: The three node lists were std::list, so every translucent node
 // cost 2 heap allocations and 2 frees per frame, and each sphere node was inserted by an O(n) walk (O(n^2) per
 // frame). Nodes are now appended in arrival order to vectors that keep their capacity, and Flush orders them
 // once with a stable sort that reproduces the old insertion order exactly (see Order_Sorted_List). The clean
@@ -177,7 +177,7 @@ static std::vector<SortingNodeStruct*> unsorted_list;
 static std::vector<SortingNodeStruct*> clean_list;
 static unsigned total_sorting_vertices;
 
-// GeneralsX @feature D · look-shadowmaps-4 18/10/2026 S7 PREREG A44/A46 (A31; integrator T7: read-only): both queues Flush() drains are empty
+// GeneralsX: S7 PREREG A44/A46 (A31; integrator T7: read-only): both queues Flush() drains are empty
 bool SortingRendererClass::Gx_Is_Empty()
 {
 	return sorted_list.empty() && unsorted_list.empty();
@@ -241,7 +241,7 @@ void SortingRendererClass::Insert_Triangles(
 	SortingNodeStruct* state=Get_Sorting_Struct();
 
 	DX8Wrapper::Get_Render_State(state->sorting_state);
-	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log_Render_State(gxlog::SORTQ, DX8Wrapper::GxLogEntry, state->sorting_state);	// GeneralsX @feature Claude 10/10/2026 WS-G Task 5
+	if (DX8Wrapper::GxLogOn) DX8Wrapper::Gx_Log_Render_State(gxlog::SORTQ, DX8Wrapper::GxLogEntry, state->sorting_state);	// GeneralsX: WS-G Task 5
 
  	WWASSERT(
 		((state->sorting_state.index_buffer_type==BUFFER_TYPE_SORTING || state->sorting_state.index_buffer_type==BUFFER_TYPE_DYNAMIC_SORTING) &&
@@ -335,12 +335,12 @@ void Release_Refs(SortingNodeStruct* state)
 static unsigned overlapping_node_count;
 static unsigned overlapping_polygon_count;
 static unsigned overlapping_vertex_count;
-// GeneralsX @bugfix Claude 23/09/2026 Was 4096, which dropped (later: batch-flushed) translucent nodes in heavy
+// GeneralsX: Was 4096, which dropped (later: batch-flushed) translucent nodes in heavy
 // frames and so broke the one global per-triangle sort. The real bound is TempIndexStruct::idx, an unsigned short
 // node index, so the pool can hold 65536 nodes. Every node carries at least one vertex, so the 65535-vertex flush
 // below always fires first and the pool is sorted as a whole up to the same limit the vertex buffer already imposes.
 static const unsigned MAX_OVERLAPPING_NODES=65536;
-// GeneralsX @bugfix Claude 12/08/2026 (upstream issue #2007) The sorting pool copies all node
+// GeneralsX: (upstream issue #2007) The sorting pool copies all node
 // vertices into one combined dynamic vertex buffer addressed with 16-bit indices, so the pool must
 // never accumulate more vertices than fit in an unsigned short.
 static const unsigned MAX_SORTING_VERTEX_COUNT=65535;
@@ -356,7 +356,7 @@ void SortingRendererClass::Insert_To_Sorted_List(SortingNodeStruct *state)
 	sorted_list.push_back({z, state});
 }
 
-// GeneralsX @performance Claude 23/09/2026 The old insert walked the list and placed a node before the
+// GeneralsX: The old insert walked the list and placed a node before the
 // first node with a strictly smaller Z, so the result is Z descending with equal Z in arrival order: exactly
 // std::stable_sort with '>'. NaN breaks the strict weak ordering a sort requires, so a frame that queued a NaN Z
 // replays the old insertion literally instead.
@@ -384,7 +384,7 @@ static void Order_Sorted_List()
 
 void SortingRendererClass::Insert_To_Sorting_Pool(SortingNodeStruct* state)
 {
-	// GeneralsX @bugfix Claude 12/08/2026 (upstream issue #2007) The sorting pool copies all node
+	// GeneralsX: (upstream issue #2007) The sorting pool copies all node
 	// vertices into one combined dynamic vertex buffer addressed by 16-bit indices, and
 	// DynamicVBAccessClass takes an unsigned short, so the pool must never accumulate more than 65535
 	// vertices or the allocation truncates and the wrapped indices corrupt memory and crash. Flush the
@@ -399,7 +399,7 @@ void SortingRendererClass::Insert_To_Sorting_Pool(SortingNodeStruct* state)
 		DX8Wrapper::_Enable_Triangle_Draw(old_enable);
 	}
 
-	// GeneralsX @bugfix Claude 23/09/2026 A full node pool used to Release_Refs and delete the incoming
+	// GeneralsX: A full node pool used to Release_Refs and delete the incoming
 	// node (WWASSERT(0) is compiled out in release), so the excess translucent geometry silently vanished. The
 	// pool now matches the 16-bit node index (see MAX_OVERLAPPING_NODES), so this is only a guard for zero-vertex
 	// nodes: flush the batch as the vertex limit above does rather than drop or overflow.
@@ -489,7 +489,7 @@ void SortingRendererClass::Flush_Sorting_Pool()
 		vertexAllocCount = DEFAULT_SORTING_VERTEX_COUNT;	//make sure that we force the DX8 dynamic vertex buffer to maximum size
 	if (overlapping_vertex_count > vertexAllocCount)
 		vertexAllocCount = overlapping_vertex_count;
-	// GeneralsX @bugfix Claude 12/08/2026 (upstream issue #2007) The real constraint is the 16-bit index /
+	// GeneralsX: (upstream issue #2007) The real constraint is the 16-bit index /
 	// unsigned-short-alloc limit, not the softer preferred size DEFAULT_SORTING_VERTEX_COUNT (which a heavy
 	// pool or a single large node can legitimately exceed, up to the 16-bit limit). Insert_To_Sorting_Pool
 	// now flushes the pool before it crosses MAX_SORTING_VERTEX_COUNT, so assert against that hard limit.
@@ -584,7 +584,7 @@ void SortingRendererClass::Flush_Sorting_Pool()
 			vertex_array_offset+=state->vertex_count;
 		}
 		if (cenOn)
-			cenT1 = DX8Wrapper::Census_Now_Ns();	// before the lock's destructor unlocks the VB (Codex rcpu r1)
+			cenT1 = DX8Wrapper::Census_Now_Ns();	// before the lock's destructor unlocks the VB (rcpu r1)
 	}
 
 	const long long cenT2s = cenOn ? DX8Wrapper::Census_Now_Ns() : 0;
@@ -693,7 +693,7 @@ void SortingRendererClass::Flush()
 
 	// TheSuperHackers @perf stephanmeesters 04/07/2026
 	// Splice nodes that have no bounding information (Z=0.0) at the correct location into the sorted list.
-	// GeneralsX @performance Claude 23/09/2026 Same splice point, walked as three ranges instead of a list splice.
+	// GeneralsX: Same splice point, walked as three ranges instead of a list splice.
 	size_t split = 0;
 	while (split < sorted_list.size() && sorted_list[split].z > 0.0f) {
 		++split;

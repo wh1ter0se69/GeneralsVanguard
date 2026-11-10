@@ -28,7 +28,7 @@
 #include "Common/MessageStream.h"
 #include <chrono>
 
-// GeneralsX @tweak Claude 23/09/2026 Wall-clock stamp for [GXXFER] traces (GX_MAPDBG): Unix-epoch
+// GeneralsX: Wall-clock stamp for [GXXFER] traces (GX_MAPDBG): Unix-epoch
 // milliseconds truncated to 32 bits, the same t= domain those lines had on macOS/Linux/iPadOS before
 // timeGetTime() became an uptime clock. The probes exist to sequence one peer's send against another
 // peer's receive, which needs one shared time domain; uptime has a per-machine origin. Now also
@@ -56,16 +56,16 @@ extern Int FRAMES_TO_KEEP;
 // This is the connection numbering: 1-8 are for players
 enum ConnectionNumbers CPP_11(: Int)
 {
-	// GeneralsX @feature Claude 12/08/2026 Raised 7 -> 11: 12 lobby slots. The Player-object
+	// GeneralsX: Raised 7 -> 11: 12 lobby slots. The Player-object
 	// budget is the real lid (MAX_PLAYER_COUNT = 16 total, minus neutral, minus the always-added
 	// ReplayObserver, minus up to 2 map civilian sides = 12 with margin). See
 	// docs/WORKDIR/PLAYER_CEILING.md for the full derivation.
-	// GeneralsX @feature Claude 25/09/2026 Raised 11 -> 13: 14 lobby slots = 12 players + 2 observers
+	// GeneralsX: Raised 11 -> 13: 14 lobby slots = 12 players + 2 observers
 	// (the World Series spike measured 15; two observer seats is the owner's ask). Observer slots share
 	// the ReplayObserver (PlayerCapacity.h slotTakesPlayer), so the Player budget above still holds 12
 	// players and MAX_PLAYER_COUNT is not raised: the 16-bit player masks in saves and replays are
 	// untouched. 14 also fits the 16-bit relay destination mask (RelayMaskType, below).
-	// GeneralsX @feature Claude 06/11/2026 Raised 13 -> 33: 34 lobby slots = 32 players + 2 observers
+	// GeneralsX: Raised 13 -> 33: 34 lobby slots = 32 players + 2 observers
 	// (owner, 06/11: "a 32 player option ... online"). Observers still share the ReplayObserver, so
 	// 32 players need 34+ Player objects: MAX_PLAYER_COUNT went to 40 and PlayerMaskType to 64 bits
 	// (GameCommon.h), RelayMaskType to 64 bits (below). An all-players wire, save and replay break.
@@ -84,14 +84,14 @@ struct TransportMessageHeader
 
 static constexpr const Int MAX_SLOTS = MAX_PLAYER+1;
 
-// GeneralsX @feature Claude 12/08/2026 The per-command relay destination mask: one bit per
+// GeneralsX: The per-command relay destination mask: one bit per
 // slot, carried in every game packet (NetPacketStructs.h NetPacketRelayField::relay) and in
 // NetCommandRef::m_relay. Widened from UnsignedByte for 12 human machines - a WIRE FORMAT
 // change: every peer must move together (hard cutover via autoship; old and new builds are
 // already mutually refused by sourceID). Widen the typedef, never the call sites - reader and
 // writer are both sizeof-driven off this type, and ALL_SLOTS_MASK replaces every 0xff literal
 // that used to mean "every slot".
-// GeneralsX @feature Claude 06/11/2026 Widened UnsignedShort -> UnsignedInt64 for 34 slots. Build a
+// GeneralsX: Widened UnsignedShort -> UnsignedInt64 for 34 slots. Build a
 // slot bit with gxSlotBit(), never `1 << slot` (an int shift is undefined from slot 31 and truncates
 // in a 16/32-bit holder long before that).
 typedef UnsignedInt64 RelayMaskType;
@@ -100,7 +100,7 @@ static constexpr const RelayMaskType ALL_SLOTS_MASK = (RelayMaskType)(((RelayMas
 static_assert((Int)(sizeof(RelayMaskType) * 8) >= MAX_SLOTS,
 	"the relay destination mask must hold one bit per slot");
 
-// GeneralsX @feature Claude 12/08/2026 Slots a HUMAN may occupy. Raised 8 -> 12 with the
+// GeneralsX: Slots a HUMAN may occupy. Raised 8 -> 12 with the
 // relay-mask widening above (owner-approved wire break); every slot is now wire-addressable.
 // AI players still never cross the wire - they are simulated in lockstep on every peer.
 // Join placement (LANAPIhandlers) and match start (GameLogic) both enforce this bound.
@@ -112,12 +112,12 @@ static_assert((Int)(sizeof(RelayMaskType) * 8) >= MAX_SLOTS,
 //      referenced from here without a circular include.
 // They are independent: widening the mask does NOT widen the announce budget, and constraint 2
 // is the tighter one. Raising this constant means satisfying BOTH asserts, not just this file's.
-// GeneralsX @feature Claude 25/09/2026 Raised 12 -> 14 with MAX_PLAYER: every slot may be human, so
+// GeneralsX: Raised 12 -> 14 with MAX_PLAYER: every slot may be human, so
 // 12 human players and 2 human observers fit one lobby. The relay's MEMBERS_PER_ROOM, the client
 // rosters (Transport GX_ROSTER_MAX, GXLobbyPresence GX_LOBBY_MAX_MEMBERS, WOLLobbyMenu GX_ROOM_SLOTS),
 // the stats slot bound (GXRelayStatsWire.h GX_STAT_SLOT_MAX), the in-match record envelope (GXM2) and
 // the replay's disconnect block (GENR14) all move with it.
-// GeneralsX @feature Claude 06/11/2026 Raised 14 -> 34 with MAX_PLAYER (32 players + 2 observers).
+// GeneralsX: Raised 14 -> 34 with MAX_PLAYER (32 players + 2 observers).
 static constexpr const Int MAX_HUMAN_SLOTS = 34;
 static_assert(MAX_HUMAN_SLOTS <= (Int)(sizeof(RelayMaskType) * 8),
 	"humans must fit the relay destination mask (constraint 1 of 2 - see LANAPI.h for the "
@@ -133,7 +133,7 @@ static constexpr const Int RETAIL_GAME_PACKET_SIZE = 476;
 
 // TheSuperHackers @info The legacy lanapi cannot use a larger packet size without breaking the gameinfo command
 //
-// GeneralsX @feature Claude 12/08/2026 GROWN 476 -> 768 FOR TWELVE HUMAN SLOTS, and the note above
+// GeneralsX: GROWN 476 -> 768 FOR TWELVE HUMAN SLOTS, and the note above
 // is respected rather than ignored: it says growing this BREAKS THE GAMEINFO COMMAND across
 // versions, and that is true. sizeof(LANMessage) is what a receiver blind-casts after a length>0
 // check, so changing it changes what an old build makes of a new build's lobby datagram.
@@ -156,7 +156,7 @@ static constexpr const Int RETAIL_GAME_PACKET_SIZE = 476;
 // below the 1024-byte socket read and far below MAX_UDP_PAYLOAD_SIZE (1100), so no lobby datagram
 // fragments. GAME packets are untouched - they remain RETAIL_GAME_PACKET_SIZE (476) and
 // retail-compatible. This constant governs the LOBBY message alone.
-// GeneralsX @feature Claude 06/11/2026 768 -> 1400 for 34 slots (34 x 26 + 239 = 1123 bytes of options
+// GeneralsX: 768 -> 1400 for 34 slots (34 x 26 + 239 = 1123 bytes of options
 // worst case). THIS GIVES UP "a lobby datagram never fragments" for the largest lobbies only: an announce
 // is still sent at its own length (LANMessageWireSize), so every lobby whose options fit the old budget
 // is byte-identical on the wire and stays under MAX_UDP_PAYLOAD_SIZE; only a lobby of roughly 25+ humans
@@ -189,11 +189,11 @@ static constexpr const Int GX_RELAY_HEADER_SIZE = 12;
 // Untouched: this branch exists to match the retail wire format exactly, and the relay is not
 // part of that format.
 static constexpr const Int MAX_PACKET_SIZE = RETAIL_GAME_PACKET_SIZE;
-// GeneralsX @feature Claude 06/11/2026 1024 -> GX_CONTROL_DATAGRAM_MAX here too (Codex scale32-r1 P2): it is a receive size, not the
+// GeneralsX: 1024 -> GX_CONTROL_DATAGRAM_MAX here too: it is a receive size, not the
 // retail wire, and a 34-slot LANMessage (1395 B) and the 34-member relay control lines must fit a receive slot in both branches.
 static constexpr const Int MAX_NETWORK_MESSAGE_LEN = GX_CONTROL_DATAGRAM_MAX;
 #else
-// GeneralsX @bugfix Claude 01/10/2026 The auth trailer comes out of the budget too. A DIRECT datagram carries
+// GeneralsX: The auth trailer comes out of the budget too. A DIRECT datagram carries
 // Transport's keyId/seq/tag trailer after the game packet (Transport.h, GX_AUTH_TRAILER_SIZE, asserted equal to
 // this there), so without it a full packet went out as 12 + 6 + 1082 + 13 = 1113 bytes: over the 1100 the raw
 // receive reads, so the receiver refused exactly the fullest packets - the ones carrying the most commands.
@@ -201,7 +201,7 @@ static constexpr const Int GX_AUTH_TRAILER_RESERVE = 13;
 static constexpr const Int MAX_PACKET_SIZE = MAX_UDP_PAYLOAD_SIZE - sizeof(TransportMessageHeader) - GX_RELAY_HEADER_SIZE - GX_AUTH_TRAILER_RESERVE;
 // The RAW receive size still has to be the full payload: what arrives is the relay header plus a
 // game packet that was already capped above plus the trailer, so the total is exactly MAX_UDP_PAYLOAD_SIZE.
-// GeneralsX @feature Claude 06/11/2026 ... and since 34 slots the raw receive is the control-datagram
+// GeneralsX: ... and since 34 slots the raw receive is the control-datagram
 // ceiling (lobby and relay control lines past 1100 B at 25+ humans); game packets stay capped above.
 static constexpr const Int MAX_NETWORK_MESSAGE_LEN = GX_CONTROL_DATAGRAM_MAX;
 #endif
@@ -239,7 +239,7 @@ struct TransportMessage
 	// In retail this only works since no data larger than the retail game packet size is put into a network message
 	UnsignedByte data[MAX_NETWORK_MESSAGE_LEN];
 #else
-	// GeneralsX @feature Claude 06/11/2026 a slot also carries LAN lobby messages (LANAPI casts it to a LANMessage), and those
+	// GeneralsX: a slot also carries LAN lobby messages (LANAPI casts it to a LANMessage), and those
 	// grew to MAX_LANAPI_PACKET_SIZE (1400) for 34 slots, past MAX_PACKET_SIZE (1069). Game packets are still bounded by
 	// MAX_PACKET_SIZE where they are built (NetPacket); only the slot grew.
 	UnsignedByte data[MAX_PACKET_SIZE > MAX_LANAPI_PACKET_SIZE ? MAX_PACKET_SIZE : MAX_LANAPI_PACKET_SIZE];
@@ -307,7 +307,7 @@ enum NetCommandType CPP_11(: Int) {
 	NETCOMMANDTYPE_DISCONNECTSCREENOFF,
 	NETCOMMANDTYPE_DISCONNECTEND,
 
-	// GeneralsX @feature Claude 13/08/2026 The packet router's latency row, published so every
+	// GeneralsX: The packet router's latency row, published so every
 	// peer can show a ping per player instead of only its own leg.
 	//
 	// APPENDED AFTER DISCONNECTEND ON PURPOSE, and this placement is load-bearing twice over.
@@ -320,14 +320,14 @@ enum NetCommandType CPP_11(: Int) {
 	// Inserting anywhere earlier would renumber the disconnect block for no benefit at all.
 	NETCOMMANDTYPE_LATENCYREPORT,
 
-	// GeneralsX @security Claude 06/10/2026 The ack of ONE wrapper chunk, naming (original player, wrapSeq, chunk number)
+	// GeneralsX: The ack of ONE wrapper chunk, naming (original player, wrapSeq, chunk number)
 	// rather than the 16-bit ID that wraps within seconds during a transfer (DESIGN_wrapper-memory-cap v16 section 2).
 	// Appended after LATENCYREPORT for the same two reasons: outside the DISCONNECTSTART..DISCONNECTEND sentinels, and no
 	// existing type renumbers. Connection-scoped: never relayed, applied only when it arrived direct from the acker.
 	NETCOMMANDTYPE_WRAPPERACK,
 };
 
-// GeneralsX @security Claude 06/10/2026 The wrapper send window (DESIGN_wrapper-memory-cap v16 section 3). Per connection, a
+// GeneralsX: The wrapper send window (DESIGN_wrapper-memory-cap v16 section 3). Per connection, a
 // sender never has more than GX_WRAP_WINDOW serializations from its lowWater to its next wrapSeq, nor more than GX_WRAP_BYTES
 // claimed bytes in that interval; the receiver refuses (unacked) anything outside it, so it never holds more per source.
 // GX_RELAY_SOFTCAP_* bound what a router queues for one relayed originator (distinct commands, and their body bytes).

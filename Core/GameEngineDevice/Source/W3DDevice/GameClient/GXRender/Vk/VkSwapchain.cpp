@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B WSI - see VkSwapchain.h.
+// GeneralsX: WS-B WSI - see VkSwapchain.h.
 #include "VkSwapchain.h"
 
 #include <algorithm>
@@ -165,8 +165,8 @@ bool VkSwapchain::build(VkSwapchainKHR old, std::string* why)
 	}
 
 	// UNORM, not sRGB: the game's D3D8 back buffer is X8R8G8B8 with its own gamma ramp, so its encoded values are copied
-	// as they are. An sRGB swapchain would re-encode them on the blit ((26,51,102) -> ~(90,124,170), Codex r3). And only
-	// 4-byte 8-bit layouts: the read-back (GX_SHOT later) copies the image unconverted at 4 bytes per pixel (Codex r4).
+	// as they are. An sRGB swapchain would re-encode them on the blit ((26,51,102) -> ~(90,124,170)). And only
+	// 4-byte 8-bit layouts: the read-back (GX_SHOT later) copies the image unconverted at 4 bytes per pixel.
 	// These are what every surface met so far offers; anything else is refused with a reason.
 	VkSurfaceFormatKHR fmt = { VK_FORMAT_UNDEFINED, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR };
 	if (formats.size() == 1 && formats[0].format == VK_FORMAT_UNDEFINED) {
@@ -223,7 +223,7 @@ bool VkSwapchain::build(VkSwapchainKHR old, std::string* why)
 		images = std::min(images, caps.maxImageCount);
 
 	if (!(caps.supportedUsageFlags & VK_IMAGE_USAGE_TRANSFER_DST_BIT)) {
-		// The present is a blit + clear (transfer writes); a surface without that usage needs a draw-based present (Codex r3).
+		// The present is a blit + clear (transfer writes); a surface without that usage needs a draw-based present.
 		*why = "surface does not allow TRANSFER_DST swapchain images (the blit present needs it)";
 		return false;
 	}
@@ -303,7 +303,7 @@ bool VkSwapchain::build(VkSwapchainKHR old, std::string* why)
 	for (VkSemaphore& s : m_acquire)
 		semaphoresOk = semaphoresOk && vkCreateSemaphore(device, &si, nullptr, &s) == VK_SUCCESS;
 	if (!semaphoresOk) {
-		// Never publish a swapchain with null semaphores (Codex r2): undo everything this build made.
+		// Never publish a swapchain with null semaphores: undo everything this build made.
 		for (VkSemaphore& s : m_present)
 			if (s)
 				vkDestroySemaphore(device, s, nullptr);
@@ -397,7 +397,7 @@ void VkSwapchain::finishImage(VkCommandBuffer cmd, uint32_t imageIndex, VkImageL
 	if (readback != VK_NULL_HANDLE && m_canReadBack) {
 		imageBarrier(cmd, dst, layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stage, access, xfer, VK_ACCESS_2_TRANSFER_READ_BIT);
 		layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		VkMemoryBarrier2 waw = { VK_STRUCTURE_TYPE_MEMORY_BARRIER_2 };   // after an earlier frame's copy into the same buffer (Codex wa-r1 P2 #3)
+		VkMemoryBarrier2 waw = { VK_STRUCTURE_TYPE_MEMORY_BARRIER_2 };   // after an earlier frame's copy into the same buffer
 		waw.srcStageMask = xfer;
 		waw.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
 		waw.dstStageMask = xfer;
@@ -432,7 +432,7 @@ void VkSwapchain::recordPresent(VkCommandBuffer cmd, uint32_t imageIndex, VkImag
 	const VkImage dst = m_images[imageIndex];
 	const VkPipelineStageFlags2 xfer = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
 	beginImage(cmd, imageIndex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, xfer, VK_ACCESS_2_TRANSFER_WRITE_BIT);
-	const VkClearColorValue black = { { 0.0f, 0.0f, 0.0f, 1.0f } }; // opaque: a premultiplied-alpha surface must not show through (Codex r4)
+	const VkClearColorValue black = { { 0.0f, 0.0f, 0.0f, 1.0f } }; // opaque: a premultiplied-alpha surface must not show through
 	const VkImageSubresourceRange range = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1 };
 	vkCmdClearColorImage(cmd, dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, &black, 1, &range);
 	imageBarrier(cmd, dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, xfer,

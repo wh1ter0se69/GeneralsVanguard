@@ -75,7 +75,7 @@
 #include "W3DDevice/GameClient/W3DCustomScene.h"
 
 #include "W3DDevice/GameClient/CameraShakeSystem.h"
-#include "GameClient/GXRenderSplit.h"	// GeneralsX @feature Claude 08/10/2026 render-split step 6: script shakers from the tick
+#include "GameClient/GXRenderSplit.h"	// GeneralsX: render-split step 6: script shakers from the tick
 #include <memory>
 #include "WW3D2/camera.h"
 
@@ -221,9 +221,9 @@ void CameraShakeSystemClass::Add_Camera_Shake
 
 	CameraShakerClass * shaker = new CameraShakerClass(position,radius,duration,power);
 
-	// GeneralsX @feature Claude 08/10/2026 render-split step 6 (GXRenderSplit.h): a script's shaker (ScriptActions, inside the
+	// GeneralsX: render-split step 6 (GXRenderSplit.h): a script's shaker (ScriptActions, inside the
 	// tick) is BUILT here as before - its six WWMath::Random_Float draws come from the process-wide rand() that model
-	// loading also draws from (a missing culling tree), so they must stay at the call (Codex split-step6-plan-r1 P1) - and
+	// loading also draws from (a missing culling tree), so they must stay at the call - and
 	// joins the list the view's update walks at the tick's end. A queue discarded by a game reset deletes it.
 	auto publish = [this]( CameraShakerClass * s, const Vector3 & pos, float r, float d, float p )
 	{

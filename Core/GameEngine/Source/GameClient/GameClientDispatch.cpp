@@ -39,7 +39,7 @@
 	* stream before the messages go to the network for processing.  It gives
 	* the client itself the opportunity to respond to any messages on the stream
 	* or create new ones to pass along to the network and logic */
-// GeneralsX @bugfix Claude 05/10/2026 A SELECTION OF MORE THAN 254 UNITS REACHED THE SIMULATION AS (N + 1) % 256 - 1.
+// GeneralsX: A SELECTION OF MORE THAN 254 UNITS REACHED THE SIMULATION AS (N + 1) % 256 - 1.
 // GameMessage::getArgumentCount() is an UnsignedByte (retail counted arguments in one), and everything downstream reads
 // that count: GameLogic::onCreateSelectedGroup, the network's NetGameCommandMsg / GameMessageParser, the replay writer.
 // A box-select (SelectionXlat) or a select-across-map (InGameUI) puts every id into ONE message, so selecting 1000 units
@@ -51,7 +51,7 @@
 // cleared first by its own MSG_DESTROY_SELECTED_GROUP (see below). A hotkey team
 // (MSG_CREATE_TEAM0-9, SelectionTranslator::onMetaCreateTeam: Ctrl+number) had the same cap; its later parts start with a
 // Boolean, which Player::processCreateTeamGameMessage reads as "add to the squad" instead of "replace it". The wire
-// format is unchanged. This file is inside the SimID digest (simsourcedigest_watcher.cmake, det-codex-4: it decides what
+// format is unchanged. This file is inside the SimID digest (simsourcedigest_watcher.cmake, it decides what
 // reaches the command list), so this ships with an all-players release like any digest change.
 static const Int GX_MAX_MESSAGE_ARGUMENTS = 255;	// the largest getArgumentCount() can report
 
@@ -70,10 +70,10 @@ static Bool gxResendOversizedIdList(const GameMessage *msg)
 		++total;
 
 	GameMessage *after = const_cast<GameMessage *>(msg);
-	// GeneralsX @fix Claude 05/10/2026 A REPLACEMENT SELECTION IS CLEARED FIRST, THEN EVERY PART ADDS. The logic replaces
+	// GeneralsX: A REPLACEMENT SELECTION IS CLEARED FIRST, THEN EVERY PART ADDS. The logic replaces
 	// the selection only at the first id of a createNewGroup message that still resolves (GameLogic::onCreateSelectedGroup),
 	// so when every id of the first part had died before it executed, the OLD group stayed and the later parts added to
-	// it: units the player had deselected followed the next order (Codex codex-batch-1005 p1-mass-order). A DESTROY
+	// it: units the player had deselected followed the next order (p1-mass-order). A DESTROY
 	// followed by a CREATE without createNewGroup is a pair MessageStream::isRedundantMessage keeps (it drops the DESTROY
 	// only before a createNewGroup CREATE). The one difference from a createNewGroup first part: a first resolved object
 	// that is not mass-selectable is no longer let in - a client multi-select never holds one (InGameUI and the selection

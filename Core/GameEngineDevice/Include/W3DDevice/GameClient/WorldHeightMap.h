@@ -171,7 +171,7 @@ protected:
 	int m_numTextureClasses;
 	TXTextureClass m_textureClasses[NUM_TEXTURE_CLASSES];
 
-	// GeneralsX @performance Claude 27/09/2026 getTerrainTypeAt's cache: the TerrainType each texture class's name resolves
+	// GeneralsX: getTerrainTypeAt's cache: the TerrainType each texture class's name resolves
 	// to, filled on first use. A class's name is read once, when the map loads, so the answer can never change.
 	TerrainType *m_terrainTypeOfClass[NUM_TEXTURE_CLASSES] = {};
 	Bool m_terrainTypeOfClassSet[NUM_TEXTURE_CLASSES] = {};

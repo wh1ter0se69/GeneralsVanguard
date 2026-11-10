@@ -412,7 +412,7 @@ void ControlBarScheme::validate() const
 	}
 }
 
-// GeneralsX @bugfix Claude 20/08/2026 Place one scheme-positioned control, through LayoutScale.h.
+// GeneralsX: Place one scheme-positioned control, through LayoutScale.h.
 //
 // This replaces ten copies of the same twelve lines. The copies were not merely repetitive: they
 // scaled x and y by independent ratios derived from ControlBarScheme.ini's own ScreenCreationRes,
@@ -467,7 +467,7 @@ static void gxPlaceSchemeControl( GameWindow *win, const ICoord2D &ul, const ICo
 		ctx.mode		 = LAYOUT_SCALE_UNIFORM;
 		ctx.uiScale	 = LayoutScaleActiveDial();
 
-		// GeneralsX @bugfix Claude 25/08/2026 NO GROUP HERE, deliberately. Groups come from a first
+		// GeneralsX: NO GROUP HERE, deliberately. Groups come from a first
 		// pass over a .wnd's SCREENRECT lines (see GameClient/LayoutScale.h), and a scheme has no
 		// layout file - these ~10 positions arrive one at a time out of ControlBarScheme.ini. So this
 		// path keeps the per-rect anchor it has always had. That is correct rather than merely
@@ -492,7 +492,7 @@ static void gxPlaceSchemeControl( GameWindow *win, const ICoord2D &ul, const ICo
 	win->winSetSize( (Int)( ( lr.x - ul.x ) * xScale ), (Int)( ( lr.y - ul.y ) * yScale ) );
 }
 
-// GeneralsX @probe Claude 20/08/2026 GX_FONT=1 - the final rect of every control this scheme places.
+// GeneralsX: GX_FONT=1 - the final rect of every control this scheme places.
 //
 // These controls are positioned by ControlBarScheme, NOT by the layout parser, so they never appear
 // in the [GXFONT2] layout dump - that runs when the .wnd is built and this runs afterwards. Without
@@ -552,7 +552,7 @@ void ControlBarScheme::init()
 		TheControlBar->setArrowImage( m_genArrow);
 	}
 	GameWindow *win = nullptr;
-	// GeneralsX @bugfix Claude 20/08/2026 Every control below is placed through
+	// GeneralsX: Every control below is placed through
 	// gxPlaceSchemeControl, so this scheme now honours GX_UI_LAYOUT like the rest of the UI. It used
 	// to compute its own per-axis multipliers from ControlBarScheme.ini's ScreenCreationRes, which
 	// has never had to agree with ControlBar.wnd's CREATIONRESOLUTION.
@@ -619,7 +619,7 @@ void ControlBarScheme::init()
 
 		gxPlaceSchemeControl( win, m_powerBarUL, m_powerBarLR, m_ScreenCreationRes );
 		{
-			// GeneralsX @tweak Claude 20/08/2026 Log what the window ACTUALLY got, not a second
+			// GeneralsX: Log what the window ACTUALLY got, not a second
 			// computation of what it should have got - the two can now disagree by mode.
 			Int pw, ph;
 			win->winGetSize( &pw, &ph );
@@ -664,7 +664,7 @@ void ControlBarScheme::init()
 		win->winSetEnabledImage(0,m_powerPurchaseImage);
 		if( m_powerPurchaseImage )
 		{
-			// GeneralsX @bugfix Claude 20/08/2026 One factor in UNIFORM, so this panel keeps the
+			// GeneralsX: One factor in UNIFORM, so this panel keeps the
 			// image's aspect like every other scheme-placed control.
 			const Coord2D genScale = gxSchemeScale( m_ScreenCreationRes );
 			win->winSetSize( m_powerPurchaseImage->getImageWidth() * genScale.x,
@@ -750,7 +750,7 @@ void ControlBarScheme::update()
 
 }
 
-// GeneralsX @feature Claude 06/10/2026 The legacy look draws the minimap in the map's own shape (GXSpectatorHud.inl): the bar's
+// GeneralsX: The legacy look draws the minimap in the map's own shape (GXSpectatorHud.inl): the bar's
 // baked radar frame would then stand around a box the map does not fill, so the art is drawn in pieces AROUND this screen
 // rectangle (the frame there is drawn by the HUD, hugging the map). Empty (lo == hi) = nothing cut. Display only.
 IRegion2D gxControlBarArtHole = { { 0, 0 }, { 0, 0 } };
@@ -825,7 +825,7 @@ void ControlBarScheme::drawForeground( Coord2D multi, ICoord2D offset )
 //
 // Add an image to the proper layer list
 //-----------------------------------------------------------------------------
-// GeneralsX @feature Claude 05/10/2026 The GeneralsX UI while playing (GXSpectatorHud.inl, player mode) replaces the bar's
+// GeneralsX: The GeneralsX UI while playing (GXSpectatorHud.inl, player mode) replaces the bar's
 // background art with its own see-through navy panels, drawn under the bar's windows; TRUE only while those panels are
 // drawn. Display only: GameClient/GUI is outside the SimID digest and nothing the simulation runs reads it.
 Bool gxControlBarArtOff = FALSE;

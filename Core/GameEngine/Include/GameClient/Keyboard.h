@@ -121,7 +121,7 @@ public:
 												 KeyboardIO::StatusType data );   ///< set key status
 	WideChar translateKey( WideChar keyCode );		///< translate key code to printable UNICODE char
 	WideChar getPrintableKey( KeyDefType key, Int state );
-	/// GeneralsX @feature Claude 25/09/2026 The character the keyboard LAYOUT puts on this key, unshifted,
+	/// GeneralsX: The character the keyboard LAYOUT puts on this key, unshifted,
 	/// for a caller that must name a key the player pressed (the drop-down letter keys). SDL builds learn
 	/// it from each key-down's own keycode (SDL3Keyboard), Windows asks the active layout
 	/// (DirectInputKeyboard); both answer 0 for a key that types no character there. This default is the

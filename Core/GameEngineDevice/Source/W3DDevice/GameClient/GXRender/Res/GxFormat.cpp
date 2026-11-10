@@ -1,4 +1,4 @@
-// GeneralsX @feature C · rw1-C 10/10/2026 WS-C GXRES v0: D3D8 format -> Vulkan format, per device (see GxFormat.h).
+// GeneralsX: WS-C GXRES v0: D3D8 format -> Vulkan format, per device (see GxFormat.h).
 #include "GxFormat.h"
 #include "GxD3D.h"
 #include "GxDecode.h"

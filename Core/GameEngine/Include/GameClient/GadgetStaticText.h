@@ -68,7 +68,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 extern void GadgetStaticTextSetText( GameWindow *window, UnicodeString text );
-/// GeneralsX @feature Claude 25/09/2026 For text another player supplied: drop control and bidi
+/// GeneralsX: For text another player supplied: drop control and bidi
 /// characters, and end with "..." instead of wrapping when it is wider than the box (LobbySetupUi.h).
 extern void GadgetStaticTextSetUntrustedLine( GameWindow *window, const UnicodeString &text );
 extern UnicodeString GadgetStaticTextGetText( GameWindow *window );

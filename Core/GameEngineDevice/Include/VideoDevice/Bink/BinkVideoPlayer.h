@@ -46,10 +46,10 @@
 //----------------------------------------------------------------------------
 
 #include "GameClient/VideoPlayer.h"
-// GeneralsX @TheSuperHackers @build BenderAI 11/02/2026 Stub Bink for Phase 1 (proprietary SDK)
+// GeneralsX: Stub Bink for Phase 1 (proprietary SDK)
 // TODO Phase 3: Replace with FFmpeg or skip videos gracefully
 //
-// GeneralsX @bugfix Claude 27/07/2026 Take the real header back on Windows.
+// GeneralsX: Take the real header back on Windows.
 //
 // Commenting out bink.h left HBINK as a pointer to an incomplete type, which is enough to declare
 // the class but not to compile BinkVideoPlayer.cpp - BinkOpen, BinkDoFrame, BINKSURFACE32 and the

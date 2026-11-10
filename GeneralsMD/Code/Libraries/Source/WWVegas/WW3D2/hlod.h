@@ -111,7 +111,7 @@ public:
 	virtual void					Render(RenderInfoClass & rinfo) override;
 	virtual void					Special_Render(SpecialRenderInfoClass & rinfo) override;
 
-	// GeneralsX @performance Claude 07/10/2026 R-CPU pose pre-pass: this tree's own motion AND every HLOD sub-object's
+	// GeneralsX: R-CPU pose pre-pass: this tree's own motion AND every HLOD sub-object's
 	// (every LOD and the additional models, which Update_Sub_Object_Transforms poses too) may be posed on a worker.
 	virtual bool					Pose_Is_Worker_Safe() override;
 	static bool						Sub_Object_Is_Worker_Safe(RenderObjClass * robj);

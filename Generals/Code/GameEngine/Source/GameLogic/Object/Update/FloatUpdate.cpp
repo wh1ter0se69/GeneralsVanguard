@@ -103,7 +103,7 @@ UpdateSleepTime FloatUpdate::update()
 		const Coord3D *pos = getObject()->getPosition();
 
 		// get the height of the water here
-		// GeneralsX @bugfix Claude 06/10/2026 isUnderwater() writes nothing where there is no water at all, so an
+		// GeneralsX: isUnderwater() writes nothing where there is no water at all, so an
 		// uninitialised waterZ became this object's logic Z (stack garbage: differs per platform = desync). No water
 		// here keeps the current height (sweep c042-01).
 		Real waterZ = pos->z;

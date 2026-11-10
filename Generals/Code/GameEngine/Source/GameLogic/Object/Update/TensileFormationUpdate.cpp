@@ -281,7 +281,7 @@ UpdateSleepTime TensileFormationUpdate::update()
 	Coord3D slope = { normal.x, normal.y, 0.0f};
 	Real steepness = 1.0f - normal.z;
 #if GX_LOGIC_60HZ
-	// GeneralsX @fix Claude 23/09/2026 per-frame physics of the slide: the slope push is per-frame^2 (x1/4, exact), the inertia
+	// GeneralsX: per-frame physics of the slide: the slope push is per-frame^2 (x1/4, exact), the inertia
 	// friction and the tensor lerp below are per-frame decays (square roots, checked in the audit bench).
 	slope.scale( (0.3f + steepness) * 0.25f );
 #else
@@ -307,7 +307,7 @@ UpdateSleepTime TensileFormationUpdate::update()
 
 
 	Object *tree = ThePartitionManager->getClosestObject( &newPos, getObject()->getGeometryInfo().getMajorRadius(), FROM_CENTER_2D );
-	// GeneralsX @bugfix Claude 01/10/2026 getClosestObject returns null when nothing is in range; the Zero Hour
+	// GeneralsX: getClosestObject returns null when nothing is in range; the Zero Hour
 	// twin already had this guard (tsh batch2 #385).
 	if (tree != nullptr && tree->isKindOf( KINDOF_SHRUBBERY ))
 		tree->topple( &m_inertia, m_inertia.length(), 1 );//No Bounce

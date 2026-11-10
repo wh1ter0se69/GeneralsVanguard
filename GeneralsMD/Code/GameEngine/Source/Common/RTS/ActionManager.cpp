@@ -275,7 +275,7 @@ Bool ActionManager::canTransferSuppliesAt( const Object *obj, const Object *tran
 			return FALSE;
 		}
 #else
-		// GeneralsX @bugfix Claude 02/10/2026 The shroud test must not read the lazy shroud cache. A FOGGED object that owns a
+		// GeneralsX: The shroud test must not read the lazy shroud cache. A FOGGED object that owns a
 		// ghost object is answered SHROUDED if it is neutral and mobile, or non-neutral and either a mine or not (immobile
 		// and seen before, PartitionData::m_everSeenByPlayer) - and a -headless peer owns no ghost objects
 		// (GhostObjectManagerDummy), while everSeen is set by whichever client query ran first, which depends on the
@@ -1497,7 +1497,7 @@ Bool ActionManager::canDoSpecialPowerAtLocation( const Object *obj, const Coord3
 			return false;
 		}
 #if !RETAIL_COMPATIBLE_CRC
-		// GeneralsX @bugfix Claude 04/10/2026 A structure still being built fires nothing. The UI never offers it (an
+		// GeneralsX: A structure still being built fires nothing. The UI never offers it (an
 		// UNDER_CONSTRUCTION building shows no power buttons, and the shortcut bar's doFindSpecialPowerSourceObject skips
 		// it), but a sent command reached the module: a browned-out missile-launcher scaffold read ready and crashed every
 		// peer in MissileLauncherBuildingUpdate, or, with that guarded, OCLSpecialPower fired anyway. This is the gate
@@ -1657,7 +1657,7 @@ Bool ActionManager::canDoSpecialPowerAtObject( const Object *obj, const Object *
 			return false;
 		}
 #if !RETAIL_COMPATIBLE_CRC
-		// GeneralsX @bugfix Claude 04/10/2026 A structure still being built fires nothing. The UI never offers it (an
+		// GeneralsX: A structure still being built fires nothing. The UI never offers it (an
 		// UNDER_CONSTRUCTION building shows no power buttons, and the shortcut bar's doFindSpecialPowerSourceObject skips
 		// it), but a sent command reached the module: a browned-out missile-launcher scaffold read ready and crashed every
 		// peer in MissileLauncherBuildingUpdate, or, with that guarded, OCLSpecialPower fired anyway. This is the gate
@@ -1930,7 +1930,7 @@ Bool ActionManager::canDoSpecialPower( const Object *obj, const SpecialPowerTemp
 			return false;
 		}
 #if !RETAIL_COMPATIBLE_CRC
-		// GeneralsX @bugfix Claude 04/10/2026 A structure still being built fires nothing. The UI never offers it (an
+		// GeneralsX: A structure still being built fires nothing. The UI never offers it (an
 		// UNDER_CONSTRUCTION building shows no power buttons, and the shortcut bar's doFindSpecialPowerSourceObject skips
 		// it), but a sent command reached the module: a browned-out missile-launcher scaffold read ready and crashed every
 		// peer in MissileLauncherBuildingUpdate, or, with that guarded, OCLSpecialPower fired anyway. This is the gate

@@ -295,9 +295,9 @@ Real W3DLaserDraw::getLaserTemplateWidth() const
 // GX-SIMID-END
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 28/09/2026 Render interpolation (Drawable::getInterpolationOffset). LaserUpdate anchors a beam to
+// GeneralsX: Render interpolation (Drawable::getInterpolationOffset). LaserUpdate anchors a beam to
 // its parent (its position, or a bone) and to its target's position. The positions are LOGIC ones, while the bodies are
-// drawn up to a tick behind them, so the beam would come loose from both ends of a moving pair (Codex interp-r1 P2). A bone
+// drawn up to a tick behind them, so the beam would come loose from both ends of a moving pair. A bone
 // start comes through Drawable::getCurrentWorldspaceClientBonePositions, which moves it to this frame's drawn pose. The rest
 // is moved here. Zero Hour only: the base game's lasers have no parent or target.
 // Not moved: the end of a weapon laser fired at an explicit impact point. Weapon::createLaser passes the victim AND the
@@ -318,7 +318,7 @@ public:
 };
 
 // LaserUpdate::initLaser puts the muzzle and target effects at its (logic) ends once, where they stay. On the beam's
-// first drawn frame under interpolation, put them at the DRAWN ends instead, so beam and effects start together (Codex
+// first drawn frame under interpolation, put them at the DRAWN ends instead, so beam and effects start together (
 // interp-r4, r8: a bone start is already interpolated by then, so this cannot key on the ends having moved). Untouched at
 // phase 1, so that picture is today's.
 static void gxLaserPlaceEffects(const LaserUpdate *update, const Coord3D &start, const Coord3D &end)
@@ -352,7 +352,7 @@ static void gxLaserDrawnEnds(const LaserUpdate *update, Coord3D &start, Coord3D 
 			{
 				// LaserUpdate caches the bone start in clientUpdate, which GameClient::update skips while time is frozen or
 				// the network halts the game, and the body keeps moving along its interpolation meanwhile: read the bone as
-				// drawn this frame instead (Codex interp-r7). At phase 1 in normal play, LaserUpdate's own value: today's.
+				// drawn this frame instead. At phase 1 in normal play, LaserUpdate's own value: today's.
 				Matrix3D bonePose;
 				if (parent->getCurrentWorldspaceClientBonePositions(bone.str(), bonePose))
 					start.set(bonePose.Get_X_Translation(), bonePose.Get_Y_Translation(), bonePose.Get_Z_Translation());

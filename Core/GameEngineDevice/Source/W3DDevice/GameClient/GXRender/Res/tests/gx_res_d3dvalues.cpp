@@ -1,4 +1,4 @@
-// GeneralsX @test C · rw1-C 10/10/2026 WS-C GXRES v0: GxD3D.h's numbers against the D3D8 headers the game is built with.
+// GeneralsX: WS-C GXRES v0: GxD3D.h's numbers against the D3D8 headers the game is built with.
 // Its own translation unit: the DXVK native windows/d3d8 headers never meet Vulkan's here.
 #include "GxD3D.h"
 

@@ -213,7 +213,7 @@ void LANDisplayGameList( GameWindow *gameListbox, LANGameInfo *gameList )
 			selectedPtr = (LANGameInfo *)GadgetListBoxGetItemData(gameListbox, selectedIndex, 0);
 		}
 
-		// GeneralsX @bugfix Claude 31/07/2026 Keep the LAN game list where the user left it
+		// GeneralsX: Keep the LAN game list where the user left it
 		// across the auto-refresh rebuild. TheSuperHackers/GeneralsGameCode#201
 		//
 		// Anchor the scroll on the game at the top of the view, not on its row number.

@@ -234,7 +234,7 @@ Bool GameLODManager::isParticleSkipped()
 	return (++m_numParticleGenerations & m_dynamicParticleSkipMask) != m_dynamicParticleSkipMask;
 }
 
-// GeneralsX @bugfix Claude 17/08/2026 The two dynamic-LOD fields the SIMULATION reads are pinned to
+// GeneralsX: The two dynamic-LOD fields the SIMULATION reads are pinned to
 // their neutral values whenever the simulation is shared, because the LOD level that selects them is
 // chosen per-machine and no join gate can ever make two peers agree on it.
 //

@@ -1,4 +1,4 @@
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 GPU sun shadow map: the Zero Hour game glue.
+// GeneralsX: S7 GPU sun shadow map: the Zero Hour game glue.
 //
 // modernize/look-director/d2/PREREG_look-shadowmaps.md (A4, A7, A8, A14, A18, A23, A28), PLAN Task 5. Render-only: nothing here is
 // read by the simulation, and this file is outside the SimID digest (GeneralsMD/Code/GameEngineDevice: not on the watcher's list).
@@ -116,7 +116,7 @@ namespace
 		{
 			const char *e = getenv("GX_SHADOWMAP_BIAS_CLAMP");
 			char *end = nullptr;
-			const double v = e ? strtod(e, &end) : -1.0;   // validated as a double (Codex a73-code-r1 #2: 4096.0001 rounds to 4096.f)
+			const double v = e ? strtod(e, &end) : -1.0;   // validated as a double (4096.0001 rounds to 4096.f)
 			c = (e && end != e && *end == '\0' && v >= 0.0 && v <= 4096.0) ? float(v / 65536.0) : -1.f;   // the whole value a number
 			if (e)
 				fprintf(stderr, "[GXSHADOWMAP] TEST-ONLY GX_SHADOWMAP_BIAS_CLAMP=%s: depth-bias clamp %.8f%s\n", e, double(c),
@@ -172,7 +172,7 @@ namespace
 	uint32_t s_frames = 0;
 	GxShadowFrame s_frame = {};   // BeginShadowFrame's argument, alive until the next frame (a ring replay reads it by pointer)
 
-	// Codex code-t5-r1 P1: every IGxShadowMap call goes through DX8Wrapper::Device_Call, so it is recorded into DX8Ring with the
+	// every IGxShadowMap call goes through DX8Wrapper::Device_Call, so it is recorded into DX8Ring with the
 	// mesh draws it tags (GX_D3D8RING) and replayed in stream order on the ring's thread - never pushed past them from here. The tag
 	// travels BY VALUE in the call's context word; the frame by a pointer to s_frame, which lives until the next tactical frame.
 	void tagsCall(IDirect3DDevice8 *, void *ctx)
@@ -236,14 +236,14 @@ namespace
 		const int i = rootIndex(mesh);
 		const GXShadowTags::Want w = GXShadowTags::meshBegin(s_tags, i >= 0, i >= 0 ? s_walk.own[size_t(i)] : 0, pass, casterFilter(mesh));
 		setOwn(w.own);
-		// A60 TEST-ONLY GX_SHADOWMAP_DROP_CAST (the D60 diagnostic): this mesh's draws lose CAST - nothing else changes (Codex a60-r1 P2)
-		const bool drop = !castNone() && (w.tags & GX_SHADOW_TAG_CAST) != 0 &&   // A60b (Codex a60a-r2 P3): no (cast) line under CAST=none
+		// A60 TEST-ONLY GX_SHADOWMAP_DROP_CAST (the D60 diagnostic): this mesh's draws lose CAST - nothing else changes
+		const bool drop = !castNone() && (w.tags & GX_SHADOW_TAG_CAST) != 0 &&   // A60b: no (cast) line under CAST=none
 			W3DVolumetricShadowManager::gxShadowDropMesh(mesh->Get_Name(), TRUE);
 		setTags(castNone() || drop ? (w.tags & ~uint32_t(GX_SHADOW_TAG_CAST)) : w.tags);
 	}
 
 	// a procedural or delayed material pass (dx8renderer.cpp Render_Procedural_Material_Passes / Render_Delayed_...: they bypass
-	// meshBegin, Codex a39-design-r1 P2-3): the own light only, never CAST; a skin mesh has no caster copy, so none
+	// meshBegin): the own light only, never CAST; a skin mesh has no caster copy, so none
 	void passBegin(const MeshClass *mesh)
 	{
 		const bool skin = const_cast<MeshClass *>(mesh)->Peek_Model() && const_cast<MeshClass *>(mesh)->Peek_Model()->Get_Flag(MeshModelClass::SKIN);
@@ -277,7 +277,7 @@ namespace
 		{ 1024, 1, 2, { 4.0f, 0.0f, 2.0f } },
 	};
 
-	// Codex code-fit3-r1 #2 / code-fit4-r1: the render object's min/max height are scanned once at load (BaseHeightMap initHeightData);
+	// / code-fit4-r1: the render object's min/max height are scanned once at load (BaseHeightMap initHeightData);
 	// scripted craters lower samples later (setRawMapHeight + terrainHeightChanged, which never updates them). So the slab is re-measured
 	// from the raw samples (a byte min/max over the map: tens of microseconds) on a new map and whenever W3DView::update rebuilt terrain
 	// since the last frame (GxShadowMapTerrainChanged: the same frame the crater first draws), plus every 256 tactical frames as a
@@ -353,7 +353,7 @@ namespace
 	// scene captures it with CAST); else submitted. Only those MeshClass leaves are Render()ed - never a root - so the pose a candidate gets
 	// is the lazy Get_Transform one, 2003's own trigger on the same candidate set (A47). The WIDE light camera is rinfo's camera (its only
 	// reader on this path is MeshClass::Render's per-mesh cull + the decal rejection distance); the mesh renderer's camera stays the MAIN
-	// camera, so ALIGNED / ORIENTED meshes build the scene's world transform (Codex a44-design-r1 #2).
+	// camera, so ALIGNED / ORIENTED meshes build the scene's world transform.
 	CameraClass *s_wideCam = nullptr;
 	std::vector<MeshClass *> s_offMeshes;     // this frame's submissions (raw: used inside tacticalBegin only)
 	std::vector<MeshClass *> s_skipped;       // TEST-ONLY check mode: the skipped meshes, each held by a reference until tacticalEnd
@@ -488,7 +488,7 @@ namespace
 		bool fog;
 		unsigned fogColor;
 		bool light[4];
-		// A64 (Codex a61-code-r1 #1): the lights the DEVICE holds - the wrapper's sent-light cache (DX8Wrapper::Gx_Shadows: the native
+		// A64: the lights the DEVICE holds - the wrapper's sent-light cache (DX8Wrapper::Gx_Shadows: the native
 		// device answers no GetLight). The sorting pool's Apply_Render_State sets them with Set_DX8_Light, past render_state's flags.
 		bool sentOn[4], sentValid[4];
 		D3DLIGHT8 sent[4];
@@ -501,7 +501,7 @@ namespace
 		std::memset(&s.vp, 0, sizeof(s.vp));
 		s.vpOk = dev != nullptr && dev->GetViewport(&s.vp) == D3D_OK;
 		for (int i = 0; i < 7; ++i)
-		{	// A52 (Codex a51-code-r1 #1): the DEVICE's value - the wrapper cache can hold 0x12345678 = unknown (Invalidate_Cached_Render_States)
+		{	// A52: the DEVICE's value - the wrapper cache can hold 0x12345678 = unknown (Invalidate_Cached_Render_States)
 			DWORD v = 0;
 			s.rs[i] = (dev != nullptr && dev->GetRenderState(kSnapRs[i], &v) == D3D_OK) ? unsigned(v) : DX8Wrapper::Get_DX8_Render_State(kSnapRs[i]);
 		}
@@ -641,7 +641,7 @@ namespace
 	}
 	void OffscreenOps::setGroupOwn(size_t g) { setOwn(s_sorted[s_groupStart[g]].own); }
 
-	// A52 (Codex a51-code-r1 #3) phase 1, right after the walk and BEFORE the fit: the caster meshes of every posed candidate (as HLodClass::
+	// A52 phase 1, right after the walk and BEFORE the fit: the caster meshes of every posed candidate (as HLodClass::
 	// Render picks them, the filters, the clean-chain transform read, the mesh sphere), stored; their union widens the walk's near distance
 	// and slab top, so the fit encloses what S7 captures (not only classic's LOD-0 geometry)
 	struct Collected { MeshClass *mesh; SphereClass sp; uint32_t root; bool sorted, lodDiff; };   // A61/A63: sorted, under a non-top LOD
@@ -724,14 +724,14 @@ namespace
 				{	// A61/A62 (6): on or off screen (the scene's draw never captures it); N0 (GX_SHADOWMAP_OFFSCREEN=0) drops the off-view ones only;
 					// GX_SHADOWMAP_CAST=none (M3's Z arm) captures nothing at all
 					const bool inView = drawsRoot && grownInside;
-					// A65 (Codex a64-r2 #2): GX_SHADOWMAP_DROP_CAST reaches sorted casters too (they bypass meshBegin); collection - and so the
+					// A65: GX_SHADOWMAP_DROP_CAST reaches sorted casters too (they bypass meshBegin); collection - and so the
 					// fit's bounds - keeps them
 					if (pk == GXShadowFit::kSubmit && !castNone() && (inView || !offscreenOff()) &&
 						!W3DVolumetricShadowManager::gxShadowDropMesh(mesh->Get_Name(), TRUE))
 					{
 						SortedCaster sc = { mesh, s_walk.own[c.root] };
 						s_sorted.push_back(sc);
-						++(inView ? sortedIn : sortedOff);   // A64 (Codex a61-code-r1 #4): added to the census only if the stage accepts the frame
+						++(inView ? sortedIn : sortedOff);   // A64: added to the census only if the stage accepts the frame
 						sortedLodDiff += c.lodDiff ? 1u : 0u;
 					}
 				}
@@ -811,7 +811,7 @@ namespace
 		}
 		s_skipped.clear();
 		s_skipWrongPeriod += wrong;
-		if (wrong != 0)   // A48 (Codex a47-code-r1 #3): a gap is printed the frame it is found, never only in a later period line
+		if (wrong != 0)   // A48: a gap is printed the frame it is found, never only in a later period line
 			fprintf(stderr, "[GXSHADOWMAP] skip_wrong frame=%u count=%u\n", s_frames, wrong);
 	}
 
@@ -841,7 +841,7 @@ namespace
 			s_lastStep = step;
 		}
 		// the terrain's world rectangle INCLUDING the border: vertex k sits at (k - border) x MAP_XY_FACTOR (BaseHeightMap.cpp:142
-		// ADJUST_FROM_INDEX_TO_REAL); the render object's bounding box starts at 0 and would cut the negative border off (Codex code-fit2-r1 #3)
+		// ADJUST_FROM_INDEX_TO_REAL); the render object's bounding box starts at 0 and would cut the negative border off
 		const float border = float(hm->getBorderSizeInline());
 		float clampXY[4];
 		clampXY[0] = -border * MAP_XY_FACTOR;
@@ -894,7 +894,7 @@ namespace
 		s_collected.clear();
 		if (!castNone())   // A52 phase 1: S7's own caster meshes widen the walk's bounds before the fit (same axis and L as the walk)
 			collectCasters(lp, Vector3(walkAxis.x, walkAxis.y, walkAxis.z));
-		if (ownOff() && !sun)   // A69 TEST-ONLY: no own lights (the D69 arm No); anyOwn / minZ0 are KEPT so the fit is the control's (Codex a69-r1 #2)
+		if (ownOff() && !sun)   // A69 TEST-ONLY: no own lights (the D69 arm No); anyOwn / minZ0 are KEPT so the fit is the control's
 			std::fill(s_walk.own.begin(), s_walk.own.end(), uint64_t(0));
 		if (sun)
 		{	// P2 had no own lights. The walk's distance is dot(c - L, sun) - r; P2's near depth was from the origin, dot(c, sun) - r
@@ -903,7 +903,7 @@ namespace
 			s_walk.nearDist += GXShadowFit::dot(L, sunDir);
 		}
 		// the receiver slab: the terrain's height range (re-scanned: craters), its top raised to the highest caster - a roof, a bridge-top
-		// unit or an aircraft between the eye and the bottom ray's ground hit is a visible receiver too (Codex code-fit3-r1 #1) - and its
+		// unit or an aircraft between the eye and the bottom ray's ground hit is a visible receiver too - and its
 		// bottom lowered to the lowest own-light plane, so every scaled lookup stays inside the prism (A41 P2-4)
 		if (s_walk.any && s_walk.topZ > zHi)
 			zHi = s_walk.topZ;
@@ -1039,10 +1039,10 @@ namespace
 	void tacticalBegin(CameraClass *cam)
 	{
 		if (emitterProbe() && GxShadowMapFrameScene != nullptr)
-		{	// A52/A53 (Codex a51-code-r1 #2, a52-code-r1): PARTICLES - live (Get_Particle_Count = NonNewNum + NewNum) plus those emitted this
+		{	// A52/A53: PARTICLES - live (Get_Particle_Count = NonNewNum + NewNum) plus those emitted this
 			// frame still waiting in the new-particle queue (Gx_Pending_New_Count) - over every particle buffer of the scene that fired the frame;
 			// read-only (no update is forced)
-			// A55/A56 (Codex a54-def-r1, a55-code-r1): per ring (live, queued): count / unexpired / stamp sum / splitmix sum
+			// A55/A56: per ring (live, queued): count / unexpired / stamp sum / splitmix sum
 			// (ParticleBufferClass::Gx_Probe, read-only)
 			unsigned n[2] = { 0, 0 }, un[2] = { 0, 0 }, buffers = 0;
 			unsigned long long ss[2] = { 0, 0 }, sm[2] = { 0, 0 };
@@ -1080,14 +1080,14 @@ namespace
 		tacticalBeginImpl(cam);
 		s_frameUsPeriod += std::chrono::duration<double, std::micro>(std::chrono::steady_clock::now() - t0).count();
 		if (s_censusPrinted)
-		{	// A52 (Codex a51-code-r1 #4): printed AFTER this frame is accumulated - the period that ends with the census line above it
+		{	// A52: printed AFTER this frame is accumulated - the period that ends with the census line above it
 			fprintf(stderr, "[GXSHADOWMAP] frame_us=%.0f (the whole start, %s)\n", s_frameUsPeriod, "gxgfxf_charge=terr");
 			s_frameUsPeriod = 0.0;
 			s_censusPrinted = false;
 		}
 	}
 
-	// Codex code-t5-r1 P2: the map belongs to the tactical scene ONLY - a later pass (a crossfade's extra render, another view)
+	// the map belongs to the tactical scene ONLY - a later pass (a crossfade's extra render, another view)
 	// must draw today's volumes, so the flag is cleared here as well as set per frame
 	void tacticalEnd()
 	{
@@ -1125,7 +1125,7 @@ void W3DShadowMapInstall()
 	GxShadowMapFrame = &s_frameHooks;
 }
 
-// Codex code-t5-r1 P2: the device reference QueryInterface took is dropped with the device's resources (W3DShadowManager::
+// the device reference QueryInterface took is dropped with the device's resources (W3DShadowManager::
 // ReleaseResources - device reset / loss) and at the manager's destruction, so the native device can be torn down; the next tactical
 // frame queries again. Nothing is pending in DX8Ring here: the release paths run outside a frame.
 void W3DShadowMapRelease()
@@ -1135,7 +1135,7 @@ void W3DShadowMapRelease()
 	for (MeshClass *m : s_skipped)	// A47 check mode: references held across a frame that a release cut short
 		m->Release_Ref();
 	s_skipped.clear();
-	if (offscreenCheck())	// A48 (Codex a47-code-r1 #3): the partial period's check totals are never lost
+	if (offscreenCheck())	// A48: the partial period's check totals are never lost
 		fprintf(stderr, "[GXSHADOWMAP] release: partial period skip_checked=%u skip_wrong=%u skip_dirty=%u offscreen_meshes=%u\n",
 			s_skipCheckedPeriod, s_skipWrongPeriod, s_skipDirtyPeriod, s_offMeshesPeriod);
 	s_frameCam = nullptr;

@@ -17,7 +17,7 @@
 */
 
 //////// AudioDecoder.h /////////////////////////
-// GeneralsX @feature Claude 06/08/2026
+// GeneralsX:
 /////////////////////////////////////////////////
 //
 // One decoder interface for the OpenAL backend, with two implementations selected at compile

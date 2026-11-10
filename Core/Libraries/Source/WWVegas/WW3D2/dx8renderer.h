@@ -67,7 +67,7 @@ class CameraClass;
 
 #define RECORD_RENDER(I,P) render_stats[I].count++; render_stats[I].polys+=P;
 
-// GeneralsX @performance Claude 08/10/2026 R-CPU 1f parallel object collection (W3DScene.cpp, GX_COLLECTPAR). While a
+// GeneralsX: R-CPU 1f parallel object collection (W3DScene.cpp, GX_COLLECTPAR). While a
 // collection worker renders an object, the five adds below that link it into lists every object shares (a render
 // task, a material pass, a delayed material pass, a visible skin, a decal mesh) are recorded into that thread's sink
 // instead of run; the main thread replays them later in object order, so every list ends up exactly as the serial
@@ -97,7 +97,7 @@ extern bool GxCollectSinkArmed;
 inline GxCollectSink *GxCollect_Sink() { return GxCollectSinkArmed ? GxCollectActiveSink : nullptr; }
 void GxCollect_Replay(const GxCollectRec &r);	// main thread, sink null; TASK..DECAL only
 
-// GeneralsX @feature Claude 10/10/2026 WS-G (render-seam/PLAN_native-renderer.md §1 "L2", §3 WS-G): the classic draw
+// GeneralsX: WS-G (render-seam/PLAN_native-renderer.md §1 "L2", §3 WS-G): the classic draw
 // list - what one DX8MeshRendererClass::Flush is about to draw, as one entry per base-pass render task, deformed skin,
 // procedural material pass, decal mesh and delayed material pass, IN FLUSH'S ORDER (rigid containers by pass and visible
 // category, their material passes; skins batch by batch as the 65535-vertex dynamic VB fills; decals; delayed passes).
@@ -117,10 +117,10 @@ struct GxClassicDraw
 	int batch;						// skin containers: the dynamic-VB batch (0, 1, ...); else 0
 };
 extern void (*GxL2FlushHook)(bool end);
-// GeneralsX @feature Claude 10/10/2026 WS-G Task 5 T3: the call log's close point - once per Flush, right after its two null-buffer
+// GeneralsX: WS-G Task 5 T3: the call log's close point - once per Flush, right after its two null-buffer
 // setters (after FLUSH_END); null unless GX_L2_MODEL=1 installs it.
 extern void (*GxL2FlushClosedHook)();
-// GeneralsX @feature Claude 11/10/2026 WS-G S1 seat (render-seam/rw1-G/PLAN_seat.md): asked once per task the category loop draws, right
+// GeneralsX: WS-G S1 seat (render-seam/rw1-G/PLAN_seat.md): asked once per task the category loop draws, right
 // after its list entry; true = the seat drew this task inside its claimed run (PREPARE -> GxDrawRun::Draw_Run -> CARRY-OUT, at the
 // run's first task) and the loop only unlinks it. Null unless GameEngineDevice's GXRender/Scene installs it (GX_L2_DRAWRUN=1, not in
 // check mode).
@@ -145,7 +145,7 @@ extern int GxFlushSiteNext;
 extern int GxFlushSite;
 extern std::vector<GxClassicDraw> *GxL2Executed;
 
-// GeneralsX @feature D · render-motion-units-1 13/10/2026 (PREREG_T A35, modernize/render-dlss/DESIGN_motion-units.md §2.2-2.4): the
+// GeneralsX: the
 // object-velocity bridge's hooks. GXRender/Scene/GxMotionUnits.cpp installs them only while its key is on and a world pass is open;
 // null (the default, always on the classic path) = no call. Render-only: nothing here is read by the simulation.
 struct GxMotionHooks
@@ -157,7 +157,7 @@ struct GxMotionHooks
 };
 extern GxMotionHooks *GxMotion;
 
-// GeneralsX @feature D · look-shadowmaps 17/10/2026 S7 GPU sun shadow map (modernize/look-director/d2/PREREG_look-shadowmaps.md
+// GeneralsX: S7 GPU sun shadow map (modernize/look-director/d2/PREREG_look-shadowmaps.md
 // A7/A8, PLAN Task 5): the shadow-map caster tag's hooks, a SIBLING of GxMotion (the motion bridge is untouched). The ZH glue
 // (W3DShadowMap.cpp) installs them only while GXShadowMap is on and the frame's pass is active; null (the default, always on the
 // classic path and key off) = no call. meshBegin decides per non-skin, non-sorted mesh task whether its draws are casters (pass 0
@@ -167,7 +167,7 @@ struct GxShadowCastHooks
 {
 	void (*meshBegin)(const MeshClass *mesh, int pass);
 	void (*containerEnd)();
-	// A41 (D · look-shadowmaps-3, Codex a39-design-r1 P2-3): a procedural or delayed material pass draws through Render_Material_Pass,
+	// A41 (D · look-shadowmaps-3): a procedural or delayed material pass draws through Render_Material_Pass,
 	// not through a mesh task - it gets its root's own light here (never CAST); containerEnd() after each such loop clears it
 	void (*passBegin)(const MeshClass *mesh);
 };
@@ -433,7 +433,7 @@ public:
 
 	void						Flush();
 	void						Gx_List_Pending(std::vector<GxClassicDraw> &out);	// WS-G: the classic draw list of the next Flush (GxClassicDraw above)
-	// GeneralsX @feature Claude 10/10/2026 WS-X hybrid spike: called inside Flush at the two points where native L2 work
+	// GeneralsX: WS-X hybrid spike: called inside Flush at the two points where native L2 work
 	// would execute without reordering the flush's categories - after the rigid lists (native rigid draws replace those,
 	// ahead of the classic skins and decals) and after the delayed procedural passes - with the classic draws that segment
 	// made. Null (the default) costs one test per boundary.
@@ -474,7 +474,7 @@ protected:
 
 extern DX8MeshRendererClass TheDX8MeshRenderer;
 
-// GeneralsX @perf Claude 09/10/2026 D·dxvk-palette measurement (GX_FLUSHPROF=1): main-thread time inside the object-flush
+// GeneralsX: D·dxvk-palette measurement (GX_FLUSHPROF=1): main-thread time inside the object-flush
 // bracket of RTS3DScene::Flush (DX8Ring::Begin_Record..End_Record), split into object submission (renderOneObject), the rigid
 // and the skin container flushes; [GXFLUSHPROF] every 120 frames, us per frame. Unset = one bool test per scope.
 struct GxFlushProf

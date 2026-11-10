@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B WSI: window-system glue for VkCtx - the instance extensions a window needs
+// GeneralsX: WS-B WSI: window-system glue for VkCtx - the instance extensions a window needs
 // and a VkSurfaceKHR from the game's window. SDL3 on macOS, Linux and iOS (the game's main is SDL3Main there), Win32 on
 // Windows. Only the platform's own file is compiled (VkWsiSdl3.cpp when SDL3 is available, VkWsiWin32.cpp on Windows).
 #pragma once

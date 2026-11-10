@@ -463,7 +463,7 @@ Bool OpenALAudioManager::hasMusicTrackCompleted(const AsciiString &trackName, In
 	return false;
 }
 
-// GeneralsX @build BenderAI 13/02/2026 - Implement remaining pure virtual methods (Phase 2 stubs)
+// GeneralsX: Implement remaining pure virtual methods (Phase 2 stubs)
 // These methods are required by AudioManager interface but will be fully implemented in Phase 2
 
 // Device interface

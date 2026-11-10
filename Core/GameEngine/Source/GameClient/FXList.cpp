@@ -825,7 +825,7 @@ void FXList::doFXObj(const Object* primary, const Object* secondary) const
 {
 	const Int playerIndex = rts::getObservedOrLocalPlayer()->getPlayerIndex();
 
-	// GeneralsX @probe Claude 23/09/2026 the query runs FIRST, probe or not: Object::getShroudedStatus
+	// GeneralsX: the query runs FIRST, probe or not: Object::getShroudedStatus
 	// recomputes a lazy sim cache (PartitionData::m_everSeenByPlayer) that logic reads back, and this
 	// is reached from inside the logic update. -noshroud / GX_NOSHROUD only drops the cull.
 	if (primary && primary->getShroudedStatus(playerIndex) > OBJECTSHROUD_PARTIAL_CLEAR
@@ -862,8 +862,8 @@ FXListStore::~FXListStore()
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @bugfix Claude 10/10/2026 Undo exactly what a map.ini did. parseFXListDefinition clears and refills an existing list
-// IN PLACE, and this reset() was empty, so a map's FX outlived it in every later game of the process (Codex reskin-loop adv-r1,
+// GeneralsX: Undo exactly what a map.ini did. parseFXListDefinition clears and refills an existing list
+// IN PLACE, and this reset() was empty, so a map's FX outlived it in every later game of the process (reskin-loop adv-r1,
 // batch-0962 r35). The pristine nuggets go back INTO the live list, so every pointer to it (weapons, OCLs, DamageFX, module
 // data, resolved at parse time) stays valid; the lists a map invented leave. That erase is safe the way ArmorStore::reset's is:
 // a startup definition cannot name a list that did not exist at startup, live objects are gone (resetSubsystems resets
@@ -905,7 +905,7 @@ const FXList *FXListStore::findFXList(const char* name) const
 	const char *c = ini->getNextToken();
 	NameKeyType key = TheNameKeyGenerator->nameToKey(c);
 
-	// GeneralsX @bugfix Claude 10/10/2026 Record what a map.ini is about to overwrite, so reset() can put it back (ArmorStore's
+	// GeneralsX: Record what a map.ini is about to overwrite, so reset() can put it back (ArmorStore's
 	// pattern): find() first, since operator[] creates a new name's entry. The pristine nuggets MOVE into the backup, so the
 	// clear() below frees only what a map put there. One backup per name per match, never the map's own first block.
 	if (ini->getLoadType() == INI_LOAD_CREATE_OVERRIDES)

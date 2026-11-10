@@ -250,7 +250,7 @@ WindowMsgHandledType DisconnectControlSystem( GameWindow *window, UnsignedInt ms
 				// Echo the user's input to the chat window
 				if (!txtInput.isEmpty()) {
 //					DEBUG_LOG(("DisconnectControlSystem - sending string %ls", txtInput.str()));
-					// GeneralsX @bugfix Claude 16/09/2026 CLEAR THE BOX ONLY IF THE LINE WENT OUT.
+					// GeneralsX: CLEAR THE BOX ONLY IF THE LINE WENT OUT.
 					//
 					// The clear used to happen two lines up, before sendChat was even called, which
 					// was harmless while sendChat could not refuse. It can now - DisconnectMenu.cpp

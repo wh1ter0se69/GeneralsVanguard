@@ -18,7 +18,7 @@
 
 // FILE: GXPerfReport.cpp ////////////////////////////////////////////////////////////////////////
 //
-// GeneralsX @feature Claude 20/09/2026 See GXPerfReport.h for why this owns a socket, why it is
+// GeneralsX: See GXPerfReport.h for why this owns a socket, why it is
 // always on, and what it will never claim.
 
 #include "PreRTS.h"
@@ -40,7 +40,7 @@
 #include "GameNetwork/Transport.h"		// getRelayRoom(), getLocalVirtualIP(), isRelayEnabled()
 // ResolveIP is deliberately NOT included: see ensureSocket.
 #include "GameClient/GXLobbyPresence.h"	// the relay address it already resolved, off the frame path
-// GeneralsX @feature Claude 22/09/2026 GXSTAT - the live per-player numbers. READ ONLY, all of it:
+// GeneralsX: GXSTAT - the live per-player numbers. READ ONLY, all of it:
 // these are public accessors and exist at identical signatures in BOTH games' Common headers, which
 // is what lets one Core-side file compile into g_gameengine and z_gameengine alike.
 #include "Common/Player.h"
@@ -63,7 +63,7 @@ namespace
 // 8086 - so during a match the 8086 membership and the 8088 game socket are in the SAME ROOM. That
 // is what makes a report filed against the 8086 member join cleanly to the transcript, the roster
 // and the moderation record, which are all keyed on that same membership.
-// GeneralsX @feature Claude 29/10/2026 S1-3: the DEFAULT only. The relay's real lobby port is data (the signed list's
+// GeneralsX: S1-3: the DEFAULT only. The relay's real lobby port is data (the signed list's
 // home or a host:port pin) and is read from GXLobbyPresence together with the address, into s_relayPort.
 const UnsignedShort GX_PERF_RELAY_PORT = 8086;
 
@@ -111,7 +111,7 @@ Bool         s_frameReset  = FALSE;
 Int          s_cushionMin  = -1;
 Int          s_iterCount   = 0;
 UnsignedInt  s_iterUs[ GX_PERF_RING ];
-// GeneralsX @bugfix Claude 23/09/2026 Worst iteration of the WHOLE window, not just the first GX_PERF_RING samples:
+// GeneralsX: Worst iteration of the WHOLE window, not just the first GX_PERF_RING samples:
 // the ring bias above is acceptable for percentiles, but iter_max is how a hitching peer is identified.
 UnsignedInt  s_iterMaxUs   = 0;
 UnsignedInt  s_scratch[ GX_PERF_RING ];
@@ -146,7 +146,7 @@ Transport *relayMatchTransport( void )
 /** Open the reporting socket, once. A failure here is permanent for this match and SILENT: this is
   * telemetry, and a player whose network refuses an extra socket must still be able to play.
   *
-  * GeneralsX @bugfix Claude 20/09/2026 THE ADDRESS IS TAKEN FROM THE TRANSPORT, NEVER RESOLVED HERE.
+  * GeneralsX: THE ADDRESS IS TAKEN FROM THE TRANSPORT, NEVER RESOLVED HERE.
   *
   * This used to read the preference and call ResolveIP, and this function is reached from
   * gxPerfSample, which runs in GameClient::update(). Under the default hostname-based relay config
@@ -194,7 +194,7 @@ Bool ensureSocket( void )
 }
 
 //-------------------------------------------------------------------------------------------------
-/** GeneralsX @bugfix Claude 07/11/2026 (STEP 0, lead C79) The line ceilings of the relay a GXSTAT, GXEND or GXSEAT is
+/** GeneralsX: The line ceilings of the relay a GXSTAT, GXEND or GXSEAT is
   * about to go to (GXStatFactionWire.h, gxRelayWireCeilings): the wide ones only while the lobby socket's latest
   * GXCAPS from THAT relay said seats34, the 0.9.69 ones otherwise. Read at every send, after ensureSocket(), and
   * judged against the endpoint ensureSocket() just took, so a failover is never read with the old relay's word. */
@@ -277,7 +277,7 @@ void buildVerdict( const GXPerfSample &s )
 //-------------------------------------------------------------------------------------------------
 /** Open the reporting socket, once, from GameClient::init().
   *
-  * GeneralsX @bugfix Claude 21/09/2026 THE BIND WAS ON THE LOCKSTEP FRAME PATH.
+  * GeneralsX: THE BIND WAS ON THE LOCKSTEP FRAME PATH.
   *
   * ensureSocket() used to do this on the first report of a match, and it is reached from
   * gxPerfSample() inside GameClient::update(). UDP::Bind fprintf()s AND fflush(stderr)es on every
@@ -315,7 +315,7 @@ void gxPerfOpenSocket( void )
 void gxPerfShutdown( void )
 {
 	/*
-	 * GeneralsX @bugfix Claude 21/09/2026 THE SOCKET SURVIVES, THE WINDOW DOES NOT.
+	 * GeneralsX: THE SOCKET SURVIVES, THE WINDOW DOES NOT.
 	 *
 	 * This is called from gxPerfSample on every frame that is not in a relay match, which is what
 	 * makes the reset correct: the point of it is that the first second of the NEXT match must not
@@ -336,7 +336,7 @@ void gxPerfShutdown( void )
 //=================================================================================================
 // GXSTAT: what every player in this match has, once a second.
 //
-// GeneralsX @feature Claude 22/09/2026 (live match view, plan 1 Task 3)
+// GeneralsX: (live match view, plan 1 Task 3)
 //
 // IT LIVES HERE RATHER THAN IN A FILE OF ITS OWN because everything it needs is already here: the
 // socket, the relay address that GXLobbyPresence resolved off the frame path, and - the part that
@@ -365,7 +365,7 @@ char         s_statMatchId[ GX_MATCH_ID_LEN + 1 ] = "";
 /// the id is now derived on demand at match end - see gxStatMatchEnd - so clearing the id can no
 /// longer double as "already reported".
 char         s_statEndedId[ GX_MATCH_ID_LEN + 1 ] = "";
-/// GeneralsX @feature Claude 27/09/2026 (wh1ter0se: "Quitter = loser = left record") Who took himself out while ALIVE and
+/// GeneralsX: Who took himself out while ALIVE and
 /// before the end, by Player index - gxStatNoteSelfDestruct, from the self-destruct order every peer executes at the same
 /// frame. Read and cleared by gxStatMatchEnd, which every teardown calls.
 Bool         s_selfDestructed[ MAX_PLAYER_COUNT ] = {};
@@ -394,7 +394,7 @@ Bool gxStatEnabled( void )
 	return ( s_on != 0 ) ? TRUE : FALSE;
 }
 
-/// GeneralsX @feature Claude 27/09/2026 The end-of-match record (GXEND + GXSEAT) is ON BY DEFAULT in a relay match
+/// GeneralsX: The end-of-match record (GXEND + GXSEAT) is ON BY DEFAULT in a relay match
 /// (owner, 27/09/2026: "real accurate records"); exactly GX_MATCH_STATS=0 turns it off. The 1 Hz GXSTAT stays
 /// behind gxStatEnabled's opt-in.
 static Bool gxEndReportEnabled( void )
@@ -414,7 +414,7 @@ static Bool gxEndReportEnabled( void )
 /// swatch from an index; a player whose colour matches no definition - a mod, an observer, a
 /// not-yet-resolved random - has no index, and inventing 0 would paint it gold.
 ///
-/// GeneralsX @bugfix Claude 25/09/2026 (Codex r1 P2 on ce4d13814) THE SLOT'S OWN INDEX FIRST. Two definitions
+/// GeneralsX: THE SLOT'S OWN INDEX FIRST. Two definitions
 /// may share an RGB under different names, and a lookup by RGB returns the first - so the co<slot>= name
 /// taken from this index named the other colour. The game slot keeps the index the match chose (GameLogic
 /// builds the player's colour from TheMultiplayerSettings->getColor(slot->getColor()), a Random pick already
@@ -495,11 +495,11 @@ void gxStatSample( void )
 		return;
 
 	GXStatPlayer players[ GX_STAT_SLOTS_MAX ];
-	/* GeneralsX @feature Claude 25/09/2026 (owner) WHAT A RANDOM SEAT GOT. The Player's own template is the
+	/* GeneralsX: WHAT A RANDOM SEAT GOT. The Player's own template is the
 	 * resolved one - a Random pick is settled before the players are built - so this is the faction being
 	 * played, not the lobby's "Random". Held as AsciiStrings so the names outlive the loop: a refcount, no heap. */
 	AsciiString factionNames[ GX_STAT_SLOTS_MAX ];
-	/* GeneralsX @bugfix Claude 25/09/2026 (Codex, P2) AND ITS COLOUR BY NAME: the index below is a position in this
+	/* GeneralsX: AND ITS COLOUR BY NAME: the index below is a position in this
 	 * client's Multiplayer.ini, which a mod may reorder; the TooltipName is the colour whatever its position. */
 	AsciiString colourNames[ GX_STAT_SLOTS_MAX ];
 	GXStatFaction factions[ GX_STAT_SLOTS_MAX ];
@@ -559,7 +559,7 @@ void gxStatSample( void )
 		factions[ count ].slot = out.slot;
 		factions[ count ].templateName = factionNames[ count ].str();
 		factions[ count ].colourName = colourNames[ count ].str();
-		// And its RGB (Codex r5 P2): a mod may keep the name and change the colour, and only this client knows which.
+		// And its RGB: a mod may keep the name and change the colour, and only this client knows which.
 		factions[ count ].colourRgb = ( cd != NULL ) ? (long)( (UnsignedInt)cd->getColor() & 0xFFFFFFu ) : -1L;
 		++count;
 	}
@@ -594,11 +594,11 @@ void gxStatSample( void )
 }
 
 //-------------------------------------------------------------------------------------------------
-/// GeneralsX @feature Claude 27/09/2026 GXSEAT, right after this reporter's GXEND (GXStatFactionWire.h): every
+/// GeneralsX: GXSEAT, right after this reporter's GXEND (GXStatFactionWire.h): every
 /// occupied slot as GXSLOT names it, resolved at the end - the army each player's Player was built with (after
 /// Random), the colour and team its slot held, and a human's or observer's member id. Read from TheGameInfo and
 /// ThePlayerList only; nothing here reaches the simulation.
-/// GeneralsX @feature Claude 02/10/2026 (owner: "Can I see the player names etc?") And each human's or observer's lobby
+/// GeneralsX: And each human's or observer's lobby
 /// name (n<slot>=, GXStatFactionWire.h): the name every player in the room already saw. Read from the slot, never sent
 /// anywhere the lobby did not already show it.
 static void gxSeatRecordSend( const char *room, const char *memberIp, const char *matchId, UnsignedInt endFrame,
@@ -698,13 +698,13 @@ void gxStatMatchEnd( void )
 	 * animated menu backdrop is torn down through it at match START - so "once" has to be enforced
 	 * here rather than assumed of the caller.
 	 */
-	// GeneralsX @feature Claude 27/09/2026 (wh1ter0se: "Quitter = loser = left record") THIS match's quitters, and none for the
+	// GeneralsX: THIS match's quitters, and none for the
 	// next: every teardown takes the latch, whatever it goes on to send.
 	Bool selfDestructed[ MAX_PLAYER_COUNT ];
 	memcpy( selfDestructed, s_selfDestructed, sizeof( selfDestructed ) );
 	memset( s_selfDestructed, 0, sizeof( s_selfDestructed ) );
 
-	// GeneralsX @feature Claude 27/09/2026 ON BY DEFAULT now (gxEndReportEnabled). The DECLINE lines below stay
+	// GeneralsX: ON BY DEFAULT now (gxEndReportEnabled). The DECLINE lines below stay
 	// behind the GX_MATCH_STATS=1 opt-in, for the reason the next note gives - clearGameData runs on every menu
 	// transition - so a default build prints only what it SENT, once per match.
 	if( !gxEndReportEnabled() )
@@ -712,7 +712,7 @@ void gxStatMatchEnd( void )
 	const Bool trace = gxStatEnabled();
 
 	/*
-	 * GeneralsX @feature Claude 22/09/2026 [GXSTAT] - EVERY DECLINE BELOW SAYS WHICH ONE IT WAS.
+	 * GeneralsX: [GXSTAT] - EVERY DECLINE BELOW SAYS WHICH ONE IT WAS.
 	 *
 	 * This function had six silent early returns and no logging, and from outside the process they
 	 * are indistinguishable: a real relay match on 22/09 sampled happily for 5 212 frames, ended
@@ -783,7 +783,7 @@ void gxStatMatchEnd( void )
 	 * match still running has not lost it, and recording that they did would be a confident answer
 	 * to the one question these rows exist to answer.
 	 *
-	 * GeneralsX @feature Claude 27/09/2026 (wh1ter0se: "Quitter = loser = left record") THE QUITTER'S LOSS IS RECORDED - BY
+	 * GeneralsX: THE QUITTER'S LOSS IS RECORDED - BY
 	 * THE STAYERS, in their full result below (left, x). His own teardown still sends nothing: it has no end frame, and
 	 * neither does a desync's, which nobody chose - so no teardown without an end marks anyone.
 	 */
@@ -815,7 +815,7 @@ void gxStatMatchEnd( void )
 		/*
 		 * LEFT, WON OR LOST (GXStatFactionWire.h gxEndOutcome). Victory is ALLIANCE-derived and latched at the end
 		 * frame, so it is true for a whole team - every winner, AI teammates too - and survives a dead teammate.
-		 * GeneralsX @feature Claude 27/09/2026 (wh1ter0se: "Quitter = loser = left record") ...but not for a teammate who
+		 * GeneralsX: ...but not for a teammate who
 		 * LEFT before the end: left comes first, and it is a loss whatever his side did after he went.
 		 */
 		const GameSlot *gs = ( TheGameInfo != NULL && slot < MAX_SLOTS ) ? TheGameInfo->getConstSlot( slot ) : NULL;
@@ -869,7 +869,7 @@ void gxStatMatchEnd( void )
 			if( reporterSlot < 0 || reporterSlot > GX_STAT_SLOT_MAX )
 				reporterSlot = -1;
 
-			// GeneralsX @feature Claude 27/09/2026 sb=1 - the start rule's own verdict, from the lobby slot list every
+			// GeneralsX: sb=1 - the start rule's own verdict, from the lobby slot list every
 			// peer shares, so every reporter marks the same matches (GXStatFactionWire.h).
 			const bool sandbox = ( TheGameInfo != NULL && TheGameInfo->getStartVerdict() == GameInfo::START_SANDBOX );
 			const GXRelayWireCeilings wire = relayCeilings();	// as `cap`: refused whole at the relay's ceiling
@@ -1058,7 +1058,7 @@ void gxPerfSample( void )
 	const UnsignedInt iterP99Us = iterPercentileUs( 99 );
 	s.fpsP1X10  = headless ? -1 : usToFpsX10( iterP99Us );
 
-	// fx, NOT f9 (GeneralsX @bugfix Claude 24/09/2026). f9 was 1/(p1 frame time) - one short
+	// fx, NOT f9 (GeneralsX:). f9 was 1/(p1 frame time) - one short
 	// interval inverted - and bursty presentation made a peer vsync-locked at 144 report 455.8.
 	// fx counts frames in whole seconds, so it cannot exceed what was delivered. Taken even when
 	// headless so the next window starts clean.
@@ -1106,8 +1106,8 @@ void gxPerfSample( void )
 	// deliberately, and it renders as "--".
 	{
 		s.slot = ( TheNetwork != NULL ) ? (Int)TheNetwork->getLocalPlayerID() : -1;
-		// GeneralsX @bugfix Claude 25/09/2026 GX_STAT_SLOT_MAX (13, MAX_PLAYER), not a literal 11: a peer in slot
-		// 12 or 13 - an observer seat of the 14-slot lobby - sent no slot and no router RTT at all (Codex r1).
+		// GeneralsX: GX_STAT_SLOT_MAX (13, MAX_PLAYER), not a literal 11: a peer in slot
+		// 12 or 13 - an observer seat of the 14-slot lobby - sent no slot and no router RTT at all.
 		if( s.slot < 0 || s.slot > GX_STAT_SLOT_MAX ) s.slot = -1;
 		// THE ROUTER HAS NO ROUND TRIP TO ITSELF, and its own slot is therefore always 0 by
 		// construction. Sending that 0 would put a perfect, rock-steady "0 ms" on the panel for

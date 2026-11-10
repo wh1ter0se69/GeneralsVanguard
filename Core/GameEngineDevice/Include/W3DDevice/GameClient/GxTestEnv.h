@@ -1,4 +1,4 @@
-// GeneralsX @build Claude 12/10/2026 Test-only environment knobs: read only in a GX_TEST_INSTRUMENTS build.
+// GeneralsX: Test-only environment knobs: read only in a GX_TEST_INSTRUMENTS build.
 //
 // The hybrid renderer's DrawRun / L2 seat / interop test paths (synthetic draw-run tests, mutants, truth checks, toggle arms,
 // equal/clear/upload tests) were switched on by plain getenv() in the SHIPPING binary: off, they cost an env test, but a stray

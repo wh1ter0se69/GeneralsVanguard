@@ -60,7 +60,7 @@
 #include "Common/file.h"
 #include "Common/FileSystem.h"
 #include "W3DDevice/GameClient/W3DShaderManager.h"
-#include "W3DDevice/GameClient/TerrainTex.h"	// GeneralsX @feature Claude 17/10/2026 the REMASTERED ground: GXGround_ReleaseDeviceObjects, GXGround_TerrainNoiseMatrices
+#include "W3DDevice/GameClient/TerrainTex.h"	// GeneralsX: the REMASTERED ground: GXGround_ReleaseDeviceObjects, GXGround_TerrainNoiseMatrices
 #include "W3DDevice/GameClient/W3DShroud.h"
 #include "W3DDevice/GameClient/HeightMap.h"
 #include "W3DDevice/GameClient/W3DCustomScene.h"
@@ -109,7 +109,7 @@ FilterTypes W3DShaderManager::m_currentFilter=FT_NULL_FILTER; ///< Last filter t
 Int W3DShaderManager::m_currentShaderPass;
 ChipsetType W3DShaderManager::m_currentChipset;
 GraphicsVenderID W3DShaderManager::m_currentVendor;
-// GeneralsX @bugfix BenderAI 13/02/2026 Int64 for cross-platform (fighter19 pattern)
+// GeneralsX: Int64 for cross-platform (fighter19 pattern)
 Int64 W3DShaderManager::m_driverVersion;
 
 Bool W3DShaderManager::m_renderingToTexture = false;
@@ -260,7 +260,7 @@ void ScreenDefaultFilter::reset()
 }
 
 
-// GeneralsX @bugfix Claude 06/08/2026 Class-C gate for the screen fade filters.
+// GeneralsX: Class-C gate for the screen fade filters.
 //
 // set()/postRender() run once per RENDERED frame, but m_fadeFrames is a count of LOGIC FRAMES
 // (CommandXlat.cpp passes 30 and 60), so a one-second scripted fade or view filter completed in
@@ -335,7 +335,7 @@ Int ScreenBWFilter::init()
 				(D3DVSD_END())
 			};
 
-			// GeneralsX @bugfix BenderAI 13/02/2026 - Don't crash if monochrome.pso missing (optional effect)
+			// GeneralsX: Don't crash if monochrome.pso missing (optional effect)
 			//Monochrome pixel shader.
 			hr = W3DShaderManager::LoadAndCreateD3DShader("shaders\\monochrome.pso", &Declaration[0], 0, false, &m_dwBWPixelShader);
 			if (FAILED(hr))
@@ -357,7 +357,7 @@ Int ScreenBWFilter::init()
 Bool ScreenBWFilter::preRender(Bool &skipRender, CustomScenePassModes &scenePassMode)
 {
 	skipRender = false;
-	// GeneralsX @bugfix Claude 28/09/2026 A redirect that did not happen must not reach postRender, whose
+	// GeneralsX: A redirect that did not happen must not reach postRender, whose
 	// endRenderToTexture asserts on it (it then returned false and ended the effect all the same).
 	return W3DShaderManager::startRenderToTexture();
 }
@@ -550,7 +550,7 @@ Int ScreenBWFilterDOT3::init()
 Bool ScreenBWFilterDOT3::preRender(Bool &skipRender, CustomScenePassModes &scenePassMode)
 {
 	skipRender = false;
-	// GeneralsX @bugfix Claude 28/09/2026 A redirect that did not happen must not reach postRender, whose
+	// GeneralsX: A redirect that did not happen must not reach postRender, whose
 	// endRenderToTexture asserts on it (it then returned false and ended the effect all the same).
 	return W3DShaderManager::startRenderToTexture();
 }
@@ -801,7 +801,7 @@ Bool ScreenCrossFadeFilter::preRender(Bool &skipRender, CustomScenePassModes &sc
 {
 	if (updateFadeLevel())
 	{	//if fade has not completed
-		// GeneralsX @bugfix Claude 28/09/2026 No redirect, no masked pass: postRender then fades the texture
+		// GeneralsX: No redirect, no masked pass: postRender then fades the texture
 		// it already holds instead of calling endRenderToTexture on a redirect that did not happen.
 		if (W3DShaderManager::startRenderToTexture())
 		{
@@ -993,7 +993,7 @@ Int ScreenMotionBlurFilter::init()
 
 Bool ScreenMotionBlurFilter::preRender(Bool &skipRender, CustomScenePassModes &scenePassMode)
 {
-	// GeneralsX @bugfix Claude 28/09/2026 See ScreenBWFilter::preRender. Without a redirect postRender will not
+	// GeneralsX: See ScreenBWFilter::preRender. Without a redirect postRender will not
 	// run, so draw the plain scene rather than skip it and present a cleared frame.
 	if (!W3DShaderManager::startRenderToTexture())
 	{
@@ -1077,14 +1077,14 @@ Bool ScreenMotionBlurFilter::postRender(FilterModes mode, Coord2D &scrollDelta,B
 		m_priorDelta = scrollDelta;
 	} else if (mode == FM_VIEW_MB_END_PAN_ALPHA) {
 		Real len = sqrt(m_priorDelta.x*m_priorDelta.x + m_priorDelta.y*m_priorDelta.y);
-		// GeneralsX @bugfix Claude 08/10/2026 A camera that did not move gave a zero delta and NaN texture coordinates here
-		// for the whole tail (a stationary camera lock, since retail; Codex catchup-reland-r7): no direction, no offset.
+		// GeneralsX: A camera that did not move gave a zero delta and NaN texture coordinates here
+		// for the whole tail (a stationary camera lock, since retail): no direction, no offset.
 		if (len > 0.0f) {
 			center.x += 0.5f * (m_priorDelta.x/len);
 			center.y -= 0.5f * (m_priorDelta.y/len);
 		}
 		m_decrement = false;
-		// GeneralsX @bugfix Claude 06/08/2026 Class-C: this countdown is in LOGIC FRAMES but
+		// GeneralsX: Class-C: this countdown is in LOGIC FRAMES but
 		// postRender() runs once per rendered frame, so the end-of-pan blur tail terminated up to 8x
 		// early. The sibling branch below already guards its own counter with exactly this test
 		// (m_lastFrame is this class's own stamp, written unconditionally further down), so no new
@@ -1114,9 +1114,9 @@ Bool ScreenMotionBlurFilter::postRender(FilterModes mode, Coord2D &scrollDelta,B
 			m_maxCount+=COUNT_STEP;
 			if (m_maxCount>=MAX_COUNT) {
 				m_decrement = true;
-				// GeneralsX @bugfix Claude 08/10/2026 The jump to the target (lookAt) is made by the logic step now, at the
+				// GeneralsX: The jump to the target (lookAt) is made by the logic step now, at the
 				// count's top in logic frames (W3DView::stepScriptedCamera): lookAt ends a scripted rotation or path, which
-				// CAMERA_MOVEMENT_FINISHED reports, and this count runs once per DRAWN frame (Codex catchup-reland-r1 P1).
+				// CAMERA_MOVEMENT_FINISHED reports, and this count runs once per DRAWN frame.
 				if (!(m_doZoomTo && m_zoomToValid)) {
 					continueEffect = false;
 				}
@@ -2048,7 +2048,7 @@ Int TerrainShaderPixelShader::init()
 				(D3DVSD_END())
 			};
 
-			// GeneralsX @bugfix BenderAI 13/02/2026 - Graceful fallback when pixel shader files don't exist
+			// GeneralsX: Graceful fallback when pixel shader files don't exist
 			// Try to load pixel shaders, but don't fail if files are missing - just use 2-stage fallback
 			Bool pixelShadersAvailable = TRUE;
 
@@ -2099,7 +2099,7 @@ Int TerrainShaderPixelShader::init()
 			{
 				DEBUG_LOG(("W3DShaderManager: Falling back to 2-stage shader for terrain (pixel shaders unavailable)"));
 			}
-			// GeneralsX @bugfix BenderAI 13/02/2026 - Always return TRUE if 2-stage shader initialized
+			// GeneralsX: Always return TRUE if 2-stage shader initialized
 			return TRUE;
 		}
 	}
@@ -2212,7 +2212,7 @@ Int TerrainShaderPixelShader::set(Int pass)
 	return TRUE;
 }
 
-// GeneralsX @feature Claude 17/10/2026 (from C · look-ground-2's prototype, 14/10): the cloud and macro-noise texture matrices
+// GeneralsX: the cloud and macro-noise texture matrices
 // TerrainShaderPixelShader::set uploads this frame (camera space -> world -> 1/315 scale, the cloud's slide offset), for the
 // REMASTERED ground's second pass (TerrainTex.cpp), which samples the same two textures the replaced base pass no longer does.
 void GXGround_TerrainNoiseMatrices(float *cloud16, float *noise16)
@@ -2382,7 +2382,7 @@ Int RoadShaderPixelShader::init()
 				(D3DVSD_END())
 			};
 
-			// GeneralsX @bugfix BenderAI 13/02/2026 - Graceful fallback when roadnoise2.pso doesn't exist
+			// GeneralsX: Graceful fallback when roadnoise2.pso doesn't exist
 			//version which blends 2 noise textures.
 			HRESULT hr = W3DShaderManager::LoadAndCreateD3DShader("shaders\\roadnoise2.pso", &Declaration[0], 0, false, &m_dwBaseNoise2PixelShader);
 			if (FAILED(hr))
@@ -2810,9 +2810,9 @@ void W3DShaderManager::shutdown()
 	SAFE_RELEASE(m_savedDepthSurface);
 	m_currentShader = ST_INVALID;
 	m_currentFilter = FT_NULL_FILTER;
-	// GeneralsX @feature Claude 17/10/2026 (from C · look-ground-2 and B · look-ground-plan's prototypes): the REMASTERED ground's
+	// GeneralsX: the REMASTERED ground's
 	// shaders and textures are device objects like the terrain .pso handles released below; drop them while the device is alive
-	// (Codex ground-r2). A no-op while the ground was never built.
+	// A no-op while the ground was never built.
 	GXGround_ReleaseDeviceObjects();
 	//release any assets associated with a shader (vertex/pixel shaders, textures, etc.)
 	Int i=0;
@@ -2971,7 +2971,7 @@ Bool W3DShaderManager::startRenderToTexture()
 
 	if (m_renderingToTexture || m_newRenderSurface==nullptr || m_oldDepthSurface==nullptr) return m_renderingToTexture;	// already redirected: the caller's end closes it
 
-	// GeneralsX @bugfix Claude 28/09/2026 Redirect from whatever is bound NOW, not from the init-time
+	// GeneralsX: Redirect from whatever is bound NOW, not from the init-time
 	// backbuffer. Under pillarbox the scene is in the pillarbox RT, so the old code bound the filter RT with
 	// the never-cleared auto-depth, restored the BACKBUFFER at the end and sent the filter quad and the HUD
 	// there, where Pillarbox_End clears it: a black frame for as long as a script BW or motion-blur filter
@@ -3062,7 +3062,7 @@ IDirect3DTexture8 *W3DShaderManager::endRenderToTexture()
 {
 	DEBUG_ASSERTCRASH(m_renderingToTexture, ("Not rendering to texture."));
 	if (!m_renderingToTexture) return nullptr;
-	// GeneralsX @bugfix Claude 28/09/2026 Restore the pair bound at startRenderToTexture (the pillarbox RT
+	// GeneralsX: Restore the pair bound at startRenderToTexture (the pillarbox RT
 	// under pillarbox), not the init-time backbuffer.
 	DX8Wrapper::Set_Render_Target_Pair(m_savedRenderSurface, m_savedDepthSurface);	//restore original render target
 	SAFE_RELEASE(m_savedRenderSurface);
@@ -3204,12 +3204,12 @@ HRESULT W3DShaderManager::LoadAndCreateD3DShader(const char* strFilePath, const 
 		File *file = nullptr;
 		HRESULT hr;
 
-		// GeneralsX @bugfix BenderAI 18/02/2026 Add comprehensive asset loading diagnostics
+		// GeneralsX: Add comprehensive asset loading diagnostics
 		const char* shaderTypeStr = ShaderType ? "VERTEX" : "PIXEL";
 		fprintf(stderr, "[ASSET_LOAD] Attempting to load shader (%s): file='%s'\n", 
 			shaderTypeStr, strFilePath ? strFilePath : "(null)");
 
-		// GeneralsX @bugfix Claude 28/09/2026 Open the path as given, as upstream does. It used to go
+		// GeneralsX: Open the path as given, as upstream does. It used to go
 		// through FileSystem::normalizePath first, which on Windows is GetFullPathNameA: 'shaders\x.pso'
 		// became 'C:\<cwd>\shaders\x.pso', which is not loose, is refused by the asset-root fallback
 		// (absolute), and misses the archive tree ('c:' is no root directory). Windows loaded none of
@@ -3217,7 +3217,7 @@ HRESULT W3DShaderManager::LoadAndCreateD3DShader(const char* strFilePath, const 
 		file = TheFileSystem->openFile(strFilePath, File::READ | File::BINARY);
 		if (file == nullptr)
 		{
-			// GeneralsX @bugfix BenderAI 13/02/2026 Log actual filename that's missing
+			// GeneralsX: Log actual filename that's missing
 			fprintf(stderr, "[ASSET_FAIL] File not found in VFS: path='%s'\n",
 				strFilePath ? strFilePath : "(null)");
 			char debugMsg[512];
@@ -3227,7 +3227,7 @@ HRESULT W3DShaderManager::LoadAndCreateD3DShader(const char* strFilePath, const 
 			return E_FAIL;
 		}
 
-		// GeneralsX @bugfix Claude 28/09/2026 Size the blob from the file that was opened. getFileInfo
+		// GeneralsX: Size the blob from the file that was opened. getFileInfo
 		// resolves the name on its own, and on Windows it does not retry from the asset root as
 		// openFile does, so a loose blob there opened fine but read as size 0 or as the archive copy.
 		const Int fileSize = file->size();
@@ -3243,7 +3243,7 @@ HRESULT W3DShaderManager::LoadAndCreateD3DShader(const char* strFilePath, const 
 		fprintf(stderr, "[ASSET_LOAD] File found: path='%s' size=%u bytes\n",
 			strFilePath ? strFilePath : "(null)", dwFileSize);
 
-		// GeneralsX @bugfix BenderAI 13/02/2026 Use new[] instead of HeapAlloc (fighter19 pattern)
+		// GeneralsX: Use new[] instead of HeapAlloc (fighter19 pattern)
 		const DWORD* pShader = new DWORD[dwFileSize / sizeof(DWORD)]();
 		if (!pShader)
 		{
@@ -3273,7 +3273,7 @@ HRESULT W3DShaderManager::LoadAndCreateD3DShader(const char* strFilePath, const 
 			hr = DX8Wrapper::_Get_D3D_Device8()->CreatePixelShader(pShader, pHandle);
 		}
 
-		// GeneralsX @bugfix BenderAI 13/02/2026 Use delete[] instead of HeapFree (fighter19 pattern)
+		// GeneralsX: Use delete[] instead of HeapFree (fighter19 pattern)
 		delete[] pShader;
 
 		if (FAILED(hr))
@@ -3334,7 +3334,7 @@ Bool W3DShaderManager::testMinimumRequirements(ChipsetType *videoChipType, CpuTy
 				CPUDetectClass::Get_Intel_Processor() >= CPUDetectClass::INTEL_PROCESSOR_PENTIUM4)
 				*cpuType = P4;
 
-		// GeneralsX @bugfix Claude 28/09/2026 CPUDetectClass decodes the BASE family/model only, so every
+		// GeneralsX: CPUDetectClass decodes the BASE family/model only, so every
 		// AMD since K8 and most Intel since Skylake come back unknown. Unknown sent GameLODManager::init to
 		// the benchmark stub below, which matches no preset, and every fresh Windows profile got Low
 		// (half-resolution textures). Anything running this build is at least P4 class; this is the
@@ -3346,7 +3346,7 @@ Bool W3DShaderManager::testMinimumRequirements(ChipsetType *videoChipType, CpuTy
 	if (cpuFreq)
 	{
 		*cpuFreq=CPUDetectClass::Get_Processor_Speed();
-		// GeneralsX @bugfix Claude 28/09/2026 No RDTSC or no measurement: the same 2 GHz fallback.
+		// GeneralsX: No RDTSC or no measurement: the same 2 GHz fallback.
 		if (*cpuFreq == 0)
 			*cpuFreq = 2000;
 	}
@@ -3398,7 +3398,7 @@ Real W3DShaderManager::GetCPUBenchTime()
 	float ztot, yran, ymult, ymod, x, y, z, pi, prod;
     long int low, ixran, itot, j, iprod;
 
-  	// GeneralsX @bugfix BenderAI 13/02/2026 Int64 and cross-platform timing (fighter19 pattern)
+  	// GeneralsX: Int64 and cross-platform timing (fighter19 pattern)
   	Int64 endTime64,freq64,startTime64;
 #ifdef _WIN32
 	QueryPerformanceFrequency((LARGE_INTEGER *)&freq64);
@@ -3433,7 +3433,7 @@ Real W3DShaderManager::GetCPUBenchTime()
 	}
 	pi = 4.0 * (float)low/(float)itot;
 
-// GeneralsX @bugfix BenderAI 13/02/2026 Cross-platform timing end (fighter19 pattern)
+// GeneralsX: Cross-platform timing end (fighter19 pattern)
 #ifdef _WIN32
 	QueryPerformanceCounter((LARGE_INTEGER *)&endTime64);
 #else

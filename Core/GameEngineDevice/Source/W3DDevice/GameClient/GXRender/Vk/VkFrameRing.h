@@ -1,4 +1,4 @@
-// GeneralsX @feature E · rw1-B 10/10/2026 WS-B VkCtx v0: N frames in flight on the graphics queue (N = 2, PLAN §1c).
+// GeneralsX: WS-B VkCtx v0: N frames in flight on the graphics queue (N = 2, PLAN §1c).
 //
 // Each slot owns a command pool and one primary command buffer. begin() waits until the slot's previous submission has
 // retired on the graphics timeline - only then is its pool reset and its per-frame data (upload ring space, timestamp

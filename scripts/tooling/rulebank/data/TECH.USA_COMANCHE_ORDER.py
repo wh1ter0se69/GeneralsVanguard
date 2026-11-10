@@ -1,10 +1,10 @@
-# GeneralsX @feature Claude 01/11/2026 rule bank DATA rule TECH.USA_COMANCHE_ORDER (C·rb-data-11): Air Force researches its Comanche
+# GeneralsX: rule bank DATA rule TECH.USA_COMANCHE_ORDER (C·rb-data-11): Air Force researches its Comanche
 # upgrades in the order Stealth, Countermeasures, Rocket Pods. Stock Air Force Hard buys Stealth Comanche at its first Air Field
 # ("USA Upgrade Stealth Comanche", 2500 cash) and Countermeasures at its second ("USA Upgrade to Counter Measures", 1500), so the order
 # is usually but not strictly Stealth first, and it never buys Rocket Pods (no stock script; the Air Field offers them). Here, with
 # stealth_first 1 the Countermeasures script also waits for Stealth (0: Stealth waits for Countermeasures), and with pods_after_cm 1
 # "GX Comanche Rocket Pods - H" orders the Pods once Countermeasures are done, the cash is 1500 and an own Air Field stands - repeating
-# (Codex rbd11-r1 P2: a one-shot fired with no Air Field queued nothing and never retried; AIPlayer::buildUpgrade ignores the request while
+# (a one-shot fired with no Air Field queued nothing and never retried; AIPlayer::buildUpgrade ignores the request while
 # the upgrade is queued or complete). PLAYER_BUILT_UPGRADE is
 # consumed by its first reader (ScriptConditions.cpp:1562), so one one-shot latch per upgrade raises an own flag and the gates read the
 # flags; no stock script reads either upgrade. Own state only; the two stock scripts are clean one-shots. Upgrades are not in the obs

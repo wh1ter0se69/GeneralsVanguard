@@ -73,7 +73,7 @@ GameStateMap::~GameStateMap()
 static void embedPristineMap( AsciiString map, Xfer *xfer )
 {
 
-	// GeneralsX @bugfix Claude 20/08/2026 A FAILED OPEN HERE THROWS SC_INVALID_DATA, so on iOS the
+	// GeneralsX: A FAILED OPEN HERE THROWS SC_INVALID_DATA, so on iOS the
 	// first save of a user map killed the save rather than degrading. The map arrives as the
 	// lowercased cache identity, which on a case-sensitive volume names nothing; getPathOnDisk
 	// returns its argument unchanged when the cache has no on-disk path for it.
@@ -196,7 +196,7 @@ static void embedInUseMap( AsciiString map, Xfer *xfer )
 // ------------------------------------------------------------------------------------------------
 static void extractAndSaveMap( AsciiString mapToSave, Xfer *xfer )
 {
-	// GeneralsX @bugfix Claude 06/10/2026 A save is untrusted once the player opens one someone gave them. This used to
+	// GeneralsX: A save is untrusted once the player opens one someone gave them. This used to
 	// truncate the target before reading anything, take the embedded size straight from the block header (up to 4 GB,
 	// and past 2 GB through the allocator's Int narrowing), and leak the open file and the buffer whenever the read threw.
 	// Now: bound the size, read it all, and only then open, write and close the file (sweep c153-01). The ".map" leaf
@@ -205,7 +205,7 @@ static void extractAndSaveMap( AsciiString mapToSave, Xfer *xfer )
 
 	// read data size from file
 	// (0 is no map at all - and what XferLoad::beginBlock answers when it cannot read the size: refused before the file
-	// is touched (Codex r2))
+	// is touched)
 	UnsignedInt dataSize = xfer->beginBlock();
 	if( dataSize == 0 || dataSize > maxEmbeddedMapSize )
 	{
@@ -342,11 +342,11 @@ void GameStateMap::xfer( Xfer *xfer )
 			throw SC_INVALID_DATA;
 		}
 
-		// GeneralsX @bugfix Claude 06/10/2026 The embedded map is extracted to this name before anything else is checked, so
+		// GeneralsX: The embedded map is extracted to this name before anything else is checked, so
 		// it must not be a save: a save naming "Save\\other.sav" overwrote that other save with the block contents (sweep
 		// c153-01). Windows also opens "other.sav." / "other.sav " / "other.sav::$DATA" as other.sav, so trailing dots and
 		// spaces are ignored and a ':' (a stream name) is refused. Any other name loads as before - a campaign map need not
-		// be a ".map" (Codex r1).
+		// be a ".map".
 		{
 			AsciiString leaf = saveGameInfo->saveGameMapName;
 			while (!leaf.isEmpty() && (leaf.getCharAt(leaf.getLength() - 1) == '.' || leaf.getCharAt(leaf.getLength() - 1) == ' '))
@@ -471,7 +471,7 @@ void GameStateMap::xfer( Xfer *xfer )
 void GameStateMap::clearScratchPadMaps()
 {
 
-	// GeneralsX @bugfix Claude 01/10/2026 This used to SetCurrentDirectory() into the Save folder,
+	// GeneralsX: This used to SetCurrentDirectory() into the Save folder,
 	// ignore the result and then delete every *.map in "the current directory" - so on a fresh
 	// profile, with no Save folder yet, it deleted the .map files of whatever directory the process
 	// was in (the game directory). It also moved the cwd of the whole process, which dataID and any

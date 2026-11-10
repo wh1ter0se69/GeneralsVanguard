@@ -64,7 +64,7 @@ void W3DModuleFactory::init()
 	addModule( W3DModelDraw );
 	addModule( W3DLaserDraw );
 	addModule( W3DOverlordTankDraw );
-	// GeneralsX @feature Claude 14/09/2026 Register the four Zero Hour draw modules in the base
+	// GeneralsX: Register the four Zero Hour draw modules in the base
 	// Generals module factory, matching TheSuperHackers PR #3073 (upstream d77e26b80) and the
 	// GeneralsMD twin, whose init() already registers all four.
 	//
@@ -101,7 +101,7 @@ void W3DModuleFactory::init()
 	addModule( W3DTruckDraw );
 	addModule( W3DTracerDraw );
 	addModule( W3DTankTruckDraw );
-	// GeneralsX @feature Claude 14/09/2026 Second half of the PR #3073 (d77e26b80) parity
+	// GeneralsX: Second half of the PR #3073 (d77e26b80) parity
 	// registration - see the note above addModule( W3DOverlordTruckDraw ).
 	addModule( W3DTreeDraw );
 	addModule( W3DPropDraw );

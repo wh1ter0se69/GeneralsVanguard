@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 11/08/2026 See the design note on GXLobbyCommands.h.
+// GeneralsX: See the design note on GXLobbyCommands.h.
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
@@ -40,7 +40,7 @@ static const Color GX_HELP_GROUP_COLOR  = GameMakeColor( 120, 200, 255, 255 );	/
 static const Color GX_HELP_ROW_COLOR    = GameMakeColor( 215, 215, 215, 255 );	// near white
 static const Color GX_HELP_REFUSE_COLOR = GameMakeColor( 255, 140, 140, 255 );	// soft red
 
-// GeneralsX @feature Claude 11/08/2026 The role and system-line colours, in the SAME place and the
+// GeneralsX: The role and system-line colours, in the SAME place and the
 // same form as the four above - one vocabulary, not two - and for the same dataID reason.
 //
 // A TWO-COLOUR CHAT ROW IS NOT POSSIBLE IN THIS ENGINE, so the spec's "purple name with light-green
@@ -63,8 +63,8 @@ static const Color GX_HELP_REFUSE_COLOR = GameMakeColor( 255, 140, 140, 255 );	/
 //   The ADMIN row colour must stay distinguishable from the private-message violet (220,160,255) -
 //   a whisper must never be mistakable for an announcement. Still true of the console's crimson.
 //
-// GeneralsX @feature Claude 20/09/2026 (owner: "make the colors apply for text chat same as on
-// website") THE ADMIN COLOUR IS NOW THE CONSOLE'S, ON BOTH SURFACES.
+// GeneralsX:
+// THE ADMIN COLOUR IS NOW THE CONSOLE'S, ON BOTH SURFACES.
 //
 // It used to be two different colours for one role: light purple on the chat row and ORANGE in the
 // name column, neither of them anything the console draws. An admin was therefore a different
@@ -129,14 +129,14 @@ static const GXLobbyCommandDef s_commands[] =
 {
 	{ "help",     L"[command]",      "GUI:GXHelpHelp",     L"list the commands, or explain one",               GX_ON_ALL,         GX_LOBBY_GROUP_CHAT    },
 	{ "clear",    nullptr,           "GUI:GXHelpClear",    L"empty this chat box",                             GX_ON_ALL,         GX_LOBBY_GROUP_CHAT    },
-	// GeneralsX @feature Claude 21/09/2026 LAN ONLY, and the mask is load-bearing. /me is served by
+	// GeneralsX: LAN ONLY, and the mask is load-bearing. /me is served by
 	// LANAPI::RequestPlayerChat, which only the LAN screens and the score screen call; the relay
 	// lobby sends its own bytes and would broadcast the line verbatim. Listing it on ONLINE would
 	// turn a clear refusal into "/me waves" said out loud.
 	{ "me",       L"<text>",         "GUI:GXHelpMe",       L"say what you are doing, in the third person",     GX_ON_LAN,         GX_LOBBY_GROUP_CHAT    },
 	{ "msg",      L"<name> <text>",  "GUI:GXHelpMsg",      L"private message - only they see it",              GX_ON_ONLINE,      GX_LOBBY_GROUP_CHAT    },
 	{ "r",        L"<text>",         "GUI:GXHelpReply",    L"answer the last person who messaged you",         GX_ON_ONLINE,      GX_LOBBY_GROUP_CHAT    },
-	// GeneralsX @feature Claude 11/08/2026 /ignore takes a friend CODE too, for somebody absent.
+	// GeneralsX: /ignore takes a friend CODE too, for somebody absent.
 	{ "ignore",   L"<name, P3 or code>", "GUI:GXHelpIgnore",   L"hide someone's chat - a code works even when they are not here", GX_ON_ONLINE, GX_LOBBY_GROUP_CHAT },
 	{ "unignore", L"<name, P3 or code>", "GUI:GXHelpUnignore", L"stop hiding them",                            GX_ON_ONLINE,      GX_LOBBY_GROUP_CHAT    },
 	{ "friends",  nullptr,           "GUI:GXHelpFriends",  L"your friends list, and who is online",            GX_ON_ONLINE,      GX_LOBBY_GROUP_FRIENDS },
@@ -159,7 +159,7 @@ static const GXLobbyCommandDef s_commands[] =
 	// sources are compiled once per product (they reach each target through the
 	// corei_gameengine_private INTERFACE library), so this really does discriminate - the same way
 	// Core/.../GameClient/MapUtil.cpp:994 already uses it.
-	// GeneralsX @feature Claude 11/08/2026 GX_ON_ALL: the LAN browser now applies it too, and its
+	// GeneralsX: GX_ON_ALL: the LAN browser now applies it too, and its
 	// handler also moves the name box - LanLobbyMenuShutdown writes the pref FROM that box, so a
 	// /nick that left it alone was silently reverted on leaving the screen.
 	{ "nick",     L"<name>",         "GUI:GXHelpNick",     L"change the name everyone sees",                   GX_ON_ALL,         GX_LOBBY_GROUP_GAME    },
@@ -195,7 +195,7 @@ static const Int s_commandCount = sizeof(s_commands) / sizeof(s_commands[0]);
  */
 static Bool s_renewArmed = FALSE;
 
-// GeneralsX @feature Claude 18/09/2026 See GXLobbyCommands.h. Defined here, beside s_renewArmed,
+// GeneralsX: See GXLobbyCommands.h. Defined here, beside s_renewArmed,
 // because disarming a renewal is part of signing out and that flag is private to this file.
 GXSignOutResult GXLobbySignOut( void )
 {
@@ -216,7 +216,7 @@ GXSignOutResult GXLobbySignOut( void )
 	if (TheLAN != nullptr && TheLAN->getTransport() != nullptr)
 		TheLAN->getTransport()->sendRelayIdentity("");
 
-	// GeneralsX @bugfix Claude 18/09/2026 And the lobby presence socket's copy - the THIRD one, since
+	// GeneralsX: And the lobby presence socket's copy - the THIRD one, since
 	// that socket now declares the identity too so that mute and ban reach lobby chat. Cleared whole,
 	// with the clear the optimiser may not drop, and the relay is told to forget the account for that
 	// membership. It is needed HERE and not only in the lobby's change detector: that socket lives for
@@ -240,7 +240,7 @@ static void gxHandleLogin( GXLobbySayFunc say )
 		UnicodeString line;
 		UnicodeString name;
 		name.translate(AsciiString(GXPlayerIdentity::getVerifiedName()));
-		// GeneralsX @bugfix Claude 24/09/2026 BOT MODE HAS NO RENEWAL TO OFFER. A bot login lives 24 h, so it
+		// GeneralsX: BOT MODE HAS NO RENEWAL TO OFFER. A bot login lives 24 h, so it
 		// always reads 0 days below: the first /login offered a renewal and the second promised a browser that
 		// GXLoginFlow::start() refuses in bot mode, corrected one line late. Say who renews it; arm nothing.
 		if (GXPlayerIdentity::isBotMode())
@@ -324,7 +324,7 @@ static const GXLobbyNoticeDef s_retired[] =
 	{ "friend",     "GUI:GXGoneFriend",     L"/friend is now /friends to list, /add <code> to add somebody and /remove to drop them.", GX_ON_ONLINE },
 #if RTS_ZEROHOUR
 	// Scoped to exactly where /nick exists: every Zero Hour screen since the LAN browser gained it
-	// (GeneralsX @feature Claude 11/08/2026), still nothing in the Generals tree. Outside this
+	// (GeneralsX:), still nothing in the Generals tree. Outside this
 	// scope /nickname falls through to the generic refusal, which is the honest answer there.
 	{ "nickname",   "GUI:GXGoneNickname",   L"That is now /nick <name>.",                                                              GX_ON_ALL },
 #endif
@@ -555,7 +555,7 @@ Bool GXLobbyChatCommand( const AsciiString &line, GXLobbyScreen screen,
 		if (chatListbox != nullptr)
 			GadgetListBoxReset(chatListbox);
 
-		// GeneralsX @feature Claude 13/08/2026 The block above no longer exists - say so explicitly.
+		// GeneralsX: The block above no longer exists - say so explicitly.
 		// The entry-count guard inside GXLobbyChatRow catches this in every case but one: a box
 		// holding a single row is emptied to zero, and zero is also the count it recorded before
 		// that row went in, so "undisturbed" reads true and the hint below would print indented
@@ -576,7 +576,7 @@ Bool GXLobbyChatCommand( const AsciiString &line, GXLobbyScreen screen,
 
 	if (verb == "logout")
 	{
-		// GeneralsX @feature Claude 18/09/2026 NOT INSIDE A RELAY GAME ROOM - a deliberate refusal.
+		// GeneralsX: NOT INSIDE A RELAY GAME ROOM - a deliberate refusal.
 		//
 		// Signing out there used to be half a sign-out: the claims and the file went, but nothing
 		// cleared the transport's copy, which went on re-declaring the account to the relay every
@@ -608,7 +608,7 @@ Bool GXLobbyChatCommand( const AsciiString &line, GXLobbyScreen screen,
 		// the game told them they were signed out - and the listening socket outlives the
 		// intent that opened it. cancel() is unconditional and idempotent. (Cross-model review.)
 		//
-		// GeneralsX @refactor Claude 18/09/2026 The cancel, the disarm and the delete now live in
+		// GeneralsX: The cancel, the disarm and the delete now live in
 		// GXLobbySignOut, which the lobby's right-click "Sign Out" shares - so the sequence above
 		// is stated once. It also clears the transport's copy, which this verb never did.
 		//
@@ -786,7 +786,7 @@ Bool GXLobbyGuardUnknownCommand( AsciiString &line, GXLobbyScreen screen, GXLobb
 }
 
 // ================================================================================================
-// GeneralsX @feature Claude 11/08/2026 Role presentation. See the declarations in the header.
+// GeneralsX: Role presentation. See the declarations in the header.
 // ================================================================================================
 
 GXAssertRole GXLobbyRoleFromCode( const char *code )
@@ -847,7 +847,7 @@ UnicodeString GXLobbySaid( const UnicodeString &speaker, const UnicodeString &bo
 
 UnicodeString GXLobbyOperatorName( GXAssertRole role )
 {
-	// GeneralsX @bugfix Claude 20/09/2026 THE ROLE IS AN ARGUMENT, because it used to be the constant
+	// GeneralsX: THE ROLE IS AN ARGUMENT, because it used to be the constant
 	// GX_ROLE_ADMIN and a moderator's line was drawn as "@Admin". The name and the
 	// decoration move together on purpose: "<@Admin>" would be a third thing that is neither.
 	if (role == GX_ROLE_MOD)
@@ -921,7 +921,7 @@ UnicodeString GXLobbyRoomPrefix( void )
 	return out;
 }
 
-// GeneralsX @feature Claude 13/08/2026 One prefix per run of like lines. Design note on the header.
+// GeneralsX: One prefix per run of like lines. Design note on the header.
 
 /// What a continuation line carries instead of the prefix.
 ///

@@ -16,7 +16,7 @@
 **	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-// GeneralsX @feature Claude 10/10/2026 WS-G Task 5: the device-less wrapper model (GxL2Model.h). Engine-free on purpose.
+// GeneralsX: WS-G Task 5: the device-less wrapper model (GxL2Model.h). Engine-free on purpose.
 
 #include "W3DDevice/GameClient/GXRender/Scene/GxL2Model.h"
 

@@ -9,7 +9,7 @@
 // view*projection), c12 = (0.5 viewport W, -0.5 viewport H, zEps, 0), c13 = (jitter x, jitter y in NDC, 0, 0). Matrices are row-vector
 // d3d matrices uploaded transposed: c[base + i] = column i, the vector gx_ff.vert's vecTimesMat4 dots with. Position = the FF vertex
 // shader's own precise two-step arithmetic on the same inputs, so the depth (and, but for jitter rounding, x/y) is the FF draw's:
-// the replay passes LESSEQUAL against the world depth with zEps 0 (codex units-design-r1 #11).
+// the replay passes LESSEQUAL against the world depth with zEps 0.
 //
 // Interface = the FF vertex shader's, like gx_cs_trees.vert, so the custom fragment module links unchanged. Texcoord6 / 7 carry
 // the previous / current (unjittered) clip position pre-scaled to pixels (xy * c12.xy, w); the fragment divides per pixel.

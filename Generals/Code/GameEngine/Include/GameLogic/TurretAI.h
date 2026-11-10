@@ -31,7 +31,7 @@
 #include "Common/StateMachine.h"
 #include "Common/GameMemory.h"
 
-// GeneralsX @fix Claude 23/09/2026 rad/frame, used only when a Turret block omits TurretTurnRate /
+// GeneralsX: rad/frame, used only when a Turret block omits TurretTurnRate /
 // TurretPitchRate (the INI values are parseAngularVelocityReal and already scale): halved at 60 Hz.
 #if GX_LOGIC_60HZ
 const Real DEFAULT_TURN_RATE = 0.005f;

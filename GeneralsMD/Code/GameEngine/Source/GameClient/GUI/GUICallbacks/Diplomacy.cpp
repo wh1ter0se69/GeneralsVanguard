@@ -97,7 +97,7 @@ void InitBuddyControls(Int type);
 void updateBuddyInfo();
 static void grabWindowPointers()
 {
-	// GeneralsX @bugfix Claude 13/08/2026 SHOW ALL TWELVE, NOT THE EIGHT THE .WND AUTHORS.
+	// GeneralsX: SHOW ALL TWELVE, NOT THE EIGHT THE .WND AUTHORS.
 	//
 	// Diplomacy.wnd authors StaticTextPlayer0..7, StaticTextSide0..7, StaticTextTeam0..7,
 	// StaticTextStatus0..7, ButtonMute0..7 and ButtonUnMute0..7 - verified by extracting it from
@@ -177,7 +177,7 @@ static void updateFunc( WindowLayout *layout, void *param )
 			theWindow->winHide( TRUE );
 	}
 
-	// GeneralsX @bugfix Claude 19/08/2026 The panel was populated ONCE, when it opened.
+	// GeneralsX: The panel was populated ONCE, when it opened.
 	//
 	// Every figure in it moves - ping most obviously, but also alive/defeated and the mute state -
 	// and none of them were refreshed while it was on screen. The only way to see a current ping
@@ -532,7 +532,7 @@ void PopulateInGameDiplomacyPopup()
 			if (slot->isAI())
 				isInGame = true;
 			Player *player = ThePlayerList->getPlayerFromSlotIndex(slotNum);
-			// GeneralsX @bugfix Claude 21/09/2026 isPlayerObserver() below was always an unguarded
+			// GeneralsX: isPlayerObserver() below was always an unguarded
 			// deref (docs/WORKDIR/PLAYER_CEILING_SWEEP_FINDINGS.md:334); the slot-index lookup makes
 			// a miss return nullptr rather than whatever the name lookup happened to find.
 			if (!player)
@@ -629,7 +629,7 @@ void PopulateInGameDiplomacyPopup()
 					}
 				}
 
-				// GeneralsX @feature Claude 13/08/2026 PING PER PLAYER, on the screen the player
+				// GeneralsX: PING PER PLAYER, on the screen the player
 				// already opens with TAB (CommandMap.ini binds DIPLOMACY to KEY_TAB in GAME, and
 				// MSG_META_DIPLOMACY calls ToggleDiplomacy - verified by extracting
 				// Data\English\CommandMap.ini from EnglishZH.big, so no retail key is rebound).
@@ -656,7 +656,7 @@ void PopulateInGameDiplomacyPopup()
 				{
 					Int pingMs = TheNetwork->getPeerPingMs(slotNum);
 
-					// GeneralsX @bugfix Claude 19/08/2026 THE HOST USED TO SEE "--ms" FOR ITSELF
+					// GeneralsX: THE HOST USED TO SEE "--ms" FOR ITSELF
 					// while every client saw a figure for its own row, which reads as a broken
 					// readout on exactly one machine in the lobby.
 					//
@@ -674,7 +674,7 @@ void PopulateInGameDiplomacyPopup()
 					// ARE the host, is zero. That is a definition rather than a measurement, which
 					// is why it is the only place a confident 0 is honest - every other zero in
 					// this readout still renders as a dash.
-					// GeneralsX @bugfix Claude 19/08/2026 AND EVERY CLIENT USED TO SEE "--ms" FOR
+					// GeneralsX: AND EVERY CLIENT USED TO SEE "--ms" FOR
 					// THE HOST, which is the same absence seen from the other side.
 					//
 					// The fix above only covered "I am the router, looking at my own row". A client

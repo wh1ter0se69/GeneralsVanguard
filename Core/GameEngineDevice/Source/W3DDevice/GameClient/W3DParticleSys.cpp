@@ -144,7 +144,7 @@ void W3DParticleSystemManager::doParticles(RenderInfoClass &rinfo)
 
 	m_fieldParticleCount = 0;
 
-	const Bool drawSmudge = TheSmudgeManager && TheSmudgeManager->getHardwareSupport() && gxGovHeatEffects(TheGlobalData->m_useHeatEffects);	// GeneralsX @feature Claude 17/10/2026 S14 look governor (GameClient/GXLookGovernor.h): heat step
+	const Bool drawSmudge = TheSmudgeManager && TheSmudgeManager->getHardwareSupport() && gxGovHeatEffects(TheGlobalData->m_useHeatEffects);	// GeneralsX: S14 look governor (GameClient/GXLookGovernor.h): heat step
 
 	if (drawSmudge)
 	{
@@ -154,7 +154,7 @@ void W3DParticleSystemManager::doParticles(RenderInfoClass &rinfo)
 	// Number of particles/points being rendered.
 	UnsignedInt pointCount = 0;
 
-	// GeneralsX @performance Claude 23/09/2026 Look each particle texture up once per frame, not once per
+	// GeneralsX: Look each particle texture up once per frame, not once per
 	// on-screen system. Get_Texture by name allocates, lowercases and walks a hash whose key is four
 	// characters of the file name, and a Toxin Tractor fight puts thousands of trail and puddle systems on
 	// screen; that lookup was up to 11% of the main thread. The key is the name's text, not its buffer:
@@ -164,7 +164,7 @@ void W3DParticleSystemManager::doParticles(RenderInfoClass &rinfo)
 	typedef std::unordered_map<AsciiString, RefCountPtr<TextureClass>, rts::hash<AsciiString>, rts::equal_to<AsciiString> > FrameTextureMap;
 	FrameTextureMap frameTextures;
 
-	// GeneralsX @performance Claude 29/09/2026 Walk only the systems that can hold a particle (in the same order as the
+	// GeneralsX: Walk only the systems that can hold a particle (in the same order as the
 	// full list), not every live system: see ParticleSystemManager::getRenderableSystems.
 	const std::vector<ParticleSystem *> &particleSysList = TheParticleSystemManager->getRenderableSystems();
 	for( std::vector<ParticleSystem *>::const_iterator it = particleSysList.begin(); it != particleSysList.end(); ++it)
@@ -235,7 +235,7 @@ void W3DParticleSystemManager::doParticles(RenderInfoClass &rinfo)
 		}
 		RefCountPtr<TextureClass> texture = known->second;
 
-		// GeneralsX @bugfix Claude 23/09/2026 A VOLUME_PARTICLE system with VolParticleDepth <= 1 skips the volume
+		// GeneralsX: A VOLUME_PARTICLE system with VolParticleDepth <= 1 skips the volume
 		// branch below, so it must batch like plain particles; otherwise its points stayed in the buffer with no
 		// batch texture and were flushed untextured under the next system's stale shader. Retail never sets it.
 		const Bool canBatch = sys->isUsingParticles() ||

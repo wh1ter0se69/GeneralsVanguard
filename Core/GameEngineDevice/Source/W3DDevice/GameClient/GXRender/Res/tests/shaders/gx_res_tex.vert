@@ -1,4 +1,4 @@
-// GeneralsX @test E · rw2-C 11/10/2026 gx_res_test's texel reader: one full-target triangle.
+// GeneralsX: gx_res_test's texel reader: one full-target triangle.
 #version 450
 void main()
 {

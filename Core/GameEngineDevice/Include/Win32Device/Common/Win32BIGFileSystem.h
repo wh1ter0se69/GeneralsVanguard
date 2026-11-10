@@ -50,7 +50,7 @@ public:
 	virtual void closeAllFiles() override;															///< Close all files associated with ArchiveFiles
 
 	virtual Bool loadBigFilesFromDirectory(AsciiString dir, AsciiString fileMask, Bool overwrite = FALSE) override;
-	// GeneralsX @bugfix Claude 25/09/2026 The virtual above is reached only from ArchiveFileSystem::loadMods
+	// GeneralsX: The virtual above is reached only from ArchiveFileSystem::loadMods
 	// and keeps retail's recursive walk of a -mod folder. Every game-folder scan in this file passes
 	// searchSubdirectories=FALSE: see the comment on the definition.
 	Bool loadBigFilesFromDirectory(AsciiString dir, AsciiString fileMask, Bool overwrite, Bool searchSubdirectories);
@@ -58,7 +58,7 @@ public:
 	virtual Bool isModArchive(const Char *archiveName) const override;
 protected:
 
-	// GeneralsX @feature Claude 08/08/2026 Community-patch overlay directory.
+	// GeneralsX: Community-patch overlay directory.
 	/// Mount every .big in the overlay directory with the precedence its FILENAME would
 	/// have given it inside the game folder. See Win32BIGFileSystem.cpp for why neither
 	/// overwrite=FALSE nor overwrite=TRUE can express that.

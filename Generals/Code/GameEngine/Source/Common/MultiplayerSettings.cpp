@@ -128,7 +128,7 @@ MultiplayerSettings::~MultiplayerSettings()
 	delete m_overrideBackup;
 }
 
-// GeneralsX @bugfix Claude 10/10/2026 A map.ini's MultiplayerSettings, MultiplayerColor and MultiplayerStartingMoneyChoice blocks
+// GeneralsX: A map.ini's MultiplayerSettings, MultiplayerColor and MultiplayerStartingMoneyChoice blocks
 // write this singleton IN PLACE (there is no override for it - the parser only DEBUG_CRASHes) and reset() was empty, so a map's
 // values outlived it for the rest of the process: beacons per player and shroud-in-multiplayer are read by the simulation, the
 // colors and starting-money list by every later lobby. The whole object is copied before the map's first block and copied back

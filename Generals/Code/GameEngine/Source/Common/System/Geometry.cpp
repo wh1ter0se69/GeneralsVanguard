@@ -279,7 +279,7 @@ void GeometryInfo::get2DBounds(const Coord3D& geomCenter, Real angle, Region2D& 
 
 		case GEOMETRY_BOX:
 		{
-			// GeneralsX @bugfix Claude 02/10/2026 Determinism-1 item 3: Sin/Cos (Lib/trig.h, GameMath - basic IEEE ops only), not libm,
+			// GeneralsX: Determinism-1 item 3: Sin/Cos (Lib/trig.h, GameMath - basic IEEE ops only), not libm,
 			// whose last bit differs per platform library; a box's bounds feed partition/collision extents and pathfinder cells.
 			Real c = Cos(angle);
 			Real s = Sin(angle);

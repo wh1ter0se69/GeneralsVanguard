@@ -70,7 +70,7 @@ static void _appendMessage(const AsciiString& str, Bool isTrueMessage = true, Bo
 static void _adjustVariable(const AsciiString& str, Int value, Bool shouldPause = false);
 static void _updateFrameNumber();
 static HMODULE st_DebugDLL;
-// GeneralsX @performance Claude 23/09/2026 Only build script-debugger message strings when something will consume them.
+// GeneralsX: Only build script-debugger message strings when something will consume them.
 // Debug-crashing builds keep building them: ScriptAction::getUiText / Parameter::getUiText carry the
 // DEBUG_CRASH validation of malformed script parameters, which must keep firing there. Release builds
 // define neither macro (Debug.h: ALLOW_DEBUG_UTILS needs RTS_DEBUG or a DEBUG_* option).
@@ -207,7 +207,7 @@ Int AttackPriorityInfo::getPriority(const ThingTemplate *tThing) const
 }
 
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @performance Claude 30/09/2026 an upper bound on every getPriority result, for AI::findClosestEnemy's early stop.
+// GeneralsX: an upper bound on every getPriority result, for AI::findClosestEnemy's early stop.
 // Cached: a script's per-KindOf priority puts hundreds of templates in the map, and walking it on every priority search
 // (idle mood targets, turrets, guards, hunters) cost more than the search itself saved (ai-smartcheap-3 g4: IDLE +30%).
 //-------------------------------------------------------------------------------------------------
@@ -271,7 +271,7 @@ void AttackPriorityInfo::reset()
 // ------------------------------------------------------------------------------------------------
 void AttackPriorityInfo::crc( Xfer *xfer )
 {
-	// GeneralsX @feature Claude 01/10/2026 Determinism-1 item 1. The map is keyed by ThingTemplate POINTER, so its
+	// GeneralsX: Determinism-1 item 1. The map is keyed by ThingTemplate POINTER, so its
 	// iteration order is heap order and differs per machine (the save xfer walks it as is): entries are folded in
 	// commutatively by template name, never in iteration order.
 	xfer->xferAsciiString( &m_name );
@@ -985,7 +985,7 @@ void ScriptEngine::init()
 	curTemplate->m_uiStrings[2] = " nearest team ";
 	curTemplate->m_uiStrings[3] = ".";
 
-	// GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6).
+	// GeneralsX: ai-wh1ter0se-econ R (gx-handoff ai/wh1ter0se-econ/DESIGN.md 6).
 	curTemplate = &m_actionTemplates[ScriptAction::AI_PLAYER_FACE_FRONT];
 	curTemplate->m_internalName = "AI_PLAYER_FACE_FRONT";
 	curTemplate->m_uiName = "Player_/AI/AI player turns production doors to its base front and defences outward.";
@@ -994,7 +994,7 @@ void ScriptEngine::init()
 	curTemplate->m_numUiStrings = 2;
 	curTemplate->m_uiStrings[0] = " ";
 	curTemplate->m_uiStrings[1] = " turns production doors to its base front.";
-	// GeneralsX @feature Claude 22/10/2026 ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7).
+	// GeneralsX: ai-wh1ter0se-econ T (gx-handoff ai/wh1ter0se-econ/DESIGN.md 7).
 	curTemplate = &m_actionTemplates[ScriptAction::AI_PLAYER_TUNNEL_AIR_WATCH];
 	curTemplate->m_internalName = "AI_PLAYER_TUNNEL_AIR_WATCH";
 	curTemplate->m_uiName = "Player_/AI/AI player's tunnels watch for enemy aircraft within a radius (0 = off); the team guards in the tunnels.";
@@ -1008,7 +1008,7 @@ void ScriptEngine::init()
 	curTemplate->m_uiStrings[2] = "; ";
 	curTemplate->m_uiStrings[3] = " guards in the tunnels.";
 
-	// GeneralsX @feature Claude 30/10/2026 rb-core: the AI RULE BANK's three actions (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.2,
+	// GeneralsX: rb-core: the AI RULE BANK's three actions (gx-handoff ai/rulebank/PLAN_rulebank.md 2.2.2,
 	// CONTRACT v1 2.6.1) - added once, then never another: every engine rule is configured through them, by rule id and key
 	// (GXRules/GXRuleTable.inl). A stock .scb never calls them.
 	curTemplate = &m_actionTemplates[ScriptAction::AI_PLAYER_GX_RULE];
@@ -4961,7 +4961,7 @@ void ScriptEngine::init()
 	curTemplate->m_uiStrings[0] = " ";
 	curTemplate->m_uiStrings[1] = " has free container slots.";
 
-	// GeneralsX @feature Claude 01/11/2026 rb-sense-1: the AI rule bank's FAIR faction sensor (SENSE.ENEMY_FACTION; gx-handoff
+	// GeneralsX: rb-sense-1: the AI rule bank's FAIR faction sensor (SENSE.ENEMY_FACTION; gx-handoff
 	// ai/rulebank/core/NEXT_rb-sense-1.md). A stock .scb never names it.
 	curTemplate = &m_conditionTemplates[Condition::AI_PLAYER_GX_SENSE];
 	curTemplate->m_internalName = "AI_PLAYER_GX_SENSE";
@@ -4975,7 +4975,7 @@ void ScriptEngine::init()
 	curTemplate->m_uiStrings[1] = " knows that ";
 	curTemplate->m_uiStrings[2] = " is ";
 
-	// GeneralsX @feature Claude 02/11/2026 rb-sense-2: the AI rule bank's FAIR enemy-object conditions (SENSE.FOG_CONDITIONS; gx-handoff
+	// GeneralsX: rb-sense-2: the AI rule bank's FAIR enemy-object conditions (SENSE.FOG_CONDITIONS; gx-handoff
 	// ai/rulebank/core/PLAN_rb-sense-2.md) - the fair twins of PLAYER_HAS_OBJECT_COMPARISON and SKIRMISH_VALUE_IN_AREA, which read through
 	// fog. Only what the AI's own units and buildings see now counts. A stock .scb never names them.
 	curTemplate = &m_conditionTemplates[Condition::AI_PLAYER_GX_SEEN_COUNT];
@@ -5604,7 +5604,7 @@ void ScriptEngine::reset()
 //-------------------------------------------------------------------------------------------------
 /** newMap */
 //-------------------------------------------------------------------------------------------------
-// GeneralsX @diag Claude 28/07/2026 See checkConditionsForTeamNames - counts how many delayed-eval
+// GeneralsX @diag /07/2026 See checkConditionsForTeamNames - counts how many delayed-eval
 // scripts draw from the shared logic RNG during newMap, which is where the two peers diverge.
 Int g_gxScriptDelayDraws = 0;
 Int g_gxScriptNoDelay = 0;
@@ -5680,7 +5680,7 @@ void ScriptEngine::newMap()
 	m_fadeFramesDecrease = FRAMES_TO_FADE_IN_AT_START;
 	m_curFadeValue = 0.0f;
 
-	// GeneralsX @diag Claude 28/07/2026 delayDraws is the number of shared-RNG draws this call made.
+	// GeneralsX @diag /07/2026 delayDraws is the number of shared-RNG draws this call made.
 	// If it differs between peers, every later draw differs and the match desyncs at frame 0.
 	fprintf(stderr, "[GXSCRIPT] newMap EXIT seed=%u delayDraws=%d noDelay=%d\n",
 		(unsigned)GetGameLogicRandomSeedCRC(), g_gxScriptDelayDraws, g_gxScriptNoDelay);
@@ -6324,10 +6324,10 @@ Int ScriptEngine::allocateCounter( const AsciiString& name)
 {
 	Int i;
 	// Note - counters start at 1.  0 means not assigned.
-	// GeneralsX @bugfix Claude 06/10/2026 Every caller caches this slot in the parameter's int and treats 0 as "not yet
+	// GeneralsX: Every caller caches this slot in the parameter's int and treats 0 as "not yet
 	// allocated" - but that int is read from the map file, and Parameter::ReadParameter can bound it only by the type the
 	// FILE gives the parameter: a counter slot tagged INT carried INT_MAX past that check, and setCounter wrote
-	// m_counters[INT_MAX] (Codex mlv-r5 #1). The callers now treat any int outside 1..MAX_COUNTERS-1 (flags: MAX_FLAGS) as
+	// m_counters[INT_MAX]. The callers now treat any int outside 1..MAX_COUNTERS-1 (flags: MAX_FLAGS) as
 	// unassigned and allocate by name, as for 0. Every slot this function hands out is inside, so real maps run as before.
 	for (i=1; i<m_numCounters; i++) {
 		if (name==m_counters[i].name) {
@@ -6349,7 +6349,7 @@ static_assert(!RETAIL_COMPATIBLE_XFER_SAVE || (ScriptEngine::MAX_COUNTERS == 256
 	"RETAIL_COMPATIBLE_XFER_SAVE needs retail's 256 counters and flags");
 
 #if defined(GX_TEST_INSTRUMENTS)
-// GeneralsX @test Claude 30/10/2026 rb-core: the > 256 counters / flags save-load fixture's access (test-instruments builds only)
+// GeneralsX: rb-core: the > 256 counters / flags save-load fixture's access (test-instruments builds only)
 Int ScriptEngine::gxTestSetCounter(const AsciiString &name, Int value)
 {
 	const Int i = allocateCounter(name);
@@ -6582,7 +6582,7 @@ Bool ScriptEngine::evaluateCounter( Condition *pCondition )
 		counterNdx = allocateCounter(pCondition->getParameter(0)->getString());
 		pCondition->getParameter(0)->friend_setInt(counterNdx);
 	}
-	// GeneralsX @bugfix Claude 07/08/2026 A map's raw frame literals are 30 Hz frame counts.
+	// GeneralsX: A map's raw frame literals are 30 Hz frame counts.
 	//
 	// This is why the main-menu camera sat still for a minute and then panned at half speed.
 	//
@@ -6896,9 +6896,9 @@ void ScriptEngine::setPriorityThing( ScriptAction *pAction )
 void ScriptEngine::setPriorityKind( ScriptAction *pAction )
 {
 	DEBUG_ASSERTCRASH(pAction->getNumParameters() >= 3, ("Not enough parameters."));
-	// GeneralsX @bugfix Claude 06/10/2026 The kind-of is the parameter's int as the map file gave it: ReadParameter bounds
+	// GeneralsX: The kind-of is the parameter's int as the map file gave it: ReadParameter bounds
 	// it only when the file tags it KIND_OF_PARAM, and ThingTemplate::isKindOf's std::bitset::test threw out_of_range -
-	// past every handler - for a bit outside KINDOF_COUNT under any other tag (Codex mlv-r6 #1). Such an action does
+	// past every handler - for a bit outside KINDOF_COUNT under any other tag. Such an action does
 	// nothing, and allocates no priority set.
 	if (pAction->getParameter(1)->getInt() < 0 || pAction->getParameter(1)->getInt() >= KINDOF_COUNT) {
 		return;
@@ -7024,7 +7024,7 @@ void ScriptEngine::setTimer( ScriptAction *pAction, Bool millisecondTimer, Bool 
 			value = GameLogicRandomValue(value, randomValue);
 		}
 #if GX_LOGIC_60HZ
-		// GeneralsX @fix Claude 23/09/2026 Retail 30 Hz rounding grid, then scale (see INI::parseDurationUnsignedInt):
+		// GeneralsX: Retail 30 Hz rounding grid, then scale (see INI::parseDurationUnsignedInt):
 		// 0.25 s is 8 retail frames (266.7 ms), not 15 frames (250 ms).
 		m_counters[counterNdx].value = GX_FRAMES30(REAL_TO_INT_CEIL((value*1000) * ((Real)BaseFps / (Real)MSEC_PER_SECOND)));
 #else
@@ -7089,7 +7089,7 @@ void ScriptEngine::adjustTimer( ScriptAction *pAction, Bool millisecondTimer, Bo
 		if (!add)
 			value = -value;
 #if GX_LOGIC_60HZ
-		// GeneralsX @fix Claude 23/09/2026 Retail 30 Hz rounding grid, then scale (see INI::parseDurationUnsignedInt):
+		// GeneralsX: Retail 30 Hz rounding grid, then scale (see INI::parseDurationUnsignedInt):
 		// 0.25 s is 8 retail frames (266.7 ms), not 15 frames (250 ms).
 		m_counters[counterNdx].value += GX_FRAMES30(REAL_TO_INT_CEIL((value*1000) * ((Real)BaseFps / (Real)MSEC_PER_SECOND)));
 #else
@@ -7182,7 +7182,7 @@ void ScriptEngine::checkConditionsForTeamNames(Script *pScript)
 	AsciiString singletonTeamName;
 	AsciiString multiTeamName;
 
-	// GeneralsX @diag Claude 28/07/2026 Count the draws this makes - it is the ONLY live consumer of
+	// GeneralsX @diag /07/2026 Count the draws this makes - it is the ONLY live consumer of
 	// the shared logic RNG between populateRandomStartPosition and the end of ScriptEngine::newMap,
 	// and measurement says the two peers leave that window with different seeds. Replaying one .rep
 	// headless on each platform: both enter at seed 2805577022, Windows leaves at 2805577022 (zero
@@ -7408,7 +7408,7 @@ void ScriptEngine::addObjectToCache(Object* pNewObject)
 				AsciiString newNameForDead;
 				newNameForDead.format("Reassigning dead object's name '%s' to object (%d) of type '%s'", objName.str(), pNewObject->getID(), pNewObject->getTemplate()->getName().str());
 				AppendDebugMessage(newNameForDead, FALSE);
-				DEBUG_LOG(("%s", newNameForDead.str()));	// GeneralsX @security Claude 06/10/2026 it holds the map's object name
+				DEBUG_LOG(("%s", newNameForDead.str()));	// GeneralsX: it holds the map's object name
 				it->second = pNewObject;
 				return;
 			} else {
@@ -8129,7 +8129,7 @@ void ScriptEngine::notifyOfTeamDestruction(Team *teamDestroyed)
 	for (it = m_sequentialScripts.begin(); it != m_sequentialScripts.end(); /* empty */) {
 		SequentialScript *seqScript = (*it);
 		if (!seqScript) {
-			// GeneralsX @bugfix Claude 01/10/2026 Step past it: this loop steps by hand, so a bare continue spun forever.
+			// GeneralsX: Step past it: this loop steps by hand, so a bare continue spun forever.
 			++it;
 			continue;
 		}
@@ -8164,7 +8164,7 @@ void ScriptEngine::setSequentialTimer(Object *obj, Int frameCount)
 		if (seqScript->m_objectID == id) {
 			// this is it.
 #if GX_LOGIC_60HZ
-			// GeneralsX @fix Claude 23/09/2026 UNIT/TEAM_GUARD_FOR_FRAMECOUNT, UNIT/TEAM_IDLE_FOR_FRAMECOUNT and TEAM_SPIN_FOR_FRAMECOUNT
+			// GeneralsX: UNIT/TEAM_GUARD_FOR_FRAMECOUNT, UNIT/TEAM_IDLE_FOR_FRAMECOUNT and TEAM_SPIN_FOR_FRAMECOUNT
 			// are authored in 30 Hz frames by map and AI scripts, and counted down once per frame below. <= 0
 			// are sentinels (-1 = wait for idle) and must pass through unscaled.
 			seqScript->m_framesToWait = frameCount > 0 ? GX_FRAMES30(frameCount) : frameCount;
@@ -8192,7 +8192,7 @@ void ScriptEngine::setSequentialTimer(Team *team, Int frameCount)
 		if (seqScript->m_teamToExecOn == team) {
 			// this is it.
 #if GX_LOGIC_60HZ
-			// GeneralsX @fix Claude 23/09/2026 UNIT/TEAM_GUARD_FOR_FRAMECOUNT, UNIT/TEAM_IDLE_FOR_FRAMECOUNT and TEAM_SPIN_FOR_FRAMECOUNT
+			// GeneralsX: UNIT/TEAM_GUARD_FOR_FRAMECOUNT, UNIT/TEAM_IDLE_FOR_FRAMECOUNT and TEAM_SPIN_FOR_FRAMECOUNT
 			// are authored in 30 Hz frames by map and AI scripts, and counted down once per frame below. <= 0
 			// are sentinels (-1 = wait for idle) and must pass through unscaled.
 			seqScript->m_framesToWait = frameCount > 0 ? GX_FRAMES30(frameCount) : frameCount;
@@ -8480,7 +8480,7 @@ SequentialScript::SequentialScript() : m_teamToExecOn(nullptr),
 // ------------------------------------------------------------------------------------------------
 void SequentialScript::crc( Xfer *xfer )
 {
-	// GeneralsX @feature Claude 01/10/2026 Determinism-1 item 1: the same fields the save xfer keeps.
+	// GeneralsX: Determinism-1 item 1: the same fields the save xfer keeps.
 	TeamID teamID = m_teamToExecOn ? m_teamToExecOn->getID() : TEAM_ID_INVALID;
 	xfer->xferUser( &teamID, sizeof( TeamID ) );
 	xfer->xferObjectID( &m_objectID );
@@ -8869,7 +8869,7 @@ void ScriptEngine::AdjustDebugVariableData(const AsciiString& variableName, Int 
 }
 
 // ------------------------------------------------------------------------------------------------
-// GeneralsX @feature Claude 02/10/2026 Determinism-1 (ROADMAP_2027 M1 item 1): which script state is CLIENT-LOCAL, so
+// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 1): which script state is CLIENT-LOCAL, so
 // ScriptEngine::crc can leave it out. Every peer runs every script, but a condition can read the LOCAL player, camera,
 // selection or sound, and then fires on some peers only. The shipped Data\Scripts\MultiplayerScripts.scb is built on
 // that: "Set <faction> Faction" sets counter _FACTION from SKIRMISH_PLAYER_FACTION("<Local Player>"), and the
@@ -8900,7 +8900,7 @@ static Bool gxConditionTypeIsClientLocal( Int conditionType )
 	}
 }
 
-// GeneralsX @bugfix Claude 03/10/2026 Codex det1-hashes P2-3. These only READ their counter, for the HUD
+// GeneralsX: review det1-hashes P2-3. These only READ their counter, for the HUD
 // (ScriptActions::doDisplayCounter and its three siblings call TheInGameUI alone), so a local script showing a shared
 // counter must not make the counter local: that took it, and every script testing it, out of the CRC on every peer.
 static Bool gxActionOnlyDisplaysCounter( Int actionType )
@@ -8989,11 +8989,11 @@ Bool ScriptEngine::gxClassifyScript( Script *script, Bool challenge )
 				localAction = gxNamesLocalPlayer( action->getParameter( i ), challenge );
 			if( !localAction )
 				continue;
-			// GeneralsX @bugfix Claude 03/10/2026 Codex det1-hashes P2-2 + det-codex-adv-r1. These name a UNIT or TEAM, not
+			// GeneralsX: review det1-hashes P2-2 +. These name a UNIT or TEAM, not
 			// a script, and change the sequential queue a SHARED script started - a stop empties it, the *_FOR_FRAMECOUNT
 			// actions set its wait (setSequentialTimer) - on one peer only; crc() then leaves the whole queue out (a
 			// unit/team name can be "<This Object>"/"<This Team>", resolved only at run time).
-			// ponytail: the whole queue, not just the named units' entries - a coverage loss, never a false desync, and
+			// Trade-off: the whole queue, not just the named units' entries - a coverage loss, never a false desync, and
 			// only in maps with such a local action (none in the shipped MP/skirmish scripts, 03/10); narrow it per
 			// entry if one ever needs that coverage.
 			switch( action->getActionType() )
@@ -9024,7 +9024,7 @@ Bool ScriptEngine::gxClassifyScript( Script *script, Bool challenge )
 					case Parameter::FLAG:
 						if( !gxHasName( m_gxLocalFlags, name ) ) { m_gxLocalFlags.push_back( name ); changed = TRUE; }
 						break;
-					case Parameter::ATTACK_PRIORITY_SET:	// GeneralsX det-codex-adv-r1: a set a local action creates or writes
+					case Parameter::ATTACK_PRIORITY_SET:	// GeneralsX: a set a local action creates or writes
 						if( action->getActionType() == ScriptAction::NAMED_APPLY_ATTACK_PRIORITY_SET
 							|| action->getActionType() == ScriptAction::TEAM_APPLY_ATTACK_PRIORITY_SET )
 							break;	// only READS the set (r2): its table stays shared and covered
@@ -9053,7 +9053,7 @@ void ScriptEngine::gxClassifyClientLocal()
 	m_gxLocalGroups.clear();
 	m_gxLocalAttackSets.clear();
 	m_gxLocalSequentialStop = FALSE;
-	// GeneralsX @bugfix Claude 03/10/2026 Codex det1-hashes P2-1. evaluateFlag answers TRUE for a flag named after a
+	// GeneralsX: review det1-hashes P2-1. evaluateFlag answers TRUE for a flag named after a
 	// pending UI interaction (m_uiInteractions), and signalUIInteract is only ever called with TheShellHookNames - e.g.
 	// "ShellOptionsOpened" when one player opens Options in a match. Such a flag is client-local from the start.
 	for( Int i = 0; i < SHELL_SCRIPT_HOOK_TOTAL; ++i )
@@ -9085,10 +9085,10 @@ void ScriptEngine::gxClassifyClientLocal()
 // ------------------------------------------------------------------------------------------------
 void ScriptEngine::crc( Xfer *xfer )
 {
-	// GeneralsX @feature Claude 01/10/2026 Determinism-1 (ROADMAP_2027 M1 item 1, CA-29). Was empty, so nothing a
+	// GeneralsX: Determinism-1 (ROADMAP_2027 M1 item 1, CA-29). Was empty, so nothing a
 	// script changes - counters, flags, timers, which scripts are enabled, sequential scripts - reached the CRC; a desync
 	// there surfaced only once it had moved an object.
-	// GeneralsX @bugfix Claude 02/10/2026 Only the state that is the SAME on every peer (gxClassifyClientLocal above).
+	// GeneralsX: Only the state that is the SAME on every peer (gxClassifyClientLocal above).
 	// Counters and flags go in by NAME, sorted, an absent one equal to its default: allocateCounter/allocateFlag assign
 	// indices lazily, at first use, so one local-only use shifts every later index - and the counts - per peer. Left
 	// out: the counts, m_endGameTimer and m_closeWindowTimer (set by the VICTORY/DEFEAT/LOCALDEFEAT actions of local
@@ -9130,7 +9130,7 @@ void ScriptEngine::crc( Xfer *xfer )
 		xfer->xferAsciiString( &m_flags[ order[ i ] ].name );
 
 	// Attack priority sets a local action allocated or wrote are left out, and the count counts the rest, so a local
-	// allocation cannot shift it (det-codex-adv-r1). Shared sets keep their relative order on every peer.
+	// allocation cannot shift it. Shared sets keep their relative order on every peer.
 	n = 0;
 	for( i = 0; i < m_numAttackInfo && i < MAX_ATTACK_PRIORITIES; ++i )
 		if( !gxHasName( m_gxLocalAttackSets, m_attackPriorityInfo[ i ].getName() ) )

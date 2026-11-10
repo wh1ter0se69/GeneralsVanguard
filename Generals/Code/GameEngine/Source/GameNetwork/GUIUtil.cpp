@@ -185,7 +185,7 @@ void ShowUnderlyingGUIElements( Bool show, const char *layoutFilename, const cha
 
 void PopulateColorComboBox(Int comboBox, GameWindow *comboArray[], GameInfo *myGame, Bool isObserver)
 {
-	// GeneralsX @bugfix Claude 12/08/2026 slots 8+ have no .wnd control until the lobby rebuild lands
+	// GeneralsX: slots 8+ have no .wnd control until the lobby rebuild lands
 	if (comboArray[comboBox] == nullptr) return;
 
 	Int numColors = TheMultiplayerSettings->getNumColors();
@@ -262,7 +262,7 @@ void PopulatePlayerTemplateComboBox(Int comboBox, GameWindow *comboArray[], Game
 		if (myGame->oldFactionsOnly() && !fac->isOldFaction())
 			continue;
 
-		// GeneralsX @bugfix Copilot 11/05/2026 Guard ChallengeGenerals access in base Generals where the singleton may be unavailable during skirmish menu setup.
+		// GeneralsX: Guard ChallengeGenerals access in base Generals where the singleton may be unavailable during skirmish menu setup.
 		Bool disallowLockedGenerals = TRUE;
 		const GeneralPersona *general = TheChallengeGenerals ? TheChallengeGenerals->getGeneralByTemplateName(fac->getName()) : nullptr;
 		Bool startsLocked = general ? !general->isStartingEnabled() : FALSE;

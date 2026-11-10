@@ -17,7 +17,7 @@
 */
 
 // FILE: DesyncReport.cpp //////////////////////////////////////////////////////////////////////////
-// GeneralsX @feature Claude 25/09/2026 The desync window: one row per player, in real columns.
+// GeneralsX: The desync window: one row per player, in real columns.
 //
 // Retail's whole answer to a CRC mismatch was Menus/CRCMismatch.wnd, which names nobody. Since
 // 17/08/2026 Network.cpp put a per-player report into a MessageBoxOk body - but a static text is ONE
@@ -271,7 +271,7 @@ Bool layCells( GameWindow *box, const UnicodeString &header, const UnicodeString
 GameWindow *DesyncReportShow( const std::map<Int, UnsignedInt> &playerCRCs, Int noticedFrame, Int divergedFrame )
 {
 	// ITERATE THE SLOTS: the CRC table is keyed by the reporter's network SLOT (GameLogic::onLogicCrc).
-	// GeneralsX @feature Claude 25/09/2026 (observer seats) No longer by Player index: observer slots all share
+	// GeneralsX: (observer seats) No longer by Player index: observer slots all share
 	// the ReplayObserver, so a Player-keyed table held one report for every observer and named none of them.
 	std::vector<DesyncReportRow> rows;
 	for( Int slot = 0; slot < MAX_SLOTS; ++slot )

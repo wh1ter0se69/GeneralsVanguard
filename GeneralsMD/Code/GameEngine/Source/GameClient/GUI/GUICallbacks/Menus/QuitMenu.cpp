@@ -198,7 +198,7 @@ static void restartMissionMenu()
 
 	Int rankPointsStartedWith = TheGameLogic->getRankPointsToAddAtGameStart();// must write down before reset
 	GameDifficulty diff = TheScriptEngine->getGlobalDifficulty();
-	// GeneralsX @feature Claude 27/09/2026 The restart's fourth MSG_NEW_GAME argument is the game SPEED
+	// GeneralsX: The restart's fourth MSG_NEW_GAME argument is the game SPEED
 	// (GameLogic::onNewGame), so pass the speed this game ran at, not the render cap: with the cap at the
 	// display's refresh rate or unlimited, that argument became a render cap again.
 	Int fps = TheFramePacer->isLogicTimeScaleEnabled() ? TheFramePacer->getLogicTimeScaleFps() : (Int)LOGICFRAMES_PER_SECOND;
@@ -233,10 +233,10 @@ static void restartMissionMenu()
 	TheInGameUI->setClientQuiet( TRUE );
 }
 
-// GeneralsX @feature Claude 06/10/2026 The replay strip's click BEHIND the playhead (GXReplayStrip.inl): the quit menu's own
+// GeneralsX: The replay strip's click BEHIND the playhead (GXReplayStrip.inl): the quit menu's own
 // Restart for a replay (clearGameData, then playbackFile again), without the menu. The strip races forward from the new start.
 // Returns whether the replay was started again: playbackFile fails when the file is gone, and the engine is then left at no game
-// (Codex r11 P2: the strip must give the race's sound mute and speed back, nothing else ever will).
+// (the strip must give the race's sound mute and speed back, nothing else ever will).
 Bool gxRestartReplay()
 {
 	s_gxRestartReplayStarted = FALSE;

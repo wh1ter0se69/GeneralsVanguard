@@ -75,7 +75,7 @@ class GameTextInterface : public SubsystemInterface
 		virtual UnicodeString fetch( const Char *label, Bool *exists = nullptr ) = 0;		///< Returns the associated labeled unicode text
 		virtual UnicodeString fetch( AsciiString label, Bool *exists = nullptr ) = 0;		///< Returns the associated labeled unicode text ; TheSuperHackers @todo Remove
 		virtual UnicodeString fetchFormat( const Char *label, ... ) = 0;
-		// GeneralsX @security Claude 06/10/2026 The game's own string tables only, never the loaded map's map.str: for text that will be
+		// GeneralsX: The game's own string tables only, never the loaded map's map.str: for text that will be
 		// used as a printf format. *exists says whether the GAME's tables hold the label (fetch()'s also counts map.str).
 		virtual UnicodeString fetchGameOnly( const Char *label, Bool *exists = nullptr ) = 0;
 
@@ -128,9 +128,9 @@ extern GameTextInterface* CreateGameTextInterface();
 
 #else
 
-// GeneralsX @security Claude 06/10/2026 The game's tables only, as fetchOrSubstitute is: FETCH_OR_SUBSTITUTE labels are the engine's own,
+// GeneralsX: The game's tables only, as fetchOrSubstitute is: FETCH_OR_SUBSTITUTE labels are the engine's own,
 // and callers format the result (InGameUI replay announcements), so plain fetch()'s map.str fallback let a custom map supply the format
-// in a -DENABLE_GAMETEXT_SUBSTITUTES=0 build (Codex format-strings-r4 P2). A missing label is still the MISSING line, as fetch() gives.
+// in a -DENABLE_GAMETEXT_SUBSTITUTES=0 build. A missing label is still the MISSING line, as fetch() gives.
 #define FETCH_OR_SUBSTITUTE(labelA, substituteTextW) fetchGameOnly(labelA)
 #if __cplusplus >= 201103L // TheSuperHackers @todo Remove condition when abandoning VC6
 #define FETCH_OR_SUBSTITUTE_FORMAT(labelA, substituteFormatW, ...) fetchFormat(labelA, ##__VA_ARGS__)

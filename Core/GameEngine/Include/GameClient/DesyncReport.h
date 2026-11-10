@@ -1,5 +1,5 @@
 /*
-** GeneralsX @feature Claude 25/09/2026 - who the desync report says agrees, disagrees or was silent,
+** GeneralsX: who the desync report says agrees, disagrees or was silent,
 ** and the order it lists them in, as a pure function (scripts/test/desync-report-test.cpp).
 **
 ** The window that uses it is DesyncReportShow (DesyncReport.cpp). This half holds the decisions

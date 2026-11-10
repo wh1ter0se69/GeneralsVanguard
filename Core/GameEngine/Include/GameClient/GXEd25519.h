@@ -1,6 +1,6 @@
 /* Ed25519 signature VERIFICATION, for the engine and for the launcher.
  *
- * GeneralsX @feature Claude 08/08/2026; moved out of the launcher 11/08/2026
+ * GeneralsX: moved out of the launcher 11/08/2026
  *
  * WHY THIS FILE EXISTS AT ALL. The release manifest is Ed25519-signed (scripts/tooling/
  * gx-manifest.py) and the launcher must refuse a manifest that does not verify - that check is the
@@ -78,7 +78,7 @@ int gx_ed25519_verify(const unsigned char *pk, const unsigned char *sig,
  * check on the two constants that cannot be checked by inspection. 1 on success. */
 int gx_ed25519_selftest_group(void);
 
-/* GeneralsX @security Claude 25/09/2026 SIGNING, for exactly one caller: an admin's per-match key
+/* GeneralsX: SIGNING, for exactly one caller: an admin's per-match key
  * (GameClient/GXAdminKey.h), which signs that admin's cheat orders so no other peer can send one in the
  * admin's name (Common/GXAdminOrder.h). RFC 8032 Ed25519 from a 32-byte seed; deterministic, so the output
  * is checked byte for byte against RFC 8032's vectors and against node:crypto by

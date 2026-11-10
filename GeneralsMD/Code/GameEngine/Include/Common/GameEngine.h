@@ -78,19 +78,19 @@ public:
 	virtual Bool isActive() {return m_isActive;}	///< returns whether app has OS focus.
 	virtual void setIsActive(Bool isActive) { m_isActive = isActive; };
 
-	/// GeneralsX @feature Claude 27/09/2026 The refresh rate, in Hz, of the display the game window is on;
+	/// GeneralsX: The refresh rate, in Hz, of the display the game window is on;
 	/// 0 when the device layer cannot tell (headless, a tool). The default max-FPS cap when the launcher
 	/// sets none - see Common/FpsLimitPolicy.h. Answered by SDL3GameEngine and Win32GameEngine.
 	virtual Int getDisplayRefreshRate() { return 0; }
 
-	/// GeneralsX @bugfix Claude 25/09/2026 The next update() runs everything but the logic tick - client,
+	/// GeneralsX: The next update() runs everything but the logic tick - client,
 	/// message propagation, network. HeadlessMatch's last pass after -lanframes N: it sends what the final
 	/// tick queued (MSG_LOGIC_CRC on a CRC frame) without simulating frame N.
 	void holdLogicForNextUpdate() { m_holdLogicOnce = TRUE; }
 	/// GeneralsX: wall time spent in GameLogic::update since the last call, its total and its worst tick (the replay timeline, GXReplayDiag).
 	void takeLogicTickNs(long long &totalNs, long long &maxNs) { totalNs = m_logicTickTotalNs; maxNs = m_logicTickMaxNs; m_logicTickTotalNs = 0; m_logicTickMaxNs = 0; }
 
-	/// GeneralsX @bugfix Claude 27/09/2026 One network + logic pass, no client, no draw - FramePacer::update's
+	/// GeneralsX: One network + logic pass, no client, no draw - FramePacer::update's
 	/// between-draws poll in a network game. FALSE when there is no network game to poll.
 	static Bool updateBetweenDraws();
 

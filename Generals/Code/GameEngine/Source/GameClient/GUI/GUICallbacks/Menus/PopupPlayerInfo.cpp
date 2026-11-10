@@ -473,7 +473,7 @@ void InsertBattleHonor(GameWindow *list, const Image *image, Bool enabled, Int i
 		itemData |= BATTLE_HONOR_NOT_GAINED;
 
 	GadgetListBoxAddEntryImage(list, image, row, column, height, width, TRUE, color);
-	// GeneralsX @bugfix BenderAI/felipebraz 14/03/2026 64-bit safe pointer cast (int to pointer)
+	// GeneralsX:/felipebraz 14/03/2026 64-bit safe pointer cast (int to pointer)
 	GadgetListBoxSetItemData(list, reinterpret_cast<void*>(static_cast<intptr_t>(itemData)), row, column );
 
 	/*

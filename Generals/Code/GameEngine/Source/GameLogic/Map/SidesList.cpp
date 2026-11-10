@@ -45,7 +45,7 @@
 
 #include "PreRTS.h"	// This must go first in EVERY cpp file in the GameEngine
 
-#include <cstdio>	// GeneralsX @feature Claude 12/08/2026 fprintf for the [GXCAP] capacity trace below
+#include <cstdio>	// GeneralsX: fprintf for the [GXCAP] capacity trace below
 
 #include "Common/DataChunk.h"
 #include "Common/GameState.h"
@@ -265,8 +265,8 @@ Bool SidesList::ParseSidesDataChunk(DataChunkInput &file, DataChunkInfo *info, v
 		for (j=0; j<count; j++)
 		{
 			pBuildList = newInstance( BuildListInfo );
-			// GeneralsX @bugfix Claude 06/10/2026 A read below that throws (a damaged map, now refused, not fatal) left this node
-			// unowned until addToBuildList took it, once per attempt (Codex mlv-r10 #3): it is freed on the way out until then.
+			// GeneralsX: A read below that throws (a damaged map, now refused, not fatal) left this node
+			// unowned until addToBuildList took it, once per attempt: it is freed on the way out until then.
 			struct DeleteOnThrow { BuildListInfo *node; ~DeleteOnThrow() { if (node != nullptr) deleteInstance(node); } } unowned = { pBuildList };
 			pBuildList->setBuildingName(file.readAsciiString());
 			pBuildList->setTemplateName(file.readAsciiString());
@@ -302,10 +302,10 @@ Bool SidesList::ParseSidesDataChunk(DataChunkInput &file, DataChunkInfo *info, v
 		}
 	}
 
-	// GeneralsX @bugfix Claude 06/10/2026 ParseScriptsDataChunk publishes what it read to ScriptList's statics and this
+	// GeneralsX: ParseScriptsDataChunk publishes what it read to ScriptList's statics and this
 	// collects it just below - but a load REFUSED in between (a throw from a later chunk, now a damaged-map refusal
 	// rather than a crash) left them published, and the next map whose sides carry no PlayerScriptsList collected the
-	// refused map's scripts as its own (Codex mlv-r3 #1). Whatever is pending before this map's own parse is not this
+	// refused map's scripts as its own. Whatever is pending before this map's own parse is not this
 	// map's: discard it.
 	ScriptList *scripts[MAX_PLAYER_COUNT];
 	count = ScriptList::getReadScripts(scripts);
@@ -533,7 +533,7 @@ void SidesList::prepareForMP_or_Skirmish()
 		}
 	}
 	if (!gotScripts) {
-		// GeneralsX @bugfix Copilot 22/03/2026 Load default skirmish scripts relative to the configured asset root.
+		// GeneralsX: Load default skirmish scripts relative to the configured asset root.
 		AsciiString path = "Data\\Scripts\\SkirmishScripts.scb";
 		DEBUG_LOG(("Skirmish map using standard scripts"));
 		m_skirmishTeamrec.clear();
@@ -628,7 +628,7 @@ void SidesList::addSide(const Dict* d)
 	}
 	else
 	{
-		// GeneralsX @bugfix Claude 12/08/2026 This drop used to be SILENT in release. The dropped
+		// GeneralsX: This drop used to be SILENT in release. The dropped
 		// side is whichever arrives last - typically the neutral or the ReplayObserver - and the
 		// match then plays with players who own nothing while every count still reads full. Say so.
 		fprintf(stderr, "[GXCAP] SidesList::addSide: side table full (%d of %d) - dropping side '%s'\n",
@@ -911,7 +911,7 @@ void SidesList::xfer( Xfer *xfer )
 		scriptList = getSideInfo( i )->getScriptList();
 		scriptListPresent = scriptList ? TRUE : FALSE;
 		xfer->xferBool( &scriptListPresent );
-		// GeneralsX @bugfix Claude 25/09/2026 A save written before GameLogic::startNewGame gave side 0 a
+		// GeneralsX: A save written before GameLogic::startNewGame gave side 0 a
 		// script list on a map that has none (the multiplayer victory/defeat fix) recorded no list for
 		// it, while this load's startNewGame created one. Keep that list, unread - there is nothing in
 		// the save for it - rather than refuse the whole save; its victory scripts start fresh.

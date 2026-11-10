@@ -33,7 +33,7 @@ endif()
 # Top level project, doesn't really affect anything.
 project(genzh LANGUAGES C CXX)
 
-# GeneralsX @build BenderAI 10/02/2026
+# GeneralsX:
 # Linux port: Make CompatLib headers globally accessible so Core libraries (WWLib, WWMath, etc.)
 # can access platform compatibility types when building for non-Windows platforms
 if(UNIX)
@@ -66,7 +66,7 @@ endif()
 # Dependencies/Miles/milesloader load them explicitly instead, which is why cmake/bink.cmake and
 # cmake/miles.cmake no longer exist.
 #
-# GeneralsX @build Claude 27/07/2026, retired 21/09/2026 This used to be a fetch gate carrying a
+# GeneralsX: retired 21/09/2026 This used to be a fetch gate carrying a
 # note about why it no longer demanded CMAKE_SIZEOF_VOID_P EQUAL 4: every consumer of the two stub
 # targets was gated on plain WIN32 with no word-size test, so at x64 the targets did not exist
 # while still being named and mss.h fell out of the include path. Nothing is fetched any more, so
@@ -76,7 +76,7 @@ endif()
 # Always include DX8 headers (needed for both Windows and Linux builds)
 # On Windows: min-dx8-sdk headers
 # On Linux: DXVK headers (for D3D8→Vulkan translation)
-# GeneralsX @bugfix Claude 25/09/2026 The Apple DXVK is the patched fork or the configure fails: a fresh
+# GeneralsX: The Apple DXVK is the patched fork or the configure fails: a fresh
 # git worktree has no references/fbraz3-dxvk checkout, and dx8.cmake then silently built the unpatched
 # remote clone (quarter-size picture on Retina). Why the guard lives under scripts/: its own header.
 # _gx_apple_dxvk is exactly dx8.cmake's own condition for building DXVK from source (its SAGE_USE_DX8 branch wins first).
@@ -94,7 +94,7 @@ if(_gx_apple_dxvk)
 endif()
 
 # SDL3 windowing/input for Linux builds (Phase 1)
-# GeneralsX @build BenderAI 11/02/2026
+# GeneralsX:
 if(SAGE_USE_SDL3)
     include(cmake/sdl3.cmake)
 endif()
@@ -117,7 +117,7 @@ include(cmake/fastfloat.cmake)
 # openal.cmake is self-guarded with if(SAGE_USE_OPENAL), so this is always safe to include.
 include(cmake/openal.cmake)
 
-# GeneralsX @feature BenderAI 21/04/2026 libcurl for in-game update checker (SAGE_UPDATE_CHECK builds)
+# GeneralsX: libcurl for in-game update checker (SAGE_UPDATE_CHECK builds)
 # curl.cmake is self-guarded with if(SAGE_UPDATE_CHECK), so always safe to include.
 include(cmake/curl.cmake)
 
@@ -145,7 +145,7 @@ endif()
 # VC6 block so /FIUtility/CppMacros.h reaches them - both loaders use nullptr, which CppMacros.h
 # maps to 0.
 #
-# GeneralsX @build Claude 21/09/2026 Gated on Windows, unlike upstream's unconditional placement.
+# GeneralsX: Gated on Windows, unlike upstream's unconditional placement.
 # Their only consumers are if(WIN32) blocks; nothing on macOS, Linux or iOS links binkloader or
 # milesloader, and off Windows BINK_LOADER_SUPPORTED / MILES_LOADER_SUPPORTED are 0 anyway.
 if(WIN32 OR "${CMAKE_SYSTEM}" MATCHES "Windows")
@@ -157,7 +157,7 @@ add_subdirectory(resources)
 
 add_subdirectory(Core)
 
-# GeneralsX @bugfix GitHubCopilot 14/04/2026 CompatLib must be configured on UNIX even when
+# GeneralsX: CompatLib must be configured on UNIX even when
 # only Generals (not ZH) is built. It sets up d3d8lib INTERFACE includes for DXVK headers
 # (windows_base.h) that core_wwcommon depends on transitively. When ZH is built,
 # GeneralsMD/Code/CMakeLists.txt already includes CompatLib via add_subdirectory.
@@ -168,7 +168,7 @@ endif()
 # SagePatch (casual QoL extras: screenshot, cursor lock, brightness, etc.)
 # Must be added before the game targets so sage_patch target exists when we
 # declare the dependency below.
-# GeneralsX @bugfix Claude 27/07/2026 Also require SDL3, instead of letting SagePatch FATAL_ERROR.
+# GeneralsX: Also require SDL3, instead of letting SagePatch FATAL_ERROR.
 #
 # SagePatch's own first statement is `if(NOT SAGE_USE_SDL3) message(FATAL_ERROR ...)`, and it hooks
 # events through DYLD __interpose on macOS and LD_PRELOAD+dlsym on Linux - neither of which exists

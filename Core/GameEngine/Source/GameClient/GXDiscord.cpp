@@ -1,6 +1,6 @@
 /* Discord Rich Presence: the local IPC client and the state it publishes.
  *
- * GeneralsX @feature Claude 09/08/2026
+ * GeneralsX:
  *
  * See GXDiscord.h for why this lives under GameClient and why it carries no dependency.
  *
@@ -47,7 +47,7 @@
 // Discord client is told in the handshake, and it names the app whose icon and title appear on the
 // profile. It is not a secret and it is not a token.
 //
-// GeneralsX @feature Claude 16/08/2026 The application now exists, so presence is on by default.
+// GeneralsX: The application now exists, so presence is on by default.
 //
 // This is the SAME application that backs Discord sign-in - a Discord app has one id, used both as
 // the OAuth client_id and as the Rich Presence application id. There is nothing to create and
@@ -91,7 +91,7 @@ static AsciiString s_appId;
 static AsciiString s_lastPayload;
 static UnsignedInt s_lastSendMs = 0;
 static UnsignedInt s_lastPollMs = 0;
-// GeneralsX @bugfix Claude 26/09/2026 Seconds in a time_t. This was UnsignedInt milliseconds, set as
+// GeneralsX: Seconds in a time_t. This was UnsignedInt milliseconds, set as
 // time(NULL) * 1000u: ~1.79e12 wraps a 32-bit value, so Discord was sent a start in early 1970 and showed
 // ~496307 hours elapsed (wh1ter0se, "rpc time is braindead").
 static time_t s_startedS = 0;
